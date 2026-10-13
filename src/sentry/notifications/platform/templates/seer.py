@@ -42,6 +42,7 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
     category = NotificationCategory.SEER
     example_data = SeerAutofixError(
         source=NotificationSource.SEER_AUTOFIX_ERROR,
+        organization_id=1,
         error_message="(401): Could not connect to your GitHub repository for this project.",
     )
     hide_from_debugger = True
@@ -67,7 +68,6 @@ class SeerAutofixPullRequest(TypedDict):
 
 class SeerAutofixUpdate(NotificationData):
     run_id: int
-    organization_id: int
     project_id: int
     group_id: int
     current_point: AutofixStoppingPoint
@@ -145,7 +145,6 @@ class SeerAutofixTrigger(NotificationData):
     alert rendering, prior to being migrated to the Notification Platform.
     """
 
-    organization_id: int
     project_id: int
     group_id: int
     run_id: int | None = None
@@ -176,6 +175,7 @@ class SeerAgentError(NotificationData):
 class SeerAgentErrorTemplate(NotificationTemplate[SeerAgentError]):
     category = NotificationCategory.SEER
     example_data = SeerAgentError(
+        organization_id=1,
         error_title="Seer had some trouble...",
         error_message="Seer could not explore your organization.",
     )
@@ -192,7 +192,6 @@ class SeerAgentResponse(NotificationData):
     """Notification data for Agent completion response in Slack."""
 
     run_id: int
-    organization_id: int
     summary: str
     missing_scope_settings_url: str | None = None
     source: NotificationSource = NotificationSource.SEER_AGENT_RESPONSE
@@ -214,7 +213,6 @@ class SeerAgentResponseTemplate(NotificationTemplate[SeerAgentResponse]):
 
 class SeerAgentWriteApproval(NotificationData):
     run_id: int
-    organization_id: int
     input_id: str
     scopes: list[str]
     source: NotificationSource = NotificationSource.SEER_AGENT_WRITE_APPROVAL

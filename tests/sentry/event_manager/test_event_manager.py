@@ -4733,7 +4733,6 @@ class SavePendingAttachmentsTest(TestCase):
         from sentry.event_manager import save_pending_attachments
 
         with (
-            self.feature("projects:defer-attachment-storage"),
             mock.patch("sentry.event_manager.track_outcome") as track,
         ):
             save_pending_attachments(
@@ -4785,8 +4784,10 @@ class SavePendingAttachmentsTest(TestCase):
         assert PendingEventAttachment.objects.filter(id=self.pending.id).exists()
         assert not EventAttachment.objects.filter(project_id=self.project.id).exists()
 
-    def test_no_query_without_the_feature(self) -> None:
+    def test_probe_does_not_open_a_transaction_when_there_is_nothing_to_promote(self) -> None:
         from sentry.event_manager import save_pending_attachments
+
+        PendingEventAttachment.objects.all().delete()
 
         with CaptureQueriesContext(
             connections[router.db_for_write(PendingEventAttachment)]
@@ -4797,27 +4798,6 @@ class SavePendingAttachmentsTest(TestCase):
                 group_id=self.group.id,
                 source="test",
             )
-
-        assert not [
-            q for q in queries.captured_queries if "sentry_pendingeventattachment" in q["sql"]
-        ]
-        assert PendingEventAttachment.objects.filter(id=self.pending.id).exists()
-
-    def test_probe_does_not_open_a_transaction_when_there_is_nothing_to_promote(self) -> None:
-        from sentry.event_manager import save_pending_attachments
-
-        PendingEventAttachment.objects.all().delete()
-
-        with CaptureQueriesContext(
-            connections[router.db_for_write(PendingEventAttachment)]
-        ) as queries:
-            with self.feature("projects:defer-attachment-storage"):
-                save_pending_attachments(
-                    project=self.project,
-                    event_id=self.event_id,
-                    group_id=self.group.id,
-                    source="test",
-                )
 
         # A single unlocked probe, and no `FOR UPDATE` claim behind it.
         pending_queries = [

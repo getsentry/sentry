@@ -23,7 +23,10 @@ import {
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
-import {MAX_METRIC_ALLOWED_LABEL_VALUE} from 'sentry/views/explore/metrics/constants';
+import {
+  MAX_METRIC_ALLOWED_LABEL_VALUE,
+  METRICS_CHART_GROUP,
+} from 'sentry/views/explore/metrics/constants';
 import {useEquationReferencedLabels} from 'sentry/views/explore/metrics/hooks/useEquationReferencedLabels';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import {useSortableMetricQueries} from 'sentry/views/explore/metrics/hooks/useSortableMetricQueries';
@@ -43,7 +46,6 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
-export const METRICS_CHART_GROUP = 'metrics-charts-group';
 
 type MetricsTabProps = {
   datePageFilterProps: DatePageFilterProps;
@@ -250,7 +252,7 @@ function SortableMetricPanelSection({
                 setTraceMetric={metricQuery.setTraceMetric}
                 removeMetric={metricQuery.removeMetric}
               >
-                <AiQueryProvider>
+                <AiQueryProvider strategy="Metrics">
                   <SortableMetricPanel
                     referencedMetricLabels={referencedMetricLabels}
                     onEquationLabelsChange={onEquationLabelsChange}

@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import {motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
@@ -29,7 +30,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {Overlay, type OverlayProps, PositionWrapper} from 'sentry/components/overlay';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

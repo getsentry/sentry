@@ -746,7 +746,7 @@ const TraceViewport = styled('div')`
 const TraceStylingWrapper = styled('div')`
   margin: auto;
   overscroll-behavior: none;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.neutral.muted};
   position: absolute;
   left: 0;
@@ -899,7 +899,7 @@ const TraceStylingWrapper = styled('div')`
       position: absolute;
       width: 1px;
       height: 100%;
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.primary};
       left: 50%;
     }
@@ -925,7 +925,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceIndicatorContainerMiddleLine {
     position: absolute;
     top: 18px;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background-color: ${p => p.theme.tokens.border.primary};
     width: 100%;
     height: 1px;
@@ -1379,22 +1379,26 @@ const TraceStylingWrapper = styled('div')`
 
     .TraceIconGroupStart {
       transform-origin: left center;
-      transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      transform: translate(0, -50%) scaleX(var(--inverse-span-scale))
+        translateX(${p => p.theme.space['2xs']}) translateZ(0);
     }
 
     .TraceIconGroupEnd {
       transform-origin: right center;
-      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale))
+        translateX(calc(-1 * ${p => p.theme.space['2xs']})) translateZ(0);
     }
 
     .TraceIconStart {
       transform-origin: left center;
-      transform: translate(0, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      transform: translate(0, -50%) scaleX(var(--inverse-span-scale))
+        translateX(${p => p.theme.space['2xs']}) translateZ(0);
     }
 
     .TraceIconEnd {
       transform-origin: right center;
-      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale)) translateZ(0);
+      transform: translate(-100%, -50%) scaleX(var(--inverse-span-scale))
+        translateX(calc(-1 * ${p => p.theme.space['2xs']})) translateZ(0);
     }
 
     .TraceIconCount {
@@ -1764,7 +1768,7 @@ const TraceStylingWrapper = styled('div')`
 
     &::after {
       content: '';
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p => p.theme.tokens.border.neutral.muted};
       border-radius: 50%;
       height: 6px;

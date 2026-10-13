@@ -1,3 +1,5 @@
+from urllib.parse import parse_qs, urlsplit
+
 from django.urls import reverse
 
 from sentry.auth.providers.fly.provider import FlyOAuth2Provider
@@ -36,7 +38,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
         assert response.status_code == 200
         # redirects to login to the org in the url
         assert response.redirect_chain == [
-            (f"/auth/login/{another_org.slug}/?next=/projects/", 302),
+            (f"/auth/login/{another_org.slug}/?next=%2Fprojects%2F", 302),
         ]
 
     def test_redirect_for_logged_out_user(self) -> None:
@@ -54,6 +56,16 @@ class AuthOrganizationChannelLoginTest(TestCase):
             ("/projects/", 302),
         ]
 
+    def test_session_destination(self) -> None:
+        self.login_as(self.user)
+        self.session["_next"] = "/projects/"
+        self.save_session()
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 302
+        assert response["Location"] == "/projects/"
+
     def test_subdomain_precedence(self) -> None:
         another_org = self.create_organization(name="another org")
         path = reverse("sentry-auth-channel", args=["fly", another_org.id])
@@ -66,6 +78,26 @@ class AuthOrganizationChannelLoginTest(TestCase):
         assert response.redirect_chain == [
             (f"/auth/login/{self.organization.slug}/", 302),
         ]
+
+    def test_login_preserves_destination_query(self) -> None:
+        destination = "/releases/?env=prod&statsPeriod=7d"
+
+        response = self.client.get(self.path, {"next": destination})
+
+        assert response.status_code == 302
+        location = urlsplit(response["Location"])
+        assert location.path == f"/auth/login/{self.organization.slug}/"
+        assert parse_qs(location.query) == {"next": [destination]}
+
+    def test_login_preserves_session_destination_query(self) -> None:
+        destination = "/releases/?env=prod&statsPeriod=7d"
+        self.session["_next"] = destination
+        self.save_session()
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 302
+        assert parse_qs(urlsplit(response["Location"]).query) == {"next": [destination]}
 
 
 @control_silo_test

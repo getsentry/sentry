@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -9,7 +11,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Timeline} from 'sentry/components/timeline';
-import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {HypothesisEvidencePlaceholder} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
 import {
@@ -159,13 +160,7 @@ export function HypothesisCard({
                       <StepTitle size="sm" variant="muted" bold={false}>
                         {showAllSteps
                           ? t('Show less')
-                          : isTerminal
-                            ? tn('Show %s step', 'Show all %s steps', steps.length)
-                            : tn(
-                                'Show %s more step',
-                                'Show %s more steps',
-                                hiddenStepCount
-                              )}
+                          : tn('Show %s step', 'Show %s steps', hiddenStepCount)}
                       </StepTitle>
                       <IconChevron
                         size="xs"
@@ -204,7 +199,9 @@ export function HypothesisCard({
                     variant={isRunning ? 'primary' : 'muted'}
                     wordBreak="break-word"
                   >
-                    {step.title}
+                    {step.status === 'skipped'
+                      ? t('%s (skipped)', step.title)
+                      : step.title}
                   </StepTitle>
                 }
               />

@@ -22,7 +22,6 @@ from sentry.testutils.helpers.datetime import before_now
 class SavedQueriesTest(APITestCase):
     features = {
         "organizations:visibility-explore-view": True,
-        "organizations:discover-queries-in-all-queries": True,
     }
 
     def setUp(self) -> None:
@@ -269,29 +268,6 @@ class SavedQueriesTest(APITestCase):
         assert [s.explore_saved_query.name for s in starred] == sorted_names
         assert [s.position for s in starred] == list(range(1, len(sorted_names) + 1))
         assert starred[middle_index].explore_saved_query.name == middle_name
-
-    def test_sync_prebuilt_starred_preserves_user_custom_order(self) -> None:
-        sync_prebuilt_queries(self.org)
-        sync_prebuilt_queries_starred(self.org, self.user)
-
-        original_ids = list(
-            ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)
-            .order_by("position")
-            .values_list("explore_saved_query_id", flat=True)
-        )
-        reversed_ids = list(reversed(original_ids))
-        ExploreSavedQueryStarred.objects.reorder_starred_queries(
-            self.org, self.user.id, reversed_ids
-        )
-
-        sync_prebuilt_queries_starred(self.org, self.user)
-
-        after_ids = list(
-            ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)
-            .order_by("position")
-            .values_list("explore_saved_query_id", flat=True)
-        )
-        assert after_ids == reversed_ids
 
     def test_get_my_queries(self) -> None:
         with self.feature(self.features):

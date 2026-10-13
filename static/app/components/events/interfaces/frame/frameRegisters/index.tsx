@@ -34,7 +34,7 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
   }
 
   return (
-    <Container padding={{zero: 'xs lg', xl: 'md 2xl xl lg'}}>
+    <Container borderTop="primary" padding={{zero: 'xs lg', xl: 'md 2xl xl lg'}}>
       <StyledClippedBox clipHeight={CLIPPED_HEIGHT}>
         <Stack gap="md">
           <Flex align="center" justify="between" gap="md" wrap="wrap" paddingLeft="sm">

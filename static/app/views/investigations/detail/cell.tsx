@@ -1,5 +1,10 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconClose} from '@sentry/icons/close';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconReturn} from '@sentry/icons/return';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -21,7 +26,6 @@ import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {COLUMN_ALIGN_JUSTIFY} from 'sentry/components/tables/sortableHeaderCell';
-import {IconArrow, IconClose, IconEllipsis, IconReturn, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -319,8 +323,9 @@ function QueryResult({
     chart?.subtitle ||
     getChartMetadata(chart);
 
-  // The agent is told to write this as a bare Markdown table, with no prose
-  // around it, so it can run edge to edge beneath the card's inset content.
+  // The agent is told to write this as a bare Markdown table so it can run
+  // edge to edge beneath the card's inset content, but it sometimes adds prose
+  // around the table anyway, which `QueryResultMarkdown` insets.
   const tableMarkdown = chart ? null : output?.tableMarkdown || null;
 
   const header =
@@ -350,6 +355,8 @@ function QueryResult({
     <CellProgress state={progressState} />
   );
 
+  const hasInsetContent = Boolean(header || hasExecutionAlert(block) || body);
+
   return (
     <CellHoverSurface width="100%">
       <SeerEmbedBlock
@@ -361,7 +368,7 @@ function QueryResult({
       >
         {/* A table alone has nothing to inset above it; rendering the section
             anyway would leave its padding as an empty strip. */}
-        {header || hasExecutionAlert(block) || body ? (
+        {hasInsetContent ? (
           <Stack gap="md" padding="lg">
             {header}
             <CellExecutionAlert block={block} />
@@ -369,7 +376,9 @@ function QueryResult({
           </Stack>
         ) : null}
         {tableMarkdown ? (
-          <SeerMarkdown raw={tableMarkdown} components={{Table: QueryResultTable}} />
+          <QueryResultMarkdown insetTop={!hasInsetContent}>
+            <SeerMarkdown raw={tableMarkdown} components={{Table: QueryResultTable}} />
+          </QueryResultMarkdown>
         ) : null}
       </SeerEmbedBlock>
     </CellHoverSurface>
@@ -565,6 +574,7 @@ function QueryResultTable({
 }) {
   return (
     <FlushSimpleTable
+      data-query-result-table
       // The same split the query embeds' tables use: the leading column tends
       // to name the row, and the rest hold its values.
       columns={columns.map((_, index) => ({
@@ -1271,6 +1281,25 @@ const CellHoverSurface = styled(Stack)`
 const FlushSimpleTable = styled(SimpleTable)`
   border-width: 1px 0 0;
   border-radius: 0;
+`;
+
+/**
+ * Insets any prose the agent wrote around the table to line up with the
+ * card's header, while the table itself keeps running edge to edge. The
+ * Markdown renders each block as a direct child of its own root.
+ */
+const QueryResultMarkdown = styled('div')<{insetTop: boolean}>`
+  > * > :not([data-query-result-table]) {
+    padding-inline: ${p => p.theme.space.lg};
+  }
+
+  > * > :first-child:not([data-query-result-table]) {
+    padding-top: ${p => (p.insetTop ? p.theme.space.lg : 0)};
+  }
+
+  > * > :last-child:not([data-query-result-table]) {
+    padding-bottom: ${p => p.theme.space.lg};
+  }
 `;
 
 /**

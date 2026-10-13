@@ -124,7 +124,12 @@ function useTraceItemAttributeConfig({
   const allNumberAttributes = useMemo(() => {
     const measurements = getDefaultNumberAttributes(traceItemType).map(measurement => [
       measurement,
-      {key: measurement, name: measurement, kind: FieldKind.MEASUREMENT},
+      {
+        key: measurement,
+        name: measurement,
+        kind: FieldKind.MEASUREMENT,
+        attributeSource: 'sentry',
+      },
     ]);
 
     const secondaryAliases: TagCollection = Object.fromEntries(
@@ -142,7 +147,7 @@ function useTraceItemAttributeConfig({
   const allStringAttributes = useMemo(() => {
     const tags = getDefaultStringAttributes(traceItemType).map(tag => [
       tag,
-      {key: tag, name: tag, kind: FieldKind.TAG},
+      {key: tag, name: tag, kind: FieldKind.TAG, attributeSource: 'sentry'},
     ]);
     const secondaryAliases: TagCollection = Object.fromEntries(
       Object.values(data?.stringAttributes ?? {})
@@ -159,7 +164,7 @@ function useTraceItemAttributeConfig({
   const allBooleanAttributes = useMemo(() => {
     const tags = getDefaultBooleanAttributes(traceItemType).map(tag => [
       tag,
-      {key: tag, name: tag, kind: FieldKind.BOOLEAN},
+      {key: tag, name: tag, kind: FieldKind.BOOLEAN, attributeSource: 'sentry'},
     ]);
     const secondaryAliases: TagCollection = Object.fromEntries(
       Object.values(data?.booleanAttributes ?? {})
@@ -295,21 +300,13 @@ export function useTraceItemDatasetAttributes(
 
 export function useSpanItemAttributes(
   options?: TraceItemAttributeOptions,
-  type?: TraceItemAttributeType,
-  hiddenKeys?: string[]
+  type?: TraceItemAttributeType
 ): TraceItemAttributeResult {
-  const mergedHiddenKeys = useMemo(() => {
-    if (!hiddenKeys?.length) {
-      return DASHBOARD_ONLY_SPAN_ATTRIBUTES;
-    }
-    return [...hiddenKeys, ...DASHBOARD_ONLY_SPAN_ATTRIBUTES];
-  }, [hiddenKeys]);
-
   return useTraceItemDatasetAttributes(
     TraceItemDataset.SPANS,
     options,
     type,
-    mergedHiddenKeys
+    DASHBOARD_ONLY_SPAN_ATTRIBUTES
   );
 }
 

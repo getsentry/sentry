@@ -6,7 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import type {ExtendedToken} from './marked';
 import {MarkedLexer} from './marked';
-import {Token} from './token';
+import {MarkdownStreamingContext, Token} from './token';
 import {streamingAnimationStyles, useStreamingAnimation} from './useStreamingAnimation';
 
 type WithDefault<Props> = Props & {Default: ComponentType<Props>};
@@ -209,7 +209,9 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
       data-streaming={isStreaming || undefined}
     >
       {isStreaming && <Global styles={streamingAnimationStyles} />}
-      {elements}
+      <MarkdownStreamingContext.Provider value={isStreaming}>
+        {elements}
+      </MarkdownStreamingContext.Provider>
     </Stack>
   );
 }

@@ -13,6 +13,11 @@ from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_re
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.services.assignment_source import AssignmentSource
+from sentry.issues.derived.features import FIRST_ASSIGNMENT_ACTION_ID
+from sentry.issues.derived.processing import PIPELINE
+from sentry.issues.derived.replay import FeatureHistoryLimitExceeded, replay_feature_from_log
+from sentry.issues.derived.store import GroupDerivedDataStore
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
@@ -148,6 +153,23 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         if isinstance(assigned_to, (UserModel, RpcUser)) and assigned_to.is_active is False:
             return {"new_assignment": False, "updated_assignment": False}
 
+        is_first_assignment = False
+        if features.has(
+            "organizations:issue-summary-on-first-assignment", group.project.organization
+        ):
+            derived = GroupDerivedData.objects.get_or_none(group_id=group.id)
+            if derived is None or derived.pipeline_hash != PIPELINE.pipeline_hash:
+                try:
+                    is_first_assignment = (
+                        replay_feature_from_log(group.id, PIPELINE, FIRST_ASSIGNMENT_ACTION_ID)
+                        is None
+                    )
+                except FeatureHistoryLimitExceeded:
+                    is_first_assignment = False
+            else:
+                state = GroupDerivedDataStore.load(PIPELINE, derived)
+                is_first_assignment = state[FIRST_ASSIGNMENT_ACTION_ID] is None
+
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned
         )
@@ -177,7 +199,11 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         if affected:
             transaction.on_commit(
                 lambda: issue_assigned.send_robust(
-                    project=group.project, group=group, user=acting_user, sender=self.__class__
+                    project=group.project,
+                    group=group,
+                    user=acting_user,
+                    is_first_assignment=is_first_assignment,
+                    sender=self.__class__,
                 ),
                 router.db_for_write(GroupAssignee),
             )

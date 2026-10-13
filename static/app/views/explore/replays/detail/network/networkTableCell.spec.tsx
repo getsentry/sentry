@@ -1,12 +1,24 @@
+import type {ReactNode} from 'react';
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
 
 import {NetworkTableCell} from './networkTableCell';
+
+function TableWrapper({children}: {children: ReactNode}) {
+  return (
+    <NuqsAdapter>
+      <SimpleTable>
+        <SimpleTable.Row>{children}</SimpleTable.Row>
+      </SimpleTable>
+    </NuqsAdapter>
+  );
+}
 
 describe('NetworkTableCell', () => {
   it('uses parent selection without registering a history listener for every cell', async () => {
@@ -33,7 +45,7 @@ describe('NetworkTableCell', () => {
           startTimestampMs={0}
           style={{}}
         />,
-        {additionalWrapper: NuqsAdapter}
+        {additionalWrapper: TableWrapper}
       );
 
       expect(

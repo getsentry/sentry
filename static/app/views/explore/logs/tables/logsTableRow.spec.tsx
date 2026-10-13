@@ -697,6 +697,7 @@ describe('logsTableRow', () => {
   });
 
   it('navigates with the truncated message when connected spans cannot load the details', async () => {
+    const onExpand = jest.fn();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID]}/`,
       method: 'GET',
@@ -708,6 +709,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithTruncatedMessage}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+        onExpand={onExpand}
         sharedHoverTimeoutRef={{
           current: null,
         }}
@@ -727,6 +729,7 @@ describe('logsTableRow', () => {
         {type: 'logs', query: `message:"${truncatedMessage}"`},
       ]);
     });
+    expect(onExpand).not.toHaveBeenCalled();
   });
 
   it('does not show string filter actions for numeric fields', async () => {

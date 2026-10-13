@@ -35,9 +35,14 @@ import {
   getNodeEvaluation,
 } from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
+import {
+  getMemoryPreview,
+  getNodeMemory,
+} from 'sentry/views/insights/pages/agents/utils/memory';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
+import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 
 interface SpanPresentation {
   color: string;
@@ -68,18 +73,25 @@ export function AiSpanTimeline({
     [compressedBounds, nodes]
   );
 
-  const nodeAiRunParentsMap = useMemo<Record<string, AITraceSpanNode>>(() => {
-    const parents: Record<string, AITraceSpanNode> = {};
+  const nodeIndentMap = useMemo<Record<string, number>>(() => {
+    const indents: Record<string, number> = {};
     for (const node of nodes) {
-      const parent =
-        getGenAiOpType(node) === GenAiOperationType.AGENT
-          ? node
-          : node.findParent(p => getIsAiAgentNode(p));
-      if (parent) {
-        parents[node.id] = parent;
-      }
+      let indent = 0;
+      const visited = new Set<BaseNode>([node]);
+      node.findParent(parent => {
+        // Conversation nodes can have cyclic parent links; stop the walk there.
+        if (visited.has(parent)) {
+          return true;
+        }
+        visited.add(parent);
+        if (getIsAiAgentNode(parent)) {
+          indent++;
+        }
+        return false;
+      });
+      indents[node.id] = indent;
     }
-    return parents;
+    return indents;
   }, [nodes]);
 
   if (isLoading) {
@@ -89,13 +101,11 @@ export function AiSpanTimeline({
   return (
     <Stack gap="xs">
       {nodes.map(node => {
-        const aiRunNode = nodeAiRunParentsMap[node.id];
-        const shouldIndent = aiRunNode && aiRunNode !== node;
         return (
           <TimelineRow
             key={node.id}
             node={node}
-            indent={shouldIndent ? 1 : 0}
+            indent={nodeIndentMap[node.id] ?? 0}
             traceBounds={timeBounds}
             onSelectNode={onSelectNode}
             isSelected={node.id === selectedNodeKey}
@@ -331,6 +341,18 @@ function getSpanPresentation(
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
         op,
       secondary: getEvaluationPreview(evaluation),
+    };
+  }
+
+  // Memory operations report their own `gen_ai.operation.type`, so they fall
+  // through the op-type switch below; recognize them by operation name here.
+  const memory = getNodeMemory(node);
+  if (memory) {
+    return {
+      color,
+      isTool: false,
+      title: memory.operation ?? op,
+      secondary: getMemoryPreview(memory),
     };
   }
 

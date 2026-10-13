@@ -62,15 +62,15 @@ describe('Grouping Variant', () => {
       />
     );
 
-    expect(
-      screen.getByRole('row', {name: /^Parent Span Hashes \[\s*\]$/})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('row', {name: /^Source Span Hashes \[\s*hash1\s*\]$/})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('row', {name: /^Offender Span Hashes \[\s*hash2\s*\]$/})
-    ).toBeInTheDocument();
+    expect(screen.getByText('Parent Span Hashes').parentElement).toHaveTextContent(
+      'Parent Span Hashes[]'
+    );
+    expect(screen.getByText('Source Span Hashes').parentElement).toHaveTextContent(
+      'Source Span Hashes[hash1]'
+    );
+    expect(screen.getByText('Offender Span Hashes').parentElement).toHaveTextContent(
+      'Offender Span Hashes[hash2]'
+    );
   });
 
   it('renders grouping details for occurrence-backed performance issues', () => {
@@ -82,14 +82,14 @@ describe('Grouping Variant', () => {
       />
     );
 
-    expect(
-      screen.getByRole('row', {name: /^Parent Span Hashes \[\s*\]$/})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('row', {name: /^Source Span Hashes \[\s*hash1\s*\]$/})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('row', {name: /^Offender Span Hashes \[\s*hash2\s*\]$/})
-    ).toBeInTheDocument();
+    expect(screen.getByText('Parent Span Hashes').parentElement).toHaveTextContent(
+      'Parent Span Hashes[]'
+    );
+    expect(screen.getByText('Source Span Hashes').parentElement).toHaveTextContent(
+      'Source Span Hashes[hash1]'
+    );
+    expect(screen.getByText('Offender Span Hashes').parentElement).toHaveTextContent(
+      'Offender Span Hashes[hash2]'
+    );
   });
 });

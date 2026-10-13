@@ -1,9 +1,7 @@
 import {Fragment, useCallback} from 'react';
-import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {TabList} from '@sentry/scraps/tabs';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -22,6 +20,7 @@ import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay'
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -71,6 +70,8 @@ export function TransactionHeader({
 }: Props) {
   const {isInDomainView, view} = useDomainViewFilters();
   const navigate = useNavigate();
+  // Apdex and User Misery thresholds only apply to the transactions dataset.
+  const isInsightsEap = useInsightsEap();
 
   const getNewRoute = useCallback(
     (newTab: Tab) => {
@@ -168,21 +169,11 @@ export function TransactionHeader({
 
   if (isInDomainView) {
     const headerProps = {
-      headerTitle: (
-        <Fragment>
-          {project && (
-            <IdBadge
-              project={project}
-              avatarSize={28}
-              hideName
-              avatarProps={{hasTooltip: true, tooltip: project.slug}}
-            />
-          )}
-          <Tooltip showOnlyOnOverflow skipWrapper title={transactionName}>
-            <TransactionName>{transactionName}</TransactionName>
-          </Tooltip>
-        </Fragment>
-      ),
+      headerTitle: {
+        type: 'page-title' as const,
+        label: transactionName,
+        leadingGraphic: project && <IdBadge project={project} avatarSize={16} hideName />,
+      },
       hideDefaultTabs: true,
       tabs: {
         onTabChange,
@@ -217,12 +208,14 @@ export function TransactionHeader({
             organization={organization}
             transactionName={transactionName}
           />
-          <TransactionThresholdButton
-            organization={organization}
-            transactionName={transactionName}
-            eventView={eventView}
-            onChangeThreshold={onChangeThreshold}
-          />
+          {isInsightsEap ? null : (
+            <TransactionThresholdButton
+              organization={organization}
+              transactionName={transactionName}
+              eventView={eventView}
+              onChangeThreshold={onChangeThreshold}
+            />
+          )}
         </Fragment>
       ),
     };
@@ -295,11 +288,3 @@ export function TransactionHeader({
     </Layout.Header>
   );
 }
-
-const TransactionName = styled('div')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;

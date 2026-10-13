@@ -35,6 +35,10 @@ export type FormattedQueryProps = {
   getFilterTokenWarning?: (key: string) => React.ReactNode;
 };
 
+type ProvidedFormattedQueryProps = FormattedQueryProps & {
+  allowRegexOperators?: boolean;
+};
+
 type TokenProps = {
   token: ParseResultToken;
 };
@@ -120,12 +124,14 @@ export function FormattedQuery({
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
+  const {allowRegexOperators} = useSearchQueryBuilderConfig();
   const parsedQuery = useMemo(() => {
     return parseQueryBuilderValue(query, fieldDefinitionGetter, {
+      allowRegexOperators,
       filterKeys,
       filterKeyAliases,
     });
-  }, [fieldDefinitionGetter, filterKeys, query, filterKeyAliases]);
+  }, [allowRegexOperators, fieldDefinitionGetter, filterKeys, query, filterKeyAliases]);
 
   if (!parsedQuery) {
     return <QueryWrapper className={className} />;
@@ -150,15 +156,17 @@ export function FormattedQuery({
  * Use this one if your component is not wrapped in a `SearchQueryBuilderProvider`.
  */
 export function ProvidedFormattedQuery({
+  allowRegexOperators,
   className,
   query,
   fieldDefinitionGetter = defaultFieldDefinitionGetter,
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
   getFilterTokenWarning,
-}: FormattedQueryProps) {
+}: ProvidedFormattedQueryProps) {
   return (
     <SearchQueryBuilderProvider
+      allowRegexOperators={allowRegexOperators}
       filterKeys={filterKeys}
       fieldDefinitionGetter={fieldDefinitionGetter}
       getTagValues={() => Promise.resolve([])}

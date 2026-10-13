@@ -83,7 +83,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, isLoading}: Props)
               return (
                 <Tooltip
                   key={item.project.id}
-                  overlayStyle={{maxWidth: 'none'}}
+                  maxWidth="none"
                   title={
                     <Flex align="center" gap="sm" key={item.project.id}>
                       <ProjectBadge disableLink avatarSize={16} project={item.project} />
@@ -104,7 +104,7 @@ export function SamplingBreakdown({sampleCounts, sampleRates, isLoading}: Props)
             })}
             {hasOthers && (
               <Tooltip
-                overlayStyle={{maxWidth: 'none'}}
+                maxWidth="none"
                 title={
                   <Flex align="center" gap="sm">
                     <OthersBadge />

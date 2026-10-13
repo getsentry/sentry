@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry import eventstore
 from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
     build_footer,
@@ -72,6 +71,7 @@ class IssueMSTeamsRendererTest(TestCase):
         assert group is not None
 
         data = IssueNotificationData(
+            organization_id=1,
             group_id=group.id,
             event_id=event.event_id,
             notification_uuid="test-uuid",
@@ -109,16 +109,16 @@ class IssueMSTeamsRendererTest(TestCase):
         )
 
         project = Project.objects.get_from_cache(id=group.project_id)
-        rules = [
+        origins = [
             SerializableRuleProxy(
                 id=1,
                 label="Test Detector",
                 data={"actions": [{"workflow_id": 1}]},
                 project_id=self.project.id,
-            ).to_rule()
+            ).to_notification_origin()
         ]
         footer_text = build_footer(
-            group=group, project=project, url_format=MSTEAMS_URL_FORMAT, rules=rules
+            group=group, project=project, url_format=MSTEAMS_URL_FORMAT, rules=origins
         )
 
         from datetime import datetime
@@ -148,7 +148,8 @@ class IssueMSTeamsRendererTest(TestCase):
                     "actionType": action_type,
                     "groupId": group.id,
                     "eventId": event.event_id,
-                    "rules": [1],
+                    "rules": [],
+                    "workflows": [1],
                 }
             }
 
@@ -225,7 +226,7 @@ class IssueMSTeamsRendererTest(TestCase):
     def test_render_raises_on_invalid_data(self) -> None:
         from sentry.notifications.platform.templates.seer import SeerAutofixError
 
-        invalid_data = SeerAutofixError(error_message="test")
+        invalid_data = SeerAutofixError(organization_id=1, error_message="test")
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
@@ -374,7 +375,10 @@ class IssueMSTeamsRendererTest(TestCase):
         group_event.occurrence = occurrence
 
         with (
-            patch.object(eventstore.backend, "get_event_by_id", return_value=event),
+            patch(
+                "sentry.notifications.platform.msteams.renderers.issue.fetch_event",
+                return_value=event,
+            ),
             patch.object(event, "for_group", return_value=group_event) as for_group,
         ):
             result = IssueMSTeamsRenderer.render(
@@ -416,6 +420,7 @@ class IssueMSTeamsRendererTest(TestCase):
 
     def test_render_group_not_found(self) -> None:
         data = IssueNotificationData(
+            organization_id=1,
             group_id=999999999,
             notification_uuid="test-uuid",
             rule=SerializableRuleProxy(
@@ -432,6 +437,7 @@ class IssueMSTeamsRendererTest(TestCase):
 
     def test_source(self) -> None:
         data = IssueNotificationData(
+            organization_id=1,
             group_id=self.group.id,
             rule=SerializableRuleProxy(
                 id=1, label="Test Detector", data={}, project_id=self.project.id
@@ -443,6 +449,7 @@ class IssueMSTeamsRendererTest(TestCase):
 class IssueMSTeamsProviderDispatchTest(TestCase):
     def test_provider_returns_issue_renderer(self) -> None:
         data = IssueNotificationData(
+            organization_id=1,
             group_id=self.group.id,
             rule=SerializableRuleProxy(
                 id=1, label="Test Detector", data={}, project_id=self.project.id

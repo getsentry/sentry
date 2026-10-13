@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -9,6 +8,7 @@ import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {ListItemCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {AutomationListConnectedDetectors} from 'sentry/views/automations/components/automationListTable/connectedDetectors';
 import {ProjectsCell} from 'sentry/views/automations/components/automationListTable/projectsCell';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
@@ -38,10 +38,9 @@ export function AutomationListRow({
         <Flex gap="md" align="center">
           {canEdit && (
             <Flex align="center" flexShrink={0} width="20px" height="20px">
-              <Checkbox
+              <ListItemCheckbox
                 checked={selected}
                 onChange={() => onSelect(automation.id)}
-                className="select-row"
               />
             </Flex>
           )}
@@ -92,13 +91,5 @@ const AutomationSimpleTableRow = styled(SimpleTable.Row)`
   &:hover {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.hover};
-  }
-
-  @media (hover: hover) {
-    &:not(:has(:hover)):not(:has(input:checked)) {
-      .select-row {
-        ${p => p.theme.visuallyHidden}
-      }
-    }
   }
 `;

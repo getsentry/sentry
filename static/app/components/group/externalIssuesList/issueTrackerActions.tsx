@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -10,7 +11,6 @@ import type {
   ExternalIssueAction,
   ExternalIssueIntegration,
 } from 'sentry/components/group/externalIssuesList/hooks/types';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Theme} from 'sentry/utils/theme';

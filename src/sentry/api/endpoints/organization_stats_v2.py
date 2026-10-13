@@ -5,6 +5,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -33,7 +34,6 @@ from sentry.snuba.outcomes import (
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.outcomes import Outcome
-from sentry.utils.tracing import start_span
 
 
 class OrgStatsQueryParamsSerializer(serializers.Serializer):
@@ -177,19 +177,25 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         """
         with self.handle_query_errors():
             tenant_ids = {"organization_id": organization.id}
-            with start_span(op="outcomes.endpoint", name="build_outcomes_query"):
+            with traces.start_span(
+                name="build_outcomes_query", attributes={"sentry.op": "outcomes.endpoint"}
+            ):
                 query = self.build_outcomes_query(
                     request,
                     organization,
                 )
-            with start_span(op="outcomes.endpoint", name="run_outcomes_query"):
+            with traces.start_span(
+                name="run_outcomes_query", attributes={"sentry.op": "outcomes.endpoint"}
+            ):
                 result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
                 result_timeseries = (
                     None
                     if "project_id" in query.query_groupby
                     else run_outcomes_query_timeseries(query, tenant_ids=tenant_ids)
                 )
-            with start_span(op="outcomes.endpoint", name="massage_outcomes_result"):
+            with traces.start_span(
+                name="massage_outcomes_result", attributes={"sentry.op": "outcomes.endpoint"}
+            ):
                 result = massage_outcomes_result(query, result_totals, result_timeseries)
             return Response(result, status=200)
 

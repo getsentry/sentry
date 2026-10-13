@@ -31,8 +31,18 @@ jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => {
 });
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
-  FileDiffViewer: ({defaultExpanded}: {defaultExpanded?: boolean}) => (
-    <div data-expanded={defaultExpanded} data-test-id="file-diff-viewer" />
+  FileDiffViewer: ({
+    defaultExpanded,
+    fileUrl,
+  }: {
+    defaultExpanded?: boolean;
+    fileUrl?: string;
+  }) => (
+    <div
+      data-expanded={defaultExpanded}
+      data-file-url={fileUrl}
+      data-test-id="file-diff-viewer"
+    />
   ),
 }));
 
@@ -307,6 +317,25 @@ describe('ArtifactCard', () => {
 
       expect(screen.getByText('Root Cause')).toBeInTheDocument();
       expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
+    });
+
+    it('renders unclosed embed syntax in the description as literal text', () => {
+      const description =
+        "Users clicking 'Ask Seer' trigger Seer chat that emits {% autofix %} embeds.";
+      const artifact = makeRootCauseArtifact({
+        one_line_description: description,
+        five_whys: [],
+      });
+
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
+      );
+
+      expect(screen.getByText(description)).toBeInTheDocument();
     });
 
     it('renders five_whys list items and heading', () => {
@@ -594,6 +623,28 @@ describe('ArtifactCard', () => {
       expect(diffViewers[1]).toHaveAttribute('data-expanded', 'true');
     });
 
+    it('passes each patch code_url to its diff viewer', () => {
+      const linkedPatch = makePatch('org/repo', 'src/app.py');
+      linkedPatch.code_url = 'https://github.com/org/repo/blob/abc123/src/app.py';
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [
+            [linkedPatch, makePatch('org/repo', 'src/new_file.py')],
+          ])}
+        />
+      );
+
+      const diffViewers = screen.getAllByTestId('file-diff-viewer');
+      expect(diffViewers[0]).toHaveAttribute(
+        'data-file-url',
+        'https://github.com/org/repo/blob/abc123/src/app.py'
+      );
+      expect(diffViewers[1]).not.toHaveAttribute('data-file-url');
+    });
+
     it('collapses large changes by default', () => {
       const patch = makePatch('org/repo', 'src/app.py');
       patch.patch.hunks = [
@@ -772,6 +823,29 @@ describe('ArtifactCard', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('hides an unclosed embed tag in a block that is still loading', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'processing',
+            [],
+            [
+              {
+                ...makeAssistantBlock('Looking at {% issue %}{"id":"1"'),
+                loading: true,
+              },
+            ]
+          )}
+        />
+      );
+
+      expect(screen.getByText(/Looking at/)).toBeInTheDocument();
+      expect(screen.queryByText(/\{%/)).not.toBeInTheDocument();
+    });
+
     it('does not render file diff viewers in error state', () => {
       render(
         <CodeChangesCard
@@ -817,6 +891,31 @@ describe('ArtifactCard', () => {
           'Seer failed to generate a code change. This one is on us. Try running it again.'
         )
       ).not.toBeInTheDocument();
+    });
+
+    it('renders embeds in the agent explanation instead of raw tags', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [
+              makeAssistantBlock(
+                'See {% docs %}{"href":"https://docs.sentry.io/product/issues/","title":"Issues"}{% /docs %} for details.'
+              ),
+            ]
+          )}
+        />
+      );
+
+      expect(screen.getByRole('link', {name: /Issues/})).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/product/issues/'
+      );
+      expect(screen.queryByText(/\{% docs %\}/)).not.toBeInTheDocument();
     });
 
     it('opens and consumes a requested context prompt without an explanation', async () => {

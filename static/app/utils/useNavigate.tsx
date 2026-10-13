@@ -1,6 +1,5 @@
 import {useCallback} from 'react';
-import {useNavigate as useReactRouter6Navigate} from 'react-router-dom';
-import type {Router} from '@remix-run/router';
+import {useNavigate as useReactRouter6Navigate, type DataRouter} from 'react-router';
 import type {LocationDescriptor} from 'history';
 
 import {locationDescriptorToTo} from './reactRouter6Compat/location';
@@ -47,7 +46,7 @@ export function useNavigate(): ReactRouter3Navigate {
  * Build a `ReactRouter3Navigate`-compatible function from a react-router 6
  * `Router` instance.
  */
-export function createReactRouter3Navigate(router: Router): ReactRouter3Navigate {
+export function createReactRouter3Navigate(router: DataRouter): ReactRouter3Navigate {
   return (to: LocationDescriptor | number, options: NavigateOptions = {}) => {
     if (typeof to === 'number') {
       router.navigate(to);

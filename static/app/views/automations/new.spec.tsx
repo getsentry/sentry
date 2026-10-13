@@ -358,29 +358,25 @@ describe('AutomationNewSettings', () => {
     };
 
     await addAction('Slack');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts', {
-      delay: null,
-    });
+    await userEvent.click(screen.getByRole('textbox', {name: 'Target'}));
+    await userEvent.paste('#alerts');
 
     await addAction('Slack (Staging)');
     {
       const stagingTargets = screen.getAllByRole('textbox', {name: 'Target'});
       const stagingTarget = stagingTargets.at(-1);
       expect(stagingTarget).toBeDefined();
-      await userEvent.type(stagingTarget!, '#staging-alerts', {
-        delay: null,
-      });
+      await userEvent.click(stagingTarget!);
+      await userEvent.paste('#staging-alerts');
     }
 
     await addAction('Discord');
-    await userEvent.type(screen.getByPlaceholderText('channel ID or URL'), '123', {
-      delay: null,
-    });
+    await userEvent.click(screen.getByPlaceholderText('channel ID or URL'));
+    await userEvent.paste('123');
 
     await addAction('MS Teams');
-    await userEvent.type(screen.getByPlaceholderText('channel name'), 'alerts-team', {
-      delay: null,
-    });
+    await userEvent.click(screen.getByPlaceholderText('channel name'));
+    await userEvent.paste('alerts-team');
 
     await addAction('Pagerduty');
     await addAction('Opsgenie');
@@ -718,9 +714,46 @@ describe('AutomationNewSettings', () => {
 
     await waitFor(() => {
       expect(indicators.addErrorMessage).toHaveBeenCalledWith(
-        'You may not exceed 1000 workflows per organization.'
+        'You may not exceed 1000 workflows per organization.',
+        {duration: 10000}
       );
     });
+  });
+
+  it('shows one error toast when creation fails validation', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        actionFilters: {type: ['Organization does not allow this action type: slack']},
+      },
+    });
+
+    render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {connectedIds: '123'}},
+      },
+    });
+
+    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
+
+    await waitFor(() => {
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Organization does not allow this action type: slack',
+        {duration: 10000}
+      );
+    });
+    expect(indicators.addErrorMessage).toHaveBeenCalledTimes(1);
+    expect(indicators.addErrorMessage).not.toHaveBeenCalledWith(
+      'Unknown error while saving'
+    );
   });
 
   it('surfaces error details when test notification fails', async () => {

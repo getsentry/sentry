@@ -164,11 +164,15 @@ export const regexOperators = [
 ] as const;
 
 /**
- * Kept in sync with MAX_REGEX_PATTERN_LENGTH in src/sentry/api/event_search.py, which
- * rejects longer patterns outright. fixtures/search-syntax/regex_operator.json pins the
- * two together.
+ * Kept in sync with MAX_REGEX_PATTERN_LENGTH and regex_pattern_length in
+ * src/sentry/api/event_search.py, which rejects longer patterns outright.
+ * fixtures/search-syntax/regex_operator.json pins the two together.
  */
 const MAX_REGEX_PATTERN_LENGTH = 64;
+
+function getRegexPatternLength(pattern: string) {
+  return pattern.replaceAll(/\\./g, '_').length;
+}
 
 export type RegexOperator = (typeof regexOperators)[number];
 
@@ -676,6 +680,10 @@ export class TokenConverter {
     key: ReturnType<TokenConverter['tokenKeySimple']>
   ) => ({
     ...this.defaultTokenFields,
+    // The `[*]` membership operator is consumed by the array-includes rule around
+    // this token, so derive `text` from the key instead of the raw match to keep
+    // the tag identity operator-free (`tags[name,array]`).
+    text: `${prefix}[${key.text},array]`,
     type: Token.KEY_EXPLICIT_ARRAY_TAG as const,
     prefix,
     key,
@@ -1151,7 +1159,7 @@ export class TokenConverter {
       };
     }
 
-    if (value.value.length > MAX_REGEX_PATTERN_LENGTH) {
+    if (getRegexPatternLength(value.value) > MAX_REGEX_PATTERN_LENGTH) {
       return {
         type: InvalidReason.REGEX_PATTERN_TOO_LONG,
         reason: this.config.invalidMessages[InvalidReason.REGEX_PATTERN_TOO_LONG],

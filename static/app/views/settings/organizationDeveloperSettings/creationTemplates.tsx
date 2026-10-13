@@ -1,5 +1,4 @@
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 
 /**
  * A curated creation flow on the internal integration page, selected with
@@ -24,9 +23,6 @@ const SENTRY_APP_TEMPLATES: SentryAppTemplate[] = [
   },
 ];
 
-export function getSentryAppTemplates(organization: Organization): SentryAppTemplate[] {
-  if (!organization.features.includes('sentry-apps-creation-templates')) {
-    return [];
-  }
+export function getSentryAppTemplates(): SentryAppTemplate[] {
   return SENTRY_APP_TEMPLATES;
 }

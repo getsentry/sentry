@@ -1,4 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconFlag} from '@sentry/icons/flag';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -10,7 +13,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
-import {IconAdd, IconDelete, IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
