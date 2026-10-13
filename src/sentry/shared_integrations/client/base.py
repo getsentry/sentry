@@ -186,7 +186,7 @@ class BaseApiClient:
         """
         Generates a safe Requests session for the API client to use.
         """
-        return build_session()
+        return build_session(max_retries=0)
 
     @staticmethod
     def _normalize_cert_setting(cert_setting: object) -> str | tuple[str, str] | None:
