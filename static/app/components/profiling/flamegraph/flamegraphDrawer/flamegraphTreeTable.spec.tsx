@@ -51,7 +51,7 @@ function getFrameNames() {
   return screen
     .getAllByRole('row')
     .slice(1)
-    .map(row => within(row).getAllByRole('gridcell')[2]?.textContent);
+    .map(row => within(row).getAllByRole('gridcell')[2]?.textContent?.replace('›', ''));
 }
 
 describe('FlamegraphTreeTable', () => {

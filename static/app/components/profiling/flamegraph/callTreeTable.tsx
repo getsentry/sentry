@@ -8,7 +8,6 @@ import {
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/chevron';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconUser} from '@sentry/icons/user';
 
@@ -285,27 +284,33 @@ export function CallTreeTableFrameCell({
       <Container
         flexShrink={0}
         height="12px"
-        radius="2xs"
         width="12px"
-        style={{backgroundColor: frameColor}}
+        style={{backgroundColor: frameColor, borderRadius: 2}}
       />
-      <Flex align="center">
+      <Flex align="center" gap="2xs">
         {node.node.children.length > 0 ? (
           <Button
             aria-expanded={node.expanded}
             aria-label={node.expanded ? t('Collapse') : t('Expand')}
-            icon={
-              <Text variant="muted">
-                <IconChevron direction={node.expanded ? 'down' : 'right'} size="xs" />
-              </Text>
-            }
             onClick={handleExpandClick}
             onMouseDown={event => event.preventDefault()}
             tabIndex={-1}
             variant="link"
-          />
+          >
+            <Flex
+              align="center"
+              height="10px"
+              justify="center"
+              width="10px"
+              style={node.expanded ? {transform: 'rotate(90deg)'} : undefined}
+            >
+              <Text bold={false} size="sm">
+                {'\u203A'}
+              </Text>
+            </Flex>
+          </Button>
         ) : (
-          <Container flexShrink={0} width="12px" />
+          <Container flexShrink={0} width="10px" />
         )}
         <Text wrap="nowrap">{node.node.frame.name}</Text>
       </Flex>
