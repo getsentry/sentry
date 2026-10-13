@@ -14,6 +14,7 @@ from sentry.ingest.inbound_filters import (
     _error_message_condition,
     get_custom_inbound_filter_generic_filters,
     get_generic_filters,
+    get_global_generic_filters,
 )
 from sentry.models.custominboundfilter import LegacyFilter
 from sentry.models.project import Project
@@ -152,6 +153,30 @@ def test_error_message_condition_logentry_disabled_by_default() -> None:
     }
 
 
+def test_global_generic_filters_have_disabled_definitions() -> None:
+    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
+        generic_filters = get_global_generic_filters()
+
+    assert generic_filters["version"] == 1
+    assert [filter["id"] for filter in generic_filters["filters"]] == [
+        "chunk-load-error",
+        "react-hydration-errors",
+        "custom-error",
+    ]
+    assert all(filter["isEnabled"] is False for filter in generic_filters["filters"])
+    assert all("condition" in filter for filter in generic_filters["filters"])
+
+
+def test_global_generic_filters_omit_custom_error_without_values() -> None:
+    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
+        generic_filters = get_global_generic_filters()
+
+    assert [filter["id"] for filter in generic_filters["filters"]] == [
+        "chunk-load-error",
+        "react-hydration-errors",
+    ]
+
+
 @django_db_all
 def test_custom_error_filter_omitted_without_custom_values(default_project: Project) -> None:
     # The option is enabled by default for all projects, but with no configured custom
@@ -173,10 +198,14 @@ def test_custom_error_filter_emitted_with_custom_values(default_project: Project
 
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
         generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
+        expected_condition = _custom_error_filter()
 
     assert generic_filters is not None
-    filter_ids = {f["id"] for f in generic_filters["filters"]}
-    assert "custom-error" in filter_ids
+    assert {
+        "id": "custom-error",
+        "isEnabled": True,
+        "condition": expected_condition,
+    } in generic_filters["filters"]
 
 
 @pytest.mark.parametrize(
