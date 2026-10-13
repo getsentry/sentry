@@ -798,6 +798,59 @@ describe('ActivitySection', () => {
     expect(screen.getAllByText('Resolved')).toHaveLength(1);
   });
 
+  it('counts rolled-up events in the hidden sidebar activity count', async () => {
+    const makeNote = (noteId: string, dateCreated: string): GroupActivity => ({
+      type: GroupActivityType.NOTE,
+      id: noteId,
+      commentId: noteId,
+      data: {text: noteId},
+      dateCreated,
+      user: UserFixture({id: '2'}),
+    });
+    const makeStatus = (
+      type: GroupActivityType.SET_REGRESSION | GroupActivityType.SET_RESOLVED,
+      statusId: string,
+      dateCreated: string
+    ): GroupActivity => ({type, id: statusId, dateCreated, data: {}}) as GroupActivity;
+
+    const flappingGroup = GroupFixture({
+      id: '1351',
+      activity: [
+        makeNote('newest-note', '2020-01-01T09:00:00Z'),
+        makeStatus(
+          GroupActivityType.SET_REGRESSION,
+          'regressed-3',
+          '2020-01-01T08:00:00Z'
+        ),
+        makeStatus(GroupActivityType.SET_RESOLVED, 'resolved-3', '2020-01-01T07:00:00Z'),
+        makeStatus(
+          GroupActivityType.SET_REGRESSION,
+          'regressed-2',
+          '2020-01-01T06:00:00Z'
+        ),
+        makeStatus(GroupActivityType.SET_RESOLVED, 'resolved-2', '2020-01-01T05:00:00Z'),
+        makeStatus(
+          GroupActivityType.SET_REGRESSION,
+          'regressed-1',
+          '2020-01-01T04:00:00Z'
+        ),
+        makeStatus(GroupActivityType.SET_RESOLVED, 'resolved-1', '2020-01-01T03:00:00Z'),
+        makeNote('oldest-note', '2020-01-01T02:00:00Z'),
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
+        <ActivitySection group={flappingGroup} />
+      </GroupDataContextProvider>
+    );
+
+    // The rollup (4 events) and the oldest note are hidden behind the sidebar link.
+    expect(await screen.findByText('View 5 more')).toBeInTheDocument();
+    expect(screen.queryByText('oldest-note')).not.toBeInTheDocument();
+  });
+
   it('renders note and allows for edit', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
 
