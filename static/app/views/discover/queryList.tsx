@@ -51,7 +51,7 @@ type Props = {
   savedQuerySearchQuery: string;
 };
 
-function renderDropdownMenu(items: MenuItemProps[]) {
+function HamburgerDropdown({items}: {items: MenuItemProps[]}) {
   return (
     <DropdownMenu
       items={items}
@@ -219,7 +219,7 @@ export function QueryList({
           renderContextMenu={() => (
             <Feature organization={organization} features="dashboards-edit">
               {({hasFeature}) => {
-                return hasFeature && renderDropdownMenu(menuItems);
+                return hasFeature && <HamburgerDropdown items={menuItems} />;
               }}
             </Feature>
           )}
@@ -324,7 +324,7 @@ export function QueryList({
           )}
           renderContextMenu={() => (
             <Feature organization={organization} features="dashboards-edit">
-              {({hasFeature}) => renderDropdownMenu(menuItems(hasFeature))}
+              {({hasFeature}) => <HamburgerDropdown items={menuItems(hasFeature)} />}
             </Feature>
           )}
         />
