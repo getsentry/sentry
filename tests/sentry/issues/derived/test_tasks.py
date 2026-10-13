@@ -8,7 +8,12 @@ import pytest
 from django.db.utils import OperationalError
 
 from sentry.issues.action_log.publish import publish_action
-from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewAction
+from sentry.issues.action_log.types import (
+    ActionSource,
+    GroupActionActor,
+    GroupActionType,
+    ViewAction,
+)
 from sentry.issues.derived.check import CheckId, CheckTimeout
 from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.derived.heal_state import (
@@ -19,6 +24,7 @@ from sentry.issues.derived.heal_state import (
     save_state,
 )
 from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
+from sentry.issues.derived.promote import build_and_promote_batch
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
     _discover_stale_pipeline_hashes,
@@ -36,6 +42,7 @@ from sentry.issues.derived.tasks_util import (
     _pick_random_fresh_group_ranges,
     group_id_ranges_for_hash,
 )
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group, GroupStatus
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
@@ -1609,6 +1616,62 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
 
         gdd = GroupDerivedData.objects.get(group_id=gid)
         assert gdd.pipeline_hash == PIPELINE.pipeline_hash
+
+    def test_backfills_first_seen_before_rebuild(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._stale()
+        GroupDerivedData.objects.filter(group_id__in=group_ids).update(pipeline_hash=stale)
+
+        first_seen_at_build: list[int] = []
+
+        def record_first_seen(*args: Any, **kwargs: Any) -> Any:
+            first_seen_at_build.extend(
+                GroupActionLogEntry.objects.filter(
+                    group_id__in=group_ids, type=GroupActionType.FIRST_SEEN.value
+                ).values_list("group_id", flat=True)
+            )
+            return build_and_promote_batch(*args, **kwargs)
+
+        with patch(
+            "sentry.issues.derived.promote.build_and_promote_batch",
+            side_effect=record_first_seen,
+        ):
+            regenerate_stale_derived_data_batch(
+                target_hash=stale,
+                group_id_start=group_ids[0],
+                group_id_end=group_ids[-1] + 1,
+            )
+
+        assert sorted(first_seen_at_build) == group_ids
+        for gid in group_ids:
+            assert (
+                GroupDerivedData.objects.get(group_id=gid).pipeline_hash == PIPELINE.pipeline_hash
+            )
+
+    def test_does_not_backfill_first_seen_outside_batch(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._stale()
+        GroupDerivedData.objects.filter(group_id=group_ids[1]).update(pipeline_hash=stale)
+
+        regenerate_stale_derived_data_batch(
+            target_hash=stale,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[-1] + 1,
+        )
+
+        assert list(
+            GroupActionLogEntry.objects.filter(
+                group_id__in=group_ids, type=GroupActionType.FIRST_SEEN.value
+            ).values_list("group_id", flat=True)
+        ) == [group_ids[1]]
 
     def test_targets_only_the_given_hash(self) -> None:
         groups = self.create_unprocessed_groups(2)
