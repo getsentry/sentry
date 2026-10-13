@@ -58,7 +58,7 @@ export function SnapshotGroupHeader({
         <ViewedCheckbox
           checked={isViewed}
           onChange={onToggleViewed}
-          aria-label={t('Mark all in %s as viewed', name)}
+          aria-label={t('All in %s viewed', name)}
         />
       )}
     </Flex>

@@ -223,18 +223,18 @@ describe('SnapshotListView', () => {
 
     expect(screen.getAllByRole('button', {name: 'Zoom in'}).length).toBeGreaterThan(0);
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Viewed'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Screen 0 viewed'}));
 
-    expect(screen.getByRole('checkbox', {name: 'Viewed'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).toBeChecked();
     expect(screen.queryByRole('button', {name: 'Zoom in'})).not.toBeInTheDocument();
     expect(screen.getByText('Screen 0')).toBeInTheDocument();
     expect(
       JSON.parse(localStorage.getItem(VIEWED_SNAPSHOTS_STORAGE_KEY)!)
     ).toHaveProperty([viewedKeyForPair(changedGroup(1).pairs[0]!)]);
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Viewed'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Screen 0 viewed'}));
 
-    expect(screen.getByRole('checkbox', {name: 'Viewed'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).not.toBeChecked();
     expect(screen.getAllByRole('button', {name: 'Zoom in'}).length).toBeGreaterThan(0);
   });
 
@@ -253,7 +253,7 @@ describe('SnapshotListView', () => {
     const lastRow = document.querySelector<HTMLElement>('[data-index="2"]')!;
     expect(lastRow).toHaveStyle({transform: 'translateY(448px)'});
 
-    await userEvent.click(screen.getAllByRole('checkbox', {name: 'Viewed'})[0]!);
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Screen 0 viewed'}));
 
     expect(lastRow).toHaveStyle({transform: 'translateY(96px)'});
   });
@@ -261,13 +261,15 @@ describe('SnapshotListView', () => {
   it('marks every card in a group from the group checkbox', async () => {
     render(<ExampleSnapshotListView items={[changedGroup(2)]} />);
     const groupCheckbox = screen.getByRole('checkbox', {
-      name: 'Mark all in Screens as viewed',
+      name: 'All in Screens viewed',
     });
 
     await userEvent.click(groupCheckbox);
 
     expect(groupCheckbox).toBeChecked();
-    for (const cardCheckbox of screen.getAllByRole('checkbox', {name: 'Viewed'})) {
+    for (const cardCheckbox of screen.getAllByRole('checkbox', {
+      name: /^Screen \d+ viewed$/,
+    })) {
       expect(cardCheckbox).toBeChecked();
     }
     expect(screen.queryByRole('button', {name: 'Zoom in'})).not.toBeInTheDocument();
@@ -277,7 +279,9 @@ describe('SnapshotListView', () => {
     await userEvent.click(groupCheckbox);
 
     expect(groupCheckbox).not.toBeChecked();
-    for (const cardCheckbox of screen.getAllByRole('checkbox', {name: 'Viewed'})) {
+    for (const cardCheckbox of screen.getAllByRole('checkbox', {
+      name: /^Screen \d+ viewed$/,
+    })) {
       expect(cardCheckbox).not.toBeChecked();
     }
   });
@@ -290,7 +294,7 @@ describe('SnapshotListView', () => {
     );
     render(<ExampleSnapshotListView items={[group]} />);
     const groupCheckbox = screen.getByRole('checkbox', {
-      name: 'Mark all in Screens as viewed',
+      name: 'All in Screens viewed',
     });
 
     expect(groupCheckbox).toBePartiallyChecked();
@@ -298,7 +302,9 @@ describe('SnapshotListView', () => {
     await userEvent.click(groupCheckbox);
 
     expect(groupCheckbox).toBeChecked();
-    for (const cardCheckbox of screen.getAllByRole('checkbox', {name: 'Viewed'})) {
+    for (const cardCheckbox of screen.getAllByRole('checkbox', {
+      name: /^Screen \d+ viewed$/,
+    })) {
       expect(cardCheckbox).toBeChecked();
     }
   });
@@ -327,9 +333,11 @@ describe('SnapshotListView', () => {
     );
 
     expect(
-      screen.getByRole('checkbox', {name: 'Mark all in Screens as viewed'})
+      screen.getByRole('checkbox', {name: 'All in Screens viewed'})
     ).toBePartiallyChecked();
-    const [firstCard, secondCard] = screen.getAllByRole('checkbox', {name: 'Viewed'});
+    const [firstCard, secondCard] = screen.getAllByRole('checkbox', {
+      name: /^Screen \d+ viewed$/,
+    });
     expect(firstCard).toBeChecked();
     expect(secondCard).not.toBeChecked();
   });
@@ -344,7 +352,7 @@ describe('SnapshotListView', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Viewed'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Screen 0 viewed'}));
 
     expect(onSelectSnapshot).not.toHaveBeenCalled();
   });
@@ -357,7 +365,7 @@ describe('SnapshotListView', () => {
     );
 
     const {unmount} = render(<ExampleSnapshotListView items={[group]} />);
-    expect(screen.getByRole('checkbox', {name: 'Viewed'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).toBeChecked();
     unmount();
 
     const pair = group.pairs[0]!;
@@ -371,7 +379,7 @@ describe('SnapshotListView', () => {
         ]}
       />
     );
-    expect(screen.getByRole('checkbox', {name: 'Viewed'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).not.toBeChecked();
   });
 
   it('does not offer a viewed toggle for unchanged images', () => {

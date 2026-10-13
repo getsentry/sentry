@@ -41,10 +41,13 @@ function readViewed(): ViewedEntries {
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
       return {};
     }
-    return Object.fromEntries(
-      Object.entries(parsed).filter(
-        (entry): entry is [string, number] => typeof entry[1] === 'number'
-      )
+    return pruneViewed(
+      Object.fromEntries(
+        Object.entries(parsed).filter(
+          (entry): entry is [string, number] => typeof entry[1] === 'number'
+        )
+      ),
+      Date.now()
     );
   } catch {
     return {};

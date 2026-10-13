@@ -9,9 +9,9 @@ export function ViewedCheckbox({
   onChange,
   'aria-label': ariaLabel,
 }: {
+  'aria-label': string;
   checked: boolean | 'indeterminate';
   onChange: () => void;
-  'aria-label'?: string;
 }) {
   return (
     <Flex

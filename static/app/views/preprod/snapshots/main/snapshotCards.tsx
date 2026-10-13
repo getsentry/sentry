@@ -398,7 +398,11 @@ export const CardHeader = memo(function CardHeaderImpl({
           />
           <MetadataInfoButton copyData={copyData} onCopy={onCopyMetadata} />
           {onToggleViewed && (
-            <ViewedCheckbox checked={isViewed} onChange={onToggleViewed} />
+            <ViewedCheckbox
+              checked={isViewed}
+              onChange={onToggleViewed}
+              aria-label={t('%s viewed', displayName ?? fileName)}
+            />
           )}
         </Flex>
       </Flex>

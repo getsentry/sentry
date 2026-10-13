@@ -131,4 +131,13 @@ describe('useViewedSnapshots', () => {
     const {result: arrayResult} = renderHookWithProviders(useViewedSnapshots);
     expect(arrayResult.current.viewed).toEqual({});
   });
+
+  it('drops expired entries when reading stored values', () => {
+    localStorage.setItem(
+      VIEWED_SNAPSHOTS_STORAGE_KEY,
+      JSON.stringify({fresh: Date.now(), stale: Date.now() - 31 * DAY_MS})
+    );
+    const {result} = renderHookWithProviders(useViewedSnapshots);
+    expect(Object.keys(result.current.viewed)).toEqual(['fresh']);
+  });
 });
