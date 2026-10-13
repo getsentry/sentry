@@ -13,7 +13,7 @@ import {IconSettings} from '@sentry/icons/settings';
 import {IconUser} from '@sentry/icons/user';
 
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
@@ -277,11 +277,8 @@ export function CallTreeTableFrameCell({
   };
 
   return (
-    // The expand toggle is as tall as the row, so this cell can't take the
-    // table's vertical padding without spilling into the neighboring rows.
     <SimpleTable.RowCell
       gap="xs"
-      padding="0 md"
       role="gridcell"
       style={{paddingLeft: `calc(${theme.space.md} + ${node.depth * INDENT_WIDTH}px)`}}
     >
@@ -292,21 +289,26 @@ export function CallTreeTableFrameCell({
         width="12px"
         style={{backgroundColor: frameColor}}
       />
-      {node.node.children.length > 0 ? (
-        <Button
-          aria-expanded={node.expanded}
-          aria-label={node.expanded ? t('Collapse') : t('Expand')}
-          icon={<IconChevron direction={node.expanded ? 'down' : 'right'} size="xs" />}
-          onClick={handleExpandClick}
-          onMouseDown={event => event.preventDefault()}
-          size="zero"
-          tabIndex={-1}
-          variant="transparent"
-        />
-      ) : (
-        <Container flexShrink={0} width="24px" />
-      )}
-      <Text wrap="nowrap">{node.node.frame.name}</Text>
+      <Flex align="center">
+        {node.node.children.length > 0 ? (
+          <Button
+            aria-expanded={node.expanded}
+            aria-label={node.expanded ? t('Collapse') : t('Expand')}
+            icon={
+              <Text variant="muted">
+                <IconChevron direction={node.expanded ? 'down' : 'right'} size="xs" />
+              </Text>
+            }
+            onClick={handleExpandClick}
+            onMouseDown={event => event.preventDefault()}
+            tabIndex={-1}
+            variant="link"
+          />
+        ) : (
+          <Container flexShrink={0} width="12px" />
+        )}
+        <Text wrap="nowrap">{node.node.frame.name}</Text>
+      </Flex>
     </SimpleTable.RowCell>
   );
 }
