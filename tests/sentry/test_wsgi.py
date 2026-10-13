@@ -39,8 +39,23 @@ assert gc.isenabled()
 assert gc.get_freeze_count() == 0
 """
 
-# Shaped like a granian fork worker: the master already ran configure(), so
-# importing sentry.wsgi must freeze what the warmup loaded on top of it.
+# Shaped like a worker of the granian CLI (`granian ... sentry.wsgi:application`):
+# nothing is configured yet, so configure() runs inside the sentry.wsgi window
+# and is frozen with the warmup.
+SUBPROCESS_TEST_WSGI_COLD = """
+import gc
+
+import sentry.wsgi
+
+assert gc.isenabled()
+# Not just configure()'s own freeze: the warmup's objects are frozen too, so
+# almost nothing is left for the collector to walk.
+assert len(gc.get_objects()) < gc.get_freeze_count() // 10
+"""
+
+# Shaped like a fork worker of `sentry run web`: the master already ran
+# configure(), so importing sentry.wsgi must freeze what the warmup loaded on top
+# of it.
 SUBPROCESS_TEST_WSGI_AFTER_CONFIGURE = """
 import gc
 
@@ -71,6 +86,13 @@ def test_wsgi_init() -> None:
     subprocess.check_call(
         [sys.executable, "-c", SUBPROCESS_TEST_WSGI_WARMUP],
         env=env_without_boot_gc_freeze(),
+    )
+
+
+def test_wsgi_cold_import_is_frozen() -> None:
+    subprocess.check_call(
+        [sys.executable, "-c", SUBPROCESS_TEST_WSGI_COLD],
+        env={**env_without_boot_gc_freeze(), "SENTRY_BOOT_GC_FREEZE": "1"},
     )
 
 

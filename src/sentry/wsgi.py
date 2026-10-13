@@ -10,13 +10,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), os.pardir))
 
 from sentry.runner.boot_gc import frozen_after_boot
 
-# granian starts its workers with multiprocessing's default start method, which
-# is "fork" on Linux. The master has run configure() but has not imported this
-# module: each worker imports it after it starts. In a forked worker
-# configure() is skipped here, and nothing else freezes what the warmup below
-# loads (about 40% more long-lived objects on top of configure()). In a spawned
-# worker (macOS, or Linux on Python 3.14+ unless "fork" is selected),
-# configure() runs inside this block and is frozen with it. See
+# Each granian worker imports this module after it starts. When granian is run
+# directly (`granian ... sentry.wsgi:application`), or its workers are spawned,
+# a worker starts without Sentry configured: configure() runs inside this block
+# and is frozen with the warmup. Under `sentry run web` with the "fork" start
+# method, workers are forked from a master that already ran configure() (and
+# froze it), so configure() is skipped here and this block freezes what the
+# warmup loads: about 40% more long-lived objects on top of configure(). See
 # sentry.runner.boot_gc.
 with frozen_after_boot("wsgi_warmup"):
     # Configure the application only if it seemingly isn't already configured

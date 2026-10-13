@@ -13,9 +13,9 @@ with `gc.freeze()`. Afterwards:
 - full collections only walk objects created after boot, so they are much
   cheaper (they also run more often, because the unfrozen old generation is
   small);
-- processes forked after the freeze (e.g. granian web workers under the
-  "fork" start method) don't write GC bookkeeping into pages they share with
-  their parent;
+- processes forked after the freeze (e.g. granian web workers started by
+  `sentry run web` with the "fork" start method) don't write GC bookkeeping
+  into pages they share with their parent;
 - interpreter shutdown doesn't walk the frozen heap, which makes exiting
   spawned children and CLI commands one to two seconds faster.
 
