@@ -122,6 +122,34 @@ describe('ReplayDetailsEntityHeader', () => {
     expect(href).toContain(`project=${project.id}`);
   });
 
+  it('escapes a quote in the value it filters by', () => {
+    // A quoted local part is legal in an address, and `user.id` is whatever
+    // the SDK was handed. Unescaped, the quote closes the filter early and
+    // the index receives a malformed query.
+    const replayRecord = replayRecordFixture({
+      user: {
+        id: '7',
+        username: '',
+        email: 'odd"name@example.com',
+        ip: '127.0.0.1',
+        display_name: 'odd"name@example.com',
+      },
+    });
+    mockViewedBy(replayRecord.id);
+
+    render(
+      <ReplayDetailsEntityHeader
+        readerResult={readerResultFixture({replayRecord, isPending: true})}
+      />,
+      {organization}
+    );
+
+    const link = screen.getByRole('link', {name: 'Replay user, odd"name@example.com'});
+    expect(decodeURIComponent(link.getAttribute('href') ?? '')).toContain(
+      'query=user.email:"odd\\"name@example.com"'
+    );
+  });
+
   it('falls back to the user id when there is no email', () => {
     const replayRecord = replayRecordFixture({
       user: {

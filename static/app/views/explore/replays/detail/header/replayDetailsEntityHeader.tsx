@@ -11,6 +11,7 @@ import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoading
 import {useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
+import {escapeDoubleQuotes} from 'sentry/utils';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
@@ -30,10 +31,10 @@ interface Props {
 
 function getUserSearchQuery(user: ReplayRecord['user']) {
   if (user?.email) {
-    return `user.email:"${user.email}"`;
+    return `user.email:"${escapeDoubleQuotes(user.email)}"`;
   }
   if (user?.id) {
-    return `user.id:"${user.id}"`;
+    return `user.id:"${escapeDoubleQuotes(user.id)}"`;
   }
   return null;
 }
