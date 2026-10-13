@@ -6,6 +6,10 @@ import {act, renderHookWithProviders, screen} from 'sentry-test/reactTestingLibr
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
+  decodeMetricsQueryParams,
+  encodeMetricQueryParams,
+} from 'sentry/views/explore/metrics/metricQuery';
+import {
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
   useMultiMetricsQueryParams,
@@ -467,6 +471,46 @@ describe('MultiMetricsQueryParamsProvider', () => {
         'equation|avg(value,newSelectedMetric,gauge,none) - sum(value,metricC,distribution,none)'
       ),
     ]);
+  });
+
+  it('keeps other queries referentially stable when one query changes', () => {
+    const {result} = renderHookWithProviders(useMultiMetricsQueryParams, {
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/metrics/',
+          query: {
+            metric: ['foo', 'bar'].map(name =>
+              encodeMetricQueryParams(
+                decodeMetricsQueryParams(
+                  JSON.stringify({
+                    metric: {name, type: 'counter'},
+                    query: '',
+                    aggregateFields: [
+                      new VisualizeFunction(
+                        `sum(value,${name},counter,none)`
+                      ).serialize(),
+                    ],
+                    aggregateSortBys: [],
+                    mode: 'samples',
+                  })
+                )!
+              )
+            ),
+          },
+        },
+      },
+    });
+    const unchanged = result.current[1]!;
+
+    act(() => result.current[0]!.setTraceMetric({name: 'baz', type: 'counter'}));
+
+    expect(result.current[0]!.metric).toEqual({name: 'baz', type: 'counter'});
+    expect(result.current[1]!.metric).toBe(unchanged.metric);
+    expect(result.current[1]!.queryParams).toBe(unchanged.queryParams);
+    expect(result.current[1]!.setQueryParams).toBe(unchanged.setQueryParams);
+    expect(result.current[1]!.setTraceMetric).toBe(unchanged.setTraceMetric);
+    expect(result.current[1]!.removeMetric).toBe(unchanged.removeMetric);
   });
 
   describe('stable labels', () => {

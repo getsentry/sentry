@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useLayoutEffect, useMemo, useRef} from 'react';
 
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -68,7 +68,7 @@ export function useMetricQueriesController({
 }: UseMetricQueriesControllerArgs): MetricQueriesControllerValue {
   const labels = useStableLabels(queries);
 
-  return useMemo(() => {
+  const value = useMemo(() => {
     const labeledQueries: BaseMetricQuery[] = queries.map((query, i) => ({
       ...query,
       label: labels.getLabel(i),
@@ -204,4 +204,34 @@ export function useMetricQueriesController({
       reorderMetricQueries,
     };
   }, [queries, setQueries, labels]);
+
+  const latestValue = useRef(value);
+  useLayoutEffect(() => {
+    latestValue.current = value;
+  });
+
+  // Each row's mutators close over every row, so they change whenever any row does. Stable
+  // per-index wrappers let unchanged rows keep their context values, and so skip re-rendering.
+  const rowMutators = useMemo(
+    () =>
+      Array.from({length: value.metricQueries.length}, (_, i) => ({
+        setQueryParams: (queryParams: ReadableQueryParams) =>
+          latestValue.current.metricQueries[i]?.setQueryParams(queryParams),
+        setTraceMetric: (traceMetric: TraceMetric) =>
+          latestValue.current.metricQueries[i]?.setTraceMetric(traceMetric),
+        removeMetric: () => latestValue.current.metricQueries[i]?.removeMetric(),
+      })),
+    [value.metricQueries.length]
+  );
+
+  return useMemo(
+    () => ({
+      ...value,
+      metricQueries: value.metricQueries.map((metricQuery, i) => ({
+        ...metricQuery,
+        ...rowMutators[i],
+      })),
+    }),
+    [value, rowMutators]
+  );
 }

@@ -80,12 +80,25 @@ export function MultiMetricsQueryParamsProvider({
   );
 }
 
+// Reusing decoded queries keeps panels whose URL value didn't change referentially stable,
+// so a change to one panel doesn't re-render every other panel.
+const decodedMetricQueries = new Map<string, BaseMetricQuery | null>();
+const MAX_DECODED_METRIC_QUERIES = 100;
+
+function decodeMetricQueryParamsCached(value: string): BaseMetricQuery | null {
+  if (!decodedMetricQueries.has(value)) {
+    if (decodedMetricQueries.size >= MAX_DECODED_METRIC_QUERIES) {
+      decodedMetricQueries.clear();
+    }
+    decodedMetricQueries.set(value, decodeMetricsQueryParams(value));
+  }
+  return decodedMetricQueries.get(value) ?? null;
+}
+
 function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQuery[] {
   const rawQueryParams = decodeList(location.query.metric);
 
-  const metricQueries = rawQueryParams
-    .map(value => decodeMetricsQueryParams(value))
-    .filter(defined);
+  const metricQueries = rawQueryParams.map(decodeMetricQueryParamsCached).filter(defined);
 
   const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
 
