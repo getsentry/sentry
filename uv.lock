@@ -2470,7 +2470,7 @@ requires-dist = [
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
     { name = "symbolic", specifier = ">=13.1.1" },
-    { name = "taskbroker-client", specifier = ">=0.20.27" },
+    { name = "taskbroker-client", specifier = ">=0.20.28" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
     { name = "tokenizers", specifier = ">=0.22.0" },
@@ -2850,7 +2850,7 @@ wheels = [
 
 [[package]]
 name = "taskbroker-client"
-version = "0.20.27"
+version = "0.20.28"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "confluent-kafka" },
@@ -2867,7 +2867,7 @@ dependencies = [
     { name = "zstandard" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.27-py3-none-any.whl", hash = "sha256:20d898260df3a428553c3af4500b139eac22a80550641bd8caf86e6dad8fc829" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/taskbroker_client-0.20.28-py3-none-any.whl", hash = "sha256:391a9b9428086f36b8751b596015801d4309ca229a56ecae019901b782b58871" },
 ]
 
 [[package]]
