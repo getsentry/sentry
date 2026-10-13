@@ -4,6 +4,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.serializers import ListField
 
+from sentry import features
 from sentry.api.fields.transformations import TransformationsField, validate_transformation_indexes
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import is_equation
@@ -40,9 +41,9 @@ class AggregateFieldSerializer(serializers.Serializer):
     def validate(self, data):
         if "transformations" in data and "yAxes" not in data:
             raise serializers.ValidationError({"transformations": "Transformations require yAxes."})
-        if "yAxes" in data:
-            validate_transformation_indexes(data.get("transformations", {}), len(data["yAxes"]))
         visualize_serializer = VisualizeSerializer(data=data, context=self.context)
+        if "yAxes" in data:
+            visualize_serializer.is_valid(raise_exception=True)
 
         group_by_serializer = GroupBySerializer(data=data)
 
@@ -250,6 +251,41 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         from sentry.api.validators import validate_project_ids
 
         return validate_project_ids(projects, self.context["params"]["project_id"])
+
+    def validate_query(self, queries):
+        stored_queries = self.instance.query.get("query", []) if self.instance else []
+        for query_index, query in enumerate(queries):
+            stored_query = stored_queries[query_index] if query_index < len(stored_queries) else {}
+            for key in ("visualize", "aggregateField"):
+                stored_visualizes = stored_query.get(key) or []
+                for visualize_index, visualize in enumerate(query.get(key) or []):
+                    transformations = visualize.get("transformations")
+                    if not transformations:
+                        continue
+                    stored_visualize = (
+                        stored_visualizes[visualize_index]
+                        if visualize_index < len(stored_visualizes)
+                        else {}
+                    )
+                    if transformations == stored_visualize.get("transformations") and visualize[
+                        "yAxes"
+                    ] == stored_visualize.get("yAxes"):
+                        continue
+                    if not features.has(
+                        "organizations:explore-interpolation-and-smoothing",
+                        self.context["organization"],
+                        actor=self.context.get("user"),
+                    ):
+                        raise serializers.ValidationError(
+                            {
+                                key: {
+                                    "transformations": [
+                                        "Transformations are not enabled for this organization."
+                                    ]
+                                }
+                            }
+                        )
+        return queries
 
     # Avoid including any side-effecting logic here, since this logic is also used when generating prebuilt queries on first read
     def validate(self, data):

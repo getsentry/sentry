@@ -946,12 +946,31 @@ class ExploreSavedQueriesTest(APITestCase):
         with self.feature(
             {**self.features, "organizations:explore-interpolation-and-smoothing": False}
         ):
+            retrieved = self.client.get(detail_url)
+            assert retrieved.status_code == 200, retrieved.data
+            resubmitted = self.client.put(
+                detail_url, {**retrieved.data, "name": "Renamed with transformations disabled"}
+            )
+            assert resubmitted.status_code == 200, resubmitted.data
+            saved.refresh_from_db()
+            assert saved.name == "Renamed with transformations disabled"
+            assert saved.query["query"] == updated.data["query"]
             rejected = self.client.put(
                 detail_url,
                 {
                     "name": "Disabled transformations",
                     "projects": self.project_ids,
-                    "query": updated.data["query"],
+                    "query": [
+                        {
+                            "mode": "aggregate",
+                            visualization_key: [
+                                {
+                                    "yAxes": ["count(span.duration)"],
+                                    "transformations": {"0": ["smooth(sma)"]},
+                                }
+                            ],
+                        }
+                    ],
                 },
             )
             assert rejected.status_code == 400, rejected.data
@@ -964,6 +983,26 @@ class ExploreSavedQueriesTest(APITestCase):
                     }
                 }
             }
+            changed_axes = self.client.put(
+                detail_url,
+                {
+                    **resubmitted.data,
+                    "query": [
+                        {
+                            "mode": "aggregate",
+                            visualization_key: [
+                                {
+                                    "yAxes": ["avg(span.duration)"],
+                                    "transformations": {"0": ["fill(zero)"]},
+                                }
+                            ],
+                        }
+                    ],
+                },
+            )
+            assert changed_axes.status_code == 400, changed_axes.data
+            saved.refresh_from_db()
+            assert saved.query["query"] == updated.data["query"]
             cleared = self.client.put(
                 detail_url,
                 {
@@ -1038,6 +1077,77 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.status_code == 400, response.data
         assert response.data == {
             "query": {"aggregateField": {"transformations": ["Transformations require yAxes."]}}
+        }
+
+    def test_visualize_transformations_require_y_axes(self) -> None:
+        with self.feature(
+            {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Missing axes",
+                    "projects": self.project_ids,
+                    "query": [{"mode": "aggregate", "visualize": [{"transformations": {"0": []}}]}],
+                },
+            )
+        assert response.status_code == 400, response.data
+        assert response.data == {"query": {"visualize": {"yAxes": ["This field is required."]}}}
+
+    def test_transformations_reject_null_character(self) -> None:
+        with self.feature(
+            {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Invalid transformation string",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "mode": "aggregate",
+                            "visualize": [
+                                {
+                                    "yAxes": ["count(span.duration)"],
+                                    "transformations": {"0": ["fill(\x00)"]},
+                                }
+                            ],
+                        }
+                    ],
+                },
+            )
+        assert response.status_code == 400, response.data
+        assert "Null characters are not allowed." in str(response.data)
+
+    def test_transformations_require_feature(self) -> None:
+        with self.feature(
+            {**self.features, "organizations:explore-interpolation-and-smoothing": False}
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Disabled transformations",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "mode": "aggregate",
+                            "visualize": [
+                                {
+                                    "yAxes": ["count(span.duration)"],
+                                    "transformations": {"0": ["fill(locf)"]},
+                                }
+                            ],
+                        }
+                    ],
+                },
+            )
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "query": {
+                "visualize": {
+                    "transformations": ["Transformations are not enabled for this organization."]
+                }
+            }
         }
 
     def test_post_all_projects(self) -> None:

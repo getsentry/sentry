@@ -127,6 +127,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
             raise ParseError(detail="No Projects found, join a Team")
 
         serializer = ExploreSavedQuerySerializer(
+            instance=query,
             data=request.data,
             context={"params": params, "organization": organization, "user": request.user},
         )
