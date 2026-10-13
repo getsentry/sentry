@@ -101,8 +101,8 @@ examples:
 search:
   match: 'extends (React\.)?(Pure)?Component'
   include:
-    - 'static/app/**/*.tsx'
-    - 'static/app/**/*.ts'
+    - 'static/**/*.tsx'
+    - 'static/**/*.ts'
   exclude:
     - '**/__fixtures__/**'
     - '**/__mocks__/**'
