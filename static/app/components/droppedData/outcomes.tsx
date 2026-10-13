@@ -128,6 +128,12 @@ export function getOutcomeColors(outcomes: string[], theme: Theme): OutcomeColor
   }, {});
 }
 
+export type OutcomeSelection = Record<string, boolean>;
+
+export function isOutcomeSelected(selection: OutcomeSelection, outcome: string): boolean {
+  return selection[outcome] !== false;
+}
+
 // Shares run tiny (a reason can be a sliver of all traffic), so floor the
 // display at 0.01% rather than rounding to 0%. Matches the drop tooltip.
 const SHARE_MIN_VALUE = 0.0001;

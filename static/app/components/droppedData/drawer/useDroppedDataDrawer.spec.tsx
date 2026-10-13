@@ -41,6 +41,25 @@ function mockDroppedData(count: number, statsPeriod: string) {
   });
 }
 
+function mockMultiOutcomeDroppedData() {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events-dropped/`,
+    body: {
+      meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+      droppedEvents: [
+        DroppedEventFixture({outcome: 'client_discard', reason: 'before_send', count: 4}),
+        DroppedEventFixture({
+          outcome: 'client_discard',
+          reason: 'network_error',
+          count: 6,
+        }),
+        DroppedEventFixture({outcome: 'filtered', reason: 'ignore_spans', count: 30}),
+      ],
+      acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 60})],
+    },
+  });
+}
+
 function DroppedDataTrigger({enabled, interval}: {enabled?: boolean; interval?: string}) {
   const openDroppedDataDrawer = useDroppedDataDrawer(
     {dataset: DiscoverDatasets.SPANS, interval},
@@ -242,6 +261,66 @@ describe('useDroppedDataDrawer', () => {
 
     router.navigate('/issues/');
     await waitForDrawerToHide('Dropped Data');
+  });
+
+  describe('legend filtering', () => {
+    beforeEach(() => {
+      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('filters the total and outcome list to the selected outcomes', async () => {
+      mockMultiOutcomeDroppedData();
+
+      render(<DroppedDataTrigger />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      expect(await screen.findByText('40 Dropped Events')).toBeInTheDocument();
+      expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
+      expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
+      expect(screen.getByText('10%')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
+
+      expect(screen.getByRole('checkbox', {name: 'Inbound Filter'})).not.toBeChecked();
+      expect(screen.getByText('10 Dropped Events')).toBeInTheDocument();
+      expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
+      expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
+      // Shares stay relative to all events, not just the selected outcomes.
+      expect(screen.getByText('10%')).toBeInTheDocument();
+    });
+
+    it('shows an empty state when every outcome is deselected', async () => {
+      mockMultiOutcomeDroppedData();
+
+      render(<DroppedDataTrigger />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      expect(await screen.findByText('40 Dropped Events')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Client Discard'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Inbound Filter'}));
+
+      expect(screen.getByText('0 Dropped Events')).toBeInTheDocument();
+      expect(screen.getByText('No outcomes selected.')).toBeInTheDocument();
+      expect(screen.queryByText('Dropped by before send')).not.toBeInTheDocument();
+      expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Client Discard'}));
+
+      expect(screen.getByText('10 Dropped Events')).toBeInTheDocument();
+      expect(screen.queryByText('No outcomes selected.')).not.toBeInTheDocument();
+      expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
+    });
   });
 
   it('hands off to Seer Explorer from a reason’s investigate action', async () => {

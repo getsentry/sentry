@@ -242,7 +242,7 @@ function OutcomeSectionRow({
             size="xs"
             variant="transparent"
             icon={<IconChevron direction={expanded ? 'up' : 'down'} size="md" />}
-            aria-label={t('Toggle %s', section.label)}
+            aria-label={t('%s reasons', section.label)}
             aria-expanded={expanded}
             aria-controls={expanded ? reasonTableId : undefined}
             onClick={event => {

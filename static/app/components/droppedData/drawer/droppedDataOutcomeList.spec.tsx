@@ -177,7 +177,7 @@ describe('DroppedDataOutcomeList', () => {
       />
     );
 
-    const toggle = screen.getByRole('button', {name: 'Toggle Invalid or Malformed'});
+    const toggle = screen.getByRole('button', {name: 'Invalid or Malformed reasons'});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('table')).toHaveAttribute(
       'id',
