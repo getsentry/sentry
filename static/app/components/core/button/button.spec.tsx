@@ -110,7 +110,7 @@ describe('Button', () => {
 
     const button = screen.getByRole('button', {name: 'Save'});
     expect(button).toBeDisabled();
-    expect(button).not.toHaveAttribute('aria-disabled');
+    expect(button).toHaveAttribute('aria-disabled', 'true');
   });
 
   describe('responsive sizing', () => {

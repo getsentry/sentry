@@ -111,7 +111,12 @@ export function Checkbox({
   tooltipProps,
   ...props
 }: CheckboxProps) {
-  const disabledProps = useDisabledTooltip({...props, tooltipProps});
+  const {isFocusableDisabled, disabledProps} = useDisabledTooltip({
+    disabled: props.disabled,
+    tooltipProps,
+    onKeyDown: props.onKeyDown,
+    'aria-disabled': props['aria-disabled'],
+  });
 
   const nativeCheckBoxRef = useCallback(
     (node: HTMLInputElement | null) => {
@@ -134,11 +139,6 @@ export function Checkbox({
       readOnly={props.readOnly}
       {...wrapperProps}
     >
-      {/*
-        aria-disabled keeps the checkbox focusable so keyboard users can read its tooltip,
-        but the browser still includes it in form submission and required field validation.
-        Remove name and required when disabled to preserve native disabled form behavior.
-      */}
       <Tooltip skipWrapper {...tooltipProps} title={tooltipProps?.title}>
         <NativeHiddenCheckbox
           ref={mergeRefs(nativeCheckBoxRef, ref)}
@@ -146,10 +146,15 @@ export function Checkbox({
           type="checkbox"
           {...props}
           {...disabledProps}
-          onClickCapture={props.disabled ? preventInteraction : props.onClickCapture}
-          onChange={props.disabled ? preventInteraction : props.onChange}
-          name={props.disabled ? undefined : props.name}
-          required={props.disabled ? undefined : props.required}
+          // aria-disabled keeps the checkbox focusable for its tooltip, but the browser
+          // still toggles it and includes it in form data and required validation.
+          // Block those to match native disabled behavior.
+          {...(isFocusableDisabled && {
+            onClickCapture: preventInteraction,
+            onChange: preventInteraction,
+            name: undefined,
+            required: undefined,
+          })}
         />
       </Tooltip>
 

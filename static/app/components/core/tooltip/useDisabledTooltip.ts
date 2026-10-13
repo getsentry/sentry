@@ -12,7 +12,10 @@ interface DisabledTooltipOptions<Element extends HTMLElement> extends Pick<
 
 /**
  * Keeps disabled controls focusable when they have a tooltip and prevents keyboard activation.
- * Callers still handle click and change events, form submission, and validation.
+ *
+ * `aria-disabled` does not stop native behavior, so when `isFocusableDisabled` is true
+ * callers must also block any other interaction their element supports (for example
+ * click/change events and form participation for inputs).
  */
 export function useDisabledTooltip<Element extends HTMLElement>({
   disabled,
@@ -20,25 +23,28 @@ export function useDisabledTooltip<Element extends HTMLElement>({
   onKeyDown,
   'aria-disabled': ariaDisabled,
 }: DisabledTooltipOptions<Element>) {
-  const disabledWithTooltip = Boolean(
+  const isFocusableDisabled = Boolean(
     disabled && tooltipProps?.title && !tooltipProps.disabled
   );
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<Element>) => {
-      if (disabledWithTooltip && (event.key === 'Enter' || event.key === ' ')) {
+      if (isFocusableDisabled && (event.key === 'Enter' || event.key === ' ')) {
         event.preventDefault();
         event.stopPropagation();
         return;
       }
       onKeyDown?.(event);
     },
-    [disabledWithTooltip, onKeyDown]
+    [isFocusableDisabled, onKeyDown]
   );
 
   return {
-    disabled: disabledWithTooltip ? undefined : disabled,
-    'aria-disabled': disabledWithTooltip || ariaDisabled,
-    onKeyDown: handleKeyDown,
+    isFocusableDisabled,
+    disabledProps: {
+      disabled: isFocusableDisabled ? undefined : disabled,
+      'aria-disabled': isFocusableDisabled || ariaDisabled,
+      onKeyDown: handleKeyDown,
+    },
   };
 }

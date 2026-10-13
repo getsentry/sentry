@@ -37,11 +37,12 @@ export function Button({
   const {hasChildren, accessibleLabel} = useButtonFunctionality(buttonProps);
   const {handleClick} = useClickTracking(buttonProps, 'button');
 
-  const disabledProps = useDisabledTooltip({
+  const {disabledProps} = useDisabledTooltip({
     disabled,
     tooltipProps,
     onKeyDown,
-    'aria-disabled': ariaDisabled,
+    // Buttons always mirror `disabled` to `aria-disabled`, including when natively disabled.
+    'aria-disabled': disabled ?? ariaDisabled,
   });
 
   return (
