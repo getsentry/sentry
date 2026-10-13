@@ -210,8 +210,6 @@ export function useMetricQueriesController({
     latestValue.current = value;
   });
 
-  // Each row's mutators close over every row, so they change whenever any row does. Stable
-  // per-index wrappers let unchanged rows keep their context values, and so skip re-rendering.
   const rowMutators = useMemo(
     () =>
       Array.from({length: value.metricQueries.length}, (_, i) => ({

@@ -16,7 +16,6 @@ export function useButtonTracking() {
     latest.current = {matches: currentMatches, organization: currentOrganization};
   });
 
-  // Stays stable across navigations so the tracking context doesn't re-render every Button and Link
   return useCallback(
     ({
       clickType,

@@ -80,8 +80,6 @@ export function MultiMetricsQueryParamsProvider({
   );
 }
 
-// Reusing decoded queries keeps panels whose URL value didn't change referentially stable,
-// so a change to one panel doesn't re-render every other panel.
 const decodedMetricQueries = new Map<string, BaseMetricQuery | null>();
 const MAX_DECODED_METRIC_QUERIES = 100;
 
