@@ -610,6 +610,7 @@ export function SentryAppExternalForm({
     setDynamicFieldValues(
       getTriggerFieldValues(nextInitialValues, nextTriggerFieldNames)
     );
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setFormInitialValues(nextInitialValues);
     setExternalDefaultValues({});
     setAsyncOptionsCache({});

@@ -66,7 +66,7 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
 
         queryset = IncidentGroupOpenPeriod.objects.filter(
             group_open_period__project__organization=organization
-        )
+        ).select_related("group_open_period__project")
 
         if incident_id:
             queryset = queryset.filter(incident_id=incident_id)
@@ -83,6 +83,10 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
         incident_groupopenperiod = queryset.first()
 
         if incident_groupopenperiod:
+            if not request.access.has_project_access(
+                incident_groupopenperiod.group_open_period.project
+            ):
+                raise ResourceDoesNotExist
             return Response(serialize(incident_groupopenperiod, request.user))
 
         # Fallback: if incident_identifier or incident_id was provided but no IGOP found,
@@ -93,7 +97,7 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
             gop_queryset = GroupOpenPeriod.objects.filter(
                 id=calculated_open_period_id,
                 project__organization=organization,
-            )
+            ).select_related("project")
 
             if group_id:
                 gop_queryset = gop_queryset.filter(group_id=group_id)
@@ -104,6 +108,8 @@ class OrganizationIncidentGroupOpenPeriodIndexEndpoint(OrganizationEndpoint):
             group_open_period = gop_queryset.first()
 
             if group_open_period:
+                if not request.access.has_project_access(group_open_period.project):
+                    raise ResourceDoesNotExist
                 # Serialize the GroupOpenPeriod as if it were an IncidentGroupOpenPeriod
                 return Response(
                     {

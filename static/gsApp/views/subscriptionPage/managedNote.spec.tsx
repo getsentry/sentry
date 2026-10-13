@@ -67,32 +67,6 @@ describe('ManagedNote', () => {
     );
   });
 
-  it('renders GitHub marketplace message for GitHub partner', () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      canSelfServe: false,
-      partner: {
-        externalId: 'x123x',
-        name: 'GitHub Org',
-        partnership: {
-          id: 'GH',
-          displayName: 'GitHub',
-          supportNote: '',
-        },
-        isActive: true,
-      },
-    });
-
-    render(<ManagedNote subscription={subscription} />);
-    expect(screen.getByRole('link')).toHaveAttribute(
-      'href',
-      'https://github.com/marketplace/sentry'
-    );
-    expect(screen.getByTestId('managed-note')).toHaveTextContent(
-      'Visit the GitHub Marketplace to make changes to your subscription.'
-    );
-  });
-
   it('renders Heroku dashboard message for Heroku partner', () => {
     const subscription = SubscriptionFixture({
       organization,

@@ -58,12 +58,14 @@ export function ScmAlertFrequency({
                   size="md"
                   type="number"
                   min="0"
+                  aria-label={t('Alert threshold')}
                   placeholder="10"
                   value={threshold}
                   onChange={e => onFieldChange('threshold', e.target.value)}
                 />
                 <Select
                   size="md"
+                  aria-label={t('Alert metric')}
                   value={metric}
                   options={METRIC_CHOICES}
                   onChange={option => onFieldChange('metric', option.value)}

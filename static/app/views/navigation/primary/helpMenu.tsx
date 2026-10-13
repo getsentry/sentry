@@ -1,33 +1,29 @@
 import {Fragment, useEffect} from 'react';
+import {IconBroadcast} from '@sentry/icons/broadcast';
+import {IconBuilding} from '@sentry/icons/building';
+import {IconDiscord} from '@sentry/icons/discord';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconGithub} from '@sentry/icons/github';
+import {IconGroup} from '@sentry/icons/group';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconOpen} from '@sentry/icons/open';
+import {IconQuestion} from '@sentry/icons/question';
+import {IconSentry} from '@sentry/icons/sentry';
+import {IconSupport} from '@sentry/icons/support';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {
-  IconBroadcast,
-  IconBuilding,
-  IconDiscord,
-  IconDocs,
-  IconEllipsis,
-  IconGithub,
-  IconGroup,
-  IconLab,
-  IconMegaphone,
-  IconOpen,
-  IconQuestion,
-  IconSentry,
-  IconSupport,
-} from 'sentry/icons';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {showIntercom} from 'sentry/utils/intercom';
-import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
@@ -49,7 +45,6 @@ export function PrimaryNavigationHelpMenu({
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
   const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
-  const {isAuthV2Enabled, setAuthV2CookieState} = useEnableAuthV2();
 
   useEffect(() => {
     trackAnalytics('intercom_link.viewed', {organization, source: 'sidebar'});
@@ -106,17 +101,6 @@ export function PrimaryNavigationHelpMenu({
               <IconQuestion />
             </MenuIcon>
           ),
-        },
-        {
-          key: 'support',
-          label: t('Contact Support'),
-          ...contactSupportItem,
-          leadingItems: (
-            <MenuIcon>
-              <IconSupport />
-            </MenuIcon>
-          ),
-          hidden: !contactSupportItem,
         },
       ],
     },
@@ -188,29 +172,19 @@ export function PrimaryNavigationHelpMenu({
       ],
     },
     {
-      key: 'auth-v2',
-      hidden: !organization.features.includes('authv2-enable-toggle'),
+      key: 'contact-support',
+      hidden: !contactSupportItem,
       children: [
         {
-          key: 'toggle-auth-v2',
-          label: isAuthV2Enabled ? t('Disable new login') : t('Enable new login'),
+          key: 'support',
+          label: t('Contact Support'),
+          ...contactSupportItem,
           leadingItems: (
             <MenuIcon>
-              <IconLab isSolid />
+              <IconSupport />
             </MenuIcon>
           ),
-          onAction() {
-            const state = isAuthV2Enabled
-              ? AuthV2CookieState.DISABLED
-              : AuthV2CookieState.ENABLED;
-
-            trackAnalytics('auth_v2.rollout.changed', {
-              organization,
-              source: 'help_menu',
-              state,
-            });
-            setAuthV2CookieState(state);
-          },
+          hidden: !contactSupportItem,
         },
       ],
     },

@@ -20,7 +20,7 @@ import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData, widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
@@ -65,7 +65,6 @@ type Props = {
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
-  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   onZoom?: EChartDataZoomHandler;
@@ -119,7 +118,6 @@ function WidgetCardDataLoaderView({
   legendOptions,
   onDataFetched,
   noPadding,
-  onWidgetSplitDecision,
   chartGroup,
   shouldResize,
   widgetLegendState,
@@ -149,7 +147,6 @@ function WidgetCardDataLoaderView({
       selection={selection}
       dashboardFilters={dashboardFilters}
       onDataFetched={onDataFetched}
-      onWidgetSplitDecision={onWidgetSplitDecision}
       onDataFetchStart={onDataFetchStart}
       tableItemLimit={tableItemLimit}
       widgetInterval={resolvedWidgetInterval}
@@ -253,7 +250,6 @@ export function WidgetCardChartContainer({
   legendOptions,
   onDataFetched,
   noPadding,
-  onWidgetSplitDecision,
   chartGroup,
   shouldResize,
   widgetLegendState,
@@ -283,7 +279,6 @@ export function WidgetCardChartContainer({
     legendOptions,
     onDataFetched,
     noPadding,
-    onWidgetSplitDecision,
     chartGroup,
     shouldResize,
     widgetLegendState,

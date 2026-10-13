@@ -4,7 +4,6 @@ from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
-from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -42,6 +41,7 @@ class AuthConfigResponse(TypedDict):
     vstsLoginLink: NotRequired[str]
     warning: NotRequired[str]
     loginBannerMarkdown: NotRequired[str]
+    singleOrganizationSlug: NotRequired[str]
 
 
 @control_silo_endpoint
@@ -61,9 +61,6 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         """
         Get context required to show a login page. Registration is handled elsewhere.
         """
-        if request.user.is_authenticated:
-            return self.respond_authenticated(request)
-
         user_pending_2fa = get_pending_2fa_user(request)
         if user_pending_2fa is not None:
             interfaces = Authenticator.objects.all_interfaces_for_user(user_pending_2fa)
@@ -75,6 +72,9 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
             # Preserve the pending MFA and redirect state that initiate_login clears below.
             return self.respond_with_login_context(request, payload)
 
+        if request.user.is_authenticated:
+            return self.respond_authenticated(request)
+
         next_uri = self.get_next_uri(request)
 
         # we always reset the state on GET so you don't end up at an odd location
@@ -83,12 +83,10 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         # Auth login verifies the test cookie is set
         request.session.set_test_cookie()
 
-        # Single org mode -- send them to the org-specific handler
-        if settings.SENTRY_SINGLE_ORGANIZATION:
-            org = Organization.get_default()
-            return Response({"nextUri": reverse("sentry-auth-organization", args=[org.slug])})
-
         payload = self.prepare_login_context(request, *args, **kwargs)
+        if settings.SENTRY_SINGLE_ORGANIZATION:
+            payload["singleOrganizationSlug"] = Organization.get_default().slug
+
         return self.respond_with_login_context(request, payload)
 
     def respond_with_login_context(self, request: Request, payload: AuthConfigResponse) -> Response:
@@ -100,7 +98,7 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         return response
 
     def respond_authenticated(self, request: Request):
-        next_uri = self.get_next_uri(request)
+        next_uri = self.get_next_uri(request, consume=False)
 
         if not is_valid_redirect(next_uri, allowed_hosts=(request.get_host(),)):
             next_uri = get_org_redirect_url(
@@ -109,9 +107,11 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
 
         return Response({"nextUri": next_uri})
 
-    def get_next_uri(self, request: HttpRequest) -> str:
-        next_uri_fallback = request.session.pop("_next", None)
-        return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback)
+    def get_next_uri(self, request: HttpRequest, *, consume: bool = True) -> str:
+        next_uri_fallback = (
+            request.session.pop("_next", None) if consume else request.session.get("_next")
+        )
+        return request.GET.get(REDIRECT_FIELD_NAME, next_uri_fallback) or ""
 
     def prepare_login_context(self, request: Request, *args, **kwargs) -> AuthConfigResponse:
         can_register = bool(has_user_registration() or request.session.get("can_register"))

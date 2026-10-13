@@ -737,18 +737,20 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         mock_auth.get_login_redirect.return_value = "/organizations/test-org/issues/"
 
         # Simulate the is_account_verified flow: session has verification key
-        # that resolves to a value matching this user + email
+        # that resolves to a value matching this user + email + org
         verification_value = {
             "user_id": existing_user.id,
             "email": self.email,
             "member_id": member.id,
             "identity_id": self.identity["id"],
+            "organization_id": self.organization.id,
         }
         with (
             mock.patch(
                 "sentry.auth.helper.get_verification_value_from_key",
                 return_value=verification_value,
             ),
+            mock.patch("sentry.auth.helper.delete_verification_key") as mock_delete_key,
         ):
             self.request.session[SSO_VERIFICATION_KEY] = "test-verification-key"
             self.handler.handle_unknown_identity(self.state)
@@ -757,6 +759,47 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
             auth_provider=self.auth_provider_inst, ident=self.identity["id"]
         )
         assert auth_identity.user_id == existing_user.id
+        mock_delete_key.assert_called_once_with("test-verification-key")
+
+    @mock.patch("sentry.auth.helper.messages")
+    @mock.patch("sentry.auth.helper.render_to_response")
+    @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
+    def test_account_confirmation_from_other_organization_does_not_link(
+        self,
+        mock_send_link: mock.MagicMock,
+        mock_render: mock.MagicMock,
+        mock_messages: mock.MagicMock,
+    ) -> None:
+        """An account confirmation issued for another organization should not
+        link an identity through this organization's provider."""
+        existing_user = self.create_user(email=self.email)
+        existing_user.set_unusable_password()
+        existing_user.save()
+        other_org = self.create_organization()
+        with assume_test_silo_mode(SiloMode.CELL):
+            member = self.create_member(user=existing_user, organization=other_org, role="member")
+
+        verification_value = {
+            "user_id": existing_user.id,
+            "email": self.email,
+            "member_id": member.id,
+            "organization_id": other_org.id,
+            "identity_id": self.identity["id"],
+        }
+        with (
+            mock.patch(
+                "sentry.auth.helper.get_verification_value_from_key",
+                return_value=verification_value,
+            ),
+            mock.patch("sentry.auth.helper.delete_verification_key") as mock_delete_key,
+        ):
+            self.request.session[SSO_VERIFICATION_KEY] = "test-verification-key"
+            self.handler.handle_unknown_identity(self.state)
+
+        assert not AuthIdentity.objects.filter(
+            auth_provider=self.auth_provider_inst, user_id=existing_user.id
+        ).exists()
+        mock_delete_key.assert_not_called()
 
     @mock.patch("sentry.auth.helper.render_to_response")
     @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
@@ -1115,6 +1158,7 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
             "email": self.email,
             "member_id": member.id,
             "identity_id": self.identity_id,
+            "organization_id": self.organization.id,
         }
 
     def test_has_verified_account_success(self) -> None:
@@ -1135,6 +1179,21 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
         wrong_user = self.create_user()
         self.create_useremail(email=self.email, user=wrong_user)
         assert self.handler.has_verified_account(self.verification_value) is False
+
+    def test_has_verified_account_fail_organization_id(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        verification_value = {**self.verification_value, "organization_id": 99999}
+        assert self.handler.has_verified_account(verification_value) is False
+
+    def test_has_verified_account_fail_missing_organization_id(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        verification_value = {
+            "user_id": self.user.id,
+            "email": self.email,
+            "member_id": 1,
+            "identity_id": self.identity_id,
+        }
+        assert self.handler.has_verified_account(verification_value) is False
 
 
 @control_silo_test

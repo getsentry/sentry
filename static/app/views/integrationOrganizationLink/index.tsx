@@ -7,6 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Stack} from '@sentry/scraps/layout';
+import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -29,7 +30,6 @@ import {generateOrgSlugUrl} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';

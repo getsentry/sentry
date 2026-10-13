@@ -9,6 +9,7 @@ import {
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {BaseField} from '@sentry/scraps/form/field/baseField';
+import {CheckboxField} from '@sentry/scraps/form/field/checkboxField';
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {FieldLayout} from '@sentry/scraps/form/layout';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
@@ -57,6 +58,7 @@ export const defaultFormOptions = formOptions({
 
 const fieldComponents = {
   Base: BaseField,
+  Checkbox: CheckboxField,
   Input: InputField,
   Number: NumberField,
   Password: PasswordField,

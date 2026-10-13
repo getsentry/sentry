@@ -338,11 +338,7 @@ export function deleteDashboard(
   return promise;
 }
 
-export function validateWidgetRequest(
-  orgId: string,
-  widget: Widget,
-  selection: PageFilters
-) {
+function validateWidgetRequest(orgId: string, widget: Widget, selection: PageFilters) {
   return [
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/widgets/', {
       path: {organizationIdOrSlug: orgId},
@@ -359,6 +355,42 @@ export function validateWidgetRequest(
       },
     },
   ] as const;
+}
+
+/**
+ * Renames a dashboard without touching anything else on it.
+ *
+ * Deliberately narrow: the endpoint only rewrites widgets when the payload
+ * carries a `widgets` key, so omitting it leaves them alone. Sending the whole
+ * dashboard instead would make a rename race any concurrent edit and risk
+ * clobbering widgets with a stale copy.
+ */
+export function updateDashboardTitle(
+  orgId: string,
+  dashboardId: string,
+  title: string
+): Promise<DashboardDetails> {
+  const promise = fetchMutation<DashboardDetails>({
+    url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId},
+    }),
+    method: 'PUT',
+    data: {title},
+  });
+
+  promise.catch(response => {
+    const errorResponse =
+      response instanceof RequestError ? response?.responseJSON : null;
+
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+    } else {
+      addErrorMessage(t('Unable to rename dashboard'));
+    }
+  });
+
+  return promise;
 }
 
 export function updateDashboardPermissions(

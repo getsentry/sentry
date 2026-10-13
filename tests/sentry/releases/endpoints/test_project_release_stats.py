@@ -80,8 +80,7 @@ class UpsertMissingReleaseTest(TestCase):
         project = self.create_project()
         project.update_option("sentry:enable_auto_release_creation", False)
 
-        with self.feature("organizations:auto-release-creation"):
-            assert self.upsert_with_health_data(project) is None
+        assert self.upsert_with_health_data(project) is None
 
         assert not Release.objects.filter(organization_id=project.organization_id).exists()
 
@@ -92,8 +91,7 @@ class UpsertMissingReleaseTest(TestCase):
         project.update_option("sentry:enable_auto_release_creation", False)
         release = Release.objects.create(organization_id=project.organization_id, version="1.0")
 
-        with self.feature("organizations:auto-release-creation"):
-            date_added = self.upsert_with_health_data(project)
+        date_added = self.upsert_with_health_data(project)
 
         assert date_added == release.date_added
         assert ReleaseProject.objects.filter(release=release, project=project).exists()

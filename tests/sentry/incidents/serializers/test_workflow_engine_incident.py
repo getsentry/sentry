@@ -4,7 +4,6 @@ from typing import Any
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.endpoints.serializers.workflow_engine_incident import (
-    WorkflowEngineDetailedIncidentSerializer,
     WorkflowEngineIncidentSerializer,
 )
 from sentry.incidents.models.incident import (
@@ -68,15 +67,6 @@ class TestIncidentSerializer(TestWorkflowEngineSerializer):
         serialized_incident = serialize(
             self.group_open_period, self.user, WorkflowEngineIncidentSerializer()
         )
-        assert self._sort_triggers(serialized_incident) == self._sort_triggers(
-            self.incident_expected
-        )
-
-    def test_detailed(self) -> None:
-        serialized_incident = serialize(
-            self.group_open_period, self.user, WorkflowEngineDetailedIncidentSerializer()
-        )
-        self.incident_expected["discoverQuery"] = "(event.type:error) AND (level:error)"
         assert self._sort_triggers(serialized_incident) == self._sort_triggers(
             self.incident_expected
         )

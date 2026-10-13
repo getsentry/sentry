@@ -1,0 +1,79 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`IssuesTraceTree collapsed nodes without errors 1`] = `
+"
+collapsed
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
+"
+`;
+
+exports[`IssuesTraceTree errors only 1`] = `
+"
+eap trace root
+  error-0
+  error-1
+  error-2
+  error-3
+  error-4
+  error-5
+  error-6
+  error-7
+  error-8
+  error-9
+  error-10
+  error-11
+  collapsed
+"
+`;
+
+exports[`IssuesTraceTree preserves path to child error 1`] = `
+"
+eap trace root
+  span.op - span.description
+  span.op - span.description
+    span.op - span.description
+  span.op - span.description
+"
+`;
+
+exports[`IssuesTraceTree respects minShownNodes parameter: default minShownNodes (3) 1`] = `
+"
+collapsed
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
+"
+`;
+
+exports[`IssuesTraceTree respects minShownNodes parameter: smaller minShownNodes (0) 1`] = `
+"
+collapsed
+  span.op - span.description
+  collapsed
+"
+`;
+
+exports[`IssuesTraceTree respects numSurroundingNodes parameter: custom surrounding nodes (2) 1`] = `
+"
+collapsed
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
+  collapsed
+"
+`;
+
+exports[`IssuesTraceTree respects numSurroundingNodes parameter: default surrounding nodes (3) 1`] = `
+"
+collapsed
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
+"
+`;

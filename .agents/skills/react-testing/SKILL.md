@@ -120,6 +120,29 @@ const project = ProjectFixture(partialProject)
 
 ```
 
+### Render a component, not a `renderFoo()` helper
+
+A local helper hides the JSX from every test that calls it, and `rerender` takes
+an element, so the call site can no longer control what renders.
+
+```tsx
+// ❌ Don't wrap render() in a helper
+function renderComponent(props: Props = {}) {
+  return render(<Widget {...props}>hello</Widget>);
+}
+
+// ✅ Put the fixed parts in a component
+function ExampleWidget(props: Props) {
+  return <Widget {...props}>hello</Widget>;
+}
+render(<ExampleWidget isLoading />);
+```
+
+Declare it at module scope so `rerender` keeps the same component type, and keep
+`render()` options at the call site. If the helper adds nothing over the
+component's own props, drop it and call `render(<Widget />)` directly. Helpers
+that only register mocks, or that take the element as a parameter, are fine.
+
 ### Use `screen` instead of destructuring
 
 ```tsx

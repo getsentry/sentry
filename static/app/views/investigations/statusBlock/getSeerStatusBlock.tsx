@@ -119,7 +119,7 @@ function getRunningContent(
         description: t(
           'Organizing the explanation, supporting evidence, and next steps. Your investigation will open automatically.'
         ),
-        statusLabel: t('Finalizing…'),
+        statusLabel: t('Synthesizing…'),
       };
     default:
       return {
@@ -179,7 +179,7 @@ export function getSeerStatusBlock(
         description: t(
           'Findings, supporting evidence, and recommended next steps are ready.'
         ),
-        statusLabel: t('Complete'),
+        statusLabel: t('Completed'),
       };
     case 'pending':
     case 'processing':

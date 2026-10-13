@@ -15,12 +15,16 @@ import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {TransactionThresholdButton} from 'sentry/views/performance/transactionSummary/transactionThresholdButton';
 
-function renderComponent(
-  eventView: EventView,
-  organization: Organization,
-  onChangeThreshold: () => void
-) {
-  return render(
+function ExampleTransactionThresholdButton({
+  eventView,
+  organization,
+  onChangeThreshold,
+}: {
+  eventView: EventView;
+  onChangeThreshold: () => void;
+  organization: Organization;
+}) {
+  return (
     <TransactionThresholdButton
       eventView={eventView}
       organization={organization}
@@ -74,7 +78,13 @@ describe('TransactionThresholdButton', () => {
         metric: 'duration',
       },
     });
-    renderComponent(eventView, organization, onChangeThreshold);
+    render(
+      <ExampleTransactionThresholdButton
+        eventView={eventView}
+        organization={organization}
+        onChangeThreshold={onChangeThreshold}
+      />
+    );
 
     const button = screen.getByRole('button');
     await waitFor(() => expect(button).toBeEnabled());
@@ -97,7 +107,13 @@ describe('TransactionThresholdButton', () => {
         metric: 'duration',
       },
     });
-    renderComponent(eventView, organization, onChangeThreshold);
+    render(
+      <ExampleTransactionThresholdButton
+        eventView={eventView}
+        organization={organization}
+        onChangeThreshold={onChangeThreshold}
+      />
+    );
 
     const button = screen.getByRole('button');
     await waitFor(() => expect(button).toBeEnabled());
@@ -116,7 +132,13 @@ describe('TransactionThresholdButton', () => {
       },
     });
 
-    renderComponent(eventView, organization, onChangeThreshold);
+    render(
+      <ExampleTransactionThresholdButton
+        eventView={eventView}
+        organization={organization}
+        onChangeThreshold={onChangeThreshold}
+      />
+    );
 
     const button = screen.getByRole('button');
     await waitFor(() => expect(button).toBeEnabled());
@@ -138,7 +160,13 @@ describe('TransactionThresholdButton', () => {
     // render before the store is populated.
     ProjectsStore.reset();
 
-    renderComponent(eventView, organization, onChangeThreshold);
+    render(
+      <ExampleTransactionThresholdButton
+        eventView={eventView}
+        organization={organization}
+        onChangeThreshold={onChangeThreshold}
+      />
+    );
 
     const button = screen.getByRole('button', {name: 'Settings'});
     expect(button).toBeDisabled();
@@ -166,7 +194,13 @@ describe('TransactionThresholdButton', () => {
       body: {threshold: '200', metric: 'duration'},
     });
 
-    renderComponent(eventView, organization, onChangeThreshold);
+    render(
+      <ExampleTransactionThresholdButton
+        eventView={eventView}
+        organization={organization}
+        onChangeThreshold={onChangeThreshold}
+      />
+    );
     renderGlobalModal();
 
     const button = screen.getByRole('button', {name: 'Settings'});

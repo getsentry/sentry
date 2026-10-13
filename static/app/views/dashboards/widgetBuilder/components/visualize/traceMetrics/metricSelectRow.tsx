@@ -12,12 +12,11 @@ import {
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {AggregateSelector} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/aggregateSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
   buildTraceMetricAggregate,
   extractTraceMetricFromColumn,
   getTraceMetricAggregateActionType,
-  getTraceMetricAggregateSource,
+  getTraceMetricDisplayFields,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {
@@ -99,17 +98,16 @@ export function MetricSelectRow({
   fieldSelector?: (autoSelectFirstColumn: boolean) => ReactNode;
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
-  const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
   const [shouldAutoSelectFirstColumn, setShouldAutoSelectFirstColumn] = useState(false);
 
-  const aggregateSource = getTraceMetricAggregateSource(
+  const displayFields = getTraceMetricDisplayFields(
     state.displayType,
     state.yAxis,
     state.fields
   );
 
-  const traceMetric = (aggregateSource?.[index]
-    ? extractTraceMetricFromColumn(aggregateSource[index])
+  const traceMetric = (displayFields?.[index]
+    ? extractTraceMetricFromColumn(displayFields[index])
     : undefined) ?? {name: '', type: ''};
 
   // Dashboards is visualization-first: once Heat Map is chosen, restrict the
@@ -132,45 +130,10 @@ export function MetricSelectRow({
         return;
       }
 
-      let updatedAggregates: Column[] | undefined;
-      if (hasMultiMetricSelection) {
-        updatedAggregates =
-          field.kind === FieldValueKind.FUNCTION
-            ? getUpdatedAggregatesMultiMetric(
-                aggregateSource ?? [],
-                index,
-                newTraceMetric
-              )
-            : replaceFieldWithDefaultAggregate(
-                aggregateSource ?? [],
-                index,
-                newTraceMetric
-              );
-      } else {
-        const validAggregateOptions = OPTIONS_BY_TYPE[newTraceMetric.type] ?? [];
-        updatedAggregates = (aggregateSource ?? []).map((f, aggregateIndex) => {
-          if (f.kind === 'function' && f.function?.[0]) {
-            const aggregate = f.function[0];
-            const isValid = validAggregateOptions.some(opt => opt.value === aggregate);
-
-            if (!isValid && validAggregateOptions.length > 0) {
-              const defaultAggregate = getDefaultAggregate(newTraceMetric);
-              if (defaultAggregate) {
-                return buildTraceMetricAggregate(defaultAggregate, newTraceMetric);
-              }
-            }
-
-            return buildTraceMetricAggregate(aggregate, newTraceMetric);
-          }
-          if (aggregateIndex === index) {
-            const aggregate = getDefaultAggregate(newTraceMetric);
-            if (aggregate) {
-              return buildTraceMetricAggregate(aggregate, newTraceMetric);
-            }
-          }
-          return f;
-        });
-      }
+      const updatedAggregates =
+        field.kind === FieldValueKind.FUNCTION
+          ? getUpdatedAggregatesMultiMetric(displayFields ?? [], index, newTraceMetric)
+          : replaceFieldWithDefaultAggregate(displayFields ?? [], index, newTraceMetric);
 
       if (!updatedAggregates) {
         return;
@@ -183,7 +146,7 @@ export function MetricSelectRow({
         payload: updatedAggregates,
       });
     },
-    [aggregateSource, dispatch, field, hasMultiMetricSelection, index, state.displayType]
+    [displayFields, dispatch, field, index, state.displayType]
   );
 
   const onSelectField = useCallback(() => {
@@ -192,13 +155,13 @@ export function MetricSelectRow({
     }
 
     setShouldAutoSelectFirstColumn(true);
-    const newFields = [...(aggregateSource ?? [])];
+    const newFields = [...(displayFields ?? [])];
     newFields[index] = {kind: FieldValueKind.FIELD, field: ''};
     dispatch({
       type: getTraceMetricAggregateActionType(state.displayType),
       payload: newFields,
     });
-  }, [aggregateSource, dispatch, index, state.displayType]);
+  }, [displayFields, dispatch, index, state.displayType]);
 
   useEffect(() => {
     if (field.kind !== FieldValueKind.FIELD) {
@@ -208,7 +171,7 @@ export function MetricSelectRow({
   }, [field.kind]);
 
   const hasOnlyAggregate =
-    aggregateSource?.filter(
+    displayFields?.filter(
       aggregate => aggregate.kind === 'function' || aggregate.kind === 'equation'
     ).length === 1;
   const renderedFieldSelector = fieldSelector?.(shouldAutoSelectFirstColumn);

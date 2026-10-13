@@ -19,10 +19,10 @@ describe('ResultGrid', () => {
     );
   }
 
-  function renderBasicGrid(
-    extraProps: Partial<React.ComponentProps<typeof ResultGrid>> = {}
+  function ExampleBasicResultGrid(
+    extraProps: Partial<React.ComponentProps<typeof ResultGrid>>
   ) {
-    return render(
+    return (
       <ResultGrid
         endpoint={endpoint}
         path={path}
@@ -47,7 +47,7 @@ describe('ResultGrid', () => {
       headers: {Link: makeLinkHeader()},
     });
 
-    renderBasicGrid();
+    render(<ExampleBasicResultGrid />);
 
     expect(await screen.findByText('alpha')).toBeInTheDocument();
     expect(screen.getByText('beta')).toBeInTheDocument();
@@ -63,7 +63,7 @@ describe('ResultGrid', () => {
       headers: {Link: makeLinkHeader()},
     });
 
-    const {router} = renderBasicGrid();
+    const {router} = render(<ExampleBasicResultGrid />);
 
     await userEvent.type(await screen.findByPlaceholderText('Search'), 'hello');
     await userEvent.click(screen.getByRole('button', {name: 'Search'}));
@@ -81,9 +81,9 @@ describe('ResultGrid', () => {
       headers: {Link: makeLinkHeader()},
     });
 
-    const {router} = renderBasicGrid();
+    const {router} = render(<ExampleBasicResultGrid />);
 
-    await screen.findByTestId('pagination');
+    await screen.findByRole('button', {name: 'Next'});
 
     expect(screen.getByRole('button', {name: 'Previous'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
@@ -103,11 +103,13 @@ describe('ResultGrid', () => {
       headers: {Link: makeLinkHeader()},
     });
 
-    const {router} = renderBasicGrid({
-      filters: {status: {name: 'Status', options: [['active', 'Active']]}},
-    });
+    const {router} = render(
+      <ExampleBasicResultGrid
+        filters={{status: {name: 'Status', options: [['active', 'Active']]}}}
+      />
+    );
 
-    await screen.findByTestId('pagination');
+    await screen.findByRole('button', {name: 'Next'});
     await userEvent.click(screen.getByRole('button', {name: /Status/}));
     await userEvent.click(await screen.findByRole('option', {name: 'Active'}));
     await waitFor(() => expect(router.location.query.status).toBe('active'));
@@ -119,15 +121,13 @@ describe('ResultGrid', () => {
   });
 
   it('shows the error state when the fetch itself rejects', async () => {
-    // The API client swallows a fetch-level rejection without running either
-    // callback, so the grid has to observe requestPromise to leave loading.
-    jest.spyOn(Client.prototype, 'request').mockReturnValue({
-      requestPromise: Promise.reject(new Error('Failed to fetch')),
-      alive: true,
-      cancel: () => {},
-    });
+    // A fetch-level failure (blocked request, network error) rejects
+    // requestPromise, which must move the grid out of its loading state.
+    jest
+      .spyOn(Client.prototype, 'requestPromise')
+      .mockRejectedValue(new Error('Failed to fetch'));
 
-    renderBasicGrid();
+    render(<ExampleBasicResultGrid />);
     const alert = await screen.findByText('Something bad happened :/');
 
     expect(alert).toBeInTheDocument();
@@ -636,6 +636,19 @@ describe('ResultGrid allowAllRegions', () => {
     let respond = true;
     const stubApi = {
       clear: jest.fn(),
+      // fetchRegionPages (all-regions) uses requestPromise
+      requestPromise: jest.fn((url: string, _options: any) => {
+        if (respond) {
+          const name = url.startsWith('/_admin/cells/us/') ? 'Acme' : 'Beta';
+          return Promise.resolve([
+            [{id: '1', name, members: 5}],
+            'success',
+            {getResponseHeader: () => null},
+          ]);
+        }
+        return new Promise(() => {}); // never settles
+      }),
+      // single-region fetch still uses api.request with callbacks
       request: jest.fn((url: string, options: any) => {
         if (respond) {
           const name = url.startsWith('/_admin/cells/us/') ? 'Acme' : 'Beta';
@@ -706,18 +719,19 @@ describe('ResultGrid allowAllRegions', () => {
   });
 
   it('marks a region as failed when the fetch itself rejects (e.g. blocked request)', async () => {
-    // The real API client swallows fetch rejections without calling success
-    // or error, so the grid must resolve the region through requestPromise.
     const stubApi = {
       clear: jest.fn(),
-      request: jest.fn((url: string, options: any) => {
+      requestPromise: jest.fn((url: string, _options: any) => {
         if (url.startsWith('/_admin/cells/us/')) {
-          options.success([{id: '1', name: 'Acme', members: 5}], 'success', {
-            getResponseHeader: () => null,
-          });
-          return {requestPromise: Promise.resolve()};
+          return Promise.resolve([
+            [{id: '1', name: 'Acme', members: 5}],
+            'success',
+            {
+              getResponseHeader: () => null,
+            },
+          ]);
         }
-        return {requestPromise: Promise.reject(new Error('Failed to fetch'))};
+        return Promise.reject(new Error('Failed to fetch'));
       }),
     };
 

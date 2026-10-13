@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 from urllib.parse import ParseResult, parse_qs, urlparse
 
 from sentry.utils.http import is_valid_ip
+from sentry.utils.safe import get_path
 
 from ..types import Span
 
@@ -34,8 +35,15 @@ URL_WITH_BRACKETED_HOSTNAME_REGEX = re.compile(
                 \[
                 (
                     # At least one NB-NS-LH character. Also allows spaces in order to catch values
-                    # like `[Filtered UUID]` and `[REDACTED IP]`.
+                    # like `[Filtered UUID]` and `[REDACTED IP]`. The second alternative here is the
+                    # same as the first, but surrounded by an extra set of brackets, which happens
+                    # when the contents of an already-bracketed IPv6 literal gets scrubbed, turning
+                    # `http://[::1]:8090/some/path` into `http://[[ip]]:8090/some/path`.
                     [^\[\]/'"`\\<>{}|\^?#]+
+                    |
+                    \[
+                        [^\[\]/'"`\\<>{}|\^?#]+
+                    \]
                 )
                 \]
             )
@@ -166,6 +174,11 @@ def safer_urlparse(url: str) -> ParseResult:
     `urlparse` reads `[...]` in a URL's hostname as an IPv6 literal and errors out if it isn't a
     valid IP. In cases where that happens, this temporarily strips the brackets for parsing, then
     restores them in the final result.
+
+    (Note: Only `netloc` is restored with the original bracketed hostname; derived properties like
+    `hostname` would require a `ParseResult` subclass to fix, and without it still handle the
+    brackets badly. All hostname comparisons should therefore be done using `netloc`, not
+    `hostname`.)
 
     Reraises parsing errors caused by other invalid URL patterns.
     """
@@ -568,3 +581,17 @@ def get_numeric_value_from_span[T: (int, float)](
             ),
         )
         return default
+
+
+def get_browser_name(event: dict[str, Any]) -> str:
+    return get_path(event, "contexts", "browser", "name") or next(
+        (
+            tag[1]
+            for tag in event.get("tags") or []
+            if tag is not None
+            and len(tag) == 2
+            and tag[0] == "browser.name"
+            and isinstance(tag[1], str)
+        ),
+        "",
+    )

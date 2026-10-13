@@ -16,7 +16,9 @@ import sentry.apidocs.extensions  # noqa: F401
 from sentry.api.base import Endpoint
 from sentry.api.serializers.base import Serializer as ResponseSerializer
 from sentry.apidocs.hooks import CustomGenerator
+from sentry.apidocs.omission_guard import omissions_disabled
 from sentry.apidocs.omissions import sentry_schema_serializer
+from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.apidocs.utils import SentryApiBuildError
 from sentry.conf.server import custom_parameter_sort
 
@@ -406,3 +408,49 @@ def test_a_field_replaced_by_an_explicit_parameter_is_not_checked_as_the_seriali
     )
     assert mode["description"] == "Mode."
     assert "required" not in mode
+
+
+# A rule embeds its latest incident, and the incident embeds its rule. Omitting
+# `latestIncident` keeps the published build from following that loop, but the
+# baseline build keeps every field, so it has to stop on its own.
+@sentry_schema_serializer(omit_from_public_schema={"latestIncident": "Internal."})
+class CyclicRule(TypedDict):
+    name: str
+    latestIncident: CyclicIncident | None
+
+
+class CyclicIncident(TypedDict):
+    title: str
+    rule: CyclicRule
+
+
+class CyclicRuleSerializer(ResponseSerializer):
+    def serialize(self, obj: Any, attrs: Any, user: Any, **kwargs: Any) -> CyclicRule:
+        raise NotImplementedError
+
+
+class CyclicEndpoint(Endpoint):
+    permission_classes = ()
+
+    @extend_schema(operation_id="cyclic", responses={200: CyclicRuleSerializer})
+    def get(self, request):
+        pass
+
+
+def test_types_that_contain_each_other_pass_the_guard() -> None:
+    patterns = [url_path("cyclic/", CyclicEndpoint.as_view())]
+    with mock.patch.object(spectacular_settings, "POSTPROCESSING_HOOKS", []):
+        result = CustomGenerator(patterns=patterns).get_schema(request=None, public=True)
+    rule = result["components"]["schemas"]["CyclicRule"]
+    assert set(rule["properties"]) == {"name"}
+
+
+def test_a_type_that_contains_itself_stops_at_a_placeholder() -> None:
+    """Without the omission the loop is published too, so it has to end somewhere."""
+    with omissions_disabled():
+        incident = resolve_type_hint(CyclicIncident)
+    inner_rule = incident["properties"]["rule"]
+    inner_incident = inner_rule["properties"]["latestIncident"]
+    assert inner_incident["type"] == "object"
+    assert "properties" not in inner_incident
+    assert "CyclicIncident" in inner_incident["description"]

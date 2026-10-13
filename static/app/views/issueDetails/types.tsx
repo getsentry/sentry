@@ -11,6 +11,7 @@ export enum Tab {
   OPEN_PERIODS = 'open-periods',
   CHECK_INS = 'check-ins',
   UPTIME_CHECKS = 'uptime-checks',
+  AUTOFIX = 'autofix',
 }
 
 export const TabPaths: Record<Tab, string> = {
@@ -26,4 +27,5 @@ export const TabPaths: Record<Tab, string> = {
   [Tab.OPEN_PERIODS]: 'open-periods/',
   [Tab.CHECK_INS]: 'check-ins/',
   [Tab.UPTIME_CHECKS]: 'uptime-checks/',
+  [Tab.AUTOFIX]: 'autofix/',
 };

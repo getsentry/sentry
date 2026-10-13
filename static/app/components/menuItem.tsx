@@ -109,52 +109,42 @@ export function MenuItem({
     }
   };
 
-  const renderAnchor = (): React.ReactNode => {
-    const linkProps = {
-      onClick: handleClick,
-      tabIndex: -1,
-      isActive,
-      disabled,
-      withBorder,
-    };
-
-    if (to) {
-      return (
-        <MenuLink to={to} {...linkProps} title={title} data-test-id="menu-item">
-          {icon && (
-            <Flex align="center" marginRight="md">
-              {icon}
-            </Flex>
-          )}
-          {children}
-        </MenuLink>
-      );
-    }
-
-    if (href) {
-      return (
-        <MenuAnchor {...linkProps} href={href} data-test-id="menu-item">
-          {icon && (
-            <Flex align="center" marginRight="md">
-              {icon}
-            </Flex>
-          )}
-          {children}
-        </MenuAnchor>
-      );
-    }
-
-    return (
-      <MenuTarget role="button" {...linkProps} title={title} data-test-id="menu-item">
-        {icon && (
-          <Flex align="center" marginRight="md">
-            {icon}
-          </Flex>
-        )}
-        {children}
-      </MenuTarget>
-    );
+  const linkProps = {
+    onClick: handleClick,
+    tabIndex: -1,
+    isActive,
+    disabled,
+    withBorder,
   };
+
+  const anchor = to ? (
+    <MenuLink to={to} {...linkProps} title={title} data-test-id="menu-item">
+      {icon && (
+        <Flex align="center" marginRight="md">
+          {icon}
+        </Flex>
+      )}
+      {children}
+    </MenuLink>
+  ) : href ? (
+    <MenuAnchor {...linkProps} href={href} data-test-id="menu-item">
+      {icon && (
+        <Flex align="center" marginRight="md">
+          {icon}
+        </Flex>
+      )}
+      {children}
+    </MenuAnchor>
+  ) : (
+    <MenuTarget role="button" {...linkProps} title={title} data-test-id="menu-item">
+      {icon && (
+        <Flex align="center" marginRight="md">
+          {icon}
+        </Flex>
+      )}
+      {children}
+    </MenuTarget>
+  );
 
   let renderChildren: React.ReactNode | null = null;
   if (noAnchor) {
@@ -162,7 +152,7 @@ export function MenuItem({
   } else if (header) {
     renderChildren = children;
   } else if (!divider) {
-    renderChildren = renderAnchor();
+    renderChildren = anchor;
   }
 
   return (
@@ -265,7 +255,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
       height: 1px;
       margin: ${p.theme.space.xs} 0;
       overflow: hidden;
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p.theme.tokens.border.secondary};
     `}
   ${p =>

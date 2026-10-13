@@ -746,7 +746,7 @@ class GetOrFetchExternalIdTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(self.project, name="getsentry/sentry")
 
-    def _fetch(self, fetch: Callable[[], int | None], *, key: str = "42") -> int | None:
+    def _fetch(self, fetch: Callable[[], str | None], *, key: str = "42") -> str | None:
         return PullRequest.objects.get_or_fetch_external_id(
             organization_id=self.organization.id,
             repository_id=self.repo.id,
@@ -754,37 +754,32 @@ class GetOrFetchExternalIdTest(TestCase):
             fetch=fetch,
         )
 
-    def test_returns_stored_id_without_fetch(self) -> None:
-        pr = self.create_pull_request(
+    def _pr(self) -> PullRequest:
+        return self.create_pull_request(
             organization_id=self.organization.id, repository_id=self.repo.id, key="42"
         )
-        pr.update(external_id=555)
-        calls: list[int] = []
 
-        def fetch() -> int:
-            calls.append(1)
-            return 999
+    def _no_fetch(self) -> str:
+        raise AssertionError("fetch should not be called")
 
-        assert self._fetch(fetch) == 555
-        assert calls == []
+    def test_returns_stored_id_without_fetch(self) -> None:
+        self._pr().update(external_id="pr_01abc")
+
+        assert self._fetch(self._no_fetch) == "pr_01abc"
 
     def test_writes_back_onto_existing_row(self) -> None:
-        pr = self.create_pull_request(
-            organization_id=self.organization.id, repository_id=self.repo.id, key="42"
-        )
+        pr = self._pr()
 
-        assert self._fetch(fetch=lambda: 555) == 555
+        assert self._fetch(fetch=lambda: "pr_01abc") == "pr_01abc"
         pr.refresh_from_db()
-        assert pr.external_id == 555
+        assert pr.external_id == "pr_01abc"
 
     def test_returns_fetched_id_unpersisted_when_row_is_absent(self) -> None:
-        assert self._fetch(fetch=lambda: 555) == 555
+        assert self._fetch(fetch=lambda: "555") == "555"
         assert not PullRequest.objects.filter(repository_id=self.repo.id, key="42").exists()
 
     def test_does_not_store_a_none_fetch(self) -> None:
-        pr = self.create_pull_request(
-            organization_id=self.organization.id, repository_id=self.repo.id, key="42"
-        )
+        pr = self._pr()
 
         assert self._fetch(fetch=lambda: None) is None
         pr.refresh_from_db()

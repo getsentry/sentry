@@ -1,3 +1,5 @@
+import type {PlatformKey} from 'sentry/types/platform';
+
 export enum AgentIntegration {
   OPENAI = 'openai',
   OPENAI_AGENTS = 'openai_agents',
@@ -5,7 +7,7 @@ export enum AgentIntegration {
   GOOGLE_GENAI = 'google_genai',
   LANGCHAIN = 'langchain',
   LANGGRAPH = 'langgraph',
-  LITTELLM = 'litellm',
+  LITELLM = 'litellm',
   // Flue is a TypeScript agent framework (by the Astro team) that ships an
   // official Sentry blueprint. It runs on both Node and Cloudflare.
   FLUE = 'flue',
@@ -23,14 +25,14 @@ export enum AgentIntegration {
   MANUAL = 'manual',
 }
 
-export const AGENT_INTEGRATION_LABELS = {
+export const AGENT_INTEGRATION_LABELS: Record<AgentIntegration, string> = {
   [AgentIntegration.OPENAI]: 'OpenAI SDK',
   [AgentIntegration.OPENAI_AGENTS]: 'OpenAI Agents SDK',
   [AgentIntegration.ANTHROPIC]: 'Anthropic SDK',
   [AgentIntegration.GOOGLE_GENAI]: 'Google Gen AI SDK',
   [AgentIntegration.LANGCHAIN]: 'LangChain',
   [AgentIntegration.LANGGRAPH]: 'LangGraph',
-  [AgentIntegration.LITTELLM]: 'LiteLLM',
+  [AgentIntegration.LITELLM]: 'LiteLLM',
   [AgentIntegration.FLUE]: 'Flue',
   [AgentIntegration.MASTRA]: 'Mastra',
   [AgentIntegration.PYDANTIC_AI]: 'Pydantic AI',
@@ -48,7 +50,7 @@ export const AGENT_INTEGRATION_ICONS: Record<AgentIntegration, string> = {
   [AgentIntegration.GOOGLE_GENAI]: 'gemini',
   [AgentIntegration.LANGCHAIN]: 'langchain',
   [AgentIntegration.LANGGRAPH]: 'langchain',
-  [AgentIntegration.LITTELLM]: 'litellm',
+  [AgentIntegration.LITELLM]: 'litellm',
   [AgentIntegration.FLUE]: 'astro',
   [AgentIntegration.MASTRA]: 'mastra',
   [AgentIntegration.PYDANTIC_AI]: 'pydantic-ai',
@@ -67,7 +69,7 @@ export const PYTHON_AGENT_INTEGRATIONS = [
   AgentIntegration.GOOGLE_GENAI,
   AgentIntegration.LANGCHAIN,
   AgentIntegration.LANGGRAPH,
-  AgentIntegration.LITTELLM,
+  AgentIntegration.LITELLM,
   AgentIntegration.PYDANTIC_AI,
   AgentIntegration.MANUAL,
 ];
@@ -119,6 +121,20 @@ export const DEPLOYMENT_TARGET_ICONS: Record<DeploymentTarget, string> = {
   [DeploymentTarget.NODE]: 'node',
   [DeploymentTarget.CLOUDFLARE]: 'cloudflare',
 };
+
+const DEFAULT_AGENT_INTEGRATION_BY_PROJECT_PLATFORM: Partial<
+  Record<PlatformKey, AgentIntegration>
+> = {
+  'node-eve': AgentIntegration.EVE,
+  'node-flue': AgentIntegration.FLUE,
+  'node-mastra': AgentIntegration.MASTRA,
+};
+
+export function getDefaultAgentIntegration(
+  platform: PlatformKey | null | undefined
+): AgentIntegration | undefined {
+  return platform ? DEFAULT_AGENT_INTEGRATION_BY_PROJECT_PLATFORM[platform] : undefined;
+}
 
 /**
  * Agent SDKs that only work on a single Node deployment runtime. Selecting one

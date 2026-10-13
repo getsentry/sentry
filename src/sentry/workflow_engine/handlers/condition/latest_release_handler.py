@@ -1,46 +1,25 @@
-from typing import Any, Literal, NamedTuple
+from typing import Any, Literal
 
 from sentry import tagstore
 from sentry.models.environment import Environment
 from sentry.models.release import Release
-from sentry.rules.filters.latest_adopted_release_filter import (
-    get_project_release_cache_key as latest_adopted_release_cache_key,
-)
-from sentry.rules.filters.latest_release import (
-    get_project_release_cache_key as latest_release_cache_key,
-)
 from sentry.search.utils import get_latest_release
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.workflow_engine.caches import CacheMapping
-from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
-
-CACHE_TTL_SECONDS = 600
-
-
-class _LatestReleaseCacheKey(NamedTuple):
-    project_id: int
-    environment_id: int | None
-
-
-class _LatestAdoptedReleaseCacheKey(NamedTuple):
-    project_id: int
-    environment_id: int
-
-
-# Cache mappings for latest release lookups.
-# Values are Release objects, or False if no release exists (to cache negative lookups).
-_latest_release_cache = CacheMapping[_LatestReleaseCacheKey, Release | Literal[False]](
-    lambda key: latest_release_cache_key(key.project_id, key.environment_id),
-    ttl_seconds=CACHE_TTL_SECONDS,
+from sentry.workflow_engine.handlers.condition.utils.releases import (
+    LatestAdoptedReleaseCacheKey,
+    LatestReleaseCacheKey,
+    latest_adopted_release_cache,
+    latest_release_cache,
 )
-_latest_adopted_release_cache = CacheMapping[
-    _LatestAdoptedReleaseCacheKey, Release | Literal[False]
-](
-    lambda key: latest_adopted_release_cache_key(key.project_id, key.environment_id),
-    ttl_seconds=CACHE_TTL_SECONDS,
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
+from sentry.workflow_engine.registry import condition_handler_registry
+from sentry.workflow_engine.types import (
+    ActionFilterDataConditionHandler,
+    DataConditionHandler,
+    WorkflowEventData,
 )
 
 
@@ -50,12 +29,12 @@ def get_latest_adopted_release_for_env(
     """
     Get the latest adopted release for a project in an environment.
     """
-    cache_key = _LatestAdoptedReleaseCacheKey(event.group.project_id, environment.id)
+    cache_key = LatestAdoptedReleaseCacheKey(event.group.project_id, environment.id)
     return _get_latest_release_for_env_impl(
         environment,
         event,
         only_adopted=True,
-        mapping=_latest_adopted_release_cache,
+        mapping=latest_adopted_release_cache,
         cache_key=cache_key,
     )
 
@@ -68,14 +47,14 @@ def get_latest_release_for_env(
     Get the latest release for a project in an environment.
     NOTE: This is independent of whether it has been adopted or not.
     """
-    cache_key = _LatestReleaseCacheKey(
+    cache_key = LatestReleaseCacheKey(
         event.group.project_id, environment.id if environment else None
     )
     return _get_latest_release_for_env_impl(
         environment,
         event,
         only_adopted=False,
-        mapping=_latest_release_cache,
+        mapping=latest_release_cache,
         cache_key=cache_key,
     )
 
@@ -126,8 +105,8 @@ def _get_latest_release_for_env_impl[K](
 
 
 @condition_handler_registry.register(Condition.LATEST_RELEASE)
-class LatestReleaseConditionHandler(DataConditionHandler[WorkflowEventData]):
-    group = DataConditionHandler.Group.ACTION_FILTER
+class LatestReleaseConditionHandler(ActionFilterDataConditionHandler[WorkflowEventData]):
+    preview_behavior = UnsupportedPreviewBehavior("Release comparisons require event data")
     subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
     comparison_json_schema = {"type": "boolean"}
     label_template = "The event is from the latest release"

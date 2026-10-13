@@ -70,6 +70,7 @@ parse_search_query = partial(base_parse_search_query, config=search_config)
 class SeerProjectSettings(TypedDict):
     automation_tuning: str
     handoff: SeerAutomationHandoffConfiguration | None
+    pr_iteration: bool
     repos_count: int
     scanner_automation: bool
     stopping_point: str
@@ -84,6 +85,7 @@ class SeerProjectSettingsResponse(TypedDict):
     autoCreatePr: bool | None
     automationTuning: str
     scannerAutomation: bool
+    prIteration: bool
     reposCount: int
 
 
@@ -93,6 +95,7 @@ def _get_project_settings(project: Project) -> SeerProjectSettings:
         scanner_automation=project.get_option("sentry:seer_scanner_automation"),
         stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
         handoff=get_automation_handoff(project.get_option),
+        pr_iteration=project.get_option("sentry:seer_pr_iteration"),
         repos_count=SeerProjectRepository.objects.filter(
             project_repository__project=project,
             project_repository__repository__status=ObjectStatus.ACTIVE,
@@ -135,6 +138,7 @@ def _bulk_get_project_settings(projects: list[Project]) -> dict[int, SeerProject
             scanner_automation=_get_option("sentry:seer_scanner_automation"),
             stopping_point=_get_option("sentry:seer_automated_run_stopping_point"),
             handoff=get_automation_handoff(_get_option),
+            pr_iteration=_get_option("sentry:seer_pr_iteration"),
             repos_count=repo_counts.get(project.id, 0),
         )
 
@@ -172,6 +176,7 @@ def _serialize(project: Project, settings: SeerProjectSettings) -> SeerProjectSe
         autoCreatePr=auto_create_pr,
         automationTuning=settings["automation_tuning"],
         scannerAutomation=settings["scanner_automation"],
+        prIteration=settings["pr_iteration"],
         reposCount=settings["repos_count"],
     )
 
@@ -322,9 +327,16 @@ class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer):
     automation_tuning = serializers.ChoiceField(
         choices=[*AutofixAutomationTuningSettings], required=False
     )
+    pr_iteration = serializers.BooleanField(required=False)
 
     def _update_fields(self) -> set[str]:
-        return {"agent", "stopping_point", "scanner_automation", "automation_tuning"}
+        return {
+            "agent",
+            "stopping_point",
+            "scanner_automation",
+            "automation_tuning",
+            "pr_iteration",
+        }
 
     def validate_integration_id(self, value: int) -> int:
         organization = self.context["organization"]

@@ -14,6 +14,7 @@ import {
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -64,11 +65,7 @@ const invalidAttributeValidationBody: EventValidationData = {
 };
 
 describe('SpansTabContent', () => {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: ['gen-ai-features'],
-    },
-  });
+  const {organization, project} = initializeOrg();
 
   function setProjects(projects: Project[], selectedProjectIds?: number[]) {
     ProjectsStore.loadInitialData(projects);
@@ -88,10 +85,45 @@ describe('SpansTabContent', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/validate/',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: null, fields: [], valid: true},
+        valid: true,
+      },
+    });
 
-    // without this the `CompactSelect` component errors with a bunch of async updates
-    jest.spyOn(console, 'error').mockImplementation();
-
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/stats_v2/',
+      body: {groups: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/stats/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 1},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/1/',
+      body: {status: 'completed', results: []},
+    });
     PageFiltersStore.init();
     setProjects([project]);
     MockApiClient.addMockResponse({
@@ -101,11 +133,6 @@ describe('SpansTabContent', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
       method: 'GET',
       body: [],
     });
@@ -425,13 +452,13 @@ describe('SpansTabContent', () => {
   });
 
   describe('case sensitivity', () => {
-    it('renders the case sensitivity toggle', () => {
+    it('renders the case sensitivity toggle', async () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
         organization,
         additionalWrapper: Wrapper,
       });
 
-      const caseSensitivityToggle = screen.getByRole('button', {
+      const caseSensitivityToggle = await screen.findByRole('button', {
         name: 'Ignore case',
       });
       expect(caseSensitivityToggle).toBeInTheDocument();
@@ -500,9 +527,14 @@ describe('SpansTabContent', () => {
 
   describe('Ask Seer', () => {
     describe('when the AI features are disabled', () => {
+      afterEach(() => {
+        ConfigStore.set('isSelfHosted', false);
+      });
+
       it('does not display the Ask Seer combobox', async () => {
+        ConfigStore.set('isSelfHosted', true);
         render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-          organization: {...organization, features: []},
+          organization,
           additionalWrapper: Wrapper,
         });
 
@@ -801,7 +833,7 @@ describe('SpansTabContent', () => {
       );
     });
 
-    it('disables dropdown when there are 2 cross events', () => {
+    it('disables dropdown when there are 2 cross events', async () => {
       const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
       setProjects([logsProject]);
 
@@ -822,11 +854,11 @@ describe('SpansTabContent', () => {
       });
 
       expect(
-        screen.getByRole('button', {name: 'Add a cross event query'})
+        await screen.findByRole('button', {name: 'Add a cross event query'})
       ).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Add a cross event query'})
-      ).toBeDisabled();
+      ).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('adds and removes an empty cross event search bar without refetching results', async () => {
@@ -934,7 +966,7 @@ describe('SpansTabContent', () => {
       );
     });
 
-    it('renders disabled cross event search bar when the limit is reached', () => {
+    it('renders disabled cross event search bar when the limit is reached', async () => {
       const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
       setProjects([logsProject]);
 
@@ -955,13 +987,12 @@ describe('SpansTabContent', () => {
         },
       });
 
-      expect(screen.getAllByTestId('search-query-builder').pop()).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+      expect(
+        (await screen.findAllByTestId('search-query-builder')).pop()
+      ).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('disables Attribute Breakdowns tab when cross events are present', () => {
+    it('disables Attribute Breakdowns tab when cross events are present', async () => {
       const logsProject = makeProject({id: '3', slug: 'logs-project', hasLogs: true});
       setProjects([logsProject]);
 
@@ -979,7 +1010,7 @@ describe('SpansTabContent', () => {
         },
       });
 
-      const attributeBreakdownsTab = screen.getByRole('tab', {
+      const attributeBreakdownsTab = await screen.findByRole('tab', {
         name: /Attribute Breakdowns/,
       });
       expect(attributeBreakdownsTab).toHaveAttribute('aria-disabled', 'true');

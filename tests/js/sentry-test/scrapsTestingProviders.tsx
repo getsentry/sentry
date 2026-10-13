@@ -4,7 +4,7 @@ import {ToastProvider} from '@sentry/scraps/toast';
 import {
   TranslationContextProvider,
   type TranslationContextValue,
-} from '@sentry/scraps/translationContext';
+} from '@sentry/scraps/translation';
 
 import {SentryFormErrorProvider} from 'sentry/scrapsProviders/formError';
 import {SentryLinkBehaviorProvider} from 'sentry/scrapsProviders/link';

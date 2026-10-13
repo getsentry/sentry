@@ -24,35 +24,32 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
 
   return useCallback(() => {
     openConfirmModal({
-      onConfirm: () => {
+      onConfirm: async () => {
         addLoadingMessage(t('Updating feedback...'));
-        bulkDelete(
-          api,
-          {
+        try {
+          await bulkDelete(api, {
             orgId: organization.slug,
             projectId,
             itemIds: feedbackIds,
-          },
-          {
-            success: () => {
-              navigate(
-                normalizeUrl({
-                  pathname: makeFeedbackPathname({
-                    path: '/',
-                    organization,
-                  }),
-                  query: {
-                    mailbox: locationQuery.mailbox,
-                    project: locationQuery.project,
-                    query: locationQuery.query,
-                    statsPeriod: locationQuery.statsPeriod,
-                  },
-                })
-              );
-            },
-            complete: refetchFeedbackList,
-          }
-        );
+          });
+          navigate(
+            normalizeUrl({
+              pathname: makeFeedbackPathname({
+                path: '/',
+                organization,
+              }),
+              query: {
+                mailbox: locationQuery.mailbox,
+                project: locationQuery.project,
+                query: locationQuery.query,
+                statsPeriod: locationQuery.statsPeriod,
+              },
+            })
+          );
+        } catch {
+          // GroupStore already shows the error
+        }
+        refetchFeedbackList();
       },
       message: t('Deleting feedback is permanent. Are you sure you wish to continue?'),
       confirmText: t('Delete'),

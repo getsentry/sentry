@@ -11,7 +11,7 @@ import {
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
-async function renderFlagDrawer() {
+async function openFlagDrawer() {
   mockElementSize({width: 0, height: 30});
   render(
     <GroupDataContextProvider
@@ -41,7 +41,7 @@ describe('FeatureFlagDrawer', () => {
     });
   });
   it('renders the drawer as expected', async () => {
-    const drawerScreen = await renderFlagDrawer();
+    const drawerScreen = await openFlagDrawer();
     expect(
       within(drawerScreen).getByRole('button', {name: 'Close Drawer'})
     ).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe('FeatureFlagDrawer', () => {
   });
 
   it('allows search to affect displayed flags', async () => {
-    const drawerScreen = await renderFlagDrawer();
+    const drawerScreen = await openFlagDrawer();
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result);
     expect(within(drawerScreen).getByText(webVitalsFlag!.flag)).toBeInTheDocument();
@@ -89,7 +89,7 @@ describe('FeatureFlagDrawer', () => {
   });
 
   it('allows sort dropdown to affect displayed flags', async () => {
-    const drawerScreen = await renderFlagDrawer();
+    const drawerScreen = await openFlagDrawer();
 
     const [webVitalsFlag, enableReplay] = MOCK_FLAGS.filter(f => f.result);
 

@@ -1,0 +1,114 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`autogrouping parent autogrouping assigns children to tail node 1`] = `
+"
+eap trace root
+  parent autogroup (db: 3)
+    http.server - redis
+"
+`;
+
+exports[`autogrouping parent autogrouping collapsing parent autogroup removes its children 1`] = `
+"
+eap trace root
+  parent autogroup (db: 3)
+    db - redis
+      db - redis
+        db - redis
+"
+`;
+
+exports[`autogrouping parent autogrouping collapsing parent autogroup removes its children 2`] = `
+"
+eap trace root
+  parent autogroup (db: 3)
+"
+`;
+
+exports[`autogrouping parent autogrouping groups parent chain with same op 1`] = `
+"
+eap trace root
+  parent autogroup (db: 3)
+"
+`;
+
+exports[`autogrouping parent autogrouping removes collapsed parent autogroup 1`] = `
+"
+eap trace root
+  db - redis
+    db - redis
+      db - redis
+"
+`;
+
+exports[`autogrouping sibling autogrouping collapsing sibling autogroup removes its children 1`] = `
+"
+eap trace root
+  http.server - redis
+    sibling autogroup (db: 5)
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+"
+`;
+
+exports[`autogrouping sibling autogrouping collapsing sibling autogroup removes its children 2`] = `
+"
+eap trace root
+  http.server - redis
+    sibling autogroup (db: 5)
+"
+`;
+
+exports[`autogrouping sibling autogrouping does not autogroup if count is less 5 1`] = `
+"
+eap trace root
+  http.server - redis
+    db - redis
+    db - redis
+    db - redis
+"
+`;
+
+exports[`autogrouping sibling autogrouping expanding sibling autogroup renders its children 1`] = `
+"
+eap trace root
+  http.server - redis
+    sibling autogroup (db: 5)
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+      db - redis
+"
+`;
+
+exports[`autogrouping sibling autogrouping groups spans with the same op and description 1`] = `
+"
+eap trace root
+  http.server - redis
+    sibling autogroup (db: 5)
+"
+`;
+
+exports[`autogrouping sibling autogrouping groups spans with the same op and name 1`] = `
+"
+eap trace root
+  http.server - redis
+    sibling autogroup (db: 5)
+"
+`;
+
+exports[`autogrouping sibling autogrouping removes sibling autogroup 1`] = `
+"
+eap trace root
+  http.server - redis
+    db - redis
+    db - redis
+    db - redis
+    db - redis
+    db - redis
+"
+`;

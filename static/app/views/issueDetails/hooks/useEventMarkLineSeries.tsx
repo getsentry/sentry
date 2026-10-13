@@ -133,6 +133,11 @@ export function useCurrentEventMarklineSeries({
       label: {
         show: false,
       },
+      emphasis: {
+        label: {
+          show: false,
+        },
+      },
       data: [
         {
           xAxis: closestEventSeries.name,

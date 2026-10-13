@@ -1,10 +1,13 @@
 import hashlib
 
+import pytest
+
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
 from sentry.utils import json
 
 
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
 class GeneralizeInvestigationSourcesTest(TestMigrations):
     app = "investigations"
     migrate_from = "0003_remove_investigation_cell_models"
@@ -58,6 +61,7 @@ class GeneralizeInvestigationSourcesTest(TestMigrations):
         assert investigation.filters == {"breachedMetric": self.snapshot}
 
 
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
 class ReverseGeneralizeInvestigationSourcesTest(TestMigrations):
     app = "investigations"
     migrate_from = "0004_generalize_investigation_sources"

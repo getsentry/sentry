@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -26,12 +27,10 @@ type Props = ModalRenderProps & {
   reservations: Reservations;
   subscription: Subscription;
   surface: AM2UpdateSurfaces;
-  isActionDisabled?: boolean;
   onComplete?: () => void;
 };
 
 function UpgradeNowModal({
-  isActionDisabled,
   onComplete,
   organization,
   plan,
@@ -49,7 +48,7 @@ function UpgradeNowModal({
 
   return (
     <HighlightModalContainer>
-      <ModalLayout>
+      <Grid columns={{zero: '1fr', xl: '1fr auto'}} gap={{xl: '2xl'}} marginBottom="xl">
         <UpsellContent>
           <SubheaderPrimary>{t('Updates to Sentry')}</SubheaderPrimary>
           <Header>{t('Performance that scales & Session Replay')}</Header>
@@ -72,7 +71,6 @@ function UpgradeNowModal({
             </ListItem>
           </List>
           <ActionButtons
-            isActionDisabled={isActionDisabled}
             onComplete={onComplete}
             organization={organization}
             plan={plan}
@@ -99,7 +97,7 @@ function UpgradeNowModal({
             />
           </ErrorBoundary>
         </div>
-      </ModalLayout>
+      </Grid>
     </HighlightModalContainer>
   );
 }
@@ -120,17 +118,6 @@ const Header = styled('h1')`
   font-size: ${p => p.theme.font.size.xl};
   font-weight: bold;
   margin: ${p => p.theme.space.md} 0;
-`;
-
-const ModalLayout = styled('div')`
-  display: grid;
-  font-size: ${p => p.theme.font.size.md};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr auto;
-    gap: ${p => p.theme.space['2xl']};
-  }
 `;
 
 const UpsellContent = styled('div')`

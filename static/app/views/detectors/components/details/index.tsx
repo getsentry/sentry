@@ -54,7 +54,7 @@ function DetectorDetailsContentInner({detector, project}: DetectorDetailsContent
       );
     case 'monitor_check_in_failure':
       return (
-        <PageFiltersContainer>
+        <PageFiltersContainer shouldForceProject forceProject={project}>
           <CronDetectorDetails detector={detector} project={project} />
         </PageFiltersContainer>
       );

@@ -21,9 +21,9 @@ export function getFrameMethod(frame: SpanFrame) {
 
 export function getFrameStatus(frame: SpanFrame) {
   return isRequestFrame(frame)
-    ? frame.data.statusCode
+    ? frame.data?.statusCode
     : isResourceFrame(frame)
-      ? frame.data.statusCode
+      ? frame.data?.statusCode
       : undefined;
 }
 

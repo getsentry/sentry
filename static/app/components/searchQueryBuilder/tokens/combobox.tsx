@@ -45,6 +45,10 @@ import {
   itemIsSection,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
+import {
+  isQueryBuilderPanelChrome,
+  withPanelOverlayProps,
+} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -117,6 +121,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   openOnFocus?: boolean;
   placeholder?: string;
   ref?: React.Ref<HTMLInputElement>;
+  /**
+   * Renders the input's value in an overlay drawn on top of the input, whose own
+   * text is hidden. Use to style the value beyond what an input can render.
+   */
+  renderInputValue?: (value: string) => ReactNode;
   /**
    * Function to determine whether the menu should close when interacting with
    * other elements.
@@ -296,7 +305,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   onTabForward,
   popoverRef,
   state,
-  overlayProps,
+  overlayProps: positionedOverlayProps,
   portalTarget,
   totalOptions,
 }: {
@@ -316,6 +325,8 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   portalTarget?: HTMLElement | null;
 }) {
   const {enableAISearch} = useSearchQueryBuilderAI();
+  const {menuPresentation} = useSearchQueryBuilderLayout();
+  const overlayProps = withPanelOverlayProps(positionedOverlayProps, menuPresentation);
   const anyItemsShowing = totalOptions > hiddenOptions.size;
 
   if (!isOpen) {
@@ -415,10 +426,12 @@ export function SearchQueryBuilderCombobox<
   keepVisibleRef,
   'data-test-id': dataTestId,
   ref,
+  renderInputValue,
 }: SearchQueryBuilderComboboxProps<T>) {
   const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
-  const {portalTarget, wrapperRef} = useSearchQueryBuilderLayout();
+  const {menuPresentation, panelRef, portalTarget, wrapperRef} =
+    useSearchQueryBuilderLayout();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -481,13 +494,17 @@ export function SearchQueryBuilderCombobox<
       shouldHideOutside: false,
       shouldFocusWrap: true,
       onFocus: e => {
-        if (openOnFocus) {
+        if (openOnFocus || menuPresentation === 'panel') {
           state.open();
         }
         onFocus?.(e);
       },
       onBlur: e => {
-        if (e.relatedTarget && !shouldCloseOnInteractOutside?.(e.relatedTarget)) {
+        if (
+          e.relatedTarget &&
+          (popoverRef.current?.contains(e.relatedTarget) ||
+            !shouldCloseOnInteractOutside?.(e.relatedTarget))
+        ) {
           return;
         }
         onCustomValueBlurred(inputValue, e);
@@ -580,7 +597,12 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
+      if (
+        popoverRef.current?.contains(el) ||
+        wrapperRef.current?.contains(el) ||
+        (menuPresentation === 'panel' &&
+          isQueryBuilderPanelChrome(el, panelRef.current, portalTarget))
+      ) {
         return false;
       }
 
@@ -611,10 +633,14 @@ export function SearchQueryBuilderCombobox<
     e => {
       e.stopPropagation();
       inputProps.onClick?.(e);
-      state.toggle();
+      if (menuPresentation === 'panel') {
+        state.open();
+      } else {
+        state.toggle();
+      }
       onClick?.(e);
     },
-    [inputProps, state, onClick]
+    [inputProps, menuPresentation, state, onClick]
   );
 
   useUpdateOverlayPositionOnContentChange({
@@ -646,55 +672,67 @@ export function SearchQueryBuilderCombobox<
 
   const autosizeInput = useAutosizeInput({value: inputValue});
 
-  return (
-    <Flex align="stretch" width="100%" height="100%" position="relative">
-      <UnstyledInput
-        {...inputProps}
-        size="md"
-        ref={mergeRefs(
-          ref,
-          inputRef,
-          autosizeInput,
-          triggerProps.ref as React.Ref<HTMLInputElement>
-        )}
-        type="text"
-        placeholder={placeholder}
-        onClick={handleInputClick}
-        value={inputValue}
-        onChange={handleInputChange}
-        tabIndex={tabIndex}
-        onPaste={onPaste}
-        disabled={disabled}
-        onKeyDownCapture={e => {
-          if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
-            if (token.type === Token.FREE_TEXT) {
-              e.preventDefault();
-              e.stopPropagation();
-              state.close();
-              dispatch({
-                type: 'DELETE_TO_CURSOR',
-                token,
-                cursorPosition: e.currentTarget.selectionStart ?? 0,
-                inputValue,
-                direction: e.key === 'Backspace' ? 'before' : 'after',
-              });
-              return;
-            }
-
-            if (!inputValue) {
-              e.preventDefault();
-              e.stopPropagation();
-              onSearchQueryClear?.();
-              state.close();
-              clearSearchQuery({reopenDropdown: true});
-              return;
-            }
+  const InputComponent = renderInputValue ? HighlightedInput : UnstyledInput;
+  const input = (
+    <InputComponent
+      {...inputProps}
+      size="md"
+      ref={mergeRefs(
+        ref,
+        inputRef,
+        autosizeInput,
+        triggerProps.ref as React.Ref<HTMLInputElement>
+      )}
+      type="text"
+      placeholder={placeholder}
+      onClick={handleInputClick}
+      value={inputValue}
+      onChange={handleInputChange}
+      tabIndex={tabIndex}
+      onPaste={onPaste}
+      disabled={disabled}
+      onKeyDownCapture={e => {
+        if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
+          if (token.type === Token.FREE_TEXT) {
+            e.preventDefault();
+            e.stopPropagation();
+            state.close();
+            dispatch({
+              type: 'DELETE_TO_CURSOR',
+              token,
+              cursorPosition: e.currentTarget.selectionStart ?? 0,
+              inputValue,
+              direction: e.key === 'Backspace' ? 'before' : 'after',
+            });
+            return;
           }
 
-          onKeyDownCapture?.(e, {state});
-        }}
-        data-test-id={dataTestId}
-      />
+          if (!inputValue) {
+            e.preventDefault();
+            e.stopPropagation();
+            onSearchQueryClear?.();
+            state.close();
+            clearSearchQuery({reopenDropdown: true});
+            return;
+          }
+        }
+
+        onKeyDownCapture?.(e, {state});
+      }}
+      data-test-id={dataTestId}
+    />
+  );
+
+  return (
+    <Flex align="stretch" width="100%" height="100%" position="relative">
+      {renderInputValue ? (
+        <HighlightStack>
+          {input}
+          <HighlightedValue aria-hidden>{renderInputValue(inputValue)}</HighlightedValue>
+        </HighlightStack>
+      ) : (
+        input
+      )}
       {description ? (
         <StyledPositionWrapper
           {...descriptionPopper.attributes.popper}
@@ -747,6 +785,37 @@ const UnstyledInput = styled(Input)`
     border: none;
     box-shadow: none;
   }
+`;
+
+// The input and its highlighted value share one grid cell at least as wide as the value's
+// text, so the input never scrolls its own text out from under the highlighting.
+const HighlightStack = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr);
+  flex-grow: 1;
+`;
+
+// WebKit doesn't kern across the highlighted value's token spans, so neither side kerns.
+const HighlightedInput = styled(UnstyledInput)`
+  grid-area: 1 / 1;
+  min-width: 100%;
+  color: transparent;
+  caret-color: ${p => p.theme.tokens.content.primary};
+  font-kerning: none;
+  font-variant-ligatures: none;
+`;
+
+const HighlightedValue = styled('div')`
+  grid-area: 1 / 1;
+  align-self: center;
+  padding-right: ${p => p.theme.space['2xs']};
+  white-space: pre;
+  pointer-events: none;
+  font-family: ${p => p.theme.font.family.sans};
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+  font-size: ${p => p.theme.form.md.fontSize};
+  font-kerning: none;
+  font-variant-ligatures: none;
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`

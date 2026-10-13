@@ -132,7 +132,7 @@ const JOBS_TABLE: PrebuiltWidget = {
         'count()',
         'failure_rate()',
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(\`${SpanFields.SPAN_OP}:queue.process\`,${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       columns: [SpanFields.MESSAGING_MESSAGE_DESTINATION_NAME, 'transaction'],
@@ -140,7 +140,7 @@ const JOBS_TABLE: PrebuiltWidget = {
         'count()',
         'failure_rate()',
         `avg(${SpanFields.MESSAGING_MESSAGE_RECEIVE_LATENCY})`,
-        `equation|avg_if(${SpanFields.SPAN_DURATION},${SpanFields.SPAN_OP},equals,queue.process)`,
+        `equation|avg_if(\`${SpanFields.SPAN_OP}:queue.process\`,${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.SPAN_DURATION})`,
       ],
       fieldAliases: [

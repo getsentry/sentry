@@ -8,6 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 
@@ -17,7 +18,10 @@ jest.mock('sentry/utils/downloadFromHref');
 
 const ORG_SLUG = 'org-slug';
 const ARTIFACT_ID = '123';
-const API_URL = `/organizations/${ORG_SLUG}/preprodartifacts/snapshots/${ARTIFACT_ID}/`;
+const API_URL = getApiUrl(
+  '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
+  {path: {organizationIdOrSlug: ORG_SLUG, snapshotId: ARTIFACT_ID}}
+);
 const ARCHIVE_URL = `/organizations/${ORG_SLUG}/preprodartifacts/snapshots/${ARTIFACT_ID}/archive/`;
 const APPROVE_URL = `/organizations/${ORG_SLUG}/preprodartifacts/${ARTIFACT_ID}/approve/`;
 

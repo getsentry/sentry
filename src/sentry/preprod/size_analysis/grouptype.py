@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timezone as dt_timezone
-from typing import TYPE_CHECKING, Any, NotRequired, TypeAlias, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypeAlias, TypedDict, override
 from uuid import uuid4
 
 from sentry.exceptions import InvalidSearchQuery
@@ -217,6 +217,7 @@ class PreprodSizeAnalysisDetectorHandler(
             )
             return False
 
+    @override
     def evaluate(self, data_packet: SizeAnalysisDataPacket) -> GroupedDetectorEvaluationResult:
         if not self._matches_query(data_packet):
             return GroupedDetectorEvaluationResult(result={}, tainted=False)
@@ -229,6 +230,7 @@ class PreprodSizeAnalysisDetectorHandler(
         detector_occurrence, event_data = self.create_occurrence(evaluation, data_packet, priority)
         occurrence = detector_occurrence.to_issue_occurrence(
             occurrence_id=event_data["event_id"],
+            event_id=event_data["event_id"],
             project_id=self.detector.project_id,
             status=priority,
             additional_evidence_data={},

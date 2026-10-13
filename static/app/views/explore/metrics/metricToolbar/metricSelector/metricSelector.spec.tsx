@@ -5,6 +5,7 @@ import {
 } from 'sentry-fixture/tracemetrics';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -31,9 +32,6 @@ describe('MetricSelector', () => {
     initializeTraceMetricsTest();
 
   beforeEach(() => {
-    // Suppress react-popper async flushSync/act warnings (known library compat issue)
-    jest.spyOn(console, 'error').mockImplementation();
-
     setupPageFilters();
     const {baseFixtures} = createTraceMetricFixtures(organization, project, new Date());
 
@@ -105,7 +103,10 @@ describe('MetricSelector', () => {
           <MetricSelector traceMetric={{name: '', type: ''}} onChange={jest.fn()} />,
           {organization}
         );
-        expect(screen.getByRole('button', {name: 'None'})).toBeDisabled();
+        expect(screen.getByRole('button', {name: 'None'})).toHaveAttribute(
+          'aria-disabled',
+          'true'
+        );
       });
 
       it('does not disable trigger button while loading when a metric is already selected', () => {
@@ -163,7 +164,7 @@ describe('MetricSelector', () => {
         organization,
       });
       const trigger = screen.getByRole('button', {name: 'bar'});
-      trigger.focus();
+      act(() => trigger.focus());
 
       await userEvent.keyboard('{ArrowDown}');
 
@@ -176,6 +177,9 @@ describe('MetricSelector', () => {
       });
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       await screen.findByRole('listbox');
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveFocus();
+      });
       await userEvent.keyboard('{Escape}');
       await waitFor(() => {
         expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
@@ -189,7 +193,10 @@ describe('MetricSelector', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!});
+      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[1]!});
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveFocus();
+      });
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.click(document.body);
@@ -339,6 +346,9 @@ describe('MetricSelector', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       await screen.findByRole('option', {name: 'bar'});
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveFocus();
+      });
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{Enter}');
 
@@ -353,6 +363,9 @@ describe('MetricSelector', () => {
       const searchInput = await screen.findByPlaceholderText(
         'Search application metrics\u2026'
       );
+      await waitFor(() => {
+        expect(searchInput).toHaveFocus();
+      });
       await userEvent.keyboard('{ArrowDown}');
 
       // DOM focus stays on search input; virtual focus moves to first option
@@ -366,7 +379,10 @@ describe('MetricSelector', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!});
+      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[1]!});
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveFocus();
+      });
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{ArrowDown}');
       await userEvent.keyboard('{Enter}');
@@ -383,7 +399,10 @@ describe('MetricSelector', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
-      await screen.findByRole('option', {name: SORTED_METRIC_NAMES[0]!});
+      await screen.findByRole('option', {name: SORTED_METRIC_NAMES.at(-1)!});
+      await waitFor(() => {
+        expect(screen.getByRole('combobox')).toHaveFocus();
+      });
 
       // Move focus near the end of the list
       for (let i = 0; i < 5; i++) {

@@ -10,18 +10,6 @@ export const SCM_MESSAGING_PROVIDER_KEYS = ['slack', 'discord', 'msteams'] as co
 export type ScmMessagingProviderKey = (typeof SCM_MESSAGING_PROVIDER_KEYS)[number];
 
 /**
- * Short description shown in each provider row, per the approved Figma copy.
- */
-export const SCM_MESSAGING_PROVIDER_DESCRIPTIONS: Record<
-  ScmMessagingProviderKey,
-  string
-> = {
-  slack: t('Get real-time alerts and triage issues without leaving Slack.'),
-  msteams: t('Send issue alerts directly to Microsoft Teams.'),
-  discord: t('Keep your team updated with issue alerts in Discord.'),
-};
-
-/**
  * Tooltip text shown on the info icon in the installable row state.
  */
 export const SCM_MESSAGING_PROVIDER_TOOLTIPS: Record<ScmMessagingProviderKey, string> = {

@@ -39,6 +39,13 @@ class ApiScopes(Sequence[str]):
 
     alerts = (("alerts:read"), ("alerts:write"))
 
+    dashboard = (
+        ("dashboard:read"),
+        ("dashboard:create"),
+        ("dashboard:write"),
+        ("dashboard:delete"),
+    )
+
     def __init__(self) -> None:
         self.scopes = (
             self.__class__.project
@@ -47,6 +54,7 @@ class ApiScopes(Sequence[str]):
             + self.__class__.org
             + self.__class__.member
             + self.__class__.alerts
+            + self.__class__.dashboard
         )
 
     @overload
@@ -99,6 +107,10 @@ class HasApiScopes(models.Model):
             "member:invite": bool,
             "project:distribution": bool,
             "org:ci": bool,
+            "dashboard:read": bool,
+            "dashboard:write": bool,
+            "dashboard:delete": bool,
+            "dashboard:create": bool,
         },
     )
     assert set(ScopesDict.__annotations__) == set(ApiScopes())

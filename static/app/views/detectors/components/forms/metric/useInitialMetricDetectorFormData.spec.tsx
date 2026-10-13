@@ -69,4 +69,23 @@ describe('useInitialMetricDetectorFormData', () => {
     expect(result.current.environment).toBe('prod');
     expect(result.current.name).toBe('My Monitor');
   });
+
+  it('preserves an application metric aggregate from the URL', () => {
+    const aggregate = 'sum(value,checkout.duration,distribution,millisecond)';
+    const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {
+      organization: OrganizationFixture(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {
+            dataset: 'metrics',
+            aggregate,
+          },
+        },
+      },
+    });
+
+    expect(result.current.dataset).toBe(DetectorDataset.METRICS);
+    expect(result.current.aggregateFunction).toBe(aggregate);
+  });
 });

@@ -64,9 +64,6 @@ describe('OrganizationSecurityAndPrivacy', () => {
       })
     );
 
-    // Hide console.error for this test
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-
     // Confirm but has API failure
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 

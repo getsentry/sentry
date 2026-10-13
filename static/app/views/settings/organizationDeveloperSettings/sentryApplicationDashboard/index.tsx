@@ -100,9 +100,8 @@ function SentryApplicationDashboard() {
   const showInstallData = app.status === 'published';
   const showComponentInteractions = Boolean(app.schema?.elements);
   const canViewRequestLogs =
-    app.status === 'internal' ||
+    organization.access.includes('org:write') ||
     organization.access.includes('org:admin') ||
-    organization.access.includes('org:integrations') ||
     isActiveSuperuser();
 
   return (
@@ -128,9 +127,9 @@ function SentryApplicationDashboard() {
         <Stack gap="md">
           <Heading as="h5">{t('Request Log')}</Heading>
           <OrganizationPermissionAlert
-            access={['org:integrations']}
+            access={['org:write', 'org:admin']}
             message={t(
-              'Only organization admins and members with integration management access can view the request log.'
+              'You need organization write or admin access to view the request log.'
             )}
           />
         </Stack>

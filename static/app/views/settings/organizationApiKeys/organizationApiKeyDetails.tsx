@@ -13,6 +13,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {API_ACCESS_SCOPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -82,7 +83,9 @@ function OrganizationApiKeyForm({
   const mutation = useMutation({
     mutationFn: (data: ApiKeyFormValues) =>
       fetchMutation<DeprecatedApiKey>({
-        url: `/organizations/${organizationSlug}/api-keys/${apiKey.id}/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/', {
+          path: {organizationIdOrSlug: organizationSlug, apiKeyId: apiKey.id},
+        }),
         method: 'PUT',
         data,
       }),

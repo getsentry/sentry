@@ -1,14 +1,14 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
-import Ansi from 'ansi-to-react';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {PreviewPanelItem} from 'sentry/components/events/attachmentViewers/previewPanelItem';
 import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {applyCarriageReturns} from 'sentry/utils/ansiEscapeCodes';
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -39,7 +39,7 @@ export function LogFileViewer(props: ViewerProps) {
         );
       }
 
-      return decodeTextAttachment(await response.arrayBuffer());
+      return applyCarriageReturns(decodeTextAttachment(await response.arrayBuffer()));
     },
     retry: false,
     staleTime: Infinity,
@@ -56,7 +56,7 @@ export function LogFileViewer(props: ViewerProps) {
   return data ? (
     <PreviewPanelItem>
       <CodeWrapper>
-        <SentryStyleAnsi useClasses>{data}</SentryStyleAnsi>
+        <AnsiText>{data}</AnsiText>
       </CodeWrapper>
     </PreviewPanelItem>
   ) : null;
@@ -73,44 +73,6 @@ function decodeTextAttachment(buffer: ArrayBuffer): string {
 
   return new TextDecoder(encoding).decode(buffer);
 }
-
-/**
- * Maps ANSI color names -> theme.tsx color names
- */
-const COLOR_MAP = {
-  red: 'red',
-  green: 'green',
-  blue: 'blue',
-  yellow: 'yellow',
-  magenta: 'pink',
-  cyan: 'blue',
-} as const;
-
-const SentryStyleAnsi = styled(Ansi)`
-  ${p =>
-    Object.entries(COLOR_MAP).map(
-      ([ansiColor, themeColor]) => css`
-        .ansi-${ansiColor}-bg {
-          background-color: ${p.theme.colors[`${themeColor}500`]};
-        }
-        .ansi-${ansiColor}-fg {
-          color: ${p.theme.colors[`${themeColor}500`]};
-        }
-        .ansi-bright-${ansiColor}-fg {
-          color: ${p.theme.colors[`${themeColor}200`]};
-        }
-      `
-    )}
-
-  .ansi-black-fg,
-  .ansi-bright-black-fg {
-    color: ${p => p.theme.colors.black};
-  }
-  .ansi-white-fg,
-  .ansi-bright-white-fg {
-    color: ${p => p.theme.colors.white};
-  }
-`;
 
 const CodeWrapper = styled('pre')`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};

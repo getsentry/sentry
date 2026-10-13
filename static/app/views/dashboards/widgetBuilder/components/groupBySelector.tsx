@@ -2,28 +2,27 @@ import {Fragment, useMemo} from 'react';
 
 import {t} from 'sentry/locale';
 import {type QueryFieldValue} from 'sentry/utils/discover/fields';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {WidgetType, type ValidateWidgetResponse} from 'sentry/views/dashboards/types';
+import {WidgetType} from 'sentry/views/dashboards/types';
 import {GroupBySelector} from 'sentry/views/dashboards/widgetBuilder/buildSteps/groupByStep/groupBySelector';
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {useDisableTransactionWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useDisableTransactionWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
+import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
 
 interface WidgetBuilderGroupBySelectorProps {
-  validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
+  preserveAggregateFields?: boolean;
 }
 
 export function WidgetBuilderGroupBySelector({
-  validatedWidgetResponse,
+  preserveAggregateFields = false,
 }: WidgetBuilderGroupBySelectorProps) {
   const {state, dispatch} = useWidgetBuilderContext();
   const disableTransactionWidget = useDisableTransactionWidget();
@@ -87,8 +86,18 @@ export function WidgetBuilderGroupBySelector({
     tags,
   ]);
 
+  const groupByColumns = preserveAggregateFields
+    ? state.fields?.filter(field => field.kind === FieldValueKind.FIELD)
+    : state.fields;
+
   const handleGroupByChange = (newValue: QueryFieldValue[]) => {
-    dispatch({type: BuilderStateAction.SET_FIELDS, payload: newValue});
+    const fields = preserveAggregateFields
+      ? [
+          ...newValue,
+          ...(state.fields?.filter(field => field.kind !== FieldValueKind.FIELD) ?? []),
+        ]
+      : newValue;
+    dispatch({type: BuilderStateAction.SET_FIELDS, payload: fields});
   };
 
   return (
@@ -102,10 +111,9 @@ export function WidgetBuilderGroupBySelector({
       />
 
       <GroupBySelector
-        columns={state.fields}
+        columns={groupByColumns}
         fieldOptions={groupByOptions}
         onChange={handleGroupByChange}
-        validatedWidgetResponse={validatedWidgetResponse}
         style={{paddingRight: 0}}
         widgetType={state.dataset}
         disable={disableTransactionWidget}

@@ -1,18 +1,51 @@
 from collections import OrderedDict
 from typing import Any
 
+from django.db.models import Q
+
+from sentry.issues import grouptype
 from sentry.issues.grouptype import PERFORMANCE_ISSUE_CATEGORIES, GroupCategory
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import (
+    ActionFilterPreviewBehavior,
+    ActionFilterPreviewPlan,
+    InvalidPreviewConfiguration,
+)
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionFilterDataConditionHandler,
+    DataConditionHandler,
+    WorkflowEventData,
+)
 
 CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).lower()) for gc in GroupCategory])
 INCLUDE_CHOICES = OrderedDict([("true", "equal to"), ("false", "not equal to")])
 
 
+class IssueCategoryPreviewBehavior(ActionFilterPreviewBehavior):
+    def filter_preview(self, plan: ActionFilterPreviewPlan, comparison: Any) -> None:
+        try:
+            category = GroupCategory(int(comparison["value"]))
+        except (KeyError, TypeError, ValueError) as error:
+            raise InvalidPreviewConfiguration("Invalid issue category") from error
+
+        categories = (
+            {GroupCategory.PERFORMANCE, *PERFORMANCE_ISSUE_CATEGORIES}
+            if category == GroupCategory.PERFORMANCE
+            else {category}
+        )
+        type_ids = {
+            type_id
+            for candidate_category in categories
+            for type_id in grouptype.registry.get_by_category(candidate_category)
+        }
+        condition = Q(type__in=type_ids)
+        plan.add_group_filter(condition if comparison.get("include", True) else ~condition)
+
+
 @condition_handler_registry.register(Condition.ISSUE_CATEGORY)
-class IssueCategoryConditionHandler(DataConditionHandler[WorkflowEventData]):
-    group = DataConditionHandler.Group.ACTION_FILTER
+class IssueCategoryConditionHandler(ActionFilterDataConditionHandler[WorkflowEventData]):
+    preview_behavior = IssueCategoryPreviewBehavior()
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
     label_template = "The issue's category is {include} {value}"
 

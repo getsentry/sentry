@@ -1,3 +1,4 @@
+import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -53,6 +54,7 @@ describe('ActivitySection', () => {
       {
         type: GroupActivityType.NOTE,
         id: 'note-1',
+        commentId: 'note-1',
         data: {text: 'Test Note'},
         dateCreated: '2020-01-01T00:00:00',
         user,
@@ -81,6 +83,7 @@ describe('ActivitySection', () => {
       method: 'POST',
       body: {
         id: 'note-2',
+        commentId: 'note-2',
         user: UserFixture({id: '2'}),
         type: 'note',
         data: {text: comment},
@@ -121,6 +124,7 @@ describe('ActivitySection', () => {
       method: 'POST',
       body: {
         id: 'note-3',
+        commentId: 'note-3',
         user: UserFixture({id: '2'}),
         type: 'note',
         data: {text: comment},
@@ -151,6 +155,7 @@ describe('ActivitySection', () => {
       method: 'POST',
       body: {
         id: 'note-4',
+        commentId: 'note-4',
         user: UserFixture({id: '2'}),
         type: 'note',
         data: {text: '@Jane Doe'},
@@ -180,17 +185,34 @@ describe('ActivitySection', () => {
     );
   });
 
-  it('renders note and allows for delete', async () => {
+  it('deletes only the referenced comment', async () => {
     jest.spyOn(indicators, 'addSuccessMessage');
+    const note = ActivityFeedFixture({
+      id: '987',
+      commentId: '123',
+      user,
+      data: {text: 'Test Note'},
+    });
+    const resolution = ActivityFeedFixture({
+      id: '123',
+      type: GroupActivityType.SET_RESOLVED,
+      data: {},
+      user,
+    });
+    const deleteGroup = GroupFixture({
+      ...group,
+      activity: [note, resolution],
+    });
+    const onActivityChange = jest.fn();
 
     const deleteMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/1337/comments/note-1/',
+      url: '/organizations/org-slug/issues/1337/comments/123/',
       method: 'DELETE',
     });
 
     render(
-      <GroupDataContextProvider group={group} project={group.project}>
-        <ActivitySection group={group} />
+      <GroupDataContextProvider group={deleteGroup} project={project}>
+        <ActivitySection group={deleteGroup} onActivityChange={onActivityChange} />
       </GroupDataContextProvider>
     );
     renderGlobalModal();
@@ -208,6 +230,7 @@ describe('ActivitySection', () => {
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalledTimes(1));
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment removed');
+    expect(onActivityChange).toHaveBeenCalledWith([resolution]);
   });
 
   it('keeps the comment and modal open when deletion fails', async () => {
@@ -217,6 +240,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: 'Undeletable Note'},
           dateCreated: '2020-01-01T00:00:00',
           user,
@@ -257,6 +281,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: '**Bold Note** and [docs](https://docs.sentry.io/)'},
           dateCreated: tenMinutesAgo(),
           user,
@@ -288,6 +313,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: 'User note'},
           dateCreated: '2020-01-01T00:00:00',
           user,
@@ -756,7 +782,7 @@ describe('ActivitySection', () => {
     expect(screen.getAllByText('Resolved')).toHaveLength(1);
   });
 
-  it('does not count rolled-up events as hidden sidebar rows', () => {
+  it('uses displayed rows, not rolled-up events, to decide when to collapse the sidebar', () => {
     const flappingGroup = makeFlappingGroup('1350');
 
     render(
@@ -772,34 +798,93 @@ describe('ActivitySection', () => {
     expect(screen.getAllByText('Resolved')).toHaveLength(1);
   });
 
-  it('renders note and allows for edit', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+  it('counts rolled-up events in the hidden sidebar activity count', async () => {
+    const makeNote = (noteId: string, dateCreated: string): GroupActivity => ({
+      type: GroupActivityType.NOTE,
+      id: noteId,
+      commentId: noteId,
+      data: {text: noteId},
+      dateCreated,
+      user: UserFixture({id: '2'}),
+    });
+    const makeStatus = (
+      type: GroupActivityType.SET_REGRESSION | GroupActivityType.SET_RESOLVED,
+      statusId: string,
+      dateCreated: string
+    ): GroupActivity => ({type, id: statusId, dateCreated, data: {}}) as GroupActivity;
 
-    const editGroup = GroupFixture({
-      id: '1123',
+    const flappingGroup = GroupFixture({
+      id: '1351',
       activity: [
-        {
-          type: GroupActivityType.NOTE,
-          id: 'note-1',
-          data: {text: 'Group Test'},
-          dateCreated: '2020-01-01T00:00:00',
-          user,
-        },
+        makeNote('newest-note', '2020-01-01T09:00:00Z'),
+        makeStatus(
+          GroupActivityType.SET_REGRESSION,
+          'regressed-3',
+          '2020-01-01T08:00:00Z'
+        ),
+        makeStatus(GroupActivityType.SET_RESOLVED, 'resolved-3', '2020-01-01T07:00:00Z'),
+        makeStatus(
+          GroupActivityType.SET_REGRESSION,
+          'regressed-2',
+          '2020-01-01T06:00:00Z'
+        ),
+        makeStatus(GroupActivityType.SET_RESOLVED, 'resolved-2', '2020-01-01T05:00:00Z'),
+        makeStatus(
+          GroupActivityType.SET_REGRESSION,
+          'regressed-1',
+          '2020-01-01T04:00:00Z'
+        ),
+        makeStatus(GroupActivityType.SET_RESOLVED, 'resolved-1', '2020-01-01T03:00:00Z'),
+        makeNote('oldest-note', '2020-01-01T02:00:00Z'),
       ],
       project,
     });
+
+    render(
+      <GroupDataContextProvider group={flappingGroup} project={flappingGroup.project}>
+        <ActivitySection group={flappingGroup} />
+      </GroupDataContextProvider>
+    );
+
+    // The rollup (4 events) and the oldest note are hidden behind the sidebar link.
+    expect(await screen.findByText('View 5 more')).toBeInTheDocument();
+    expect(screen.queryByText('oldest-note')).not.toBeInTheDocument();
+  });
+
+  it('renders note and allows for edit', async () => {
+    jest.spyOn(indicators, 'addSuccessMessage');
+
+    const note = ActivityFeedFixture({
+      id: '123',
+      commentId: '123',
+      data: {text: 'Group Test'},
+      user,
+    });
+    const resolution = ActivityFeedFixture({
+      id: '987',
+      type: GroupActivityType.SET_RESOLVED,
+      data: {},
+      user,
+    });
+    const onActivityChange = jest.fn();
+    const editGroup = GroupFixture({
+      id: '1123',
+      activity: [note, resolution],
+      project,
+    });
     const editMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/1123/comments/note-1/',
+      url: '/organizations/org-slug/issues/1123/comments/123/',
       method: 'PUT',
       body: {
-        id: 'note-1',
+        ...note,
+        id: '987',
         data: {text: 'Group Test Updated'},
       },
     });
 
     render(
       <GroupDataContextProvider group={editGroup} project={editGroup.project}>
-        <ActivitySection group={editGroup} />
+        <ActivitySection group={editGroup} onActivityChange={onActivityChange} />
       </GroupDataContextProvider>
     );
     expect(await screen.findByText('Group Test')).toBeInTheDocument();
@@ -822,6 +907,10 @@ describe('ActivitySection', () => {
 
     await waitFor(() => expect(editMock).toHaveBeenCalledTimes(1));
     expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Comment updated');
+    expect(onActivityChange).toHaveBeenCalledWith([
+      {...note, data: {text: 'Group Test Updated'}},
+      resolution,
+    ]);
 
     // Editor closes only after the update succeeds.
     await waitFor(() =>
@@ -848,6 +937,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: 'This note came from my sentry app'},
           dateCreated: '2020-01-01T00:00:00',
           sentry_app: sentryApp,
@@ -905,6 +995,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-1',
+          commentId: 'note-1',
           data: {text: 'Test Note'},
           dateCreated: '2020-01-01T00:00:00',
           user: UserFixture({id: '2'}),
@@ -932,6 +1023,7 @@ describe('ActivitySection', () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
+      commentId: `note-${index + 1}`,
       data: {text: `Test Note ${index + 1}`},
       dateCreated: '2020-01-01T00:00:00',
       user: UserFixture({id: '2'}),
@@ -962,6 +1054,7 @@ describe('ActivitySection', () => {
     const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
+      commentId: `note-${index + 1}`,
       data: {text: `Test Note ${index + 1}`},
       dateCreated: '2020-01-01T00:00:00',
       user: UserFixture({id: '2'}),
@@ -999,11 +1092,20 @@ describe('ActivitySection', () => {
     const activities: GroupActivity[] = Array.from({length: 7}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
+      commentId: `note-${index + 1}`,
       data: {text: `Test Note ${index + 1}`},
       dateCreated: tenMinutesAgo(),
       user: UserFixture({id: '2'}),
       project,
     }));
+    const olderComment = ActivityFeedFixture({
+      id: '987',
+      commentId: '123',
+      data: {text: 'Test Note 1'},
+      dateCreated: tenMinutesAgo(),
+      user,
+    });
+    activities[0] = olderComment;
     const embeddedActivities: GroupActivity[] = Array.from({length: 100}, (_, index) => ({
       type: GroupActivityType.SET_RESOLVED,
       id: `resolved-${index + 1}`,
@@ -1053,12 +1155,33 @@ describe('ActivitySection', () => {
     expect(screen.getAllByText('10 minutes ago')).toHaveLength(7);
     expect(screen.queryByText('10m ago')).not.toBeInTheDocument();
     expect(commentsMock).toHaveBeenCalledTimes(1);
+
+    const editedComment = {...olderComment, data: {text: 'Older comment updated'}};
+    const editMock = MockApiClient.addMockResponse({
+      url: `${commentsUrl}123/`,
+      method: 'PUT',
+      body: editedComment,
+    });
+    MockApiClient.addMockResponse({
+      url: commentsUrl,
+      body: [editedComment, ...activities.slice(1)],
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Comment Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Edit'}));
+    const editor = getCommentEditor('Edit comment');
+    await userEvent.clear(editor);
+    await userEvent.type(editor, 'Older comment updated');
+    await userEvent.click(screen.getByRole('button', {name: 'Save comment'}));
+
+    expect(await screen.findByText('Older comment updated')).toBeInTheDocument();
+    expect(editMock).toHaveBeenCalledTimes(1);
   });
 
   it('filters comments correctly', async () => {
     const activities: GroupActivity[] = Array.from({length: 3}, (_, index) => ({
       type: GroupActivityType.NOTE,
       id: `note-${index + 1}`,
+      commentId: `note-${index + 1}`,
       data: {text: `Test Note ${index + 1}`},
       dateCreated: '2020-01-01T00:00:00',
       user: UserFixture({id: '2'}),
@@ -1733,6 +1856,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'note-between-pull-request-activities',
+          commentId: 'note-between-pull-request-activities',
           dateCreated: '2020-01-01T00:01:00',
           data: {text: 'An activity between the pull request activities'},
           user,
@@ -2010,6 +2134,7 @@ describe('ActivitySection', () => {
         {
           type: GroupActivityType.NOTE,
           id: 'activity-during-rca',
+          commentId: 'activity-during-rca',
           dateCreated: '2020-01-01T00:02:00Z',
           data: {text: 'Checked during analysis'},
           user,

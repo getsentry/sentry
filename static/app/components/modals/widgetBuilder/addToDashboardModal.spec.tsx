@@ -161,8 +161,14 @@ describe('add to dashboard modal', () => {
         /This is a preview of how the widget will appear in your dashboard./
       )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('enables the buttons when a dashboard is selected', async () => {
@@ -184,13 +190,23 @@ describe('add to dashboard modal', () => {
       expect(screen.getByText('Select Dashboard')).toBeEnabled();
     });
 
-    expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
 
     await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
 
-    expect(screen.getByRole('button', {name: 'Add + Stay on this Page'})).toBeEnabled();
-    expect(screen.getByRole('button', {name: 'Open in Widget Builder'})).toBeEnabled();
+    expect(
+      screen.getByRole('button', {name: 'Add + Stay on this Page'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(
+      screen.getByRole('button', {name: 'Open in Widget Builder'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('includes a New Dashboard option in the selector with saved dashboards', async () => {

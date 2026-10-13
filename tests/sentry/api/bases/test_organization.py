@@ -30,6 +30,7 @@ from sentry.api.exceptions import (
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.superuser import Superuser
 from sentry.constants import ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
@@ -357,6 +358,52 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
 
         permission = self.permission_cls()
         permission.determine_access(request=drf_request, organization=self.org)
+
+    def _make_superuser_request(self, user):
+        """Set up a superuser request, bypassing access form validation."""
+        with mock.patch.object(Superuser, "_needs_validation", return_value=False):
+            request = self.make_request(user=user, is_superuser=True)
+        return request
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_superuser_non_member_requires_org_auth(self) -> None:
+        user = self.create_user(is_superuser=True)
+        request = self._make_superuser_request(user)
+        drf_request = drf_request_from_request(request)
+        perm = self.permission_cls()
+        with pytest.raises(SuperuserRequired):
+            perm.has_object_permission(drf_request, APIView(), self.org)
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_superuser_member_does_not_require_org_auth(self) -> None:
+        user = self.create_user(is_superuser=True)
+        self.create_member(user=user, organization=self.org, role="member")
+        request = self._make_superuser_request(user)
+        drf_request = drf_request_from_request(request)
+        perm = self.permission_cls()
+        assert perm.has_object_permission(drf_request, APIView(), self.org)
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_superuser_authorized_org_allowed(self) -> None:
+        user = self.create_user(is_superuser=True)
+        request = self._make_superuser_request(user)
+        request.superuser.authorize_org(self.org.slug, "for_unit_test", "testing")
+        drf_request = drf_request_from_request(request)
+        perm = self.permission_cls()
+        assert perm.has_object_permission(drf_request, APIView(), self.org)
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_staff_endpoint_skips_per_org_auth(self) -> None:
+        user = self.create_user(is_superuser=True)
+        request = self._make_superuser_request(user)
+        drf_request = drf_request_from_request(request)
+
+        class StaffView(APIView):
+            permission_classes = (OrganizationAndStaffPermission,)
+
+        view = StaffView()
+        perm = OrganizationAndStaffPermission()
+        assert perm.has_object_permission(drf_request, view, self.org)
 
 
 class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):

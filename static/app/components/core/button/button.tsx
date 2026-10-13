@@ -1,12 +1,11 @@
 import styled from '@emotion/styled';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
-import {Tooltip} from '@sentry/scraps/tooltip';
+import {Tooltip, useDisabledTooltip} from '@sentry/scraps/tooltip';
 import {useClickTracking} from '@sentry/scraps/trackingContext';
-
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
 import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
@@ -21,6 +20,8 @@ export function Button({
   disabled,
   type = 'button',
   tooltipProps,
+  onKeyDown,
+  'aria-disabled': ariaDisabled,
   busy,
   size: explicitSize,
   ...props
@@ -36,22 +37,24 @@ export function Button({
   const {hasChildren, accessibleLabel} = useButtonFunctionality(buttonProps);
   const {handleClick} = useClickTracking(buttonProps, 'button');
 
+  const {disabledProps} = useDisabledTooltip({
+    disabled,
+    tooltipProps,
+    onKeyDown,
+    // Buttons always mirror `disabled` to `aria-disabled`, including when natively disabled.
+    'aria-disabled': disabled ?? ariaDisabled,
+  });
+
   return (
-    <Tooltip
-      skipWrapper
-      {...tooltipProps}
-      title={tooltipProps?.title}
-      disabled={!tooltipProps?.title}
-    >
+    <Tooltip skipWrapper {...tooltipProps} title={tooltipProps?.title}>
       <StyledButton
         aria-label={accessibleLabel}
-        aria-disabled={disabled}
         aria-busy={busy}
-        disabled={disabled}
         size={size}
         type={type}
         busy={busy}
         {...props}
+        {...disabledProps}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
         role="button"

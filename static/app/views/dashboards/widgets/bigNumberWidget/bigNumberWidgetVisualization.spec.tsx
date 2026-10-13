@@ -7,15 +7,13 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 
 describe('BigNumberWidgetVisualization', () => {
   describe('Visualization', () => {
-    beforeEach(() => {
-      jest.spyOn(console, 'error').mockImplementation();
-    });
-
     afterEach(() => {
       jest.resetAllMocks();
     });
 
     it('Hides the internal error behind a friendly message for non-numeric data', () => {
+      // React reports the error caught by the widget's error boundary.
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
       render(
         <Widget
           Visualization={
@@ -36,6 +34,8 @@ describe('BigNumberWidgetVisualization', () => {
         screen.getByText('Something went wrong displaying this widget.')
       ).toBeInTheDocument();
       expect(screen.queryByText('Value is not a finite number.')).not.toBeInTheDocument();
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
     });
 
     it('Formats dates', () => {

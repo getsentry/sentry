@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import time
 from base64 import b64encode
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -13,28 +14,44 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.keys import OriginSigningKey
 from sentry.integrations.cursor_origin.webhook import has_already_processed
 from sentry.integrations.models.integration import Integration
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, get_action_context
+from sentry.issues.action_log.types import (
+    PullRequestClosedAction,
+    PullRequestMergedAction,
+    PullRequestReopenedAction,
+)
+from sentry.models.grouplink import GroupLink
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.helpers.action_log import capture_action_log
+from sentry.testutils.silo import cell_silo_test, control_silo_test
+
+from .test_pull_request import REPO_EXTERNAL_ID, _payload
 
 KEYS = "sentry.integrations.cursor_origin.webhook.signing_keys_for"
 APP_ID = "app_01example"
 DELIVERY_ID = "whd_01example"
+INSTALLATION_ID = "i_01example"
 
 
-def _envelope(app_id: str = APP_ID, event_type: str = "installation.deleted") -> bytes:
-    return orjson.dumps(
-        {
-            "deliveryId": DELIVERY_ID,
-            "appId": app_id,
-            "installationId": "i_01example",
-            "event": {
-                "id": "evt_01example",
-                "type": event_type,
-                "eventTime": "2026-09-16T10:03:00Z",
-                "payload": {"installation": {"id": "i_01example"}},
-            },
-        }
-    )
+def _envelope(
+    app_id: str = APP_ID,
+    event_type: str = "installation.deleted",
+    installation_id: str | None = INSTALLATION_ID,
+) -> bytes:
+    envelope: dict[str, Any] = {
+        "deliveryId": DELIVERY_ID,
+        "appId": app_id,
+        "event": {
+            "id": "evt_01example",
+            "type": event_type,
+            "eventTime": "2026-09-16T10:03:00Z",
+            "payload": {"installation": {"id": installation_id}},
+        },
+    }
+    if installation_id is not None:
+        envelope["installationId"] = installation_id
+    return orjson.dumps(envelope)
 
 
 BODY = _envelope()
@@ -94,7 +111,7 @@ class CursorOriginWebhookTest(APITestCase):
             organization=self.organization,
             provider="cursor_origin",
             name="acme",
-            external_id="i_01example",
+            external_id=INSTALLATION_ID,
         )
 
         assert self._post(body=_envelope(event_type="installation.deleted")) == 204
@@ -102,13 +119,56 @@ class CursorOriginWebhookTest(APITestCase):
         assert Integration.objects.get(id=integration.id).status == ObjectStatus.DISABLED
 
     def test_a_failed_handler_leaves_the_delivery_for_the_retry(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+        )
+
         with mock.patch(
-            "sentry.integrations.cursor_origin.handlers.integration_service.organization_contexts",
+            "sentry.integrations.cursor_origin.handlers.integration_service.update_integration",
             side_effect=ValueError("boom"),
         ):
             assert self._post(body=_envelope(event_type="installation.deleted")) == 500
 
         assert not has_already_processed(DELIVERY_ID)
+
+    def test_a_failed_installation_lookup_leaves_the_delivery_for_the_retry(self) -> None:
+        """The lookup is an RPC, so a control-silo failure must not claim the delivery."""
+        with mock.patch(
+            "sentry.integrations.cursor_origin.webhook.integration_service.organization_contexts",
+            side_effect=ValueError("boom"),
+        ):
+            assert self._post(body=_envelope(event_type="installation.deleted")) == 500
+
+        assert not has_already_processed(DELIVERY_ID)
+
+    def test_a_delivery_for_an_installation_sentry_does_not_have_is_accepted(self) -> None:
+        """A half-finished install, or one already removed from this side."""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+        )
+
+        assert self._post(body=_envelope(installation_id="i_01someone_else")) == 204
+
+        assert Integration.objects.get(id=integration.id).status == ObjectStatus.ACTIVE
+
+    def test_a_delivery_with_no_installation_is_accepted(self) -> None:
+        """Origin marks `installationId` required, so a missing one is theirs to fix."""
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+        )
+
+        assert self._post(body=_envelope(installation_id=None)) == 204
+
+        assert Integration.objects.get(id=integration.id).status == ObjectStatus.ACTIVE
 
     def test_get_is_not_allowed(self) -> None:
         assert self.client.get(self.url).status_code == 405
@@ -118,7 +178,8 @@ class CursorOriginWebhookTest(APITestCase):
 
     def test_an_event_without_a_handler_is_accepted(self) -> None:
         """Origin delivers every installation event whether we act on it or not."""
-        assert self._post(event_type="pull_request.created") == 204
+        body = _envelope(event_type="pull_request.created")
+        assert self._post(body=body, event_type="installation.updated") == 204
 
     def test_a_delivery_with_no_signature_is_refused(self) -> None:
         response = self.client.post(path=self.url, data=BODY, content_type="application/json")
@@ -189,3 +250,159 @@ class CursorOriginWebhookTest(APITestCase):
     def test_an_empty_body_is_refused(self) -> None:
         response = self.client.post(path=self.url, data=b"", content_type="application/json")
         assert response.status_code == 400
+
+
+@cell_silo_test
+class CursorOriginPullRequestWebhookTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.private, self.public = _signing_key()
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="example",
+            external_id=INSTALLATION_ID,
+        )
+        repo = self.create_repo(
+            project=self.project,
+            name="example/repo",
+            provider="integrations:cursor_origin",
+            integration_id=integration.id,
+            external_id=REPO_EXTERNAL_ID,
+        )
+        self.group = self.create_group(project=self.project)
+        self.pull_request = self.create_pull_request(
+            organization_id=self.organization.id, repository_id=repo.id, key="17"
+        )
+        PullRequest.objects.filter(id=self.pull_request.id).update(
+            state=PullRequestLifecycleState.OPEN
+        )
+        self.create_group_link(
+            group=self.group,
+            linked_id=self.pull_request.id,
+            linked_type=GroupLink.LinkedType.pull_request,
+        )
+
+    def _post_pull_request(self, event_type: str, payload: dict[str, Any]) -> None:
+        envelope = orjson.loads(_envelope(event_type=event_type))
+        envelope["event"]["payload"] = payload
+        body = orjson.dumps(envelope)
+        timestamp = str(int(time.time()))
+        with (
+            self.options({"cursor-origin-app.id": APP_ID}),
+            mock.patch(KEYS, return_value=[self.public]),
+        ):
+            response = self.client.post(
+                path="/extensions/cursor_origin/webhook/",
+                data=body,
+                content_type="application/json",
+                headers={
+                    "webhook-id": DELIVERY_ID,
+                    "webhook-timestamp": timestamp,
+                    "webhook-signature": _signature(self.private, DELIVERY_ID, timestamp, body),
+                    "webhook-event-type": event_type,
+                },
+            )
+        assert response.status_code == 204
+
+    def test_close_attributes_linked_issue_activity(self) -> None:
+        # Close activity is emitted even without the pr-lifecycle-activity flag.
+        with capture_action_log() as action_log:
+            self._post_pull_request("pull_request.closed", _payload(state="closed"))
+
+        action_log.assert_logged(
+            PullRequestClosedAction,
+            group_id=self.group.id,
+            pull_request=self.pull_request.id,
+            source=ActionSource.CURSOR_ORIGIN,
+            actor=SYSTEM_ACTOR,
+        )
+        assert get_action_context() is None
+
+    def test_merge_attributes_linked_issue_activity(self) -> None:
+        with (
+            self.feature("organizations:pr-lifecycle-activity"),
+            capture_action_log() as action_log,
+        ):
+            self._post_pull_request("pull_request.merged", _payload(state="closed", merged=True))
+
+        action_log.assert_logged(
+            PullRequestMergedAction,
+            group_id=self.group.id,
+            pull_request=self.pull_request.id,
+            source=ActionSource.CURSOR_ORIGIN,
+            actor=SYSTEM_ACTOR,
+        )
+
+    def test_reopen_attributes_linked_issue_activity(self) -> None:
+        PullRequest.objects.filter(id=self.pull_request.id).update(
+            state=PullRequestLifecycleState.CLOSED
+        )
+
+        with (
+            self.feature("organizations:pr-lifecycle-activity"),
+            capture_action_log() as action_log,
+        ):
+            self._post_pull_request("pull_request.reopened", _payload())
+
+        action_log.assert_logged(
+            PullRequestReopenedAction,
+            group_id=self.group.id,
+            pull_request=self.pull_request.id,
+            source=ActionSource.CURSOR_ORIGIN,
+            actor=SYSTEM_ACTOR,
+        )
+
+
+@cell_silo_test
+class CursorOriginWebhookCellTest(APITestCase):
+    """A cell sees deliveries replayed from the mailbox, which may have waited."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.url = "/extensions/cursor_origin/webhook/"
+        self.private, self.public = _signing_key()
+
+    def _post(self, timestamp: str) -> int:
+        with (
+            self.options({"cursor-origin-app.id": APP_ID}),
+            mock.patch(KEYS, return_value=[self.public]),
+        ):
+            response = self.client.post(
+                path=self.url,
+                data=BODY,
+                content_type="application/json",
+                headers={
+                    "webhook-id": DELIVERY_ID,
+                    "webhook-timestamp": timestamp,
+                    "webhook-signature": _signature(self.private, DELIVERY_ID, timestamp, BODY),
+                    "webhook-event-type": "installation.deleted",
+                },
+            )
+        return response.status_code
+
+    def test_a_delivery_held_in_the_mailbox_is_still_accepted(self) -> None:
+        """The window is checked at the edge; a queue wait must not lose the delivery."""
+        assert self._post(str(int(time.time()) - 3600)) == 204
+
+    def test_a_forged_signature_is_still_refused(self) -> None:
+        """Dropping the window must not drop the signature with it."""
+        other, _ = _signing_key()
+        timestamp = str(int(time.time()))
+        with (
+            self.options({"cursor-origin-app.id": APP_ID}),
+            mock.patch(KEYS, return_value=[self.public]),
+        ):
+            response = self.client.post(
+                path=self.url,
+                data=BODY,
+                content_type="application/json",
+                headers={
+                    "webhook-id": DELIVERY_ID,
+                    "webhook-timestamp": timestamp,
+                    "webhook-signature": _signature(other, DELIVERY_ID, timestamp, BODY),
+                    "webhook-event-type": "installation.deleted",
+                },
+            )
+
+        assert response.status_code == 401

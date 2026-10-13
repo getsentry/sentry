@@ -96,6 +96,7 @@ class AuthTwoFactorEndpoint(Endpoint):
     }
     owner = ApiOwner.FOUNDATIONS
     permission_classes = ()
+    csrf_protect = True
 
     @extend_schema(
         operation_id="Get available methods for a pending two-factor authentication login",
@@ -202,6 +203,7 @@ class AuthTwoFactorChallengeEndpoint(Endpoint):
     }
     owner = ApiOwner.FOUNDATIONS
     permission_classes = ()
+    csrf_protect = True
 
     @extend_schema(
         operation_id="Activate a two-factor authentication challenge",

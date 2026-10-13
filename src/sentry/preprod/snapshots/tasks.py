@@ -16,7 +16,7 @@ from objectstore_client import RequestError
 from pydantic import BaseModel, ValidationError
 from taskbroker_client.retry import Retry
 
-from sentry import analytics, options
+from sentry import analytics
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.categorize import categorize_image_diff
@@ -480,7 +480,6 @@ def _build_comparison_plan(
     head_artifact_id: int,
     base_artifact_id: int,
     sibling: SiblingComparison | None = None,
-    diff_sibling_images: bool = True,
 ) -> ComparisonPlan:
     head_images = head_manifest.images
     base_images = base_manifest.images
@@ -564,7 +563,7 @@ def _build_comparison_plan(
         )
 
     # Diff hash-differing images against the approved sibling so finalize can auto-approve.
-    if sibling is not None and diff_sibling_images:
+    if sibling is not None:
         sibling_meta_by_hash = {
             m.content_hash: m for m in sibling.snapshot_manifest.images.values()
         }
@@ -1150,14 +1149,12 @@ def compare_snapshots(
                 return
 
         sibling = _find_approved_sibling(head_artifact, session)
-        diff_sibling_images = options.get("preprod.snapshots.auto-approve-sibling-diffs.enabled")
         plan = _build_comparison_plan(
             head_manifest,
             base_manifest,
             head_artifact_id,
             base_artifact_id,
             sibling=sibling,
-            diff_sibling_images=diff_sibling_images,
         )
 
         plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)

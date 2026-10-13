@@ -1,6 +1,7 @@
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.explore import utils
 from sentry.explore.endpoints.explore_saved_queries import (
     PREBUILT_SAVED_QUERIES,
     sync_prebuilt_queries,
@@ -12,6 +13,7 @@ from sentry.explore.models import (
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryStarred,
 )
+from sentry.explore.types import SavedQueryRef, SavedQueryType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -494,6 +496,29 @@ class ExploreSavedQueriesTest(APITestCase):
         assert "Test query" not in names
         assert str(own_query.id) in {item["id"] for item in response.data}
 
+    def test_sync_prebuilt_llm_calls_without_message_filter(self) -> None:
+        sync_prebuilt_queries(self.org)
+
+        saved_query = ExploreSavedQuery.objects.get(organization=self.org, prebuilt_id=5)
+        assert saved_query.prebuilt_version == 2
+        assert saved_query.query["query"][0]["query"] == "gen_ai.operation.type:ai_client"
+
+    def test_sync_prebuilt_llm_calls_updates_existing_message_filter(self) -> None:
+        sync_prebuilt_queries(self.org)
+        saved_query = ExploreSavedQuery.objects.get(organization=self.org, prebuilt_id=5)
+        saved_query.prebuilt_version = 1
+        saved_query.query["query"][0]["query"] = (
+            "gen_ai.operation.type:ai_client has:gen_ai.output.messages"
+        )
+        saved_query.save(update_fields=["prebuilt_version", "query"])
+
+        sync_prebuilt_queries(self.org)
+
+        saved_query.refresh_from_db()
+        assert saved_query.prebuilt_version == 2
+        assert saved_query.query["query"][0]["query"] == "gen_ai.operation.type:ai_client"
+        assert ExploreSavedQuery.objects.filter(organization=self.org, prebuilt_id=5).count() == 1
+
     def test_sync_prebuilt_starred_alphabetical_for_new_user(self) -> None:
         sync_prebuilt_queries(self.org)
         sync_prebuilt_queries_starred(self.org, self.user)
@@ -570,8 +595,10 @@ class ExploreSavedQueriesTest(APITestCase):
             .values_list("explore_saved_query_id", flat=True)
         )
         reversed_ids = list(reversed(original_ids))
-        ExploreSavedQueryStarred.objects.reorder_starred_queries(
-            self.org, self.user.id, reversed_ids
+        utils.reorder_starred_queries(
+            self.org,
+            self.user.id,
+            [SavedQueryRef(SavedQueryType.EXPLORE, query_id) for query_id in reversed_ids],
         )
 
         sync_prebuilt_queries_starred(self.org, self.user)

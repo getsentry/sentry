@@ -101,7 +101,6 @@ class NotificationTaskTests(TestCase):
         expected_data = rpc_user.dict()
         expected_data["emails"] = list(expected_data["emails"])
         expected_data["useremails"] = list(expected_data["useremails"])
-        expected_data["roles"] = list(expected_data["roles"])
         expected_data["permissions"] = list(expected_data["permissions"])
         expected_data["last_active"] = expected_data["last_active"].isoformat()
 

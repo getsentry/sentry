@@ -1,41 +1,30 @@
-import {createContext, Fragment, useContext, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useContext, useMemo, useRef} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import type {AriaMenuOptions} from '@react-aria/menu';
-import {useMenu} from '@react-aria/menu';
+import {useMenu, useMenuTrigger} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
 import {mergeProps} from '@react-aria/utils';
+import {Item, Section} from '@react-stately/collections';
 import type {TreeProps, TreeState} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
-import omit from 'lodash/omit';
+import type {LocationDescriptor} from 'history';
+
+import {Container} from '@sentry/scraps/layout';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import type {useOverlay} from 'sentry/utils/useOverlay';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useOverlay} from 'sentry/utils/useOverlay';
 
-import {DropdownMenu} from './dropdownMenu';
+import type {OverlayState} from './context';
+import {DropdownMenuContext} from './context';
 import type {MenuItemProps} from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
-
-type OverlayState = ReturnType<typeof useOverlay>['state'];
-
-interface DropdownMenuContextValue {
-  /**
-   * Menu state (from @react-aria's useTreeState) of the parent menu. To be used to
-   * close the current submenu.
-   */
-  parentMenuState?: TreeState<MenuItemProps>;
-  /**
-   * Overlay state manager (from useOverlay) for the root (top-most) menu. To be used to
-   * close the entire menu system.
-   */
-  rootOverlayState?: OverlayState;
-}
-
-export const DropdownMenuContext = createContext<DropdownMenuContextValue>({});
+import {useSafetyTriangle} from './useSafetyTriangle';
 
 export interface DropdownMenuListProps
   extends
@@ -78,7 +67,113 @@ export interface DropdownMenuListProps
   zIndex?: number;
 }
 
-export function DropdownMenuList({
+type DropdownMenuCollectionProps = {
+  closeOnSelect: boolean;
+  collection: Array<Node<MenuItemProps>>;
+  onClose: DropdownMenuListProps['onClose'];
+  separatorProps: ReturnType<typeof useSeparator>['separatorProps'];
+  state: TreeState<MenuItemProps>;
+  disableTextSelection?: boolean;
+  size?: MenuItemProps['size'];
+};
+
+interface DropdownMenuCollectionItemProps extends Omit<
+  DropdownMenuCollectionProps,
+  'collection'
+> {
+  node: Node<MenuItemProps>;
+}
+
+function DropdownMenuCollectionItem({
+  node,
+  closeOnSelect,
+  disableTextSelection,
+  onClose,
+  separatorProps,
+  size,
+  state,
+}: DropdownMenuCollectionItemProps): React.ReactNode {
+  if (node.type === 'section') {
+    return (
+      <DropdownMenuSection node={node}>
+        <DropdownMenuCollection
+          collection={[...node.childNodes]}
+          closeOnSelect={closeOnSelect}
+          disableTextSelection={disableTextSelection}
+          onClose={onClose}
+          separatorProps={separatorProps}
+          size={size}
+          state={state}
+        />
+      </DropdownMenuSection>
+    );
+  }
+
+  if (node.value?.submenu) {
+    if (!node.value.children) {
+      return null;
+    }
+
+    return (
+      <DropdownSubmenu
+        items={node.value.children}
+        node={node}
+        state={state}
+        onClose={onClose}
+        closeOnSelect={closeOnSelect}
+        disableTextSelection={disableTextSelection}
+        size={size}
+      />
+    );
+  }
+
+  return (
+    <DropdownMenuItem
+      node={node}
+      state={state}
+      onClose={onClose}
+      closeOnSelect={closeOnSelect}
+    />
+  );
+}
+
+function DropdownMenuCollection({
+  closeOnSelect,
+  collection,
+  onClose,
+  separatorProps,
+  state,
+  disableTextSelection,
+  size,
+}: DropdownMenuCollectionProps) {
+  return (
+    <Fragment>
+      {collection.map((node, i) => {
+        const isLastNode = collection.length - 1 === i;
+        const showSeparator =
+          !isLastNode &&
+          (node.type === 'section' || collection[i + 1]?.type === 'section');
+
+        return (
+          <Fragment key={node.key}>
+            <DropdownMenuCollectionItem
+              node={node}
+              closeOnSelect={closeOnSelect}
+              disableTextSelection={disableTextSelection}
+              onClose={onClose}
+              separatorProps={separatorProps}
+              size={size}
+              state={state}
+            />
+            {showSeparator && <Separator {...separatorProps} />}
+          </Fragment>
+        );
+      })}
+    </Fragment>
+  );
+}
+
+function DropdownMenuList({
   closeOnSelect = true,
   onClose,
   size,
@@ -91,6 +186,7 @@ export function DropdownMenuList({
   ...props
 }: DropdownMenuListProps) {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
+  const safetyTriangle = useSafetyTriangle();
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
 
@@ -147,100 +243,14 @@ export function DropdownMenuList({
     [menuProps, hasFocus]
   );
 
-  // Render a single menu item
-  const renderItem = (node: Node<MenuItemProps>) => {
-    return (
-      <DropdownMenuItem
-        node={node}
-        state={state}
-        onClose={onClose}
-        closeOnSelect={closeOnSelect}
-      />
-    );
-  };
-
-  // Render a submenu whose trigger button is a menu item
-  const renderItemWithSubmenu = (node: Node<MenuItemProps>) => {
-    if (!node.value?.children) {
-      return null;
-    }
-
-    const submenuConfig = node.value.submenu;
-    const submenuOptions = typeof submenuConfig === 'object' ? submenuConfig : {};
-
-    const trigger = (triggerProps: any) => (
-      <DropdownMenuItem
-        renderAs="div"
-        node={node}
-        state={state}
-        closeOnSelect={false}
-        {...omit(triggerProps, [
-          'onClick',
-          'onDragStart',
-          'onKeyDown',
-          'onKeyUp',
-          'onMouseDown',
-          'onPointerDown',
-          'onPointerUp',
-        ])}
-      />
-    );
-
-    return (
-      <DropdownMenu
-        isOpen={state.selectionManager.isSelected(node.key)}
-        items={node.value.children}
-        trigger={trigger}
-        onClose={onClose}
-        closeOnSelect={closeOnSelect}
-        disableTextSelection={disableTextSelection}
-        menuTitle={submenuOptions.title}
-        shouldCloseOnBlur={false}
-        preventOverflowOptions={{boundary: document.body, altAxis: true}}
-        renderWrapAs="li"
-        position={submenuOptions.position ?? 'right-start'}
-        offset={-4}
-        size={size}
-      />
-    );
-  };
-
-  // Render a collection of menu items
-  const renderCollection = (collection: Array<Node<MenuItemProps>>) =>
-    collection.map((node, i) => {
-      const isLastNode = collection.length - 1 === i;
-      const showSeparator =
-        !isLastNode && (node.type === 'section' || collection[i + 1]?.type === 'section');
-
-      let itemToRender: React.ReactNode;
-
-      if (node.type === 'section') {
-        itemToRender = (
-          <DropdownMenuSection node={node}>
-            {renderCollection([...node.childNodes])}
-          </DropdownMenuSection>
-        );
-      } else {
-        itemToRender = node.value?.submenu
-          ? renderItemWithSubmenu(node)
-          : renderItem(node);
-      }
-
-      return (
-        <Fragment key={node.key}>
-          {itemToRender}
-          {showSeparator && <Separator {...separatorProps} />}
-        </Fragment>
-      );
-    });
-
   const theme = useTheme();
   const contextValue = useMemo(
     () => ({
       rootOverlayState: rootOverlayState ?? overlayState,
       parentMenuState: state,
+      safetyTriangle,
     }),
-    [rootOverlayState, overlayState, state]
+    [rootOverlayState, overlayState, state, safetyTriangle]
   );
   return (
     <FocusScope restoreFocus autoFocus>
@@ -260,13 +270,203 @@ export function DropdownMenuList({
                 maxHeight: overlayPositionProps.style?.maxHeight,
               }}
             >
-              {renderCollection(stateCollection)}
+              <DropdownMenuCollection
+                collection={stateCollection}
+                closeOnSelect={closeOnSelect}
+                disableTextSelection={disableTextSelection}
+                onClose={onClose}
+                separatorProps={separatorProps}
+                size={size}
+                state={state}
+              />
             </DropdownMenuListWrap>
             {menuFooter}
           </StyledOverlay>
         </DropdownMenuContext>
       </PositionWrapper>
     </FocusScope>
+  );
+}
+
+// react-aria uses the href prop on item state to determine if the item is a link
+// and will navigate there when selected
+function makeItemHref(item: MenuItemProps): LocationDescriptor | undefined {
+  if (item.to) {
+    // This matches the behavior of the Link component
+    return normalizeUrl(item.to);
+  }
+
+  return item.externalHref;
+}
+
+/**
+ * Recursively removes hidden items, including those nested in submenus
+ * Apply href to items that have a to or externalHref prop
+ */
+function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
+  return source
+    .filter(item => !item.hidden)
+    .map(item => {
+      const href = makeItemHref(item);
+
+      return {
+        ...item,
+        ...(href === undefined ? {} : {href}),
+        ...(item.children ? {children: removeHiddenItemsAndSetHref(item.children)} : {}),
+      };
+    });
+}
+
+/**
+ * Recursively finds and returns disabled items
+ */
+function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
+  return source.reduce<Array<MenuItemProps['key']>>((acc, cur) => {
+    if (cur.disabled) {
+      // If an item is disabled, then its children will be inaccessible, so we
+      // can skip them and just return the parent item
+      acc.push(cur.key);
+      return acc;
+    }
+
+    if (cur.children) {
+      return acc.concat(getDisabledKeys(cur.children));
+    }
+
+    return acc;
+  }, []);
+}
+
+type DropdownMenuContentProps = DropdownMenuListProps & {items: MenuItemProps[]};
+
+export function DropdownMenuContent({
+  items,
+  disabledKeys,
+  size,
+  ...props
+}: DropdownMenuContentProps) {
+  const activeItems = useMemo(() => removeHiddenItemsAndSetHref(items), [items]);
+  const defaultDisabledKeys = useMemo(() => getDisabledKeys(activeItems), [activeItems]);
+
+  return (
+    <DropdownMenuList
+      {...props}
+      size={size}
+      disabledKeys={disabledKeys ?? defaultDisabledKeys}
+      items={activeItems}
+    >
+      {(item: MenuItemProps) => {
+        const {onAction: _onAction, ...itemProps} = item;
+
+        if (item.children && item.children.length > 0 && !item.submenu) {
+          return (
+            <Section key={item.key} title={item.label} items={item.children}>
+              {sectionItem => {
+                const {onAction: _sectionOnAction, ...sectionItemProps} = sectionItem;
+
+                return (
+                  <Item size={size} {...sectionItemProps} key={sectionItem.key}>
+                    {sectionItem.label}
+                  </Item>
+                );
+              }}
+            </Section>
+          );
+        }
+        return (
+          <Item size={size} {...itemProps} key={item.key}>
+            {item.label}
+          </Item>
+        );
+      }}
+    </DropdownMenuList>
+  );
+}
+
+interface DropdownSubmenuProps extends Pick<
+  DropdownMenuListProps,
+  'closeOnSelect' | 'disableTextSelection' | 'onClose' | 'size'
+> {
+  items: MenuItemProps[];
+  node: Node<MenuItemProps>;
+  state: TreeState<MenuItemProps>;
+}
+
+function DropdownSubmenu({
+  items,
+  node,
+  state,
+  closeOnSelect,
+  disableTextSelection,
+  onClose,
+  size,
+}: DropdownSubmenuProps) {
+  const {rootOverlayState} = useContext(DropdownMenuContext);
+  const submenu = node.value?.submenu;
+  const options = typeof submenu === 'object' ? submenu : {};
+  const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
+  const {
+    isOpen,
+    state: overlayState,
+    triggerRef,
+    triggerProps: {ref: setTriggerElement},
+    overlayProps,
+    overlayRef,
+  } = useOverlay({
+    isOpen: state.selectionManager.isSelected(node.key),
+    onClose: rootOverlayState?.close,
+    disableTrigger: isDisabled,
+    position: options.position ?? 'right-start',
+    offset: -4,
+    preventOverflowOptions: {
+      boundary: document.body,
+      altAxis: true,
+    },
+  });
+  const {menuTriggerProps, menuProps} = useMenuTrigger(
+    {type: 'menu', isDisabled},
+    {...overlayState, focusStrategy: 'first'},
+    triggerRef
+  );
+  const isFocused = state.selectionManager.focusedKey === node.key;
+
+  return (
+    <Container as="li" display="contents" role="presentation">
+      <DropdownMenuItem
+        menuItemRef={useCallback(
+          element => {
+            setTriggerElement(element);
+            if (element && !isOpen && isFocused && rootOverlayState?.isOpen) {
+              element.focus();
+            }
+          },
+          [isOpen, isFocused, rootOverlayState, setTriggerElement]
+        )}
+        id={menuTriggerProps.id}
+        aria-haspopup={menuTriggerProps['aria-haspopup']}
+        aria-expanded={isOpen}
+        aria-controls={menuTriggerProps['aria-controls']}
+        submenuRef={isOpen ? overlayRef : undefined}
+        renderAs="div"
+        node={node}
+        state={state}
+        closeOnSelect={false}
+      />
+      {isOpen && (
+        <DropdownMenuContent
+          onClose={onClose}
+          closeOnSelect={closeOnSelect}
+          disableTextSelection={disableTextSelection}
+          menuTitle={options.title}
+          size={size}
+          {...menuProps}
+          items={items}
+          autoFocus={false}
+          overlayState={overlayState}
+          overlayPositionProps={overlayProps}
+        />
+      )}
+    </Container>
   );
 }
 
@@ -313,7 +513,7 @@ const MenuTitle = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
   z-index: 2;
 `;

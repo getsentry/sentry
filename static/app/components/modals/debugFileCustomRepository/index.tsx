@@ -11,7 +11,7 @@ import {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 
 import {Http} from './http';
-import {GcsRepository, S3Repository} from './objectStorage';
+import {AzureRepository, GcsRepository, S3Repository} from './objectStorage';
 
 type Props = {
   /**
@@ -84,6 +84,15 @@ function DebugFileCustomRepository({
                   {...commonProps}
                   sourceConfig={
                     sourceConfig?.type === CustomRepoType.GCS ? sourceConfig : undefined
+                  }
+                />
+              );
+            case CustomRepoType.AZURE:
+              return (
+                <AzureRepository
+                  {...commonProps}
+                  sourceConfig={
+                    sourceConfig?.type === CustomRepoType.AZURE ? sourceConfig : undefined
                   }
                 />
               );

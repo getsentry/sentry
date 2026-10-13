@@ -8,6 +8,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -33,6 +34,7 @@ from sentry.workflow_engine.processors.workflow import (
     enqueue_workflows,
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
+    get_environment_by_event,
     process_workflows,
 )
 from sentry.workflow_engine.tasks.workflows import process_workflows_event
@@ -369,6 +371,67 @@ class TestProcessWorkflows(BaseWorkflowTest):
             self.error_workflow.id,
             matching_env_workflow.id,
         }
+
+    def _activity_event_data(self) -> WorkflowEventData:
+        activity = Activity(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+        )
+        activity.save()
+        return WorkflowEventData(event=activity, group=self.group)
+
+    def test_activity_environment_from_group(self) -> None:
+        # An Activity carries no environment of its own, so it comes from the group.
+        env = self.create_environment(project=self.project)
+        GroupEnvironment.objects.create(group_id=self.group.id, environment_id=env.id)
+
+        assert get_environment_by_event(self._activity_event_data()) == env
+
+    # The unresolved cases all return None, so each also asserts its metric outcome to prove
+    # which branch it took.
+
+    @patch("sentry.workflow_engine.processors.workflow.metrics_incr")
+    def test_activity_environment_when_group_has_no_environment(
+        self, mock_metrics_incr: MagicMock
+    ) -> None:
+        assert get_environment_by_event(self._activity_event_data()) is None
+        mock_metrics_incr.assert_called_once_with(
+            "process_workflows.activity_environment", tags={"outcome": "missing"}
+        )
+
+    @patch("sentry.workflow_engine.processors.workflow.metrics_incr")
+    def test_activity_environment_when_group_has_multiple_environments(
+        self, mock_metrics_incr: MagicMock
+    ) -> None:
+        # No single environment resolved the group, so it stays unscoped.
+        for _ in range(2):
+            GroupEnvironment.objects.create(
+                group_id=self.group.id,
+                environment_id=self.create_environment(project=self.project).id,
+            )
+
+        assert get_environment_by_event(self._activity_event_data()) is None
+        mock_metrics_incr.assert_called_once_with(
+            "process_workflows.activity_environment", tags={"outcome": "ambiguous"}
+        )
+
+    @patch("sentry.workflow_engine.processors.workflow.metrics_incr")
+    def test_activity_environment_when_environment_was_deleted(
+        self, mock_metrics_incr: MagicMock
+    ) -> None:
+        # Deleting an Environment through the ORM cascades to its GroupEnvironment rows, so
+        # delete it first and then create the orphaned row the database itself would allow.
+        env = self.create_environment(project=self.project)
+        deleted_env_id = env.id
+        env.delete()
+        GroupEnvironment.objects.create(group_id=self.group.id, environment_id=deleted_env_id)
+        cache.clear()
+
+        assert get_environment_by_event(self._activity_event_data()) is None
+        mock_metrics_incr.assert_called_once_with(
+            "process_workflows.activity_environment", tags={"outcome": "deleted"}
+        )
 
     def test_issue_occurrence_event(self) -> None:
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})

@@ -59,6 +59,12 @@ export type InvestigationBlock = {
 
 export type InvestigationBlockKind = 'query' | 'text';
 
+export type InvestigationViewer = {
+  active: boolean;
+  lastSeen: string;
+  userId: string;
+};
+
 export type InvestigationBlockExecutionStart = {
   id: string;
   status: InvestigationExecutionStatus;
@@ -186,7 +192,7 @@ export type InvestigationCandidate =
 /** A known set of string values that still accepts one Seer added later. */
 type InvestigationOrchestrationOpenString<T extends string> = T | (string & {});
 
-type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
+export type InvestigationOrchestrationPhase = InvestigationOrchestrationOpenString<
   | 'intake'
   | 'broad_scan'
   | 'planning'
@@ -203,8 +209,8 @@ export type InvestigationOrchestrationStatus = InvestigationOrchestrationOpenStr
   'pending' | 'processing' | 'awaiting_input' | 'completed' | 'failed' | 'cancelled'
 >;
 
-/** Lifecycle of one unit of agent work. Mirrors `WORK_STATUSES`. */
-export type InvestigationOrchestrationWorkStatus = InvestigationOrchestrationOpenString<
+/** Lifecycle of agent work, including skipped verification checks. */
+type InvestigationOrchestrationWorkStatus = InvestigationOrchestrationOpenString<
   | 'not_started'
   | 'queued'
   | 'running'
@@ -214,6 +220,7 @@ export type InvestigationOrchestrationWorkStatus = InvestigationOrchestrationOpe
   | 'completed'
   | 'failed'
   | 'cancelled'
+  | 'skipped'
 >;
 
 /**
@@ -274,7 +281,7 @@ type InvestigationOrchestrationEvidence = {
   url?: string | null;
 };
 
-/** One check the agent ran against a hypothesis — an "Evidence checked" row. */
+/** One check planned against a hypothesis, including checks skipped by the agent. */
 export type InvestigationVerificationStep = {
   error: InvestigationOrchestrationError | null;
   evidence: InvestigationOrchestrationEvidence[];
@@ -380,10 +387,17 @@ export type InvestigationOrchestration = {
   status: InvestigationOrchestrationStatus;
   updatedAt: string;
   workflowVersion: number;
+  activeSince?: string | null;
+  /** Active work only; absent on runs created before timing was tracked. */
+  activeTimeElapsedSeconds?: number | null;
+  finishedAt?: string | null;
   pendingInput?: {
     missingFields: Array<'prompt' | 'time_range'>;
     prompt: string;
   } | null;
+  /** Fresh API server time, independent of the projection's last update. */
+  serverTime?: string;
+  startedAt?: string | null;
   steeringIntents?: Array<{
     createdAt: string;
     id: string;

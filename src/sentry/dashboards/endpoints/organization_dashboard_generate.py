@@ -135,7 +135,7 @@ class DashboardGenerateSerializer(serializers.Serializer[dict[str, Any]]):
 
 class OrganizationDashboardGeneratePermission(OrganizationPermission):
     scope_map = {
-        "POST": ["org:read"],
+        "POST": ["org:read", "dashboard:read"],
     }
 
 
@@ -158,7 +158,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardGeneratePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-        has_access, error = has_seer_access_with_detail(organization, request.user)
+        has_access, error = has_seer_access_with_detail(organization)
         if not has_access:
             raise PermissionDenied(error)
 

@@ -1,0 +1,624 @@
+---
+source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
+---
+{
+  "grouping_config": "newstyle:2026-01-20",
+  "variants": {
+    "app_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "app",
+        "name": "in-app",
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "SIGABRT"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "Abort"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "textures.cpp"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "unrelated_native_app_source_under_assets_dir"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (path:**/vendor/** -app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "bar.cpp"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "unrelated_native_app_source_under_package_cache_dir"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "developer_own_libgame_binary_not_unity_gameactivity_glue"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "enemyspawner.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "windows_il2cpp_project_source_with_backslash_paths"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "enemyspawner.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "linux_il2cpp_project_source"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "inputaction.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "registry_package_source_under_runtime_dir_never_restored"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": "marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app)",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "legacy_ios_engine_binary_unity_6000_0_and_older"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": false,
+                    "hint": "non app frame",
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "windows_sentry_native_sdk"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception stacktrace — in-app frames",
+      "hash": "539935023e2db3e104789c1c69ca2cf5",
+      "hint": null,
+      "key": "app_exception_stacktrace",
+      "type": "component"
+    },
+    "system_exception_stacktrace": {
+      "component": {
+        "contributes": true,
+        "hint": null,
+        "id": "system",
+        "name": null,
+        "values": [
+          {
+            "contributes": true,
+            "hint": null,
+            "id": "exception",
+            "name": "exception",
+            "values": [
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "type",
+                "name": null,
+                "values": [
+                  "SIGABRT"
+                ]
+              },
+              {
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
+                "id": "value",
+                "name": null,
+                "values": [
+                  "Abort"
+                ]
+              },
+              {
+                "contributes": true,
+                "hint": null,
+                "id": "stacktrace",
+                "name": "stacktrace",
+                "values": [
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "textures.cpp"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "unrelated_native_app_source_under_assets_dir"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "bar.cpp"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "unrelated_native_app_source_under_package_cache_dir"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "developer_own_libgame_binary_not_unity_gameactivity_glue"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "enemyspawner.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "windows_il2cpp_project_source_with_backslash_paths"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "enemyspawner.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "linux_il2cpp_project_source"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": [
+                          "inputaction.cs"
+                        ]
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "registry_package_source_under_runtime_dir_never_restored"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "legacy_ios_engine_binary_unity_6000_0_and_older"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "contributes": true,
+                    "hint": null,
+                    "id": "frame",
+                    "name": null,
+                    "values": [
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "module",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": false,
+                        "hint": null,
+                        "id": "filename",
+                        "name": null,
+                        "values": []
+                      },
+                      {
+                        "contributes": true,
+                        "hint": null,
+                        "id": "function",
+                        "name": null,
+                        "values": [
+                          "windows_sentry_native_sdk"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "contributes": true,
+      "description": "exception stacktrace — all frames",
+      "hash": "7429f5a97df8b817f3b36cab1970f9ea",
+      "hint": null,
+      "key": "system_exception_stacktrace",
+      "type": "component"
+    }
+  }
+}

@@ -1,4 +1,6 @@
 import {createContext, useContext, useState, type ReactNode} from 'react';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClose} from '@sentry/icons/close';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -11,18 +13,24 @@ import {
   type EmbedOutput,
 } from 'sentry/components/seer/markdown/embeds/utils';
 import {API_ACCESS_SCOPE_DETAILS, type ApiAccessScope} from 'sentry/constants/scopes';
-import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
+import type {
+  PendingUserInput,
+  RespondToUserInputOptions,
+} from 'sentry/views/seerExplorer/types';
 
 interface AgentWriteApprovalContextValue {
   pendingInput: PendingUserInput | null;
   readOnly: boolean;
   requestApproval?: RequestApproval;
-  respondToUserInput?: (inputId: string, responseData?: Record<string, unknown>) => void;
+  respondToUserInput?: (
+    inputId: string,
+    responseData?: Record<string, unknown>,
+    options?: RespondToUserInputOptions
+  ) => void;
 }
 
 interface AgentApprovalResponse {
@@ -110,6 +118,11 @@ function AgentWriteApprovalContent({
     displayStatus = submittedDecision === 'approve' ? 'approved' : 'rejected';
   }
 
+  // The response failed to send; show the approval prompt again so it can be retried.
+  function resetDecision() {
+    setSubmittedDecision(null);
+  }
+
   async function handleApprove() {
     if (!pendingApproval) {
       return;
@@ -135,11 +148,15 @@ function AgentWriteApprovalContent({
         : 'reject';
       setSubmittedDecision(decision);
       if (decision === 'approve') {
-        respondToUserInput?.(inputId, {decision});
+        respondToUserInput?.(inputId, {decision}, {onError: resetDecision});
         return;
       }
       addErrorMessage(t('You do not have all the requested permissions.'));
-      respondToUserInput?.(inputId, {decision, reason: 'insufficient_scope'});
+      respondToUserInput?.(
+        inputId,
+        {decision, reason: 'insufficient_scope'},
+        {onError: resetDecision}
+      );
     } catch {
       addErrorMessage(t('Failed to approve this permission.'));
     } finally {
@@ -149,7 +166,7 @@ function AgentWriteApprovalContent({
 
   function handleReject() {
     setSubmittedDecision('reject');
-    respondToUserInput?.(inputId, {decision: 'reject'});
+    respondToUserInput?.(inputId, {decision: 'reject'}, {onError: resetDecision});
   }
 
   const displayedScopes = pendingApproval?.requiredScopes ?? requiredScopes;

@@ -1,4 +1,7 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconMarkdown} from '@sentry/icons/markdown';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -6,8 +9,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconRefresh} from 'sentry/icons';
-import {IconCopy} from 'sentry/icons/iconCopy';
 import {t} from 'sentry/locale';
 
 interface ArtifactCardProps {
@@ -17,6 +18,8 @@ interface ArtifactCardProps {
   allowReset?: boolean;
   onCopy?: () => void;
   onReset?: () => void;
+  /** `onReset` opens Seer Agent on the step rather than a re-run prompt. */
+  resetInChat?: boolean;
   resetTooltip?: string;
 }
 
@@ -27,8 +30,13 @@ export function ArtifactCard({
   onCopy,
   allowReset,
   onReset,
+  resetInChat,
   resetTooltip,
 }: ArtifactCardProps) {
+  const defaultResetTooltip = resetInChat
+    ? t('Chat with Seer about this step, or provide more context for it to re-run')
+    : t('Re-run step');
+
   return (
     <Container border="primary" radius="md" padding="lg" background="primary">
       <Disclosure defaultExpanded>
@@ -36,12 +44,16 @@ export function ArtifactCard({
           trailingItems={
             <Fragment>
               {allowReset && (
-                <Tooltip title={resetTooltip ?? t('Re-run step')}>
+                <Tooltip title={resetTooltip ?? defaultResetTooltip}>
                   <Button
                     size="xs"
                     variant="transparent"
-                    icon={<IconRefresh size="xs" />}
-                    aria-label={t('Re-run step')}
+                    icon={
+                      resetInChat ? <IconSeer size="xs" /> : <IconRefresh size="xs" />
+                    }
+                    aria-label={
+                      resetInChat ? t('Chat with Seer about this step') : t('Re-run step')
+                    }
                     onClick={onReset}
                     disabled={!onReset}
                   />
@@ -50,7 +62,7 @@ export function ArtifactCard({
               <Button
                 size="xs"
                 variant="transparent"
-                icon={<IconCopy size="xs" />}
+                icon={<IconMarkdown size="xs" />}
                 aria-label={t('Copy as Markdown')}
                 tooltipProps={{title: t('Copy as Markdown')}}
                 onClick={onCopy}

@@ -15,7 +15,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openConsoleModal} from 'sentry/actionCreators/modal';
 import {Access} from 'sentry/components/acl/access';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {captureProjectCreationFailure} from 'sentry/components/onboarding/captureProjectCreationFailure';
@@ -43,6 +42,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {
   MultipleCheckboxOptions,
   useCreateNotificationAction,
@@ -504,7 +504,10 @@ export function CreateProject() {
     <Access access={canUserCreateProject ? ['project:read'] : ['project:admin']}>
       <div data-test-id="onboarding-info">
         <List symbol="colored-numeric">
-          <Layout.Title>{t('Create a new project in 3 steps')}</Layout.Title>
+          <TopBar.Slot
+            name="breadcrumbs"
+            title={{type: 'page-title', label: t('Create a new project in 3 steps')}}
+          />
           <HelpText>
             {tct(
               'Set up a separate project for each part of your application (for example, your API server and frontend client), to quickly pinpoint which part of your application errors are coming from. [link: Read the docs].',

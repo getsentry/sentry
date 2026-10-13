@@ -8,7 +8,7 @@ function OrganizationSettingsNavigation() {
   const organization = useOrganization();
   const useBillingNavConfig =
     getOverride('react-hook:use-billing-navigation-config') ?? (() => null);
-  const billingNavConfig = useBillingNavConfig();
+  const billingNavConfig = useBillingNavConfig(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
 
   return (
     <SettingsNavigation

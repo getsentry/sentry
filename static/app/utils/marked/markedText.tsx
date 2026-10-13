@@ -4,7 +4,8 @@ import {
   asyncSanitizedMarked,
   sanitizedMarked,
   singleLineRenderer,
-} from 'sentry/utils/marked/marked';
+} from '@sentry/scraps/markdown';
+
 import {useIsMountedRef} from 'sentry/utils/useIsMountedRef';
 
 interface BaseMarkedTextProps<T extends React.ElementType> {

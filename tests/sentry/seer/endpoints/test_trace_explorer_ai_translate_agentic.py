@@ -1,13 +1,17 @@
 from unittest.mock import MagicMock, patch
 
+from django.test import override_settings
 from rest_framework import status
 
+from sentry.models.apitoken import ApiToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 @with_feature("organizations:seer-explorer")
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class SearchAgentTranslateEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -51,13 +55,45 @@ class SearchAgentTranslateEndpointTest(APITestCase):
             [self.project.id],
             "Find slow transactions",
             strategy="Traces",
+            user_email=self.user.email,
+            timezone=None,
             model_name=None,
             metric_context=None,
             viewer_context={
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
             },
+            options={
+                "cross_event": False,
+                "reflection_step": False,
+                "code_mode": False,
+                "source": "frontend",
+            },
         )
+
+    @patch(
+        "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.send_translate_agentic_request"
+    )
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_translate_forwards_mcp_source(self, mock_send_request: MagicMock) -> None:
+        mock_send_request.return_value = {"query": "", "status": "ok"}
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        response = self.client.post(
+            self.url,
+            data={
+                "project_ids": [self.project.id],
+                "natural_language_query": "Find slow transactions",
+                "referrer": "search_bar",
+            },
+            format="json",
+            HTTP_USER_AGENT="sentry-mcp/1.2.3 (https://mcp.sentry.dev)",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_send_request.call_args.kwargs["options"]["source"] == "mcp"
 
     @patch(
         "sentry.seer.endpoints.trace_explorer_ai_translate_agentic.send_translate_agentic_request"

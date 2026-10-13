@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {uuid4} from '@sentry/core';
+import {IconRefresh} from '@sentry/icons/refresh';
 import type {QueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -9,7 +10,7 @@ import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import type {Client} from 'sentry/api';
-import {IconRefresh} from 'sentry/icons';
+import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
@@ -17,6 +18,7 @@ import {GroupStatus, type BaseGroup} from 'sentry/types/group';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
@@ -295,7 +297,19 @@ function getBulkActionMessages(
   };
 }
 
-export function performBulkUpdate({
+function getBulkUpdateErrorMessage(error: unknown, fallback: string): string {
+  if (isDemoModeActive()) {
+    return t('This action is not allowed in demo mode.');
+  }
+  if (!(error instanceof RequestError) || error.status !== 400) {
+    return fallback;
+  }
+
+  const message = getWorkflowEngineResponseErrorMessage(error.responseJSON);
+  return message ? t('%s: %s', fallback, message) : fallback;
+}
+
+export async function performBulkUpdate({
   api,
   data,
   itemIds,
@@ -332,9 +346,8 @@ export function performBulkUpdate({
     duration: 30_000,
   });
 
-  bulkUpdate(
-    api,
-    {
+  try {
+    await bulkUpdate(api, {
       orgId: organizationSlug,
       itemIds,
       data,
@@ -343,26 +356,18 @@ export function performBulkUpdate({
       failSilently: true,
       ...projectConstraints,
       ...selection.datetime,
-    },
-    {
-      success: () => {
-        const undo = onSuccess?.(itemIds, previousGroups);
-        toast.success(messages.success, {
-          id: toastId,
-          action: undo
-            ? {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo}
-            : undefined,
-        });
-      },
-      error: () => {
-        toast.error(
-          isDemoModeActive()
-            ? t('This action is not allowed in demo mode.')
-            : messages.error,
-          {id: toastId}
-        );
-        onError?.();
-      },
-    }
-  );
+    });
+  } catch (error) {
+    toast.error(getBulkUpdateErrorMessage(error, messages.error), {id: toastId});
+    onError?.();
+    return;
+  }
+
+  const undo = onSuccess?.(itemIds, previousGroups);
+  toast.success(messages.success, {
+    id: toastId,
+    action: undo
+      ? {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo}
+      : undefined,
+  });
 }

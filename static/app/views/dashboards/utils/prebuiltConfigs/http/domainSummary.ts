@@ -53,7 +53,6 @@ const DOMAIN_WIDGET: PrebuiltWidget = {
       fieldAliases: [],
       conditions: FILTER_STRING,
       orderby: SpanFields.ID,
-      onDemand: [],
       linkedDashboards: [],
     },
   ],

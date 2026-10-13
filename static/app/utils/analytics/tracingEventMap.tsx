@@ -2,8 +2,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {CrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
-import type {TraceTreeSource} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import type {TraceDrawerActionKind} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import type {TraceTreeSource} from 'sentry/views/performance/traceDetails/traceAnalytics';
+import type {TraceDrawerActionKind} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 
 export type TracingEventParameters = {
   'compare_queries.add_query': {
@@ -190,7 +190,7 @@ export type TracingEventParameters = {
   'trace_explorer.save_query_modal': {
     action: 'open' | 'submit';
     save_type: 'save_new_query' | 'rename_query';
-    ui_source: 'toolbar' | 'table';
+    ui_source: 'toolbar' | 'table' | 'explorer';
   };
   'trace_explorer.search_failure': {
     error: string;

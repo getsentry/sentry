@@ -16,7 +16,6 @@ type Props = {
   stackView: StackView;
   stacktrace: StacktraceType;
   groupingCurrentLevel?: number;
-  lockAddress?: string;
   meta?: Record<any, any>;
   threadId?: number;
 };
@@ -30,7 +29,6 @@ export function StackTraceContent({
   groupingCurrentLevel,
   meta,
   threadId,
-  lockAddress,
 }: Props) {
   if (stackView === StackView.RAW) {
     return (
@@ -69,7 +67,6 @@ export function StackTraceContent({
         newestFirst={newestFirst}
         meta={meta}
         threadId={threadId}
-        lockAddress={lockAddress}
       />
     </ErrorBoundary>
   );

@@ -8,6 +8,7 @@ interface WebMViewerProps
   extends
     Pick<ViewerProps, 'attachment' | 'eventId' | 'orgSlug' | 'projectSlug'>,
     Partial<Pick<HTMLVideoElement, 'controls'>> {
+  className?: string;
   onCanPlay?: React.ReactEventHandler<HTMLVideoElement>;
 }
 
@@ -15,10 +16,12 @@ export function VideoViewer({
   controls = true,
   attachment,
   onCanPlay,
+  className,
   ...props
 }: WebMViewerProps) {
   return (
     <video
+      className={className}
       onCanPlay={onCanPlay}
       controls={controls}
       css={css`

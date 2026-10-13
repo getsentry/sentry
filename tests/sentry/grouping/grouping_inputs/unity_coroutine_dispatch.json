@@ -1,0 +1,43 @@
+{
+  "platform": "csharp",
+  "exception": {
+    "values": [
+      {
+        "type": "System.NullReferenceException",
+        "value": "Object reference not set to an instance of an object",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "GameBootstrap.Start()",
+              "module": "GameBootstrap",
+              "package": "Assembly-CSharp",
+              "filename": "Assets/Scripts/GameBootstrap.cs"
+            },
+            {
+              "function": "UnityEngine.MonoBehaviour.StartCoroutine(System.Collections.IEnumerator)",
+              "module": "UnityEngine.MonoBehaviour",
+              "package": "UnityEngine.CoreModule"
+            },
+            {
+              "function": "UnityEngine.SetupCoroutine.InvokeMoveNext(System.Collections.IEnumerator, System.IntPtr)",
+              "module": "UnityEngine.SetupCoroutine",
+              "package": "UnityEngine.CoreModule"
+            },
+            {
+              "function": "EnemySpawner+<SpawnWaves>d__4.MoveNext()",
+              "module": "EnemySpawner+<SpawnWaves>d__4",
+              "package": "Assembly-CSharp",
+              "filename": "Assets/Scripts/EnemySpawner.cs"
+            },
+            {
+              "function": "CombatSystem.ApplyDamage(UnityEngine.GameObject, System.Int32)",
+              "module": "CombatSystem",
+              "package": "Assembly-CSharp",
+              "filename": "Packages/com.mystudio.combat/Runtime/CombatSystem.cs"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

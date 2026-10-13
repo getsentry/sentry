@@ -437,12 +437,12 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
   });
   const access = useMemo(() => new Set(organization.access), [organization]);
   const hasWriteAccess = access.has('org:write');
-  const hasGenAiFeatureFlag = organization.features.includes('gen-ai-features');
+  const isSeerAvailable = !ConfigStore.get('isSelfHosted');
   const localityData = shouldDisplayLocalities()
     ? getLocalityDataFromOrganization(organization)
     : null;
 
-  const aiEnabled = hasGenAiFeatureFlag ? (initialData.hideAiFeatures ?? false) : false;
+  const aiEnabled = isSeerAvailable ? (initialData.hideAiFeatures ?? false) : false;
 
   // Shared mutation options for most general fields
   const orgMutationOptions = mutationOptions({
@@ -653,7 +653,7 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
                 <field.Switch
                   checked={field.state.value ?? false}
                   onChange={field.handleChange}
-                  disabled={!hasGenAiFeatureFlag || !hasWriteAccess}
+                  disabled={!isSeerAvailable || !hasWriteAccess}
                 />
               </field.Layout.Row>
             )}

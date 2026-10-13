@@ -691,6 +691,7 @@ class SeerProjectSettingsUpdate(TypedDict, total=False):
     automation_tuning: str
     scanner_automation: bool
     auto_create_pr: bool
+    pr_iteration: bool
 
 
 def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettingsUpdate) -> None:
@@ -738,6 +739,9 @@ def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettin
         _set_or_clear(
             "sentry:seer_automation_handoff_auto_create_pr", data["auto_create_pr"], default=False
         )
+
+    if "pr_iteration" in data:
+        _set_or_clear("sentry:seer_pr_iteration", data["pr_iteration"], default=True)
 
     if "automation_tuning" in data:
         _set_or_clear(
@@ -991,7 +995,7 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
 
 def is_free_cohort_org(organization: Organization) -> bool:
     """Check if org is in the agentic triage free cohort — selected non-paying
-    orgs that receive night shift and autofix without a Seer subscription.
+    orgs that receive agentic triage and autofix without a Seer subscription.
 
     Returns True when the kill switch is NOT engaged (flag disabled = cohort
     active), the org is NOT on a paid seat-based Seer plan, and the org

@@ -1,13 +1,16 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconLock} from '@sentry/icons/lock';
+import {IconPlay} from '@sentry/icons/play';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ProgressRing} from 'sentry/components/progressRing';
-import {IconClock, IconLock, IconPlay, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
@@ -19,6 +22,7 @@ import {AddOnCategory, type ProductTrial} from 'getsentry/types';
 import {
   formatReservedWithUnits,
   formatUsageWithUnits,
+  getLineItemUnitType,
   getPercentage,
   getReservedBudgetCategoryForAddOn,
   getSoftCapType,
@@ -180,29 +184,36 @@ export function UsageOverviewTableRow({
           : prepaid;
     percentUsed = rawPrepaid ? getPercentage(usage, rawPrepaid) : 0;
 
+    const unitType = getLineItemUnitType(subscription.planDetails, billedCategory);
     formattedUsage = formatUsageWithUnits(usage, billedCategory, {
       isAbbreviated: true,
       useUnitScaling: true,
+      unitType,
     });
     formattedPrepaid = formatReservedWithUnits(prepaid, billedCategory, {
       useUnitScaling: true,
       isAbbreviated: true,
+      unitType,
     });
     formattedFree = free
       ? formatReservedWithUnits(free, billedCategory, {
           useUnitScaling: true,
           isAbbreviated: true,
+          unitType,
         })
       : null;
 
     paygSpend = normalizedMetricHistory.onDemandSpendUsed ?? 0;
   }
-  const bucket = getBucket({
-    events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
-    buckets: subscription.planDetails.planCategories[billedCategory],
-  });
+  const buckets = subscription.planDetails.planCategories[billedCategory];
+  const bucket = buckets
+    ? getBucket({
+        events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
+        buckets,
+      })
+    : null;
   otherSpend = calculateSeerUserSpend(normalizedMetricHistory);
-  const recurringReservedSpend = isChildProduct ? 0 : (bucket.price ?? 0);
+  const recurringReservedSpend = isChildProduct ? 0 : (bucket?.price ?? 0);
   const additionalSpend = recurringReservedSpend + paygSpend + otherSpend;
 
   const formattedSoftCapType =

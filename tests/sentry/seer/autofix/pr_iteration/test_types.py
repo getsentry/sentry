@@ -119,12 +119,10 @@ def _review_feedback(
 
 
 class ParseSerializeFeedbackTest(TestCase):
-    def test_check_suite_event_requires_expected_fields_and_preserves_extra_fields(self) -> None:
+    def test_check_suite_event_requires_expected_fields(self) -> None:
         event = _check_suite_event()
-        event["extra"] = "value"
         source = _check_suite_source(event)
 
-        assert source.event.dict()["extra"] == "value"
         assert source.app_name == "CI"
         assert get_check_suite_url(source.event) == (
             "https://github.com/owner/repo/commit/abc/checks?check_suite_id=1"
@@ -138,6 +136,42 @@ class ParseSerializeFeedbackTest(TestCase):
         del event["check_suite"]["check_runs_url"]
         with pytest.raises(ValidationError):
             CheckSuiteFeedbackSource(event=event)
+
+    def test_check_suite_event_drops_undeclared_webhook_fields(self) -> None:
+        event = _check_suite_event()
+        event["sender"] = {"login": "octocat", "email": "octocat@example.com"}
+        event["installation"] = {"id": 3, "account": {"login": "owner"}}
+        event["repository"]["private"] = True
+        event["check_suite"]["head_commit"] = {"author": {"email": "dev@example.com"}}
+        event["check_suite"]["app"]["owner"] = {"login": "ci-owner"}
+        event["check_suite"]["pull_requests"] = [
+            {"id": 7, "number": 8, "base": {"ref": "main", "repo": {"id": 9, "name": "repo"}}}
+        ]
+
+        serialized = serialize_feedback([Feedback(source=_check_suite_source(event))])
+
+        for leaked in ("octocat", "account", "private", "head_commit", "ci-owner", "number", "ref"):
+            assert leaked not in serialized
+
+        [parsed] = parse_feedback(serialized)
+        assert isinstance(parsed.source, CheckSuiteFeedbackSource)
+        assert parsed.source.event.dict() == {
+            "check_suite": {
+                "id": 1,
+                "head_sha": "abc",
+                "check_runs_url": "https://github.com/owner/repo/check-runs",
+                "app": {"name": "CI"},
+                "conclusion": None,
+                "updated_at": "2024-01-01T00:00:00Z",
+                "pull_requests": [{"id": 7, "base": {"repo": {"id": 9}}}],
+            },
+            "repository": {
+                "html_url": "https://github.com/owner/repo",
+                "id": None,
+                "full_name": None,
+            },
+            "installation": {"id": 3},
+        }
 
     def test_construct_does_not_resolve(self) -> None:
         with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run") as mock_resolve:
@@ -601,19 +635,28 @@ class CheckSuiteLogFieldsTest(TestCase):
         }
 
     def test_a_stale_suite_shows_the_two_shas_that_disagreed(self) -> None:
-        source = _check_suite_source(self._event())
+        source = _check_suite_source(self._event(), autofix_run=_autofix_run())
         state = _run_state(
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="newer")}
         )
 
         fields = source.log_fields(state)
 
-        assert source.should_queue(state) == Decision(ok=False, reason="stale_head")
+        assert source.should_trigger(state) == TriggerDecision(task=None, reason="stale_head")
         assert fields["check_suite_head_sha"] == "abc"
         assert fields["run_pr_commit_sha"] == "newer"
 
 
-class CheckSuiteShouldQueueTest(TestCase):
+class CheckSuiteShouldTriggerStaleHeadTest(TestCase):
+    """A suite that is not on the run's current head schedules nothing.
+
+    It is still queued; ``should_consume`` keeps it out of the agent if some
+    other item drains the run. The gate here is what stops it costing a GitHub
+    sweep and a consume of its own.
+    """
+
+    STALE = TriggerDecision(task=None, reason="stale_head")
+
     def _event(self, *, head_sha="abc", repo_name="owner/repo") -> dict:
         return {
             "check_suite": {
@@ -628,18 +671,17 @@ class CheckSuiteShouldQueueTest(TestCase):
             },
         }
 
-    def test_true_when_matches_repo_pr_state(self) -> None:
+    def test_none_when_autofix_run_is_missing(self) -> None:
         source = _check_suite_source(self._event())
-        state = _run_state(
-            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
-        )
+        with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=None):
+            assert source.should_trigger(_run_state()) == TriggerDecision(
+                task=None, reason="no_autofix_run"
+            )
 
-        assert source.should_queue(state) == Decision(ok=True, reason="head_matches")
-
-    def test_false_when_only_matches_block_commit_sha(self) -> None:
+    def test_stale_when_only_matches_block_commit_sha(self) -> None:
         # A past block's SHA no longer counts: only the PR's current head
-        # (repo_pr_states) is valid, so a suite for a superseded commit is dropped.
-        source = _check_suite_source(self._event())
+        # (repo_pr_states) is valid, so a suite for a superseded commit is stale.
+        source = _check_suite_source(self._event(), autofix_run=_autofix_run())
         block = MemoryBlock(
             id="b1",
             message=Message(role="assistant"),
@@ -647,29 +689,27 @@ class CheckSuiteShouldQueueTest(TestCase):
             pr_commit_shas={"owner/repo": "abc"},
         )
 
-        assert source.should_queue(_run_state(blocks=[block])) == Decision(
-            ok=False, reason="stale_head"
-        )
+        assert source.should_trigger(_run_state(blocks=[block])) == self.STALE
 
-    def test_false_when_no_match(self) -> None:
-        source = _check_suite_source(self._event())
+    def test_stale_when_no_match(self) -> None:
+        source = _check_suite_source(self._event(), autofix_run=_autofix_run())
         state = _run_state(
             repo_pr_states={
                 "owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="different")
             }
         )
 
-        assert source.should_queue(state) == Decision(ok=False, reason="stale_head")
+        assert source.should_trigger(state) == self.STALE
 
-    def test_false_when_missing_head_sha(self) -> None:
-        source = _check_suite_source(self._event(head_sha=""))
+    def test_stale_when_missing_head_sha(self) -> None:
+        source = _check_suite_source(self._event(head_sha=""), autofix_run=_autofix_run())
 
-        assert source.should_queue(_run_state()) == Decision(ok=False, reason="stale_head")
+        assert source.should_trigger(_run_state()) == self.STALE
 
-    def test_false_when_missing_repo_name(self) -> None:
-        source = _check_suite_source(self._event(repo_name=""))
+    def test_stale_when_missing_repo_name(self) -> None:
+        source = _check_suite_source(self._event(repo_name=""), autofix_run=_autofix_run())
 
-        assert source.should_queue(_run_state()) == Decision(ok=False, reason="stale_head")
+        assert source.should_trigger(_run_state()) == self.STALE
 
 
 class CheckSuiteShouldConsumeTest(TestCase):
@@ -779,28 +819,32 @@ class CheckSuiteShouldConsumeTest(TestCase):
 
 
 class CheckSuiteShouldTriggerTest(TestCase):
-    def _source(self, head_sha="abc", *, repo: MagicMock | None = None) -> CheckSuiteFeedbackSource:
+    def _source(self, *, repo: MagicMock | None = None) -> CheckSuiteFeedbackSource:
         return _check_suite_source(
             {
                 "check_suite": {
                     "id": 1,
-                    "head_sha": head_sha,
+                    "head_sha": "abc",
                     "check_runs_url": "https://github.com/owner/repo/check-runs",
                     "app": {"name": "CI"},
                 },
-                "repository": {"html_url": "https://github.com/owner/repo"},
+                "repository": {
+                    "full_name": "owner/repo",
+                    "html_url": "https://github.com/owner/repo",
+                },
             },
             autofix_run=_autofix_run(repo=repo),
         )
 
-    def test_now_when_no_head_sha(self) -> None:
-        assert self._source(head_sha="").should_trigger(_run_state()) == TriggerDecision(
-            task=ConsumeTask.Now, reason="missing_head_sha"
+    def _state(self) -> SeerRunState:
+        """The run with its PR on the suite's head, so the head gate passes."""
+        return _run_state(
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
         )
 
     @patch("sentry.scm.factory.new", side_effect=Exception("boom"))
     def test_now_when_scm_init_fails(self, _mock_new: MagicMock) -> None:
-        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+        assert self._source().should_trigger(self._state()) == TriggerDecision(
             task=ConsumeTask.Now, reason="scm_init_failed"
         )
 
@@ -809,7 +853,7 @@ class CheckSuiteShouldTriggerTest(TestCase):
     def test_now_when_unsupported_provider(self, mock_new: MagicMock) -> None:
         mock_new.return_value = MagicMock()
 
-        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+        assert self._source().should_trigger(self._state()) == TriggerDecision(
             task=ConsumeTask.Now, reason="sweep_complete"
         )
 
@@ -824,7 +868,7 @@ class CheckSuiteShouldTriggerTest(TestCase):
         mock_new.return_value = MagicMock()
         mock_pages.return_value = [{"data": [{"status": "in_progress"}]}]
 
-        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+        assert self._source().should_trigger(self._state()) == TriggerDecision(
             task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
         )
 
@@ -839,7 +883,7 @@ class CheckSuiteShouldTriggerTest(TestCase):
         mock_new.return_value = MagicMock()
         mock_pages.return_value = [{"data": [{"status": "completed"}]}]
 
-        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+        assert self._source().should_trigger(self._state()) == TriggerDecision(
             task=ConsumeTask.Now, reason="sweep_complete"
         )
 
@@ -853,7 +897,7 @@ class CheckSuiteShouldTriggerTest(TestCase):
     ) -> None:
         mock_new.return_value = MagicMock()
 
-        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+        assert self._source().should_trigger(self._state()) == TriggerDecision(
             task=ConsumeTask.Now, reason="sweep_complete"
         )
 

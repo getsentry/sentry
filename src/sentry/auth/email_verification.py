@@ -63,7 +63,7 @@ def send_signup_verification_email(
     email: str,
     url_name: str,
     max_age_minutes: int = DEFAULT_MAX_AGE_MINUTES,
-    record_analytics: bool = True,
+    record_analytics: bool = False,
     email_hash: str | None = None,
 ) -> None:
     """

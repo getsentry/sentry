@@ -60,7 +60,7 @@ export function useLogsTimeseries({
   );
 
   const timeseriesResult = useProgressiveQuery<typeof useLogsTimeseriesImpl>({
-    queryHookImplementation: useLogsTimeseriesImpl,
+    queryHookImplementation: useLogsTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {enabled, timeseriesIngestDelay},
     queryOptions: {
       canTriggerHighAccuracy,

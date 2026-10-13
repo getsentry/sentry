@@ -15,6 +15,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {
@@ -274,12 +275,41 @@ describe('logsTableRow', () => {
     jest.useRealTimers();
   });
 
+  it('uses the row hint for expanded details and the debug API link', async () => {
+    const previousUser = ConfigStore.get('user');
+    try {
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={{...LogFixtureMeta(rowData), routingHint: 'unrelated-table-hint'}}
+          routingHint=" opaque+/== "
+          isExpanded
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+      );
+
+      act(() => ConfigStore.set('user', UserFixture({isSuperuser: true})));
+      const link = await screen.findByRole('button', {name: 'Debug JSON'});
+      expect(
+        new URL(link.getAttribute('href')!, 'https://sentry.io').searchParams.get(
+          'routing_hint'
+        )
+      ).toBe(' opaque+/== ');
+      expect(rowDetailsMock.mock.calls[0]![1].query.routing_hint).toBe(' opaque+/== ');
+    } finally {
+      act(() => ConfigStore.set('user', previousUser));
+    }
+  });
+
   it('hovering the row causes prefetching of the row details', async () => {
     jest.useFakeTimers();
     expect(rowDetailsMock).toHaveBeenCalledTimes(0);
     render(
       <LogRowContent
         dataRow={rowData}
+        routingHint="row-hint"
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
         sharedHoverTimeoutRef={{current: null}}
@@ -307,6 +337,7 @@ describe('logsTableRow', () => {
     await act(async () => {});
     expect(rowDetailsMock.mock.calls[0]![1].query).toMatchObject({
       timestamp: Math.trunc(rowDataTimestamp),
+      routing_hint: 'row-hint',
     });
     expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
   });
@@ -501,7 +532,7 @@ describe('logsTableRow', () => {
     expect(screen.getByText('Apr 10, 2025 7:21:10 PM UTC')).toBeInTheDocument();
   });
 
-  it('adds a similar spans action to the log message dropdown', async () => {
+  it('adds a connected spans action to the log message dropdown', async () => {
     const rowDataWithQuotedMessage = {
       ...rowData,
       [OurLogKnownFieldKey.MESSAGE]: 'test "quoted" log body',
@@ -533,7 +564,7 @@ describe('logsTableRow', () => {
         sharedHoverTimeoutRef={{
           current: null,
         }}
-        showExploreSimilarSpansLink
+        showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -544,7 +575,7 @@ describe('logsTableRow', () => {
     await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
 
     const link = await waitFor(() => {
-      const anchor = screen.getByText('Explore similar spans').closest('a');
+      const anchor = screen.getByText('Explore connected spans').closest('a');
       expect(anchor).not.toBeNull();
       return anchor!;
     });
@@ -577,7 +608,7 @@ describe('logsTableRow', () => {
     ]);
   });
 
-  it('uses the untruncated message for the similar spans link when the table value was truncated', async () => {
+  it('uses the untruncated message for the connected spans link when the table value was truncated', async () => {
     render(
       <LogRowContent
         dataRow={rowDataWithTruncatedMessage}
@@ -586,7 +617,7 @@ describe('logsTableRow', () => {
         sharedHoverTimeoutRef={{
           current: null,
         }}
-        showExploreSimilarSpansLink
+        showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -598,7 +629,7 @@ describe('logsTableRow', () => {
 
     await waitFor(() => {
       const href = screen
-        .getByText('Explore similar spans')
+        .getByText('Explore connected spans')
         .closest('a')!
         .getAttribute('href')!;
       expect(JSON.parse(qs.parse(href.split('?')[1]!).crossEvents as string)).toEqual([
@@ -607,7 +638,7 @@ describe('logsTableRow', () => {
     });
   });
 
-  it('resolves the untruncated message when similar spans is clicked before the details load', async () => {
+  it('resolves the untruncated message when connected spans is clicked before the details load', async () => {
     // Hold the details response open so the item is still unresolved when clicked,
     // rather than racing the hover prefetch for that window.
     let releaseDetails = () => {};
@@ -645,7 +676,7 @@ describe('logsTableRow', () => {
         sharedHoverTimeoutRef={{
           current: null,
         }}
-        showExploreSimilarSpansLink
+        showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -654,7 +685,7 @@ describe('logsTableRow', () => {
     await userEvent.hover(logTableRow, {delay: null});
     const messageCell = await screen.findByTestId('log-table-cell-message');
     await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
-    await userEvent.click(await screen.findByText('Explore similar spans'));
+    await userEvent.click(await screen.findByText('Explore connected spans'));
 
     releaseDetails();
 
@@ -665,7 +696,8 @@ describe('logsTableRow', () => {
     });
   });
 
-  it('navigates with the truncated message when similar spans cannot load the details', async () => {
+  it('navigates with the truncated message when connected spans cannot load the details', async () => {
+    const onExpand = jest.fn();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowDataWithTruncatedMessage[OurLogKnownFieldKey.ID]}/`,
       method: 'GET',
@@ -677,10 +709,11 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithTruncatedMessage}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
+        onExpand={onExpand}
         sharedHoverTimeoutRef={{
           current: null,
         }}
-        showExploreSimilarSpansLink
+        showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -689,13 +722,14 @@ describe('logsTableRow', () => {
     await userEvent.hover(logTableRow, {delay: null});
     const messageCell = await screen.findByTestId('log-table-cell-message');
     await userEvent.click(within(messageCell).getByRole('button', {name: 'Actions'}));
-    await userEvent.click(await screen.findByText('Explore similar spans'));
+    await userEvent.click(await screen.findByText('Explore connected spans'));
 
     await waitFor(() => {
       expect(JSON.parse(router.location.query.crossEvents as string)).toEqual([
         {type: 'logs', query: `message:"${truncatedMessage}"`},
       ]);
     });
+    expect(onExpand).not.toHaveBeenCalled();
   });
 
   it('does not show string filter actions for numeric fields', async () => {

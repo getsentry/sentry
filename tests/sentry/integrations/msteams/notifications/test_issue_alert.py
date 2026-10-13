@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
 from sentry.testutils.skips import requires_snuba
@@ -35,7 +35,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
 
         notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule),
+            Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule)),
             ActionTargetType.MEMBER,
             self.user.id,
             notification_uuid=notification_uuid,
@@ -54,7 +54,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         assert 4 == len(body)
 
         assert (
-            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/issues/alerts/rules/bar/{rule.id}/details/)"
+            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/)"
             == body[0]["text"]
         )
         assert (
@@ -84,7 +84,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
 
         notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule),
+            Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule)),
             ActionTargetType.ISSUE_OWNERS,
             self.user.id,
             notification_uuid=notification_uuid,
@@ -104,7 +104,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         assert 4 == len(body)
 
         assert (
-            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/issues/alerts/rules/bar/{rule.id}/details/)"
+            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/)"
             == body[0]["text"]
         )
         assert (

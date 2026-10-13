@@ -1,6 +1,3 @@
-import {ThemeProvider} from '@emotion/react';
-
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {SnapshotSidebarContent, type SidebarSection} from './snapshotSidebarContent';
@@ -12,8 +9,6 @@ jest.mock('@sentry/scraps/layout', () => {
     Stack: (props: any) => <actual.Flex direction="column" {...props} />,
   };
 });
-
-const themes = {light: lightTheme, dark: darkTheme};
 
 const noop = () => {};
 
@@ -49,90 +44,84 @@ const statusCounts: Record<DiffStatus, number> = {
 };
 
 describe('SnapshotSidebarContent', () => {
-  describe.each(['light', 'dark'] as const)('%s', themeName => {
-    function Wrapper({children}: {children: React.ReactNode}) {
-      return (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{height: 520, width: 350}}>{children}</div>
-        </ThemeProvider>
-      );
-    }
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return <div style={{height: 520, width: 350}}>{children}</div>;
+  }
 
-    it.snapshot(
-      'default',
-      () => (
-        <Wrapper>
-          <SnapshotSidebarContent
-            sections={sections}
-            searchQuery=""
-            onSearchChange={noop}
-            onSelectItem={noop}
-            statusCounts={statusCounts}
-            activeStatuses={new Set()}
-            onToggleStatus={noop}
-            availableTags={new Map()}
-          />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
+  it.snapshot(
+    'default',
+    () => (
+      <Wrapper>
+        <SnapshotSidebarContent
+          sections={sections}
+          searchQuery=""
+          onSearchChange={noop}
+          onSelectItem={noop}
+          statusCounts={statusCounts}
+          activeStatuses={new Set()}
+          onToggleStatus={noop}
+          availableTags={new Map()}
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
 
-    it.snapshot(
-      'active-group',
-      () => (
-        <Wrapper>
-          <SnapshotSidebarContent
-            sections={sections}
-            activeItemKey="unchanged:Badge/light"
-            searchQuery=""
-            onSearchChange={noop}
-            onSelectItem={noop}
-            statusCounts={statusCounts}
-            activeStatuses={new Set()}
-            onToggleStatus={noop}
-            availableTags={new Map()}
-          />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
+  it.snapshot(
+    'active-group',
+    () => (
+      <Wrapper>
+        <SnapshotSidebarContent
+          sections={sections}
+          activeItemKey="unchanged:Badge/light"
+          searchQuery=""
+          onSearchChange={noop}
+          onSelectItem={noop}
+          statusCounts={statusCounts}
+          activeStatuses={new Set()}
+          onToggleStatus={noop}
+          availableTags={new Map()}
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
 
-    it.snapshot(
-      'filtered',
-      () => (
-        <Wrapper>
-          <SnapshotSidebarContent
-            sections={sections}
-            searchQuery=""
-            onSearchChange={noop}
-            onSelectItem={noop}
-            statusCounts={statusCounts}
-            activeStatuses={new Set([DiffStatus.UNCHANGED])}
-            onToggleStatus={noop}
-            availableTags={new Map()}
-          />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
+  it.snapshot(
+    'filtered',
+    () => (
+      <Wrapper>
+        <SnapshotSidebarContent
+          sections={sections}
+          searchQuery=""
+          onSearchChange={noop}
+          onSelectItem={noop}
+          statusCounts={statusCounts}
+          activeStatuses={new Set([DiffStatus.UNCHANGED])}
+          onToggleStatus={noop}
+          availableTags={new Map()}
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
 
-    it.snapshot(
-      'no-results',
-      () => (
-        <Wrapper>
-          <SnapshotSidebarContent
-            sections={[]}
-            searchQuery="missing"
-            onSearchChange={noop}
-            onSelectItem={noop}
-            statusCounts={statusCounts}
-            activeStatuses={new Set([DiffStatus.CHANGED, DiffStatus.UNCHANGED])}
-            onToggleStatus={noop}
-            availableTags={new Map()}
-          />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
-  });
+  it.snapshot(
+    'no-results',
+    () => (
+      <Wrapper>
+        <SnapshotSidebarContent
+          sections={[]}
+          searchQuery="missing"
+          onSearchChange={noop}
+          onSelectItem={noop}
+          statusCounts={statusCounts}
+          activeStatuses={new Set([DiffStatus.CHANGED, DiffStatus.UNCHANGED])}
+          onToggleStatus={noop}
+          availableTags={new Map()}
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
 });

@@ -7,15 +7,18 @@ import pytest
 
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import OpenPeriodContext
-from sentry.notifications.platform.slack.provider import SlackNotificationProvider
+from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
 from sentry.notifications.platform.slack.renderers.metric_alert import SlackMetricAlertRenderer
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.templates.seer import SeerAutofixError
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
-    NotificationCategory,
+    NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.notifications.platform import MockNotification
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
@@ -42,13 +45,23 @@ def _make_notification_data(**overrides: Any) -> MetricAlertNotificationData:
     return MetricAlertNotificationData(**defaults)
 
 
+def _render(
+    data: NotificationData, rendered_template: NotificationRenderedTemplate
+) -> SlackRenderable:
+    return SlackMetricAlertRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK),
+    )
+
+
 class SlackMetricAlertRendererInvalidDataTest(TestCase):
     def test_render_raises_on_invalid_data_type(self) -> None:
-        invalid_data = SeerAutofixError(error_message="not a metric alert")
+        invalid_data = SeerAutofixError(organization_id=1, error_message="not a metric alert")
         rendered_template = NotificationRenderedTemplate(subject="Metric Alert", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
-            SlackMetricAlertRenderer.render(
+            _render(
                 data=invalid_data,
                 rendered_template=rendered_template,
             )
@@ -57,18 +70,12 @@ class SlackMetricAlertRendererInvalidDataTest(TestCase):
 class SlackMetricAlertProviderDispatchTest(TestCase):
     def test_provider_returns_metric_alert_renderer(self) -> None:
         data = _make_notification_data()
-        renderer = SlackNotificationProvider.get_renderer(
-            data=data,
-            category=NotificationCategory.METRIC_ALERT,
-        )
+        renderer = SlackNotificationProvider.get_renderer(data=data)
         assert renderer is SlackMetricAlertRenderer
 
-    def test_provider_returns_default_for_unknown_category(self) -> None:
-        data = _make_notification_data()
-        renderer = SlackNotificationProvider.get_renderer(
-            data=data,
-            category=NotificationCategory.DEBUG,
-        )
+    def test_provider_returns_default_for_unregistered_source(self) -> None:
+        data = MockNotification(message="test")
+        renderer = SlackNotificationProvider.get_renderer(data=data)
         assert renderer is SlackNotificationProvider.default_renderer
 
 
@@ -91,7 +98,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         self.rendered_template = NotificationRenderedTemplate(subject="Metric Alert", body=[])
 
     def test_render_produces_blocks(self) -> None:
-        result = SlackMetricAlertRenderer.render(
+        result = _render(
             data=self.notification_data,
             rendered_template=self.rendered_template,
         )
@@ -120,7 +127,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             notes="Check <https://example.com/runbook|the runbook>",
         )
 
-        result = SlackMetricAlertRenderer.render(
+        result = _render(
             data=data_with_chart,
             rendered_template=self.rendered_template,
         )
@@ -144,7 +151,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         assert blocks[2]["alt_text"] == "Metric Alert Chart"
 
     def test_render_without_chart_url(self) -> None:
-        result = SlackMetricAlertRenderer.render(
+        result = _render(
             data=self.notification_data.copy(update={"notes": ""}),
             rendered_template=self.rendered_template,
         )
@@ -168,7 +175,7 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
             notes="Check the runbook",
         )
 
-        result = SlackMetricAlertRenderer.render(
+        result = _render(
             data=resolved_data,
             rendered_template=self.rendered_template,
         )

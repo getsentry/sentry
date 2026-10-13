@@ -49,7 +49,19 @@ export function useMessagingIntegrationAlertRule(
     clearChannelValidation,
     onChannelChange,
     onCreateChannel,
-  } = useMessagingChannel({channel, integration, provider, setChannel, variant});
+  } = useMessagingChannel({
+    channel,
+    integration,
+    provider,
+    setChannel,
+    onChannelSelected: variant
+      ? () =>
+          trackAnalytics('project_creation.notify_channel_changed', {
+            organization,
+            variant,
+          })
+      : undefined,
+  });
 
   const providerOptions = useMemo(
     () =>
@@ -120,7 +132,10 @@ type ChannelSelectProps = {
   options: IntegrationChannel[] | undefined;
   provider: string;
   value: IntegrationChannel | undefined;
+  autoFocus?: boolean;
   className?: string;
+  /** Lets a visible `label` reference the select through `htmlFor`. */
+  inputId?: string;
 };
 
 /**
@@ -131,7 +146,9 @@ type ChannelSelectProps = {
  * @public Consumed by the SCM layout in a downstream PR.
  */
 export function ChannelSelect({
+  autoFocus,
   className,
+  inputId,
   provider,
   options,
   value,
@@ -149,6 +166,8 @@ export function ChannelSelect({
   return (
     <Select
       className={className}
+      inputId={inputId}
+      autoFocus={autoFocus}
       aria-label={t('channel')}
       placeholder={providerDetails[provider as keyof typeof providerDetails]?.placeholder}
       isSearchable

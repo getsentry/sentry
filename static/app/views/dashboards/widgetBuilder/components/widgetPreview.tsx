@@ -36,6 +36,7 @@ interface WidgetPreviewProps {
   onDataFetched?: (results: OnDataFetchedParams) => void;
   previewStatus?: WidgetPreviewStatus;
   shouldForceDescriptionTooltip?: boolean;
+  widgetInterval?: string;
 }
 
 const MIN_TABLE_COLUMN_WIDTH_PX = 125;
@@ -46,12 +47,14 @@ export function WidgetPreview({
   onDataFetched,
   previewStatus = {status: 'ready'},
   shouldForceDescriptionTooltip,
+  widgetInterval,
 }: WidgetPreviewProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
-  const [chartInterval] = useDashboardChartInterval();
+  const [fallbackChartInterval] = useDashboardChartInterval();
+  const chartInterval = widgetInterval ?? fallbackChartInterval;
 
   const {state, dispatch} = useWidgetBuilderContext();
   const [tableWidths, setTableWidths] = useState<number[]>();
@@ -145,10 +148,6 @@ export function WidgetPreview({
       }
       widgetLegendState={widgetLegendState}
       onDataFetched={onDataFetched}
-      // TODO: This requires the current widget ID and a helper to update the
-      // dashboard state to be added
-      onWidgetSplitDecision={() => {}}
-      // onWidgetSplitDecision={onWidgetSplitDecision}
       tableItemLimit={widget.limit ?? undefined}
       showConfidenceWarning={
         widget.widgetType === WidgetType.SPANS ||

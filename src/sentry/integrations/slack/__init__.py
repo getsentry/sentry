@@ -29,7 +29,6 @@ from .utils.auth import *  # noqa: F401,F403
 from .utils.channel import *  # noqa: F401,F403
 from .utils.escape import *  # noqa: F401,F403
 from .utils.notifications import *  # noqa: F401,F403
-from .utils.rule_status import *  # noqa: F401,F403
 from .utils.users import *  # noqa: F401,F403
 from .views.link_identity import *  # noqa: F401,F403
 from .views.link_team import *  # noqa: F401,F403

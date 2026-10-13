@@ -39,6 +39,9 @@ Checkboxes can be in different states: unchecked (default), checked, and indeter
       Default <Checkbox />
     </label>
     <label>
+      With tooltip <Checkbox tooltipProps={{title: 'Select this option'}} />
+    </label>
+    <label>
       Checked <Checkbox checked />
     </label>
     <label>
@@ -46,6 +49,10 @@ Checkboxes can be in different states: unchecked (default), checked, and indeter
     </label>
     <label>
       Disabled <Checkbox disabled />
+    </label>
+    <label>
+      Disabled with tooltip{' '}
+      <Checkbox disabled tooltipProps={{title: 'Requires admin access'}} />
     </label>
     <label>
       Disabled Checked <Checkbox disabled checked />
@@ -58,9 +65,11 @@ Checkboxes can be in different states: unchecked (default), checked, and indeter
 
 ```jsx
 <Checkbox />
+<Checkbox tooltipProps={{title: 'Select this option'}} />
 <Checkbox checked />
 <Checkbox checked="indeterminate" />
 <Checkbox disabled />
+<Checkbox disabled tooltipProps={{title: 'Requires admin access'}} />
 <Checkbox disabled checked />
 <Checkbox checked="indeterminate" disabled />
 ```

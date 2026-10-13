@@ -50,9 +50,12 @@ class SentryAppDocsTest(APIDocsTestCase):
                 "webUrl": "https://example.com/issues/APP-123",
             },
         )
-        url = reverse(
-            "sentry-api-0-sentry-app-installation-external-issue-actions",
-            args=[self.install.uuid],
+        url = (
+            reverse(
+                "sentry-api-0-sentry-app-installation-external-issue-actions",
+                args=[self.install.uuid],
+            )
+            + "?expectedExternalIssueUrl=https://example.com/issues/APP-123"
         )
         data = {
             "groupId": str(self.group.id),
@@ -62,6 +65,11 @@ class SentryAppDocsTest(APIDocsTestCase):
         }
         response = self.client.post(url, data, content_type="application/json")
 
+        assert response.status_code == 201
+        self.validate_schema(RequestFactory().post(url, data), response)
+
+        response = self.client.post(url, data, content_type="application/json")
+        assert response.status_code == 200
         self.validate_schema(RequestFactory().post(url, data), response)
 
         request_body = self.cached_schema.content()["paths"][

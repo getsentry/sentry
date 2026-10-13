@@ -22,6 +22,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
+from sentry.notifications.types import NotificationActionContext
 from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppWebhookHaltReason
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -52,7 +53,6 @@ from sentry.testutils.asserts import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -196,7 +196,9 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group_event = GroupEvent.from_event(event, event.group)
-        rule_future = RuleFuture(rule=self.rule, kwargs={})
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.rule), kwargs={}
+        )
 
         with self.tasks():
             notify_sentry_app(group_event, [rule_future])
@@ -210,7 +212,10 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group_event = GroupEvent.from_event(event, event.group)
-        rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": sentry_app})
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.rule),
+            kwargs={"sentry_app": sentry_app},
+        )
 
         with self.tasks():
             notify_sentry_app(group_event, [rule_future])
@@ -237,7 +242,10 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert event.group is not None
         group = event.group
         group_event = GroupEvent.from_event(event, group)
-        rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.rule),
+            kwargs={"sentry_app": self.sentry_app},
+        )
 
         with self.tasks():
             notify_sentry_app(group_event, [rule_future])
@@ -315,7 +323,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         ]
 
         rule_future = RuleFuture(
-            rule=self.rule,
+            context=NotificationActionContext.from_legacy_rule(self.rule),
             kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
         )
 
@@ -376,7 +384,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         ]
 
         rule_future = RuleFuture(
-            rule=rule,
+            context=NotificationActionContext.from_legacy_rule(rule),
             kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
         )
 
@@ -427,7 +435,10 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
-        rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.rule),
+            kwargs={"sentry_app": self.sentry_app},
+        )
 
         with self.tasks():
             notify_sentry_app(group_event, [rule_future])
@@ -516,7 +527,10 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
-        rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.rule),
+            kwargs={"sentry_app": self.sentry_app},
+        )
 
         with self.tasks():
             notify_sentry_app(group_event, [rule_future])
@@ -555,7 +569,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         ]
 
         rule_future = RuleFuture(
-            rule=self.rule,
+            context=NotificationActionContext.from_legacy_rule(self.rule),
             kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
         )
 
@@ -620,8 +634,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -665,8 +679,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -690,8 +704,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -715,8 +729,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -740,8 +754,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -765,8 +779,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -790,8 +804,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -828,8 +842,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -868,8 +882,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -968,8 +982,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -1018,8 +1032,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -1072,8 +1086,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -1142,8 +1156,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -1191,8 +1205,8 @@ class TestProcessResourceChange(TestCase):
                 is_new=False,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -1246,8 +1260,8 @@ class TestSendResourceChangeWebhook(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -1295,8 +1309,8 @@ class TestSendResourceChangeWebhook(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -1371,8 +1385,8 @@ class TestSendResourceChangeWebhook(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -1428,8 +1442,8 @@ class TestSendResourceChangeWebhook(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -1966,8 +1980,8 @@ class TestExpandedSentryAppsWebhooks(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Generic.value,
             )
@@ -1992,8 +2006,8 @@ class TestExpandedSentryAppsWebhooks(TestCase):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )

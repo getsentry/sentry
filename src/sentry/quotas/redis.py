@@ -5,21 +5,25 @@ from time import time
 
 import rb
 from sentry_redis_tools.clients import RedisCluster
+from sentry_sdk import traces
 
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
+from sentry.quotas.base import (
+    Quota,
+    QuotaConfig,
+    QuotaDimension,
+    QuotaGroupBy,
+    QuotaScope,
+)
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,
     is_instance_redis_cluster,
-    load_redis_script,
     validate_dynamic_cluster,
 )
-from sentry.utils.tracing import set_span_tag, start_span, trace
-
-is_rate_limited = load_redis_script("quotas/is_rate_limited.lua")
 
 
 class RedisQuota(Quota):
@@ -73,10 +77,13 @@ class RedisQuota(Quota):
 
         results = [*self.get_abuse_quotas(project.organization)]
 
-        with start_span(
-            op="redis.get_quotas.get_monitor_quota", name="redis.get_quotas.get_monitor_quota"
-        ) as span:
-            set_span_tag(span, "project.id", project.id)
+        with traces.start_span(
+            name="redis.get_quotas.get_monitor_quota",
+            attributes={
+                "sentry.op": "redis.get_quotas.get_monitor_quota",
+                "project.id": project.id,
+            },
+        ):
             mrlquota = self.get_monitor_quota(project)
             if mrlquota[0] is not None:
                 results.append(
@@ -91,16 +98,41 @@ class RedisQuota(Quota):
                     )
                 )
 
+        if options.get("crons.per_monitor_relay_quota.enabled"):
+            from sentry.monitors.rate_limit import PER_MONITOR_MAX_CARDINALITY, QUOTA_WINDOW
+
+            results.append(
+                QuotaConfig(
+                    id="mrl_env",
+                    limit=options.get("crons.per_monitor_rate_limit"),
+                    window=QUOTA_WINDOW,
+                    scope=QuotaScope.PROJECT,
+                    scope_id=project.id,
+                    categories=[DataCategory.MONITOR],
+                    reason_code="monitor_env_rate_limit",
+                    group_by=QuotaGroupBy(
+                        max_cardinality=PER_MONITOR_MAX_CARDINALITY,
+                        dimensions=(
+                            QuotaDimension.CHECK_IN_SLUG,
+                            QuotaDimension.CHECK_IN_ENVIRONMENT,
+                        ),
+                    ),
+                )
+            )
+
         if key and not keys:
             keys = [key]
         elif not keys:
             keys = []
 
         for key in keys:
-            with start_span(
-                op="redis.get_quotas.get_key_quota", name="redis.get_quotas.get_key_quota"
-            ) as span:
-                set_span_tag(span, "key.id", key.id)
+            with traces.start_span(
+                name="redis.get_quotas.get_key_quota",
+                attributes={
+                    "sentry.op": "redis.get_quotas.get_key_quota",
+                    "key.id": key.id,
+                },
+            ):
                 kquota = self.get_key_quota(key)
                 if kquota[0] is not None:
                     results.append(
@@ -117,46 +149,10 @@ class RedisQuota(Quota):
 
         return results
 
-    def get_usage(
-        self, organization_id: int, quotas: list[QuotaConfig], timestamp: float | None = None
-    ) -> list[int | None]:
-        if timestamp is None:
-            timestamp = time()
-
-        def get_usage_for_quota(
-            client: RedisCluster, quota: QuotaConfig
-        ) -> tuple[str | None, str | None]:
-            if not quota.should_track:
-                return None, None
-
-            key = self.__get_redis_key(
-                quota, timestamp, organization_id % quota.window, organization_id
-            )
-            refund_key = self.get_refunded_quota_key(key)
-
-            return client.get(key), client.get(refund_key)
-
-        def get_value_for_result(result, refund_result) -> int | None:
-            if result is None:
-                return None
-
-            return int(result.value or 0) - int(refund_result.value or 0)
-
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            results = [get_usage_for_quota(self.cluster, quota) for quota in quotas]
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            with self.cluster.fanout() as client:
-                target = client.target_key(str(organization_id))
-                results = [get_usage_for_quota(target, quota) for quota in quotas]
-        else:
-            AssertionError("unreachable")
-
-        return [get_value_for_result(*r) for r in results]
-
     def get_refunded_quota_key(self, key: str) -> str:
         return f"r:{key}"
 
-    @trace
+    @traces.trace
     def refund(
         self,
         project: Project,
@@ -205,73 +201,3 @@ class RedisQuota(Quota):
     def get_next_period_start(self, interval: int, shift: int, timestamp: float) -> float:
         """Return the timestamp when the next rate limit period begins for an interval."""
         return (((timestamp - shift) // interval) + 1) * interval + shift
-
-    def is_rate_limited(
-        self, project: Project, key: ProjectKey | None = None, timestamp: float | None = None
-    ) -> RateLimited | NotRateLimited:
-        # XXX: This is effectively deprecated and scheduled for removal. Event
-        # ingestion quotas are now enforced in Relay. This function will be
-        # deleted once the Python store endpoints are removed.
-
-        if timestamp is None:
-            timestamp = time()
-
-        # Relay supports separate rate limiting per data category and and can
-        # handle scopes explicitly. This function implements a simplified logic
-        # that treats all events the same and ignores transaction rate limits.
-        # Thus, we filter for (1) no categories, which implies this quota
-        # affects all data, and (2) quotas that specify `error` events.
-        quotas = [
-            q
-            for q in self.get_quotas(project, key=key)
-            if not q.categories or DataCategory.ERROR in q.categories
-        ]
-
-        # If there are no quotas to actually check, skip the trip to the database.
-        if not quotas:
-            return NotRateLimited()
-
-        keys: list[str] = []
-        args: list[int] = []
-        for quota in quotas:
-            if quota.limit == 0:
-                # A zero-sized quota is the absolute worst-case. Do not call
-                # into Redis at all, and do not increment any keys, as one
-                # quota has reached capacity (this is how regular quotas behave
-                # as well).
-                assert quota.window is None
-                assert not quota.should_track
-                return RateLimited(retry_after=None, reason_code=quota.reason_code)
-
-            assert quota.should_track
-
-            shift: int = project.organization_id % quota.window
-            quota_key = self.__get_redis_key(quota, timestamp, shift, project.organization_id)
-            return_key = self.get_refunded_quota_key(quota_key)
-            keys.extend((quota_key, return_key))
-            expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
-
-            # limit=None is represented as limit=-1 in lua
-            lua_quota = quota.limit if quota.limit is not None else -1
-            args.extend((lua_quota, int(expiry)))
-
-        if not keys or not args:
-            return NotRateLimited()
-
-        client = self.__get_redis_client(str(project.organization_id))
-        rejections = is_rate_limited(keys, args, client)
-
-        if not any(rejections):
-            return NotRateLimited()
-
-        worst_case: tuple[float, int | None] = (0, None)
-        for quota, rejected in zip(quotas, rejections):
-            if not rejected:
-                continue
-
-            shift = project.organization_id % quota.window
-            delay = self.get_next_period_start(quota.window, shift, timestamp) - timestamp
-            if delay > worst_case[0]:
-                worst_case = (delay, quota.reason_code)
-
-        return RateLimited(retry_after=worst_case[0], reason_code=worst_case[1])

@@ -72,7 +72,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 
-import {traceAnalytics} from './newTraceDetails/traceAnalytics';
+import {traceAnalytics} from './traceDetails/traceAnalytics';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
@@ -734,7 +734,7 @@ const Body = styled('div')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;

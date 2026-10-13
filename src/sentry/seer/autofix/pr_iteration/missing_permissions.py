@@ -31,21 +31,23 @@ accepted (at which point the check passes and no marker is consulted).
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from typing import Any
 
 from django.utils import timezone
 from scm import actions as scm_actions
 from scm.types import CreatePullRequestCommentProtocol
+from sentry_sdk import traces
 
 from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationMissingPermissionsEvent,
 )
+from sentry.integrations.utils.github_permission_tiers import PR_ITERATION_TIER, PermissionTier
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.scm.factory import new as make_scm
-from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.agent.client_models import MemoryBlock, SeerRunState, ToolCall
 from sentry.seer.autofix.github_perms import (
     MissingGithubPermissions,
     get_missing_permissions_by_repo,
@@ -55,7 +57,6 @@ from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
-from sentry.utils.tracing import trace
 
 MISSING_PERMISSIONS_EXTRA = "missing_permissions"
 
@@ -65,7 +66,7 @@ def get_missing_permissions_marker(seer_run: SeerRun, repo_name: str) -> dict[st
 
 
 def record_missing_permissions_marker(
-    seer_run: SeerRun, repo_name: str, *, missing_scopes: list[str], pr_id: int | None
+    seer_run: SeerRun, repo_name: str, *, missing_tiers: list[str], pr_id: str | None
 ) -> None:
     record_run_marker(
         seer_run,
@@ -73,29 +74,52 @@ def record_missing_permissions_marker(
         repo_name,
         {
             "commented_at": timezone.now().isoformat(),
-            "missing_scopes": missing_scopes,
+            "missing_tiers": missing_tiers,
             "pr_id": pr_id,
         },
     )
 
 
-def _scopes_tag(missing_scopes: Iterable[str]) -> str:
-    """Stable metrics-tag rendering of a set of missing scopes.
+def _tiers_tag(tiers: Iterable[PermissionTier]) -> str:
+    """Stable metrics-tag rendering of a set of missing feature tiers.
 
-    Sorted and deduped so the same set is always one time series, and joined on
-    "-" rather than "," because dogstatsd separates tags with commas on the wire.
+    Sorted and deduped by tier key so the same set is always one time series,
+    and joined on "-" rather than "," because dogstatsd separates tags with
+    commas on the wire.
     """
-    return "-".join(sorted(set(missing_scopes))) or "none"
+    return "-".join(sorted({tier.key for tier in tiers})) or "none"
 
 
 def _comment_body(url: str) -> str:
     return (
-        "⚠️ **Seer needs additional GitHub permissions**\n\n"
-        "Seer wants to keep iterating on this pull request to get CI passing, but the "
-        "Sentry GitHub App installation is missing permissions it needs to read the failing "
-        "checks and push a fix.\n\n"
+        "⚠️ Sentry needs additional GitHub App permissions\n\n"
+        "The Sentry GitHub App installation for this repository is missing permissions it "
+        "needs to keep iterating on this pull request to get CI passing.\n\n"
         f"Review and accept the updated permissions to let Seer continue: {url}"
     )
+
+
+def _warn_if_unexpected_missing_tiers(
+    info: MissingGithubPermissions,
+    log_ctx: PrIterationLogContext,
+    log_fields: dict[str, Any],
+) -> None:
+    """Log when the install is missing more than the PR iteration tier.
+
+    PR iteration is the newest tier, so an install we block here should be short
+    of *only* it: anyone who accepted the Autofix-pull-requests permissions
+    already holds everything below. Missing any other tier too means the install
+    is in a shape we did not expect it to reach this path in, so surface it.
+    Logged at error level because this module routes every unexpected state
+    through ``log_ctx.error`` (see ``PrIterationLogContext``).
+    """
+    if any(tier is not PR_ITERATION_TIER for tier in info.missing_tiers):
+        log_ctx.error(
+            "autofix.pr_iteration.missing_permissions.unexpected_missing_tiers",
+            exc_info=False,
+            missing_tiers=[tier.key for tier in info.missing_tiers],
+            **log_fields,
+        )
 
 
 def repos_missing_permissions(
@@ -110,9 +134,40 @@ def repos_missing_permissions(
     return get_missing_permissions_by_repo(organization, repo_names)
 
 
+def get_blocked_pr_iteration_permissions(
+    organization: Organization, state: SeerRunState, *, has_actionable_feedback: bool
+) -> dict[str, MissingGithubPermissions]:
+    """Repos whose open PR we are refusing to iterate on for missing permissions.
+
+    Deliberately narrow, because the warning tells the user we wanted to fix
+    their CI and could not:
+
+    * ``has_actionable_feedback`` — feedback we would have consumed is sitting
+      in the run's queue. Without it there is nothing we were going to do, so a
+      missing permission is not yet costing the user anything.
+    * a repo only counts once its PR exists (``pr_number``); before that there
+      is no CI for us to have failed to fix.
+
+    Mirrors what ``block_iteration_for_missing_permissions`` gates on, so the
+    warning appears exactly when an iteration is actually blocked.
+    """
+    if not has_actionable_feedback:
+        return {}
+
+    repo_names = [
+        repo_name
+        for repo_name, pr_state in state.repo_pr_states.items()
+        if pr_state.pr_number is not None
+    ]
+    if not repo_names:
+        return {}
+
+    return get_missing_permissions_by_repo(organization, repo_names)
+
+
 def _comment_failed(
     reason: str,
-    scopes_tag: str,
+    tiers_tag: str,
     log_ctx: PrIterationLogContext,
     log_fields: dict[str, Any],
     *,
@@ -120,7 +175,7 @@ def _comment_failed(
 ) -> bool:
     metrics.incr(
         "autofix.pr_iteration.missing_permissions.comment_failed",
-        tags={"missing_scopes": scopes_tag, "reason": reason},
+        tags={"missing_tiers": tiers_tag, "reason": reason},
     )
     log_ctx.error(
         "autofix.pr_iteration.missing_permissions.comment_failed",
@@ -138,7 +193,7 @@ def _post_comment(
     log_ctx: PrIterationLogContext,
     log_fields: dict[str, Any],
 ) -> bool:
-    scopes_tag = _scopes_tag(info.missing_scopes)
+    tiers_tag = _tiers_tag(info.missing_tiers)
     url = info.installation_url
     if url is None:
         # Org-owned installs need the account login to build the path; without
@@ -155,17 +210,18 @@ def _post_comment(
     try:
         scm = make_scm(organization.id, info.repository_id, referrer="seer")
     except Exception:
-        return _comment_failed("scm_init_failed", scopes_tag, log_ctx, log_fields)
+        return _comment_failed("scm_init_failed", tiers_tag, log_ctx, log_fields)
 
     if not isinstance(scm, CreatePullRequestCommentProtocol):
         return _comment_failed(
-            "unsupported_provider", scopes_tag, log_ctx, log_fields, exc_info=False
+            "unsupported_provider", tiers_tag, log_ctx, log_fields, exc_info=False
         )
 
+    _warn_if_unexpected_missing_tiers(info, log_ctx, log_fields)
     try:
         scm_actions.create_pull_request_comment(scm, str(pr_number), _comment_body(url))
     except Exception:
-        return _comment_failed("post_failed", scopes_tag, log_ctx, log_fields)
+        return _comment_failed("post_failed", tiers_tag, log_ctx, log_fields)
     return True
 
 
@@ -189,8 +245,8 @@ def get_blocking_permissions(
     metrics.incr(
         "autofix.pr_iteration.missing_permissions.blocked",
         tags={
-            "missing_scopes": _scopes_tag(
-                scope for info in missing_by_repo.values() for scope in info.missing_scopes
+            "missing_tiers": _tiers_tag(
+                tier for info in missing_by_repo.values() for tier in info.missing_tiers
             )
         },
     )
@@ -224,7 +280,7 @@ def _skip(log_ctx: PrIterationLogContext, reason: str, **log_fields: Any) -> Non
     log_ctx.info("autofix.pr_iteration.missing_permissions.skipped", reason=reason, **log_fields)
 
 
-@trace
+@traces.trace
 def block_iteration_for_missing_permissions(
     *,
     organization: Organization,
@@ -302,7 +358,7 @@ def post_missing_permissions_comment(
     run_id: int,
     repo_name: str,
     pr_number: int,
-    pr_id: int | None,
+    pr_id: str | None,
     integration_id: int,
     queued_repository_id: int | None = None,
     log_ctx: PrIterationLogContext,
@@ -377,7 +433,7 @@ def post_missing_permissions_comment(
         record_missing_permissions_marker(
             seer_run,
             repo_name,
-            missing_scopes=info.missing_scopes,
+            missing_tiers=[tier.key for tier in info.missing_tiers],
             pr_id=pr_id,
         )
 
@@ -385,10 +441,44 @@ def post_missing_permissions_comment(
 
     metrics.incr(
         "autofix.pr_iteration.missing_permissions.commented",
-        tags={"missing_scopes": _scopes_tag(info.missing_scopes)},
+        tags={"missing_tiers": _tiers_tag(info.missing_tiers)},
     )
     log_ctx.info(
         "autofix.pr_iteration.missing_permissions.commented",
-        missing_scopes=info.missing_scopes,
+        missing_tiers=[tier.key for tier in info.missing_tiers],
         **log_fields,
     )
+
+
+# Key set in a tool result's ToolLink.params when the tool call errored (mirrors
+# seer's ERROR_KEY in seer.automation.explorer.models).
+_TOOL_ERROR_KEY = "is_error"
+
+
+def _failed_tool_calls(block: MemoryBlock) -> Iterator[ToolCall]:
+    """The ToolCalls in `block` whose execution errored.
+
+    tool_links is index-aligned with tool_results (see seer's explorer_agent),
+    and each tool_result carries the id of the tool_call it answered, so a failed
+    link at index j maps back to its originating tool_call.
+    """
+    links = block.tool_links or []
+    results = block.tool_results or []
+    calls_by_id = {call.id: call for call in (block.message.tool_calls or []) if call.id}
+    for i, link in enumerate(links):
+        if link is None or link.params.get(_TOOL_ERROR_KEY) is not True:
+            continue
+        result = results[i] if i < len(results) else None
+        if result is None:
+            continue
+        call = calls_by_id.get(result.tool_call_id)
+        if call is not None:
+            yield call
+
+
+def failed_tool_calls(blocks: Iterable[MemoryBlock]) -> list[ToolCall]:
+    """Tool calls in ``blocks`` whose matching tool link is marked ``is_error``."""
+    calls: list[ToolCall] = []
+    for block in blocks:
+        calls.extend(_failed_tool_calls(block))
+    return calls

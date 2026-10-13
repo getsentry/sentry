@@ -1,6 +1,9 @@
+import {Outlet} from 'react-router';
+import {AgenticProgressRunFixture} from 'sentry-fixture/agenticProgressRun';
 import {AutomationFixture} from 'sentry-fixture/automations';
 import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -8,6 +11,7 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -16,13 +20,19 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
+
+import type {RequestOptions} from 'sentry/api';
+import type {AgenticProgressRun} from 'sentry/components/onboarding/agenticProgress/types';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
+import * as analytics from 'sentry/utils/analytics';
 import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
+import {PlatformDocHeader} from 'sentry/views/projectInstall/platformDocHeader';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 import {ScmCreateProject} from './scmCreateProject';
@@ -38,6 +48,7 @@ jest.mock('@tanstack/react-virtual', () => ({
         size: 36,
       })),
     getTotalSize: () => count * 36,
+    measure: jest.fn(),
     measureElement: jest.fn(),
     scrollToIndex: jest.fn(),
   })),
@@ -157,7 +168,7 @@ describe('ScmCreateProject', () => {
     return {createRequest, project};
   }
 
-  function mockExistingGithubRepository() {
+  function mockExistingGithubRepository(repositories = [githubRepository]) {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       body: [githubIntegration],
@@ -166,26 +177,26 @@ describe('ScmCreateProject', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${githubIntegration.id}/repos/`,
       body: {
-        repos: [
-          {
-            externalId: githubRepository.externalId,
-            identifier: githubRepository.externalSlug,
-            name: 'sentry',
-            isInstalled: true,
-          },
-        ],
+        repos: repositories.map(repository => ({
+          externalId: repository.externalId,
+          identifier: repository.externalSlug,
+          name: repository.name.split('/').pop(),
+          isInstalled: true,
+        })),
       },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
-      body: [githubRepository],
+      body: repositories,
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/${githubRepository.id}/platforms/`,
-      body: {
-        platforms: [DetectedPlatformFixture({platform: 'python'})],
-      },
-    });
+    for (const repository of repositories) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+        body: {
+          platforms: [DetectedPlatformFixture({platform: 'python'})],
+        },
+      });
+    }
     return MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/python/repo/`,
       method: 'POST',
@@ -325,7 +336,10 @@ describe('ScmCreateProject', () => {
     expect(screen.getByRole('textbox', {name: 'Project name'})).toBeInTheDocument();
 
     // Nothing is filled in yet, so the primary action stays disabled.
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('hides the repository section for members without a connected integration', async () => {
@@ -364,10 +378,11 @@ describe('ScmCreateProject', () => {
     render(<ScmCreateProject />, {organization});
 
     const createButton = await screen.findByRole('button', {name: 'Create project'});
-    expect(createButton).toBeDisabled();
+    expect(createButton).toHaveAttribute('aria-disabled', 'true');
 
-    // Fresh wizard: platform and project name are both missing.
-    await userEvent.hover(createButton);
+    // Fresh wizard: platform and project name are both missing, and keyboard
+    // focus alone must reach the tooltip that says so.
+    act(() => createButton.focus());
     expect(
       await screen.findByText('Please fill out all the required fields')
     ).toBeInTheDocument();
@@ -383,7 +398,7 @@ describe('ScmCreateProject', () => {
 
     // Framework SDKs commit straight from the picker; a base language (plain
     // Python) would detour through the framework-suggestion modal.
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -692,7 +707,7 @@ describe('ScmCreateProject', () => {
     renderGlobalModal();
     const {router} = render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Python');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
@@ -765,7 +780,7 @@ describe('ScmCreateProject', () => {
 
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -850,7 +865,7 @@ describe('ScmCreateProject', () => {
                     integrationId: slackIntegration.id,
                     config: {
                       targetType: 'specific',
-                      targetIdentifier: '',
+                      targetIdentifier: 'C123',
                       targetDisplay: '#alerts',
                     },
                     data: {},
@@ -892,7 +907,7 @@ describe('ScmCreateProject', () => {
 
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
     await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
@@ -934,7 +949,7 @@ describe('ScmCreateProject', () => {
 
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -986,7 +1001,7 @@ describe('ScmCreateProject', () => {
     });
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -1072,11 +1087,14 @@ describe('ScmCreateProject', () => {
     await userEvent.keyboard('sentry');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
-    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'false'
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
 
@@ -1121,11 +1139,14 @@ describe('ScmCreateProject', () => {
     await userEvent.keyboard('sentry');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
-    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'false'
+    );
     const tracing = await screen.findByRole('checkbox', {name: /Tracing/});
     await userEvent.click(tracing);
     expect(tracing).toBeChecked();
@@ -1133,17 +1154,480 @@ describe('ScmCreateProject', () => {
     await userEvent.click(screen.getByText('sentry'));
     await userEvent.keyboard('{Backspace}');
 
-    expect(await screen.findByText('Search SDKs...')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('radio', {name: 'Python Language'})
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText('Search')).toBeInTheDocument();
+    expect(screen.queryByRole('radio', {name: 'Python'})).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('');
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
-    await userEvent.click(screen.getByText('Search SDKs...'));
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByText('Search'));
     await userEvent.keyboard('Python');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
 
     expect(await screen.findByRole('checkbox', {name: /Tracing/})).not.toBeChecked();
+  });
+
+  it('creates a new project when the repository changes on a return', async () => {
+    const relayRepository = RepositoryFixture({
+      id: 'repository-2',
+      externalId: '2',
+      name: 'getsentry/relay',
+      externalSlug: 'getsentry/relay',
+      integrationId: githubIntegration.id,
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({slug: 'python', name: 'python', platform: 'python'}),
+    ]);
+    persistWizardSession({
+      createdProjectSlug: 'python',
+      selectedIntegration: githubIntegration,
+      selectedRepository: githubRepository,
+      projectDetailsForm: {
+        projectName: 'python',
+        teamSlug: adminTeam.slug,
+        alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+      },
+    });
+    mockExistingGithubRepository([githubRepository, relayRepository]);
+    const {createRequest, project} = mockProjectCreation('python-relay', 'python');
+    const repoLinkRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    await userEvent.click(await screen.findByText('sentry'));
+    await userEvent.keyboard('relay');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'relay'}));
+
+    expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(repoLinkRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/repo/`,
+        expect.objectContaining({data: {repositoryId: relayRepository.id}})
+      );
+    });
+    expect(createRequest).toHaveBeenCalled();
+  });
+  describe('agent setup', () => {
+    const agentOrganization = OrganizationFixture({
+      features: [...organization.features, 'onboarding-agentic-setup'],
+    });
+    const endpoint = '/organizations/org-slug/onboarding/agent/runs/';
+
+    function mockAgentRun(
+      run: AgenticProgressRun = AgenticProgressRunFixture(),
+      progressStatusCode = 200
+    ) {
+      return MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'POST',
+        body: (_url: string, options: RequestOptions) => {
+          const initialized = {...run, ...options.data};
+          MockApiClient.addMockResponse({
+            url: endpoint + initialized.runId + '/',
+            statusCode: progressStatusCode,
+            body: progressStatusCode === 200 ? initialized : {detail: 'Unavailable'},
+          });
+          return initialized;
+        },
+      });
+    }
+
+    it('keeps browser setup when the agent feature is disabled', async () => {
+      const request = mockAgentRun();
+      render(<ScmCreateProject />, {organization});
+
+      expect(
+        await screen.findByRole('textbox', {name: 'Project name'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: 'Set up with your coding agent'})
+      ).not.toBeInTheDocument();
+      expect(request).not.toHaveBeenCalled();
+    });
+
+    it('initializes its own session without changing the onboarding session', async () => {
+      const onboardingSession = {
+        agenticProgressClientRunId: 'onboarding-run',
+        agenticProgressOnboardingCode: 'onboarding-code',
+        selectedPlatform: pythonPlatform,
+      };
+      sessionStorage.setItem('onboarding', JSON.stringify(onboardingSession));
+      const request = mockAgentRun();
+      render(<ScmCreateProject />, {organization: agentOrganization});
+
+      expect(
+        await screen.findByRole('heading', {name: 'Set up with your coding agent'})
+      ).toBeInTheDocument();
+      await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+      const session = request.mock.calls[0]?.[1]?.data;
+      expect(session.clientRunId).not.toBe(onboardingSession.agenticProgressClientRunId);
+      expect(session.onboardingCode).not.toBe(
+        onboardingSession.agenticProgressOnboardingCode
+      );
+      expect(
+        screen.getByText(
+          'Help me create and set up Sentry projects for this application.',
+          {exact: false}
+        )
+      ).toBeInTheDocument();
+      expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual(
+        onboardingSession
+      );
+      expect(sessionStorage.getItem(WIZARD_KEY)).toBeNull();
+    });
+
+    it('keeps the run and manual form choices when switching setup methods', async () => {
+      const request = mockAgentRun();
+      render(<ScmCreateProject />, {organization: agentOrganization});
+      await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+
+      await userEvent.click(screen.getByRole('button', {name: /Set up manually/}));
+      const projectName = await screen.findByRole('textbox', {name: 'Project name'});
+      await userEvent.type(projectName, 'custom-project-name');
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Set up with your coding agent'})
+      );
+
+      expect(
+        await screen.findByRole('heading', {name: 'Set up with your coding agent'})
+      ).toBeInTheDocument();
+      expect(request).toHaveBeenCalledTimes(1);
+      await userEvent.click(screen.getByRole('button', {name: /Set up manually/}));
+      expect(await screen.findByRole('textbox', {name: 'Project name'})).toHaveValue(
+        'custom-project-name'
+      );
+      expect(request).toHaveBeenCalledTimes(1);
+    });
+
+    it('associates setup interactions with the server run ID', async () => {
+      const user = userEvent.setup();
+      const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+      const clickTrackingSpy = jest.fn();
+      const run = AgenticProgressRunFixture();
+      const request = MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'POST',
+        body: run,
+      });
+      const progressRequest = MockApiClient.addMockResponse({
+        url: endpoint + run.runId + '/',
+        body: run,
+      });
+      render(
+        <TrackingContextProvider value={clickTrackingSpy}>
+          <ScmCreateProject />
+        </TrackingContextProvider>,
+        {organization: agentOrganization}
+      );
+      await waitFor(() => expect(progressRequest).toHaveBeenCalled());
+      expect(request.mock.calls[0]?.[1]?.data.clientRunId).not.toBe(run.runId);
+
+      await user.click(screen.getAllByRole('button', {name: 'Copy snippet'})[0]!);
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'project_creation.agent_setup_command_copied',
+        expect.objectContaining({
+          source: 'install_command',
+          variant: 'scm',
+          run_id: run.runId,
+        })
+      );
+
+      await user.click(
+        screen.getByText(
+          'Help me create and set up Sentry projects for this application.',
+          {
+            exact: false,
+          }
+        )
+      );
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'project_creation.agent_setup_snippet_selected',
+        expect.objectContaining({source: 'prompt', run_id: run.runId})
+      );
+
+      await user.click(screen.getByRole('button', {name: /Set up manually/}));
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'project_creation.agent_setup_manual_clicked',
+        expect.objectContaining({
+          organization: agentOrganization,
+          variant: 'scm',
+          run_id: run.runId,
+        })
+      );
+      await user.click(
+        screen.getByRole('button', {name: 'Set up with your coding agent'})
+      );
+      expect(clickTrackingSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          analyticsEventKey: 'project_creation.agent_setup_return_clicked',
+          analyticsParams: expect.objectContaining({run_id: run.runId}),
+        })
+      );
+    });
+
+    it('restarts failed initialization with a fresh session', async () => {
+      const failedRequest = MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'POST',
+        statusCode: 503,
+        body: {detail: 'Unavailable'},
+      });
+      render(<ScmCreateProject />, {organization: agentOrganization});
+      expect(
+        await screen.findByText(
+          'Could not start setup, so the prompt below will not report progress.'
+        )
+      ).toBeInTheDocument();
+      const originalSession = failedRequest.mock.calls[0]?.[1]?.data;
+      const retryRequest = mockAgentRun();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
+      await waitFor(() => expect(retryRequest).toHaveBeenCalledTimes(1));
+      const replacementSession = retryRequest.mock.calls[0]?.[1]?.data;
+      expect(replacementSession.clientRunId).not.toBe(originalSession.clientRunId);
+      expect(replacementSession.onboardingCode).not.toBe(originalSession.onboardingCode);
+      await waitFor(() =>
+        expect(
+          screen.queryByText(
+            'Could not start setup, so the prompt below will not report progress.'
+          )
+        ).not.toBeInTheDocument()
+      );
+    });
+
+    it('offers retry and browser setup after the agent run fails', async () => {
+      mockAgentRun(
+        AgenticProgressRunFixture({
+          runStatus: 'failed',
+          stages: [
+            {stage: 'connect_mcp', status: 'completed', eventNote: null, extra: null},
+          ],
+        })
+      );
+      render(<ScmCreateProject />, {organization: agentOrganization});
+
+      expect(
+        await screen.findByRole('heading', {name: 'Setup Didn’t Finish'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Try again'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: /Set up manually/}));
+      expect(
+        await screen.findByRole('textbox', {name: 'Project name'})
+      ).toBeInTheDocument();
+    });
+
+    it('refreshes failed progress without creating another run', async () => {
+      const request = mockAgentRun(AgenticProgressRunFixture(), 503);
+      render(<ScmCreateProject />, {organization: agentOrganization});
+      expect(
+        await screen.findByText(
+          'Could not refresh setup progress. Your agent can continue working. Try refreshing progress.'
+        )
+      ).toBeInTheDocument();
+      const session = request.mock.calls[0]?.[1]?.data;
+      const progressRequest = MockApiClient.addMockResponse({
+        url: endpoint + AgenticProgressRunFixture().runId + '/',
+        body: AgenticProgressRunFixture({
+          ...session,
+          stages: [
+            {stage: 'connect_mcp', status: 'completed', eventNote: null, extra: null},
+          ],
+        }),
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Refresh progress'}));
+      expect(
+        await screen.findByRole('heading', {name: 'Your Agent Is Setting Up Sentry'})
+      ).toBeInTheDocument();
+      expect(progressRequest).toHaveBeenCalledTimes(1);
+      expect(request).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows created projects and a test issue when setup completes', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [
+          ProjectFixture({slug: 'frontend'}),
+          ProjectFixture({id: '2', slug: 'backend'}),
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/123/',
+        body: GroupFixture({id: '123'}),
+      });
+      mockAgentRun(
+        AgenticProgressRunFixture({
+          runStatus: 'completed',
+          continueUpdates: false,
+          stages: [
+            {stage: 'connect_mcp', status: 'completed', eventNote: null, extra: null},
+            {
+              stage: 'create_project',
+              status: 'completed',
+              eventNote: null,
+              extra: {projectSlugs: ['frontend', 'backend']},
+            },
+            {
+              stage: 'receive_verification_error',
+              status: 'completed',
+              eventNote: null,
+              extra: {issueIds: ['123']},
+            },
+          ],
+        })
+      );
+      render(<ScmCreateProject />, {organization: agentOrganization});
+
+      expect(
+        await screen.findByRole('heading', {name: 'Your Projects Are Ready'})
+      ).toBeInTheDocument();
+      expect(screen.getByText('Created 2 projects')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('link', {name: /Check out your first issue/})
+      ).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/123/?referrer=project-creation-agentic-first-issue'
+      );
+      expect(screen.getByRole('button', {name: 'View projects'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/insights/projects/'
+      );
+    });
+
+    it('returns to the saved browser setup from getting-started', async () => {
+      persistWizardSession();
+      const request = mockAgentRun();
+      render(<ScmCreateProject />, {
+        organization: agentOrganization,
+        initialRouterConfig: returningRouterConfig,
+      });
+
+      expect(
+        await screen.findByRole('textbox', {name: 'Project name'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: 'Set up with your coding agent'})
+      ).not.toBeInTheDocument();
+      expect(request).not.toHaveBeenCalled();
+    });
+
+    it.each(['inactive', 'active'] as const)(
+      'restores browser setup on browser-back for an %s project',
+      async projectState => {
+        const isProjectActive = projectState === 'active';
+        const project = ProjectFixture({
+          id: CREATED_PROJECT_ID,
+          slug: 'python',
+          platform: 'python',
+          firstEvent: isProjectActive ? new Date().toISOString() : null,
+        });
+        ProjectsStore.loadInitialData([project]);
+        const overviewRequest = MockApiClient.addMockResponse({
+          url: '/projects/org-slug/python/overview/',
+          body: project,
+        });
+        const deletion = Promise.withResolvers<void>();
+        const deleteRequest = MockApiClient.addMockResponse({
+          url: '/projects/org-slug/python/',
+          method: 'DELETE',
+          body: {},
+          asyncDelay: deletion.promise,
+        });
+        const runRequest = mockAgentRun();
+        const {router} = render(<Outlet />, {
+          organization: agentOrganization,
+          initialRouterConfig: {
+            routes: [
+              '/organizations/:orgId/projects/',
+              '/organizations/:orgId/insights/projects/',
+            ],
+            location: {pathname: '/organizations/org-slug/projects/new/'},
+            children: [
+              {path: 'new/', element: <ScmCreateProject />},
+              {
+                path: ':projectId/getting-started/',
+                element: (
+                  <PlatformDocHeader
+                    platform={{...pythonPlatform, id: 'python'}}
+                    projectSlug={project.slug}
+                    projectCreationVariant="scm"
+                  />
+                ),
+              },
+            ],
+          },
+        });
+        await waitFor(() => expect(runRequest).toHaveBeenCalledTimes(1));
+        await userEvent.click(screen.getByRole('button', {name: /Set up manually/}));
+        await screen.findByRole('textbox', {name: 'Project name'});
+        persistWizardSession({
+          projectDetailsForm: {projectName: 'restored-name', teamSlug: adminTeam.slug},
+        });
+        router.navigate('/organizations/org-slug/projects/python/getting-started/');
+        await waitFor(() => expect(overviewRequest).toHaveBeenCalled());
+
+        router.navigate(-1);
+
+        if (!isProjectActive) {
+          await waitFor(() => expect(deleteRequest).toHaveBeenCalledTimes(1));
+          expect(
+            screen.getByRole('heading', {name: 'Configure Python SDK'})
+          ).toBeInTheDocument();
+          expect(router.location.pathname).toBe(
+            '/organizations/org-slug/projects/python/getting-started/'
+          );
+          expect(runRequest).toHaveBeenCalledTimes(1);
+
+          await act(() => {
+            deletion.resolve();
+            return deletion.promise;
+          });
+        }
+
+        expect(await screen.findByDisplayValue('restored-name')).toBeInTheDocument();
+        expect(router.location.query).toEqual({
+          referrer: 'getting-started',
+          project: CREATED_PROJECT_ID,
+        });
+        expect(runRequest).toHaveBeenCalledTimes(1);
+        expect(deleteRequest).toHaveBeenCalledTimes(isProjectActive ? 0 : 1);
+      }
+    );
+
+    it('does not initialize a run for a user who cannot create projects', async () => {
+      const teamsRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/user-teams/',
+        body: [],
+      });
+      const request = mockAgentRun();
+      render(<ScmCreateProject />, {
+        organization: OrganizationFixture({
+          features: ['onboarding-agentic-setup'],
+          access: ['org:read', 'project:read'],
+          allowMemberProjectCreation: false,
+        }),
+      });
+
+      await waitFor(() => expect(teamsRequest).toHaveBeenCalled());
+      expect(request).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole('button', {name: /Set up manually/})
+      ).not.toBeInTheDocument();
+    });
   });
 });

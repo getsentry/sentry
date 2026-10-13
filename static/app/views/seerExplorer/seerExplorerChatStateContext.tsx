@@ -9,8 +9,10 @@ import {
 } from 'react';
 
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
+import type {ChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import {SeerExplorerDeepLinkParamProvider} from 'sentry/views/seerExplorer/utils';
 
 export type PollingState =
   | 'polling'
@@ -23,13 +25,20 @@ type ChatState = {
 };
 
 type SeerExplorerChatState = {
+  /** An "Ask Seer" question waiting for the user's reply. Never persisted. */
+  chatPrompt: ChatPrompt | null;
   chatStates: Record<SeerExplorerRunId, ChatState>;
   runId: SeerExplorerRunId | null;
 };
 
 type ChatStateAction =
   | {payload: {polling: PollingState; runId: SeerExplorerRunId}; type: 'set polling'}
-  | {payload: SeerExplorerRunId | null; type: 'set run id'};
+  | {payload: SeerExplorerRunId | null; type: 'set run id'}
+  /** The unsaved chat on screen was created on the server; it's the same conversation. */
+  | {payload: SeerExplorerRunId; type: 'set created run id'}
+  | {payload: ChatPrompt | null; type: 'set chat prompt'}
+  /** Puts back a prompt whose send failed, unless a newer one has taken its place. */
+  | {payload: ChatPrompt; type: 'restore chat prompt'};
 
 const RUN_ID_STORAGE_KEY = 'seer-explorer-run-id';
 
@@ -49,6 +58,7 @@ function readRunIdFromStorage(): SeerExplorerRunId | null {
 function initState(): SeerExplorerChatState {
   return {
     runId: readRunIdFromStorage(),
+    chatPrompt: null,
     chatStates: {},
   };
 }
@@ -74,7 +84,32 @@ function chatStateReducer(
       if (state.runId === action.payload) {
         return state;
       }
-      return {...state, runId: action.payload};
+      // A pending question belongs to the conversation it was asked in.
+      return {...state, runId: action.payload, chatPrompt: null};
+    }
+    case 'set created run id': {
+      if (state.runId === action.payload) {
+        return state;
+      }
+      // Still on the unsaved chat, so its pending question stays; otherwise the user has
+      // moved on and this is an ordinary run change.
+      return {
+        ...state,
+        runId: action.payload,
+        chatPrompt: state.runId === null ? state.chatPrompt : null,
+      };
+    }
+    case 'set chat prompt': {
+      if (state.chatPrompt === action.payload) {
+        return state;
+      }
+      return {...state, chatPrompt: action.payload};
+    }
+    case 'restore chat prompt': {
+      if (state.chatPrompt !== null) {
+        return state;
+      }
+      return {...state, chatPrompt: action.payload};
     }
     default:
       return state;
@@ -83,6 +118,7 @@ function chatStateReducer(
 
 const SeerExplorerChatStateContext = createContext<SeerExplorerChatState>({
   runId: null,
+  chatPrompt: null,
   chatStates: {},
 });
 const SeerExplorerChatDispatchContext = createContext<Dispatch<ChatStateAction>>(
@@ -108,7 +144,11 @@ export function SeerExplorerChatStateProvider({children}: {children: ReactNode})
     <SeerExplorerChatDispatchContext.Provider value={dispatch}>
       <SeerExplorerChatStateContext.Provider value={state}>
         <SeerExplorerChatStatePolling runId={state.runId} dispatch={dispatch}>
-          {children}
+          {/* Wraps every Explorer surface (drawer, sidebar, popped-out window), which the
+              deep link listeners need to share what they've already handled. */}
+          <SeerExplorerDeepLinkParamProvider>
+            {children}
+          </SeerExplorerDeepLinkParamProvider>
         </SeerExplorerChatStatePolling>
       </SeerExplorerChatStateContext.Provider>
     </SeerExplorerChatDispatchContext.Provider>
