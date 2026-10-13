@@ -31,7 +31,7 @@ const invalidEntrySchema = z
 const probabilitiesSchema = z.record(z.string(), z.number());
 
 const booleanAnswerSchema = z
-  .object({type: z.literal('boolean'), probability: z.number()})
+  .object({type: z.literal(['boolean', 'predicate']), probability: z.number()})
   .transform(({type: _type, ...answer}) => ({...answer, kind: 'boolean' as const}));
 
 // `noul` is the boolean flavour used by the jev evaluator; its probability is

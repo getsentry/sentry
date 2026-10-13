@@ -119,6 +119,7 @@ describe('parseEvaluationOutput', () => {
         type: 'evaluation',
         answers: {
           authIssue: {type: 'boolean', probability: 0.97},
+          isRed: {type: 'predicate', probability: 0.7},
           wantsRefund: {type: 'noul', noul: 0.99},
           urgency: {
             type: 'score',
@@ -139,6 +140,7 @@ describe('parseEvaluationOutput', () => {
 
     expect(parseEvaluationOutput(raw)).toEqual([
       {kind: 'boolean', key: 'authIssue', probability: 0.97},
+      {kind: 'boolean', key: 'isRed', probability: 0.7},
       {kind: 'boolean', key: 'wantsRefund', probability: 0.99},
       {
         kind: 'score',
