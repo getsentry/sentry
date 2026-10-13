@@ -12,7 +12,6 @@ import {
   mapDerivedMetricsToFields,
 } from 'sentry/views/dashboards/utils/transformSessionsResponseToTable';
 
-/** @internal exported for tests **/
 export function transformSessionsResponseToTable(
   data: SessionApiResponse,
   widgetQuery: WidgetQuery
