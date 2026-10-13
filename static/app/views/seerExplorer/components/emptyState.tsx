@@ -91,7 +91,7 @@ export function EmptyState({
                   ))
                 : suggestions.suggestions.map((suggestion, index) => (
                     <SuggestionButton
-                      key={suggestion.text}
+                      key={index}
                       size="sm"
                       onClick={() => onSuggestionClick(suggestion, index)}
                     >

@@ -569,22 +569,22 @@ export const useSeerExplorer = () => {
         dispatch({type: 'set chat prompt', payload: null});
       }
 
+      const pageName = getPageReferrer();
+
       const {snapshot, screenshot} = capturePageContext({
-        route: getPageReferrer(),
+        route: pageName,
         allowStructured: overrideCtxEngEnable,
       });
 
-      const pageName = getPageReferrer();
-
       trackAnalytics('seer.explorer.message_sent', {
-        referrer: getPageReferrer(),
+        referrer: pageName,
         surface: 'global_panel',
         organization,
       });
 
       if (effectiveRunId === null) {
         trackAnalytics('seer.explorer.session_created', {
-          referrer: getPageReferrer(),
+          referrer: pageName,
           surface: 'global_panel',
           organization,
         });
