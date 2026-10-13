@@ -284,6 +284,32 @@ describe('MetricsTabContent', () => {
       );
     });
 
+    it('refetches charts requested in an earlier interval when their responses arrived later', async () => {
+      const {promise: responsesReleased, resolve: releaseResponses} =
+        Promise.withResolvers<void>();
+      const timeseriesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        asyncDelay: responsesReleased,
+        body: {timeSeries: [TimeSeriesFixture()]},
+      });
+      renderWithTwoPanels();
+      await waitFor(() => expect(timeseriesMock).toHaveBeenCalledTimes(2));
+      setMockDate(Date.now() + 24 * 60 * 60 * 1000);
+      releaseResponses();
+      expect(await screen.findAllByText(/data points/)).toHaveLength(3);
+
+      await changeLastPanelAggregate();
+
+      await waitFor(() =>
+        expect(getYAxesAfter(timeseriesMock, 2)).toEqual([
+          'p50(value,bar,distribution,none)',
+          'p75(value,bar,distribution,none)',
+          'sum(value)',
+        ])
+      );
+    });
+
     it('refetches high accuracy charts fetched in an earlier interval', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-timeseries/`,
