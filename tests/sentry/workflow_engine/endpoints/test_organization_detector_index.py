@@ -1452,6 +1452,21 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert detector.enabled is False
         assert get_uptime_subscription(detector).status == UptimeSubscription.Status.DISABLED.value
 
+    def test_update_detectors_seat_detector_ignores_other_fields(self) -> None:
+        detector = self.create_uptime_detector(name="Original")
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(detector.id)},
+            enabled=False,
+            name="Renamed",
+            status_code=200,
+        )
+
+        detector.refresh_from_db()
+        assert detector.enabled is False
+        assert detector.name == "Original"
+
     def test_update_detectors_enable_uptime(self) -> None:
         detector = self.create_uptime_detector()
         disable_uptime_detector(detector)

@@ -468,7 +468,12 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         for detector in seat_detectors:
             detector_validator = get_detector_validator_for_update(
-                request, detector.linked_project, detector.type, detector, partial=True
+                request,
+                detector.linked_project,
+                detector.type,
+                detector,
+                partial=True,
+                data={"enabled": enabled},
             )
             detector_validator.is_valid(raise_exception=True)
             detector_validator.save()
