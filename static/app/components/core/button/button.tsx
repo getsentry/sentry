@@ -14,7 +14,7 @@ import {
 import type {DO_NOT_USE_ButtonProps as ButtonProps, ButtonSize} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
-function preventKeyboardSubmit(
+function preventDisabledKeyboardActivation(
   e: React.KeyboardEvent,
   consumer?: React.KeyboardEventHandler
 ) {
@@ -49,30 +49,26 @@ export function Button({
 
   // When a tooltip is present, use aria-disabled instead of native disabled
   // so the button stays focusable and the tooltip can open on keyboard focus.
-  const hasTooltip = !!tooltipProps?.title;
-  const useAriaDisabled = disabled && hasTooltip;
+  const disabledWithTooltip = Boolean(
+    disabled && tooltipProps?.title && !tooltipProps.disabled
+  );
 
   return (
-    <Tooltip
-      skipWrapper
-      {...tooltipProps}
-      title={tooltipProps?.title}
-      disabled={!tooltipProps?.title}
-    >
+    <Tooltip skipWrapper {...tooltipProps} title={tooltipProps?.title}>
       <StyledButton
         aria-label={accessibleLabel}
         aria-busy={busy}
-        disabled={useAriaDisabled ? undefined : disabled}
+        disabled={disabledWithTooltip ? undefined : disabled}
         size={size}
         type={type}
         busy={busy}
         {...props}
-        aria-disabled={useAriaDisabled || undefined}
+        aria-disabled={disabledWithTooltip || props['aria-disabled']}
         shapeVariant={hasChildren ? 'rectangular' : 'square'}
         onClick={handleClick}
         onKeyDown={
-          useAriaDisabled
-            ? e => preventKeyboardSubmit(e, props.onKeyDown)
+          disabledWithTooltip
+            ? e => preventDisabledKeyboardActivation(e, props.onKeyDown)
             : props.onKeyDown
         }
         role="button"

@@ -76,6 +76,18 @@ describe('Button', () => {
     expect(button).toBeDisabled();
   });
 
+  it('uses native disabled when the tooltip is disabled', () => {
+    render(
+      <Button disabled tooltipProps={{title: 'Not available', disabled: true}}>
+        Save
+      </Button>
+    );
+
+    const button = screen.getByRole('button', {name: 'Save'});
+    expect(button).toBeDisabled();
+    expect(button).not.toHaveAttribute('aria-disabled');
+  });
+
   describe('responsive sizing', () => {
     let resizeCallback: ResizeObserverCallback | undefined;
     let originalResizeObserver: typeof window.ResizeObserver;

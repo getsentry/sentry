@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+import {Tooltip, type ControlTooltipProps} from '@sentry/scraps/tooltip';
 
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -24,6 +24,10 @@ const NativeHiddenCheckbox = styled('input')`
   margin: 0;
   padding: 0;
   cursor: ${p => (p.disabled || p.readOnly ? 'initial' : 'pointer')};
+
+  &[aria-disabled='true'] {
+    cursor: initial;
+  }
 
   & + * {
     background-color: ${p =>
@@ -53,8 +57,7 @@ const NativeHiddenCheckbox = styled('input')`
     color: ${p => p.theme.tokens.content.onVibrant.light};
   }
 
-  &:disabled:checked + *,
-  &:disabled:indeterminate + * {
+  &:is(:disabled, [aria-disabled='true']):is(:checked, :indeterminate) + * {
     background-color: ${p =>
       p.theme.tokens.interactive.chonky.debossed.accent.background};
     border: 1px solid ${p => p.theme.tokens.interactive.chonky.debossed.accent.chonk};
@@ -85,9 +88,7 @@ export interface CheckboxProps extends Omit<
    */
   size?: FormSize;
   /** Explains why a disabled checkbox cannot be changed. */
-  tooltipProps?: Omit<TooltipProps, 'children' | 'skipWrapper' | 'title'> & {
-    title?: TooltipProps['title'];
-  };
+  tooltipProps?: ControlTooltipProps;
 }
 
 function preventDisabledInteraction(event: React.SyntheticEvent) {
@@ -103,7 +104,9 @@ export function Checkbox({
   tooltipProps,
   ...props
 }: CheckboxProps) {
-  const disabledWithTooltip = Boolean(props.disabled && tooltipProps?.title);
+  const disabledWithTooltip = Boolean(
+    props.disabled && tooltipProps?.title && !tooltipProps.disabled
+  );
 
   const nativeCheckBoxRef = useCallback(
     (node: HTMLInputElement | null) => {
@@ -134,7 +137,7 @@ export function Checkbox({
           type="checkbox"
           {...props}
           disabled={disabledWithTooltip ? undefined : props.disabled}
-          aria-disabled={disabledWithTooltip || undefined}
+          aria-disabled={disabledWithTooltip || props['aria-disabled']}
           name={disabledWithTooltip ? undefined : props.name}
           required={disabledWithTooltip ? undefined : props.required}
           onChange={disabledWithTooltip ? preventDisabledInteraction : props.onChange}

@@ -36,12 +36,14 @@ describe('Checkbox', () => {
 
   it('shows a disabled reason on keyboard focus without allowing changes', async () => {
     const onChange = jest.fn();
+    const onClick = jest.fn();
     const onKeyDown = jest.fn();
     render(
       <label>
         <Checkbox
           disabled
           onChange={onChange}
+          onClick={onClick}
           onKeyDown={onKeyDown}
           tooltipProps={{title: 'Requires admin access'}}
         />
@@ -61,13 +63,29 @@ describe('Checkbox', () => {
     await userEvent.keyboard(' ');
     await userEvent.keyboard('{Enter}');
     await userEvent.click(checkbox);
+    await userEvent.click(screen.getByText('Enable feature'));
     expect(checkbox).not.toBeChecked();
     expect(onChange).not.toHaveBeenCalled();
+    expect(onClick).not.toHaveBeenCalled();
     expect(onKeyDown).not.toHaveBeenCalled();
   });
 
   it('uses native disabled when no tooltip is present', () => {
     render(<Checkbox disabled aria-label="Enable feature" />);
+
+    const checkbox = screen.getByRole('checkbox', {name: 'Enable feature'});
+    expect(checkbox).toBeDisabled();
+    expect(checkbox).not.toHaveAttribute('aria-disabled');
+  });
+
+  it('uses native disabled when the tooltip is disabled', () => {
+    render(
+      <Checkbox
+        disabled
+        aria-label="Enable feature"
+        tooltipProps={{title: 'Requires admin access', disabled: true}}
+      />
+    );
 
     const checkbox = screen.getByRole('checkbox', {name: 'Enable feature'});
     expect(checkbox).toBeDisabled();

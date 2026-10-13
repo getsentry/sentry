@@ -1,1 +1,6 @@
-export {Tooltip, TooltipContext, type TooltipProps} from './tooltip';
+export {
+  Tooltip,
+  TooltipContext,
+  type ControlTooltipProps,
+  type TooltipProps,
+} from './tooltip';
