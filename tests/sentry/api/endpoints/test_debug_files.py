@@ -7,10 +7,12 @@ import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
+from sentry.auth.system import get_system_token
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
+from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.objectstore import debug_files_test_both_backends
@@ -391,6 +393,32 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
 
         assert response.status_code == 200
         assert close_streaming_response(response) == PROGUARD_SOURCE
+
+
+class DebugFilesSystemTokenTest(APITestCase):
+    def test_system_token_finds_debug_file(self) -> None:
+        debug_id = "dfb8e43a-f242-3d73-a453-aeb6a777ef75"
+        self.create_dif_file(debug_id=debug_id)
+        url = reverse(
+            "sentry-api-0-dsym-files",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+
+        with patch.object(
+            organization_service,
+            "get_organization_by_id",
+            wraps=organization_service.get_organization_by_id,
+        ) as get_organization:
+            response = self.client.get(
+                f"{url}?debug_id={debug_id}", HTTP_AUTHORIZATION=f"Bearer {get_system_token()}"
+            )
+
+        assert response.status_code == 200, response.content
+        assert [dsym["debugId"] for dsym in response.data] == [debug_id]
+        get_organization.assert_not_called()
 
 
 @debug_files_test_both_backends
