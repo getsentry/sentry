@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {css, useTheme} from '@emotion/react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -12,8 +11,8 @@ import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
+import {TranscriptSpanRow} from 'sentry/views/explore/conversations/components/transcriptSpanRow';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -137,18 +136,6 @@ interface ToolCallRowProps {
 
 function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
   const organization = useOrganization();
-  const theme = useTheme();
-
-  // Widen past the content so the outline clears the icon/duration, then pull
-  // back with a negative margin to keep them message-aligned (no scraps prop
-  // for negative margins or hover).
-  const rowCss = css`
-    width: calc(100% + ${theme.space.sm} * 2);
-    margin: 0 -${theme.space.sm};
-    &:hover {
-      background: ${theme.tokens.interactive.transparent.neutral.background.hover};
-    }
-  `;
 
   const selectTool = () => {
     trackAnalytics('conversations.message.click-tool-call', {
@@ -160,42 +147,14 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
   };
 
   return (
-    <Container
-      role="button"
-      tabIndex={0}
-      aria-pressed={isSelected}
-      aria-label={t('Select tool call %s', tool.name)}
-      radius="sm"
-      padding="sm sm"
-      cursor="pointer"
-      css={rowCss}
-      data-selected={isSelected}
-      style={
-        isSelected
-          ? {
-              outline: `2px solid ${theme.tokens.focus.default}`,
-              outlineOffset: '-2px',
-            }
-          : undefined
-      }
-      onClick={(e: React.MouseEvent) => {
-        e.stopPropagation();
-        selectTool();
-      }}
-      onKeyDown={(e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          e.stopPropagation();
-          selectTool();
-        }
-      }}
-    >
-      <Flex align="center" justify="between" gap="md" width="100%">
-        <Flex align="center" gap="sm" minWidth={0}>
-          {node && <AiSpanStatusIcon node={node} />}
-          <ToolTag name={tool.name} hasError={tool.hasError} />
-          {node && <ToolInputPreview node={node} />}
-        </Flex>
+    <TranscriptSpanRow
+      node={node}
+      isSelected={isSelected}
+      ariaLabel={t('Select tool call %s', tool.name)}
+      onSelect={selectTool}
+      tag={<ToolTag name={tool.name} hasError={tool.hasError} />}
+      preview={node ? getToolInputPreview(node) : null}
+      meta={
         <TurnMeta
           metric={node ? <ToolOutputSize node={node} /> : null}
           duration={
@@ -204,8 +163,8 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
             )
           }
         />
-      </Flex>
-    </Container>
+      }
+    />
   );
 }
 
@@ -221,16 +180,4 @@ function MetaValue({children}: {children: ReactNode}) {
 function ToolOutputSize({node}: {node: AITraceSpanNode}) {
   const bytes = getToolOutputBytes(node);
   return <MetaValue>{formatBytesBase10(bytes)}</MetaValue>;
-}
-
-function ToolInputPreview({node}: {node: AITraceSpanNode}) {
-  const inputPreview = getToolInputPreview(node);
-  if (!inputPreview) {
-    return null;
-  }
-  return (
-    <Text size="xs" monospace variant="muted" ellipsis>
-      {inputPreview}
-    </Text>
-  );
 }

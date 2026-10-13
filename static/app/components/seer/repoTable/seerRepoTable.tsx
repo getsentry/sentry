@@ -1,5 +1,7 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSearch} from '@sentry/icons/search';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 import uniqBy from 'lodash/uniqBy';
 import {debounce, parseAsString, useQueryState} from 'nuqs';
@@ -21,8 +23,6 @@ import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/
 import {SeerRepoTableHeader} from 'sentry/components/seer/repoTable/seerRepoTableHeader';
 import {SeerRepoTableRow} from 'sentry/components/seer/repoTable/seerRepoTableRow';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
@@ -35,7 +35,7 @@ import {
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
-const GRID_COLUMNS = '40px 1fr 138px 150px';
+const GRID_COLUMNS = '48px 1fr 138px 150px';
 const SELECTED_ROW_HEIGHT = 44;
 const BOTTOM_PADDING = 24; // px gap between table bottom and viewport edge
 const estimateSize = () => 68;

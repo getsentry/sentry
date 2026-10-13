@@ -247,7 +247,7 @@ describe('FieldRenderer tests', () => {
   });
 
   describe('trace timestamp is less than 30 days', () => {
-    it('keeps trace navigation in the menu and allows clicking the value directly', async () => {
+    it('allows direct trace navigation without a duplicate menu action', async () => {
       const {router} = render(
         <Wrapper>
           <FieldRenderer
@@ -261,10 +261,9 @@ describe('FieldRenderer tests', () => {
 
       const traceLink = screen.getByRole('link', {name: 'traceId'});
       await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
-      expect(screen.getByRole('menuitemradio', {name: 'Open trace'})).toHaveAttribute(
-        'href',
-        traceLink.getAttribute('href')
-      );
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open trace'})
+      ).not.toBeInTheDocument();
       await userEvent.keyboard('{Escape}');
 
       await userEvent.click(traceLink);
@@ -413,28 +412,34 @@ describe('FieldRenderer tests', () => {
   it.each([
     ['span.name', 6],
     ['span.description', 5],
-  ])('uses the full URL for %s external link actions', async (field, columnIndex) => {
-    const fullUrl = 'https://example.com/v1/api/auth/register';
-    render(
-      <Wrapper>
-        <FieldRenderer
-          column={eventView.getColumns()[columnIndex]}
-          data={{
-            ...mockedEventData,
-            [field]: fullUrl,
-          }}
-          meta={{}}
-        />
-      </Wrapper>,
-      {organization}
-    );
+  ])(
+    'renders %s as a direct external link without menu actions',
+    async (field, columnIndex) => {
+      const fullUrl = 'https://example.com/v1/api/auth/register';
+      render(
+        <Wrapper>
+          <FieldRenderer
+            column={eventView.getColumns()[columnIndex]}
+            data={{
+              ...mockedEventData,
+              [field]: fullUrl,
+            }}
+            meta={{}}
+          />
+        </Wrapper>,
+        {organization}
+      );
 
-    expect(screen.getByRole('link', {name: fullUrl})).toHaveAttribute('href', fullUrl);
+      expect(screen.getByRole('link', {name: fullUrl})).toHaveAttribute('href', fullUrl);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
 
-    expect(
-      screen.getByRole('menuitemradio', {name: 'Open external link'})
-    ).toHaveAttribute('href', fullUrl);
-  });
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open external link'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open link'})
+      ).not.toBeInTheDocument();
+    }
+  );
 });

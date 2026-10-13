@@ -44,6 +44,7 @@ from sentry.integrations.cursor_origin.webhook_types import OriginPayloadError
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
+from sentry.issues.action_log import ActionSource, action_context_scope
 from sentry.silo.base import SiloMode
 from sentry.utils import metrics
 
@@ -256,11 +257,14 @@ class CursorOriginWebhookEndpoint(Endpoint):
             payload = event.get("payload") or {}
             refresh_repository_name(payload, context.organization_integrations, delivery_id)
 
-            with IntegrationWebhookEvent(
-                interaction_type=handler_cls.EVENT_TYPE,
-                domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
-                provider_key=IntegrationProviderSlug.CURSOR_ORIGIN.value,
-            ).capture():
+            with (
+                action_context_scope(ActionSource.CURSOR_ORIGIN),
+                IntegrationWebhookEvent(
+                    interaction_type=handler_cls.EVENT_TYPE,
+                    domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+                    provider_key=IntegrationProviderSlug.CURSOR_ORIGIN.value,
+                ).capture(),
+            ):
                 handler_cls(event_type)(
                     payload,
                     delivery_id,

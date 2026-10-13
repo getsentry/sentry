@@ -1,6 +1,19 @@
 import {Fragment, memo, useEffect, useRef} from 'react';
 import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconBug} from '@sentry/icons/bug';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconClock} from '@sentry/icons/clock';
+import {IconClose} from '@sentry/icons/close';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconMerge} from '@sentry/icons/merge';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconThumb} from '@sentry/icons/thumb';
+import {IconUser} from '@sentry/icons/user';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
@@ -15,20 +28,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconBug,
-  IconCheckmark,
-  IconClock,
-  IconClose,
-  IconCommit,
-  IconGraph,
-  IconMerge,
-  IconOpen,
-  IconPullRequest,
-  IconSeer,
-  IconThumb,
-  IconUser,
-} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {
@@ -59,6 +58,18 @@ import type {
   ProjectConfig,
 } from './types';
 import {useIsInView} from './useIsInView';
+
+function hasCodeChangesError(sectionKey: AutofixStateKey, run: OverviewRun): boolean {
+  return sectionKey === 'code_changes_ready' && run.status === 'error';
+}
+
+function canShowCodeChanges(sectionKey: AutofixStateKey, run: OverviewRun): boolean {
+  return (
+    sectionKey === 'code_changes_ready' &&
+    Boolean(run.codeChanges?.length) &&
+    !hasCodeChangesError(sectionKey, run)
+  );
+}
 
 // The endpoint orders links oldest-first and only enriches open/draft PRs, so
 // the newest actionable link is the one carrying badges and files.
@@ -172,6 +183,14 @@ function OverviewAction({
         >
           {getProcessingLabel(sectionKey)}
         </Button>
+        <OpenSeerButton run={run} section={sectionKey} size="sm" />
+      </ActionButtonBar>
+    );
+  }
+
+  if (hasCodeChangesError(sectionKey, run)) {
+    return (
+      <ActionButtonBar>
         <OpenSeerButton run={run} section={sectionKey} size="sm" />
       </ActionButtonBar>
     );
@@ -577,9 +596,8 @@ export const OverviewCard = memo(function OverviewCardComponent({
       section: sectionKey,
     });
 
-  const showCodeChanges = Boolean(
-    sectionKey === 'code_changes_ready' && run.codeChanges?.length
-  );
+  const showCodeChangesError = hasCodeChangesError(sectionKey, run);
+  const showCodeChanges = canShowCodeChanges(sectionKey, run);
   const showEnrichmentPlaceholder = enrichmentPending && Boolean(reviewPullRequest?.url);
   const showPullRequestFiles =
     !showEnrichmentPlaceholder && Boolean(reviewPullRequest) && changedFiles.length > 0;
@@ -587,6 +605,7 @@ export const OverviewCard = memo(function OverviewCardComponent({
     rootCause ||
     proposedFix ||
     showCodeChanges ||
+    showCodeChangesError ||
     showEnrichmentPlaceholder ||
     showPullRequestFiles
   );
@@ -676,7 +695,14 @@ export const OverviewCard = memo(function OverviewCardComponent({
                 {proposedFix}
               </NarrativeBlock>
             )}
-            {showCodeChanges && run.codeChanges ? (
+            {showCodeChangesError ? (
+              <NarrativeBlock
+                icon={<IconWarning size="xs" variant="secondary" aria-hidden />}
+                label={t('Code Changes')}
+              >
+                {t('Seer ran into an error on the latest attempt. Open Seer to retry.')}
+              </NarrativeBlock>
+            ) : showCodeChanges && run.codeChanges ? (
               <CodeChanges
                 codeChanges={run.codeChanges}
                 onFirstExpand={trackCodeChangesExpanded}

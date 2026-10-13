@@ -13,13 +13,14 @@ import {
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {RawReplayError} from 'sentry/utils/replays/types';
+import type {RawReplayError, RecordingFrame} from 'sentry/utils/replays/types';
 import {EventType} from 'sentry/utils/replays/types';
 
 const mockPause = jest.fn();
 const mockPlay = jest.fn();
 const mockVideoPause = jest.fn();
 const mockVideoPlay = jest.fn();
+const mockGetCurrentTime = jest.fn(() => 0);
 const mockReplayerHandlers = new Map<string, (arg: any) => void>();
 
 jest.mock('@sentry/rrweb', () => {
@@ -28,20 +29,26 @@ jest.mock('@sentry/rrweb', () => {
     ...actual,
     Replayer: jest
       .fn()
-      .mockImplementation((_events: unknown, {root}: {root: HTMLElement}) => {
+      .mockImplementation((events: RecordingFrame[], {root}: {root: HTMLElement}) => {
         const wrapper = document.createElement('div');
         root.appendChild(wrapper);
         return {
           config: {skipInactive: false, speed: 1},
           destroy: jest.fn(),
-          getCurrentTime: () => 0,
+          getCurrentTime: mockGetCurrentTime,
           getMirror: () => null,
           iframe: document.createElement('iframe'),
           on: jest.fn((event: string, handler: (arg: any) => void) => {
             mockReplayerHandlers.set(event, handler);
           }),
           pause: mockPause,
-          play: mockPlay,
+          play: (timeOffset?: number) => {
+            // rrweb's `play` writes `delay` onto the events it was given
+            for (const event of events) {
+              event.delay = event.timestamp - events[0]!.timestamp;
+            }
+            mockPlay(timeOffset);
+          },
           setConfig: jest.fn(),
           wrapper,
         };
@@ -53,7 +60,7 @@ jest.mock('sentry/components/replays/videoReplayerWithInteractions', () => ({
   VideoReplayerWithInteractions: jest.fn().mockImplementation(() => ({
     config: {skipInactive: false, speed: 1},
     destroy: jest.fn(),
-    getCurrentTime: () => 0,
+    getCurrentTime: mockGetCurrentTime,
     pause: mockVideoPause,
     play: mockVideoPlay,
     setConfig: jest.fn(),
@@ -63,13 +70,14 @@ jest.mock('sentry/components/replays/videoReplayerWithInteractions', () => ({
 const startedAt = new Date('2023-12-25T00:00:00');
 
 function TestPlayer() {
-  const {fastForwardSpeed, setRoot, togglePlayPause} = useReplayContext();
+  const {currentTime, fastForwardSpeed, setRoot, togglePlayPause} = useReplayContext();
 
   return (
     <div ref={setRoot}>
       <button onClick={() => togglePlayPause(true)}>Play</button>
       <button onClick={() => togglePlayPause(false)}>Pause</button>
       <span>Fast forward: {fastForwardSpeed}</span>
+      <span>Current time: {currentTime}</span>
     </div>
   );
 }
@@ -88,15 +96,20 @@ function VideoFrameEventFixture() {
 function makeReader({
   attachments,
   errors = [],
+  finishedAt,
 }: {
   attachments: unknown[];
   errors?: RawReplayError[];
+  finishedAt?: Date;
 }) {
   return ReplayReader.factory({
     attachments,
     errors,
     fetching: false,
-    replayRecord: ReplayRecordFixture({started_at: startedAt}),
+    replayRecord: ReplayRecordFixture({
+      started_at: startedAt,
+      ...(finishedAt && {finished_at: finishedAt}),
+    }),
   });
 }
 
@@ -137,7 +150,42 @@ function setVisibility(visibilityState: 'hidden' | 'visible') {
 }
 
 describe('replayContext', () => {
+  it.each([false, true])(
+    'keeps polling the player after an unchanged timestamp (video: %s)',
+    video => {
+      jest.useFakeTimers();
+      const replay = makeReader({
+        attachments: video
+          ? [VideoFrameEventFixture()]
+          : RRWebInitFrameEventsFixture({timestamp: startedAt}),
+      });
+      const {unmount} = render(
+        <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay}>
+          <TestPlayer />
+        </ReplayContextProvider>
+      );
+
+      act(() => jest.advanceTimersToNextFrame());
+      mockGetCurrentTime.mockReturnValue(1_000);
+      act(() => jest.advanceTimersToNextFrame());
+      expect(screen.getByText('Current time: 1000')).toBeInTheDocument();
+
+      // Polling must also survive an unchanged clock after a React render.
+      act(() => jest.advanceTimersToNextFrame());
+      mockGetCurrentTime.mockReturnValue(2_000);
+      act(() => jest.advanceTimersToNextFrame());
+      expect(screen.getByText('Current time: 2000')).toBeInTheDocument();
+
+      unmount();
+      mockGetCurrentTime.mockClear();
+      act(() => jest.advanceTimersToNextFrame());
+      expect(mockGetCurrentTime).not.toHaveBeenCalled();
+    }
+  );
+
   afterEach(() => {
+    mockGetCurrentTime.mockReturnValue(0);
+    jest.useRealTimers();
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       value: 'visible',
@@ -232,6 +280,79 @@ describe('replayContext', () => {
     );
 
     expect(Replayer).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['at the start of the replay', startedAt],
+    ['after the start of the replay', new Date(startedAt.getTime() + 1_000)],
+  ])(
+    'keeps the player when the reader is rebuilt during playback of a recording that begins %s',
+    async (_, recordingStartedAt) => {
+      const attachments = [
+        ...RRWebInitFrameEventsFixture({timestamp: recordingStartedAt}),
+        RRWebFullSnapshotFrameEventFixture({timestamp: recordingStartedAt}),
+      ];
+      const {rerender} = render(
+        <ReplayContextProvider
+          analyticsContext=""
+          isFetching={false}
+          replay={makeReader({attachments})}
+        >
+          <TestPlayer />
+        </ReplayContextProvider>
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Play'}));
+
+      rerender(
+        <ReplayContextProvider
+          analyticsContext=""
+          isFetching={false}
+          replay={makeReader({
+            attachments,
+            errors: [RawReplayErrorFixture({timestamp: startedAt})],
+          })}
+        >
+          <TestPlayer />
+        </ReplayContextProvider>
+      );
+
+      expect(Replayer).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('rebuilds the player during playback when the recording end changes', async () => {
+    const attachments = [
+      ...RRWebInitFrameEventsFixture({timestamp: startedAt}),
+      RRWebFullSnapshotFrameEventFixture({timestamp: startedAt}),
+    ];
+    const {rerender} = render(
+      <ReplayContextProvider
+        analyticsContext=""
+        isFetching={false}
+        replay={makeReader({
+          attachments,
+          finishedAt: new Date(startedAt.getTime() + 5_000),
+        })}
+      >
+        <TestPlayer />
+      </ReplayContextProvider>
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Play'}));
+
+    rerender(
+      <ReplayContextProvider
+        analyticsContext=""
+        isFetching={false}
+        replay={makeReader({
+          attachments,
+          finishedAt: new Date(startedAt.getTime() + 10_000),
+        })}
+      >
+        <TestPlayer />
+      </ReplayContextProvider>
+    );
+
+    expect(Replayer).toHaveBeenCalledTimes(2);
   });
 
   it('rebuilds the player when the recording gains frames', () => {

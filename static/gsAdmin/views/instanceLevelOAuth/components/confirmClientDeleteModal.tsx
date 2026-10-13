@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Props = ModalRenderProps & {
@@ -15,37 +15,42 @@ type Props = ModalRenderProps & {
   name: string | null;
 };
 
-export function ConfirmClientDeleteModal({Body, Header, clientID, name}: Props) {
-  const api = useApi();
+export function ConfirmClientDeleteModal({Body, Footer, Header, clientID, name}: Props) {
   const navigate = useNavigate();
 
-  const deleteClientAndCloseModal = async () => {
-    try {
-      await api.requestPromise(`/_admin/instance-level-oauth/${clientID}/`, {
+  const deleteClient = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl('/_admin/instance-level-oauth/$clientId/', {
+          path: {clientId: clientID ?? ''},
+        }),
         method: 'DELETE',
-      });
+      }),
+    onSuccess: () => {
       addSuccessMessage(`Client "${name}" deleted successfully`);
       navigate('/_admin/instance-level-oauth/');
-    } catch (err) {
-      const message = 'Unable to load client data';
-      handleXhrErrorResponse(message, err as RequestError);
-      addErrorMessage(message);
-    }
-  };
+    },
+    onError: () => addErrorMessage('Unable to delete client'),
+  });
 
   return (
     <Fragment>
-      <Header closeButton>Delete client: {name}</Header>
+      <Header closeButton>
+        <Heading as="h3">Delete client: {name}</Heading>
+      </Header>
       <Body>
         <b>WARNING: THIS ACTION WILL PERMANENTLY DELETE CLIENT WITH ID</b> {clientID}
       </Body>
-      <StyledButton size="sm" variant="danger" onClick={deleteClientAndCloseModal}>
-        Permanently and Irreversibly Delete Client
-      </StyledButton>
+      <Footer>
+        <Button
+          size="sm"
+          variant="danger"
+          disabled={deleteClient.isPending}
+          onClick={() => deleteClient.mutate()}
+        >
+          Permanently and Irreversibly Delete Client
+        </Button>
+      </Footer>
     </Fragment>
   );
 }
-
-const StyledButton = styled(Button)`
-  margin-top: 10px;
-`;

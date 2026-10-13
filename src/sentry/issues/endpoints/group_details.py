@@ -128,9 +128,29 @@ class GroupDetailsEndpoint(GroupEndpoint):
         }
     )
 
-    def _get_seen_by(self, request: Request, group: Group) -> list[dict[str, Any]]:
+    def _get_seen_by_and_participants(
+        self, request: Request, group: Group
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
-        return [seen for seen in serialize(seen_by, request.user) if seen is not None]
+        participant_ids = set(GroupSubscriptionManager.get_participating_user_ids(group))
+        user_ids = {seen.user_id for seen in seen_by} | participant_ids
+        users = (
+            user_service.serialize_many(
+                filter={"user_ids": sorted(user_ids)},
+                as_user=serialize_generic_user(request.user),
+            )
+            if user_ids
+            else []
+        )
+        users_by_id = {int(user["id"]): user for user in users}
+        return (
+            [
+                {**users_by_id[seen.user_id], "lastSeen": seen.last_seen}
+                for seen in seen_by
+                if seen.user_id in users_by_id
+            ],
+            [{**user, "type": "user"} for user in users if int(user["id"]) in participant_ids],
+        )
 
     def _report_status_inconsistency(self, group: Group) -> None:
         if options.get("issues.derived_data.read_path_checks.killswitch"):
@@ -244,7 +264,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
 
             # TODO: these probably should be another endpoint
-            seen_by = self._get_seen_by(request, group)
+            seen_by, participants = self._get_seen_by_and_participants(request, group)
 
             if "release" not in collapse:
                 first_release, last_release = get_first_last_release(request, group)
@@ -355,6 +375,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 {
                     "activity": activity_items,
                     "seenBy": seen_by,
+                    "participants": participants,
                     "userReportCount": user_reports.count(),
                     "count": get_group_global_count(group),
                 }
@@ -363,16 +384,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             if "stats" not in collapse:
                 hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
                 data["stats"] = {"24h": hourly_stats, "30d": daily_stats}
-
-            participants = user_service.serialize_many(
-                filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
-                as_user=serialize_generic_user(request.user),
-            )
-
-            for participant in participants:
-                participant["type"] = "user"
-
-            data.update({"participants": participants})
 
             publish_action(
                 ViewAction(),

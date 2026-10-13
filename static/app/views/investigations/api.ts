@@ -18,6 +18,7 @@ import type {
   InvestigationOrchestrationCommandResponse,
   InvestigationOrchestrationCommandVariables,
   InvestigationTitleGeneration,
+  InvestigationViewer,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
 
@@ -97,6 +98,30 @@ export function investigationTitleGenerationQueryOptions(
       staleTime: 0,
     }
   );
+}
+
+/**
+ * Records a presence heartbeat and returns the other viewers, active ones first,
+ * up to `limit`. `total` counts all of them.
+ */
+export function investigationPresenceQueryOptions(
+  organizationSlug: string,
+  investigationId: string,
+  limit: number
+) {
+  return apiOptions.as<{
+    heartbeatIntervalMs: number;
+    total: number;
+    viewers: InvestigationViewer[];
+  }>()('/organizations/$organizationIdOrSlug/investigations/$investigationId/presence/', {
+    path: {
+      organizationIdOrSlug: organizationSlug,
+      investigationId,
+    },
+    query: {limit},
+    method: 'PUT',
+    staleTime: 0,
+  });
 }
 
 /**
@@ -266,32 +291,6 @@ function useInvestigationMutation<TData, TVariables>(
       await options?.onSuccess?.(data, variables, onMutateResult, context);
     },
   });
-}
-
-/**
- * Start an empty investigation.
- *
- * A `source` with no `templateKey` is what makes the server build an agentic
- * run rather than a bare notebook, so this is the field that decides whether
- * the investigation ever has hypotheses. A manual source carries no prompt yet,
- * so the run opens `awaiting_input` and waits for one.
- */
-export function useCreateInvestigationMutation(
-  organizationSlug: string,
-  options?: MutationOptions<InvestigationListItem, void>
-) {
-  return useInvestigationMutation(
-    organizationSlug,
-    () =>
-      fetchMutation<InvestigationListItem>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
-          path: {organizationIdOrSlug: organizationSlug},
-        }),
-        method: 'POST',
-        data: {title: 'Untitled investigation', source: {type: 'manual'}},
-      }),
-    options
-  );
 }
 
 export function useLaunchInvestigationMutation(

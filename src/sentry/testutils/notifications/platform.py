@@ -22,6 +22,7 @@ from sentry.notifications.platform.types import (
 
 class MockNotification(NotificationData):
     source: NotificationSource = NotificationSource.TEST
+    organization_id: int = 1
     message: str
 
 

@@ -20,10 +20,12 @@ type SingleQueryProps = {
   query: string;
   visualizes: BaseVisualize[];
   agent?: string[];
+  allowRegexOperators?: boolean;
   groupBys?: string[]; // This needs to be passed in because saveQuery relies on being within the Explore PageParamsContext to fetch params
 };
 
 export function ExploreParams({
+  allowRegexOperators,
   query,
   visualizes,
   groupBys,
@@ -109,7 +111,10 @@ export function ExploreParams({
         tokens.push(
           <Flex as="span" wrap="wrap" gap="xs" overflow="hidden" key={`filter-${index}`}>
             <FormattedQueryWrapper>
-              <ProvidedFormattedQuery query={text} />
+              <ProvidedFormattedQuery
+                allowRegexOperators={allowRegexOperators}
+                query={text}
+              />
             </FormattedQueryWrapper>
           </Flex>
         );

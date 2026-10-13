@@ -1,11 +1,8 @@
 import {Fragment} from 'react';
-import Cookies from 'js-cookie';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {setWindowLocation} from 'sentry-test/utils';
 
-import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
@@ -575,38 +572,6 @@ describe('AuthLogin', () => {
       'href',
       '/auth/register/'
     );
-  });
-
-  it('returns to the legacy login experience', async () => {
-    const originalLocation = window.location.href;
-    setWindowLocation('https://login.sentry.io/auth/login/');
-    Cookies.set('sentry_react_auth', '1', {
-      domain: '.sentry.io',
-      path: '/auth/',
-    });
-    mockAuthConfig();
-
-    try {
-      render(
-        <BrandPageLayout>
-          <BrandPageLayout.Content>
-            <AuthLogin />
-          </BrandPageLayout.Content>
-        </BrandPageLayout>
-      );
-
-      expect(await screen.findByText('New Experience')).toBeVisible();
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Return to the old login experience'})
-      );
-
-      expect(Cookies.get('sentry_react_auth')).toBe('0');
-      expect(testableWindowLocation.reload).toHaveBeenCalled();
-    } finally {
-      Cookies.remove('sentry_react_auth', {domain: '.sentry.io', path: '/'});
-      Cookies.remove('sentry_react_auth', {domain: '.sentry.io', path: '/auth/'});
-      setWindowLocation(originalLocation);
-    }
   });
 
   it('renders warnings above the configured login banner', async () => {

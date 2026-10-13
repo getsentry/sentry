@@ -7,6 +7,72 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
 
 describe('EventExtraData', () => {
+  it('preserves empty strings and other falsy values in the formatted view', () => {
+    render(
+      <EventExtraData
+        event={EventFixture({
+          context: {sha: '', missing: null, count: 0, enabled: false, foo: 'bar'},
+        })}
+      />
+    );
+
+    expect(screen.getByText('sha')).toBeInTheDocument();
+    expect(screen.getByText('missing')).toBeInTheDocument();
+    expect(screen.getByText('null')).toBeInTheDocument();
+    expect(screen.getByText('count')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.getByText('enabled')).toBeInTheDocument();
+    expect(screen.getByText('false')).toBeInTheDocument();
+    expect(screen.getByText('foo')).toBeInTheDocument();
+    expect(screen.getByText('bar')).toBeInTheDocument();
+  });
+
+  it('preserves empty strings and other falsy values in the raw view', async () => {
+    render(
+      <EventExtraData
+        event={EventFixture({
+          context: {sha: '', missing: null, count: 0, enabled: false, foo: 'bar'},
+        })}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Raw'}));
+
+    expect(screen.getByText('sha')).toBeInTheDocument();
+    expect(screen.getByText('missing')).toBeInTheDocument();
+    expect(screen.getByText('null')).toBeInTheDocument();
+    expect(screen.getByText('count')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.getByText('enabled')).toBeInTheDocument();
+    expect(screen.getByText('false')).toBeInTheDocument();
+    expect(screen.getByText('foo')).toBeInTheDocument();
+    expect(screen.getByText('bar')).toBeInTheDocument();
+  });
+
+  it('preserves the label for known extra data', () => {
+    render(
+      <EventExtraData event={EventFixture({context: {crashed_process: 'worker'}})} />
+    );
+
+    expect(screen.getByText('Crashed Process')).toBeInTheDocument();
+    expect(screen.getByText('worker')).toBeInTheDocument();
+  });
+
+  it('renders a scrubbed null value as redacted', () => {
+    render(
+      <EventExtraData
+        event={EventFixture({
+          context: {secret: null},
+          _meta: {context: {secret: {'': {rem: [['project:0', 'x']]}}}},
+        })}
+      />
+    );
+
+    expect(screen.getByText('secret')).toBeInTheDocument();
+    expect(screen.getByText('<redacted>')).toBeInTheDocument();
+    expect(screen.queryByText('null')).not.toBeInTheDocument();
+  });
+
   it('display redacted data', async () => {
     const event = EventFixture({
       context: {
@@ -199,5 +265,13 @@ describe('EventExtraData', () => {
 
     expect(screen.getByText('isNewer')).toBeInTheDocument(); // key
     expect(screen.queryByText('\\n')).not.toBeInTheDocument(); // value
+  });
+
+  it('renders values as raw JSON when the raw view is selected', async () => {
+    render(<EventExtraData event={EventFixture({context: {foo: {bar: 'baz'}}})} />);
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Raw'}));
+
+    expect(screen.getByText('{"bar":"baz"}')).toBeInTheDocument();
   });
 });

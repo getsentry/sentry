@@ -8,6 +8,9 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.api.serializers import Serializer, serialize
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
+from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
+    DetailedWorkflowEngineDetectorSerializer,
+)
 from sentry.incidents.models.incident import (
     IncidentActivityType,
     IncidentStatus,
@@ -53,10 +56,6 @@ class WorkflowEngineIncidentSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> defaultdict[GroupOpenPeriod, dict[str, Any]]:
-        from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
-            DetailedWorkflowEngineDetectorSerializer,
-        )
-
         results: defaultdict[GroupOpenPeriod, dict[str, Any]] = defaultdict(dict)
         open_periods_to_detectors = self.get_open_periods_to_detectors(item_list)
         alert_rules = {

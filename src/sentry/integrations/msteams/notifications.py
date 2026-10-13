@@ -4,6 +4,8 @@ import logging
 from collections.abc import Iterable, Mapping
 from typing import Any
 
+from sentry_sdk import traces
+
 from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 from sentry.integrations.msteams.utils import get_user_conversation_id
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
@@ -30,7 +32,6 @@ from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.actor import Actor
 from sentry.utils import metrics
-from sentry.utils.tracing import start_span
 
 from .card_builder.notifications import (
     MSTeamsIssueNotificationsMessageBuilder,
@@ -102,7 +103,9 @@ def send_notification_as_msteams(
         )
         return
 
-    with start_span(op="notification.send_msteams", name="gen_channel_integration_map"):
+    with traces.start_span(
+        name="gen_channel_integration_map", attributes={"sentry.op": "notification.send_msteams"}
+    ):
         data = get_integrations_by_channel_by_recipient(
             organization=notification.organization,
             recipients=recipients,
@@ -110,11 +113,15 @@ def send_notification_as_msteams(
         )
 
         for recipient, integrations_by_channel in data.items():
-            with start_span(op="notification.send_msteams", name="send_one"):
+            with traces.start_span(
+                name="send_one", attributes={"sentry.op": "notification.send_msteams"}
+            ):
                 extra_context = (extra_context_by_actor or {}).get(recipient, {})
                 context = get_context(notification, recipient, shared_context, extra_context)
 
-                with start_span(op="notification.send_msteams", name="gen_attachments"):
+                with traces.start_span(
+                    name="gen_attachments", attributes={"sentry.op": "notification.send_msteams"}
+                ):
                     if isinstance(notification, GroupActivityNotification) or isinstance(
                         notification, AlertRuleNotification
                     ):
@@ -127,7 +134,10 @@ def send_notification_as_msteams(
 
                     client = MsTeamsClient(integration)
                     try:
-                        with start_span(op="notification.send_msteams", name="notify_recipient"):
+                        with traces.start_span(
+                            name="notify_recipient",
+                            attributes={"sentry.op": "notification.send_msteams"},
+                        ):
                             client.send_card(conversation_id, card)
 
                         notification.record_notification_sent(recipient, ExternalProviders.MSTEAMS)

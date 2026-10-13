@@ -1,12 +1,12 @@
 import {useMemo, useState} from 'react';
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
@@ -126,17 +126,21 @@ describe('ExploreCharts', () => {
     });
 
     function renderCharts({
-      acceptedAnnotations = [],
-      droppedAnnotations = [],
+      acceptedEvents = [],
+      droppedEvents = [],
       organizationFeatures = features,
     }: {
-      acceptedAnnotations?: Annotation[];
-      droppedAnnotations?: Annotation[];
+      acceptedEvents?: DroppedEventsBucket[];
+      droppedEvents?: DroppedEventsBucket[];
       organizationFeatures?: string[];
     }) {
       const request = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-timeseries/',
-        body: {timeSeries: [], meta: {droppedAnnotations, acceptedAnnotations}},
+        url: '/organizations/org-slug/events-dropped/',
+        body: {
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+          droppedEvents,
+          acceptedEvents,
+        },
       });
 
       render(
@@ -164,7 +168,7 @@ describe('ExploreCharts', () => {
     it('hides the Layers control without the feature flag', async () => {
       const request = renderCharts({
         organizationFeatures: [],
-        droppedAnnotations: [AnnotationFixture()],
+        droppedEvents: [DroppedEventFixture()],
       });
 
       expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
@@ -174,7 +178,7 @@ describe('ExploreCharts', () => {
 
     it('hides the Layers control when only accepted annotations are present', async () => {
       const request = renderCharts({
-        acceptedAnnotations: [AnnotationFixture({outcome: 'accepted', eventCount: 8000})],
+        acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 8000})],
       });
 
       await waitFor(() => expect(request).toHaveBeenCalled());
@@ -184,8 +188,8 @@ describe('ExploreCharts', () => {
 
     it('hides the Layers control when every drop is configured', async () => {
       const request = renderCharts({
-        droppedAnnotations: [
-          AnnotationFixture({outcome: 'client_discard', reason: 'sample_rate'}),
+        droppedEvents: [
+          DroppedEventFixture({outcome: 'client_discard', reason: 'sample_rate'}),
         ],
       });
 
@@ -194,19 +198,17 @@ describe('ExploreCharts', () => {
       expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
     });
 
-    it('hides the Layers control when every drop ratio is below 5%', async () => {
-      const request = renderCharts({
-        droppedAnnotations: [AnnotationFixture({eventCount: 4})],
-        acceptedAnnotations: [AnnotationFixture({outcome: 'accepted', eventCount: 96})],
+    it('shows the Layers control when a drop ratio is below 5%', async () => {
+      renderCharts({
+        droppedEvents: [DroppedEventFixture({count: 4})],
+        acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 96})],
       });
 
-      await waitFor(() => expect(request).toHaveBeenCalled());
-      await act(async () => {});
-      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+      expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
     });
 
     it('shows the Layers control and toggles the dropped-data layer', async () => {
-      renderCharts({droppedAnnotations: [AnnotationFixture()]});
+      renderCharts({droppedEvents: [DroppedEventFixture()]});
 
       await userEvent.click(await screen.findByLabelText('Chart layers'));
 

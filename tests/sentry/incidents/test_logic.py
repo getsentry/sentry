@@ -12,7 +12,6 @@ from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
     DEFAULT_ALERT_RULE_WINDOW_TO_RESOLUTION,
     create_incident,
-    create_incident_activity,
     get_alert_resolution,
     translate_aggregate_field,
     update_detector,
@@ -20,8 +19,6 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.incident import (
     Incident,
-    IncidentActivity,
-    IncidentActivityType,
     IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
@@ -73,20 +70,6 @@ class CreateIncidentTest(TestCase):
         assert IncidentProject.objects.filter(
             incident=incident, project__in=[self.project]
         ).exists()
-        assert (
-            IncidentActivity.objects.filter(
-                incident=incident,
-                type=IncidentActivityType.DETECTED.value,
-                date_added=date_started,
-            ).count()
-            == 1
-        )
-        assert (
-            IncidentActivity.objects.filter(
-                incident=incident, type=IncidentActivityType.CREATED.value
-            ).count()
-            == 1
-        )
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0].event
         assert event == IncidentCreatedEvent(
@@ -105,15 +88,15 @@ class UpdateIncidentStatus(TestCase):
         ) as self.record_event:
             yield
 
-    def get_most_recent_incident_activity(self, incident):
-        return IncidentActivity.objects.filter(incident=incident).order_by("-id")[:1].get()
-
     def test_status_already_set(self) -> None:
         incident = self.create_incident(status=IncidentStatus.WARNING.value)
+        self.record_event.reset_mock()
         update_incident_status(
             incident, IncidentStatus.WARNING, status_method=IncidentStatusMethod.RULE_TRIGGERED
         )
+        incident.refresh_from_db()
         assert incident.status == IncidentStatus.WARNING.value
+        self.record_event.assert_not_called()
 
     def run_test(self, incident, status, expected_date_closed, user=None, date_closed=None):
         prev_status = incident.status
@@ -126,11 +109,8 @@ class UpdateIncidentStatus(TestCase):
         )
         incident = Incident.objects.get(id=incident.id)
         assert incident.status == status.value
+        assert incident.status_method == IncidentStatusMethod.RULE_TRIGGERED.value
         assert incident.date_closed == expected_date_closed
-        activity = self.get_most_recent_incident_activity(incident)
-        assert activity.type == IncidentActivityType.STATUS_CHANGE.value
-        assert activity.value == str(status.value)
-        assert activity.previous_value == str(prev_status)
 
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0].event
@@ -162,21 +142,11 @@ class UpdateIncidentStatus(TestCase):
         incident = self.create_incident()
         self.run_test(incident, IncidentStatus.CLOSED, timezone.now(), user=self.user)
 
-
-@freeze_time()
-class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
-    def test_no_snapshot(self) -> None:
-        incident = self.create_incident()
-        activity = create_incident_activity(
-            incident,
-            IncidentActivityType.STATUS_CHANGE,
-            value=str(IncidentStatus.CLOSED.value),
-            previous_value=str(IncidentStatus.WARNING.value),
+    def test_reopen_clears_date_closed(self) -> None:
+        incident = self.create_incident(
+            status=IncidentStatus.CLOSED.value, date_closed=timezone.now()
         )
-        assert activity.incident == incident
-        assert activity.type == IncidentActivityType.STATUS_CHANGE.value
-        assert activity.value == str(IncidentStatus.CLOSED.value)
-        assert activity.previous_value == str(IncidentStatus.WARNING.value)
+        self.run_test(incident, IncidentStatus.OPEN, None)
 
 
 class EnableDisableDetectorTest(TestCase, BaseIncidentsTest):

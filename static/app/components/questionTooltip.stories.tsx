@@ -81,7 +81,7 @@ export default Storybook.story('QuestionTooltip', story => {
             <Storybook.JSXProperty name="containerDisplayMode" value />
           </li>
           <li>
-            <Storybook.JSXProperty name="overlayStyle" value />
+            <Storybook.JSXProperty name="maxWidth" value />
           </li>
           <li>
             <Storybook.JSXProperty name="position" value />

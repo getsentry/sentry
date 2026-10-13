@@ -5,12 +5,20 @@ export const authV2Routes: SentryRouteObject = {
   component: make(() => import('sentry/views/authV2/brandedAuthLayout')),
   children: [
     {
+      path: 'account/recover/confirm/:userId/:token/',
+      component: make(() => import('sentry/views/authV2/passwordReset')),
+    },
+    {
       path: 'auth/login/:orgSlug?/',
       component: make(() => import('sentry/views/authV2/authLogin')),
     },
     {
       path: 'auth/register/',
       component: make(() => import('sentry/views/authV2/authRegister')),
+    },
+    {
+      path: 'accept/:orgId/:memberId/:token/',
+      component: make(() => import('sentry/views/authV2/acceptOrganizationInvite')),
     },
   ],
 };

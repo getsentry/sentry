@@ -1,8 +1,10 @@
 /**
- * Parsing for `gen_ai.evaluate` spans. Evaluator SDKs record the evaluated
- * text and its questions on `gen_ai.input.messages`, and the answers on
+ * Parsing for evaluation spans. Evaluator SDKs record the evaluated text and
+ * its questions on `gen_ai.input.messages`, and the answers on
  * `gen_ai.output.messages`, as a single `{"type": "evaluation"}` item rather
- * than chat messages.
+ * than chat messages. The span is recognized by its `gen_ai.operation.name`:
+ * `decide` is the current value, `evaluate` the deprecated one still emitted by
+ * older SDKs, and both must keep working.
  */
 
 import round from 'lodash/round';
@@ -29,7 +31,7 @@ const invalidEntrySchema = z
 const probabilitiesSchema = z.record(z.string(), z.number());
 
 const booleanAnswerSchema = z
-  .object({type: z.literal('boolean'), probability: z.number()})
+  .object({type: z.literal(['boolean', 'predicate']), probability: z.number()})
   .transform(({type: _type, ...answer}) => ({...answer, kind: 'boolean' as const}));
 
 // `noul` is the boolean flavour used by the jev evaluator; its probability is
@@ -183,16 +185,28 @@ export function parseEvaluationOutput(raw: unknown): EvaluationAnswer[] | null {
 }
 
 /**
+ * Well-known `gen_ai.operation.name` values for evaluation spans. `decide` is
+ * the current value; `evaluate` is the deprecated one still emitted by older
+ * SDKs.
+ */
+const EVALUATION_OPERATION_NAMES: ReadonlySet<string> = new Set(['decide', 'evaluate']);
+
+/**
  * Whether a span is an evaluation, from its `gen_ai.operation.name`.
  */
-function isEvaluationNode(
+export function isEvaluationNode(
   node: AITraceSpanNode,
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ): boolean {
+  const operationName = getTraceNodeAttribute(
+    SpanFields.GEN_AI_OPERATION_NAME,
+    node,
+    event,
+    attributes
+  );
   return (
-    getTraceNodeAttribute(SpanFields.GEN_AI_OPERATION_NAME, node, event, attributes) ===
-    'evaluate'
+    typeof operationName === 'string' && EVALUATION_OPERATION_NAMES.has(operationName)
   );
 }
 
@@ -266,6 +280,30 @@ export function getScoreName(
   const index = Math.round(value);
   const scale = Array.isArray(question?.criteria) ? question.criteria : undefined;
   return answer.legend?.[index] ?? scale?.[index];
+}
+
+/**
+ * `[key, label]` for each answer with a short label, e.g.
+ * `["urgency", "high (1.6)"]`, for one-line summaries. Invalid answers are
+ * skipped.
+ */
+export function getAnswerLabels(
+  answers: EvaluationAnswer[],
+  questions?: EvaluationQuestionEntry[]
+): Array<[string, string]> {
+  return answers.flatMap((answer): Array<[string, string]> => {
+    const label = getAnswerLabel(answer, findQuestion(questions, answer.key));
+    return label === null ? [] : [[answer.key, label]];
+  });
+}
+
+/**
+ * One-line result, e.g. `authIssue: Yes, urgency: high (1.6)`.
+ */
+export function getEvaluationPreview(evaluation: Evaluation | undefined): string {
+  return getAnswerLabels(evaluation?.answers ?? [], evaluation?.input?.questions)
+    .map(([key, label]) => `${key}: ${label}`)
+    .join(', ');
 }
 
 /**

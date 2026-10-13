@@ -31,17 +31,26 @@ export function InvitationAuthentication({
       ? authConfig?.pendingMfa?.mfaMethods
       : (mfaMethods ?? undefined);
   const activeMode = pendingMfaMethods ? 'sign-in' : mode;
+  const formHeading =
+    activeMode === 'register'
+      ? t('Create a new account to accept this invite.')
+      : t('Sign in to your account to accept this invite.');
 
   return (
     <AnimatePresence initial={false} mode="wait">
       <MotionStack
         key={`${activeMode}-${pendingMfaMethods ? 'mfa' : 'form'}`}
         gap="lg"
-        initial={{opacity: 0, y: -10}}
-        animate={{opacity: 1, y: 0}}
-        exit={{opacity: 0, y: 10}}
+        initial={{opacity: 0, x: -20}}
+        animate={{opacity: 1, x: 0}}
+        exit={{opacity: 0, x: 20}}
         transition={theme.motion.framer.smooth.moderate}
       >
+        {!pendingMfaMethods && (
+          <Text as="p" size="sm" variant="muted" align="left">
+            {formHeading}
+          </Text>
+        )}
         {activeMode === 'register' ? (
           <RegistrationForm
             hasNewsletter={authConfig?.hasNewsletter ?? false}

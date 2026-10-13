@@ -90,6 +90,7 @@ class AlertRuleNotification(ProjectNotification):
     ) -> None:
         event = notification.event
         group = event.group
+        assert group is not None
         project = group.project
         super().__init__(project, notification_uuid)
         self.group = group
@@ -99,13 +100,9 @@ class AlertRuleNotification(ProjectNotification):
         self.fallthrough_choice = fallthrough_choice
         self.rules = notification.rules
 
-        if (
-            event.group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL
-            or event.group.issue_type.type_id
-            in (
-                PerformanceP95EndpointRegressionGroupType.type_id,
-                ProfileFunctionRegressionType.type_id,
-            )
+        if group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL or group.issue_type.type_id in (
+            PerformanceP95EndpointRegressionGroupType.type_id,
+            ProfileFunctionRegressionType.type_id,
         ):
             # profile issues use the generic template for now
             if (
@@ -114,10 +111,10 @@ class AlertRuleNotification(ProjectNotification):
                 and event.occurrence.evidence_data.get("template_name") == "profile"
             ):
                 email_template_name = GENERIC_TEMPLATE_NAME
-            elif event.group.issue_category in PERFORMANCE_ISSUE_CATEGORIES:
+            elif group.issue_category in PERFORMANCE_ISSUE_CATEGORIES:
                 email_template_name = "performance"
             else:
-                email_template_name = event.group.issue_category.name.lower()
+                email_template_name = group.issue_category.name.lower()
         else:
             email_template_name = GENERIC_TEMPLATE_NAME
 
@@ -131,7 +128,6 @@ class AlertRuleNotification(ProjectNotification):
             event=self.event,
             notification_type_enum=self.notification_setting_type_enum,
             fallthrough_choice=self.fallthrough_choice,
-            rules=self.rules,
             notification_uuid=self.notification_uuid,
         )
 
@@ -247,6 +243,7 @@ class AlertRuleNotification(ProjectNotification):
         )
 
         if self.group.issue_category in PERFORMANCE_ISSUE_CATEGORIES and template_name != "profile":
+            assert isinstance(self.event, GroupEvent)
             # This can't use data from the occurrence at the moment, so we'll keep fetching the event
             # and gathering span evidence.
 
@@ -278,6 +275,7 @@ class AlertRuleNotification(ProjectNotification):
             context["culprit"] = self.event.occurrence.culprit
 
         if self.group.issue_category not in GROUP_CATEGORIES_CUSTOM_EMAIL:
+            assert isinstance(self.event, GroupEvent)
             generic_issue_data_html = get_generic_data(self.event)
             if generic_issue_data_html:
                 context.update(
@@ -296,7 +294,7 @@ class AlertRuleNotification(ProjectNotification):
         title_str = "Alert triggered"
 
         if self.rules:
-            key, value = get_rule_or_workflow_id(self.rules[0])
+            key, value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
 
             match key:
                 case "workflow_id":
@@ -353,23 +351,25 @@ class AlertRuleNotification(ProjectNotification):
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
+        origin = self.rules[0] if self.rules else None
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            "alert_id": self.rules[0].id if self.rules else None,
+            "workflow_id": origin.workflow_id if origin else None,
+            "alert_id": origin.legacy_rule_id if origin else None,
             **super().get_log_params(recipient),
         }
 
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
-        log_params = self.get_log_params(recipient)
+        origin = self.rules[0] if self.rules else None
         try:
             analytics.record(
                 AlertSentEvent(
                     organization_id=self.organization.id,
                     project_id=self.project.id,
                     provider=provider.name,
-                    alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+                    alert_id=origin.link_id if origin else "",
                     alert_type="issue_alert",
                     external_id=str(recipient.id),
                     notification_uuid=self.notification_uuid,

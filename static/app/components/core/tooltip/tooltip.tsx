@@ -1,6 +1,5 @@
 import {createContext, Fragment, useContext, useLayoutEffect} from 'react';
 import {createPortal} from 'react-dom';
-import type {SerializedStyles} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
@@ -41,18 +40,14 @@ export interface TooltipProps extends UseHoverOverlayProps {
    */
   disabled?: boolean;
   /**
-   * The max width the tooltip is allowed to grow.
+   * The max width the tooltip is allowed to grow, or `'none'` to let it size
+   * to its content.
    */
-  maxWidth?: number;
-  /**
-   * Additional style rules for the tooltip content.
-   */
-  overlayStyle?: React.CSSProperties | SerializedStyles;
+  maxWidth?: number | 'none';
 }
 
 function TooltipComponent({
   children,
-  overlayStyle,
   title,
   disabled = false,
   maxWidth,
@@ -126,7 +121,6 @@ function TooltipComponent({
                   arrowProps={arrowProps}
                   originPoint={arrowData}
                   placement={placement}
-                  overlayStyle={overlayStyle}
                   data-tooltip
                 >
                   {title}
@@ -147,7 +141,7 @@ function stopPropagation(e: React.SyntheticEvent) {
 
 const TooltipContent = styled(Overlay, {
   shouldForwardProp: prop => prop !== 'maxWidth',
-})<{maxWidth?: number}>`
+})<{maxWidth?: number | 'none'}>`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 
   /*
@@ -175,7 +169,7 @@ const TooltipContent = styled(Overlay, {
   }
 
   overflow-wrap: break-word;
-  max-width: ${p => p.maxWidth ?? 225}px;
+  max-width: ${p => (p.maxWidth === 'none' ? 'none' : `${p.maxWidth ?? 225}px`)};
   color: ${p => p.theme.tokens.content.primary};
   font-size: ${p => p.theme.font.size.sm};
   line-height: 1.2;

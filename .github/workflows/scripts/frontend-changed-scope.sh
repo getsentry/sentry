@@ -6,12 +6,13 @@ set -euo pipefail
 #
 #   merge_base=<sha>    the PR fork point (empty when it can't be determined)
 #   scope=scoped|full   scoped when a merge base resolved AND every changed file is
-#                       under static/; full otherwise
+#                       under static/ or is oxlint-suppressions.json; full otherwise
 #
 # We can only scope safely when both hold: tools that select work from the changed file
 # set seed on source files and can't trace the impact of global config or dependency
-# changes (oxlint.config.ts, package.json, etc.), so any non-static change forces a full
-# run. Non-PR events and missing history also fall back to full via git-merge-base.sh.
+# changes (oxlint.config.ts, package.json, etc.) require a full run. Suppression counts
+# do not affect which source files or tests are selected. Non-PR events and missing
+# history also fall back to full via git-merge-base.sh.
 #
 # The output format is consumable two ways: append it to $GITHUB_OUTPUT from an inline
 # step, or `eval "$(...)"` it to set merge_base/scope shell variables in a calling script.
@@ -27,8 +28,8 @@ elif ! CHANGED=$(git diff --name-only "$MERGE_BASE" HEAD^2); then
   echo "Could not diff against merge base — running over all files" >&2
   echo "merge_base=$MERGE_BASE"
   echo "scope=full"
-elif printf '%s' "$CHANGED" | grep -qvE '^static/'; then
-  echo "Non-static file changed — running over all files" >&2
+elif printf '%s' "$CHANGED" | grep -qvE '^static/|^oxlint-suppressions\.json$'; then
+  echo "Global file changed. Running over all files" >&2
   echo "merge_base=$MERGE_BASE"
   echo "scope=full"
 else

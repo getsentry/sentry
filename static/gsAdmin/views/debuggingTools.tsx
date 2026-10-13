@@ -39,16 +39,21 @@ function IssueOwnerDebbuging() {
       return;
     }
 
-    const data = await api.requestPromise(
-      getApiUrl('/organizations/$organizationIdOrSlug/debugging/issue-owners/', {
-        path: {organizationIdOrSlug: organizationSlug},
-      }),
-      {
-        method: 'GET',
-        query: {projectSlug, stacktracePath},
-      }
-    );
-    setRuleMatches(data);
+    try {
+      const [data] = await api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/debugging/issue-owners/', {
+          path: {organizationIdOrSlug: organizationSlug},
+        }),
+        {
+          method: 'GET',
+          query: {projectSlug, stacktracePath},
+          includeAllArgs: true,
+        }
+      );
+      setRuleMatches(data);
+    } catch {
+      addErrorMessage('Failed to fetch matching Issue Owner rules.');
+    }
   };
 
   return (

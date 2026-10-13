@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.utils.crypto import constant_time_compare
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -69,7 +70,7 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
         if (
             verification_code is None
             or not verification_code.is_valid()
-            or verification_code.token != result["verification_code"]
+            or not constant_time_compare(verification_code.token, result["verification_code"])
         ):
             return Response(
                 status=403,

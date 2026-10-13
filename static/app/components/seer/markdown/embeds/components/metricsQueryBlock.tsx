@@ -1,4 +1,4 @@
-import {Tag} from '@sentry/scraps/badge';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {
@@ -14,7 +14,6 @@ import {
   QueryEmbedTable,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
-import {IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
@@ -86,11 +85,6 @@ export default function MetricsQueryBlock({data}: {data: MetricsQueryData}) {
 
   return (
     <QueryEmbedCard
-      badge={
-        <Tag variant="muted">
-          {data.mode === 'aggregate' ? t('Aggregate') : t('Samples')}
-        </Tag>
-      }
       href={getMetricsQueryHref(data, organization)}
       icon={IconGraph}
       linkLabel={t('View Metrics')}

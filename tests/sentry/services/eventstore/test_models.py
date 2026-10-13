@@ -664,10 +664,9 @@ def test_renormalization(factories, task_runner, default_project) -> None:
             data={"event_id": "a" * 32, "environment": "production"}, project_id=default_project.id
         )
 
-    # Assert we only renormalize this once. If this assertion fails it's likely
-    # that you will encounter severe performance issues during event processing
-    # or postprocessing.
-    assert len(normalize_mock_calls) == 1
+    # Normalize during ingestion and when workflow processing reads the event.
+    # Post-processing reads the already normalized payload without normalizing it again.
+    assert len(normalize_mock_calls) == 2
 
 
 class EventNodeStoreTest(TestCase):

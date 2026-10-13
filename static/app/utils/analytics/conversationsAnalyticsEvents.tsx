@@ -13,6 +13,8 @@ export type ConversationsEventParameters = {
     toTab: string;
   };
   'conversations.message.click': Record<string, unknown>;
+  'conversations.message.click-evaluation': Record<string, unknown>;
+  'conversations.message.click-memory': Record<string, unknown>;
   'conversations.message.click-tool-call': Record<string, unknown>;
   'conversations.onboarding.interaction': {
     action:
@@ -65,5 +67,7 @@ export const conversationsEventMap: Record<keyof ConversationsEventParameters, s
   'conversations.detail.click-trace-link': 'Conversations: Detail Click Trace Link',
   'conversations.detail.click-errors-link': 'Conversations: Detail Click Errors Link',
   'conversations.message.click': 'Conversations: Message Click',
+  'conversations.message.click-evaluation': 'Conversations: Message Click Evaluation',
+  'conversations.message.click-memory': 'Conversations: Message Click Memory',
   'conversations.message.click-tool-call': 'Conversations: Message Click Tool Call',
 };

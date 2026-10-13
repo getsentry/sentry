@@ -1,8 +1,9 @@
 import {Fragment, useMemo} from 'react';
+import {IconBug} from '@sentry/icons/bug';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -18,10 +19,11 @@ import {AutofixEvidence} from 'sentry/components/events/autofix/v3/autofixEviden
 import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
 import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/useAutofixSectionEvidence';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
+import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
-import {IconBug} from 'sentry/icons/iconBug';
-import {IconRefresh} from 'sentry/icons/iconRefresh';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 interface RootCauseCardProps {
@@ -49,6 +51,12 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
       step: 'root_cause',
     });
 
+  const rethinkPrompt = t('How can this root cause be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'root_cause',
+  });
+
   const evidence = useAutofixSectionEvidence({section});
 
   return (
@@ -61,7 +69,8 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
           : undefined
       }
       allowReset
-      onReset={canReset ? () => setShouldShowReset(true) : undefined}
+      onReset={canReset ? (rethinkInChat ?? (() => setShouldShowReset(true))) : undefined}
+      resetInChat={defined(rethinkInChat)}
     >
       {section.status === 'processing' ? (
         <ArtifactLoadingDetails
@@ -75,11 +84,11 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
               onClosePrompt={() => setShouldShowReset(false)}
               onReset={handleReset}
               placeholder={t('Give seer additional context to improve this root cause.')}
-              prompt={t('How can this root cause be improved?')}
+              prompt={rethinkPrompt}
             />
           )}
           <ArtifactDetails>
-            <Markdown raw={artifact.data.one_line_description} />
+            <SeerMarkdown raw={artifact.data.one_line_description} />
           </ArtifactDetails>
           {artifact.data.five_whys?.length ? (
             <Fragment>
@@ -88,7 +97,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
                 <Container as="ul" margin="0">
                   {artifact.data.five_whys.map((why, index) => (
                     <li key={index}>
-                      <Markdown raw={why} />
+                      <SeerMarkdown raw={why} />
                     </li>
                   ))}
                 </Container>
@@ -99,7 +108,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
                   <Container as="ol" margin="0">
                     {artifact.data?.reproduction_steps.map((step, index) => (
                       <li key={index}>
-                        <Markdown raw={step} />
+                        <SeerMarkdown raw={step} />
                       </li>
                     ))}
                   </Container>

@@ -17,13 +17,9 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.autofix_agent import (
     SEER_FIXES_SENTRY_ISSUE_MARKER,
-    PrIterationNoPullRequestException,
     _build_repo_pins,
     build_step_prompt,
     generate_autofix_handoff_prompt,
-    get_iteration_for_insert_index,
-    get_iterations,
-    get_latest_iteration_index,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -32,8 +28,11 @@ from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer, SeerAutomationSource
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.issue_summary import referrer_map
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
@@ -324,14 +323,6 @@ def _iteration_block(iteration_index: int | None = None) -> MemoryBlock:
     )
 
 
-def _plain_block(id: str, role: str = "assistant") -> MemoryBlock:
-    return MemoryBlock(
-        id=id,
-        message=Message(role=role, content="content"),
-        timestamp="2024-01-01T00:00:00Z",
-    )
-
-
 def _state_with_blocks(
     blocks: list[MemoryBlock],
     group_id: int | None = None,
@@ -345,82 +336,6 @@ def _state_with_blocks(
         repo_pr_states=repo_pr_states or {},
         metadata={"group_id": group_id} if group_id is not None else None,
     )
-
-
-class TestIterationHelpers(TestCase):
-    def test_get_iterations_returns_empty_without_iterations(self) -> None:
-        state = _state_with_blocks([])
-        assert get_iterations(state) == []
-
-    def test_get_iterations_returns_index_and_start_index(self) -> None:
-        state = _state_with_blocks(
-            [
-                MemoryBlock(
-                    id="block-0",
-                    message=Message(role="assistant", content="not iteration"),
-                    timestamp="2024-01-01T00:00:00Z",
-                ),
-                _iteration_block(1),
-                _iteration_block(2),
-            ]
-        )
-
-        iterations = get_iterations(state)
-
-        assert [(it.index, it.start_index) for it in iterations] == [(1, 1), (2, 2)]
-
-    def test_get_iterations_captures_following_blocks(self) -> None:
-        state = _state_with_blocks(
-            [
-                _plain_block("before"),
-                _iteration_block(1),
-                _plain_block("a1"),
-                _plain_block("a2"),
-                _iteration_block(2),
-                _plain_block("b1"),
-            ]
-        )
-
-        iterations = get_iterations(state)
-
-        assert [it.index for it in iterations] == [1, 2]
-        assert [[b.id for b in it.blocks] for it in iterations] == [
-            ["block-1", "a1", "a2"],
-            ["block-2", "b1"],
-        ]
-
-    def test_get_iterations_missing_iteration_index_raises(self) -> None:
-        state = _state_with_blocks([_iteration_block()])
-        with pytest.raises(AssertionError):
-            get_iterations(state)
-
-    @patch("sentry.seer.autofix.autofix_agent.sentry_sdk.capture_message")
-    def test_get_iterations_missing_feedback_reports_without_raising(
-        self, mock_capture: MagicMock
-    ) -> None:
-        # _iteration_block intentionally omits feedback metadata.
-        state = _state_with_blocks([_iteration_block(1)])
-
-        iterations = get_iterations(state)
-
-        assert [it.index for it in iterations] == [1]
-        mock_capture.assert_called_once()
-        assert mock_capture.call_args.args[0] == "PR_ITERATION block missing feedback metadata"
-        assert mock_capture.call_args.kwargs["level"] == "warning"
-        assert mock_capture.call_args.kwargs["extras"]["run_id"] == 67890
-        assert mock_capture.call_args.kwargs["extras"]["iteration_index"] == "1"
-
-    def test_get_latest_iteration_index_returns_zero_without_iterations(self) -> None:
-        state = _state_with_blocks([])
-        assert get_latest_iteration_index(state) == 0
-
-    def test_get_latest_iteration_index_returns_most_recent(self) -> None:
-        state = _state_with_blocks([_iteration_block(1), _iteration_block(2)])
-        assert get_latest_iteration_index(state) == 2
-
-    def test_get_iteration_for_insert_index(self) -> None:
-        state = _state_with_blocks([_iteration_block(1), _iteration_block(2)])
-        assert get_iteration_for_insert_index(state, 1) == 2
 
 
 class TestPrIterationPrompt(TestCase):
@@ -854,6 +769,90 @@ class TestTriggerAutofixAgent(TestCase):
         assert "referrer" not in call_kwargs["payload"]
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_iteration_routes_to_feature_when_flagged(
+        self, mock_client_class, mock_feature, mock_broadcast
+    ):
+        author = SeerCommitAuthor(name="Mona", email="1+octocat@users.noreply.github.com")
+        mock_client_class.return_value.get_run.return_value = _state_with_blocks(
+            [_iteration_block(1)],
+            group_id=self.group.id,
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_url="https://example.com/pull/7"
+                ),
+                "owner/pending": RepoPRState(repo_name="owner/pending"),
+            },
+        )
+        existing_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+        self.create_seer_agent_run(run=existing_run, group=self.group, source="autofix")
+        mock_feature.return_value = existing_run
+
+        with self.feature("organizations:autofix-pr-iteration-in-seer"):
+            result = trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+                run_id=67890,
+                user_context="Rename the helper.",
+                feedback=[
+                    Feedback(
+                        source=UserUIFeedbackSource(
+                            source_id="fb-1",
+                            user_id=self.user.id,
+                            user_feedback="Rename the helper.",
+                        )
+                    )
+                ],
+                commit_author=author,
+                iteration_id=41,
+            )
+
+        assert result == existing_run
+        mock_client_class.return_value.continue_run.assert_not_called()
+        feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.step == AutofixStep.PR_ITERATION
+        assert feature_trigger.existing_run_id == 67890
+        assert feature_trigger.user_context == "Rename the helper."
+        step_args = feature_trigger.step_args
+        assert step_args.iteration_index == 2
+        assert step_args.iteration_id == 41
+        assert step_args.pr_urls == {"owner/repo": "https://example.com/pull/7"}
+        assert json.loads(step_args.commit_author) == author
+        (feedback_item,) = json.loads(step_args.feedback)
+        assert feedback_item["text"] == "Rename the helper."
+        broadcast_kwargs = mock_broadcast.call_args.kwargs
+        assert broadcast_kwargs["event_name"] == SeerActionType.ITERATION_STARTED.value
+        assert broadcast_kwargs["payload"]["iteration_index"] == 2
+
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_iteration_feature_route_requires_existing_pr(self, mock_client_class, mock_feature):
+        mock_client_class.return_value.get_run.return_value = _state_with_blocks(
+            [], group_id=self.group.id
+        )
+        existing_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+        self.create_seer_agent_run(run=existing_run, group=self.group, source="autofix")
+
+        with (
+            self.feature("organizations:autofix-pr-iteration-in-seer"),
+            pytest.raises(PrIterationNoPullRequestException),
+        ):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=67890,
+            )
+
+        mock_feature.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_pr_iteration_requires_existing_pr(self, mock_client_class, mock_broadcast):
         mock_client = MagicMock()
@@ -1229,6 +1228,78 @@ class TestTriggerAutofixAgent(TestCase):
         prompt_metadata = mock_client.start_run.call_args.kwargs["prompt_metadata"]
         assert "base_shas" not in prompt_metadata
         mock_scm_new.assert_not_called()
+
+
+def _trigger_attempts(mock_incr: MagicMock) -> list[dict[str, str]]:
+    return [
+        call.kwargs["tags"]
+        for call in mock_incr.call_args_list
+        if call.args and call.args[0] == "autofix.trigger.attempt"
+    ]
+
+
+@patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+@patch("sentry.quotas.backend.record_seer_run")
+@patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+@patch("sentry.utils.metrics.incr")
+@patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+class TestTriggerAutofixAgentAttemptMetric(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def test_counts_success(
+        self, mock_client_class, mock_incr, mock_check_quota, mock_record_run, mock_broadcast
+    ):
+        mock_client_class.return_value.start_run.return_value = MagicMock(seer_run_state_id=123)
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.CODE_CHANGES,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+        )
+
+        assert _trigger_attempts(mock_incr) == [
+            {"referrer": "api.group_ai_autofix", "step": "code_changes", "outcome": "success"}
+        ]
+
+    def test_counts_declined_when_no_quota(
+        self, mock_client_class, mock_incr, mock_check_quota, mock_record_run, mock_broadcast
+    ):
+        mock_check_quota.return_value = False
+
+        with pytest.raises(NoSeerQuotaException):
+            trigger_autofix_agent(
+                self.group,
+                AutofixStep.ROOT_CAUSE,
+                AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+            )
+
+        assert _trigger_attempts(mock_incr) == [
+            {
+                "referrer": "issue_summary.post_process_fixability",
+                "step": "root_cause",
+                "outcome": "declined",
+            }
+        ]
+
+    def test_counts_error_when_seer_rejects_run(
+        self, mock_client_class, mock_incr, mock_check_quota, mock_record_run, mock_broadcast
+    ):
+        mock_client_class.return_value.start_run.side_effect = SeerApiError(
+            "Seer request failed", 500
+        )
+
+        with pytest.raises(SeerApiError):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.CODE_CHANGES,
+                referrer=AutofixReferrer.SLACK,
+            )
+
+        assert _trigger_attempts(mock_incr) == [
+            {"referrer": "slack", "step": "code_changes", "outcome": "error"}
+        ]
 
 
 class TestBuildRepoPins(TestCase):

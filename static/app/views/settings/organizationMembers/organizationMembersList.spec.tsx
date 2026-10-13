@@ -481,6 +481,26 @@ describe('OrganizationMembersList', () => {
       );
     });
 
+    it('names the pending and active member tables when there are invite requests', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/invite-requests/',
+        method: 'GET',
+        body: [inviteRequest],
+      });
+
+      render(<OrganizationMembersList />, {organization});
+
+      const pendingTable = await screen.findByRole('table', {name: 'Pending Members'});
+      const membersTable = screen.getByRole('table', {name: 'Members'});
+
+      expect(
+        within(pendingTable).getByRole('columnheader', {name: 'Actions'})
+      ).toBeInTheDocument();
+      expect(
+        within(membersTable).getByRole('columnheader', {name: 'Actions'})
+      ).toBeInTheDocument();
+    });
+
     it('can approve invite request and update', async () => {
       const org = OrganizationFixture({
         access: ['member:admin', 'org:admin', 'member:write'],
@@ -578,9 +598,11 @@ describe('OrganizationMembersList', () => {
       });
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Role: Member'}), [
-        'Admin',
-      ]);
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Role: Member'}),
+        ['Admin'],
+        {container: document.body}
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 

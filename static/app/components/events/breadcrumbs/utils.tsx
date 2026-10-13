@@ -1,6 +1,20 @@
 import {useCallback, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCode} from '@sentry/icons/code';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconFire} from '@sentry/icons/fire';
+import {IconFix} from '@sentry/icons/fix';
+import {IconInfo} from '@sentry/icons/info';
+import {IconLocation} from '@sentry/icons/location';
+import {IconMobile} from '@sentry/icons/mobile';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSort} from '@sentry/icons/sort';
+import {IconSpan} from '@sentry/icons/span';
+import {IconStack} from '@sentry/icons/stack';
+import {IconUser} from '@sentry/icons/user';
+import {IconWarning} from '@sentry/icons/warning';
+import {IconWifi} from '@sentry/icons/wifi';
 
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
 
@@ -11,22 +25,6 @@ import {
   getVirtualCrumb,
 } from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import type {TimelineItemProps} from 'sentry/components/timeline';
-import {
-  IconCode,
-  IconCursorArrow,
-  IconFire,
-  IconFix,
-  IconInfo,
-  IconLocation,
-  IconMobile,
-  IconRefresh,
-  IconSort,
-  IconSpan,
-  IconStack,
-  IconUser,
-  IconWarning,
-  IconWifi,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   BreadcrumbLevelType,

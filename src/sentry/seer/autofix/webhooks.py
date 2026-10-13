@@ -26,6 +26,7 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.pr_metrics.attribution import SentryAppSignalDetails, record_attribution_signal
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.milestones import reconcile_pull_requests_merged_milestone
 from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
 from sentry.seer.models.run import SeerRunPullRequest
@@ -90,7 +91,9 @@ def record_pr_action_analytic(
     if agent_state:
         group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
         if group_id is None:
-            raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
+            # Issue-less runs (e.g. Ask Seer chat) will soon also open PRs;
+            return
+
         group = Group.objects.get(id=group_id, project__organization_id=org.id)
 
         analytics.record(
@@ -106,7 +109,14 @@ def record_pr_action_analytic(
             )
         )
 
-        metrics.incr(f"ai.autofix.pr.{analytic_action}", tags={"mode": "explorer"})
+        referrer = (agent_state.metadata or {}).get("referrer")
+        if referrer not in AutofixReferrer:
+            referrer = AutofixReferrer.UNKNOWN
+        metrics.incr(
+            f"ai.autofix.pr.{analytic_action}",
+            sample_rate=1.0,
+            tags={"mode": "explorer", "referrer": referrer},
+        )
 
         try:
             _update_autofix_issue_data_for_pr(
@@ -145,6 +155,14 @@ def record_pr_action_analytic(
                 },
             )
 
+        if analytic_action == "merged" and pull_request.get("created_at"):
+            created_at = datetime.fromisoformat(pull_request["created_at"]).timestamp() * 1000
+            metrics.distribution(
+                "ai.autofix.pr.time_to_merge_hours",
+                (sent_at - created_at) / 3_600_000,
+                sample_rate=1.0,
+                tags={"referrer": referrer},
+            )
         return
 
 

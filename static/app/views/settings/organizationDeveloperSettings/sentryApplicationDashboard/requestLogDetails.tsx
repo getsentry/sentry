@@ -11,8 +11,6 @@ import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {
   KeyValueTableCard,
-  KeyValueTableCardPanel,
-  KeyValueTableCardTitle,
   type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
@@ -31,19 +29,22 @@ function BodySection({title, body}: {body: string; title: string}) {
   const {parsed, raw, maybeTruncated} = decodeWebhookBody(body);
 
   return (
-    <KeyValueTableCardPanel block>
-      <KeyValueTableCardTitle>
-        {title}
-        {maybeTruncated && (
-          <Text variant="muted" size="xs">{` (${t('truncated')})`}</Text>
-        )}
-      </KeyValueTableCardTitle>
+    <KeyValueTableCard
+      title={
+        <Fragment>
+          {title}
+          {maybeTruncated && (
+            <Text variant="muted" size="xs">{` (${t('truncated')})`}</Text>
+          )}
+        </Fragment>
+      }
+    >
       {parsed === null ? (
         <CodeBlock>{raw}</CodeBlock>
       ) : (
         <JsonEventData data={parsed} showCopyButton />
       )}
-    </KeyValueTableCardPanel>
+    </KeyValueTableCard>
   );
 }
 
@@ -64,7 +65,6 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
         subject: t('Time'),
         value: <DateTime date={request.date} format={timeFormat} />,
       },
-      disableFormattedData: true,
     },
     {
       item: {
@@ -72,24 +72,19 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
         subject: t('Status Code'),
         value: <ResponseCode code={request.responseCode} />,
       },
-      disableFormattedData: true,
     },
     {
       item: {key: 'eventType', subject: t('Event Type'), value: request.eventType},
-      disableFormattedData: true,
     },
-    ...(request.organization
-      ? [
-          {
-            item: {
-              key: 'organization',
-              subject: t('Organization'),
-              value: request.organization.name,
-            },
-            disableFormattedData: true,
+    request.organization
+      ? {
+          item: {
+            key: 'organization',
+            subject: t('Organization'),
+            value: request.organization.name,
           },
-        ]
-      : []),
+        }
+      : undefined,
     {
       item: {
         key: 'subject',
@@ -103,7 +98,6 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
           />
         ),
       },
-      disableFormattedData: true,
     },
     {
       item: {
@@ -115,11 +109,9 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
           EMPTY_VALUE
         ),
       },
-      disableFormattedData: true,
     },
     {
       item: {key: 'webhookUrl', subject: t('Webhook URL'), value: request.webhookUrl},
-      disableFormattedData: true,
     },
     {
       item: {
@@ -139,28 +131,21 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
           EMPTY_VALUE
         ),
       },
-      disableFormattedData: true,
     },
-    ...(defined(request.error_id)
-      ? [
-          {
-            item: {
-              key: 'errorId',
-              subject: t('Error ID'),
-              value: request.error_id,
-            },
-            disableFormattedData: true,
+    defined(request.error_id)
+      ? {
+          item: {
+            key: 'errorId',
+            subject: t('Error ID'),
+            value: request.error_id,
           },
-        ]
-      : []),
-  ];
+        }
+      : undefined,
+  ].filter(defined);
 
   const headerItems: KeyValueTableDataRowProps[] = Object.entries(
     request_headers ?? {}
-  ).map(([name, value]) => ({
-    item: {key: name, subject: name, value},
-    disableFormattedData: true,
-  }));
+  ).map(([name, value]) => ({item: {key: name, subject: name, value}}));
 
   return (
     <Fragment>
@@ -171,10 +156,18 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
       </DrawerHeader>
       <DrawerBody>
         <Stack gap="xl">
-          <KeyValueTableCard title={t('Summary')} contentItems={summaryItems} />
+          <KeyValueTableCard
+            title={t('Summary')}
+            contentItems={summaryItems}
+            itemProps={{disableFormattedData: true}}
+          />
 
           {headerItems.length > 0 && (
-            <KeyValueTableCard title={t('Request Headers')} contentItems={headerItems} />
+            <KeyValueTableCard
+              title={t('Request Headers')}
+              contentItems={headerItems}
+              itemProps={{disableFormattedData: true}}
+            />
           )}
 
           {request_body && <BodySection title={t('Request Body')} body={request_body} />}

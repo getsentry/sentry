@@ -870,6 +870,7 @@ TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.ai_monitoring.issues.llm_cache_detection.tasks",
     "sentry.ai_monitoring.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
@@ -887,7 +888,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.webhook_backlog_metrics",
-    "sentry.incidents.tasks",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.data_forwarding.tasks",
@@ -965,7 +965,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.pr_iteration",
     "sentry.tasks.beacon",
     "sentry.tasks.clear_expired_resolutions",
-    "sentry.tasks.clear_expired_rulesnoozes",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.codeowners.code_owners_auto_sync",
     "sentry.tasks.codeowners.update_code_owners_schema",
@@ -1069,10 +1068,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.tasks.clear_expired_snoozes",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
-    "clear-expired-rulesnoozes": {
-        "task": "issues:sentry.tasks.clear_expired_rulesnoozes",
-        "schedule": crontab("*/5", "*", "*", "*", "*"),
-    },
     "collect-project-platforms": {
         "task": "issues:sentry.tasks.collect_project_platforms",
         "schedule": crontab("0", "3", "*", "*", "*"),
@@ -1170,6 +1165,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
         "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
+    "statistical-detectors-detect-function-change-points": {
+        "task": "profiling:sentry.tasks.statistical_detectors.detect_function_change_points",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
+    },
     "seer-explorer-index": {
         "task": "seer:sentry.tasks.seer_explorer_index.schedule_explorer_index",
         "schedule": crontab("0", "*/1", "*", "*", "*"),
@@ -1234,6 +1233,13 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "fetch-ai-model-metadata": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
+    },
+    "llm-cache-issue-detection": {
+        "task": (
+            "issues:sentry.ai_monitoring.issues.llm_cache_detection.tasks."
+            "run_llm_cache_issue_detection"
+        ),
+        "schedule": timedelta(minutes=1),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod.size:sentry.preprod.tasks.detect_expired_preprod_artifacts",
@@ -1800,8 +1806,6 @@ SENTRY_METRICS_BACKEND = "sentry.metrics.dummy.DummyMetricsBackend"
 SENTRY_METRICS_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
-SENTRY_METRICS_SKIP_INTERNAL_PREFIXES: list[str] = []  # Order this by most frequent prefixes.
-SENTRY_METRICS_SKIP_ALL_INTERNAL = False
 SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 
 # Metrics product
@@ -1908,6 +1912,7 @@ SENTRY_SCOPES = {
     "alerts:read",
     "alerts:write",
     "dashboard:read",
+    "dashboard:create",
     "dashboard:write",
     "dashboard:delete",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
@@ -1951,8 +1956,14 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "alerts:read": {"alerts:read"},
     "alerts:write": {"alerts:read", "alerts:write"},
     "dashboard:read": {"dashboard:read"},
-    "dashboard:write": {"dashboard:read", "dashboard:write"},
-    "dashboard:delete": {"dashboard:read", "dashboard:write", "dashboard:delete"},
+    "dashboard:create": {"dashboard:read", "dashboard:create"},
+    "dashboard:write": {"dashboard:read", "dashboard:create", "dashboard:write"},
+    "dashboard:delete": {
+        "dashboard:read",
+        "dashboard:create",
+        "dashboard:write",
+        "dashboard:delete",
+    },
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -1975,6 +1986,7 @@ SENTRY_TOKEN_ONLY_SCOPES = frozenset(
 GRANULAR_SCOPES = frozenset(
     [
         "dashboard:read",
+        "dashboard:create",
         "dashboard:write",
         "dashboard:delete",
     ]
@@ -2038,6 +2050,7 @@ SENTRY_SCOPE_SETS = (
     (
         ("dashboard:delete", "Read, write, and delete access to dashboards."),
         ("dashboard:write", "Read and write access to dashboards."),
+        ("dashboard:create", "Read and create access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
     (("openid", "Confirms authentication status and provides basic information."),),
@@ -2244,6 +2257,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
+            "dashboard:create",
             "dashboard:write",
             "dashboard:delete",
         },
@@ -2279,6 +2293,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
+            "dashboard:create",
             "dashboard:write",
             "dashboard:delete",
         },
@@ -2309,6 +2324,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
+            "dashboard:create",
             "dashboard:write",
             "dashboard:delete",
         },
@@ -2346,6 +2362,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
+            "dashboard:create",
             "dashboard:write",
             "dashboard:delete",
         },
@@ -2372,16 +2389,16 @@ SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
 # Watchers for various application purposes (such as compiling static media)
 # XXX(dcramer): this doesn't work outside of a source distribution as the
-# rspack.config.ts is not part of Sentry's datafiles
+# rsbuild.config.ts is not part of Sentry's datafiles
 SENTRY_WATCHERS = (
     (
         "webpack",
         [
-            os.path.join(NODE_MODULES_ROOT, ".bin", "rspack"),
-            "serve",
+            os.path.join(NODE_MODULES_ROOT, ".bin", "rsbuild"),
+            "dev",
             "--config={}".format(
                 os.path.normpath(
-                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "rspack.config.ts")
+                    os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "rsbuild.config.ts")
                 )
             ),
         ],
@@ -2471,7 +2488,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
-    "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.integration.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
@@ -2508,7 +2524,7 @@ if SENTRY_DEV_DSN:
     # In production, this value is *not* set via an env variable
     # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
     # This is used in case you want to report traces of your development set up to a project of your choice
-    SENTRY_SDK_CONFIG["sentry_mirror_dsn"] = SENTRY_DEV_DSN
+    SENTRY_SDK_CONFIG["backend_dsn"] = SENTRY_DEV_DSN
 
 SENTRY_SDK_THREADING_INTEGRATION = os.environ.get("SENTRY_SDK_DISABLE_THREADING") != "1"
 
@@ -2618,8 +2634,6 @@ GITHUB_BASE_DOMAIN = DEAD
 GITHUB_EXTENDED_PERMISSIONS = DEAD
 GITHUB_ORGANIZATION = DEAD
 
-
-SUDO_URL = "sentry-sudo"
 
 # Endpoint to https://github.com/getsentry/sentry-release-registry, used for
 # alerting the user of outdated SDKs.
@@ -2733,6 +2747,15 @@ SENTRY_BUILTIN_SOURCES = {
         "layout": {"type": "symstore"},
         "filters": {"filetypes": ["pe", "pdb"]},
         "url": "https://driver-symbols.nvidia.com/",
+        "is_public": True,
+    },
+    "intel": {
+        "type": "http",
+        "id": "sentry:intel",
+        "name": "Intel",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["pe"]},
+        "url": "https://software.intel.com/sites/downloads/symbols/",
         "is_public": True,
     },
     "chromium": {

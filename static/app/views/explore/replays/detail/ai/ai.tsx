@@ -1,5 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconSync} from '@sentry/icons/sync';
+import {IconThumb} from '@sentry/icons/thumb';
 
 import aiBanner from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 import replayEmptyState from 'sentry-images/spot/replays-empty-state.svg';
@@ -12,7 +14,6 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconSync, IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';

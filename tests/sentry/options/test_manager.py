@@ -16,7 +16,6 @@ from sentry.options.manager import (
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
-    FLAG_STOREONLY,
     READ_HOOK_FALLBACK,
     NotWritableReason,
     OptionsManager,
@@ -208,21 +207,10 @@ class OptionsManagerTest(TestCase):
             self.manager.validate({"unknown": ""})
 
         self.manager.register("unknown")
-        self.manager.register("storeonly", flags=FLAG_STOREONLY)
         self.manager.validate({"unknown": ""})
-
-        with pytest.raises(AssertionError):
-            self.manager.validate({"storeonly": ""})
 
         with pytest.raises(TypeError):
             self.manager.validate({"unknown": True})
-
-    def test_flag_storeonly(self) -> None:
-        self.manager.register("storeonly", flags=FLAG_STOREONLY)
-        assert self.manager.get("storeonly") == ""
-
-        with self.settings(SENTRY_OPTIONS={"storeonly": "something-else!"}):
-            assert self.manager.get("storeonly") == ""
 
     def test_drifted(self) -> None:
         self.manager.register("option", flags=FLAG_AUTOMATOR_MODIFIABLE)

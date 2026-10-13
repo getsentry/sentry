@@ -1,4 +1,12 @@
 import {useEffect} from 'react';
+import {IconBot} from '@sentry/icons/bot';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconProfiling} from '@sentry/icons/profiling';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconSpan} from '@sentry/icons/span';
+import {IconTerminal} from '@sentry/icons/terminal';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconWarning} from '@sentry/icons/warning';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
@@ -6,34 +14,17 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {
-  IconBot,
-  IconCheckmark,
-  IconGraph,
-  IconLightning,
-  IconProfiling,
-  IconSeer,
-  IconSpan,
-  IconTerminal,
-  IconTimer,
-  IconWarning,
-} from 'sentry/icons';
+import {SCM_STEP_CONTENT_WIDTH} from 'sentry/components/onboarding/consts';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOnboardingAgentSetupRun} from 'sentry/views/onboarding/agenticProgress/useOnboardingAgentSetupRun';
 import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
-import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
 import {
   NewWelcomeProductCard,
   type ProductOption,
 } from 'sentry/views/onboarding/components/newWelcomeProductCard';
-import {
-  useWelcomeAgentRun,
-  WelcomeAgentSetup,
-} from 'sentry/views/onboarding/components/welcomeAgentSetup';
-import {WelcomeSkipButton} from 'sentry/views/onboarding/components/welcomeSkipButton';
-import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
+import {WelcomeAgentSetup} from 'sentry/views/onboarding/components/welcomeAgentSetup';
 import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
 import {useWelcomeAnalyticsEffect} from 'sentry/views/onboarding/useWelcomeAnalyticsEffect';
 import {useWelcomeHandleComplete} from 'sentry/views/onboarding/useWelcomeHandleComplete';
@@ -139,12 +130,7 @@ function getAgentHeading({
 
 export function NewWelcomeUI(props: StepProps) {
   const organization = useOrganization();
-  const {inExperiment: hasScmOnboarding} = useExperiment({
-    feature: 'onboarding-scm-experiment',
-    reportExposure: false,
-  });
-  const hasAgenticSetup = organization.features.includes('onboarding-agentic-setup');
-  const showAgentSetup = hasScmOnboarding && hasAgenticSetup;
+  const showAgentSetup = organization.features.includes('onboarding-agentic-setup');
   const {
     run,
     onboardingCode,
@@ -152,9 +138,12 @@ export function NewWelcomeUI(props: StepProps) {
     isSetupComplete,
     hasRunFailed,
     hasInitFailed,
+    hasProgressFailed,
+    refreshRun,
     restartRun,
-  } = useWelcomeAgentRun({enabled: showAgentSetup});
-  const showAgentHeading = showAgentSetup && isAgentConnected;
+  } = useOnboardingAgentSetupRun({enabled: showAgentSetup});
+  const showAgentHeading =
+    showAgentSetup && (isAgentConnected || isSetupComplete || hasRunFailed);
   const scmHeading = showAgentHeading
     ? getAgentHeading({hasRunFailed, isSetupComplete})
     : {
@@ -189,63 +178,24 @@ export function NewWelcomeUI(props: StepProps) {
     <MotionContainer
       width="100%"
       margin="0 auto"
-      maxWidth={hasScmOnboarding ? SCM_STEP_CONTENT_WIDTH : '900px'}
+      maxWidth={SCM_STEP_CONTENT_WIDTH}
       position="relative"
     >
       <MotionFlex direction="column" align="center" {...ONBOARDING_STAGGER}>
         <Stack gap="3xl" align="center" width="100%">
           <MotionStack gap="md" width="100%" {...ONBOARDING_STAGGER}>
-            {hasScmOnboarding ? (
-              <Stack gap="lg" paddingBottom="xl">
-                <MotionContainer {...ONBOARDING_ENTER}>
-                  <Heading as="h2" size="3xl" align="center" wrap="pre-line">
-                    {scmHeading.title}
-                  </Heading>
-                </MotionContainer>
-                <MotionContainer {...ONBOARDING_ENTER}>
-                  <Text align="center" variant="muted" size="lg" density="comfortable">
-                    {scmHeading.description}
-                  </Text>
-                </MotionContainer>
-              </Stack>
-            ) : (
-              <Stack gap="sm" paddingBottom="2xl">
-                <MotionContainer {...ONBOARDING_ENTER}>
-                  <Heading as="h1" density="comfortable">
-                    {t('Welcome to Sentry')}
-                  </Heading>
-                </MotionContainer>
-                <MotionContainer {...ONBOARDING_ENTER}>
-                  <Text variant="muted" size="xl" bold wrap="pre-line">
-                    {t("Your code is probably broken. Let's fix it faster.")}
-                  </Text>
-                </MotionContainer>
-              </Stack>
-            )}
-
-            {hasScmOnboarding ? null : (
-              <MotionStack gap="2xs" {...ONBOARDING_ENTER}>
-                <Flex align="center" gap="md">
-                  <Container>
-                    <IconLightning size="md" variant="accent" />
-                  </Container>
-                  <Container>
-                    <Text size="lg" bold density="comfortable">
-                      {t(
-                        "You've got 14 days of Business with unlimited access to everything below."
-                      )}
-                    </Text>
-                  </Container>
-                </Flex>
-                <Container>
-                  <Text size="md" variant="muted">
-                    {t(
-                      "We'll walk you through setup next. Start with what matters now, add the rest when you're ready."
-                    )}
-                  </Text>
-                </Container>
-              </MotionStack>
-            )}
+            <Stack gap="lg" paddingBottom="xl">
+              <MotionContainer {...ONBOARDING_ENTER}>
+                <Heading as="h2" size="3xl" align="center" wrap="pre-line">
+                  {scmHeading.title}
+                </Heading>
+              </MotionContainer>
+              <MotionContainer {...ONBOARDING_ENTER}>
+                <Text align="center" variant="muted" size="lg" density="comfortable">
+                  {scmHeading.description}
+                </Text>
+              </MotionContainer>
+            </Stack>
           </MotionStack>
 
           {/* Let the onboarding step's exit animate through this nested boundary. */}
@@ -263,6 +213,8 @@ export function NewWelcomeUI(props: StepProps) {
               >
                 <WelcomeAgentSetup
                   hasInitFailed={hasInitFailed}
+                  hasProgressFailed={hasProgressFailed}
+                  onRefresh={() => void refreshRun()}
                   isAgentConnected={isAgentConnected}
                   onboardingCode={onboardingCode}
                   onCopyCommand={handleCopyCommand}
@@ -275,15 +227,12 @@ export function NewWelcomeUI(props: StepProps) {
             ) : (
               <MotionStack key="products" gap="3xl" width="100%" {...ONBOARDING_STAGGER}>
                 <MotionGrid
-                  columns={{
-                    'screen:xs': '1fr',
-                    'screen:sm': hasScmOnboarding ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)',
-                  }}
+                  columns={{zero: '1fr', xl: 'repeat(2, 1fr)'}}
                   gap="3xl"
                   width="100%"
                   {...ONBOARDING_ENTER}
-                  border={hasScmOnboarding ? 'primary' : 'muted'}
-                  background={hasScmOnboarding ? 'primary' : 'secondary'}
+                  border="primary"
+                  background="primary"
                   radius="xl"
                   padding="xl"
                 >
@@ -292,49 +241,19 @@ export function NewWelcomeUI(props: StepProps) {
                   ))}
                 </MotionGrid>
 
-                {hasScmOnboarding ? (
-                  <MotionFlex {...ONBOARDING_ENTER} width="100%" justify="center">
-                    <Button
-                      variant="primary"
-                      onClick={handleComplete}
-                      data-test-id="onboarding-welcome-start"
-                    >
-                      {t('Let’s get started')}
-                    </Button>
-                  </MotionFlex>
-                ) : (
-                  <MotionContainer {...ONBOARDING_ENTER}>
-                    <Flex align="center" gap="md" justify="center">
-                      <IconCheckmark size="md" variant="success" />
-                      <Text size="md" variant="muted">
-                        {t(
-                          "After the trial ends, you'll move to our free plan. You will not be charged for any usage, promise."
-                        )}
-                      </Text>
-                    </Flex>
-                  </MotionContainer>
-                )}
+                <MotionFlex {...ONBOARDING_ENTER} width="100%" justify="center">
+                  <Button
+                    variant="primary"
+                    onClick={handleComplete}
+                    data-test-id="onboarding-welcome-start"
+                  >
+                    {t('Let’s get started')}
+                  </Button>
+                </MotionFlex>
               </MotionStack>
             )}
           </AnimatePresence>
         </Stack>
-        {hasScmOnboarding ? null : (
-          <GenericFooter gap="3xl" padding="0 3xl">
-            <Flex align="center">
-              <WelcomeSkipButton asButton>{t('Skip onboarding')}</WelcomeSkipButton>
-            </Flex>
-
-            <Flex align="center">
-              <Button
-                variant="primary"
-                onClick={handleComplete}
-                data-test-id="onboarding-welcome-start"
-              >
-                {t('Begin setup')}
-              </Button>
-            </Flex>
-          </GenericFooter>
-        )}
       </MotionFlex>
     </MotionContainer>
   );

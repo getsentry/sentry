@@ -62,6 +62,7 @@ export interface ActionHandler {
   dataSchema: Record<string, any>;
   handlerGroup: ActionGroup;
   type: ActionType;
+  disabledReason?: 'plan';
   integrations?: Integration[];
   sentryApp?: SentryAppContext;
   services?: PluginService[];
