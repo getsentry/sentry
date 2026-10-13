@@ -150,6 +150,20 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 400, response.content
 
+        # Download as a superuser with a bundle_id that is not a valid UUID
+        invalid_bundle_url = reverse(
+            "sentry-api-0-project-artifact-bundle-file-details",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+                "bundle_id": "i",
+                "file_id": base64.urlsafe_b64encode(b"files/_/_/index.js").decode("utf-8"),
+            },
+        )
+
+        response = self.client.get(invalid_bundle_url)
+        assert response.status_code == 400, response.content
+
         # Download as a user without sufficient role
         self.organization.update_option("sentry:debug_files_role", "owner")
         user_no_role = self.create_user("bar@localhost")
