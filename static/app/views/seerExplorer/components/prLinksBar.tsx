@@ -94,14 +94,15 @@ function PRLinkRow({state}: {state: RepoPRState}) {
   );
 }
 
-type StatusKind = 'opening' | 'pushing' | 'error' | 'view';
+type StatusKind = 'opening' | 'pushing' | 'open-error' | 'push-error' | 'view';
 
 function getStatusKind(state: RepoPRState): StatusKind | null {
+  // A PR number means the PR already exists, so in-flight or failed work is a push to it.
   if (state.pr_creation_status === 'creating') {
     return state.pr_number ? 'pushing' : 'opening';
   }
   if (state.pr_creation_status === 'error') {
-    return 'error';
+    return state.pr_number ? 'push-error' : 'open-error';
   }
   return state.pr_url ? 'view' : null;
 }
@@ -130,9 +131,14 @@ function PRLinkStatus({state}: {state: RepoPRState}) {
           {t('Pushing changes…')}
         </Text>
       </Flex>
-      <Flex {...layer('error')}>
+      <Flex {...layer('open-error')}>
         <InfoText title={state.pr_creation_error} variant="danger" wrap="nowrap">
           {t('Could not open PR')}
+        </InfoText>
+      </Flex>
+      <Flex {...layer('push-error')}>
+        <InfoText title={state.pr_creation_error} variant="danger" wrap="nowrap">
+          {t('Could not push changes')}
         </InfoText>
       </Flex>
       <Flex {...layer('view')}>

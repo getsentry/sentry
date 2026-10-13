@@ -878,6 +878,7 @@ export function SeerExplorerContent({
           onPRWidgetClick={openPRWidget}
           prWidgetButtonRef={prWidgetButtonRef}
           repoPRStates={repoPRStates}
+          runId={runId}
           composerRef={composerRef}
           fileApprovalActions={
             isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches

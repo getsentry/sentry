@@ -21,6 +21,20 @@ function makeState(overrides: Partial<RepoPRState> = {}): RepoPRState {
   };
 }
 
+// Every status is always rendered and the inactive ones hidden with CSS, which
+// jsdom's getComputedStyle does not resolve, so read the emotion rule instead.
+function getStatusLayerVisibility(text: string) {
+  const layer = screen.getByText(text).parentElement!;
+  return Array.from(document.styleSheets)
+    .flatMap(sheet => Array.from(sheet.cssRules))
+    .filter(
+      (rule): rule is CSSStyleRule =>
+        rule instanceof CSSStyleRule && layer.matches(rule.selectorText)
+    )
+    .map(rule => rule.style.visibility)
+    .findLast(Boolean);
+}
+
 describe('PRLinksBar', () => {
   it('links a completed pull request', () => {
     render(<PRLinksBar repoPRStates={{[REPO]: makeState()}} />);
@@ -60,6 +74,26 @@ describe('PRLinksBar', () => {
 
     await userEvent.hover(screen.getByText('Could not open PR'));
     expect(await screen.findByText('No write access to repository')).toBeInTheDocument();
+  });
+
+  it('shows a push failure for a pull request that already exists', () => {
+    render(
+      <PRLinksBar
+        repoPRStates={{
+          [REPO]: makeState({
+            pr_creation_status: 'error',
+            pr_creation_error: 'Push rejected',
+          }),
+        }}
+      />
+    );
+
+    expect(getStatusLayerVisibility('Could not push changes')).toBe('visible');
+    expect(getStatusLayerVisibility('Could not open PR')).toBe('hidden');
+    expect(screen.getByRole('link', {name: 'acme/web#482'})).toHaveAttribute(
+      'href',
+      PR_URL
+    );
   });
 
   it('collapses the pull requests', async () => {

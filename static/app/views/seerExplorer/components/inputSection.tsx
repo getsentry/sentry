@@ -14,7 +14,11 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PRLinksBar} from 'sentry/views/seerExplorer/components/prLinksBar';
 import {PRWidget} from 'sentry/views/seerExplorer/components/prWidget';
-import type {Block, RepoPRState} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  RepoPRState,
+  SeerExplorerRunId,
+} from 'sentry/views/seerExplorer/types';
 
 interface FileApprovalActions {
   currentIndex: number;
@@ -53,6 +57,7 @@ interface InputSectionProps {
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
   questionActions?: QuestionActions;
+  runId?: SeerExplorerRunId | null;
 }
 
 export function InputSection({
@@ -74,10 +79,15 @@ export function InputSection({
   composerRef,
   fileApprovalActions,
   questionActions,
+  runId,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
   // With ask-seer-create-pr the agent opens PRs, so show its PRs instead of the button.
   const agentCreatesPRs = organization?.features.includes('ask-seer-create-pr');
+  // Keyed by run so collapse state resets when switching conversations.
+  const prLinksBar = agentCreatesPRs ? (
+    <PRLinksBar key={runId ?? undefined} repoPRStates={repoPRStates} />
+  ) : null;
 
   // Check if there are any file patches for showing the PR widget
   const hasCodeChanges = useMemo(() => {
@@ -156,6 +166,7 @@ export function InputSection({
   if (!enabled) {
     return (
       <InputBlock>
+        {prLinksBar}
         <InputRow>
           <StyledInputGroup>
             <InputGroup.TextArea
@@ -266,7 +277,7 @@ export function InputSection({
 
   return (
     <InputBlock>
-      {agentCreatesPRs && <PRLinksBar repoPRStates={repoPRStates} />}
+      {prLinksBar}
       <InputRow>
         <StyledComposer
           isWarningPlaceholder={interruptState === 'completed'}
