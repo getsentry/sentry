@@ -69,12 +69,16 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
 
     # Match the legacy send: skip actions whose channel or integration is gone, rather than
     # raising and retrying on every alert.
+    if (
+        notification_context.integration_id is None
+        or notification_context.target_identifier is None
+    ):
+        return
     integration_context = integration_service.organization_context(
         organization_id=organization.id, integration_id=notification_context.integration_id
     )
     if (
-        notification_context.target_identifier is None
-        or integration_context.organization_integration is None
+        integration_context.organization_integration is None
         or integration_context.integration is None
         or integration_context.integration.status != ObjectStatus.ACTIVE
     ):

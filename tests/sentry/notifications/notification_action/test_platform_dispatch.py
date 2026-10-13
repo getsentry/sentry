@@ -25,6 +25,7 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
     MetricAlertHandlerBase,
 )
 
+PLATFORM_DISPATCH_PATH = "sentry.notifications.notification_action.platform_dispatch"
 SLACK_HANDLER_PATH = "sentry.notifications.notification_action.metric_alert_registry.handlers.slack_metric_alert_handler"
 
 
@@ -147,6 +148,18 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
 
         mock_slack_client.return_value.chat_postMessage.assert_not_called()
+
+    @mock.patch(f"{PLATFORM_DISPATCH_PATH}.integration_service.organization_context")
+    @mock.patch.object(NotificationService, "notify_sync")
+    def test_skips_missing_integration_id(
+        self, mock_notify: mock.MagicMock, mock_organization_context: mock.MagicMock
+    ) -> None:
+        self.action.integration_id = None
+
+        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
+
+        mock_organization_context.assert_not_called()
+        mock_notify.assert_not_called()
 
     @mock.patch.object(NotificationService, "notify_sync", return_value={})
     def test_slack_staging_targets_staging_provider(self, mock_notify: mock.MagicMock) -> None:
