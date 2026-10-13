@@ -9,11 +9,15 @@ from sentry.models.project import Project
 from sentry.reprocessing2 import (
     ReprocessableEvent,
     _maybe_copy_attachment_into_cache,
+    backup_unprocessed_event,
+    get_unprocessed_backup,
     reprocess_event,
 )
+from sentry.services.eventstore.processing import event_processing_store
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.cache import cache_key_for_event
 
 
 @django_db_all
@@ -79,3 +83,15 @@ class MaybeCopyAttachmentIntoCacheTest(TestCase):
         assert cached.stored_id == "some-key"
         attachment.refresh_from_db()
         assert attachment.blob_path == "v2/some-key"
+
+
+@django_db_all
+@pytest.mark.parametrize("to_nodestore", (False, True))
+def test_backup_unprocessed_event(default_project: Project, to_nodestore: bool) -> None:
+    data = {"event_id": "a" * 32, "project": default_project.id}
+    backup_unprocessed_event(data, to_nodestore=to_nodestore)
+
+    in_redis = event_processing_store.get(cache_key_for_event(data), unprocessed=True)
+    in_nodestore = get_unprocessed_backup(default_project.id, data["event_id"])
+    assert (in_redis == data) is not to_nodestore
+    assert (in_nodestore == data) is to_nodestore

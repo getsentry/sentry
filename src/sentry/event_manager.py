@@ -449,6 +449,7 @@ class EventManager:
         cache_key: str | None = None,
         skip_send_first_transaction: bool = False,
         attachments: list[CachedAttachment] | None = None,
+        unprocessed_backup: reprocessing2.UnprocessedBackupState | None = None,
     ) -> Event:
         """
         After normalizing and processing an event, save adjacent models such as
@@ -484,6 +485,7 @@ class EventManager:
             "project_id": project.id,
             "raw": raw,
             "start_time": start_time,
+            "unprocessed_backup": unprocessed_backup,
         }
 
         # After calling _pull_out_data we get some keys in the job like the platform
@@ -1130,12 +1132,28 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
         event = job["event"]
         # We only care about `unprocessed` for error events
         if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
-            unprocessed = event_processing_store.get(
-                cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
-                unprocessed=True,
-            )
+            fetch_from_node = job.get("unprocessed_backup") == "nodestore"
+            unprocessed = None
+            unprocessed_source = "node"
+            if fetch_from_node:
+                unprocessed = reprocessing2.get_unprocessed_backup(event.project_id, event.event_id)
+            if unprocessed is None:
+                # Clean up after `store.reprocessing-nodestore-backup.rollout` is 1.0
+                # and `store.reprocessing-nodestore-backup.legacy` is `False`
+                unprocessed_source = (
+                    "processing_store_fallback" if fetch_from_node else "processing_store"
+                )
+                unprocessed = event_processing_store.get(
+                    cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
+                    unprocessed=True,
+                )
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
+                metrics.incr(
+                    "events.unprocessed_copy.promoted",
+                    tags={"source": unprocessed_source},
+                    sample_rate=1.0,
+                )
 
         if app_feature:
             event_size = 0

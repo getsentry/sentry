@@ -6,7 +6,9 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 from sentry_sdk import traces
+from taskbroker_client.retry import Retry
 
+from sentry import reprocessing2
 from sentry.ingest.event_payload import load_event_payload, prepare_submit
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.processing import (
@@ -58,6 +60,10 @@ class SymbolicationTimeout(Exception):
     pass
 
 
+class UnprocessedBackupFailed(Exception):
+    pass
+
+
 def _do_symbolicate_event(
     *,
     task_kind: SymbolicatorTaskKind,
@@ -67,6 +73,7 @@ def _do_symbolicate_event(
     data: Event | None = None,
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
+    unprocessed_backup: reprocessing2.UnprocessedBackupState | None = None,
 ) -> None:
     data = load_event_payload(data, cache_key, processing.event_processing_store)
 
@@ -85,6 +92,16 @@ def _do_symbolicate_event(
     sentry_sdk.set_tag("event_id", event_id)
     sentry_sdk.set_attribute("event_id", event_id)
 
+    # Back up the unprocessed payload before symbolication modifies it in place. Only
+    # the first symbolication task can/should do this, and reprocessing expects it even
+    # if symbolication is ultimately skipped.
+    if unprocessed_backup == "pending":
+        try:
+            reprocessing2.backup_unprocessed_event(data, to_nodestore=True)
+        except Exception as e:
+            raise UnprocessedBackupFailed() from e
+        unprocessed_backup = "nodestore"
+
     def _continue_to_process_event(was_killswitched: bool = False) -> None:
         # Go through the remaining symbolication platforms/functions
         # and submit the next one.
@@ -99,6 +116,7 @@ def _do_symbolicate_event(
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
                 data=data,
+                unprocessed_backup=unprocessed_backup,
             )
             return
         # else:
@@ -111,6 +129,7 @@ def _do_symbolicate_event(
             from_symbolicate=True,
             has_attachments=has_attachments,
             data=data,
+            unprocessed_backup=unprocessed_backup,
         )
 
     symbolication_function = task_kind.function
@@ -230,6 +249,7 @@ def submit_symbolicate(
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
     data: Event | None = None,
+    unprocessed_backup: reprocessing2.UnprocessedBackupState | None = None,
 ) -> None:
     data, cache_key = prepare_submit(data, cache_key, event_id)
 
@@ -252,6 +272,7 @@ def submit_symbolicate(
         has_attachments=has_attachments,
         symbolicate_functions=symbolicate_function_names,
         data=data,
+        unprocessed_backup=unprocessed_backup,
     )
 
 
@@ -270,6 +291,8 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         name=name,
         namespace=symbolication_tasks,
         processing_deadline_duration=settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT + 30,
+        # Only retry failed backups, which happen before any other work.
+        retry=Retry(times=2, delay=5, on=(UnprocessedBackupFailed,), ignore=(TimeoutError,)),
         silo_mode=SiloMode.CELL,
     )
     def symbolication_fn(
@@ -279,6 +302,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         data: Event | None = None,
         has_attachments: bool = False,
         symbolicate_functions: list[str] | None = None,
+        unprocessed_backup: reprocessing2.UnprocessedBackupState | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -306,6 +330,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
             data=data,
             has_attachments=has_attachments,
             symbolicate_functions=symbolicate_function_values,
+            unprocessed_backup=unprocessed_backup,
         )
 
     fn_name = name.split(".")[-1]

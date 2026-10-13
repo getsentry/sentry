@@ -1,11 +1,13 @@
+import copy
 import itertools
 from unittest import mock
 
 import pytest
 
+from sentry import reprocessing2
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorFunction
 from sentry.tasks.store import preprocess_event
-from sentry.tasks.symbolication import symbolicate_event
+from sentry.tasks.symbolication import UnprocessedBackupFailed, symbolicate_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -46,6 +48,10 @@ def mock_event_processing_store():
 
 @django_db_all
 @pytest.mark.parametrize("inline", (False, True))
+@pytest.mark.parametrize(
+    "nodestore_backup,legacy,unprocessed_backup,redis_backups",
+    [(0.0, False, None, 1), (1.0, True, "pending", 1), (1.0, False, "pending", 0)],
+)
 def test_move_to_symbolicate_event(
     default_project,
     mock_process_event,
@@ -53,6 +59,10 @@ def test_move_to_symbolicate_event(
     mock_symbolicate_event,
     mock_event_processing_store,
     inline,
+    nodestore_backup,
+    legacy,
+    unprocessed_backup,
+    redis_backups,
 ):
     data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
     cache_key = None if inline else "e:1"
@@ -62,19 +72,75 @@ def test_move_to_symbolicate_event(
             {
                 "store.enable-inline-payloads": float(inline),
                 "store.disable-processing-store": inline,
+                "store.reprocessing-nodestore-backup.rollout": nodestore_backup,
+                "store.reprocessing-nodestore-backup.legacy": legacy,
             }
         ),
         mock.patch("sentry.tasks.store.reprocessing2.backup_unprocessed_event") as backup,
     ):
         preprocess_event(cache_key=cache_key, data=data)
 
-    backup.assert_called_once_with(data=data)
+    assert backup.call_args_list == [mock.call(data=data)] * redis_backups
     assert mock_symbolicate_event.delay.call_count == 1
     kwargs = mock_symbolicate_event.delay.call_args.kwargs
+    assert kwargs["unprocessed_backup"] == unprocessed_backup
     assert kwargs["data"] == (data if inline else None)
     assert kwargs["cache_key"] == cache_key
     assert mock_process_event.delay.call_count == 0
     assert mock_save_event.delay.call_count == 0
+
+
+@django_db_all
+@pytest.mark.parametrize("load_shed", (False, True))
+def test_symbolication_backs_up_unprocessed_event_once(
+    default_project,
+    mock_process_event,
+    mock_symbolication_function,
+    load_shed,
+):
+    data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
+    unprocessed = copy.deepcopy(data)
+
+    def _symbolicate_in_place(symbolicator, data):
+        data["symbolicated"] = True
+        return data
+
+    mock_symbolication_function.side_effect = _symbolicate_in_place
+    with (
+        override_options({"store.enable-inline-payloads": 1.0}),
+        mock.patch("sentry.tasks.symbolication.killswitch_matches_context", return_value=load_shed),
+        mock.patch(
+            "sentry.tasks.symbolication.reprocessing2.backup_unprocessed_event",
+            wraps=reprocessing2.backup_unprocessed_event,
+        ) as backup,
+        TaskRunner(),
+    ):
+        symbolicate_event(data=data, symbolicate_functions=["js"], unprocessed_backup="pending")
+
+    assert backup.call_count == 1
+    assert reprocessing2.get_unprocessed_backup(default_project.id, EVENT_ID) == unprocessed
+    assert mock_process_event.delay.call_args.kwargs["unprocessed_backup"] == "nodestore"
+
+
+@django_db_all
+def test_symbolication_retries_failed_unprocessed_backup(
+    default_project, mock_process_event, mock_symbolication_function
+):
+    data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
+    with (
+        mock.patch(
+            "sentry.tasks.symbolication.reprocessing2.backup_unprocessed_event",
+            side_effect=RuntimeError,
+        ),
+        pytest.raises(UnprocessedBackupFailed),
+    ):
+        symbolicate_event(data=data, unprocessed_backup="pending")
+
+    mock_symbolication_function.assert_not_called()
+    mock_process_event.delay.assert_not_called()
+    retry = symbolicate_event.retry
+    assert retry.should_retry(retry.initial_state(), UnprocessedBackupFailed())
+    assert not retry.should_retry(retry.initial_state(), TimeoutError())
 
 
 @django_db_all

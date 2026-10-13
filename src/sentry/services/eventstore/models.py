@@ -290,6 +290,13 @@ class BaseEvent(metaclass=abc.ABCMeta):
         """
         return md5(f"{project_id}:{event_id}".encode()).hexdigest()
 
+    @classmethod
+    def generate_unprocessed_node_id(cls, project_id: int, event_id: str) -> str:
+        """
+        Returns the node_id temporarily holding the unprocessed copy of an event.
+        """
+        return cls.generate_node_id(project_id, event_id) + ":u"
+
     @property
     def project(self) -> Project:
         from sentry.models.project import Project
