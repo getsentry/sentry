@@ -241,7 +241,8 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         }
 
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_renders_the_data_built_from_the_legacy_render(
         self, mock_render: mock.MagicMock
@@ -291,7 +292,8 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
 
     @mock.patch(f"{COMPARE_PATH}.sentry_sdk.capture_exception")
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_compare_error_is_captured(
         self, mock_render: mock.MagicMock, mock_capture: mock.MagicMock
@@ -307,7 +309,8 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         mock_capture.assert_called_once_with(mock_diff.side_effect)
 
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_match_records_timing(self, mock_render: mock.MagicMock) -> None:
         with mock.patch(f"{COMPARE_PATH}.metrics") as mock_metrics:
@@ -327,7 +330,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
 
     @mock.patch(
         f"{COMPARE_PATH}.NotificationService.render_template",
-        return_value={"type": "Card", "extra": 1},
+        return_value=({"type": "Card", "extra": 1}, set()),
     )
     def test_mismatch_log(self, mock_render: mock.MagicMock) -> None:
         invocation = self.create_invocation(Action.Type.MSTEAMS)
@@ -354,7 +357,8 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         }
 
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_match_log(self, mock_render: mock.MagicMock) -> None:
         self.project.flags.has_releases = True
@@ -374,7 +378,9 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         assert log["has_chart"] is True
         assert "has_suggested_assignees" not in log
 
-    @mock.patch(f"{COMPARE_PATH}.NotificationService.render_template", return_value={"blocks": []})
+    @mock.patch(
+        f"{COMPARE_PATH}.NotificationService.render_template", return_value=({"blocks": []}, set())
+    )
     def test_slack_traits_are_read_from_the_legacy_payload(
         self, mock_render: mock.MagicMock
     ) -> None:
@@ -399,7 +405,9 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
             "has_autofix_button": True,
         }
 
-    @mock.patch(f"{COMPARE_PATH}.NotificationService.render_template", return_value={"blocks": []})
+    @mock.patch(
+        f"{COMPARE_PATH}.NotificationService.render_template", return_value=({"blocks": []}, set())
+    )
     def test_traits_failure_still_logs_the_result(self, mock_render: mock.MagicMock) -> None:
         with (
             observe_shadow() as observation,
@@ -411,7 +419,8 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         assert observation.result_log["outcome"] == "match"
 
     @mock.patch(
-        f"{COMPARE_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}
+        f"{COMPARE_PATH}.NotificationService.render_template",
+        return_value=({"type": "AdaptiveCard"}, set()),
     )
     def test_compares_when_the_send_raises(self, mock_render: mock.MagicMock) -> None:
         error = RuntimeError("send failed")

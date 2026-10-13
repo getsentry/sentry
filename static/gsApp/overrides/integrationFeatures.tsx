@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 import groupBy from 'lodash/groupBy';
 import partition from 'lodash/partition';
 
-import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationProvider} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';

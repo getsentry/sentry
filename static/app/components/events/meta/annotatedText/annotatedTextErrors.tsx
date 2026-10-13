@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
-import {IconWarning} from 'sentry/icons';
 import type {MetaError} from 'sentry/types/group';
 import {capitalize} from 'sentry/utils/string/capitalize';
 

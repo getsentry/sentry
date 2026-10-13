@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {useModal} from '@sentry/scraps/modal';
@@ -11,7 +12,6 @@ import {
   ScreenshotsModal,
 } from 'sentry/components/feedback/feedbackItem/screenshotsModal';
 import {useFeedbackScreenshot} from 'sentry/components/feedback/feedbackItem/useFeedbackHasScreenshot';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';

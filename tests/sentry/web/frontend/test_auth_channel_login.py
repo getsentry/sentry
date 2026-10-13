@@ -56,6 +56,16 @@ class AuthOrganizationChannelLoginTest(TestCase):
             ("/projects/", 302),
         ]
 
+    def test_session_destination(self) -> None:
+        self.login_as(self.user)
+        self.session["_next"] = "/projects/"
+        self.save_session()
+
+        response = self.client.get(self.path)
+
+        assert response.status_code == 302
+        assert response["Location"] == "/projects/"
+
     def test_subdomain_precedence(self) -> None:
         another_org = self.create_organization(name="another org")
         path = reverse("sentry-auth-channel", args=["fly", another_org.id])

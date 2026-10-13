@@ -8,6 +8,7 @@ import {
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
+  memorySpansToMessages,
   mergeEmptyTurns,
   messagesToMarkdown,
   NOT_REPORTED,
@@ -133,6 +134,34 @@ function createMockEvaluationNode(overrides: {id: string; startTimestamp?: numbe
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
         {type: 'evaluation', answers: {urgency: {type: 'score', score: 1.6}}},
       ]),
+    },
+    errors: new Set(),
+  };
+}
+
+// Mirrors the node `useConversation` produces for a memory span: until Relay
+// sets a dedicated operation.type it reports "ai_client" like an LLM call and is
+// recognized by gen_ai.operation.name.
+function createMockMemoryNode(overrides: {
+  id: string;
+  records?: string;
+  startTimestamp?: number;
+}) {
+  const {id, records, startTimestamp = 1000} = overrides;
+  const end = startTimestamp + 100;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.search_memory',
+    startTimestamp,
+    endTimestamp: end,
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+      [SpanFields.GEN_AI_OPERATION_NAME]: 'search_memory',
+      [SpanFields.GEN_AI_MEMORY_STORE_ID]: 'user-prefs',
+      [SpanFields.GEN_AI_MEMORY_QUERY_TEXT]: 'dietary preferences',
+      ...(records === undefined ? {} : {[SpanFields.GEN_AI_MEMORY_RECORDS]: records}),
     },
     errors: new Set(),
   };
@@ -621,6 +650,16 @@ describe('conversationMessages utilities', () => {
       expect(result.evaluationSpans.map(s => s.id)).toEqual(['eval-1']);
       expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1']);
     });
+
+    it('separates memory spans from generations even though operation.type reports ai_client', () => {
+      const result = partitionSpansByType([
+        createMockNode({id: 'gen-1'}),
+        createMockMemoryNode({id: 'mem-1'}),
+      ] as any);
+
+      expect(result.memorySpans.map(s => s.id)).toEqual(['mem-1']);
+      expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1']);
+    });
   });
 
   describe('evaluationSpansToMessages', () => {
@@ -639,6 +678,28 @@ describe('conversationMessages utilities', () => {
       expect(message?.evaluation?.input?.state).toBe('I cannot log in.');
       expect(message?.evaluation?.answers).toEqual([
         {kind: 'score', key: 'urgency', score: 1.6},
+      ]);
+    });
+  });
+
+  describe('memorySpansToMessages', () => {
+    it('maps a memory span to a standalone message with parsed records', () => {
+      const records = JSON.stringify([{content: 'User prefers dark mode', score: 0.95}]);
+      const [message] = memorySpansToMessages([
+        createMockMemoryNode({id: 'mem-1', records}) as any,
+      ]);
+
+      expect(message).toMatchObject({
+        id: 'memory-mem-1',
+        role: 'memory',
+        content: '',
+        nodeId: 'mem-1',
+        duration: 100,
+      });
+      expect(message?.memory?.operation).toBe('search_memory');
+      expect(message?.memory?.query).toBe('dietary preferences');
+      expect(message?.memory?.records).toEqual([
+        {content: 'User prefers dark mode', score: 0.95},
       ]);
     });
   });
@@ -1738,6 +1799,28 @@ describe('conversationMessages utilities', () => {
         },
       ]);
       expect(result).toBe('### Embedding\n\n> search query');
+    });
+
+    it('formats memory messages', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'memory-1',
+          role: 'memory',
+          content: '',
+          timestamp: 1000,
+          nodeId: 'n1',
+          memory: {
+            operation: 'search_memory',
+            query: 'dietary preferences',
+            rawRecords: undefined,
+            recordCount: undefined,
+            recordId: undefined,
+            records: null,
+            storeId: 'user-prefs',
+          },
+        },
+      ]);
+      expect(result).toBe('### Memory\n\n> search_memory: “dietary preferences”');
     });
 
     it('formats a full conversation with separators between messages', () => {
