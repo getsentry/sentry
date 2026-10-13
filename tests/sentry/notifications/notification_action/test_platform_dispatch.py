@@ -23,7 +23,6 @@ from tests.sentry.notifications.notification_action.test_metric_alert_registry_h
 )
 
 SLACK_HANDLER_PATH = "sentry.notifications.notification_action.metric_alert_registry.handlers.slack_metric_alert_handler"
-METRIC_ROLLOUT = {"notifications.platform-rollout.internal-testing": {"metric-alert": 1.0}}
 
 
 def slack_response(client: mock.MagicMock, ts: str) -> SlackResponse:
@@ -38,8 +37,7 @@ def slack_response(client: mock.MagicMock, ts: str) -> SlackResponse:
     )
 
 
-@override_options(METRIC_ROLLOUT)
-@with_feature("organizations:notification-platform.internal-testing")
+@with_feature("organizations:notification-platform.alerts")
 class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
     def setUp(self) -> None:
         self.create_models()
@@ -159,9 +157,9 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
     def test_get_platform_provider_source_not_allowed(self) -> None:
         assert get_platform_provider(self.invocation(self.action), NotificationSource.ISSUE) is None
 
-    @override_options({"notifications.platform-rollout.internal-testing": {"metric-alert": 0.0}})
-    def test_get_platform_provider_no_access(self) -> None:
-        assert (
-            get_platform_provider(self.invocation(self.action), NotificationSource.METRIC_ALERT)
-            is None
-        )
+    def test_get_platform_provider_flag_off(self) -> None:
+        with self.feature({"organizations:notification-platform.alerts": False}):
+            assert (
+                get_platform_provider(self.invocation(self.action), NotificationSource.METRIC_ALERT)
+                is None
+            )

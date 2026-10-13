@@ -3683,10 +3683,7 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Notification providers (NotificationProviderKey values) that issue and metric alert actions may
-# send through the notification platform, keyed by NotificationSource value. An alert uses the
-# platform only when its provider is listed here and the platform-rollout options above allow it.
-# Removing a provider rolls that provider back to the legacy send on the next alert.
+# Providers allowed to send each alert source through the notification platform
 register(
     "notifications.platform.alert-providers",
     type=Dict,

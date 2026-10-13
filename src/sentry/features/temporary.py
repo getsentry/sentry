@@ -519,6 +519,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:notification-platform.is-sentry", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:notification-platform.early-adopter", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:notification-platform.general-access", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Sends issue and metric alerts through the notification platform, for providers allowed by notifications.platform.alert-providers
+    manager.add("organizations:notification-platform.alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     # NOTE: Don't add features down here! Add them to their specific group and sort
     #       them alphabetically! The order features are registered is not important.

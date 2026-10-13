@@ -747,13 +747,12 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
 
         self.assert_match(self.invocation(action))
 
+    @with_feature("organizations:notification-platform.alerts")
     @mock.patch(f"{PLATFORM_DISPATCH}.send_metric_alert")
-    @mock.patch(f"{PLATFORM_DISPATCH}.NotificationService.has_access", return_value=True)
     @mock.patch(f"{COMPARE_PATH}.NotificationService.render_template")
     def test_slack_sent_by_platform_is_not_compared(
         self,
         mock_render: mock.MagicMock,
-        mock_has_access: mock.MagicMock,
         mock_platform_send: mock.MagicMock,
     ) -> None:
         action = self.create_shadow_action("slack")

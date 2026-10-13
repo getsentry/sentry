@@ -29,8 +29,13 @@ logger = logging.getLogger(__name__)
 
 ALERT_PROVIDERS_OPTION = "notifications.platform.alert-providers"
 
-SLACK_PROVIDERS = frozenset({NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING})
-CHART_PROVIDERS = SLACK_PROVIDERS | {NotificationProviderKey.DISCORD}
+CHART_PROVIDERS = frozenset(
+    {
+        NotificationProviderKey.SLACK,
+        NotificationProviderKey.SLACK_STAGING,
+        NotificationProviderKey.DISCORD,
+    }
+)
 
 
 def get_platform_provider(
@@ -46,11 +51,13 @@ def get_platform_provider(
         or invocation.workflow_id == TEST_NOTIFICATION_ID
         or invocation.action.id == TEST_NOTIFICATION_ID
         or provider not in options.get(ALERT_PROVIDERS_OPTION).get(source, [])
+        or not features.has(
+            "organizations:notification-platform.alerts",
+            invocation.detector.linked_project.organization,
+        )
     ):
         return None
-
-    organization = invocation.detector.linked_project.organization
-    return provider if NotificationService.has_access(organization, source) else None
+    return provider
 
 
 def send_metric_alert(context: IssueNotificationContext, provider: NotificationProviderKey) -> None:
@@ -58,6 +65,14 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
     notification_context = context.notification_context
     metric_issue_context = context.metric_issue_context
     open_period_context = context.open_period_context
+
+    target = IntegrationNotificationTarget(
+        provider_key=provider,
+        resource_type=NotificationTargetResourceType.CHANNEL,
+        resource_id=notification_context.target_identifier,
+        integration_id=notification_context.integration_id,
+        organization_id=organization.id,
+    )
 
     chart_url = None
     if provider in CHART_PROVIDERS and features.has(
@@ -85,18 +100,12 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
         notification_uuid=context.notification_uuid,
         chart_url=chart_url,
     )
-    assert notification_context.target_identifier is not None
-    assert notification_context.integration_id is not None
-    target = IntegrationNotificationTarget(
-        provider_key=provider,
-        resource_type=NotificationTargetResourceType.CHANNEL,
-        resource_id=notification_context.target_identifier,
-        integration_id=notification_context.integration_id,
-        organization_id=organization.id,
-    )
 
     threading_options = None
-    if provider in SLACK_PROVIDERS and OrganizationOption.objects.get_value(
+    if provider in (
+        NotificationProviderKey.SLACK,
+        NotificationProviderKey.SLACK_STAGING,
+    ) and OrganizationOption.objects.get_value(
         organization=organization,
         key="sentry:issue_alerts_thread_flag",
         default=METRIC_ALERTS_THREAD_DEFAULT,
