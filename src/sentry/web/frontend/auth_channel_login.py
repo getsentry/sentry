@@ -1,3 +1,4 @@
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
@@ -47,7 +48,7 @@ class AuthChannelLoginView(AuthOrganizationLoginView):
         except OrganizationMapping.DoesNotExist:
             return self.redirect(reverse("sentry-login"))
 
-        next_uri = self.get_next_uri(request)
+        next_uri = request.GET.get(REDIRECT_FIELD_NAME, request.session.pop("_next", None))
         # If user has an active session within the same organization skip login
         if request.user.is_authenticated:
             if self.active_organization is not None:
