@@ -11,6 +11,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface PRLinksBarProps {
@@ -63,6 +64,8 @@ export function PRLinksBar({repoPRStates}: PRLinksBarProps) {
 }
 
 function PRLinkRow({state}: {state: RepoPRState}) {
+  // The URL comes from session data, so only link http(s) URLs and never e.g. `javascript:`.
+  const prUrl = state.pr_url && isValidUrl(state.pr_url) ? state.pr_url : null;
   // GitHub's owner/repo#number reference format.
   const prName = state.pr_number
     ? `${state.repo_name}#${state.pr_number}`
@@ -82,13 +85,9 @@ function PRLinkRow({state}: {state: RepoPRState}) {
       <IconPullRequest variant="success" />
       <Flex align="center" justify="between" gap="md" wrap="wrap" flex="1" minWidth="0">
         <Text bold wordBreak="break-word">
-          {state.pr_url ? (
-            <ExternalLink href={state.pr_url}>{prName}</ExternalLink>
-          ) : (
-            prName
-          )}
+          {prUrl ? <ExternalLink href={prUrl}>{prName}</ExternalLink> : prName}
         </Text>
-        <PRLinkStatus state={state} />
+        <PRLinkStatus state={state} prUrl={prUrl} />
       </Flex>
     </Flex>
   );
@@ -96,7 +95,7 @@ function PRLinkRow({state}: {state: RepoPRState}) {
 
 type StatusKind = 'opening' | 'pushing' | 'open-error' | 'push-error' | 'view';
 
-function getStatusKind(state: RepoPRState): StatusKind | null {
+function getStatusKind(state: RepoPRState, prUrl: string | null): StatusKind | null {
   // A PR number means the PR already exists, so in-flight or failed work is a push to it.
   if (state.pr_creation_status === 'creating') {
     return state.pr_number ? 'pushing' : 'opening';
@@ -104,12 +103,12 @@ function getStatusKind(state: RepoPRState): StatusKind | null {
   if (state.pr_creation_status === 'error') {
     return state.pr_number ? 'push-error' : 'open-error';
   }
-  return state.pr_url ? 'view' : null;
+  return prUrl ? 'view' : null;
 }
 
 /** Every status is rendered in one grid cell and all but the current one hidden, so the slot's size never changes. */
-function PRLinkStatus({state}: {state: RepoPRState}) {
-  const kind = getStatusKind(state);
+function PRLinkStatus({state, prUrl}: {prUrl: string | null; state: RepoPRState}) {
+  const kind = getStatusKind(state, prUrl);
   const layer = (layerKind: StatusKind) => ({
     area: 'status',
     align: 'center' as const,
@@ -142,7 +141,7 @@ function PRLinkStatus({state}: {state: RepoPRState}) {
         </InfoText>
       </Flex>
       <Flex {...layer('view')}>
-        <LinkButton href={state.pr_url ?? ''} external size="xs" icon={<IconOpen />}>
+        <LinkButton href={prUrl ?? ''} external size="xs" icon={<IconOpen />}>
           {t('View PR')}
         </LinkButton>
       </Flex>

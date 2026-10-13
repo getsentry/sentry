@@ -96,6 +96,19 @@ describe('PRLinksBar', () => {
     );
   });
 
+  it('does not link a javascript: PR URL', () => {
+    // oxlint-disable-next-line no-script-url
+    const scriptUrl = 'javascript:alert(document.domain)';
+    render(<PRLinksBar repoPRStates={{[REPO]: makeState({pr_url: scriptUrl})}} />);
+
+    expect(screen.getByText('acme/web#482')).toBeInTheDocument();
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View PR'})).not.toHaveAttribute(
+      'href',
+      scriptUrl
+    );
+  });
+
   it('collapses the pull requests', async () => {
     render(<PRLinksBar repoPRStates={{[REPO]: makeState()}} />);
 
