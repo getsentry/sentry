@@ -126,7 +126,7 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
         NotificationProviderKey.SLACK_STAGING,
     ) and OrganizationOption.objects.get_value(
         organization=organization,
-        key="sentry:issue_alerts_thread_flag",
+        key="sentry:metric_alerts_thread_flag",
         default=METRIC_ALERTS_THREAD_DEFAULT,
     ):
         threading_options = ThreadingOptions(

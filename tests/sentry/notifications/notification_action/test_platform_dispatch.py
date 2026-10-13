@@ -113,6 +113,22 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         assert follow_up["thread_ts"] == "123.456"
         assert follow_up["reply_broadcast"] is True
 
+    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
+    def test_metric_thread_flag_off_posts_top_level(
+        self, mock_slack_client: mock.MagicMock
+    ) -> None:
+        self.organization.update_option("sentry:metric_alerts_thread_flag", False)
+        client = mock_slack_client.return_value
+        client.chat_postMessage.side_effect = [
+            slack_response(client, "123.456"),
+            slack_response(client, "123.789"),
+        ]
+
+        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
+        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
+
+        assert "thread_ts" not in client.chat_postMessage.call_args_list[1].kwargs
+
     @mock.patch.object(NotificationService, "notify_sync", return_value={})
     def test_slack_staging_targets_staging_provider(self, mock_notify: mock.MagicMock) -> None:
         action = self.create_slack_action(Action.Type.SLACK_STAGING)
