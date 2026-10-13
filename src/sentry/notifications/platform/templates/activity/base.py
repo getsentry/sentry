@@ -291,7 +291,7 @@ def build_activity_notification_data(
         issue_short_id=group.qualified_short_id,
         issue_url=absolute_uri(issue_url),
         issue_title=build_attachment_title(group) or "",
-        enhanced_privacy=organization.flags.enhanced_privacy.is_set,
+        enhanced_privacy=bool(organization.flags.enhanced_privacy),
         issue_culprit=group.culprit,
         issue_description=build_attachment_text(group),
         project_slug=project.slug,
