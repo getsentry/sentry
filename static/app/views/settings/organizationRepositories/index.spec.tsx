@@ -601,6 +601,10 @@ describe('OrganizationRepositories', () => {
         body: {prefixes: []},
       });
       MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/code-mapping-prefixes/repo/',
+        body: {prefixes: []},
+      });
+      MockApiClient.addMockResponse({
         url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/repos/`,
         body: {repos: []},
       });
