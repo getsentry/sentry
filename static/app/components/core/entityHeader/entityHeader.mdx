@@ -236,7 +236,10 @@ A title declares whether it navigates, the same way a stat and a metadata item d
 ```jsx
 {type: 'text', label: t('Issue type'), value: issue.type}
 {type: 'link', label: t('Replay user'), value: replay.user.display_name, to: replaysIndexUrl}
+{type: 'link', label: t('Branch'), value: build.headRef, externalHref: branchUrl}
 ```
+
+A destination outside the product takes `externalHref` in place of `to` — the branch a build came from on GitHub, say. The two are mutually exclusive, and the choice is about where the destination lives rather than how it looks: `to` routes inside the app, `externalHref` renders an `ExternalLink` and opens in a new tab. Both draw identically.
 
 A link title is accent-coloured and carries no underline, the same treatment a stat or metadata link gets — one link treatment across the header. Colour is doing the work here, so reserve `link` for a destination the title genuinely implies; a title that merely _could_ link is better left as text with the destination offered elsewhere.
 
@@ -458,6 +461,17 @@ A value can navigate. `type: 'link'` renders it as one, named from the key and t
   type: 'link',
   value: release.version,
   to: releaseUrl,
+}
+```
+
+As on the title, a value pointing outside the product takes `externalHref` rather than `to` — a commit or pull request on GitHub — and renders an `ExternalLink` that opens in a new tab.
+
+```jsx
+{
+  label: t('Commit'),
+  type: 'link',
+  value: shortSha,
+  externalHref: commitUrl,
 }
 ```
 

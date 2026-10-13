@@ -6,7 +6,7 @@ import {ProjectsBadge} from '@sentry/scraps/badge';
 import {ROW_HEIGHT, TITLE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
-import {Link} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -90,14 +90,25 @@ interface EntityHeaderTitleBase {
 export type EntityHeaderTitleProps = EntityHeaderTitleBase &
   (
     | {type: 'text'}
-    | {
-        /**
-         * Where the entity's name leads — usually the list it came from,
-         * filtered to it.
-         */
-        to: LinkProps['to'];
-        type: 'link';
-      }
+    | ({type: 'link'} & (
+        | {
+            /**
+             * Where the entity's name leads — usually the list it came from,
+             * filtered to it.
+             */
+            to: LinkProps['to'];
+            externalHref?: never;
+          }
+        | {
+            /**
+             * Where the entity's name leads when that is outside the product —
+             * the branch a build came from on GitHub, say. Renders an
+             * `ExternalLink`, so it opens in a new tab.
+             */
+            externalHref: string;
+            to?: never;
+          }
+      ))
   );
 
 function LeadingGraphic({graphic}: {graphic: EntityHeaderLeadingGraphic}) {
@@ -206,13 +217,23 @@ export function EntityHeaderTitle(props: EntityHeaderTitleProps & {isLoading?: b
         // clips everything inside the heading. `Container` floors the
         // anchor's width so it still shrinks as a flex item.
         <Container minWidth={0}>
-          {containerProps => (
+          {containerProps =>
             // Named like the heading, so a links list reads "Replay user,
             // anonymous@example.com" rather than a bare address.
-            <Link to={props.to} aria-label={accessibleName} {...containerProps}>
-              {heading}
-            </Link>
-          )}
+            props.externalHref === undefined ? (
+              <Link to={props.to} aria-label={accessibleName} {...containerProps}>
+                {heading}
+              </Link>
+            ) : (
+              <ExternalLink
+                href={props.externalHref}
+                aria-label={accessibleName}
+                {...containerProps}
+              >
+                {heading}
+              </ExternalLink>
+            )
+          }
         </Container>
       ) : (
         heading
