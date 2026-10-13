@@ -1,4 +1,7 @@
 import {useId, useState} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
@@ -7,9 +10,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconOpen} from 'sentry/icons/iconOpen';
-import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {t} from 'sentry/locale';
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
