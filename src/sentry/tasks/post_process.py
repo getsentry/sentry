@@ -233,22 +233,28 @@ def handle_owner_assignment(job: PostProcessJob) -> None:
         ASSIGNEE_EXISTS_KEY,
         ISSUE_OWNERS_DEBOUNCE_DURATION,
         ISSUE_OWNERS_DEBOUNCE_KEY,
-        GroupOwner,
+        PROJECT_OWNERSHIP_VERSION_KEY,
     )
     from sentry.models.projectownership import ProjectOwnership
 
     event = job["event"]
     project, group = event.project, event.group
 
+    # Fetch every debounce key in one round trip, since most events return early from a debounce
     assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
-    assignee_cache_value = cache.get(assignee_key)
+    issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
+    ownership_version_key = PROJECT_OWNERSHIP_VERSION_KEY(project.id)
+    cached_values = cache.get_many([assignee_key, issue_owners_key, ownership_version_key])
+    assignee_cache_value = cached_values.get(assignee_key)
+    issue_owners_debounce_time = cached_values.get(issue_owners_key)
+    # Timestamp of the last ownership rule change, or None if unchanged within the version TTL
+    ownership_changed_at = cached_values.get(ownership_version_key)
 
     # Debounce assignee existence check if ownership rules haven't changed since the last time assignee was checked
     assignee_exists = None
     if assignee_cache_value is not None:
         # Cache stores (value, timestamp) tuple for timestamp-based invalidation
         cached_assignee_exists, assignee_debounce_time = assignee_cache_value
-        ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
         if ownership_changed_at is None or ownership_changed_at < assignee_debounce_time:
             assignee_exists = cached_assignee_exists
 
@@ -264,12 +270,8 @@ def handle_owner_assignment(job: PostProcessJob) -> None:
         metrics.incr("sentry.task.post_process.handle_owner_assignment.assignee_exists")
         return
 
-    issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
-    issue_owners_debounce_time = cache.get(issue_owners_key)
-
     # Debounce if ownership rules haven't changed since the last evaluation of issue owners
     if issue_owners_debounce_time is not None:
-        ownership_changed_at = GroupOwner.get_project_ownership_version(project.id)
         if ownership_changed_at is None or ownership_changed_at < issue_owners_debounce_time:
             metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
             return
