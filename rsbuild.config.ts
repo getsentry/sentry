@@ -587,7 +587,17 @@ const appConfig: Configuration = {
       chunks: 'async',
       maxInitialRequests: 10, // (default: 30)
       maxAsyncRequests: 10, // (default: 30)
-      cacheGroups: localeChunkGroups,
+      cacheGroups: {
+        ...localeChunkGroups,
+        // Keep charting in one chunk that only changes when echarts is
+        // upgraded, so it stays cached across deploys
+        echarts: {
+          chunks: 'async',
+          name: 'echarts',
+          test: /[\\/]node_modules[\\/](echarts|echarts-for-react|zrender)[\\/]/,
+          enforce: true,
+        },
+      },
     },
 
     // This only runs in production mode
