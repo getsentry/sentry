@@ -36,6 +36,7 @@ from sentry.ai_monitoring.issues.llm_cache_detection.resolution import (
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.relay.config.ai_model_costs import ai_model_metadata_config
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils.cursored_scheduler import CursoredScheduler
@@ -45,7 +46,8 @@ logger = logging.getLogger(__name__)
 DETECTION_FEATURE = "organizations:llm-cache-issue-detection"
 FINDINGS_PER_PROJECT_LIMIT = 5
 MAX_WARMTH_PROBES_PER_PROJECT = 20
-PROJECT_PROCESSING_DEADLINE_SECS = 300
+PROJECT_QUERY_DEADLINE_SECS = 300
+PROJECT_PROCESSING_DEADLINE_SECS = 600
 DETECTION_CYCLE_DURATION = timedelta(hours=1)
 SCHEDULE_KEY = "llm-cache-issue-detection"
 
@@ -54,6 +56,7 @@ SCHEDULE_KEY = "llm-cache-issue-detection"
     name="sentry.ai_monitoring.issues.llm_cache_detection.tasks.run_llm_cache_issue_detection",
     namespace=issues_tasks,
     processing_deadline_duration=120,
+    silo_mode=SiloMode.CELL,
 )
 def run_llm_cache_issue_detection() -> None:
     """Schedule one detection cycle across active Agent Monitoring projects."""
@@ -75,6 +78,7 @@ def run_llm_cache_issue_detection() -> None:
     ),
     namespace=issues_tasks,
     processing_deadline_duration=PROJECT_PROCESSING_DEADLINE_SECS,
+    silo_mode=SiloMode.CELL,
 )
 def detect_llm_cache_issues_for_project(project_id: int) -> None:
     """Classify one project's LLM call sites and log shadow findings."""
@@ -95,8 +99,8 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
         )
         return
 
-    # Leave one minute for an in-flight query and final reporting.
-    deadline = monotonic() + PROJECT_PROCESSING_DEADLINE_SECS - 60
+    # Keep half the task deadline available for an in-flight Snuba retry and reporting.
+    deadline = monotonic() + PROJECT_QUERY_DEADLINE_SECS
     window = DetectionWindow.ending_now()
     query_result = fetch_call_site_stats(project, window)
 

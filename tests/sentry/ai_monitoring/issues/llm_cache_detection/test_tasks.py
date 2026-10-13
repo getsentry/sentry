@@ -4,7 +4,9 @@ from collections import Counter
 from dataclasses import replace
 from unittest import mock
 
+import pytest
 from django.db.models import F
+from django.test import override_settings
 
 from sentry.ai_monitoring.issues.llm_cache_detection.detection import CallSiteStats
 from sentry.ai_monitoring.issues.llm_cache_detection.pricing import PricingGap
@@ -14,16 +16,26 @@ from sentry.ai_monitoring.issues.llm_cache_detection.tasks import (
     DETECTION_CYCLE_DURATION,
     DETECTION_FEATURE,
     FINDINGS_PER_PROJECT_LIMIT,
+    PROJECT_QUERY_DEADLINE_SECS,
     SCHEDULE_KEY,
     detect_llm_cache_issues_for_project,
     run_llm_cache_issue_detection,
 )
 from sentry.models.project import Project
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.cases import TestCase
 from tests.sentry.ai_monitoring.issues.llm_cache_detection.test_utils import make_stats
 
 NOT_CACHING = make_stats(agent_label="Reviewer", hit_rate=0.001)
 HEALTHY = make_stats(agent_label="Researcher", hit_rate=0.85)
+
+
+@override_settings(SILO_MODE=SiloMode.CONTROL)
+def test_tasks_are_cell_only() -> None:
+    with pytest.raises(SiloLimit.AvailabilityError):
+        run_llm_cache_issue_detection()
+    with pytest.raises(SiloLimit.AvailabilityError):
+        detect_llm_cache_issues_for_project(1)
 
 
 def copies(stats: CallSiteStats, count: int) -> list[CallSiteStats]:
@@ -61,6 +73,13 @@ class DetectProjectTest(TestCase):
         self.project = self.create_project()
         module = "sentry.ai_monitoring.issues.llm_cache_detection.tasks"
         self.fetch_stats = self.enterContext(mock.patch(f"{module}.fetch_call_site_stats"))
+        self.enterContext(mock.patch(f"{module}.monotonic", return_value=100))
+        self.enterContext(
+            mock.patch(
+                "sentry.ai_monitoring.issues.llm_cache_detection.resolution.monotonic",
+                return_value=100,
+            )
+        )
         self.resolve = self.enterContext(mock.patch(f"{module}.resolve_candidate"))
         self.resolve.side_effect = lambda _project, candidate, *_args: candidate
         self.fetch_samples = self.enterContext(mock.patch(f"{module}.fetch_sample_calls"))
@@ -91,6 +110,7 @@ class DetectProjectTest(TestCase):
         ]
         assert all(report.pricing is PricingGap.NO_METADATA for report in reports)
         assert self.fetch_samples.call_count == FINDINGS_PER_PROJECT_LIMIT
+        assert self.resolve.call_args.args[3] == 100 + PROJECT_QUERY_DEADLINE_SECS
         assert self.report.call_args.kwargs["warmth_probes_sent"] == 0
 
     def test_skips_disabled_project(self) -> None:
