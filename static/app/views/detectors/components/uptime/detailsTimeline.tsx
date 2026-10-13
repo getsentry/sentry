@@ -77,7 +77,7 @@ export function DetailsTimeline({uptimeDetector, onStatsLoaded}: Props) {
       }
     >
       <SimpleTable.Row>
-        <SimpleTable.RowCell padding="lg 0">
+        <SimpleTable.RowCell padding="2xl 0">
           {isPending ? (
             <CheckInPlaceholder />
           ) : (
