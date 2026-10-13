@@ -7,6 +7,7 @@ FILL_MODE_ZERO: Final = "zero"
 FILL_MODE_LINEAR: Final = "linear"
 
 SMOOTH_MODE_SMA: Final = "sma"
+SMOOTH_MODE_EMA: Final = "ema"
 
 
 @dataclass(frozen=True)
@@ -83,8 +84,9 @@ def smooth_timeseries(
     timestamps: Sequence[float],
     values: Sequence[float | None],
     *,
-    mode: Literal["sma"],
+    mode: Literal["sma", "ema"],
     window_size: int = 3,
+    smoothing_factor: float | None = None,
 ) -> list[float | None]:
     """Smooth values using the selected mode.
 
@@ -99,6 +101,15 @@ def smooth_timeseries(
             Missing buckets stay None and are excluded from the average. Each available
             value has equal weight, regardless of timestamp spacing. window_size must
             be positive and defaults to three buckets.
+        ema: Exponential moving average seeded with the first observed value. Each
+            later observation updates the average as smoothing_factor * value +
+            (1 - smoothing_factor) * previous_average. Missing buckets stay None and
+            leave the average unchanged. Weighting depends on observations, regardless
+            of timestamp spacing. window_size is a positive span that determines the
+            factor as 2 / (window_size + 1), without cutting off older observations.
+            An explicit smoothing_factor in (0, 1] overrides the span-derived factor.
+            The default span of three gives a factor of 0.5. smoothing_factor applies
+            only to ema.
     """
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
@@ -124,5 +135,27 @@ def smooth_timeseries(
                 smoothed_values.append(window_sum / window_count)
 
         return smoothed_values
+    elif mode == SMOOTH_MODE_EMA:
+        if window_size < 1:
+            raise ValueError("Window size must be positive.")
+        if smoothing_factor is None:
+            smoothing_factor = 2 / (window_size + 1)
+        if not 0 < smoothing_factor <= 1:
+            raise ValueError("Smoothing factor must be greater than zero and at most one.")
+
+        ema_values: list[float | None] = []
+        average: float | None = None
+        for value in values:
+            if value is None:
+                ema_values.append(None)
+            else:
+                average = (
+                    value
+                    if average is None
+                    else smoothing_factor * value + (1 - smoothing_factor) * average
+                )
+                ema_values.append(average)
+
+        return ema_values
     else:
         raise ValueError(f"Unsupported smoothing mode: {mode}")
