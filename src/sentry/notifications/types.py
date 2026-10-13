@@ -21,6 +21,11 @@ class NotificationOrigin:
     workflow_id: int | None
     legacy_rule_id: int | None
 
+    def is_test_notification(self) -> bool:
+        return (
+            self.workflow_id == TEST_NOTIFICATION_ID or self.legacy_rule_id == TEST_NOTIFICATION_ID
+        )
+
     @classmethod
     def from_legacy_rule(cls, rule: Rule) -> NotificationOrigin:
         return cls.from_legacy_data(

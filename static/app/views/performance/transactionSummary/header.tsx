@@ -20,6 +20,7 @@ import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay'
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
 import {FrontendHeader} from 'sentry/views/insights/pages/frontend/frontendPageHeader';
@@ -69,6 +70,8 @@ export function TransactionHeader({
 }: Props) {
   const {isInDomainView, view} = useDomainViewFilters();
   const navigate = useNavigate();
+  // Apdex and User Misery thresholds only apply to the transactions dataset.
+  const isInsightsEap = useInsightsEap();
 
   const getNewRoute = useCallback(
     (newTab: Tab) => {
@@ -205,12 +208,14 @@ export function TransactionHeader({
             organization={organization}
             transactionName={transactionName}
           />
-          <TransactionThresholdButton
-            organization={organization}
-            transactionName={transactionName}
-            eventView={eventView}
-            onChangeThreshold={onChangeThreshold}
-          />
+          {isInsightsEap ? null : (
+            <TransactionThresholdButton
+              organization={organization}
+              transactionName={transactionName}
+              eventView={eventView}
+              onChangeThreshold={onChangeThreshold}
+            />
+          )}
         </Fragment>
       ),
     };
