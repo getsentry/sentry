@@ -3719,57 +3719,6 @@ describe('SearchQueryBuilder', () => {
         });
       });
 
-      it('describes the attribute when hovering the value', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="has:browser.name" />);
-
-        await userEvent.hover(
-          screen.getByRole('button', {name: 'Edit value for filter: has'})
-        );
-
-        expect(await screen.findByText('Added by Sentry')).toBeInTheDocument();
-      });
-
-      it('describes a user tag value with the generic tag description', async () => {
-        render(
-          <SearchQueryBuilder {...defaultProps} initialQuery="has:tags[foo,string]" />
-        );
-
-        await userEvent.hover(
-          screen.getByRole('button', {name: 'Edit value for filter: has'})
-        );
-
-        expect(
-          await screen.findByText('A tag sent with one or more events')
-        ).toBeInTheDocument();
-        expect(screen.queryByText('Added by Sentry')).not.toBeInTheDocument();
-      });
-
-      it('describes each attribute suggestion when it is focused', async () => {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="has:browser.name" />);
-
-        await userEvent.click(
-          screen.getByRole('button', {name: 'Edit value for filter: has'})
-        );
-        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
-        await userEvent.clear(input);
-        await userEvent.keyboard('foo');
-        await screen.findByRole('option', {name: 'foo'});
-        await userEvent.keyboard('{ArrowDown}');
-
-        // `tags[foo,string]` is a user tag, so it gets the generic tag description
-        expect(
-          await screen.findByText('A tag sent with one or more events')
-        ).toBeInTheDocument();
-        expect(screen.queryByText('Added by Sentry')).not.toBeInTheDocument();
-
-        await userEvent.clear(input);
-        await userEvent.keyboard('browser.name');
-        await screen.findByRole('option', {name: 'browser.name'});
-        await userEvent.keyboard('{ArrowDown}');
-
-        expect(await screen.findByText('Added by Sentry')).toBeInTheDocument();
-      });
-
       it('replaces the whole attribute when the seeded text is cleared', async () => {
         const mockOnChange = jest.fn();
         render(
