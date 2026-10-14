@@ -507,7 +507,10 @@ class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
-    project_id = BoundedBigIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField(db_index=True, null=True)
+    """
+    No longer written. The monitor already holds the project; this column is being removed.
+    """
     monitor = FlexibleForeignKey("monitors.Monitor", db_index=False)
     monitor_environment = FlexibleForeignKey("monitors.MonitorEnvironment", db_index=False)
     """
@@ -636,7 +639,7 @@ class MonitorCheckIn(Model):
             ),
         ]
 
-    __repr__ = sane_repr("guid", "project_id", "status")
+    __repr__ = sane_repr("guid", "monitor_id", "status")
 
     def save(self, *args, **kwargs):
         if not self.date_added:

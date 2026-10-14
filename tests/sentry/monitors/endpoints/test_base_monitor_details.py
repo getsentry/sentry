@@ -437,7 +437,6 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         check_in = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
         )
@@ -502,7 +501,6 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         check_in = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added,
             status=status,
             timeout_at=get_timeout_at(monitor.get_validated_config(), status, monitor.date_added),

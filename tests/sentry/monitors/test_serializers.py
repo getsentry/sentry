@@ -124,7 +124,6 @@ class MonitorCheckInSerializerTest(TestCase):
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=monitor.project_id,
             status=CheckInStatus.OK,
         )
 
