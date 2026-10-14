@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
@@ -8,7 +9,6 @@ import {Collapsible} from 'sentry/components/collapsible';
 import {IdBadge} from 'sentry/components/idBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

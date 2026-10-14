@@ -1,11 +1,11 @@
 import {Fragment, useRef, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
 import {withForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 

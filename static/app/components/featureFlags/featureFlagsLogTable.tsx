@@ -5,7 +5,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {getFlagActionLabel, type RawFlag} from 'sentry/components/featureFlags/utils';
-import {GridEditable, type GridColumnOrder} from 'sentry/components/tables/gridEditable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {FIELD_FORMATTERS} from 'sentry/utils/discover/fieldRenderers';
@@ -60,7 +60,7 @@ export function FeatureFlagsLogTable({
 
   return (
     <div>
-      <GridEditable
+      <DataGrid
         error={error}
         isLoading={isPending}
         data={flags ?? []}

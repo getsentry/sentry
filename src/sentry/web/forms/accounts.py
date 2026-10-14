@@ -13,9 +13,7 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry import newsletter, options
 from sentry import ratelimits as ratelimiter
-from sentry.auth import password_validation
 from sentry.users.models.user import User
-from sentry.users.models.user_option import UserOption
 from sentry.utils.auth import logger, record_suspended_user_rejection
 from sentry.utils.dates import get_timezone_choices
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
@@ -222,44 +220,3 @@ class PasswordlessRegistrationForm(forms.ModelForm):
                     user, list_ids=newsletter.backend.get_default_list_ids()
                 )
         return user
-
-
-class RegistrationForm(PasswordlessRegistrationForm):
-    password = forms.CharField(
-        required=True, widget=forms.PasswordInput(attrs={"placeholder": "something super secret"})
-    )
-
-    def clean_password(self):
-        password = self.cleaned_data["password"]
-        user = (
-            User(username=self.cleaned_data["username"])
-            if "username" in self.cleaned_data
-            else None
-        )
-        password_validation.validate_password(password, user=user)
-        return password
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.set_password(self.cleaned_data["password"])
-        if commit:
-            user.save()
-            if self.cleaned_data.get("subscribe"):
-                newsletter.backend.create_or_update_subscriptions(
-                    user, list_ids=newsletter.backend.get_default_list_ids()
-                )
-            if self.cleaned_data.get("timezone"):
-                UserOption.objects.create(
-                    user=user, key="timezone", value=self.cleaned_data.get("timezone")
-                )
-        return user
-
-
-class TwoFactorForm(forms.Form):
-    otp = forms.CharField(
-        label=_("Authenticator code"),
-        max_length=20,
-        widget=forms.TextInput(
-            attrs={"placeholder": _("Authenticator or recovery code"), "autofocus": True}
-        ),
-    )

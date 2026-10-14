@@ -3,7 +3,7 @@ from django.utils.safestring import mark_safe
 from django.views.generic import View
 
 from sentry.models.project import Project
-from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils import (
     get_interface_list,
     get_performance_issue_alert_subtitle,
@@ -27,13 +27,18 @@ class DebugPerformanceIssueEmailView(View):
             perf_event.group.id = 1
         perf_group = perf_event.group
 
-        rule = Rule(id=1, label="Example performance rule")
+        origin = NotificationOrigin(
+            label="Example performance rule",
+            environment_id=None,
+            workflow_id=None,
+            legacy_rule_id=1,
+        )
 
         transaction_data = get_transaction_data(perf_event)
         interface_list = get_interface_list(perf_event)
 
         context = {
-            **get_shared_context(rule, org, project, perf_group, perf_event),
+            **get_shared_context(origin, org, project, perf_group, perf_event),
             "interfaces": interface_list,
             "project_label": project.slug,
             "commits": json.loads(COMMIT_EXAMPLE),
