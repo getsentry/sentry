@@ -552,6 +552,7 @@ describe('Onboarding', () => {
       )?.[1];
 
       expect(onboardingCode).toBeDefined();
+      expect(prompt).toHaveTextContent('Name each Sentry project after its repository.');
       expect(
         screen.getByText(
           `npx @sentry/agent-plugin install ${scmOrganization.slug}#${onboardingCode}`

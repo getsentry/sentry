@@ -1284,7 +1284,7 @@ describe('ScmCreateProject', () => {
           'Help me create and set up Sentry projects for this application.',
           {exact: false}
         )
-      ).toBeInTheDocument();
+      ).toHaveTextContent('Name each Sentry project after its repository.');
       expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual(
         onboardingSession
       );

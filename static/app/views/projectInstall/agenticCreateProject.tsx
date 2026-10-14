@@ -8,6 +8,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Access} from 'sentry/components/acl/access';
 import {AgenticSetup} from 'sentry/components/onboarding/agenticProgress/agenticSetup';
 import type {AgentSetupCopySource} from 'sentry/components/onboarding/agenticProgress/agentSetupCard';
+import {buildAgentSetupPrompt} from 'sentry/components/onboarding/agenticProgress/agentSetupPrompt';
 import type {AgenticRunSession} from 'sentry/components/onboarding/agenticProgress/types';
 import {useAgenticSetupRun} from 'sentry/components/onboarding/agenticProgress/useAgenticSetupRun';
 import {ManualSetupCard} from 'sentry/components/onboarding/manualSetupCard';
@@ -82,12 +83,11 @@ export function AgenticCreateProject({
     onSessionChange: setSession,
   });
 
-  const prompt = [
-    t('Help me create and set up Sentry projects for this application.'),
-    '',
-    t('org slug: %s', organization.slug),
-    ...(onboardingCode ? [t('run code: %s', onboardingCode)] : []),
-  ].join('\n');
+  const prompt = buildAgentSetupPrompt({
+    intro: t('Help me create and set up Sentry projects for this application.'),
+    orgSlug: organization.slug,
+    onboardingCode,
+  });
 
   const handleCopyCommand = (source: AgentSetupCopySource) => {
     trackAnalytics('project_creation.agent_setup_command_copied', {
