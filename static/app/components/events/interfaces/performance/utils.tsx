@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import keyBy from 'lodash/keyBy';
 
-import {getContextMeta} from 'sentry/components/events/contexts/utils';
+import {getContextMeta} from 'sentry/components/events/contexts/dataUtils';
 import type {
   RawSpanType,
   TraceContextSpanProxy,
