@@ -123,10 +123,9 @@ runs:
         DEVSERVICES_TIMEOUT: ${{ inputs.devservices-timeout-minutes }}
         DEVSERVICES_MODE: ${{ inputs.mode }}
         GITHUB_TOKEN: ${{ github.token }}
-      run: |
-        # Non-fatal: if this fails, "Start new devservices" below runs devservices
-        # up in the foreground instead, like it does without early-devservices.
-        "$ACTION_PATH/devservices-bg.sh" start || echo "::warning::Couldn't start devservices early; it will start after the Python setup instead"
+      # Never fails: if it can't start, "Start new devservices" below runs
+      # devservices up in the foreground instead, like without early-devservices.
+      run: python3 "$ACTION_PATH/devservices-bg.py" start
 
     - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
       with:
@@ -170,7 +169,7 @@ runs:
         # Waits for the background devservices up if early-devservices started
         # it. Otherwise runs devservices up from the workdir now, with the
         # venv's devservices.
-        "$ACTION_PATH/devservices-bg.sh" wait
+        python3 "$ACTION_PATH/devservices-bg.py" wait
 
         # have tests listen on the docker gateway ip so loopback can occur
         echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
