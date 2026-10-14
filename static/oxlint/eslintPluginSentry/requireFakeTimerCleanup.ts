@@ -102,8 +102,13 @@ function cleanupCalls(
         );
         continue;
       }
+      if (statement.type === 'VariableDeclaration') {
+        for (const declaration of statement.declarations) {
+          calls.push(...cleanupCalls(declaration.init));
+        }
+        continue;
+      }
       if (
-        statement.type === 'VariableDeclaration' ||
         statement.type === 'FunctionDeclaration' ||
         statement.type === 'EmptyStatement'
       ) {
