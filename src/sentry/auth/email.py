@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import string
 from collections.abc import Collection, Iterable
 from dataclasses import dataclass
 
@@ -18,10 +19,22 @@ class AmbiguousUserFromEmail(Exception):
         self.users = tuple(users)
 
 
+_ASCII_CASE_FOLD = str.maketrans(string.ascii_uppercase, string.ascii_lowercase)
+
+
+def emails_match(a: str, b: str) -> bool:
+    """Case-insensitive email equality, folding ASCII case only."""
+    return a.translate(_ASCII_CASE_FOLD) == b.translate(_ASCII_CASE_FOLD)
+
+
 def resolve_email_to_user(
     email: str, organization: Organization | RpcOrganization | None = None
 ) -> User | None:
-    candidates = tuple(UserEmail.objects.filter(email__iexact=email, user__is_active=True))
+    candidates = tuple(
+        ue
+        for ue in UserEmail.objects.filter(email__iexact=email, user__is_active=True)
+        if emails_match(ue.email, email)
+    )
     if not candidates:
         return None
     return _EmailResolver(email, organization).resolve(candidates)
