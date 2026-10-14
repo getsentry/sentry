@@ -886,7 +886,6 @@ module = [
     "sentry.integrations.msteams.analytics",
     "sentry.integrations.msteams.card_builder.*",
     "sentry.integrations.msteams.client",
-    "sentry.integrations.msteams.constants",
     "sentry.integrations.msteams.integration",
     "sentry.integrations.msteams.link_identity",
     "sentry.integrations.msteams.linkage",
