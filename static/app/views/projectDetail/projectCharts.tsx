@@ -48,7 +48,7 @@ import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';
 import {ProjectErrorsBasicChart} from './charts/projectErrorsBasicChart';
 
-export {DisplayModes} from 'sentry/views/projectDetail/displayModes';
+import {DisplayModes} from 'sentry/views/projectDetail/displayModes';
 
 type Props = {
   chartId: string;
