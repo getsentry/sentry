@@ -11,6 +11,7 @@ from django.db.models.functions import Upper
 from django.utils.text import slugify
 
 from sentry.api.serializers.base import Serializer, serialize
+from sentry.auth.email import emails_match
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.db.models.query import in_iexact
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
@@ -123,7 +124,11 @@ class DatabaseBackedUserService(UserService):
             # If not, we can take a stab at guessing it's an email address
             if "@" in username:
                 # email isn't guaranteed unique
-                return [serialize_rpc_user(u) for u in qs.filter(email__iexact=username)]
+                return [
+                    serialize_rpc_user(u)
+                    for u in qs.filter(email__iexact=username)
+                    if emails_match(u.email, username)
+                ]
         return []
 
     def get_existing_usernames(self, *, usernames: list[str]) -> list[str]:
@@ -232,16 +237,20 @@ class DatabaseBackedUserService(UserService):
         email: str,
         ident: str | None = None,
     ) -> RpcUser | None:
-        user_query = User.objects.filter(email__iexact=email, is_active=True)
-        if user_query.exists():
+        candidates = [
+            u
+            for u in User.objects.filter(email__iexact=email, is_active=True).order_by("id")
+            if emails_match(u.email, email)
+        ]
+        if candidates:
             # Users are not supposed to have the same email but right now our auth pipeline let this happen
             # So let's not break the user experience. Instead return the user with auth identity of ident or
             # the first user if ident is None
-            user = user_query[0]
-            if user_query.count() > 1:
+            user = candidates[0]
+            if len(candidates) > 1:
                 logger.warning("Email has multiple users", extra={"email": email})
                 if ident:
-                    identity_query = AuthIdentity.objects.filter(user__in=user_query, ident=ident)
+                    identity_query = AuthIdentity.objects.filter(user__in=candidates, ident=ident)
                     if identity_query.exists():
                         user = identity_query[0].user
                     if identity_query.count() > 1:
