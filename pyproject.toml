@@ -1464,7 +1464,6 @@ module = [
     "sentry.web.frontend.base",
     "sentry.web.frontend.csrf_failure",
     "sentry.web.frontend.disabled_member_view",
-    "sentry.web.frontend.error_404",
     "sentry.web.frontend.error_500",
     "sentry.web.frontend.generic",
     "sentry.web.frontend.group_event_json",
