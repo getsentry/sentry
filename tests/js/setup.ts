@@ -16,7 +16,6 @@ import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
-import {closeModal} from 'sentry/actionCreators/modal';
 // eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -257,12 +256,32 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
   },
 }));
 
+/**
+ * Whether the current test file has loaded `moduleName`. The hooks below reset
+ * state that only exists once a module is loaded, so they check this instead
+ * of loading the module (and everything it imports) into every spec.
+ */
+function isModuleLoaded(moduleName: string): boolean {
+  return require.resolve(moduleName) in require.cache;
+}
+
 // Close any open modals before each test
-beforeEach(closeModal);
+beforeEach(() => {
+  if (isModuleLoaded('sentry/stores/modalStore')) {
+    jest
+      .requireActual<typeof import('sentry/stores/modalStore')>(
+        'sentry/stores/modalStore'
+      )
+      .ModalStore.closeModal();
+  }
+});
 afterEach(() => {
-  const {toast} =
-    jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
-  act(() => void toast.dismiss());
+  // Toasts are held by sonner, so there are none to dismiss until it is loaded.
+  if (isModuleLoaded('sonner')) {
+    const {toast} =
+      jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
+    act(() => void toast.dismiss());
+  }
   resetResizeObservers();
 });
 

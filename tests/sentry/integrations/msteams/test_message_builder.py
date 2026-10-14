@@ -49,6 +49,7 @@ from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
+from sentry.notifications.types import NotificationOrigin
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
@@ -121,6 +122,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             self.create_project_rule(name="rule1"),
             self.create_project_rule(name="rule2"),
         ]
+        self.origins = [NotificationOrigin.from_legacy_rule(rule) for rule in self.rules]
 
     def test_simple(self) -> None:
         card = MSTeamsMessageBuilder().build(
@@ -333,7 +335,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.event1.data["type"] = self.group1.data["type"] = "error"
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         body = issue_card["body"]
@@ -429,7 +431,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         payload = MSTeamsIssueMessageBuilder(
             group=self.group1,
             event=self.event1,
-            rules=[self.rules[0]],
+            rules=[NotificationOrigin.from_legacy_rule(self.rules[0])],
             integration=self.integration,
         ).generate_action_payload(ACTION_TYPE.RESOLVE)["payload"]
 
@@ -442,7 +444,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.event1.data["type"] = self.group1.data["type"] = "error"
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         description = issue_card["body"][1]
@@ -454,7 +456,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.data["type"] = "error"
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         description = issue_card["body"][1]
@@ -463,13 +465,13 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_issue_without_description(self) -> None:
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         assert 3 == len(issue_card["body"])
 
     def test_issue_with_only_one_rule(self) -> None:
-        one_rule = self.rules[:1]
+        one_rule = self.origins[:1]
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=one_rule, integration=self.integration
         ).build_group_card()
@@ -487,7 +489,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.save()
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         assert _is_container_block(issue_card["body"][2])
@@ -503,7 +505,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.substatus = None
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         assert _is_container_block(issue_card["body"][2])
@@ -518,7 +520,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         GroupAssignee.objects.assign(self.group1, self.user)
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         body = issue_card["body"]

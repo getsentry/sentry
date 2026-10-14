@@ -583,6 +583,9 @@ from sentry.seer.endpoints.organization_seer_autofix_overview import (
     OrganizationSeerAutofixOverviewEndpoint,
     OrganizationSeerAutofixScmInfoEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_chat_suggestions import (
+    OrganizationSeerChatSuggestionsEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
@@ -894,7 +897,6 @@ from .endpoints.project_repo import ProjectRepoEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
-from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
 from .endpoints.project_symbol_sources import ProjectSymbolSourcesEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
@@ -2548,6 +2550,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-explorer-chat-run-id",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/chat-suggestions/$",
+        OrganizationSeerChatSuggestionsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-chat-suggestions",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-overview/$",
         OrganizationSeerAutofixOverviewEndpoint.as_view(),
         name="sentry-api-0-organization-seer-autofix-overview",
@@ -3079,11 +3086,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/hooks/(?P<hook_id>[^/]+)/$",
         ProjectServiceHookDetailsEndpoint.as_view(),
         name="sentry-api-0-project-service-hook-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/hooks/(?P<hook_id>[^/]+)/stats/$",
-        ProjectServiceHookStatsEndpoint.as_view(),
-        name="sentry-api-0-project-service-hook-stats",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/(?:issues|groups)/$",

@@ -48,7 +48,7 @@ describe('Sentry Application Details', () => {
       });
     });
 
-    it('has inputs for redirectUrl and verifyInstall', () => {
+    it('renders the fields for a new public app', () => {
       renderComponent();
 
       expect(
@@ -56,10 +56,6 @@ describe('Sentry Application Details', () => {
       ).toBeInTheDocument();
 
       expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
-    });
-
-    it('shows empty scopes and no credentials', () => {
-      renderComponent();
 
       expect(screen.getByText('Permissions')).toBeInTheDocument();
 
@@ -67,10 +63,6 @@ describe('Sentry Application Details', () => {
       expect(screen.getByRole('checkbox', {name: 'issue'})).not.toBeChecked();
       expect(screen.getByRole('checkbox', {name: 'error'})).not.toBeChecked();
       expect(screen.getByRole('checkbox', {name: 'comment'})).not.toBeChecked();
-    });
-
-    it('does not show logo upload fields', () => {
-      renderComponent();
 
       expect(screen.queryByText('Logo')).not.toBeInTheDocument();
       expect(screen.queryByText('Small Icon')).not.toBeInTheDocument();
@@ -181,15 +173,11 @@ describe('Sentry Application Details', () => {
       return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
-    it('does not show logo upload fields', () => {
+    it('renders the fields for a new internal app', () => {
       renderComponent();
 
       expect(screen.queryByText('Logo')).not.toBeInTheDocument();
       expect(screen.queryByText('Small Icon')).not.toBeInTheDocument();
-    });
-
-    it('no inputs for redirectUrl and verifyInstall', () => {
-      renderComponent();
 
       expect(
         screen.queryByRole('checkbox', {name: 'Verify Installation'})
@@ -269,7 +257,7 @@ describe('Sentry Application Details', () => {
       };
       const organization = OrganizationFixture();
 
-      it('prefills the form from the template', async () => {
+      it('prefills the form and renders only the template fields', async () => {
         render(<SentryApplicationDetails />, {
           initialRouterConfig: templateRouterConfig,
           organization,
@@ -290,6 +278,19 @@ describe('Sentry Application Details', () => {
           'false'
         );
 
+        expect(
+          screen.queryByRole('checkbox', {name: 'Alert Action'})
+        ).not.toBeInTheDocument();
+        expect(screen.queryByRole('textbox', {name: 'Schema'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('textbox', {name: 'Overview'})).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('textbox', {name: 'Authorized JavaScript Origins'})
+        ).not.toBeInTheDocument();
+        // The raw headers textarea is replaced by the token input.
+        expect(
+          screen.queryByRole('textbox', {name: 'Webhook Headers'})
+        ).not.toBeInTheDocument();
+
         await userEvent.click(screen.getByRole('button', {name: 'Webhooks'}));
 
         expect(screen.getByRole('checkbox', {name: 'issue'})).toBeEnabled();
@@ -303,26 +304,6 @@ describe('Sentry Application Details', () => {
             referrer: 'test_referrer',
           })
         );
-      });
-
-      it('renders only the template fields', () => {
-        render(<SentryApplicationDetails />, {
-          initialRouterConfig: templateRouterConfig,
-          organization,
-        });
-
-        expect(
-          screen.queryByRole('checkbox', {name: 'Alert Action'})
-        ).not.toBeInTheDocument();
-        expect(screen.queryByRole('textbox', {name: 'Schema'})).not.toBeInTheDocument();
-        expect(screen.queryByRole('textbox', {name: 'Overview'})).not.toBeInTheDocument();
-        expect(
-          screen.queryByRole('textbox', {name: 'Authorized JavaScript Origins'})
-        ).not.toBeInTheDocument();
-        // The raw headers textarea is replaced by the token input.
-        expect(
-          screen.queryByRole('textbox', {name: 'Webhook Headers'})
-        ).not.toBeInTheDocument();
       });
 
       it('saves the composed integration', async () => {
@@ -483,39 +464,23 @@ describe('Sentry Application Details', () => {
       });
     });
 
-    it('shows logo upload fields', async () => {
+    it('renders the fields and credentials for a public app', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByText('Logo')).toBeInTheDocument();
       expect(screen.getByText('Small Icon')).toBeInTheDocument();
-    });
 
-    it('has inputs for redirectUrl and verifyInstall', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
       expect(
         screen.getByRole('checkbox', {name: 'Verify Installation'})
       ).toBeInTheDocument();
-
       expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
-    });
 
-    it('shows application data', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
-      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
-      expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
-    });
-
-    it('renders clientId and clientSecret for public apps', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByRole('textbox', {name: 'Client ID'})).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
+
+      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
+      expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
     });
 
     it('prefills webhook headers from the app', async () => {
@@ -586,38 +551,22 @@ describe('Sentry Application Details', () => {
       });
     });
 
-    it('no inputs for redirectUrl and verifyInstall', async () => {
+    it('renders the fields, tokens and client secret for an internal app', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
       expect(
         screen.queryByRole('checkbox', {name: 'Verify Installation'})
       ).not.toBeInTheDocument();
-
       expect(
         screen.queryByRole('textbox', {name: 'Redirect URL'})
       ).not.toBeInTheDocument();
-    });
 
-    it('shows logo upload fields', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByText('Logo')).toBeInTheDocument();
       expect(screen.getByText('Small Icon')).toBeInTheDocument();
-    });
 
-    it('has tokens', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByLabelText('Token preview')).toHaveTextContent('oken');
-    });
 
-    it('shows just clientSecret', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
     });
@@ -653,17 +602,11 @@ describe('Sentry Application Details', () => {
       });
     });
 
-    it('shows masked tokens', async () => {
+    it('shows masked tokens and clientSecret', async () => {
       renderComponent();
 
       await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByLabelText('Token preview')).toHaveTextContent(maskedValue);
-    });
-
-    it('shows masked clientSecret', async () => {
-      renderComponent();
-
-      await screen.findByRole('button', {name: 'Save Changes'});
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toHaveValue(
         maskedValue
       );

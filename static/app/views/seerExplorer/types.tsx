@@ -20,6 +20,7 @@ function zLooseEnum<T extends string>(values: readonly [T, ...T[]]) {
 // Schemas used by runtime type guards
 
 const explorerFilePatchSchema = z.object({
+  code_url: z.string().nullish(),
   diff: z.string(),
   patch: z.custom<FilePatch>(isFilePatch),
   repo_name: z.string(),
@@ -268,6 +269,12 @@ export type SeerExplorerResponse = {
     repo_pr_states?: Record<string, RepoPRState>;
   } | null;
   sentry_run_id?: string | null;
+};
+
+export type ChatSuggestion = {
+  text: string;
+  action_type?: string | null;
+  kind?: 'question' | 'action';
 };
 
 export type RespondToUserInputOptions = {

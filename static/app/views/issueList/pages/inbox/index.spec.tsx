@@ -238,6 +238,16 @@ describe('InboxPage', () => {
   } = {}) {
     let previewHasSeen = group.hasSeen;
     MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/summarize/`,
+      method: 'POST',
+      body: {
+        headline: 'Test summary',
+        whatsWrong: null,
+        possibleCause: null,
+        trace: null,
+      },
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: () => ({...group, hasSeen: previewHasSeen}),
     });
@@ -977,6 +987,11 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
       body: fixProposedGroup,
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${fixProposedGroup.id}/`,
+      match: [MockApiClient.matchQuery({environment: ['production']})],
+      body: {...fixProposedGroup, firstSeen: null, lastSeen: null},
+    });
     const pullRequestsRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${fixProposedGroup.id}/pull-requests/`,
       match: [MockApiClient.matchQuery({expand: 'checksAndReview'})],
@@ -1014,6 +1029,14 @@ describe('InboxPage', () => {
       await within(preview).findByRole('heading', {name: 'Fix proposed issue'})
     ).toBeInTheDocument();
     expect(within(preview).getByText('Fix proposed message')).toBeInTheDocument();
+    expect(within(preview).getByRole('time', {name: 'First Seen'})).toHaveAttribute(
+      'datetime',
+      '2026-07-18T12:00:00.000Z'
+    );
+    expect(within(preview).getByRole('time', {name: 'Last Seen'})).toHaveAttribute(
+      'datetime',
+      '2026-07-19T12:00:00.000Z'
+    );
     expect(groupRequest).toHaveBeenCalledTimes(1);
     expect(pullRequestsRequest).toHaveBeenCalledTimes(1);
     expect(autofixSetupRequest).toHaveBeenCalledTimes(1);
@@ -1550,7 +1573,29 @@ describe('InboxPage', () => {
       jest.restoreAllMocks();
     });
 
-    it('fills the available width when there is no preview or empty state', async () => {
+    it('keeps loading rows within the persisted inbox width before auto-selecting an issue', async () => {
+      jest.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(550);
+      localStorage.setItem('inbox-split-size', '550');
+      mockSuccessfulSections();
+      mockIssuePreview();
+
+      const {router} = render(<InboxPageInContainer />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      const inbox = screen.getByRole('region', {name: 'Issue inbox'});
+      expect(within(inbox).getByLabelText('Loading Fix Proposed issues')).toBeVisible();
+      expect(router.location.query.preview).toBeUndefined();
+      expect(inbox).toHaveStyle({width: '550px'});
+
+      await waitFor(() => {
+        expect(router.location.query.preview).toBe(fixProposedGroup.id);
+      });
+      expect(inbox).toHaveStyle({width: '550px'});
+    });
+
+    it('reserves the inbox column when there is no preview or empty state', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
@@ -1567,9 +1612,9 @@ describe('InboxPage', () => {
       const inbox = screen.getByRole('region', {name: 'Issue inbox'});
       await waitFor(() => {
         expect(getEmotionRules(inbox.parentElement!).join('')).toContain(
-          'grid-template-columns: minmax(0, 1fr)'
+          'grid-template-columns: max-content minmax(0, 1fr)'
         );
-        expect(inbox).toHaveStyle({width: '100%'});
+        expect(inbox).toHaveStyle({width: '480px'});
       });
       expect(
         getEmotionRules(screen.getByRole('complementary', {name: 'Issue preview'})).join(
