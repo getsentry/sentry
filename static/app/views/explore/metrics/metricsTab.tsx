@@ -15,6 +15,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {t} from 'sentry/locale';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {scrollIntoViewBelowTopBar} from 'sentry/utils/scrollIntoViewBelowTopBar';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {
@@ -42,7 +43,6 @@ import {
 } from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {StyledPageFilterBar} from 'sentry/views/explore/metrics/styles';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
-import {TOP_BAR_HEIGHT_CSS_VAR} from 'sentry/views/navigation/constants';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -64,8 +64,7 @@ function MetricsTabContentInner({datePageFilterProps}: MetricsTabProps) {
       return;
     }
     newlyAddedLabelRef.current = undefined;
-    panel.style.scrollMarginTop = `calc(var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) + ${searchRef.current?.offsetHeight ?? 0}px)`;
-    panel.scrollIntoView({behavior: 'smooth', block: 'start'});
+    scrollIntoViewBelowTopBar(panel, searchRef.current?.offsetHeight);
   }, []);
 
   return (
