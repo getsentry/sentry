@@ -140,10 +140,7 @@ const StyledBreak = styled('hr')`
   border-color: ${p => p.theme.tokens.border.primary};
 `;
 
-export const SidebarSectionTitle = styled(SidebarSection.Title)`
-  margin-bottom: ${p => p.theme.space.md};
-  color: ${p => p.theme.tokens.content.primary};
-`;
+export {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebarSectionTitle';
 
 const Side = styled(Layout.Side)<{isBottomSidebar: boolean}>`
   position: relative;
