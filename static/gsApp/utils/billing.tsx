@@ -14,11 +14,14 @@ import {
   BILLION,
   DEFAULT_TRIAL_DAYS,
   GIGABYTE,
+  MILLISECONDS_IN_HOUR,
   MILLION,
   RESERVED_BUDGET_QUOTA,
   UNLIMITED,
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
+
+export {MILLISECONDS_IN_HOUR};
 import {
   AddOnCategory,
   CREDIT_INVOICE_ITEM_TYPES,
@@ -41,8 +44,6 @@ import type {
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {titleCase} from 'getsentry/utils/titleCase';
 import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
-
-export const MILLISECONDS_IN_HOUR = 3600_000;
 
 function isNum(val: unknown): val is number {
   return typeof val === 'number';
