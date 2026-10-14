@@ -103,8 +103,7 @@ def get_query_builder_for_group(
             column_resolver=column_resolver,
         ),
     )
-    # Filter on the group we already loaded. `issue:` would look it up again by short id,
-    # and `issue.id:` would send the id to Snuba as a float.
+    # Added as a condition so Snuba gets an int, an `issue.id:` search term parses as a float.
     builder.add_conditions([Condition(builder.column("issue.id"), Op.EQ, group.id)])
     return builder
 
