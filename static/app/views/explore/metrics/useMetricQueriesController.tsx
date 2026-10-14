@@ -1,4 +1,4 @@
-import {useLayoutEffect, useMemo, useRef} from 'react';
+import {useInsertionEffect, useMemo, useRef} from 'react';
 
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -206,7 +206,9 @@ export function useMetricQueriesController({
   }, [queries, setQueries, labels]);
 
   const latestValue = useRef(value);
-  useLayoutEffect(() => {
+  // Insertion effects run before every layout effect in the commit, so descendants that call a
+  // mutator from their own layout effect (e.g. group by cleanup) see the latest rows.
+  useInsertionEffect(() => {
     latestValue.current = value;
   });
 
