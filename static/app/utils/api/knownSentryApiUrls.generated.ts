@@ -570,7 +570,6 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-issue/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/user-reports/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/users/'
-  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/web-vitals-detector/'
   | '/publickeys/relocations/'
   | '/relays/$relayId/'
   | '/relays/live/'
