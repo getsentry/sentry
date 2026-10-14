@@ -109,6 +109,16 @@ class TriggerInvestigationTest(TestCase):
         assert result is None
         assert not Investigation.objects.filter(organization=self.organization).exists()
 
+    def test_metric_issue_without_a_resolvable_source_is_skipped(self, dispatch: mock.Mock) -> None:
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+
+        result = trigger_investigation(
+            group=group, user_id=self.user.id, referrer=InvestigationTriggerReferrer.ALERT_ACTION
+        )
+
+        assert result is None
+        assert not Investigation.objects.filter(organization=self.organization).exists()
+
     def test_issue_starts_a_seeded_investigation(self, dispatch: mock.Mock) -> None:
         group = self.create_group(project=self.project, message="Checkout failed")
 

@@ -4,6 +4,7 @@ import logging
 from typing import override
 
 from sentry.investigations.triggers import InvestigationTriggerReferrer, trigger_investigation
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models import Action, Workflow
 from sentry.workflow_engine.processors.action import is_action_permitted
@@ -56,6 +57,20 @@ class SeerInvestigationActionHandler(ActionHandler):
         )
         if user_id is None:
             logger.info("investigations.alert_action.no_workflow_creator", extra=logging_ctx)
+            return
+
+        # Match the access rules of the interactive investigation endpoints, and
+        # don't act on behalf of a creator who has since left the organization.
+        if not organization.flags.allow_joinleave:
+            logger.info("investigations.alert_action.closed_membership", extra=logging_ctx)
+            return
+        if not OrganizationMember.objects.filter(
+            organization_id=organization.id,
+            user_id=user_id,
+            user_is_active=True,
+            invite_status=InviteStatus.APPROVED.value,
+        ).exists():
+            logger.info("investigations.alert_action.creator_not_member", extra=logging_ctx)
             return
 
         event = invocation.event_data.event

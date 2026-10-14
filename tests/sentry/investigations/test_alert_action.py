@@ -70,6 +70,24 @@ class SeerInvestigationActionHandlerTest(BaseWorkflowTest):
 
         trigger.assert_not_called()
 
+    @with_feature(FEATURES)
+    def test_does_nothing_when_the_creator_left_the_organization(self, trigger: mock.Mock) -> None:
+        former_member = self.create_user()
+        workflow = self.create_workflow(created_by_id=former_member.id)
+
+        SeerInvestigationActionHandler.execute(self.invocation(workflow.id))
+
+        trigger.assert_not_called()
+
+    @with_feature(FEATURES)
+    def test_does_nothing_without_open_membership(self, trigger: mock.Mock) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        SeerInvestigationActionHandler.execute(self.invocation())
+
+        trigger.assert_not_called()
+
 
 class SeerInvestigationActionValidationTest(BaseWorkflowTest):
     def validator(self) -> BaseActionValidator:

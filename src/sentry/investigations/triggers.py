@@ -19,6 +19,7 @@ from typing import Any
 from sentry.incidents.grouptype import MetricIssue
 from sentry.investigations.models import Investigation
 from sentry.investigations.services import (
+    InvestigationSourceNotFound,
     create_agentic_breached_metric_investigation,
     create_agentic_manual_investigation,
     resolve_investigation_source,
@@ -88,7 +89,7 @@ def trigger_investigation(
     issues fall back to a prompt-driven investigation seeded with the issue.
 
     Returns None when there is nothing to investigate, such as a metric issue
-    whose open period has already closed.
+    whose open period has already closed or can no longer be resolved.
     """
     organization = group.project.organization
     project_ids = [group.project_id]
@@ -99,14 +100,20 @@ def trigger_investigation(
         if open_period is None or open_period.date_ended is not None:
             _record(referrer, source_type, "skipped_no_open_period")
             return None
-        resolved_source = resolve_investigation_source(
-            organization=organization,
-            source={
-                "type": source_type,
-                "ref": {"groupId": group.id, "openPeriodId": open_period.id},
-            },
-            accessible_project_ids=set(project_ids),
-        )
+        try:
+            resolved_source = resolve_investigation_source(
+                organization=organization,
+                source={
+                    "type": source_type,
+                    "ref": {"groupId": group.id, "openPeriodId": open_period.id},
+                },
+                accessible_project_ids=set(project_ids),
+            )
+        except InvestigationSourceNotFound:
+            # The resolver drops metrics it can no longer describe, such as when
+            # the detector or its subscription has been removed.
+            _record(referrer, source_type, "skipped_unresolvable_source")
+            return None
         investigation, created = create_agentic_breached_metric_investigation(
             organization=organization,
             user_id=user_id,
