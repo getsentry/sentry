@@ -5,7 +5,7 @@ const ERRORS_ONLY_URL_PARAM = 'errorsOnly';
 // `conversation.errors` counts spans whose status is not ok, cancelled, or
 // unknown, so this also matches statuses like `internal_error` that a plain
 // `span.status:error` filter would miss. It matches the table's Errors column.
-export const ERRORS_ONLY_QUERY = 'conversation.errors:>0';
+const ERRORS_ONLY_QUERY = 'conversation.errors:>0';
 
 export function useErrorsOnlyFilter() {
   const [errorsOnly, setErrorsOnly] = useQueryState(
