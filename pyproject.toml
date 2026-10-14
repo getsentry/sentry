@@ -744,7 +744,6 @@ module = [
     "sentry.grouping.context",
     "sentry.grouping.enhancer",
     "sentry.grouping.enhancer.actions",
-    "sentry.grouping.enhancer.exceptions",
     "sentry.grouping.enhancer.matchers",
     "sentry.grouping.enhancer.rules",
     "sentry.grouping.grouptype",
