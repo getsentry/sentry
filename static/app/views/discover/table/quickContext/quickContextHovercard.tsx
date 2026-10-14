@@ -1,11 +1,11 @@
-import type {ComponentProps} from 'react';
+import {lazy, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Flex} from '@sentry/scraps/layout';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {Body, Hovercard} from 'sentry/components/hovercard';
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -15,39 +15,12 @@ import type {EventData, EventView} from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import {EventContext} from './eventContext';
-import {IssueContext} from './issueContext';
-import {ReleaseContext} from './releaseContext';
-import {NoContextWrapper} from './styles';
+import {NoContext} from './noContext';
 import {ContextType} from './utils';
 
-function getHoverBody(
-  dataRow: EventData,
-  contextType: ContextType,
-  organization: Organization,
-  location?: Location,
-  projects?: Project[],
-  eventView?: EventView
-) {
-  switch (contextType) {
-    case ContextType.ISSUE:
-      return <IssueContext dataRow={dataRow} organization={organization} />;
-    case ContextType.RELEASE:
-      return <ReleaseContext dataRow={dataRow} organization={organization} />;
-    case ContextType.EVENT:
-      return (
-        <EventContext
-          dataRow={dataRow}
-          organization={organization}
-          location={location}
-          projects={projects}
-          eventView={eventView}
-        />
-      );
-    default:
-      return <NoContextWrapper>{t('There is no context available.')}</NoContextWrapper>;
-  }
-}
+// The body imports the issue, release and event context views (including the
+// stack trace preview), so it's loaded on demand when a hovercard first opens.
+const LazyQuickContextBody = lazy(() => import('./quickContextBody'));
 
 // NOTE: Will be adding switch cases as more contexts require headers.
 function getHoverHeader(
@@ -150,14 +123,18 @@ export function QuickContextHovercard(props: ContextProps) {
       {...hovercardProps}
       showUnderline
       header={getHoverHeader(dataRow, contextType, organization)}
-      body={getHoverBody(
-        dataRow,
-        contextType,
-        organization,
-        location,
-        projects,
-        eventView
-      )}
+      body={
+        <LazyLoad
+          LazyComponent={LazyQuickContextBody}
+          loadingFallback={<NoContext isLoading />}
+          contextType={contextType}
+          dataRow={dataRow}
+          organization={organization}
+          eventView={eventView}
+          location={location}
+          projects={projects}
+        />
+      }
     >
       {children}
     </StyledHovercard>

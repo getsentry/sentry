@@ -16,7 +16,7 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {ActionDropDown, ContextValueType} from './actionDropdown';
-import {NoContext} from './quickContextWrapper';
+import {NoContext} from './noContext';
 import {
   ContextBody,
   ContextContainer,
