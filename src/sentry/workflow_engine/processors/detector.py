@@ -457,8 +457,7 @@ def ensure_association_with_detector(group: Group, detector_id: DetectorId | Non
     if not options.get("workflow_engine.ensure_detector_association"):
         return False
 
-    # Only error Groups can resolve a Detector without a detector_id, so there's nothing to
-    # create for other Groups. Bail before the lookup, missing associations aren't cached.
+    # Only error Groups can resolve a Detector without a detector_id
     if detector_id is None and group.type != ErrorGroupType.type_id:
         return False
 
