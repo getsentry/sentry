@@ -17,7 +17,7 @@ import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/is
 import {
   constructViewLink,
   type IssueView,
-} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
+} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewUtils';
 
 interface IssueViewItemProps {
   isActive: boolean;
