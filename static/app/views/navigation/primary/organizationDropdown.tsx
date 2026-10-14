@@ -272,10 +272,10 @@ function OrganizationMenuHeader({
           <Text
             size="sm"
             density="fixed"
-            bold
             tabular
             css={theme => css`
               color: ${theme.tokens.interactive.transparent.neutral.content.headings};
+              font-weight: ${theme.font.weight.sans.medium};
             `}
           >
             {t('Organization')}
@@ -299,9 +299,9 @@ function OrganizationMenuHeader({
               <Text
                 size="md"
                 density="default"
-                bold
                 css={theme => css`
                   color: ${theme.tokens.content.headings};
+                  font-weight: ${theme.font.weight.sans.medium};
                 `}
               >
                 {organization.name || organization.slug}
