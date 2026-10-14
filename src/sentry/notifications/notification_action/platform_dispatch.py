@@ -85,15 +85,11 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
     integration_context = integration_service.organization_context(
         organization_id=organization.id, integration_id=notification_context.integration_id
     )
-    
+
     integration = integration_context.integration
     org_integration = integration_context.organization_integration
-    
-    if (
-        org_integration is None
-        or integration is None
-        or integration.status != ObjectStatus.ACTIVE
-    ):
+
+    if org_integration is None or integration is None or integration.status != ObjectStatus.ACTIVE:
         integration_status = integration.status if integration is not None else None
         logger.warning(
             "notification_action.platform_dispatch.integration_inactive",
