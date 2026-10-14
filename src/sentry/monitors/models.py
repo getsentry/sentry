@@ -579,8 +579,6 @@ class MonitorCheckIn(Model):
         "monitors.MonitorCheckInConfig",
         null=True,
         on_delete=models.PROTECT,
-        db_constraint=False,
-        db_index=False,
     )
     """
     References the MonitorCheckInConfig holding a snapshot of the monitor
