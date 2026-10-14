@@ -3,12 +3,13 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconStack} from '@sentry/icons/stack';
 
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
@@ -32,7 +33,11 @@ import {getLogColors} from 'sentry/views/explore/logs/styles';
 import {addValidatedFieldTypesToLogsMeta} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {LogsRateLimitError} from 'sentry/views/explore/logs/tables/logsRateLimitError';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {type LogsAggregatesTableResult} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+import {
+  LOGS_AGGREGATES_TIMESTAMP_FIELD,
+  LOGS_AGGREGATES_TRACE_FIELD,
+  type LogsAggregatesTableResult,
+} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 import {
   getLogSeverityLevel,
   viewLogsSamplesTarget,
@@ -49,6 +54,8 @@ import {
   useSetQueryParamsAggregateCursor,
   useSetQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 export function LogsAggregateTable({
   aggregatesTableResult,
@@ -219,16 +226,46 @@ export function LogsAggregateTable({
               return [<span key="header-icon" />];
             }
 
-            const target = viewLogsSamplesTarget({
-              location,
-              search,
-              fields: fields.slice(),
-              groupBys,
-              visualizes,
-              sorts: sorts.slice(),
-              row: dataRow || {},
-              projects,
-            });
+            const row = dataRow || {};
+            const menuItems: MenuItemProps[] = [
+              {
+                key: 'view-samples',
+                label: t('View Samples'),
+                to: viewLogsSamplesTarget({
+                  location,
+                  search,
+                  fields: fields.slice(),
+                  groupBys,
+                  visualizes,
+                  sorts: sorts.slice(),
+                  row,
+                  projects,
+                }),
+              },
+            ];
+
+            const traceSlug = row[LOGS_AGGREGATES_TRACE_FIELD];
+            const timestamp = row[LOGS_AGGREGATES_TIMESTAMP_FIELD];
+            if (
+              typeof traceSlug === 'string' &&
+              traceSlug &&
+              (typeof timestamp === 'string' || typeof timestamp === 'number')
+            ) {
+              menuItems.push({
+                key: 'view-random-trace',
+                label: t('View Random Trace'),
+                to: getTraceDetailsUrl({
+                  organization,
+                  traceSlug,
+                  timestamp,
+                  targetId: undefined,
+                  eventId: undefined,
+                  location,
+                  source: TraceViewSources.LOGS,
+                  dateSelection: normalizeDateTimeParams(selection.datetime),
+                }),
+              });
+            }
 
             return [
               <Fragment key={`sample-${rowIndex}`}>
@@ -240,11 +277,23 @@ export function LogsAggregateTable({
                       color={palette[rowIndex]!}
                     />
                   )}
-                <Tooltip title={t('View Samples')} containerDisplayMode="flex">
-                  <StyledLink to={target}>
-                    <IconStack />
-                  </StyledLink>
-                </Tooltip>
+                <DropdownMenu
+                  items={menuItems}
+                  usePortal
+                  strategy="fixed"
+                  size="sm"
+                  offset={4}
+                  minMenuWidth={0}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.IconButton
+                      {...triggerProps}
+                      aria-label={t('View Samples')}
+                      icon={<IconStack />}
+                      variant="transparent"
+                      size="zero"
+                    />
+                  )}
+                />
               </Fragment>,
             ];
           },
@@ -263,8 +312,4 @@ const TopResultsIndicator = styled('div')<{color: string}>`
   border-radius: 0 3px 3px 0;
 
   background-color: ${p => p.color};
-`;
-
-const StyledLink = styled(Link)`
-  display: flex;
 `;

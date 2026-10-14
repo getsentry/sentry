@@ -18,7 +18,10 @@ import {
   useLogsFrozenProjectIds,
   useLogsFrozenSearch,
 } from 'sentry/views/explore/logs/logsFrozenContext';
-import {type LogsAggregatesResult} from 'sentry/views/explore/logs/types';
+import {
+  OurLogKnownFieldKey,
+  type LogsAggregatesResult,
+} from 'sentry/views/explore/logs/types';
 import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateSortBys,
@@ -43,11 +46,32 @@ interface UseLogsAggregatesTableOptions {
 
 export type LogsAggregatesTableResult = ReturnType<typeof useLogsAggregatesTable>;
 
+export const LOGS_AGGREGATES_TRACE_FIELD = `any(${OurLogKnownFieldKey.TRACE_ID})`;
+export const LOGS_AGGREGATES_TIMESTAMP_FIELD = `any(${OurLogKnownFieldKey.TIMESTAMP})`;
+
+const LOGS_AGGREGATES_SAMPLE_FIELDS = [
+  LOGS_AGGREGATES_TRACE_FIELD,
+  LOGS_AGGREGATES_TIMESTAMP_FIELD,
+];
+
 export function getLogsAggregatesFields(
   groupBys: readonly string[],
   visualizes: readonly Visualize[]
 ): string[] {
   return [...groupBys.filter(Boolean), ...visualizes.map(visualize => visualize.yAxis)];
+}
+
+function getLogsAggregatesQueryFields(
+  groupBys: readonly string[],
+  visualizes: readonly Visualize[]
+): string[] {
+  const fields = [...LOGS_AGGREGATES_SAMPLE_FIELDS];
+  for (const field of getLogsAggregatesFields(groupBys, visualizes)) {
+    if (!fields.includes(field)) {
+      fields.push(field);
+    }
+  }
+  return fields;
 }
 
 export function useLogsAggregatesTable({
@@ -184,9 +208,10 @@ function useLogsAggregatesApiOptions({
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const aggregateCursor = useQueryParamsAggregateCursor();
   const [caseInsensitive] = useCaseInsensitivity();
-  const fields = getLogsAggregatesFields(groupBys, visualizes);
+  const visibleFields = getLogsAggregatesFields(groupBys, visualizes);
+  const fields = getLogsAggregatesQueryFields(groupBys, visualizes);
   // Drop orderbys that point at series removed by `_if` validation.
-  const allowedFields = new Set(fields);
+  const allowedFields = new Set(visibleFields);
   const validSortBys = aggregateSortBys.filter(sort => allowedFields.has(sort.field));
   const resolvedSortBys = validSortBys.length
     ? validSortBys
