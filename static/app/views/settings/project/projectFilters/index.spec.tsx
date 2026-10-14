@@ -1154,6 +1154,12 @@ describe('ProjectFilters', () => {
       within(dialog).getByRole('menuitemradio', {name: 'Country'})
     ).toBeInTheDocument();
     expect(
+      within(dialog).getByRole('menuitemradio', {name: 'Browser Name'})
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('menuitemradio', {name: 'Browser Version'})
+    ).toBeInTheDocument();
+    expect(
       within(dialog).getByRole('menuitemradio', {name: 'Release'})
     ).toBeInTheDocument();
     expect(
@@ -1220,6 +1226,78 @@ describe('ProjectFilters', () => {
     expect(
       await screen.findByText('Matches the release attribute of the log.')
     ).toBeInTheDocument();
+  });
+
+  it('creates a filter on a browser name and version range', async () => {
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: {
+        id: '7',
+        name: 'Old Chrome',
+        active: true,
+        dataType: 'error',
+        conditions: [
+          {type: 'browser_name', value: ['Chrome*']},
+          {type: 'browser_version', value: ['<111']},
+        ],
+        dateCreated: '2024-01-01T00:00:00Z',
+        dateUpdated: '2024-01-01T00:00:00Z',
+      },
+    });
+    renderInboundFilters([]);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Name'}));
+    await userEvent.paste('Old Chrome');
+
+    await userEvent.click(
+      within(dialog).getByRole('textbox', {name: 'Condition property'})
+    );
+    await userEvent.click(
+      within(dialog).getByRole('menuitemradio', {name: 'Browser Name'})
+    );
+    expect(
+      within(dialog).getByPlaceholderText('Glob pattern, e.g. Chrome or Mobile Safari')
+    ).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Condition value'}));
+    await userEvent.paste('Chrome*');
+
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Add Condition'}));
+    const [, versionProperty] = within(dialog).getAllByRole('textbox', {
+      name: 'Condition property',
+    });
+    await userEvent.click(versionProperty!);
+    await userEvent.click(
+      within(dialog).getByRole('menuitemradio', {name: 'Browser Version'})
+    );
+    expect(
+      within(dialog).getByPlaceholderText('Comparison or glob pattern, e.g. <111 or 17.*')
+    ).toBeInTheDocument();
+    const [, versionValue] = within(dialog).getAllByRole('textbox', {
+      name: 'Condition value',
+    });
+    await userEvent.click(versionValue!);
+    await userEvent.paste('<111');
+
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Create Filter'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        CUSTOM_INBOUND_FILTERS_URL,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'Old Chrome',
+            dataType: 'error',
+            conditions: [
+              {type: 'browser_name', value: ['Chrome*']},
+              {type: 'browser_version', value: ['<111']},
+            ],
+          }),
+        })
+      )
+    );
   });
 
   it('warns in the modal when an error condition targets an obfuscated platform', async () => {
@@ -1297,6 +1375,9 @@ describe('ProjectFilters', () => {
     ).not.toBeInTheDocument();
     expect(
       within(dialog).queryByRole('menuitemradio', {name: 'Country'})
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole('menuitemradio', {name: 'Browser Version'})
     ).not.toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('menuitemradio', {name: 'Release'}));
 

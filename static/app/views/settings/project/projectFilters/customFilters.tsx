@@ -56,6 +56,8 @@ type ConditionType =
   | 'error_message'
   | 'error_type'
   | 'geo_country_code'
+  | 'browser_name'
+  | 'browser_version'
   | 'metric_name'
   | 'log_message'
   | 'release'
@@ -158,6 +160,22 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     placeholder: t('Glob pattern, e.g. US'),
     description: t(
       "Matches the two-letter country code of the user's location, e.g. US. Sentry derives it from the sender IP address unless the SDK sets one."
+    ),
+  },
+  browser_name: {
+    dataType: 'error',
+    label: t('Browser Name'),
+    placeholder: t('Glob pattern, e.g. Chrome or Mobile Safari'),
+    description: t(
+      'Matches the name of the browser, e.g. Chrome, Chrome Mobile, Firefox, Safari or Mobile Safari. Sentry derives it from the User-Agent header unless the SDK sets one.'
+    ),
+  },
+  browser_version: {
+    dataType: 'error',
+    label: t('Browser Version'),
+    placeholder: t('Comparison or glob pattern, e.g. <111 or 17.*'),
+    description: t(
+      'Matches the version of the browser. Start a value with <, <=, >, >= or = to compare versions, e.g. <111 or >=15.4. Any other value is a glob pattern. Add a Browser Name condition to limit the versions to one browser.'
     ),
   },
   metric_name: {
