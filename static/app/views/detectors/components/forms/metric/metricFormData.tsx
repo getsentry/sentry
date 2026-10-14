@@ -159,6 +159,16 @@ export function createConditions(
     conditionResult: DetectorPriorityLevel.OK,
   });
 
+  return conditions;
+}
+
+/**
+ * Convert our form dataset to the backend dataset
+ */
+export const getBackendDataset = (dataset: DetectorDataset): Dataset => {
+  switch (dataset) {
+    case DetectorDataset.ERRORS:
+      return Dataset.ERRORS;
     case DetectorDataset.TRANSACTIONS:
       return Dataset.GENERIC_METRICS;
     case DetectorDataset.RELEASES:
