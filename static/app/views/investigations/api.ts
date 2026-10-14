@@ -11,6 +11,7 @@ import type {
   InvestigationCandidate,
   InvestigationBlock,
   InvestigationBlockExecutionStart,
+  InvestigationComment,
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationListItem,
@@ -55,6 +56,24 @@ export function getInvestigationDetailQueryOptions(
         investigationId,
       },
       staleTime: 30_000,
+    }
+  );
+}
+
+/** Newest first, page-level and block comments together. */
+export function investigationCommentsQueryOptions({
+  organizationSlug,
+  investigationId,
+}: {
+  investigationId: string;
+  organizationSlug: string;
+}) {
+  return apiOptions.as<InvestigationComment[]>()(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/comments/',
+    {
+      path: {organizationIdOrSlug: organizationSlug, investigationId},
+      query: {per_page: 100},
+      staleTime: 0,
     }
   );
 }

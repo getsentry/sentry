@@ -129,6 +129,7 @@ describe('Investigation detail', () => {
       method: 'PUT',
       body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
+    MockApiClient.addMockResponse({url: `${detailUrl}comments/`, body: []});
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -2115,6 +2116,10 @@ describe('Investigation detail', () => {
       url: '/organizations/org-slug/investigations/investigation-2/presence/',
       method: 'PUT',
       body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/investigation-2/comments/',
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/investigation-2/',
