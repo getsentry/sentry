@@ -274,7 +274,18 @@ function OrganizationMenuHeader({
           </Text>
         </ThemeProvider>
         <Flex align="center" gap="md">
-          <OrganizationAvatar organization={organization} size={32} />
+          <Flex
+            align="center"
+            justify="center"
+            width="34px"
+            height="34px"
+            radius="md"
+            overflow="hidden"
+            border="muted"
+            background="primary"
+          >
+            <OrganizationAvatar organization={organization} size={32} />
+          </Flex>
           <ThemeProvider theme={darkTheme}>
             <Stack gap="0">
               <Text size="md" density="comfortable" bold variant="primary">
