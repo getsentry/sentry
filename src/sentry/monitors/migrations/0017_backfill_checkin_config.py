@@ -7,7 +7,8 @@ from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils import json
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.iterators import chunked
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBarApprox
 
 
 def backfill_checkin_config(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
@@ -15,34 +16,29 @@ def backfill_checkin_config(apps: StateApps, schema_editor: BaseDatabaseSchemaEd
     MonitorCheckInConfig = apps.get_model("monitors", "MonitorCheckInConfig")
 
     config_ids: dict[str, int] = {}
+    checkins = MonitorCheckIn.objects.all().values_list("id", "monitor_config", "checkin_config_id")
 
-    def get_config_id(config: dict) -> int:
-        config_hash = hashlib.sha256(json.dumps(config, sort_keys=True).encode("utf-8")).hexdigest()
-        if config_hash not in config_ids:
-            checkin_config, _ = MonitorCheckInConfig.objects.get_or_create(
-                hash=config_hash, defaults={"config": config}
-            )
-            config_ids[config_hash] = checkin_config.id
-        return config_ids[config_hash]
-
-    def update_batch(checkins: list) -> None:
+    for batch in chunked(
+        RangeQuerySetWrapperWithProgressBarApprox(
+            checkins, step=1000, result_value_getter=lambda row: row[0]
+        ),
+        1000,
+    ):
         checkin_ids_by_config_id: dict[int, list[int]] = defaultdict(list)
-        for checkin in checkins:
-            if checkin.checkin_config_id is not None or checkin.monitor_config is None:
+        for checkin_id, config, checkin_config_id in batch:
+            if config is None or checkin_config_id is not None:
                 continue
-            checkin_ids_by_config_id[get_config_id(checkin.monitor_config)].append(checkin.id)
+            config_hash = hashlib.sha256(
+                json.dumps(config, sort_keys=True).encode("utf-8")
+            ).hexdigest()
+            if config_hash not in config_ids:
+                config_ids[config_hash] = MonitorCheckInConfig.objects.get_or_create(
+                    hash=config_hash, defaults={"config": config}
+                )[0].id
+            checkin_ids_by_config_id[config_ids[config_hash]].append(checkin_id)
 
         for config_id, checkin_ids in checkin_ids_by_config_id.items():
-            MonitorCheckIn.objects.filter(
-                id__in=checkin_ids, checkin_config_id__isnull=True
-            ).update(checkin_config_id=config_id)
-
-    queryset = MonitorCheckIn.objects.filter(
-        monitor_config__isnull=False, checkin_config_id__isnull=True
-    ).only("id", "monitor_config", "checkin_config_id")
-
-    for _ in RangeQuerySetWrapperWithProgressBar(queryset, callbacks=[update_batch]):
-        pass
+            MonitorCheckIn.objects.filter(id__in=checkin_ids).update(checkin_config_id=config_id)
 
 
 class Migration(CheckedMigration):
