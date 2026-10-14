@@ -16,7 +16,15 @@ interface Options {
  * when no repository is selected.
  */
 export function getScmDefaultProjectName({repository, platformKey}: Options): string {
-  const repoSegment = slugify(repository?.name.split('/').pop() ?? '');
-  const base = repoSegment.length > 0 ? repoSegment : slugify(platformKey ?? '');
-  return base.slice(0, MAX_PROJECT_NAME_LENGTH);
+  return (
+    toProjectName(repository?.name.split('/').pop() ?? '') ||
+    toProjectName(platformKey ?? '')
+  );
+}
+
+// Mirrors the backend's slugify_instance, which strips edge hyphens after truncating.
+function toProjectName(value: string): string {
+  return slugify(value)
+    .slice(0, MAX_PROJECT_NAME_LENGTH)
+    .replace(/^-+|-+$/g, '');
 }

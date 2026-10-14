@@ -1078,8 +1078,13 @@ describe('ScmCreateProject', () => {
   });
 
   it('creates from an existing integration and detected repository platform', async () => {
-    const repoLinkRequest = mockExistingGithubRepository();
+    mockExistingGithubRepository();
     const {createRequest, project} = mockProjectCreation('sentry', 'python');
+    const repoLinkRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
+      method: 'POST',
+      body: {},
+    });
     const {router} = render(<ScmCreateProject />, {organization});
 
     expect(await screen.findByRole('button', {name: /getsentry/})).toBeInTheDocument();
