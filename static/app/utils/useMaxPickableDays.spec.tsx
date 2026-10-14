@@ -65,7 +65,7 @@ describe('useMaxPickableDays', () => {
     });
   });
 
-  it('returns 30/90 for tracemetrics without flag', () => {
+  it('returns 30/30 days for tracemetrics', () => {
     const {result} = renderHookWithProviders(() =>
       useMaxPickableDays({
         dataCategories: [DataCategory.TRACE_METRICS],
@@ -75,25 +75,7 @@ describe('useMaxPickableDays', () => {
     expect(result.current).toEqual({
       defaultPeriod: '24h',
       maxPickableDays: 30,
-      maxUpgradableDays: 90,
-    });
-  });
-
-  it('returns 90/90 for tracemetrics with flag', () => {
-    const {result} = renderHookWithProviders(
-      () =>
-        useMaxPickableDays({
-          dataCategories: [DataCategory.TRACE_METRICS],
-        }),
-      {
-        organization: OrganizationFixture({features: ['visibility-explore-range-high']}),
-      }
-    );
-
-    expect(result.current).toEqual({
-      defaultPeriod: '24h',
-      maxPickableDays: 90,
-      maxUpgradableDays: 90,
+      maxUpgradableDays: 30,
     });
   });
 
