@@ -1,10 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {t, tct} from 'sentry/locale';
-import {
-  IssueAlertActionType,
-  type IntegrationAction,
-} from 'sentry/types/alerts';
+import {IssueAlertActionType, type IntegrationAction} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 
 export type ChannelIdentityField = 'channelId' | 'channelName';
