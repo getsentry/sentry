@@ -20,10 +20,11 @@ from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule as RuleModel
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.types.actor import ActorType
 from sentry.workflow_engine.models import Workflow
 
@@ -37,7 +38,7 @@ def as_group_event(event: Event | GroupEvent) -> GroupEvent:
 def _get_records(
     _project: Project, rules: Collection[RuleModel], event: Event | GroupEvent
 ) -> list[Record]:
-    origins = [NotificationOrigin.from_legacy_rule(rule) for rule in rules]
+    origins = [create_notification_origin(rule) for rule in rules]
     return [event_to_record(as_group_event(event), origins)] if origins else []
 
 
@@ -73,7 +74,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
             ),
         ]
 
-        origin = NotificationOrigin.from_legacy_rule(rule)
+        origin = create_notification_origin(rule)
         records = [event_to_record(as_group_event(event), (origin,)) for event in events]
 
         digest = build_digest(project, sort_records(records))[0]
@@ -266,7 +267,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         ]
 
     def test_simple(self) -> None:
-        origin = NotificationOrigin.from_legacy_rule(self.rule)
+        origin = create_notification_origin(self.rule)
         records = [
             event_to_record(as_group_event(event), (origin,))
             for event in self.team1_events + self.team2_events + self.user4_events
@@ -299,7 +300,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
     def test_direct_email(self) -> None:
         """When the action type is not Issue Owners, then the target actor gets a digest."""
         self.project_ownership.update(fallthrough=False)
-        origin = NotificationOrigin.from_legacy_rule(self.rule)
+        origin = create_notification_origin(self.rule)
         records = [event_to_record(as_group_event(event), (origin,)) for event in self.team1_events]
         digest = build_digest(self.project, sort_records(records))[0]
 
@@ -385,7 +386,7 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         events = self.create_events_from_filenames(
             self.project, ["hello.moz", "goodbye.moz", "hola.moz", "adios.moz"]
         )
-        origin = NotificationOrigin.from_legacy_rule(self.rule)
+        origin = create_notification_origin(self.rule)
         records = [
             event_to_record(as_group_event(event), (origin,))
             for event in events + self.team1_events
