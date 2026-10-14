@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import datetime
+import functools
 from typing import Any
-from unittest.mock import patch
 
 from snuba_sdk import Column, Condition, Op
 
@@ -14,28 +14,29 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 class TestGetQueryBuilderForGroup(TestCase):
-    def test_filters_by_group_id_without_short_id_lookup(self) -> None:
+    def test_filters_on_group_without_queries(self) -> None:
         group = self.create_group(project=self.project)
         snuba_params = SnubaParams(
             start=before_now(days=1),
             end=before_now(),
             organization=self.organization,
             projects=[self.project],
-            environments=[],
         )
 
-        with patch.object(Group.objects, "by_qualified_short_id_bulk") as by_short_id:
-            builder = get_query_builder_for_group(
-                query="", snuba_params=snuba_params, group=group, limit=10, offset=0
-            )
+        build = functools.partial(
+            get_query_builder_for_group,
+            query="",
+            snuba_params=snuba_params,
+            group=group,
+            limit=10,
+            offset=0,
+        )
+        build()  # warm the option cache
 
-        by_short_id.assert_not_called()
-        group_conditions = [
-            c for c in builder.where if isinstance(c, Condition) and c.lhs == Column("group_id")
-        ]
-        assert group_conditions == [Condition(Column("group_id"), Op.EQ, group.id)]
-        # Snuba only scopes replacements to integer group ids, so 1.0 isn't good enough.
-        assert isinstance(group_conditions[0].rhs, int)
+        with self.assertNumQueries(0):
+            builder = build()
+
+        assert Condition(Column("group_id"), Op.EQ, group.id) in builder.where
 
 
 class TestEAPRunGroupEventsQuery(TestCase, SnubaTestCase):
