@@ -228,6 +228,11 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
         allow_null=True,
         help_text="Agent names to filter conversations by.",
     )
+    errorsOnly = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Whether to only show conversations with errors.",
+    )
     query = ListField(
         child=QuerySerializer(),
         required=True,
@@ -251,6 +256,7 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
             "interval",
             "crossEvents",
             "agent",
+            "errorsOnly",
         ]
 
         inner_query_keys = [
