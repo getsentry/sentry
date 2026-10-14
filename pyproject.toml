@@ -819,7 +819,6 @@ module = [
     "sentry.integrations.github",
     "sentry.integrations.github.blame",
     "sentry.integrations.github.client",
-    "sentry.integrations.github.constants",
     "sentry.integrations.github.installation",
     "sentry.integrations.github.integration",
     "sentry.integrations.github.issue_sync",
