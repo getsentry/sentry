@@ -7,7 +7,10 @@ import {Text} from '@sentry/scraps/text';
 
 import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
-import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
+import {
+  droppedEventsToOutcomeSections,
+  type ReasonRow,
+} from 'sentry/components/droppedData/drawer/outcomeSections';
 import {
   getOutcomeColors,
   isOutcomeSelected,
@@ -23,7 +26,7 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 interface DroppedDataDrawerProps {
   dataset: DiscoverDatasets;
   interval?: string;
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }
 
 export function DroppedDataDrawer({
