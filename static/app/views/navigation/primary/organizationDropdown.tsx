@@ -298,7 +298,7 @@ function OrganizationMenuHeader({
             <Stack gap="0">
               <Text
                 size="md"
-                density="comfortable"
+                density="default"
                 bold
                 css={theme => css`
                   color: ${theme.tokens.content.headings};
