@@ -13,6 +13,13 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry import eventstream, tsdb
+from sentry.issues.action_log.types import (
+    ActionSource,
+    FirstSeenAction,
+    GroupActionType,
+    first_seen_idempotency_key,
+)
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
@@ -29,14 +36,17 @@ from sentry.tasks.unmerge import (
     get_fingerprint,
     get_group_backfill_attributes,
     get_group_creation_attributes,
+    publish_destination_first_seen,
     repair_denormalizations,
     start_unmerge,
     unmerge,
 )
 from sentry.taskworker.selfchain_idempotency import mark_spawned
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import redis
 
@@ -628,6 +638,54 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert destination_similar_items[1][0] == source.id
         assert destination_similar_items[1][1]["message:message:character-shingles"] < 1.0
 
+    def test_unmerge_logs_first_seen_for_new_destination(self) -> None:
+        now = before_now(minutes=5).replace(microsecond=0)
+
+        def store(fingerprint: str, offset: int) -> GroupEvent:
+            return self.store_event(
+                data={
+                    "message": f"{fingerprint} {offset}",
+                    "fingerprint": [fingerprint],
+                    "timestamp": (now + timedelta(seconds=offset)).isoformat(),
+                },
+                project_id=self.project.id,
+            )
+
+        moved = [store("moved", offset) for offset in range(5)]
+        kept = [store("kept", offset) for offset in range(5, 7)]
+        merge_source = moved[0].group
+        source = kept[0].group
+        assert merge_source is not None and source is not None
+
+        with self.tasks():
+            eventstream_state = eventstream.backend.start_merge(
+                self.project.id, [merge_source.id], source.id
+            )
+            merge_groups.delay([merge_source.id], source.id)
+            eventstream.backend.end_merge(eventstream_state)
+
+        # Events are scanned newest-first, so the batch that creates the destination
+        # doesn't contain its oldest event.
+        with capture_action_log() as log, outbox_runner(), self.tasks():
+            unmerge.delay(
+                self.project.id, source.id, None, [get_fingerprint(moved[0])], None, batch_size=2
+            )
+
+        destination = Group.objects.exclude(id=source.id).get(project_id=self.project.id)
+        assert destination.first_seen == now
+
+        log.assert_logged(
+            FirstSeenAction,
+            group_id=destination.id,
+            source=ActionSource.SYSTEM,
+            first_seen=now,
+        )
+        entry = GroupActionLogEntry.objects.get(
+            group_id=destination.id, type=GroupActionType.FIRST_SEEN
+        )
+        assert entry.idempotency_key == first_seen_idempotency_key(destination.id)
+        assert entry.data == {"first_seen": now.isoformat()}
+
     @mock.patch("sentry.tasks.unmerge.similarity")
     def test_repair_denormalizations_skips_similarity_when_backfilled_to_seer(
         self, mock_similarity
@@ -673,3 +731,38 @@ class StartUnmergeTest(TestCase):
             )
 
         mock_delay.assert_called_once_with(1, 2, None, ["abc", "def"], 3, batch_size=500)
+
+
+class PublishDestinationFirstSeenTest(TestCase):
+    def test_publishes_final_first_seen(self) -> None:
+        first_seen = before_now(days=3).replace(microsecond=0)
+        group = self.create_group(project=self.project, first_seen=first_seen)
+
+        with capture_action_log() as log:
+            publish_destination_first_seen(self.project, [group.id])
+
+        log.assert_logged(
+            FirstSeenAction,
+            group_id=group.id,
+            source=ActionSource.SYSTEM,
+            first_seen=first_seen,
+        )
+
+    def test_idempotent(self) -> None:
+        group = self.create_group(project=self.project)
+
+        with outbox_runner():
+            publish_destination_first_seen(self.project, [group.id])
+            publish_destination_first_seen(self.project, [group.id])
+
+        entry = GroupActionLogEntry.objects.get(group_id=group.id, type=GroupActionType.FIRST_SEEN)
+        assert entry.idempotency_key == first_seen_idempotency_key(group.id)
+        assert entry.data == {"first_seen": group.first_seen.isoformat()}
+
+    def test_ignores_other_projects(self) -> None:
+        other_group = self.create_group(project=self.create_project())
+
+        with capture_action_log() as log:
+            publish_destination_first_seen(self.project, [other_group.id])
+
+        log.assert_not_logged(FirstSeenAction)

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import datetime
 from functools import reduce
 from typing import Any
@@ -14,7 +14,8 @@ from taskbroker_client.state import current_task
 from sentry import similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, parse_log_level
 from sentry.culprit import generate_culprit
-from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.action_log import ActionSource, action_context_scope, publish_action
+from sentry.issues.action_log.types import FirstSeenAction, first_seen_idempotency_key
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
@@ -438,6 +439,23 @@ def repair_denormalizations(
             similarity.record(project, [event])
 
 
+def publish_destination_first_seen(project: Project, destination_ids: Collection[int]) -> None:
+    # Unmerge creates destinations without going through _create_group, so log their
+    # FIRST_SEEN here. Batches are scanned newest-first and each one can move first_seen
+    # earlier, so it's only final once the scan is complete. Destinations that already
+    # have the entry (e.g. one passed in that came from ingest) are deduped by the key.
+    for group_id, first_seen in Group.objects.filter(
+        project_id=project.id, id__in=destination_ids
+    ).values_list("id", "first_seen"):
+        publish_action(
+            FirstSeenAction(first_seen=first_seen),
+            source=ActionSource.SYSTEM,
+            group_id=group_id,
+            project=project,
+            idempotency_key=first_seen_idempotency_key(group_id),
+        )
+
+
 def lock_hashes(project_id: int, source_id: int, fingerprints: Sequence[str]) -> list[str]:
     with transaction.atomic(router.db_for_write(GroupHash)):
         eligible_hashes = list(
@@ -583,6 +601,9 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
 
         # If there are no more events to process, we're done with the migration.
         if not events:
+            publish_destination_first_seen(
+                project, [destination_id for destination_id, _ in args.destinations.values()]
+            )
             unlock_hashes(args.project_id, locked_primary_hashes)
             for unmerge_key, (_, eventstream_state) in args.destinations.items():
                 logger.warning(
