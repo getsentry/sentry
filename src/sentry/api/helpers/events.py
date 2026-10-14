@@ -103,9 +103,8 @@ def get_query_builder_for_group(
             column_resolver=column_resolver,
         ),
     )
-    # Filter on the group directly rather than through an `issue:` or `issue.id:` search
-    # term: `issue:` resolves the short id back to this group with a query, and
-    # `issue.id:` parses the id as a float, which Snuba can't use to scope replacements.
+    # Filter on the group we already loaded. `issue:` would look it up again by short id,
+    # and `issue.id:` would send the id to Snuba as a float.
     builder.add_conditions([Condition(builder.column("issue.id"), Op.EQ, group.id)])
     return builder
 
