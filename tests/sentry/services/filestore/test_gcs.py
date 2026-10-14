@@ -60,7 +60,8 @@ def test_try_repeated_does_not_retry_bad_gateway() -> None:
 
 
 def test_replay_upload_policy_retries_bad_gateway() -> None:
-    func = mock.Mock(side_effect=[BadGateway("502"), "ok"])
+    # The first upload attempt fails with a 502 and the second succeeds.
+    func = mock.Mock(side_effect=[BadGateway("502"), None])
 
     with mock.patch("sentry.utils.retries.time.sleep") as sleep:
         GoogleCloudStorageWithReplayUploadPolicy().try_set(func)
