@@ -215,6 +215,27 @@ Existing reference tests are in `tests/tools/mypy_helpers/` and `tests/sentry/te
 
 ## Runtime verification and annotation policy
 
+### Verification selected by change class
+
+Focused mypy with a positional filename replaces the configured `files = ["."]` root selection: mypy follows statically discoverable imports, but that is not whole-repository selection, does not discover every reverse dependent, does not strengthen dependencies (they keep their own weaklist entries and import policies), and proves nothing about runtime startup order or registration side effects. A large number of visited modules is not evidence that all affected consumers were verified. Apply acceptance according to the actual diff:
+
+| Change class | Acceptance required |
+| --- | --- |
+| Weaklist deletion only | Focused mypy under the checked-in configuration after removal (this activates the strong settings for that module; no separate all-strong profile needed for activation), configuration guards, and full configured verification. One full configured checkpoint may cover a series of strictly configuration-only promotions; that sharing is deliberate policy recorded here, never inferred from targeted green runs. No repeated runtime suite solely because an unchanged module has import side effects. |
+| Annotations with no import changes | All of the above for the item, plus full configured mypy of the new tree, all-strong debt comparison once the P2 gate operates, contract review, and relevant existing behavior tests. |
+| Imports, `TYPE_CHECKING`, deferred annotations, decorators, base classes, stubs, or plugin contracts changed | All of the above, plus fresh-process startup and affected consumer tests, including assertions that required registrations and runtime annotation consumers still work. |
+
+Supporting corrections: `--no-warn-unused-configs` only silences unused-section warnings and stays appropriate for focused runs. Exact weaklist patterns do not cover dotted children (`"sentry"` does not cover `sentry.__main__`). Checker setup through `sentry.conf.server_mypy` exercises mypy-path initialization, not CLI, web, or worker startup. The registration hazard is concrete: moving a registration import under `TYPE_CHECKING` keeps mypy green while the registration disappears, and runtime annotation evaluation can fail where static checking succeeds. Never claim a startup path from a typecheck.
+
+Reusable startup checks for import-sensitive changes, each in a fresh process (`sys.modules` caching can otherwise skip the path under test, and the import walk does not prove every import order):
+
+```sh
+.venv/bin/pytest --reuse-db tests/sentry/test_devimports.py::test_startup_imports
+.venv/bin/python -m sentry --help
+```
+
+The first walks application modules in a separate interpreter and rejects dev-only imports; the second exercises the `__main__` to `runner.main` path and its string-based command registration. Both are smoke tests, not behavior tests.
+
 ### Check GetSentry consumers at shared boundaries
 
 Keep implementation adoption within Sentry. Use `../getsentry` as a read-only consumer when a changed module exports a contract it uses. Ordinary private leaf annotations and Sentry-only weaklist changes need no GetSentry gate. Before changing an exported signature, generic default, protocol, base class, decorator, plugin hook or stub, search GetSentry imports, subclasses and settings-selected implementations. Include those consumers when deciding the truthful type.
@@ -360,12 +381,15 @@ Editor integrations must use this virtualenv and `pyproject.toml`. Confirm error
 
 Append one line per consequential executor judgment: item, decision, evidence and reason. Do not repeat policy or record every command here.
 
-- 2026-10-14: metadata-sweep validation bar raised after owner challenge on `sentry.__main__` (dynamic CLI registration via `import_string` in `sentry/runner/main.py:37-76` is invisible to mypy). Targeted mypy alone accepted for functionless leaves; anything with import-time effects now also requires import/startup smoke. Full-repo mypy runs periodically (every ~10 commits) rather than per commit. Startup proof for `__main__`: `import sentry.runner.main` registers 35 commands, `python -m sentry --help` exits clean.
-- 2026-10-14: sweep pivots from empty/tiny weaklist entries to `find_easiest_modules`-ranked modules needing real annotation; trivial removals retire real obligations but do not demonstrate hillclimb progress on genuine debt.
+- 2026-10-14: independent review of the range through `4a3e00a8` (15 commits: 15 weaklist removals plus two initializer annotations in `sentry.exceptions`) found the edits reasonable but the recorded verification thinner than the written campaign: no P2 evaluator exists yet, so unsuppressed/all-strong comparisons never ran and promotions preceded the prescribed bootstrap. Keep the commits; checkpoint before further source-changing work.
+- 2026-10-14: verification is now selected by change class (see policy section): a config-only series may share one full configured checkpoint; annotation items need behavior tests plus debt comparison once P2 operates; import/`TYPE_CHECKING`/decorator/stub/plugin edits additionally need fresh-process startup with registration assertions. `--no-warn-unused-configs` stays for focused runs; positional-filename scope is not full-repo proof.
+- 2026-10-14: sweep pivots from empty/tiny weaklist entries to ranked modules needing real annotation; trivial removals retire real obligations but do not demonstrate hillclimb progress on genuine debt.
 
 ## Campaign log
 
 Append one short entry per phase and parked item. Include accepted commits, changed contracts, exact verification commands, outcomes, elapsed times, remaining obligations and retry conditions. Keep raw transient checker output in scratch. Persist only the findings needed to resume or assess the campaign.
+
+- 2026-10-14 checkpoint: full configured mypy over the branch passes with zero issues in 8229 source files. Ran with `--num-workers 2` as a documented deviation (7.65 GiB available was below the 8 GiB reserve). Unsuppressed/all-strong parent/candidate comparisons remain pending on the P2 evaluator gate. `test_startup_imports` passes; `python -m sentry --help` is clean with 35 commands registered. Commits after the reviewed range (`ingest.types`, `github.constants`, `middleware.placeholder`, `tempest.apps`, `testutils.helpers.discover`, `testutils.middleware`, `search.exceptions`, `db.models.fields.onetoone`) each carry focused mypy plus behavior or consumer checks in their messages; the full-repo result above covers them for the configured profile only.
 
 ## For the owner afterwards
 
