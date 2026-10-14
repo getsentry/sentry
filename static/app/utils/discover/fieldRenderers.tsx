@@ -46,7 +46,6 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {nullableValue} from 'sentry/utils/discover/nullableValue';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
@@ -90,8 +89,9 @@ import {
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {ArrayValue} from './arrayValue';
-import {emptyValue, emptyStringValue} from './emptyFieldValues';
-import {SPECIAL_FIELD_SORT_FIELDS, FIELD_FORMATTER_SORTABILITY} from './fieldSorting';
+import {emptyStringValue, emptyValue, nullableValue} from './emptyFieldValues';
+import {DURATION_UNITS, SIZE_UNITS} from './fieldUnits';
+import type {FieldFormatterType, SpecialFieldKey} from './getSortField';
 import {
   BarContainer,
   Container,
@@ -149,24 +149,10 @@ export type FieldFormatterRenderFunctionPartial = (
 ) => React.ReactNode;
 
 type FieldFormatter = {
-  isSortable: boolean;
   renderFunc: FieldFormatterRenderFunction;
 };
 
-type FieldFormatters = {
-  array: FieldFormatter;
-  boolean: FieldFormatter;
-  currency: FieldFormatter;
-  date: FieldFormatter;
-  duration: FieldFormatter;
-  integer: FieldFormatter;
-  number: FieldFormatter;
-  percent_change: FieldFormatter;
-  percentage: FieldFormatter;
-  rate: FieldFormatter;
-  size: FieldFormatter;
-  string: FieldFormatter;
-};
+type FieldFormatters = Record<FieldFormatterType, FieldFormatter>;
 
 const missingUserMisery = tct(
   'We were unable to calculate User Misery. A likely cause of this is that the user was not set. [link:Read the docs]',
@@ -200,36 +186,6 @@ export function renderUrlCellValue(value: unknown): React.ReactNode {
   return <ExternalLink href={value}>{value}</ExternalLink>;
 }
 
-// TODO: Remove this, use `SIZE_UNIT_MULTIPLIERS` instead
-export const SIZE_UNITS = {
-  bit: 1 / 8,
-  byte: 1,
-  kibibyte: 1024,
-  mebibyte: 1024 ** 2,
-  gibibyte: 1024 ** 3,
-  tebibyte: 1024 ** 4,
-  pebibyte: 1024 ** 5,
-  exbibyte: 1024 ** 6,
-  kilobyte: 1000,
-  megabyte: 1000 ** 2,
-  gigabyte: 1000 ** 3,
-  terabyte: 1000 ** 4,
-  petabyte: 1000 ** 5,
-  exabyte: 1000 ** 6,
-};
-
-// TODO: Remove this, use `DURATION_UNIT_MULTIPLIERS` instead
-export const DURATION_UNITS = {
-  nanosecond: 1 / 1000 ** 2,
-  microsecond: 1 / 1000,
-  millisecond: 1,
-  second: 1000,
-  minute: 1000 * 60,
-  hour: 1000 * 60 * 60,
-  day: 1000 * 60 * 60 * 24,
-  week: 1000 * 60 * 60 * 24 * 7,
-};
-
 /**
  * A mapping of field types to their rendering function.
  * This mapping is used when a field is not defined in SPECIAL_FIELDS
@@ -239,7 +195,6 @@ export const DURATION_UNITS = {
  */
 export const FIELD_FORMATTERS: FieldFormatters = {
   boolean: {
-    isSortable: FIELD_FORMATTER_SORTABILITY.boolean,
     renderFunc: (field, data) => {
       const fieldValue = data[field];
       // Render empty values as "(no value)" instead of coercing them to false.
@@ -251,7 +206,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     },
   },
   date: {
-    isSortable: FIELD_FORMATTER_SORTABILITY.date,
     renderFunc: (field, data, baggage) => (
       <Container>
         {data[field]
@@ -272,7 +226,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     ),
   },
   duration: {
-    isSortable: FIELD_FORMATTER_SORTABILITY.duration,
     renderFunc: (field, data, baggage) => {
       const {unit} = baggage ?? {};
       return (
@@ -292,7 +245,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     },
   },
   rate: {
-    isSortable: FIELD_FORMATTER_SORTABILITY.rate,
     renderFunc: (field, data, baggage) => {
       const {unit} = baggage ?? {};
       return (
@@ -305,7 +257,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     },
   },
   integer: {
-    isSortable: FIELD_FORMATTER_SORTABILITY.integer,
     renderFunc: (field, data) => (
       <NumberContainer>
         {typeof data[field] === 'number' ? <Count value={data[field]} /> : emptyValue}
@@ -313,7 +264,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     ),
   },
   number: {
-    isSortable: FIELD_FORMATTER_SORTABILITY.number,
     renderFunc: (field, data) => {
       if (typeof data[field] !== 'number') {
         return <NumberContainer>{emptyValue}</NumberContainer>;
@@ -331,7 +281,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     },
   },
   percentage: {
-    isSortable: FIELD_FORMATTER_SORTABILITY.percentage,
     renderFunc: (field, data) => (
       <NumberContainer>
         {typeof data[field] === 'number'
@@ -341,7 +290,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     ),
   },
   size: {
-    isSortable: FIELD_FORMATTER_SORTABILITY.size,
     renderFunc: (field, data, baggage) => {
       const {unit} = baggage ?? {};
       return (
@@ -361,7 +309,6 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     },
   },
   string: {
-    isSortable: FIELD_FORMATTER_SORTABILITY.string,
     renderFunc: (field, data) => {
       // Some fields have long arrays in them, only show the tail of the data.
       const value = Array.isArray(data[field])
@@ -385,20 +332,17 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     },
   },
   array: {
-    isSortable: FIELD_FORMATTER_SORTABILITY.array,
     renderFunc: (field, data) => {
       const value = toArray(data[field]);
       return <ArrayValue value={value} />;
     },
   },
   percent_change: {
-    isSortable: FIELD_FORMATTER_SORTABILITY.percent_change,
     renderFunc: (fieldName, data) => {
       return <PercentChangeCell deltaValue={data[fieldName]} />;
     },
   },
   currency: {
-    isSortable: FIELD_FORMATTER_SORTABILITY.currency,
     renderFunc: (field, data) => {
       if (typeof data[field] !== 'number') {
         return <NumberContainer>{emptyValue}</NumberContainer>;
@@ -415,7 +359,6 @@ type SpecialFieldRenderFunc = (
 
 type SpecialField = {
   renderFunc: SpecialFieldRenderFunc;
-  sortField: string | null;
 };
 
 const DownloadCount = styled('span')`
@@ -458,7 +401,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   // This is a custom renderer for a field outside discover
   // TODO - refactor code and remove from this file or add ability to query for attachments in Discover
   'apdex()': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['apdex()']!,
     renderFunc: data => {
       const field = 'apdex()';
 
@@ -470,7 +412,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   attachments: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.attachments!,
     renderFunc: (data, {organization, projectSlug}) => {
       const attachments: IssueAttachment[] = data.attachments;
 
@@ -509,7 +450,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   minidump: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.minidump!,
     renderFunc: (data, {organization, projectSlug}) => {
       const attachments: Array<IssueAttachment & {url: string}> = data.attachments;
 
@@ -540,7 +480,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   id: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.id!,
     renderFunc: data => {
       const id: string | unknown = data?.id;
       if (typeof id !== 'string') {
@@ -550,7 +489,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   span_id: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.span_id!,
     renderFunc: data => {
       const id: string | unknown = data?.span_id;
       if (typeof id !== 'string') {
@@ -561,7 +499,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'span.description': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['span.description']!,
     renderFunc: data => {
       const value = data[SpanFields.SPAN_DESCRIPTION];
       const op: string = data[SpanFields.SPAN_OP];
@@ -595,7 +532,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   trace: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.trace!,
     renderFunc: data => {
       const id: string | unknown = data?.trace;
       if (typeof id !== 'string') {
@@ -606,7 +542,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'issue.id': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['issue.id']!,
     renderFunc: (data, {organization}) => {
       const target = {
         pathname: `/organizations/${organization.slug}/issues/${data['issue.id']}/`,
@@ -622,7 +557,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   replayId: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.replayId!,
     renderFunc: (data, baggage) => {
       const replayId = data?.replayId;
       if (typeof replayId !== 'string' || !replayId) {
@@ -632,7 +566,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'replay.id': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['replay.id']!,
     renderFunc: (data, baggage) => {
       const replayId = data?.['replay.id'];
       if (typeof replayId !== 'string' || !replayId) {
@@ -642,7 +575,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'profile.id': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['profile.id']!,
     renderFunc: (data, {organization, projects}) => {
       const profileId: string | unknown = data?.['profile.id'];
       if (typeof profileId !== 'string' || profileId === '') {
@@ -672,7 +604,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   issue: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.issue!,
     renderFunc: (data, {organization}) => {
       const issueID = data['issue.id'];
 
@@ -702,7 +633,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   project: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.project!,
     renderFunc: (data, {organization}) => {
       let slugs: string[] | undefined;
       let projectIds: number[] | undefined;
@@ -740,21 +670,18 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
   },
   // Two different project ID fields are being used right now. `project_id` is shared between all datasets, but `project.id` is the new one used in spans
   project_id: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.project_id!,
     renderFunc: (data, baggage) => {
       const projectId = data.project_id;
       return <NumberContainer>{getProjectIdLink(projectId, baggage)}</NumberContainer>;
     },
   },
   'project.id': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['project.id']!,
     renderFunc: (data, baggage) => {
       const projectId = data['project.id'];
       return <Container>{getProjectIdLink(projectId, baggage)}</Container>;
     },
   },
   user: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.user!,
     renderFunc: data => {
       if (data.user?.split) {
         const [key, value] = data.user.split(':');
@@ -776,7 +703,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'user.display': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['user.display']!,
     renderFunc: data => {
       if (data['user.display']) {
         const userObj = {
@@ -795,7 +721,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'count_unique(user)': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['count_unique(user)']!,
     renderFunc: data => {
       const count = data.count_unique_user ?? data['count_unique(user)'];
       if (typeof count === 'number') {
@@ -813,7 +738,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   device: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.device!,
     renderFunc: data => {
       if (typeof data.device === 'string') {
         return <Container>{deviceNameMapper(data.device) || data.device}</Container>;
@@ -823,7 +747,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   adoption_stage: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.adoption_stage!,
     renderFunc: data => {
       const label = ADOPTION_STAGE_LABELS[data.adoption_stage];
       return data.adoption_stage && label ? (
@@ -836,7 +759,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   release: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.release!,
     renderFunc: (data, {organization}) =>
       data.release ? (
         <VersionContainer>
@@ -853,7 +775,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       ),
   },
   'error.handled': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['error.handled']!,
     renderFunc: data => {
       const values = data['error.handled'];
       // Transactions will have null, and default events have no handled attributes.
@@ -869,7 +790,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   [SpanFields.IS_STARRED_TRANSACTION]: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS[SpanFields.IS_STARRED_TRANSACTION]!,
     renderFunc: data => (
       <StarredSegmentCell
         projectSlug={data[SpanFields.PROJECT]}
@@ -880,7 +800,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     ),
   },
   team_key_transaction: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.team_key_transaction!,
     renderFunc: (data, {organization}) => (
       <TeamKeyTransactionField
         isKeyTransaction={(data.team_key_transaction ?? 0) !== 0}
@@ -891,7 +810,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     ),
   },
   'trend_percentage()': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['trend_percentage()']!,
     renderFunc: data => (
       <NumberContainer>
         {typeof data.trend_percentage === 'number'
@@ -901,7 +819,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     ),
   },
   timestamp: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.timestamp!,
     renderFunc: data => {
       const timestamp = data.timestamp;
       if (!timestamp) {
@@ -918,7 +835,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'timestamp.to_hour': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['timestamp.to_hour']!,
     renderFunc: data => (
       <Container>
         {getDynamicText({
@@ -929,7 +845,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     ),
   },
   'timestamp.to_day': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['timestamp.to_day']!,
     renderFunc: data => (
       <Container>
         {getDynamicText({
@@ -940,7 +855,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     ),
   },
   'span.status_code': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['span.status_code']!,
     renderFunc: data => (
       <Container>
         {data['span.status_code'] ? (
@@ -952,7 +866,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     ),
   },
   'performance_score(measurements.score.total)': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['performance_score(measurements.score.total)']!,
     renderFunc: data => {
       const score = data['performance_score(measurements.score.total)'];
       if (typeof score !== 'number') {
@@ -966,7 +879,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'opportunity_score(measurements.score.total)': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['opportunity_score(measurements.score.total)']!,
     renderFunc: data => {
       const score = data['opportunity_score(measurements.score.total)'];
       if (typeof score !== 'number') {
@@ -978,7 +890,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'browser.name': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['browser.name']!,
     renderFunc: data => {
       const browserName = data['browser.name'];
       if (typeof browserName !== 'string' || !browserName) {
@@ -994,7 +905,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   browser: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.browser!,
     renderFunc: data => {
       const browser = data.browser;
       if (typeof browser !== 'string' || !browser) {
@@ -1010,7 +920,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   'os.name': {
-    sortField: SPECIAL_FIELD_SORT_FIELDS['os.name']!,
     renderFunc: data => {
       const osName = data['os.name'];
       if (typeof osName !== 'string' || !osName) {
@@ -1026,7 +935,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   os: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS.os!,
     renderFunc: data => {
       const os = data.os;
       if (typeof os !== 'string' || !os) {
@@ -1050,7 +958,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   [SpanFields.GEN_AI_REQUEST_MODEL]: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS[SpanFields.GEN_AI_REQUEST_MODEL]!,
     renderFunc: data => {
       const modelId = data[SpanFields.GEN_AI_REQUEST_MODEL];
 
@@ -1062,7 +969,6 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   [SpanFields.GEN_AI_RESPONSE_MODEL]: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS[SpanFields.GEN_AI_RESPONSE_MODEL]!,
     renderFunc: data => {
       const modelId = data[SpanFields.GEN_AI_RESPONSE_MODEL];
 
@@ -1074,10 +980,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     },
   },
   [SpanFields.GEN_AI_OUTPUT_MESSAGES]: {
-    sortField: SPECIAL_FIELD_SORT_FIELDS[SpanFields.GEN_AI_OUTPUT_MESSAGES]!,
     renderFunc: data => renderAIOutputMessages(data[SpanFields.GEN_AI_OUTPUT_MESSAGES]),
   },
-};
+} satisfies Record<SpecialFieldKey, SpecialField>;
 
 /**
  * Returns a logo icon component for operating system (OS) and browser related fields

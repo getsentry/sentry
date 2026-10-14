@@ -183,3 +183,13 @@ class SlackMetricAlertRendererTest(MetricAlertHandlerBase):
         assert "Resolved" in result["text"]
         assert self.detector.name in result["text"]
         assert result["attachments"][0]["blocks"][1]["text"]["text"] == "notes: Check the runbook"
+
+    def test_render_omits_investigation_button_when_group_not_found(self) -> None:
+        data = self.notification_data.copy(
+            update={"group_id": self.group.id + 1000, "show_investigation_button": True}
+        )
+
+        result = _render(data, self.rendered_template)
+
+        blocks: list[Any] = result["attachments"][0]["blocks"]
+        assert [block["type"] for block in blocks] == ["section"]

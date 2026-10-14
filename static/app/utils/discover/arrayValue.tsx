@@ -2,7 +2,8 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import {nullableValue} from 'sentry/utils/discover/nullableValue';
+
+import {nullableValue} from './emptyFieldValues';
 
 type Props = {
   value: Array<string | null>;

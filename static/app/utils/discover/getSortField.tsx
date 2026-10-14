@@ -1,8 +1,15 @@
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {AGGREGATIONS, isEquation} from 'sentry/utils/discover/fields';
-import {SpanFields} from 'sentry/views/insights/types';
 
-export const SPECIAL_FIELD_SORT_FIELDS: Record<string, string | null> = {
+// Sorting metadata for the fields `fieldRenderers` formats. It lives apart from the
+// renderers so that code which only sorts, like EventView, doesn't load them and
+// everything they import.
+
+/**
+ * The special fields with a custom renderer, and what each one sorts by. `null`
+ * means the field can't be sorted.
+ */
+const SPECIAL_FIELD_SORT_FIELDS = {
   'apdex()': 'apdex()',
   attachments: null,
   minidump: null,
@@ -25,7 +32,7 @@ export const SPECIAL_FIELD_SORT_FIELDS: Record<string, string | null> = {
   adoption_stage: 'adoption_stage',
   release: 'release',
   'error.handled': 'error.handled',
-  [SpanFields.IS_STARRED_TRANSACTION]: null,
+  is_starred_transaction: null,
   team_key_transaction: null,
   'trend_percentage()': 'trend_percentage()',
   timestamp: 'timestamp',
@@ -40,25 +47,32 @@ export const SPECIAL_FIELD_SORT_FIELDS: Record<string, string | null> = {
   browser: 'browser',
   'os.name': 'os.name',
   os: 'os',
-  [SpanFields.GEN_AI_REQUEST_MODEL]: SpanFields.GEN_AI_REQUEST_MODEL,
-  [SpanFields.GEN_AI_RESPONSE_MODEL]: SpanFields.GEN_AI_RESPONSE_MODEL,
-  [SpanFields.GEN_AI_OUTPUT_MESSAGES]: SpanFields.GEN_AI_OUTPUT_MESSAGES,
-};
+  'gen_ai.request.model': 'gen_ai.request.model',
+  'gen_ai.response.model': 'gen_ai.response.model',
+  'gen_ai.output.messages': 'gen_ai.output.messages',
+} as const satisfies Record<string, string | null>;
 
-export const FIELD_FORMATTER_SORTABILITY = {
+export type SpecialFieldKey = keyof typeof SPECIAL_FIELD_SORT_FIELDS;
+
+/**
+ * The field value types with a formatter, and whether columns of that type sort.
+ */
+const FIELD_FORMATTER_SORTABILITY = {
+  array: true,
   boolean: true,
+  currency: true,
   date: true,
   duration: true,
-  rate: true,
   integer: true,
   number: true,
+  percent_change: true,
   percentage: true,
+  rate: true,
   size: true,
   string: true,
-  array: true,
-  percent_change: true,
-  currency: true,
-};
+} as const satisfies Record<string, boolean>;
+
+export type FieldFormatterType = keyof typeof FIELD_FORMATTER_SORTABILITY;
 
 /**
  * Get the sort field name for a given field if it is special or fallback
@@ -69,7 +83,7 @@ export function getSortField(
   tableMeta: MetaType | undefined
 ): string | null {
   if (Object.hasOwn(SPECIAL_FIELD_SORT_FIELDS, field)) {
-    return SPECIAL_FIELD_SORT_FIELDS[field]!;
+    return SPECIAL_FIELD_SORT_FIELDS[field as SpecialFieldKey];
   }
 
   if (!tableMeta) {
@@ -89,11 +103,7 @@ export function getSortField(
 
   const fieldType = tableMeta[field];
   if (Object.hasOwn(FIELD_FORMATTER_SORTABILITY, fieldType)) {
-    return FIELD_FORMATTER_SORTABILITY[
-      fieldType as keyof typeof FIELD_FORMATTER_SORTABILITY
-    ]
-      ? field
-      : null;
+    return FIELD_FORMATTER_SORTABILITY[fieldType as FieldFormatterType] ? field : null;
   }
 
   return null;

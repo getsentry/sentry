@@ -7,7 +7,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {emptyStringValue} from 'sentry/utils/discover/emptyFieldValues';
@@ -161,11 +160,7 @@ export function getTimeseriesSortOptions(
   return {...fieldOptions, ...options};
 }
 
-function getEventsTableFieldOptions(
-  organization: Organization,
-  tags?: TagCollection,
-  customMeasurements?: CustomMeasurementCollection
-) {
+function getEventsTableFieldOptions(organization: Organization, tags?: TagCollection) {
   const measurements = getMeasurements();
 
   return generateFieldOptions({
@@ -173,12 +168,7 @@ function getEventsTableFieldOptions(
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
     measurementKeys: Object.values(measurements).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
-    customMeasurements: Object.values(customMeasurements ?? {}).map(
-      ({key, functions}) => ({
-        key,
-        functions,
-      })
-    ),
+    customMeasurements: [],
   });
 }
 
