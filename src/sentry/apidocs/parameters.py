@@ -25,7 +25,7 @@ def mark_parameter_experimental(parameter: OpenApiParameter) -> OpenApiParameter
     """Flag one parameter as experimental without marking the whole operation.
 
     Sets ``x-sentry-experimental`` and prepends ``EXPERIMENTAL_PARAMETER_NOTICE``
-    to the description. Calling it again leaves an already-marked description unchanged.
+    to the description.
     """
     extensions = dict(parameter.extensions or {})
     extensions["x-sentry-experimental"] = True
