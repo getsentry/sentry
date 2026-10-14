@@ -42,7 +42,7 @@ export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
 
   const snubaDataset = snubaQuery?.dataset ?? Dataset.ERRORS;
   const eventTypes = snubaQuery?.eventTypes ?? [];
-  const interval = snubaQuery?.timeWindow;
+  const intervalSeconds = snubaQuery?.timeWindow;
   const detectorDataset = getDetectorDataset(snubaDataset, eventTypes);
   const extrapolationMode = snubaQuery?.extrapolationMode;
   const showExtrapolationModeWarning = useIsMigratedExtrapolation({
@@ -50,8 +50,7 @@ export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
     extrapolationMode,
   });
 
-  const intervalSeconds = dataSource.queryObj?.snubaQuery.timeWindow;
-  useDetectorStatsPeriods(interval);
+  useDetectorStatsPeriods(intervalSeconds);
 
   return (
     <DetailLayout>
@@ -67,7 +66,10 @@ export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
           )}
           {showExtrapolationModeWarning && <MigratedAlertWarning detector={detector} />}
           <Flex align="center" gap="sm" justify="between" wrap="wrap">
-            <MetricTimePeriodSelect dataset={detectorDataset} interval={interval} />
+            <MetricTimePeriodSelect
+              dataset={detectorDataset}
+              interval={intervalSeconds}
+            />
             <Flex align="center" gap="sm" marginLeft="auto">
               <DisableDetectorAction detector={detector} />
               <DuplicateDetectorAction detector={detector} />
