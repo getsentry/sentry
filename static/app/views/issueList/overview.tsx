@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
@@ -147,6 +147,7 @@ function IssueListOverviewInner({
   const navigate = useNavigate();
   const {selection} = usePageFilters();
   const api = useApi();
+  const queryClient = useQueryClient();
   const urlParams = useParams<{viewId?: string}>();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
@@ -735,6 +736,16 @@ function IssueListOverviewInner({
     }
   };
 
+  const invalidateIssueCounts = () => {
+    queryClient.invalidateQueries({
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+      ],
+    });
+  };
+
   const undoAction = async ({
     data,
     groupItems,
@@ -756,6 +767,8 @@ function IssueListOverviewInner({
           id: groupItems.map(group => group.id),
         },
       });
+
+      invalidateIssueCounts();
 
       if (response) {
         // If on the Ignore or For Review tab, adding back to the GroupStore will make the issue show up
@@ -828,6 +841,7 @@ function IssueListOverviewInner({
   };
 
   const onActionTaken = (itemIds: string[], data: IssueUpdateData) => {
+    invalidateIssueCounts();
     const groupItems = itemIds.map(id => GroupStore.get(id)).filter(defined);
 
     if ('status' in data) {

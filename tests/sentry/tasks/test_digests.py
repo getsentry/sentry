@@ -11,6 +11,7 @@ from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.types import NotificationOrigin
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -18,6 +19,10 @@ from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
 
 pytestmark = [requires_snuba]
+
+
+def as_group_event(event: Event) -> GroupEvent:
+    return event.for_group(event.groups[0])
 
 
 class DeliverDigestTest(TestCase):
@@ -41,13 +46,13 @@ class DeliverDigestTest(TestCase):
             origin = NotificationOrigin.from_legacy_rule(rule)
             backend.add(
                 key,
-                event_to_record(event, [origin], notification_uuid),
+                event_to_record(as_group_event(event), [origin], notification_uuid),
                 increment_delay=0,
                 maximum_delay=0,
             )
             backend.add(
                 key,
-                event_to_record(event_2, [origin], notification_uuid),
+                event_to_record(as_group_event(event_2), [origin], notification_uuid),
                 increment_delay=0,
                 maximum_delay=0,
             )

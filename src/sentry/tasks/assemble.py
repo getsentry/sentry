@@ -669,15 +669,17 @@ class ArtifactBundlePostAssembler:
             "tasks.assemble.artifact_bundle.placeholder_release",
             tags={"kind": kind, "outcome": outcome},
         )
-        # The metric can't say which organizations upload these bundles, or what the files that
-        # keep the release are. We log the types and extensions of those files, not their names,
-        # which can contain customer paths.
+        # The metric can't say which organizations upload these bundles, which placeholder they
+        # send, or what the files that keep the release are. A placeholder is a generic token or an
+        # environment variable's name, so we log it. Of the files we log only types and extensions,
+        # not names, which can contain customer paths.
         files_without_debug_ids = self.archive.get_files_without_debug_ids()
         logger.info(
             "assemble.artifact_bundle.placeholder_release",
             extra={
                 "organization_id": self.organization.id,
                 "project_ids": self.project_ids,
+                "release": release,
                 "kind": kind,
                 "outcome": outcome,
                 "artifact_count": self.archive.artifact_count,

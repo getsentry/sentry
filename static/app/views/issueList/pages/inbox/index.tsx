@@ -329,7 +329,7 @@ function InboxContent() {
   const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
   const showEmptyState = !selectedIssueId && isInboxEmpty && canShowEmptyState;
   const showPreviewPane = Boolean(selectedIssueId) || showEmptyState;
-  const isSplitView = (isDesktop && Boolean(selectedIssueId)) || showEmptyState;
+  const isSplitView = isDesktop || showEmptyState;
   const alternateInbox = getAlternateInbox(assignmentFilter, assignmentCounts);
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
