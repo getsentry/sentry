@@ -991,12 +991,21 @@ def run_profile(
         )
     _validate_origins(response.get("origins", {}), response.get("loaded_origins", {}), root)
 
-    diagnostics = tuple(
-        _diagnostic_record(str(value), root) for value in response.get("diagnostics", [])
-    )
-    checker_status = int(response["checker_status"])
-    if checker_status not in (0, 1) or checker_status != int(bool(diagnostics)):
+    raw_diagnostics = response.get("diagnostics")
+    if not isinstance(raw_diagnostics, list):
+        raise InvalidMeasurement("mypy adapter returned invalid diagnostics")
+    diagnostics_list = []
+    for value in raw_diagnostics:
+        line = str(value)
+        parsed = parse_diagnostic_line(line)
+        if parsed is not None and parsed.severity == "note":
+            continue
+        diagnostics_list.append(_diagnostic_record(line, root))
+    diagnostics = tuple(diagnostics_list)
+    raw_checker_status = int(response["checker_status"])
+    if raw_checker_status not in (0, 1) or raw_checker_status != int(bool(raw_diagnostics)):
         raise InvalidMeasurement(f"{profile.value} checker status does not match diagnostics")
+    checker_status = int(bool(diagnostics))
     raw_any = response.get("any_obligations", {})
     if not isinstance(raw_any, dict):
         raise InvalidMeasurement("precision adapter returned an invalid Any inventory")

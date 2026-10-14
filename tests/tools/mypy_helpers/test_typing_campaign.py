@@ -273,9 +273,26 @@ def test_precision_adapter_exports_stable_any_obligations(tmp_path: Path) -> Non
         "mypy_path = ['src']\n"
         "namespace_packages = true\n"
         "explicit_package_bases = true\n"
+        "warn_unused_configs = true\n"
+        "[[tool.mypy.overrides]]\n"
+        "module = ['P4']\n"
+        "ignore_missing_imports = true\n"
     )
     output = tmp_path / "measurements"
     output.mkdir()
+
+    configured = run_profile(
+        Profile.CONFIGURED,
+        root,
+        "synthetic-tree",
+        output,
+        label="configured",
+        timeout_seconds=120,
+    )
+
+    assert "unused section(s)" in (configured.output_dir / "worker.stdout").read_text()
+    assert configured.checker_status == 0
+    assert configured.diagnostics == ()
 
     measurement = run_profile(
         Profile.PRECISION,
@@ -287,6 +304,7 @@ def test_precision_adapter_exports_stable_any_obligations(tmp_path: Path) -> Non
 
     assert measurement.adapter_status == 0
     assert measurement.checker_status in (0, 1)
+    assert all("unused section(s)" not in item.message for item in measurement.diagnostics)
     assert any(item.origin == "explicit" for item in measurement.any_obligations)
     assert all(not item.anchor.startswith("unanchored:") for item in measurement.any_obligations)
     assert any(item.path == "src/sentry/example.py" for item in measurement.diagnostics)
