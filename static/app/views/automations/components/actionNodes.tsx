@@ -55,12 +55,12 @@ import {
   SlackNode,
   validateSlackAction,
 } from 'sentry/views/automations/components/actions/slack';
+import {ticketActionMetadataMap} from 'sentry/views/automations/components/actions/ticketActionMetadata';
 import {
   validateWebhookAction,
   WebhookDetails,
   WebhookNode,
 } from 'sentry/views/automations/components/actions/webhook';
-import {ticketActionMetadataMap} from 'sentry/views/automations/components/actions/ticketActionMetadata';
 
 type ActionNode = {
   action: React.ComponentType<any>;

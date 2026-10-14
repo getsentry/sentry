@@ -90,7 +90,8 @@ export function TicketActionSettingsButton() {
             onSubmitAction={updateParentFromTicketRule}
             link={ticketActionMetadataMap.get(action.type)?.link || null}
             ticketType={
-              ticketActionMetadataMap.get(action.type)?.ticketType || t('an external issue')
+              ticketActionMetadataMap.get(action.type)?.ticketType ||
+              t('an external issue')
             }
           />
         ))
