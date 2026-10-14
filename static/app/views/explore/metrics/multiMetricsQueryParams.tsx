@@ -83,14 +83,19 @@ export function MultiMetricsQueryParamsProvider({
 const decodedMetricQueries = new Map<string, BaseMetricQuery | null>();
 const MAX_DECODED_METRIC_QUERIES = 100;
 
-function decodeMetricQueryParamsCached(value: string): BaseMetricQuery | null {
-  if (!decodedMetricQueries.has(value)) {
+function decodeMetricQueryParamsCached(
+  value: string,
+  index: number
+): BaseMetricQuery | null {
+  // Keyed by position too, so panels with identical URL values don't share decoded objects.
+  const key = `${index}:${value}`;
+  if (!decodedMetricQueries.has(key)) {
     if (decodedMetricQueries.size >= MAX_DECODED_METRIC_QUERIES) {
       decodedMetricQueries.clear();
     }
-    decodedMetricQueries.set(value, decodeMetricsQueryParams(value));
+    decodedMetricQueries.set(key, decodeMetricsQueryParams(value));
   }
-  return decodedMetricQueries.get(value) ?? null;
+  return decodedMetricQueries.get(key) ?? null;
 }
 
 function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQuery[] {
