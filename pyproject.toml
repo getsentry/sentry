@@ -1375,7 +1375,6 @@ module = [
     "sentry.testutils.helpers.uptime",
     "sentry.testutils.hybrid_cloud",
     "sentry.testutils.issue_detection.*",
-    "sentry.testutils.middleware",
     "sentry.testutils.outbox",
     "sentry.testutils.pytest",
     "sentry.testutils.pytest.fixtures",
