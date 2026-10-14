@@ -13,10 +13,11 @@ import {
   type ComponentCategory,
 } from 'sentry/stories/componentCategories';
 import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest';
-import {useStoryParams} from './useStoryParams';
 import {fzf} from 'sentry/utils/search/fzf';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useStoryParams} from './useStoryParams';
 
 export class StoryTreeNode {
   public name: string;
