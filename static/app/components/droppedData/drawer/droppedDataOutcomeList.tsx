@@ -86,7 +86,7 @@ function FixThisMenu({
       portalContainerRef={panelRef}
       trigger={(triggerProps, isOpen) => (
         <Button {...triggerProps} variant="primary" size="sm" aria-expanded={isOpen}>
-          {t('Fix this')}
+          {t('Learn more')}
         </Button>
       )}
     />
