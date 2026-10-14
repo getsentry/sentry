@@ -27,6 +27,7 @@ from sentry.auth.helper import (
     AuthIdentityHandler,
 )
 from sentry.auth.idpmigration import SSO_VERIFICATION_KEY
+from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -1223,6 +1224,26 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
         self.create_useremail(email=self.email, user=self.user)
         verification_value = {**self.verification_value, "organization_id": 99999}
         assert self.handler.has_verified_account(verification_value) is False
+
+    def test_has_verified_account_fail_identity_id(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        value = {**self.verification_value, "identity_id": "someone-else"}
+        assert self.handler.has_verified_account(value) is False
+
+    def test_has_verified_account_migrating_identity_id(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        identity = {**self.identity, "id": MigratingIdentityId(id="sub-1", legacy_id=self.email)}
+        handler = self._handler_with(identity)
+        assert handler.has_verified_account({**self.verification_value, "identity_id": "sub-1"})
+        # the legacy (email) half of the migrating id must not verify
+        assert not handler.has_verified_account(
+            {**self.verification_value, "identity_id": self.email}
+        )
+
+    def test_has_verified_account_ascii_case_insensitive(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        identity = {**self.identity, "email": self.email.upper()}
+        assert self._handler_with(identity).has_verified_account(self.verification_value) is True
 
     def test_has_verified_account_fail_missing_organization_id(self) -> None:
         self.create_useremail(email=self.email, user=self.user)
