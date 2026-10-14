@@ -1,4 +1,4 @@
-import {Activity, useId, useState} from 'react';
+import {Activity, Fragment, useId, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
@@ -7,9 +7,11 @@ import {Button} from '@sentry/scraps/button';
 
 import type {EventGroupComponent} from 'sentry/types/event';
 
-import {GroupingComponentChildren} from './groupingComponentChildren';
-import {GroupingComponentStacktrace} from './groupingComponentStacktrace';
-import {shouldInlineComponentValue} from './utils';
+import {
+  GroupingComponentFrames,
+  GroupingComponentListItem,
+} from './groupingComponentFrames';
+import {getFrameGroups, groupingComponentFilter, shouldInlineComponentValue} from './utils';
 
 type Props = {
   component: EventGroupComponent;
@@ -65,6 +67,61 @@ export function GroupingComponent({component, showNonContributing}: Props) {
   );
 }
 
+function GroupingComponentStacktrace({component, showNonContributing}: Props) {
+  return (
+    <Fragment>
+      {getFrameGroups(component, showNonContributing).map((group, index) => (
+        <GroupingComponentFrames
+          key={index}
+          items={group.data.map((v, idx) => (
+            <GroupingComponent
+              key={idx}
+              component={v}
+              showNonContributing={showNonContributing}
+            />
+          ))}
+          showNonContributing={showNonContributing}
+        />
+      ))}
+    </Fragment>
+  );
+}
+
+function GroupingComponentChildren({component, showNonContributing}: Props) {
+  return (
+    <Fragment>
+      {component.values.map((value, index) =>
+        groupingComponentFilter(value, showNonContributing) ? (
+          <GroupingComponentListItem
+            // value.id is not a unique value
+            key={
+              typeof value === 'object' && value !== null
+                ? `${value.id}-${index}`
+                : `${value}-${index}`
+            }
+          >
+            {typeof value === 'object' && value !== null ? (
+              <GroupingComponent
+                component={value}
+                showNonContributing={showNonContributing}
+              />
+            ) : (
+              <GroupingValue
+                valueType={component.name || component.id}
+                contributes={component.contributes}
+              >
+                {typeof value === 'string' || typeof value === 'number'
+                  ? value
+                  : JSON.stringify(value, null, 2)}
+              </GroupingValue>
+            )}
+          </GroupingComponentListItem>
+        ) : null
+      )}
+    </Fragment>
+  );
+}
+
 const CollapseButtonWrapper = styled('div')`
   display: grid;
   grid-template-columns: ${p => p.theme.space.lg} minmax(auto, max-content);
@@ -111,5 +168,28 @@ const GroupingComponentList = styled('ul')<{hasFold: boolean; isInline: boolean}
     p.hasFold &&
     css`
       border-left: 1px solid ${p.theme.tokens.border.secondary};
+    `}
+`;
+
+const GroupingValue = styled('code')<{
+  valueType: string;
+  contributes?: boolean;
+}>`
+  display: inline-block;
+  margin: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs}
+    ${p => p.theme.space['2xs']} 0;
+  font-size: ${p => p.theme.font.size.sm};
+  padding: 0 ${p => p.theme.space['2xs']};
+  background: ${p => (p.contributes ? 'rgba(112, 163, 214, 0.1)' : 'transparent')};
+  color: ${p =>
+    p.contributes ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
+
+  ${({valueType, theme, contributes}) =>
+    (valueType === 'function' || valueType === 'symbol') &&
+    css`
+      font-weight: ${contributes ? theme.font.weight.sans.medium : 'normal'};
+      color: ${
+        contributes ? theme.tokens.content.primary : theme.tokens.content.secondary
+      };
     `}
 `;
