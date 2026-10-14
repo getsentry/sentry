@@ -19,8 +19,8 @@ import {IntegrationServerlessRow} from 'sentry/views/settings/organizationIntegr
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 'minmax(200px, 2fr)'},
-  {key: 'layerStatus', width: 'minmax(140px, 1fr)'},
-  {key: 'enabled', width: 'minmax(80px, 0.5fr)'},
+  {key: 'layerStatus', width: 'minmax(max-content, 1fr)'},
+  {key: 'enabled', width: 'minmax(max-content, 0.5fr)'},
 ];
 
 export function IntegrationServerlessFunctions({
