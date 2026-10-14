@@ -20,7 +20,7 @@ import type {ChatSuggestion} from 'sentry/views/seerExplorer/types';
 
 // How long the placeholders show before the fixed suggestions replace them.
 // Covers both the page loading its context and the request itself.
-const SUGGESTIONS_TIMEOUT_MS = 4000;
+const SUGGESTIONS_TIMEOUT_MS = 5000;
 
 const LEGACY_SUGGESTIONS: ChatSuggestion[] = [
   {text: t('Which of my open issues are getting worse, not better?')},
@@ -92,8 +92,6 @@ export type ChatSuggestionsState =
       isLoading: false;
       source: 'generated' | 'fallback' | 'legacy'; // for analytics purposes
       suggestions: ChatSuggestion[];
-      /** Generated suggestions that arrived after the fallback was already showing. */
-      lateSuggestions?: ChatSuggestion[];
     };
 
 /**
@@ -170,13 +168,11 @@ export function useChatSuggestions({
   });
   const hasTimedOut = timeoutReason !== null;
 
-  // Once timed out, what's shown is fixed; the response only feeds lateSuggestions.
+  // Once timed out, what's shown is fixed; a late response is ignored.
   const onTimeSuggestions = hasTimedOut ? undefined : query.data?.suggestions;
   const isWaitingOnTime = !hasTimedOut && query.isPending;
-  const lateSuggestions =
-    hasTimedOut && query.data?.suggestions.length ? query.data.suggestions : undefined;
 
-  const shownState = useMemo((): ChatSuggestionsState => {
+  const state = useMemo((): ChatSuggestionsState => {
     if (!hasLlmChatSuggestions) {
       return {isLoading: false, source: 'legacy', suggestions: LEGACY_SUGGESTIONS};
     }
@@ -196,26 +192,20 @@ export function useChatSuggestions({
   const fallbackReason = timeoutReason ?? (query.isError ? 'error' : 'empty');
 
   useEffect(() => {
-    if (!enabled || shownState.isLoading) {
+    if (!enabled || state.isLoading) {
       return;
     }
     trackAnalytics('seer.explorer.suggestions_shown', {
       organization,
       referrer: route,
-      source: shownState.source,
-      fallback_reason: shownState.source === 'fallback' ? fallbackReason : undefined,
-      count: shownState.suggestions.length,
-      action_types: shownState.suggestions.flatMap(suggestion =>
+      source: state.source,
+      fallback_reason: state.source === 'fallback' ? fallbackReason : undefined,
+      count: state.suggestions.length,
+      action_types: state.suggestions.flatMap(suggestion =>
         suggestion.action_type ? [suggestion.action_type] : []
       ),
     });
-  }, [enabled, shownState, organization, route, fallbackReason]);
+  }, [enabled, state, organization, route, fallbackReason]);
 
-  return useMemo(
-    () =>
-      shownState.isLoading || !lateSuggestions
-        ? shownState
-        : {...shownState, lateSuggestions},
-    [shownState, lateSuggestions]
-  );
+  return state;
 }

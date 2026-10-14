@@ -242,7 +242,7 @@ describe('useChatSuggestions', () => {
       );
 
       expect(result.current).toEqual({isLoading: true});
-      await act(() => jest.advanceTimersByTimeAsync(4000));
+      await act(() => jest.advanceTimersByTimeAsync(5000));
       await waitFor(() =>
         expect(result.current).toEqual({
           isLoading: false,
@@ -252,12 +252,12 @@ describe('useChatSuggestions', () => {
       );
     });
 
-    it('keeps the fallback and offers late suggestions when the request finishes after the timeout', async () => {
+    it('returns fallback suggestions when the request finishes after the timeout', async () => {
       MockApiClient.addMockResponse({
         url,
         method: 'POST',
         body: {suggestions: [{text: 'Late'}]},
-        asyncDelay: new Promise(resolve => window.setTimeout(resolve, 6000)),
+        asyncDelay: new Promise(resolve => window.setTimeout(resolve, 7000)),
       });
 
       const {result} = renderHookWithProviders(
@@ -265,7 +265,7 @@ describe('useChatSuggestions', () => {
         {organization, additionalWrapper: LLMContextProvider}
       );
 
-      await act(() => jest.advanceTimersByTimeAsync(4000));
+      await act(() => jest.advanceTimersByTimeAsync(5000));
       expect(result.current).toEqual({
         isLoading: false,
         source: 'fallback',
@@ -273,14 +273,11 @@ describe('useChatSuggestions', () => {
       });
 
       await act(() => jest.advanceTimersByTimeAsync(2000));
-      await waitFor(() =>
-        expect(result.current).toEqual({
-          isLoading: false,
-          source: 'fallback',
-          suggestions: DEFAULT_FALLBACK_SUGGESTIONS,
-          lateSuggestions: [{text: 'Late'}],
-        })
-      );
+      expect(result.current).toEqual({
+        isLoading: false,
+        source: 'fallback',
+        suggestions: DEFAULT_FALLBACK_SUGGESTIONS,
+      });
     });
   });
 
@@ -336,7 +333,7 @@ describe('useChatSuggestions', () => {
       );
 
       expect(result.current).toEqual({isLoading: true});
-      await act(() => jest.advanceTimersByTimeAsync(4000));
+      await act(() => jest.advanceTimersByTimeAsync(5000));
       await waitFor(() =>
         expect(result.current).toEqual({
           isLoading: false,
@@ -347,7 +344,7 @@ describe('useChatSuggestions', () => {
       expect(request).not.toHaveBeenCalled();
     });
 
-    it('offers late suggestions when the page finishes loading after the timeout', async () => {
+    it('returns fallback suggestions when the page finishes loading after the timeout', async () => {
       const request = MockApiClient.addMockResponse({
         url,
         method: 'POST',
@@ -358,12 +355,12 @@ describe('useChatSuggestions', () => {
         () => useChatSuggestions({enabled: true, allowStructuredContext: true}),
         {
           organization,
-          additionalWrapper: makeSlowIssueDetailPage(5000),
+          additionalWrapper: makeSlowIssueDetailPage(6000),
           initialRouterConfig: issuePageRouterConfig,
         }
       );
 
-      await act(() => jest.advanceTimersByTimeAsync(4000));
+      await act(() => jest.advanceTimersByTimeAsync(5000));
       expect(request).not.toHaveBeenCalled();
       expect(result.current).toEqual({
         isLoading: false,
@@ -372,14 +369,12 @@ describe('useChatSuggestions', () => {
       });
 
       await act(() => jest.advanceTimersByTimeAsync(1000));
-      await waitFor(() =>
-        expect(result.current).toEqual({
-          isLoading: false,
-          source: 'fallback',
-          suggestions: ISSUE_FALLBACK_SUGGESTIONS,
-          lateSuggestions: [{text: 'Generated'}],
-        })
-      );
+      await waitFor(() => expect(request).toHaveBeenCalled());
+      expect(result.current).toEqual({
+        isLoading: false,
+        source: 'fallback',
+        suggestions: ISSUE_FALLBACK_SUGGESTIONS,
+      });
     });
 
     it('returns generated suggestions when the page finishes loading', async () => {

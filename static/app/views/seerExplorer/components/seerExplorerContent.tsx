@@ -328,13 +328,12 @@ export function SeerExplorerContent({
     allowStructuredContext: overrideCtxEngEnable,
   });
   const handleSuggestionClick = useCallback(
-    (suggestion: ChatSuggestion, position: number, isLate: boolean) => {
+    (suggestion: ChatSuggestion, position: number) => {
       if (!suggestions.isLoading) {
         trackAnalytics('seer.explorer.suggestion_clicked', {
           organization,
           referrer: getPageReferrer(),
-          source: isLate ? 'generated' : suggestions.source,
-          is_late: isLate,
+          source: suggestions.source,
           position,
           kind: suggestion.kind,
           action_type: suggestion.action_type ?? undefined,
