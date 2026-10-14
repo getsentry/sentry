@@ -4,6 +4,12 @@ import type {ChartType} from 'sentry/views/insights/common/components/chart';
 /** Dataset the search agent runs against. */
 export type AskSeerStrategy = 'Errors' | 'Issues' | 'Logs' | 'Metrics' | 'Traces';
 
+/**
+ * Which surface started a search agent run. Must match the `SearchAgentReferrer`
+ * allowlist in `search_agent_start.py`; unknown values are ignored by the backend.
+ */
+export type AskSeerReferrer = 'search_bar';
+
 export interface SeerRawResponseItem {
   end: string | null;
   group_by: string[];

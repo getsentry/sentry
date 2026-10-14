@@ -311,14 +311,6 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                     module_pattern="@sentry/core/*/instrument/fetch*",
                     function_pattern="<anonymous>",
                 ),
-                # The Supabase integration wraps PostgREST queries and captures errors from
-                # Supabase responses via captureException. The Error is constructed inside SDK
-                # code, so the stack trace only contains SDK frames, triggering false positives.
-                # https://github.com/getsentry/sentry-javascript/blob/10.47.0/packages/core/src/integrations/supabase.ts
-                FunctionAndModulePattern(
-                    module_pattern="@sentry/core/*/integrations/supabase*",
-                    function_pattern="Reflect.apply.then$argument_0",
-                ),
             },
             sdk_crash_ignore_stacktrace_matchers={
                 # The React Native dev server (Metro) re-runs the app's entry code — including
@@ -357,6 +349,23 @@ def build_sdk_crash_detection_configs() -> Sequence[SDKCrashDetectionConfig]:
                         ),
                     ),
                     require_sdk_frame_after=True,
+                ),
+                # The Supabase integration wraps PostgREST queries via a Proxy on `.then()` and
+                # captures failed queries via captureException. The Error is constructed inside SDK
+                # code (`new Error(res.error.message)`), so its stack trace contains only SDK frames,
+                # triggering SDK-crash false positives. Match the frame by path rather than `module`,
+                # which real React Native / Hermes frames don't carry (the path lives in
+                # `filename`/`abs_path`). A single supabase frame identifies the intentional capture,
+                # so we don't require a following SDK frame.
+                # https://github.com/getsentry/sentry-javascript/blob/10.47.0/packages/core/src/integrations/supabase.ts
+                StacktraceIgnoreMatcher(
+                    patterns=(
+                        FunctionAndPathPattern(
+                            function_pattern="Reflect.apply.then$argument_0",
+                            path_pattern="**/@sentry/core/**/integrations/supabase*",
+                        ),
+                    ),
+                    require_sdk_frame_after=False,
                 ),
             },
         )

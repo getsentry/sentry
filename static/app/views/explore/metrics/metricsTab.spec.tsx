@@ -215,6 +215,30 @@ describe('MetricsTabContent', () => {
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
   });
 
+  it('prompts for an equation instead of loading when an added equation is empty', async () => {
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig,
+        organization,
+      }
+    );
+    expect(await screen.findAllByTestId('metric-panel')).toHaveLength(1);
+
+    await userEvent.click(screen.getAllByRole('button', {name: 'Add Equation'})[0]!);
+
+    const equationPanel = within(await screen.findByTestId('equation-metric-panels'));
+    expect(
+      equationPanel.getByText('Enter an equation to see results')
+    ).toBeInTheDocument();
+    expect(
+      equationPanel.getByText('Enter an equation to see aggregates')
+    ).toBeInTheDocument();
+    expect(equationPanel.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+  });
+
   it('copies the last edited metric when adding another metric', async () => {
     render(
       <ProviderWrapper>

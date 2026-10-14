@@ -590,6 +590,7 @@ class _ConditionEvaluationStats:
 
 @dataclass(frozen=True)
 class DelayedWorkflowEvaluationResult(WorkflowEvaluationBatch):
+    project_id: int | None
     artifacts: list[WorkflowEvaluationArtifact]
     groups_to_fire: dict[GroupId, set[DataConditionGroup]]
     stats: _ConditionEvaluationStats
@@ -806,6 +807,7 @@ def get_groups_to_fire(
         )
 
     return DelayedWorkflowEvaluationResult(
+        project_id=project_id,
         artifacts=artifacts,
         groups_to_fire=groups_to_fire,
         stats=_ConditionEvaluationStats(tainted=tainted, untainted=untainted),
