@@ -1,5 +1,7 @@
 import {css} from '@emotion/react';
 
+import type {BaseAvatarProps} from '@sentry/scraps/avatar';
+import {useAvatarColors} from '@sentry/scraps/avatarButton';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -10,16 +12,19 @@ interface NavigationMenuHeaderProps {
   name: string;
   subtitle: string;
   title: string;
-  accentColor?: string;
+  gradientAvatar?: BaseAvatarProps;
 }
 
 export function NavigationMenuHeader({
-  accentColor,
   avatar,
+  gradientAvatar,
   name,
   subtitle,
   title,
 }: NavigationMenuHeaderProps) {
+  const avatarColors = useAvatarColors(gradientAvatar);
+  const accentColor = avatarColors.type === 'image' ? avatarColors.chonk : undefined;
+
   return (
     <Container
       radius="md md 0 0"

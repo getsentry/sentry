@@ -7,7 +7,7 @@ import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
-import {AvatarButton, useAvatarColors} from '@sentry/scraps/avatarButton';
+import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {
   DropdownMenu,
   type DropdownMenuProps,
@@ -84,7 +84,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
             ...letterAvatarProps,
           }
         : {type: 'letter_avatar' as const, ...letterAvatarProps};
-  const avatarColors = useAvatarColors(avatarProps);
 
   const size = useSizeContext();
 
@@ -109,7 +108,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         minMenuWidth={258}
         menuTitle={
           <NavigationMenuHeader
-            accentColor={avatarColors.type === 'image' ? avatarColors.chonk : undefined}
+            gradientAvatar={avatarProps}
             title={t('Organization')}
             avatar={
               <Flex
