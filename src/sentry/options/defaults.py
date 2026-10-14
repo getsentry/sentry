@@ -3687,7 +3687,7 @@ register(
 register(
     "notifications.platform.alert-providers",
     type=Dict,
-    default={"metric-alert": ["slack", "slack_staging"]},
+    default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
