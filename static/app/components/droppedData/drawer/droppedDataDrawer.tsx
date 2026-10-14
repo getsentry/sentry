@@ -1,21 +1,24 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
+import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
+import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
 import {
-  DroppedDataCategoryList,
-  droppedEventsToCategorySections,
-} from 'sentry/components/droppedData/drawer/categoryList';
-import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedEventsChart';
+  getOutcomeColors,
+  isOutcomeSelected,
+  type OutcomeSelection,
+} from 'sentry/components/droppedData/outcomes';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 interface DroppedDataDrawerProps {
   dataset: DiscoverDatasets;
@@ -23,25 +26,37 @@ interface DroppedDataDrawerProps {
   onInvestigate?: () => void;
 }
 
-function DroppedDataDrawerInner({
+export function DroppedDataDrawer({
   dataset,
   interval,
   onInvestigate,
 }: DroppedDataDrawerProps) {
+  const theme = useTheme();
   const [chartInterval] = useChartInterval();
-  const {droppedEvents, acceptedEvents, isPending} = useDroppedData({
+  const {droppedEvents, acceptedEvents, isPending, isError, refetch} = useDroppedData({
     dataset,
     interval: interval ?? chartInterval,
   });
 
-  useLLMContext({
-    contextHint:
-      'Sentry dropped-data panel. drops are the events Sentry dropped for this ' +
-      'dataset over the current date range, grouped by outcome then reason, each ' +
-      'with its event count and share of total (accepted + dropped) events.',
-    dataset,
-    drops: droppedEventsToCategorySections(droppedEvents ?? [], acceptedEvents ?? []),
-  });
+  const sections = useMemo(
+    () => droppedEventsToOutcomeSections(droppedEvents ?? [], acceptedEvents ?? []),
+    [droppedEvents, acceptedEvents]
+  );
+  const outcomeColors = useMemo(
+    () =>
+      getOutcomeColors(
+        sections.map(section => section.outcome),
+        theme
+      ),
+    [sections, theme]
+  );
+
+  const [outcomeSelection, setOutcomeSelection] = useState<OutcomeSelection>({});
+  const selectedSections = useMemo(
+    () =>
+      sections.filter(section => isOutcomeSelected(outcomeSelection, section.outcome)),
+    [sections, outcomeSelection]
+  );
 
   return (
     <Fragment>
@@ -51,14 +66,24 @@ function DroppedDataDrawerInner({
         </Text>
       </DrawerHeader>
       <DrawerBody>
-        {isPending ? (
+        {isError ? (
+          <LoadingError
+            message={t('There was an error loading dropped data.')}
+            onRetry={() => void refetch()}
+          />
+        ) : isPending ? (
           <LoadingIndicator />
         ) : (
           <Stack gap="xl">
-            <DroppedDataChart droppedEvents={droppedEvents ?? []} />
-            <DroppedDataCategoryList
+            <DroppedDataChart
               droppedEvents={droppedEvents ?? []}
-              acceptedEvents={acceptedEvents ?? []}
+              colors={outcomeColors}
+              selection={outcomeSelection}
+              onSelectionChange={setOutcomeSelection}
+            />
+            <DroppedDataOutcomeList
+              sections={selectedSections}
+              colors={outcomeColors}
               onInvestigate={onInvestigate}
             />
           </Stack>
@@ -67,8 +92,3 @@ function DroppedDataDrawerInner({
     </Fragment>
   );
 }
-
-export const DroppedDataDrawer = registerLLMContext(
-  'dropped-data',
-  DroppedDataDrawerInner
-);

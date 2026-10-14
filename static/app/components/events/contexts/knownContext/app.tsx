@@ -1,7 +1,7 @@
 import {
   getContextKeys,
   getRelativeTimeFromEventDateCreated,
-} from 'sentry/components/events/contexts/utils';
+} from 'sentry/components/events/contexts/dataUtils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';

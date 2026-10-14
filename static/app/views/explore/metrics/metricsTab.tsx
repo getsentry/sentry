@@ -5,6 +5,7 @@ import {SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 
+import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -13,6 +14,7 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {t} from 'sentry/locale';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {
@@ -179,6 +181,7 @@ function MetricsTabBodySection({
   return (
     <ExploreContentSection>
       <Stack>
+        <DroppedDataLLMContext dataset={DiscoverDatasets.TRACEMETRICS} />
         <WidgetSyncContextProvider groupName={METRICS_CHART_GROUP}>
           <SortableMetricPanelSection
             dataTestId="aggregate-metric-panels"
