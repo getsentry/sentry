@@ -32,6 +32,8 @@ class MetricAlertNotificationData(NotificationData):
     # Pre-computed chart URL (None if feature disabled or build failed)
     chart_url: str | None = None
 
+    show_investigation_button: bool = False
+
 
 _EXAMPLE_OPEN_PERIOD_CONTEXT = OpenPeriodContext(
     id=1,

@@ -4,6 +4,8 @@ import {parseAsBoolean, useQueryState} from 'nuqs';
 import {useDrawer} from '@sentry/scraps/drawer';
 
 import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
+import type {ReasonRow} from 'sentry/components/droppedData/drawer/outcomeSections';
+import {buildInvestigatePrompt} from 'sentry/components/droppedData/outcomes';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -36,14 +38,24 @@ export function useDroppedDataDrawer(
   );
   const renderedIntervalRef = useRef(interval);
 
-  // TODO: switch this to openChatPrompt, as well as handleInvestigate,
-  // to supply prompt context.
   const {openSeerExplorer} = useSeerExplorerContext();
   const openSeerExplorerRef = useRef(openSeerExplorer);
   useEffect(() => {
     openSeerExplorerRef.current = openSeerExplorer;
   });
-  const handleInvestigate = useCallback(() => openSeerExplorerRef.current(), []);
+  const handleInvestigate = useCallback(
+    (row: ReasonRow) => {
+      openSeerExplorerRef.current({
+        initialQuery: buildInvestigatePrompt({
+          dataset,
+          outcome: row.outcome,
+          reason: row.reason,
+          category: row.category,
+        }),
+      });
+    },
+    [dataset]
+  );
   const onInvestigate = isSeerExplorerEnabled(organization)
     ? handleInvestigate
     : undefined;
