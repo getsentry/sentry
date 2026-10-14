@@ -265,3 +265,10 @@ disallow_untyped_defs = false
     tmp_path.joinpath("a/b/__init__.py").touch()
 
     assert main((str(f),)) == 0
+
+
+def test_absent_debt_overrides_are_empty(tmp_path) -> None:
+    f = tmp_path / "f"
+    f.write_text("[tool.mypy]\npython_version = '3.13'\n")
+
+    assert main((str(f),)) == 0

@@ -24,22 +24,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         reldir = os.path.dirname(os.path.abspath(filename))
 
         with open(filename, "rb") as f:
-            overrides = tomllib.load(f)["tool"]["mypy"]["overrides"]
+            config = tomllib.load(f)
 
-        (allowlist,) = (cfg for cfg in overrides if "disable_error_code" in cfg)
-        (weaklist,) = (cfg for cfg in overrides if "disallow_untyped_defs" in cfg)
+        allowlist_modules = _modules_for_override_key(config, "disable_error_code", filename)
+        weaklist_modules = _modules_for_override_key(config, "disallow_untyped_defs", filename)
+        weaklist_re = (
+            re.compile("|".join(_glob_to_re(g) for g in weaklist_modules))
+            if weaklist_modules
+            else None
+        )
 
-        weaklist_re = re.compile("|".join(_glob_to_re(g) for g in weaklist["module"]))
-
-        for mod in allowlist["module"]:
-            if not weaklist_re.fullmatch(mod):
+        for mod in allowlist_modules:
+            if weaklist_re is None or not weaklist_re.fullmatch(mod):
                 print(
                     f"{filename}: {mod} is in the typing errors allowlist but not in the weaklist"
                 )
                 retv = 1
 
         prev = ""
-        for pat in weaklist["module"]:
+        for pat in weaklist_modules:
             if prev.endswith(".*") and pat.startswith(prev[:-1]):
                 print(f"{filename}: {pat} in weaklist is redundant with {prev}")
                 retv = 1
@@ -54,7 +57,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             else:
                 prev = pat
 
-        for pat in weaklist["module"]:
+        for pat in weaklist_modules:
             orig_pat = pat
             firstmod = pat.split(".")[0]
             if os.path.exists(os.path.join(reldir, "src", firstmod)):
@@ -71,6 +74,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             retv = 1
 
     return retv
+
+
+def _modules_for_override_key(data: dict[str, object], key: str, filename: str) -> tuple[str, ...]:
+    tool = data.get("tool")
+    mypy = tool.get("mypy") if isinstance(tool, dict) else None
+    overrides = mypy.get("overrides", []) if isinstance(mypy, dict) else []
+    if not isinstance(overrides, list):
+        raise SystemExit(f"{filename}: [tool.mypy].overrides must be an array")
+    matching = [cfg for cfg in overrides if isinstance(cfg, dict) and key in cfg]
+    if not matching:
+        return ()
+    if len(matching) > 1:
+        raise SystemExit(
+            f"{filename}: multiple [tool.mypy.overrides] sections with "
+            f"{key!r}; expected exactly one."
+        )
+    modules = matching[0].get("module")
+    if not isinstance(modules, list) or not all(isinstance(module, str) for module in modules):
+        raise SystemExit(f"{filename}: override with {key!r} must define a string module list")
+    return tuple(modules)
 
 
 if __name__ == "__main__":

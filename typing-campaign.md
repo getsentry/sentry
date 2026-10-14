@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-Status: ready to execute, beginning with environment and evaluator bootstrap. No migration baseline or typing promotion has run during planning.
+Status: P1 helper hardening is complete. P2 evaluator work is in progress. Three configured-profile checkpoints are recorded; no repo-wide unsuppressed or all-strong comparison has been measured yet.
 
 Keep typing work on the existing `typing-hillclimb` branch in this checkout, with one module per ordinary commit and the demonstrated atomic-repair exception below. The only branch, worktree, push and PR exception is a confirmed bug or soundness fix under the defect procedure below. The goal is to remove genuine Python typing debt while preserving runtime behavior and precise contracts.
 
@@ -359,17 +359,19 @@ Four override groups have different purposes:
 - The generated Sentry error list disables `arg-type`, `assignment`, `attr-defined`, `misc` and `union-attr` for `sentry.snuba.metrics.query_builder` and `sentry.testutils.cases`.
 - The weaklist disables `disallow_any_generics`, `disallow_untyped_defs` and `strict_equality` for many application, test, fixture and tooling modules, including wildcard patterns.
 
-The two Sentry lists are separate debt mechanisms. Removing one does not make the other disappear. `tools/mypy_helpers/mypy_without_ignores.py` removes only the generated error section. `find_easiest_modules.py` currently counts every Python-path-prefixed line and prints descending counts. It is a selector, not a complete debt oracle.
+The two Sentry lists are separate debt mechanisms. Removing one does not make the other disappear. `tools/mypy_helpers/mypy_without_ignores.py` removes only the generated error section. `find_easiest_modules.py` ranks completed error diagnostics by ascending count and filename. It is a selector, not a complete debt oracle.
 
-`make_module_ignores.py` currently clears `.mypy_cache`, runs the unsuppressed helper, writes `.artifacts/mypy-all` and rewrites `pyproject.toml`. It does not validate exit status or stderr. Before P1, do not use it in the integration checkout. Its entry point is:
+`make_module_ignores.py` runs the unsuppressed helper, validates its complete output, writes `.artifacts/mypy-all`, and rewrites the marked section in `pyproject.toml`. It does not clear `.mypy_cache`. Run it only with a disposable configuration because a valid run updates the debt section. Its entry point is:
 
 ```sh
 .venv/bin/python -m tools.mypy_helpers.make_module_ignores
 ```
 
-`check_stronglist.py` currently requires exactly one override of each debt kind and requires suppressed modules to remain weak. `prevent_weaklist_additions.py` compares literal module strings with `HEAD`, not effective settings against a supplied accepted parent. The sorter and list validator run through prek. The bypass hook catches whole-line ignores and selected other forms, but it does not reject every inline coded ignore.
+`check_stronglist.py` treats absent debt overrides as empty, requires a unique override when a debt key is present, and requires suppressed modules to remain weak. `prevent_weaklist_additions.py` compares literal module strings with `HEAD`, not effective settings against a supplied accepted parent. The sorter and list validator run through prek. The bypass hook catches whole-line ignores and selected other forms, but it does not reject every inline coded ignore.
 
 Backend typing CI installs from `uv.lock` using a private package index, sets up Sentry, and runs mypy with `RuntimeWarning` as an error. After success it regenerates debt and fails on config drift or selected message patterns in `.artifacts/mypy-all`. It can auto-commit generated config on a non-master ref. Its push trigger names master. Its aggregate backend check permits skipped child jobs. Local campaign checks must reproduce the relevant guarantees without assuming an aggregate green means typing ran.
+
+`mypy_without_ignores.py` now accepts absent error-debt markers and rebases `files` and `mypy_path` against the source root before writing its temporary config under `.work/tmp`. It rejects malformed markers before invoking mypy. `make_module_ignores.py` validates the full run summary, exit status, stderr and diagnostics before writing either output. It counts error diagnostics only and clears the active override when debt is empty. `find_easiest_modules.py` ranks errors only, by ascending count and then filename.
 
 The custom plugin injects Any into request attributes and other types. Source annotation counts alone miss these obligations. Existing positive and negative plugin tests live in `tests/tools/mypy_helpers/test_plugin.py`; serializer tests also live in `test_typed_validated_data.py` in that directory.
 
@@ -384,6 +386,7 @@ Append one line per consequential executor judgment: item, decision, evidence an
 - 2026-10-14: independent review of the range through `4a3e00a8` (15 commits: 15 weaklist removals plus two initializer annotations in `sentry.exceptions`) found the edits reasonable but the recorded verification thinner than the written campaign: no P2 evaluator exists yet, so unsuppressed/all-strong comparisons never ran and promotions preceded the prescribed bootstrap. Keep the commits; checkpoint before further source-changing work.
 - 2026-10-14: verification is now selected by change class (see policy section): a config-only series may share one full configured checkpoint; annotation items need behavior tests plus debt comparison once P2 operates; import/`TYPE_CHECKING`/decorator/stub/plugin edits additionally need fresh-process startup with registration assertions. `--no-warn-unused-configs` stays for focused runs; positional-filename scope is not full-repo proof.
 - 2026-10-14: sweep pivots from empty/tiny weaklist entries to ranked modules needing real annotation; trivial removals retire real obligations but do not demonstrate hillclimb progress on genuine debt.
+- 2026-10-14: P1 keeps mypy generation non-mutating on crashes, stderr, incomplete summaries and malformed markers. Error ranking ignores notes and sorts ascending so the lowest-debt modules appear first.
 
 ## Campaign log
 
@@ -392,6 +395,7 @@ Append one short entry per phase and parked item. Include accepted commits, chan
 - 2026-10-14 checkpoint: full configured mypy over the branch passes with zero issues in 8229 source files. Ran with `--num-workers 2` as a documented deviation (7.65 GiB available was below the 8 GiB reserve). Unsuppressed/all-strong parent/candidate comparisons remain pending on the P2 evaluator gate. `test_startup_imports` passes; `python -m sentry --help` is clean with 35 commands registered. Commits after the reviewed range (`ingest.types`, `github.constants`, `middleware.placeholder`, `tempest.apps`, `testutils.helpers.discover`, `testutils.middleware`, `search.exceptions`, `db.models.fields.onetoone`) each carry focused mypy plus behavior or consumer checks in their messages; the full-repo result above covers them for the configured profile only.
 - 2026-10-14 checkpoint 2: full configured mypy again green (8229 files, `--num-workers 2`), covering Lane D commits (`testutils.helpers.auth_header` annotated; `utils.cache`, `utils.flag`, `web.constants` metadata-only). `sentry.db.analyze` parked: zero callers, needs `type[Model]` plus new `Any` for the cursor return — owner call whether to type or delete. Four medium worker lanes fanned out for the next 20 modules; coordinator remains single writer.
 - 2026-10-14 checkpoint 3: full configured mypy green (8231 files, `--num-workers 2`), covering Lanes A/B/C serializer, endpoint, and view promotions. Checker behaviors learned: bare `return` in a `-> X | None` body errors (spell `return None`, identical behavior); `== ""` does not narrow `list[str] | str` (narrow `ignore[arg-type]` with reason instead of restructuring); `TYPE_CHECKING` annotations require future annotations or they crash at import; `class_name() ==` does not narrow unions (use `isinstance`). Lane flow corrected two lane proposals (unused `ignore[override]` dropped on `project_event`; `list.py` ignore added) and added first contract tests for `actor` and `project_reprocessing`.
+- 2026-10-14 P1: helper hardening changed generator failure behavior, made notes non-debt, removed active error overrides at zero debt, accepted absent debt overrides, and rebased temporary config paths. `TMPDIR=/Users/josh/dev/sentry/.work/tmp .venv/bin/pytest --basetemp=.work/tmp/pytest-p1-corpus -q tests/tools/mypy_helpers` passed 101 tests in 80.99 seconds. The focused new harness passed 29 tests in 0.48 seconds. Ruff and `git diff --check` passed. The targeted configured mypy run passed for seven helper modules. Its stderr included local option and SDK warnings; P2 must preserve and classify them before accepting profile measurements. No source promotion was included. The full helper corpus took 80.99 seconds; keep using the focused helper selector for iteration and the corpus for phase acceptance.
 
 ## For the owner afterwards
 
