@@ -326,8 +326,15 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
         for h in having:
-            alias = h[0]
-            required_aggregations.add(alias)
+            if isinstance(h[0], str):
+                # Simple condition: [alias, op, value]
+                required_aggregations.add(h[0])
+            else:
+                # Compound OR condition (e.g. from `!=` operator on a nullable field):
+                # h is a list of sub-conditions, each of the form [alias_or_expr, op, value]
+                for sub_h in h:
+                    if isinstance(sub_h[0], str):
+                        required_aggregations.add(sub_h[0])
 
         aggregations = []
         for alias in required_aggregations:
