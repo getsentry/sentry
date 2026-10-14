@@ -157,7 +157,7 @@ def publish_action(
         "actor_type": actor.actor_type.value,
         "actor_id": actor.actor_id,
         "source": source,
-        "data": action.dict(),
+        "data": action.json_dict(),
         "force_async_derived": force_async_derived,
     }
 
