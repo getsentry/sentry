@@ -49,7 +49,7 @@ describe('ProjectFilters', () => {
 
   type CustomInboundFilter = {
     active: boolean;
-    conditions: Array<{type: string; value: string[]}>;
+    conditions: Array<{type: string; value: string[]; key?: string}>;
     dateCreated: string;
     dateUpdated: string;
     id: string;
@@ -873,6 +873,103 @@ describe('ProjectFilters', () => {
           },
         })
       )
+    );
+  });
+
+  it('creates a filter with a tag condition', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10', name: 'Free tier noise'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Name'}));
+    await userEvent.paste('Free tier noise');
+    // The key input appears once the property reads a tag.
+    expect(
+      within(dialog).queryByRole('textbox', {name: 'Condition key'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      within(dialog).getByRole('textbox', {name: 'Condition property'})
+    );
+    await userEvent.click(within(dialog).getByRole('menuitemradio', {name: 'Tag'}));
+    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Condition key'}));
+    await userEvent.paste(' customer_tier ');
+    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Condition value'}));
+    await userEvent.paste('free\ntrial*');
+
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Create Filter'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        CUSTOM_INBOUND_FILTERS_URL,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            name: 'Free tier noise',
+            dataType: 'error',
+            conditions: [{type: 'tag', key: 'customer_tier', value: ['free', 'trial*']}],
+          },
+        })
+      )
+    );
+  });
+
+  it('does not create a tag condition without a key', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Name'}));
+    await userEvent.paste('No key');
+    await userEvent.click(
+      within(dialog).getByRole('textbox', {name: 'Condition property'})
+    );
+    await userEvent.click(within(dialog).getByRole('menuitemradio', {name: 'Tag'}));
+    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Condition value'}));
+    await userEvent.paste('free');
+
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Create Filter'}));
+
+    expect(await screen.findByText('Enter the tag key')).toBeInTheDocument();
+    expect(createMock).not.toHaveBeenCalled();
+    expect(within(dialog).getByText('Create Custom Filter')).toBeInTheDocument();
+  });
+
+  it('shows the key of a tag condition in the table and the modal', async () => {
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Free tier noise',
+        dataType: 'span',
+        conditions: [{type: 'tag', key: 'customer_tier', value: ['free']}],
+      }),
+    ]);
+
+    expect(await screen.findByText('Free tier noise')).toBeInTheDocument();
+    expect(screen.getByText('Tag')).toBeInTheDocument();
+    expect(screen.getByText('customer_tier')).toBeInTheDocument();
+    expect(screen.getByText('free')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('textbox', {name: 'Condition key'})).toHaveValue(
+      'customer_tier'
+    );
+    expect(within(dialog).getByRole('textbox', {name: 'Condition value'})).toHaveValue(
+      'free'
     );
   });
 
