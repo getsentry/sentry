@@ -62,22 +62,16 @@ def _run_mirrors(group: Group, run_id: int) -> QuerySet[SeerAgentRun]:
 
 
 def _mirror_matches_issue(group: Group) -> Q:
-    # A missing project means the row predates project binding. The group is
-    # already one project, so a matching group is enough for those rows.
-    return Q(group_id=group.id) & (Q(project_id=group.project_id) | Q(project_id__isnull=True))
+    return Q(group_id=group.id, project_id=group.project_id)
 
 
 def autofix_run_targets_other_issue(group: Group, run_id: int) -> bool:
-    """True when this org has a run mirror for ``run_id`` on another issue.
+    """True unless ``run_id`` is mirrored to this issue's group and project.
 
-    No mirror is not foreign: older runs are still checked via Seer metadata.
-    A mirror on a different group or project is foreign, even when that metadata
-    echoes the caller's issue.
+    Autofix runs are stored with both when they start, so a missing row is not
+    this issue's run.
     """
-    mirrors = _run_mirrors(group, run_id)
-    if not mirrors.exists():
-        return False
-    return not mirrors.filter(_mirror_matches_issue(group)).exists()
+    return not _run_mirrors(group, run_id).filter(_mirror_matches_issue(group)).exists()
 
 
 def require_autofix_run_for_group(group: Group, run_id: int) -> SeerAgentRun:

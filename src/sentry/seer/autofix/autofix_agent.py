@@ -439,12 +439,9 @@ def _reject_foreign_autofix_run(group: Group, run_id: int) -> None:
 
 
 def _validate_run_belongs_to_group(state: SeerRunState, group: Group) -> None:
-    # The local mirror is the access check. Seer session metadata is not: it is
-    # fetched with the caller-supplied run_id and must not be able to authorize it.
+    # The local mirror is the access check. Seer session metadata is fetched
+    # with the caller-supplied run_id, so it cannot authorize the run.
     _reject_foreign_autofix_run(group, state.run_id)
-    group_id = state.metadata.get("group_id") if state.metadata else None
-    if group_id != group.id:
-        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 
 
 def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> SeerRunState:

@@ -160,6 +160,33 @@ class TestTriggerAutofixFeature(TestCase):
         MockClient.return_value.continue_feature_run.assert_not_called()
         MockClient.return_value.start_feature_run.assert_not_called()
 
+    def test_refuses_run_without_project(self) -> None:
+        unbound_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=unbound_run,
+            source=LEGACY_FEATURE_ID,
+            group=self.group,
+        )
+
+        with (
+            patch(
+                "sentry.seer.autofix.feature.dispatch.SeerAgentClient", autospec=True
+            ) as MockClient,
+            pytest.raises(SeerPermissionError, match="Unknown run id for group"),
+        ):
+            trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    step=AutofixStep.SOLUTION,
+                    existing_run_id=123,
+                    user_context="Find a solution",
+                    step_args=SolutionStepArgs(),
+                ),
+            )
+
+        MockClient.return_value.continue_feature_run.assert_not_called()
+
     def test_starts_feature_run_and_records_quota(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
 
