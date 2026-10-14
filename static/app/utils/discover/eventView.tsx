@@ -6,11 +6,11 @@ import uniqBy from 'lodash/uniqBy';
 import moment from 'moment-timezone';
 
 import type {SelectValue} from '@sentry/scraps/select';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
 import {ALL_ACCESS_PROJECTS, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {DEFAULT_PER_PAGE} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -18,6 +18,7 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import type {Project} from 'sentry/types/project';
 import type {User} from 'sentry/types/user';
 import {toArray} from 'sentry/utils/array/toArray';
+import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
 import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateOutputType,
@@ -40,7 +41,12 @@ import {
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {AggregationKey} from 'sentry/utils/fields';
-import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {
+  decodeList,
+  decodeScalar,
+  decodeSorts,
+  encodeSort,
+} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {WidgetType} from 'sentry/views/dashboards/types';
@@ -51,13 +57,12 @@ import {
 } from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-import {getSortField} from './fieldRenderers';
+import {getSortField} from './getSortField';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, any> & {
@@ -162,20 +167,6 @@ const decodeFields = (location: Location): Field[] => {
   });
 
   return parsed;
-};
-
-export const encodeSort = (sort: Sort): string => {
-  switch (sort.kind) {
-    case 'desc': {
-      return `-${sort.field}`;
-    }
-    case 'asc': {
-      return String(sort.field);
-    }
-    default: {
-      throw new Error('Unexpected sort type');
-    }
-  }
 };
 
 const encodeSorts = (sorts: readonly Sort[]): string[] => sorts.map(encodeSort);
@@ -1095,29 +1086,6 @@ export class EventView {
       key: sort.field,
       order: sort.kind,
     }));
-  }
-
-  getFacetsAPIPayload(
-    location: Location
-  ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {
-    const payload = this.getEventsAPIPayload(location);
-
-    const remove = [
-      'id',
-      'name',
-      'per_page',
-      'sort',
-      'cursor',
-      'field',
-      'equation',
-      'interval',
-    ];
-    for (const key of remove) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      delete payload[key];
-    }
-
-    return payload;
   }
 
   normalizeDateSelection(location: Location) {

@@ -33,7 +33,7 @@ from sentry.search.eap.types import (
 )
 from sentry.search.eap.utils import (
     can_expose_attribute_to_api,
-    get_deprecated_source_internal_names,
+    get_non_backfill_deprecated_source_internal_names,
     is_sentry_convention_replacement_attribute,
     translate_internal_to_public_alias,
     translate_search_type_for_internal_column,
@@ -41,6 +41,7 @@ from sentry.search.eap.utils import (
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
+from sentry.utils.attributes import get_attribute
 from sentry.utils.dates import to_datetime
 from sentry.utils.snuba_rpc import SnubaRPCBadRequest, trace_item_details_rpc
 
@@ -172,7 +173,12 @@ def convert_rpc_attribute_to_json(
         if external_name and is_sentry_convention_replacement_attribute(
             external_name, trace_item_type
         ):
-            deprecated_names = get_deprecated_source_internal_names(external_name, trace_item_type)
+            # Hide the replacement only if a deprecated source that it supersedes is
+            # present. Backfilled sources are stored alongside their replacement, and
+            # consumers read the replacement name, so it must stay visible.
+            deprecated_names = get_non_backfill_deprecated_source_internal_names(
+                external_name, trace_item_type
+            )
             if not deprecated_names.isdisjoint(all_internal_names):
                 continue
 
@@ -236,15 +242,15 @@ def serialize_meta(
         try:
             result = json.loads(attribute["value"]["valStr"])
             # Map the internal field key name back to its public name
-            if field_key in attribute_map:
+            if (field_attribute := get_attribute(attribute_map, field_key)) is not None:
                 item_type: Literal["string", "number", "boolean"]
                 if (
-                    "valInt" in attribute_map[field_key]
-                    or "valFloat" in attribute_map[field_key]
-                    or "valDouble" in attribute_map[field_key]
+                    "valInt" in field_attribute
+                    or "valFloat" in field_attribute
+                    or "valDouble" in field_attribute
                 ):
                     item_type = "number"
-                elif "valBool" in attribute_map[field_key]:
+                elif "valBool" in field_attribute:
                     item_type = "boolean"
                 else:
                     item_type = "string"
@@ -296,9 +302,10 @@ def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:
     attributes. Parse any that are present back into JSON and return them,
     wrapped in a single `event` dict."""
     result: dict[str, Any] = {}
-    for attribute in attributes:
-        event_key = _SERIALIZED_EVENT_ATTRIBUTES.get(attribute["name"])
-        if event_key is None:
+    attribute_map = {attribute["name"]: attribute for attribute in attributes}
+    for attribute_name, event_key in _SERIALIZED_EVENT_ATTRIBUTES.items():
+        attribute = get_attribute(attribute_map, attribute_name)
+        if attribute is None:
             continue
 
         value = attribute.get("value", {}).get("valStr", None)
@@ -321,11 +328,8 @@ def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:
 
 def serialize_links(attributes: list[dict]) -> list[dict] | None:
     """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
-    link_attribute = None
-    for attribute in attributes:
-        internal_name = attribute["name"]
-        if internal_name == "sentry.links":
-            link_attribute = attribute
+    attribute_map = {attribute["name"]: attribute for attribute in attributes}
+    link_attribute = get_attribute(attribute_map, "sentry.links")
 
     if link_attribute is None:
         return None

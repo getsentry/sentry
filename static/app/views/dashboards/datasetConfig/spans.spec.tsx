@@ -203,7 +203,7 @@ describe('SpansConfig', () => {
 
   it('renders internal error count as a link to explore with error filter', () => {
     const field =
-      'count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)';
+      'count_if(`span.status:internal_error`) + count_if(`span.status:error`)';
     const location = LocationFixture();
 
     const baseEventViewOptions: EventViewOptions = {

@@ -258,6 +258,14 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
  * Main Webpack config for Sentry React SPA.
  */
 
+// Resolve workspace imports from the importing package's declared dependencies.
+const workspaceResolutionRules = ['app', 'gsApp', 'gsAdmin'].map(directory => ({
+  include: path.join(staticPrefix, directory),
+  resolve: {
+    modules: [path.join(staticPrefix, directory, 'node_modules')],
+  },
+}));
+
 const appConfig: Configuration = {
   name: 'app',
   mode: WEBPACK_MODE,
@@ -318,6 +326,22 @@ const appConfig: Configuration = {
      * Please remember to test it.
      */
     rules: [
+      ...workspaceResolutionRules,
+      {
+        // Only first-party imports use V8 paths. Leave dependencies and the
+        // compatibility implementation on the original V6 package resolution.
+        include: [staticPrefix, path.join(import.meta.dirname, 'tests/js')],
+        exclude: [path.join(staticPrefix, 'app/utils/reactRouterV6'), /node_modules/],
+        resolve: {
+          alias: {
+            'react-router$': path.join(staticPrefix, 'app/utils/reactRouterV6/index.ts'),
+            'react-router/dom$': path.join(
+              staticPrefix,
+              'app/utils/reactRouterV6/dom.ts'
+            ),
+          },
+        },
+      },
       {
         test: /\.(?:tsx?|jsx?)$/,
         oneOf: [
@@ -492,7 +516,6 @@ const appConfig: Configuration = {
 
   resolve: {
     alias: {
-      sentry: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
@@ -510,10 +533,8 @@ const appConfig: Configuration = {
         path.join(staticPrefix, 'app', 'components', 'core'),
       ],
 
-      getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
       'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
-      admin: path.join(staticPrefix, 'gsAdmin'),
 
       'sentry-test': path.join(import.meta.dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(import.meta.dirname, 'src', 'sentry', 'locale'),
@@ -566,7 +587,17 @@ const appConfig: Configuration = {
       chunks: 'async',
       maxInitialRequests: 10, // (default: 30)
       maxAsyncRequests: 10, // (default: 30)
-      cacheGroups: localeChunkGroups,
+      cacheGroups: {
+        ...localeChunkGroups,
+        // Keep charting in one chunk that only changes when echarts is
+        // upgraded, so it stays cached across deploys
+        echarts: {
+          chunks: 'async',
+          name: 'echarts',
+          test: /[\\/]node_modules[\\/](echarts|echarts-for-react|zrender)[\\/]/,
+          enforce: true,
+        },
+      },
     },
 
     // This only runs in production mode
@@ -594,6 +625,7 @@ const workerConfig: Configuration = {
   lazyCompilation: appConfig.lazyCompilation,
   module: {
     rules: [
+      ...workspaceResolutionRules,
       {
         test: /\.ts$/,
         // core-js: Avoids recompiling core-js based on usage imports
@@ -971,6 +1003,9 @@ if (IS_PRODUCTION) {
       },
       release: {
         create: false,
+        // The SDK sets `release` itself. Injecting it puts the commit SHA in
+        // every chunk, which changes every chunk hash on every deploy.
+        inject: false,
       },
       reactComponentAnnotation: {
         // Using swc-plugin-react-component-annotate instead

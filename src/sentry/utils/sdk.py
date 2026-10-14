@@ -17,11 +17,10 @@ from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope
+from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope, traces
 from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
-from sentry_sdk.traces import StreamedSpan
 from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from sentry_sdk.transport import make_transport
 from sentry_sdk.types import Event, Hint, Log
@@ -35,10 +34,10 @@ from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import json, warnings
+from sentry.utils.attributes import get_attribute_value
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.env import in_test_environment
 from sentry.utils.rust import RustInfoIntegration
-from sentry.utils.tracing import get_current_span, start_span
 from sentry.viewer_context import set_viewer_context_organization
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -295,7 +294,10 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
     if attributes is not None:
         # This is a coming from arroyo and creating high cardinality of attribute names like
         # `Partition(topic=Topic(name='...'), index=...)`
-        if attributes.get("sentry.message.template") == "New partitions assigned: %r":
+        if (
+            get_attribute_value(attributes, "sentry.message.template", "string")
+            == "New partitions assigned: %r"
+        ):
             return None
 
     try:
@@ -561,7 +563,7 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     set_viewer_context_organization(organization.id)
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with start_span(op="other", name="bind_organization_context"):
+    with traces.start_span(name="bind_organization_context", attributes={"sentry.op": "other"}):
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 
@@ -635,11 +637,9 @@ def bind_ambiguous_org_context(
 
 
 def get_trace_id():
-    span = get_current_span()
-    if isinstance(span, StreamedSpan):
+    span = traces.get_current_span()
+    if isinstance(span, traces.StreamedSpan):
         return span.trace_id
-    if span is not None:
-        return span.get_trace_context().get("trace_id")
 
     return None
 
@@ -647,7 +647,7 @@ def get_trace_id():
 def set_span_attribute(data_name, value):
     span_streaming = has_span_streaming_enabled(sentry_sdk.get_client().options)
     if span_streaming:
-        streamed_span = sentry_sdk.traces.get_current_span()
+        streamed_span = traces.get_current_span()
         if streamed_span is not None:
             streamed_span.set_attribute(data_name, value)
         return

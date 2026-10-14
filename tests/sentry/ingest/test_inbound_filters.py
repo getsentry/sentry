@@ -406,6 +406,12 @@ def release_rule_condition(values: list[str]) -> dict:
             id="ip_address_reads_the_envelope_client_ip",
         ),
         pytest.param(
+            "error",
+            [{"type": "geo_country_code", "value": ["US", "CA"]}],
+            {"op": "glob", "name": "event.user.geo.country_code", "value": ["US", "CA"]},
+            id="geo_country_code_reads_the_event_user_geo",
+        ),
+        pytest.param(
             "all",
             [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
             {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
@@ -661,6 +667,11 @@ def test_custom_inbound_filters_stop_at_the_project_cap(default_project, factori
             InboundFilterFeatures(generic_ip_filter=True),
             ["ip-address"],
             id="generic_ip_filter_needs_no_plan_feature",
+        ),
+        pytest.param(
+            InboundFilterFeatures(custom_inbound_filters_v2=True),
+            [],
+            id="custom_inbound_filters_v2_need_plan_feature",
         ),
         pytest.param(
             InboundFilterFeatures(True, True, True, True, True),

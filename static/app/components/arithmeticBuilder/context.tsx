@@ -19,11 +19,6 @@ interface ArithmeticBuilderContextData {
     attributeTexts?: readonly string[]
   ) => FieldDefinition | null;
   /**
-   * When true, `_if` combinators use the EAP filter-first editor. Mirrors
-   * `explore-conditional-aggregates`.
-   */
-  hasConditionalAggregates: boolean;
-  /**
    * Fetches tag values for `_if` combinator filter arguments (e.g. after `span.op:`).
    */
   getFilterTagValues?: GetTagValues;
@@ -37,7 +32,6 @@ export const ArithmeticBuilderContext = createContext<ArithmeticBuilderContextDa
   aggregations: [],
   functionArguments: [],
   getFieldDefinition: () => null,
-  hasConditionalAggregates: false,
 });
 
 export function useArithmeticBuilder() {

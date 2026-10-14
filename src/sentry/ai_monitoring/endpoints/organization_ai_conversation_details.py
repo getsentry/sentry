@@ -115,6 +115,11 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.cost.total_tokens",
     "gen_ai.operation.name",
     "gen_ai.operation.type",
+    "gen_ai.memory.store.id",
+    "gen_ai.memory.query.text",
+    "gen_ai.memory.record.id",
+    "gen_ai.memory.record.count",
+    "gen_ai.memory.records",
     "gen_ai.input.messages",
     "gen_ai.output.messages",
     "gen_ai.system_instructions",
@@ -162,13 +167,17 @@ class AIConversationModelUsage(TypedDict):
 
 
 class AIConversationStats(AIConversationAggregates):
+    cacheReadTokens: int
+    cacheWriteTokens: int
+    errorToolNames: list[str]
+    reasoningTokens: int
     usageByModel: list[AIConversationModelUsage]
 
 
 class AIConversationQueryResult(TypedDict):
     # GenericOffsetPaginator requires the paginated list under this key.
     data: list[SpanRow]
-    stats: AIConversationStats
+    stats: AIConversationStats | None
 
 
 class AIConversationDetailsResponse(TypedDict):
@@ -179,11 +188,12 @@ class AIConversationDetailsResponse(TypedDict):
     projects: list[ConversationProject]
     webUrl: str
     spans: list[dict[str, Any]]
-    stats: AIConversationStats
+    stats: AIConversationStats | None
 
 
 def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationStats:
     conversation_stats = parse_conversation_aggregates({})
+    error_tool_names: set[str] = set()
     tool_names: set[str] = set()
     usage_by_model: dict[str | None, AIConversationModelUsage] = {}
     # Model columns group query rows, so fold each pair back into conversation totals.
@@ -198,6 +208,8 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
         conversation_stats["toolErrors"] += model_pair_stats["toolErrors"]
         conversation_stats["totalCost"] += model_pair_stats["totalCost"]
         conversation_stats["totalTokens"] += model_pair_stats["totalTokens"]
+        conversation_stats["errors"] += model_pair_stats["errors"]
+        error_tool_names.update(row.get("error_tool_names") or [])
         tool_names.update(model_pair_stats["toolNames"])
 
         start_timestamp = model_pair_stats["startTimestamp"]
@@ -241,12 +253,21 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
         usage["outputCost"] += float(row.get("output_cost") or 0)
         usage["totalCost"] += model_pair_stats["totalCost"]
 
-    conversation_stats["toolNames"] = sorted(tool_names)
+    conversation_stats["toolNames"] = sorted(
+        tool_names, key=lambda name: (name not in error_tool_names, name)
+    )
     sorted_usage = sorted(
         usage_by_model.values(),
         key=lambda usage: (-usage["totalTokens"], usage["model"] or ""),
     )
-    return {**conversation_stats, "usageByModel": sorted_usage}
+    return {
+        **conversation_stats,
+        "cacheReadTokens": sum(usage["cacheReadTokens"] for usage in sorted_usage),
+        "cacheWriteTokens": sum(usage["cacheWriteTokens"] for usage in sorted_usage),
+        "errorToolNames": sorted(error_tool_names),
+        "reasoningTokens": sum(usage["reasoningTokens"] for usage in sorted_usage),
+        "usageByModel": sorted_usage,
+    }
 
 
 @extend_schema(tags=["Explore"])
@@ -286,8 +307,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         """Return spans recorded for one AI conversation in start-time order.
 
         Message, tool, and response attributes contain their recorded string values.
-        Without an explicit range, Sentry widens the search across available retention.
-        A missing conversation returns an empty `spans` list.
+        `stats.errors` counts spans whose status is not `ok`, `cancelled`, or `unknown`.
+        `stats.errorToolNames` lists tools used by those spans.
+        `stats.inputTokens` includes cache-read and cache-write tokens. Stats are returned
+        on the first page only. Without an explicit range, Sentry widens the search across
+        available retention. A missing conversation returns an empty `spans` list.
         """
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -361,11 +385,15 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         now: datetime,
         conversation_id: str,
     ) -> SnubaParams:
-        """Probe progressively wider windows to find which contains the conversation."""
+        """Probe progressively older, non-overlapping windows for the conversation."""
         candidates = self._build_widening_params(base_params, stats_period, now)
-        for params in candidates:
-            if self._conversation_exists(params, conversation_id):
-                return params
+        probe_end = now
+        for candidate in candidates:
+            assert candidate.start is not None
+            probe_params = replace(candidate, end=probe_end)
+            if self._conversation_exists(probe_params, conversation_id):
+                return candidate
+            probe_end = candidate.start
         return candidates[-1]
 
     def _build_widening_params(
@@ -526,6 +554,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             if (key := self._span_key(row)) in requested_keys
         }
 
+    @traces.trace
     def _repair_parent_links(
         self, spans: list[SpanRow], snuba_params: SnubaParams, conversation_id: str
     ) -> None:
@@ -618,23 +647,29 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 fields_acl=FieldsACL(functions={"collect_unique_if"}),
             ),
         )
-        results = Spans.run_bulk_table_queries(
-            [
-                TableQuery(
-                    name="spans",
-                    query_string=query_string,
-                    selected_columns=AI_CONVERSATION_ATTRIBUTES,
-                    orderby=["precise.start_ts"],
-                    offset=offset,
-                    limit=limit,
-                    referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
-                    sampling_mode="HIGHEST_ACCURACY",
-                    resolver=resolver,
-                ),
+        queries = [
+            TableQuery(
+                name="spans",
+                query_string=query_string,
+                selected_columns=AI_CONVERSATION_ATTRIBUTES,
+                orderby=["precise.start_ts"],
+                offset=offset,
+                limit=limit,
+                referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
+                sampling_mode="HIGHEST_ACCURACY",
+                resolver=resolver,
+            )
+        ]
+        if offset == 0:
+            queries.append(
                 TableQuery(
                     name="aggregates",
                     query_string=query_string,
-                    selected_columns=[*CONVERSATION_AGGREGATE_COLUMNS, *MODEL_USAGE_COLUMNS],
+                    selected_columns=[
+                        *CONVERSATION_AGGREGATE_COLUMNS,
+                        *MODEL_USAGE_COLUMNS,
+                        "collect_unique_if(`gen_ai.operation.type:tool has:span.status !span.status:[ok,cancelled,unknown]`,gen_ai.tool.name) as error_tool_names",
+                    ],
                     orderby=None,
                     offset=0,
                     # 100 model pairs is enough today. Paginate this grouped query if real
@@ -643,15 +678,15 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
                     sampling_mode="HIGHEST_ACCURACY",
                     resolver=resolver,
-                ),
-            ],
-            snuba_params.debug,
-        )
-        aggregate_rows = results["aggregates"].get("data", [])
-        return {
-            "data": results["spans"].get("data", []),
-            "stats": _parse_grouped_stats(aggregate_rows),
-        }
+                )
+            )
+
+        results = Spans.run_bulk_table_queries(queries, snuba_params.debug)
+        aggregate_result = results.get("aggregates")
+        stats: AIConversationStats | None = None
+        if aggregate_result is not None:
+            stats = _parse_grouped_stats(aggregate_result.get("data", []))
+        return {"data": results["spans"].get("data", []), "stats": stats}
 
     @traces.trace
     def _conversation_exists(self, snuba_params: SnubaParams, conversation_id: str) -> bool:

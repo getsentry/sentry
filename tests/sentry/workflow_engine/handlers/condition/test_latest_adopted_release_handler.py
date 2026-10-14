@@ -9,11 +9,12 @@ from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
 from sentry.search.utils import LatestReleaseOrders
-from sentry.utils.cache import cache
-from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType
+from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType, ModelAgeType
 from sentry.workflow_engine.handlers.condition.utils.releases import (
-    get_first_last_release_for_group_cache_key,
-    get_latest_adopted_release_cache_key,
+    FirstLastReleaseCacheKey,
+    LatestAdoptedReleaseCacheKey,
+    first_last_release_cache,
+    latest_adopted_release_cache,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
@@ -276,33 +277,33 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
     def test_caching(self) -> None:
-        cache_key = get_first_last_release_for_group_cache_key(
-            self.group.id, "oldest", LatestReleaseOrders.SEMVER
+        cache_key = FirstLastReleaseCacheKey(
+            self.group.id, ModelAgeType.OLDEST, LatestReleaseOrders.SEMVER
         )
-        assert cache.get(cache_key) is None
+        assert first_last_release_cache.get(cache_key) is None
 
         self.create_group_release(group=self.group, release=self.newest_release)
         self.assert_passes(self.dc, self.event_data)
-        assert cache.get(cache_key) is not None
+        assert first_last_release_cache.get(cache_key) is not None
 
         # ensure we clear the cache after creating a new release
         oldest_group_release = self.create_group_release(
             group=self.group, release=self.oldest_release
         )
-        assert cache.get(cache_key) is None
+        assert first_last_release_cache.get(cache_key) is None
 
         self.assert_does_not_pass(self.dc, self.event_data)
-        assert cache.get(cache_key) is not None
+        assert first_last_release_cache.get(cache_key) is not None
 
         # ensure we clear the cache when a release is deleted
         oldest_group_release.delete()
-        assert cache.get(cache_key) is None
+        assert first_last_release_cache.get(cache_key) is None
 
         self.assert_passes(self.dc, self.event_data)
 
     def test_release_environment_clears_cache(self) -> None:
-        cache_key = get_latest_adopted_release_cache_key(self.project.id, self.prod_env.id)
-        cache.set(cache_key, self.oldest_release, 600)
+        cache_key = LatestAdoptedReleaseCacheKey(self.project.id, self.prod_env.id)
+        latest_adopted_release_cache.set(cache_key, self.oldest_release)
 
         self.create_release(
             project=self.project,
@@ -311,7 +312,7 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
             adopted=self.now,
         )
 
-        assert cache.get(cache_key) is None
+        assert latest_adopted_release_cache.get(cache_key) is None
 
     @patch("sentry.search.utils.get_first_last_release_for_group", side_effect=Release.DoesNotExist)
     def test_release_does_not_exist(self, mock_get_first_last_release: MagicMock) -> None:

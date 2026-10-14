@@ -1,5 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -77,7 +78,11 @@ function SeerConnectorsContent() {
   return (
     <SentryDocumentTitle title={t('Connectors')}>
       <SettingsPageHeader
-        title={t('Connectors')}
+        title={{
+          type: 'page-title',
+          label: t('Connectors'),
+          trailingActions: {type: 'badge', element: <FeatureBadge type="beta" />},
+        }}
         subtitle={t(
           'Connect external monitoring tools to let Seer access infrastructure telemetry when investigating issues.'
         )}

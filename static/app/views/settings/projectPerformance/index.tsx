@@ -16,6 +16,7 @@ import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
+import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 
@@ -69,11 +70,13 @@ export function ProjectPerformance() {
     organization.features.includes('ai-issue-detection') &&
     areAiFeaturesAllowed(organization);
 
+  // Apdex and User Misery thresholds only apply to the transactions dataset.
+  const hasThresholdSettings = !useInsightsEap();
   const {
     data: threshold,
-    isPending: isPendingThreshold,
+    isLoading: isLoadingThreshold,
     isError: isErrorThreshold,
-  } = useQuery(thresholdQueryOptions);
+  } = useQuery({...thresholdQueryOptions, enabled: hasThresholdSettings});
 
   const {
     data: performanceIssueSettings,
@@ -88,7 +91,7 @@ export function ProjectPerformance() {
   } = useQuery(generalSettingsQueryOptions);
 
   if (
-    isPendingThreshold ||
+    isLoadingThreshold ||
     isPendingPerformanceIssueSettings ||
     isPendingGeneral ||
     isPendingProject
@@ -127,14 +130,16 @@ export function ProjectPerformance() {
       <SettingsPageHeader title={t('Performance')} />
       <ProjectPermissionAlert project={project} />
       <GeneralSettingsSection general={general} hasWriteAccess={hasWriteAccess} />
-      <ThresholdSettingsSection
-        key={thresholdResetVersion}
-        threshold={threshold}
-        hasWriteAccess={hasWriteAccess}
-        isResetting={isResettingThresholdSettings}
-        isSaving={isSavingThresholdSettings}
-        onResetAll={resetThresholdSettings}
-      />
+      {hasThresholdSettings && threshold ? (
+        <ThresholdSettingsSection
+          key={thresholdResetVersion}
+          threshold={threshold}
+          hasWriteAccess={hasWriteAccess}
+          isResetting={isResettingThresholdSettings}
+          isSaving={isSavingThresholdSettings}
+          onResetAll={resetThresholdSettings}
+        />
+      ) : null}
       <SamplingPrioritiesSection project={project} hasWriteAccess={hasWriteAccess} />
       {isActiveSuperuser() && (
         <AdminRegressionSettingsSection

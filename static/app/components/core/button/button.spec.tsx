@@ -33,10 +33,32 @@ describe('Button', () => {
 
     const button = screen.getByRole('button', {name: 'Save'});
     expect(button).toHaveAttribute('aria-disabled', 'true');
-    expect(button).toBeEnabled();
+
+    await userEvent.tab();
+    expect(button).toHaveFocus();
 
     await userEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('calls consumer handlers when a button with a tooltip is enabled', async () => {
+    const onClick = jest.fn();
+    const onKeyDown = jest.fn();
+    render(
+      <Button
+        onClick={onClick}
+        onKeyDown={onKeyDown}
+        tooltipProps={{title: 'Save changes'}}
+      >
+        Save
+      </Button>
+    );
+
+    await userEvent.tab();
+    await userEvent.keyboard('{Enter}');
+
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(onKeyDown).toHaveBeenCalledTimes(1);
   });
 
   it('prevents keyboard activation when aria-disabled with tooltip', async () => {
@@ -74,6 +96,18 @@ describe('Button', () => {
 
     const button = screen.getByRole('button', {name: 'Save'});
     expect(button).toBeDisabled();
+  });
+
+  it('keeps a disabled button natively disabled when its tooltip is hidden', () => {
+    render(
+      <Button disabled tooltipProps={{title: 'Not available', disabled: true}}>
+        Save
+      </Button>
+    );
+
+    const button = screen.getByRole('button', {name: 'Save'});
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('aria-disabled', 'true');
   });
 
   describe('responsive sizing', () => {

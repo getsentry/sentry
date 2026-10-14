@@ -11,7 +11,8 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
-from django.test.utils import override_settings
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext, override_settings
 from rest_framework.exceptions import ErrorDetail
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
@@ -25,6 +26,7 @@ from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
+    MonitorCheckInConfig,
     MonitorEnvironment,
     MonitorStatus,
     ScheduleType,
@@ -193,7 +195,10 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
-        assert checkin.monitor_config == monitor.config
+        assert checkin.monitor_config is None
+        assert (
+            MonitorCheckInConfig.objects.get(id=checkin.checkin_config_id).config == monitor.config
+        )
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
@@ -262,7 +267,10 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
-        assert checkin.monitor_config == monitor.config
+        assert checkin.monitor_config is None
+        assert (
+            MonitorCheckInConfig.objects.get(id=checkin.checkin_config_id).config == monitor.config
+        )
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
@@ -526,6 +534,25 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration is not None
 
+    def test_check_in_reuses_loaded_relations(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+
+        with CaptureQueriesContext(connections[router.db_for_write(Monitor)]) as ctx:
+            self.send_checkin(monitor.slug, status="in_progress")
+            self.send_checkin(monitor.slug, guid=self.guid)
+            ok_guid = self.guid
+            self.send_checkin(monitor.slug, status="error")
+
+        def by_id_selects(table: str) -> list[str]:
+            pattern = f'FROM "{table}" WHERE "{table}"."id" = '
+            return [q["sql"] for q in ctx.captured_queries if pattern in q["sql"]]
+
+        assert by_id_selects("sentry_monitor") == []
+        assert by_id_selects("sentry_monitorenvironment") == []
+
+        assert MonitorCheckIn.objects.get(guid=ok_guid).status == CheckInStatus.OK
+        assert MonitorCheckIn.objects.get(guid=self.guid).status == CheckInStatus.ERROR
+
     def test_check_in_update_with_reversed_dates(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         now = datetime.now()
@@ -549,6 +576,47 @@ class MonitorConsumerTest(TestCase):
         # Assert check-in was not modified
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS
+
+    @contextlib.contextmanager
+    def first_guid_lookup_misses(self) -> Generator[None]:
+        """Simulate a check-in inserted after the initial guid lookup."""
+        select_for_update = MonitorCheckIn.objects.select_for_update
+        calls = 0
+
+        def side_effect(*args: Any, **kwargs: Any) -> Any:
+            nonlocal calls
+            calls += 1
+            qs = select_for_update(*args, **kwargs)
+            return qs.none() if calls == 1 else qs
+
+        with mock.patch.object(
+            MonitorCheckIn.objects, "select_for_update", side_effect=side_effect
+        ):
+            yield
+
+    def test_check_in_create_race_updates_existing(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug, status="in_progress")
+
+        with self.first_guid_lookup_misses():
+            self.send_checkin(monitor.slug, guid=self.guid, status="ok")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.duration is not None
+
+    def test_check_in_create_race_other_monitor(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        other_monitor = self._create_monitor(slug="other-monitor")
+        self.send_checkin(monitor.slug, status="in_progress")
+
+        with self.first_guid_lookup_misses():
+            self.send_checkin(other_monitor.slug, guid=self.guid, status="ok")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.monitor_id == monitor.id
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert not MonitorCheckIn.objects.filter(monitor=other_monitor).exists()
 
     def test_check_in_update_terminal_in_progress(self) -> None:
         now = datetime.now()
@@ -1066,6 +1134,37 @@ class MonitorConsumerTest(TestCase):
         monitor = Monitor.objects.get(slug="my-monitor")
         assert monitor is not None
         assert "timezone" not in monitor.config
+
+    def _send_checkin_capturing_monitor_writes(self, monitor_slug: str, **kwargs: Any) -> list[str]:
+        with CaptureQueriesContext(connections[router.db_for_write(Monitor)]) as ctx:
+            self.send_checkin(monitor_slug, **kwargs)
+        return [
+            q["sql"]
+            for q in ctx.captured_queries
+            if q["sql"].startswith('UPDATE "sentry_monitor" ')
+        ]
+
+    def test_upsert_unchanged_config_skips_write(self) -> None:
+        config = {"schedule": {"type": "crontab", "value": "13 * * * *"}, "checkin_margin": 5}
+        self.send_checkin("my-monitor", monitor_config=config)
+        monitor = Monitor.objects.get(slug="my-monitor")
+        # Keys the upsert does not send, e.g. set from the UI
+        monitor.update(config={**monitor.config, "failure_issue_threshold": 3, "alert_rule_id": 1})
+        stored_config = monitor.config
+
+        assert (
+            self._send_checkin_capturing_monitor_writes("my-monitor", monitor_config=config) == []
+        )
+        monitor.refresh_from_db()
+        assert monitor.config == stored_config
+
+        config["checkin_margin"] = 10
+        assert (
+            len(self._send_checkin_capturing_monitor_writes("my-monitor", monitor_config=config))
+            == 1
+        )
+        monitor.refresh_from_db()
+        assert monitor.config == {**stored_config, "checkin_margin": 10}
 
     def test_team_name_as_owner(self) -> None:
         monitor = self._create_monitor(slug="my-monitor", owner_user_id=self.user.id)
@@ -1648,7 +1747,7 @@ class MonitorConsumerTest(TestCase):
     ):
         """
         Validate the unusual casse where a seat does not already exist but a
-        monitor does exist. We should ensure assign_monitor_seat is called
+        monitor does exist. We should ensure assign_seat is called
         """
         check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPTED_FOR_UPSERT
         assign_seat.return_value = Outcome.RATE_LIMITED

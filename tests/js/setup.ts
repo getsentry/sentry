@@ -5,7 +5,7 @@ import '@testing-library/jest-dom';
 import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
 
-import {type ReactElement} from 'react';
+import React, {type ReactElement} from 'react';
 import {act, configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
@@ -16,7 +16,6 @@ import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
-import {closeModal} from 'sentry/actionCreators/modal';
 // eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -257,12 +256,32 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
   },
 }));
 
+/**
+ * Whether the current test file has loaded `moduleName`. The hooks below reset
+ * state that only exists once a module is loaded, so they check this instead
+ * of loading the module (and everything it imports) into every spec.
+ */
+function isModuleLoaded(moduleName: string): boolean {
+  return require.resolve(moduleName) in require.cache;
+}
+
 // Close any open modals before each test
-beforeEach(closeModal);
+beforeEach(() => {
+  if (isModuleLoaded('sentry/stores/modalStore')) {
+    jest
+      .requireActual<typeof import('sentry/stores/modalStore')>(
+        'sentry/stores/modalStore'
+      )
+      .ModalStore.closeModal();
+  }
+});
 afterEach(() => {
-  const {toast} =
-    jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
-  act(() => void toast.dismiss());
+  // Toasts are held by sonner, so there are none to dismiss until it is loaded.
+  if (isModuleLoaded('sonner')) {
+    const {toast} =
+      jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
+    act(() => void toast.dismiss());
+  }
   resetResizeObservers();
 });
 
@@ -386,6 +405,33 @@ Object.defineProperty(window, 'getComputedStyle', {
   configurable: true,
   writable: true,
 });
+
+// React's development build captures an `Error` for every element it creates so
+// warnings can show owner stacks. In CI that is roughly 7% of test CPU for stacks
+// nobody reads, so pin React's per-render budget above any cap there and
+// elements skip the capture. Warnings still fire; locally the full stacks stay
+// on. If React's internals change shape, warn so the slowdown doesn't go unnoticed.
+if (process.env.CI) {
+  const internals = (
+    React as unknown as {
+      __CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE?: {
+        recentlyCreatedOwnerStacks?: number;
+      };
+    }
+  ).__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+  if (internals && 'recentlyCreatedOwnerStacks' in internals) {
+    Object.defineProperty(internals, 'recentlyCreatedOwnerStacks', {
+      configurable: true,
+      get: () => Infinity,
+      set: () => {},
+    });
+  } else {
+    // eslint-disable-next-line no-console
+    console.warn(
+      'tests/js/setup.ts: React internals changed shape, so owner stacks are no longer skipped in CI. Update or remove the override.'
+    );
+  }
+}
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

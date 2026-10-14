@@ -1,16 +1,15 @@
 import {type CSSProperties, Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
-// eslint-disable-next-line no-restricted-imports
-import color from 'color';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
+import {Text} from '@sentry/scraps/text';
 
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopyId, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -45,7 +44,6 @@ export const MIN_NAV_HEIGHT = 44;
 
 export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
   const organization = useOrganization();
-  const theme = useTheme();
 
   const [_isEventErrorCollapsed, setEventErrorCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(SectionKey.PROCESSING_ERROR),
@@ -57,11 +55,6 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
     project: group.project,
     isShare: false,
   });
-
-  const grayText = css`
-    color: ${theme.tokens.content.secondary};
-    font-weight: ${theme.font.weight.sans.regular};
-  `;
 
   const host = organization.links.regionUrl;
   const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
@@ -81,140 +74,104 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 
   return (
     <div {...props} ref={ref}>
-      <EventInfoJumpToWrapper hasProcessingError={!!actionableItems}>
-        <EventInfo>
-          <EventIdWrapper>
-            <span onClick={handleCopyEventId}>
-              {t('ID: %s', getShortEventId(event.id))}
-            </span>
-            <Button
-              aria-label={t('Copy Event ID')}
-              tooltipProps={{title: t('Copy Event ID')}}
-              onClick={handleCopyEventId}
-              size="zero"
-              variant="transparent"
-              icon={<IconCopyId size="xs" variant="muted" />}
-            />
-          </EventIdWrapper>
-          <StyledTimeSince
-            tooltipBody={<EventCreatedTooltip event={event} />}
-            maxWidth={300}
-            date={event.dateCreated ?? event.dateReceived}
-            css={grayText}
-            aria-label={t('Event timestamp')}
-          />
-          <Flex align="center" gap="xs" className="hidden-xs">
-            <Divider />
-            <JsonLink
-              href={jsonUrl}
-              onClick={() =>
-                trackAnalytics('issue_details.event_json_clicked', {
-                  organization,
-                  group_id: parseInt(`${event.groupID}`, 10),
-                  streamline: true,
-                })
-              }
+      <Grid
+        columns={
+          actionableItems
+            ? {zero: '1fr', '4xl': '1fr auto'}
+            : {zero: '1fr', xl: '1fr auto'}
+        }
+        gap={actionableItems ? {zero: 'xs', '4xl': 'md'} : {zero: 'xs', xl: 'md'}}
+        align="center"
+        padding={
+          actionableItems ? {zero: 'xs xl', '4xl': '0 lg'} : {zero: 'xs xl', xl: '0 lg'}
+        }
+        minHeight={`${MIN_NAV_HEIGHT}px`}
+      >
+        <Text density="default" variant="inherit">
+          {textProps => (
+            <Flex
+              {...textProps}
+              align="center"
+              direction="row"
+              gap="sm"
+              paddingTop={{zero: 'md', xl: '0'}}
             >
-              {t('JSON')}
-            </JsonLink>
-          </Flex>
-          {actionableItems && actionableItems.length > 0 && (
-            <Fragment>
-              <Divider />
-              <ProcessingErrorButton
-                tooltipProps={{
-                  title: t(
-                    'Sentry has detected configuration issues with this event. Click for more info.'
-                  ),
-                }}
-                variant="transparent"
-                size="zero"
-                icon={<IconWarning variant="danger" />}
-                onClick={() => {
-                  document
-                    .getElementById(SectionKey.PROCESSING_ERROR)
-                    ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-                  setEventErrorCollapsed(false);
-                }}
-              >
-                {t('Processing Error')}
-              </ProcessingErrorButton>
-            </Fragment>
+              <RevealOnHover gap="2xs" align="center">
+                <Text bold wrap="nowrap" onClick={handleCopyEventId}>
+                  {t('ID: %s', getShortEventId(event.id))}
+                </Text>
+                <RevealOnHover.Action>
+                  <Button
+                    aria-label={t('Copy Event ID')}
+                    tooltipProps={{title: t('Copy Event ID')}}
+                    onClick={handleCopyEventId}
+                    size="zero"
+                    variant="transparent"
+                    icon={<IconCopyId size="xs" variant="muted" />}
+                  />
+                </RevealOnHover.Action>
+              </RevealOnHover>
+              <Text variant="muted" wrap="nowrap">
+                {timeTextProps => (
+                  <TimeSince
+                    {...timeTextProps}
+                    tooltipBody={<EventCreatedTooltip event={event} />}
+                    maxWidth={300}
+                    date={event.dateCreated ?? event.dateReceived}
+                    aria-label={t('Event timestamp')}
+                  />
+                )}
+              </Text>
+              <Flex align="center" gap="xs" display={{zero: 'none', xl: 'flex'}}>
+                <Divider />
+                <Text variant="muted" underline>
+                  {linkTextProps => (
+                    <ExternalLink
+                      {...linkTextProps}
+                      href={jsonUrl}
+                      onClick={() =>
+                        trackAnalytics('issue_details.event_json_clicked', {
+                          organization,
+                          group_id: parseInt(`${event.groupID}`, 10),
+                          streamline: true,
+                        })
+                      }
+                    >
+                      {t('JSON')}
+                    </ExternalLink>
+                  )}
+                </Text>
+              </Flex>
+              {actionableItems && actionableItems.length > 0 && (
+                <Fragment>
+                  <Divider />
+                  <Button
+                    tooltipProps={{
+                      title: t(
+                        'Sentry has detected configuration issues with this event. Click for more info.'
+                      ),
+                    }}
+                    variant="transparent"
+                    size="zero"
+                    icon={<IconWarning variant="danger" />}
+                    onClick={() => {
+                      document
+                        .getElementById(SectionKey.PROCESSING_ERROR)
+                        ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+                      setEventErrorCollapsed(false);
+                    }}
+                  >
+                    <Text size="sm" bold={false} variant="danger">
+                      {t('Processing Error')}
+                    </Text>
+                  </Button>
+                </Fragment>
+              )}
+            </Flex>
           )}
-        </EventInfo>
+        </Text>
         <IssueDetailsJumpTo />
-      </EventInfoJumpToWrapper>
+      </Grid>
     </div>
   );
 }
-
-const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  white-space: nowrap;
-`;
-
-const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  padding: 0 ${p => p.theme.space.lg};
-  min-height: ${MIN_NAV_HEIGHT}px;
-
-  @media (max-width: ${p =>
-    p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr;
-    gap: ${p => p.theme.space.xs};
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
-  }
-`;
-
-const EventInfo = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-  flex-direction: row;
-  align-items: center;
-  line-height: 1.2;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    padding-top: ${p => p.theme.space.md};
-  }
-`;
-
-const ProcessingErrorButton = styled(Button)`
-  color: ${p => p.theme.colors.red400};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  font-size: ${p => p.theme.font.size.sm};
-  :hover {
-    color: ${p => p.theme.colors.red400};
-  }
-`;
-
-const JsonLink = styled(ExternalLink)`
-  color: ${p => p.theme.tokens.content.secondary};
-  text-decoration: underline;
-  text-decoration-color: ${p => color(p.theme.colors.gray400).alpha(0.5).string()};
-
-  :hover {
-    color: ${p => p.theme.tokens.content.secondary};
-    text-decoration: underline;
-    text-decoration-color: ${p => p.theme.tokens.content.secondary};
-  }
-`;
-
-const EventIdWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space['2xs']};
-  align-items: center;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  white-space: nowrap;
-
-  button {
-    visibility: hidden;
-  }
-
-  &:hover button {
-    visibility: visible;
-  }
-`;

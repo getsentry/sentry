@@ -48,7 +48,6 @@ from sentry.models.releases.util import (
     SemverFilter,
     SemverVersion,
     release_order_date,
-    reserve_ids,
 )
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -248,8 +247,6 @@ class Release(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    # Shadow column for widening `id` to int8. Every write keeps it equal to `id`.
-    new_id = BoundedBigIntegerField()
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
@@ -345,6 +342,10 @@ class Release(Model):
             models.Index(fields=("organization", "build_number")),
             models.Index(fields=("organization", "date_added")),
             models.Index(fields=("organization", "status")),
+            IndexWithPostgresNameLimits(
+                fields=["id", "organization"],
+                name="sentry_release_id_organization_id",
+            ),
         ]
 
     __repr__ = sane_repr("organization_id", "version")
@@ -378,17 +379,6 @@ class Release(Model):
     def __hash__(self):
         # https://code.djangoproject.com/ticket/30333
         return super().__hash__()
-
-    def save(self, **kwds: Any) -> None:
-        if self.id is None:
-            using = kwds.get("using")
-            if using is None:
-                using = router.db_for_write(type(self), instance=self)
-            self.id = reserve_ids(type(self), 1, using)[0]
-            self.new_id = self.id
-            # A freshly claimed pk cannot exist yet, so skip Django's UPDATE probe.
-            kwds["force_insert"] = True
-        super().save(**kwds)
 
     @staticmethod
     def is_valid_version(value):

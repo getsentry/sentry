@@ -15,6 +15,7 @@ class ConditionType(StrEnum):
     METRIC_NAME = "metric_name"
     RELEASE = "release"
     IP_ADDRESS = "ip_address"
+    GEO_COUNTRY_CODE = "geo_country_code"
 
 
 class DataType(StrEnum):

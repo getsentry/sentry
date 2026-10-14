@@ -4,11 +4,13 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 from django.db import router, transaction
+from django.http.request import HttpRequest
 from rest_framework.request import Request
 
 from sentry import audit_log
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.middleware import is_frontend_request
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
@@ -35,6 +37,19 @@ from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
 
 logger = logging.getLogger(__name__)
+
+
+def get_request_attribution(request: HttpRequest | Request) -> dict[str, str | bool]:
+    """
+    Identify which endpoint served a request and whether it came from the UI.
+    Used to attribute usage of deprecated Rule functionality on Cron Monitor
+    endpoints, so these values are bounded and safe to use as metric tags.
+    """
+    resolver_match = getattr(request, "resolver_match", None)
+    return {
+        "endpoint": getattr(resolver_match, "url_name", None) or "unknown",
+        "ui_request": is_frontend_request(request),
+    }
 
 
 def signal_first_checkin(project: Project, monitor: Monitor):

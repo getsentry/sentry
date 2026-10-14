@@ -7,10 +7,11 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Badge} from '@sentry/scraps/badge';
+import {FeatureBadge, Badge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -22,7 +23,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -33,7 +33,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeRangeSelector, type ChangeData} from 'sentry/components/timeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Actor, PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -55,6 +54,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
@@ -149,7 +149,14 @@ export default function AutofixOverview() {
         }}
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
-          <Layout.Title>{t('Autofix Overview')}</Layout.Title>
+          <TopBar.Slot
+            name="breadcrumbs"
+            title={{
+              type: 'page-title',
+              label: t('Autofix Overview'),
+              trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+            }}
+          />
           {orgNeedsSeerTrial(organization) ? (
             <Stack gap="lg" padding="lg xl">
               <SeerTrialCTA />

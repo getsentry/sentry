@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import omit from 'lodash/omit';
@@ -27,6 +27,7 @@ import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getFieldDefinition} from 'sentry/utils/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -54,7 +55,6 @@ import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {isSeerExplorerEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {VisualizationWidget} from './visualizationWidget';
 import {
@@ -149,7 +149,7 @@ function WidgetCard(props: Props) {
       ? DisplayType.AREA
       : props.widget.displayType;
 
-  const widgetQueryError = getWidgetConfigError(props.widget, organization);
+  const widgetQueryError = getWidgetConfigError(props.widget);
 
   // Push widget metadata into the LLM context tree for Seer Explorer. The same
   // object is the context when "Ask Seer" asks about this widget.
@@ -180,24 +180,6 @@ function WidgetCard(props: Props) {
     organization.features.includes('seer-explorer-chat-prompts') &&
     isSeerExplorerEnabled(organization);
 
-  const onDataFetched = (newData: Data) => {
-    if (props.onDataFetched) {
-      props.onDataFetched({
-        tableResults: newData.tableResults,
-        timeseriesResultsTypes: newData.timeseriesResultsTypes,
-        timeseriesResultsUnits: newData.timeseriesResultsUnits,
-      });
-    }
-
-    setData(prevData => ({...prevData, ...newData}));
-
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    setIsLoadingTextVisible(false);
-  };
-
   const {
     api,
     selection,
@@ -219,7 +201,29 @@ function WidgetCard(props: Props) {
     onWidgetTableResizeColumn,
     disableTableActions,
     widgetInterval,
+    onDataFetched,
   } = props;
+
+  const handleDataFetched = useCallback(
+    (newData: Data) => {
+      if (onDataFetched) {
+        onDataFetched({
+          tableResults: newData.tableResults,
+          timeseriesResultsTypes: newData.timeseriesResultsTypes,
+          timeseriesResultsUnits: newData.timeseriesResultsUnits,
+        });
+      }
+
+      setData(prevData => ({...prevData, ...newData}));
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      setIsLoadingTextVisible(false);
+    },
+    [onDataFetched]
+  );
 
   if (widget.displayType === DisplayType.TOP_N) {
     // oxlint-disable-next-line react/immutability
@@ -242,7 +246,7 @@ function WidgetCard(props: Props) {
     dashboardFilters,
   });
 
-  const onDataFetchStart = () => {
+  const onDataFetchStart = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
@@ -252,7 +256,7 @@ function WidgetCard(props: Props) {
     timeoutRef.current = setTimeout(() => {
       setIsLoadingTextVisible(true);
     }, 3000);
-  };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -409,7 +413,7 @@ function WidgetCard(props: Props) {
               widget={widget}
               selection={selection}
               dashboardFilters={dashboardFilters}
-              onDataFetched={onDataFetched}
+              onDataFetched={handleDataFetched}
               onDataFetchStart={onDataFetchStart}
               tableItemLimit={tableItemLimit}
               widgetInterval={widgetInterval}
@@ -455,7 +459,7 @@ function WidgetCard(props: Props) {
             isMobile={isMobile}
             tableItemLimit={tableItemLimit}
             windowWidth={windowWidth}
-            onDataFetched={onDataFetched}
+            onDataFetched={handleDataFetched}
             dashboardFilters={dashboardFilters}
             chartGroup={DASHBOARD_CHART_GROUP}
             shouldResize={shouldResize}

@@ -1,5 +1,5 @@
 import {lazy, Suspense, useCallback, useEffect} from 'react';
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 import styled from '@emotion/styled';
 
 import {GlobalModal} from '@sentry/scraps/modal';

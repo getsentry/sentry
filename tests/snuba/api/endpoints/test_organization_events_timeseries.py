@@ -8,11 +8,9 @@ import pytest
 from django.urls import reverse
 
 from sentry.api.endpoints.timeseries import IncompleteReason
-from sentry.constants import DataCategory
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
-from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -351,6 +349,53 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
 
+    def test_top_events_no_results(self) -> None:
+        for dataset in ["errors", "discover", "transactions"]:
+            response = self.do_request(
+                data={
+                    "start": self.start,
+                    "end": self.end,
+                    "interval": "1h",
+                    "yAxis": ["count()", "count_unique(user)", "epm()"],
+                    "groupBy": ["count()", "message"],
+                    "orderby": ["-count()"],
+                    "topEvents": 5,
+                    "project": [self.project.id],
+                    "dataset": dataset,
+                    "query": "message:synthetic-no-match",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            assert len(response.data["timeSeries"]) == 3
+            count, unique_users, events_per_minute = response.data["timeSeries"]
+            assert count["yAxis"] == "count()"
+            assert unique_users["yAxis"] == "count_unique(user)"
+            assert events_per_minute["yAxis"] == "epm()"
+            integer_meta = {
+                "valueType": "integer",
+                "valueUnit": None,
+                "interval": 3_600_000,
+            }
+            assert count["meta"] == integer_meta
+            assert unique_users["meta"] == integer_meta
+            assert events_per_minute["meta"] == {
+                "valueType": "rate",
+                "valueUnit": "1/minute",
+                "interval": 3_600_000,
+            }
+            expected_values = [
+                {
+                    "incomplete": False,
+                    "timestamp": (self.start + timedelta(hours=hour)).timestamp() * 1000,
+                    "value": 0,
+                }
+                for hour in range(3)
+            ]
+            assert count["values"] == expected_values
+            assert unique_users["values"] == expected_values
+            assert events_per_minute["values"] == expected_values
+
     def test_errors_top_events(self) -> None:
         for message, minutes in [("very bad", 1), ("very bad", 2), ("oh my", 3)]:
             self.store_event(
@@ -556,84 +601,6 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         mock_sdk_logger.warning.assert_not_called()
 
 
-class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest):
-    endpoint = "sentry-api-0-organization-events-timeseries"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.login_as(user=self.user)
-        # Align to an hour boundary so the hourly Outcomes rollup buckets cleanly.
-        self.end = before_now(days=1).replace(minute=0, second=0, microsecond=0)
-        self.start = self.end - timedelta(hours=2)
-        self.url = reverse(
-            self.endpoint,
-            kwargs={"organization_id_or_slug": self.organization.slug},
-        )
-
-    def _store_outcome(
-        self,
-        outcome: Outcome,
-        category: DataCategory,
-        quantity: int,
-        reason: str = "none",
-        minutes: int = 30,
-    ) -> None:
-        self.store_outcomes(
-            {
-                "org_id": self.organization.id,
-                "project_id": self.project.id,
-                "outcome": outcome,
-                "reason": reason,
-                "category": category,
-                "timestamp": self.start + timedelta(minutes=minutes),
-                "quantity": quantity,
-            }
-        )
-
-    def test_annotations_include_byte_size_and_accepted_annotations(self) -> None:
-        # Logs carry byte sizes (paired LOG_BYTE category); accepted and dropped
-        # come back as two series in meta, each with eventCount + byteSize.
-        self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
-        self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_BYTE, 500_000)
-        self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="key_quota")
-        self._store_outcome(
-            Outcome.RATE_LIMITED, DataCategory.LOG_BYTE, 200_000, reason="key_quota"
-        )
-
-        data: dict[str, Any] = {
-            "start": self.start,
-            "end": self.end,
-            "interval": "1h",
-            "project": [self.project.id],
-            "dataset": "logs",
-            "includeAnnotations": "",
-        }
-        with self.feature(
-            {
-                "organizations:visibility-explore-view": True,
-                "organizations:explore-data-fidelity-annotations": True,
-            }
-        ):
-            response = self.client.get(self.url, data=data, format="json")
-
-        assert response.status_code == 200, response.content
-
-        dropped = response.data["meta"]["droppedAnnotations"]
-        assert len(dropped) == 1
-        assert dropped[0]["category"] == DataCategory.LOG_ITEM.api_name()
-        assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
-        assert dropped[0]["reason"] == "key_quota"
-        assert dropped[0]["eventCount"] == 400
-        assert dropped[0]["byteSize"] == 200_000
-        assert "label" not in dropped[0]
-
-        accepted = response.data["meta"]["acceptedAnnotations"]
-        assert len(accepted) == 1
-        assert accepted[0]["outcome"] == Outcome.ACCEPTED.api_name()
-        assert accepted[0]["eventCount"] == 1000
-        assert accepted[0]["byteSize"] == 500_000
-
-
 class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
     endpoint = "sentry-api-0-organization-events-timeseries"
 
@@ -647,12 +614,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def _do_request(
-        self,
-        features: dict[str, bool],
-        dataset: str = "spans",
-        ingestion_delay: bool = True,
-    ):
+    def _do_request(self, features: dict[str, bool], dataset: str = "spans"):
         data: dict[str, Any] = {
             "start": self.start,
             "end": self.end,
@@ -660,8 +622,6 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             "project": [self.project.id],
             "dataset": dataset,
         }
-        if ingestion_delay:
-            data["includeMeasuredIngestionDelayMetadata"] = "1"
         with self.feature(features):
             return self.client.get(self.url, data=data, format="json")
 
@@ -671,20 +631,6 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert response.status_code == 200, response.content
         assert "ingestion" not in response.data["meta"]
         # The measurement costs a snuba query, so it must not run when unflagged.
-        assert not mock_measure.called
-
-    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_with_flag_but_without_query_param(self, mock_measure) -> None:
-        # Flag on, but the endpoint must not enrich unless the caller opts in.
-        response = self._do_request(
-            {
-                "organizations:visibility-explore-view": True,
-                "organizations:measured-ingestion-delay-metadata": True,
-            },
-            ingestion_delay=False,
-        )
-        assert response.status_code == 200, response.content
-        assert "ingestion" not in response.data["meta"]
         assert not mock_measure.called
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")

@@ -17,13 +17,9 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.autofix_agent import (
     SEER_FIXES_SENTRY_ISSUE_MARKER,
-    PrIterationNoPullRequestException,
     _build_repo_pins,
     build_step_prompt,
     generate_autofix_handoff_prompt,
-    get_iteration_for_insert_index,
-    get_iterations,
-    get_latest_iteration_index,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
     trigger_push_changes,
@@ -32,12 +28,29 @@ from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer, SeerAutomationSource
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.issue_summary import referrer_map
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
+from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+
+
+def mirror_autofix_run(
+    test: TestCase, group, run_id: int, *, run: SeerRun | None = None
+) -> SeerRun:
+    """Attach ``run_id`` to ``group`` so continuation can load the local mirror."""
+    if run is None:
+        run = SeerRun.objects.filter(seer_run_state_id=run_id).first()
+    if run is None:
+        run = test.create_seer_run(organization=group.organization, seer_run_state_id=run_id)
+    if not SeerAgentRun.objects.filter(run=run).exists():
+        test.create_seer_agent_run(run=run, group=group, project=group.project, source="autofix")
+    return run
 
 
 def test_legacy_night_shift_referrer() -> None:
@@ -324,14 +337,6 @@ def _iteration_block(iteration_index: int | None = None) -> MemoryBlock:
     )
 
 
-def _plain_block(id: str, role: str = "assistant") -> MemoryBlock:
-    return MemoryBlock(
-        id=id,
-        message=Message(role=role, content="content"),
-        timestamp="2024-01-01T00:00:00Z",
-    )
-
-
 def _state_with_blocks(
     blocks: list[MemoryBlock],
     group_id: int | None = None,
@@ -345,82 +350,6 @@ def _state_with_blocks(
         repo_pr_states=repo_pr_states or {},
         metadata={"group_id": group_id} if group_id is not None else None,
     )
-
-
-class TestIterationHelpers(TestCase):
-    def test_get_iterations_returns_empty_without_iterations(self) -> None:
-        state = _state_with_blocks([])
-        assert get_iterations(state) == []
-
-    def test_get_iterations_returns_index_and_start_index(self) -> None:
-        state = _state_with_blocks(
-            [
-                MemoryBlock(
-                    id="block-0",
-                    message=Message(role="assistant", content="not iteration"),
-                    timestamp="2024-01-01T00:00:00Z",
-                ),
-                _iteration_block(1),
-                _iteration_block(2),
-            ]
-        )
-
-        iterations = get_iterations(state)
-
-        assert [(it.index, it.start_index) for it in iterations] == [(1, 1), (2, 2)]
-
-    def test_get_iterations_captures_following_blocks(self) -> None:
-        state = _state_with_blocks(
-            [
-                _plain_block("before"),
-                _iteration_block(1),
-                _plain_block("a1"),
-                _plain_block("a2"),
-                _iteration_block(2),
-                _plain_block("b1"),
-            ]
-        )
-
-        iterations = get_iterations(state)
-
-        assert [it.index for it in iterations] == [1, 2]
-        assert [[b.id for b in it.blocks] for it in iterations] == [
-            ["block-1", "a1", "a2"],
-            ["block-2", "b1"],
-        ]
-
-    def test_get_iterations_missing_iteration_index_raises(self) -> None:
-        state = _state_with_blocks([_iteration_block()])
-        with pytest.raises(AssertionError):
-            get_iterations(state)
-
-    @patch("sentry.seer.autofix.autofix_agent.sentry_sdk.capture_message")
-    def test_get_iterations_missing_feedback_reports_without_raising(
-        self, mock_capture: MagicMock
-    ) -> None:
-        # _iteration_block intentionally omits feedback metadata.
-        state = _state_with_blocks([_iteration_block(1)])
-
-        iterations = get_iterations(state)
-
-        assert [it.index for it in iterations] == [1]
-        mock_capture.assert_called_once()
-        assert mock_capture.call_args.args[0] == "PR_ITERATION block missing feedback metadata"
-        assert mock_capture.call_args.kwargs["level"] == "warning"
-        assert mock_capture.call_args.kwargs["extras"]["run_id"] == 67890
-        assert mock_capture.call_args.kwargs["extras"]["iteration_index"] == "1"
-
-    def test_get_latest_iteration_index_returns_zero_without_iterations(self) -> None:
-        state = _state_with_blocks([])
-        assert get_latest_iteration_index(state) == 0
-
-    def test_get_latest_iteration_index_returns_most_recent(self) -> None:
-        state = _state_with_blocks([_iteration_block(1), _iteration_block(2)])
-        assert get_latest_iteration_index(state) == 2
-
-    def test_get_iteration_for_insert_index(self) -> None:
-        state = _state_with_blocks([_iteration_block(1), _iteration_block(2)])
-        assert get_iteration_for_insert_index(state, 1) == 2
 
 
 class TestPrIterationPrompt(TestCase):
@@ -451,9 +380,9 @@ class TestTriggerAutofixAgent(TestCase):
         super().setUp()
         self.group = self.create_group(project=self.project)
 
-    def _make_run_state(self, group_id: int | None = None) -> SeerRunState:
+    def _make_run_state(self, group_id: int | None = None, run_id: int = 67890) -> SeerRunState:
         return SeerRunState(
-            run_id=67890,
+            run_id=run_id,
             blocks=[],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
@@ -527,9 +456,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        seer_run = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=67890
-        )
+        seer_run = mirror_autofix_run(self, self.group, 67890)
         mock_client.continue_run.return_value = seer_run
 
         result = trigger_autofix_agent(
@@ -638,7 +565,9 @@ class TestTriggerAutofixAgent(TestCase):
         existing_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=777
         )
-        self.create_seer_agent_run(run=existing_run, group=self.group, source="autofix")
+        self.create_seer_agent_run(
+            run=existing_run, group=self.group, project=self.group.project, source="autofix"
+        )
         mock_feature.return_value = existing_run
 
         result = trigger_autofix_agent(
@@ -704,7 +633,9 @@ class TestTriggerAutofixAgent(TestCase):
         existing_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=777
         )
-        self.create_seer_agent_run(run=existing_run, group=self.group, source="autofix")
+        self.create_seer_agent_run(
+            run=existing_run, group=self.group, project=self.group.project, source="autofix"
+        )
         mock_feature.return_value = existing_run
 
         with self.feature("organizations:autofix-code-changes-in-seer"):
@@ -745,11 +676,8 @@ class TestTriggerAutofixAgent(TestCase):
         self, mock_client_class, mock_feature
     ):
         mock_client = mock_client_class.return_value
-        mock_client.get_run.return_value = self._make_run_state()
-        run = self.create_seer_run(
-            organization=self.group.organization,
-            seer_run_state_id=777,
-        )
+        mock_client.get_run.return_value = self._make_run_state(run_id=777)
+        run = mirror_autofix_run(self, self.group, 777)
         mock_client.continue_run.return_value = run
 
         result = trigger_autofix_agent(
@@ -836,9 +764,7 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=67890
-        )
+        mock_client.continue_run.return_value = mirror_autofix_run(self, self.group, 67890)
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
@@ -854,11 +780,100 @@ class TestTriggerAutofixAgent(TestCase):
         assert "referrer" not in call_kwargs["payload"]
 
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_iteration_routes_to_feature_when_flagged(
+        self, mock_client_class, mock_feature, mock_broadcast
+    ):
+        author = SeerCommitAuthor(name="Mona", email="1+octocat@users.noreply.github.com")
+        mock_client_class.return_value.get_run.return_value = _state_with_blocks(
+            [_iteration_block(1)],
+            group_id=self.group.id,
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", pr_url="https://example.com/pull/7"
+                ),
+                "owner/pending": RepoPRState(repo_name="owner/pending"),
+            },
+        )
+        existing_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+        self.create_seer_agent_run(
+            run=existing_run, group=self.group, project=self.group.project, source="autofix"
+        )
+        mock_feature.return_value = existing_run
+
+        with self.feature("organizations:autofix-pr-iteration-in-seer"):
+            result = trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+                run_id=67890,
+                user_context="Rename the helper.",
+                feedback=[
+                    Feedback(
+                        source=UserUIFeedbackSource(
+                            source_id="fb-1",
+                            user_id=self.user.id,
+                            user_feedback="Rename the helper.",
+                        )
+                    )
+                ],
+                commit_author=author,
+                iteration_id=41,
+            )
+
+        assert result == existing_run
+        mock_client_class.return_value.continue_run.assert_not_called()
+        feature_trigger = mock_feature.call_args.args[1]
+        assert feature_trigger.step == AutofixStep.PR_ITERATION
+        assert feature_trigger.existing_run_id == 67890
+        assert feature_trigger.user_context == "Rename the helper."
+        step_args = feature_trigger.step_args
+        assert step_args.iteration_index == 2
+        assert step_args.iteration_id == 41
+        assert step_args.pr_urls == {"owner/repo": "https://example.com/pull/7"}
+        assert json.loads(step_args.commit_author) == author
+        (feedback_item,) = json.loads(step_args.feedback)
+        assert feedback_item["text"] == "Rename the helper."
+        broadcast_kwargs = mock_broadcast.call_args.kwargs
+        assert broadcast_kwargs["event_name"] == SeerActionType.ITERATION_STARTED.value
+        assert broadcast_kwargs["payload"]["iteration_index"] == 2
+
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_pr_iteration_feature_route_requires_existing_pr(self, mock_client_class, mock_feature):
+        mock_client_class.return_value.get_run.return_value = _state_with_blocks(
+            [], group_id=self.group.id
+        )
+        existing_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+        self.create_seer_agent_run(
+            run=existing_run, group=self.group, project=self.group.project, source="autofix"
+        )
+
+        with (
+            self.feature("organizations:autofix-pr-iteration-in-seer"),
+            pytest.raises(PrIterationNoPullRequestException),
+        ):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.PR_ITERATION,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=67890,
+            )
+
+        mock_feature.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_pr_iteration_requires_existing_pr(self, mock_client_class, mock_broadcast):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = _state_with_blocks([], group_id=self.group.id)
+        mirror_autofix_run(self, self.group, 67890)
 
         with (
             self.feature("organizations:autofix-pr-iteration"),
@@ -898,9 +913,7 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=67890
-        )
+        mock_client.continue_run.return_value = mirror_autofix_run(self, self.group, 67890)
 
         def trigger() -> None:
             trigger_autofix_agent(
@@ -1021,9 +1034,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        mock_client.continue_run.return_value = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=67890
-        )
+        mock_client.continue_run.return_value = mirror_autofix_run(self, self.group, 67890)
 
         trigger_autofix_agent(
             group=self.group,
@@ -1044,9 +1055,7 @@ class TestTriggerAutofixAgent(TestCase):
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state()
-        seer_run = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=67890
-        )
+        seer_run = mirror_autofix_run(self, self.group, 67890)
         mock_client.continue_run.return_value = seer_run
 
         run = trigger_autofix_agent(
@@ -1062,6 +1071,7 @@ class TestTriggerAutofixAgent(TestCase):
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_continued_run_requires_matching_group(self, mock_client_class, mock_broadcast):
         other_group = self.create_group(project=self.project)
+        mirror_autofix_run(self, other_group, 67890)
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
         mock_client.get_run.return_value = self._make_run_state(group_id=other_group.id)
@@ -1074,8 +1084,83 @@ class TestTriggerAutofixAgent(TestCase):
                 run_id=67890,
             )
 
+        mock_client.get_run.assert_not_called()
         mock_client.continue_run.assert_not_called()
         mock_broadcast.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_continued_run_rejects_when_not_mirrored(self, mock_client_class, mock_broadcast):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+
+        with pytest.raises(SeerPermissionError, match="Unknown run id for group"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.CODE_CHANGES,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=67890,
+            )
+
+        mock_client.get_run.assert_not_called()
+        mock_client.continue_run.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_continued_run_rejects_foreign_project_even_when_metadata_matches(
+        self, mock_client_class
+    ):
+        """Seer echoing this issue's group id must not authorize another project's run."""
+        other_project = self.create_project(organization=self.group.organization)
+        other_group = self.create_group(project=other_project)
+        foreign_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+        self.create_seer_agent_run(
+            run=foreign_run,
+            group=other_group,
+            project=other_project,
+            source="autofix",
+        )
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+
+        with pytest.raises(SeerPermissionError, match="Unknown run id for group"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.CODE_CHANGES,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=67890,
+            )
+
+        mock_client.get_run.assert_not_called()
+        mock_client.continue_run.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    def test_solution_rejects_run_from_another_project(self, mock_feature):
+        other_project = self.create_project(organization=self.group.organization)
+        other_group = self.create_group(project=other_project)
+        foreign_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=777
+        )
+        self.create_seer_agent_run(
+            run=foreign_run,
+            group=other_group,
+            project=other_project,
+            source="autofix",
+        )
+
+        with pytest.raises(SeerPermissionError, match="Unknown run id for group"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.SOLUTION,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=777,
+                user_context="Find a solution",
+            )
+
+        mock_feature.assert_not_called()
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
@@ -1135,9 +1220,7 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=67890
-        )
+        mock_client.continue_run.return_value = mirror_autofix_run(self, self.group, 67890)
 
         with self.feature("organizations:autofix-pr-iteration"):
             trigger_autofix_agent(
@@ -1168,9 +1251,7 @@ class TestTriggerAutofixAgent(TestCase):
                 )
             },
         )
-        mock_client.continue_run.return_value = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=67890
-        )
+        mock_client.continue_run.return_value = mirror_autofix_run(self, self.group, 67890)
 
         def iterate(**kwargs):
             with self.feature("organizations:autofix-pr-iteration"):
@@ -1425,6 +1506,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
+        mirror_autofix_run(self, self.group, 123)
 
     def _make_run_state(
         self, artifacts: list[Artifact] | None = None, group_id: int | None = None
@@ -1586,9 +1668,10 @@ class TestTriggerCodingAgentHandoff(TestCase):
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_coding_agent_handoff_rejects_run_from_different_group(self, mock_client_class):
         other_group = self.create_group(project=self.project)
+        SeerAgentRun.objects.filter(run__seer_run_state_id=123).update(group_id=other_group.id)
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
-        mock_client.get_run.return_value = self._make_run_state(group_id=other_group.id)
+        mock_client.get_run.return_value = self._make_run_state(group_id=self.group.id)
         self._make_repo_and_projectrepo()
 
         with pytest.raises(SeerPermissionError, match="Unknown run id for group"):
@@ -1599,6 +1682,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
                 integration_id=456,
             )
 
+        mock_client.get_run.assert_not_called()
         mock_client.launch_coding_agents.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
@@ -1906,6 +1990,7 @@ class TestTriggerPushChanges(TestCase):
 
     def _push(self, mock_post, features=None, **kwargs):
         """Push with a minimal run state and return the payload sent to Seer."""
+        mirror_autofix_run(self, self.group, 123)
         mock_post.return_value = MagicMock(status=200)
         state = SeerRunState(
             run_id=123,

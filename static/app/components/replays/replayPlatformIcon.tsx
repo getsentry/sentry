@@ -1,10 +1,10 @@
 import type {ReactNode} from 'react';
+import {IconNot} from '@sentry/icons/not';
 import {PlatformIcon} from 'platformicons';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 

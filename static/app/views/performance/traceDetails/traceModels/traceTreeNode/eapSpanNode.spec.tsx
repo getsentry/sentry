@@ -342,11 +342,23 @@ describe('EapSpanNode', () => {
       });
     });
 
-    it('should inherit profiling and transaction IDs from its EAP transaction', () => {
+    it('should keep transaction event IDs separate from transaction span IDs', () => {
+      const standaloneSpan = new EapSpanNode(
+        null,
+        makeEAPSpan({
+          event_id: 'standalone-span-id',
+          transaction_id: 'legacy-transaction-event-id',
+          is_transaction: false,
+          additional_attributes: {
+            'transaction.span_id': 'standalone-transaction-id',
+          },
+        }),
+        createMockExtra()
+      );
       const transaction = new EapSpanNode(
         null,
         makeEAPSpan({
-          event_id: 'transaction-event-id',
+          event_id: 'transaction-span-id',
           transaction_id: 'transaction-id',
           is_transaction: true,
           profile_id: 'profile-id',
@@ -363,11 +375,34 @@ describe('EapSpanNode', () => {
         createMockExtra()
       );
 
+      expect(standaloneSpan.transactionId).toBeUndefined();
+      expect(standaloneSpan.transactionSpanId).toBe('standalone-transaction-id');
       expect(transaction.transactionId).toBe('transaction-id');
+      expect(transaction.transactionSpanId).toBe('transaction-span-id');
       expect(span.transactionId).toBe('transaction-id');
+      expect(span.transactionSpanId).toBe('transaction-span-id');
       expect(span.profileId).toBe('profile-id');
       expect(span.profilerId).toBe('profiler-id');
     });
+
+    it.each([undefined, '', 123])(
+      'should not use an invalid transaction span ID (%s) or fall back to an event ID',
+      transactionSpanId => {
+        const node = new EapSpanNode(
+          null,
+          makeEAPSpan({
+            transaction_id: 'transaction-event-id',
+            additional_attributes:
+              transactionSpanId === undefined
+                ? undefined
+                : {'transaction.span_id': transactionSpanId},
+          }),
+          createMockExtra()
+        );
+
+        expect(node.transactionSpanId).toBeUndefined();
+      }
+    );
 
     it('should return correct drawerTabsTitle', () => {
       const extra = createMockExtra();
@@ -898,12 +933,14 @@ describe('EapSpanNode', () => {
           event_id: 'event-id',
           transaction_id: 'transaction-id',
           is_transaction: true,
+          additional_attributes: {'transaction.span_id': 'transaction-span-id'},
         }),
         createMockExtra()
       );
 
       expect(node.matchById('event-id')).toBe(true);
       expect(node.matchById('transaction-id')).toBe(true);
+      expect(node.matchById('transaction-span-id')).toBe(false);
       expect(node.matchById('unrelated-id')).toBe(false);
     });
 
