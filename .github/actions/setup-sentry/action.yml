@@ -23,6 +23,15 @@ inputs:
     description: 'Maximum minutes for devservices up'
     required: false
     default: '10'
+  early-devservices:
+    description: >-
+      Start devservices in the background before the Python environment is set
+      up, using the devservices version pinned in uv.lock, so image pulls and
+      health checks overlap the venv restore. Only for modes without supervisor
+      programs. The exit status of devservices up is written to
+      $RUNNER_TEMP/devservices-ci/up.exit (see bootstrap-snuba.py).
+    required: false
+    default: 'false'
 
 outputs:
   matrix-instance-number:
@@ -103,6 +112,22 @@ runs:
         # we just cache the venv-dir directly in action-setup-venv
         enable-cache: false
 
+    - name: Start devservices in the background
+      if: ${{ inputs.early-devservices == 'true' && inputs.skip-devservices != 'true' }}
+      shell: bash --noprofile --norc -eo pipefail -ux {0}
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
+        DEVSERVICES_WORKDIR: ${{ inputs.workdir }}
+        DEVSERVICES_LOCKFILE: ${{ inputs.workdir }}/uv.lock
+        DEVSERVICES_TIMEOUT: ${{ inputs.devservices-timeout-minutes }}
+        DEVSERVICES_MODE: ${{ inputs.mode }}
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        # Non-fatal: if this fails, "Start new devservices" below runs devservices
+        # up in the foreground instead, like it does without early-devservices.
+        "$ACTION_PATH/devservices-bg.sh" start || echo "::warning::Couldn't start devservices early; it will start after the Python setup instead"
+
     - uses: getsentry/action-setup-venv@3a832a9604b3e1a4202ae559248f26867b467cc7 # v2.1.1
       with:
         python-version: ${{ inputs.python-version }}
@@ -133,28 +158,19 @@ runs:
       if: ${{ inputs.skip-devservices != 'true' }}
       shell: bash --noprofile --norc -eo pipefail -ux {0}
       env:
-        WORKDIR: ${{ inputs.workdir }}
+        ACTION_PATH: ${{ github.action_path }}
         ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
+        DEVSERVICES_WORKDIR: ${{ inputs.workdir }}
         DEVSERVICES_TIMEOUT: ${{ inputs.devservices-timeout-minutes }}
         DEVSERVICES_MODE: ${{ inputs.mode }}
         GITHUB_TOKEN: ${{ github.token }}
       run: |
         sentry init
 
-        # Prevent git from spawning background gc/maintenance processes during
-        # dependency clones, which races with shutil.copytree (git 2.54 regression).
-        git config --global gc.auto 0
-        git config --global maintenance.auto 0
-        git config --global fetch.writeCommitGraph false
-
-        # This is necessary to bring up devservices with appropriate sentry config
-        cd "$WORKDIR"
-
-        timeout "${DEVSERVICES_TIMEOUT}m" devservices up --mode "$DEVSERVICES_MODE"
-
-        git config --global --unset gc.auto
-        git config --global --unset maintenance.auto
-        git config --global --unset fetch.writeCommitGraph
+        # Waits for the background devservices up if early-devservices started
+        # it. Otherwise runs devservices up from the workdir now, with the
+        # venv's devservices.
+        "$ACTION_PATH/devservices-bg.sh" wait
 
         # have tests listen on the docker gateway ip so loopback can occur
         echo "DJANGO_LIVE_TEST_SERVER_ADDRESS=$(docker network inspect bridge --format='{{(index .IPAM.Config 0).Gateway}}')" >> "$GITHUB_ENV"
