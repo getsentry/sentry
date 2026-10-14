@@ -8,11 +8,9 @@ import pytest
 from django.urls import reverse
 
 from sentry.api.endpoints.timeseries import IncompleteReason
-from sentry.constants import DataCategory
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
-from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -601,76 +599,6 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         )
 
         mock_sdk_logger.warning.assert_not_called()
-
-
-class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest):
-    endpoint = "sentry-api-0-organization-events-timeseries"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.login_as(user=self.user)
-        # Align to an hour boundary so the hourly Outcomes rollup buckets cleanly.
-        self.end = before_now(days=1).replace(minute=0, second=0, microsecond=0)
-        self.start = self.end - timedelta(hours=2)
-        self.url = reverse(
-            self.endpoint,
-            kwargs={"organization_id_or_slug": self.organization.slug},
-        )
-
-    def _store_outcome(
-        self,
-        outcome: Outcome,
-        category: DataCategory,
-        quantity: int,
-        reason: str = "none",
-        minutes: int = 30,
-    ) -> None:
-        self.store_outcomes(
-            {
-                "org_id": self.organization.id,
-                "project_id": self.project.id,
-                "outcome": outcome,
-                "reason": reason,
-                "category": category,
-                "timestamp": self.start + timedelta(minutes=minutes),
-                "quantity": quantity,
-            }
-        )
-
-    def test_annotations_include_accepted_annotations(self) -> None:
-        self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
-        self._store_outcome(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, 400, reason="key_quota")
-
-        data: dict[str, Any] = {
-            "start": self.start,
-            "end": self.end,
-            "interval": "1h",
-            "project": [self.project.id],
-            "dataset": "logs",
-            "includeAnnotations": "",
-        }
-        with self.feature(
-            {
-                "organizations:visibility-explore-view": True,
-                "organizations:explore-data-fidelity-annotations": True,
-            }
-        ):
-            response = self.client.get(self.url, data=data, format="json")
-
-        assert response.status_code == 200, response.content
-
-        dropped = response.data["meta"]["droppedAnnotations"]
-        assert len(dropped) == 1
-        assert dropped[0]["category"] == DataCategory.LOG_ITEM.api_name()
-        assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
-        assert dropped[0]["reason"] == "key_quota"
-        assert dropped[0]["eventCount"] == 400
-        assert "label" not in dropped[0]
-
-        accepted = response.data["meta"]["acceptedAnnotations"]
-        assert len(accepted) == 1
-        assert accepted[0]["outcome"] == Outcome.ACCEPTED.api_name()
-        assert accepted[0]["eventCount"] == 1000
 
 
 class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):

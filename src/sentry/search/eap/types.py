@@ -46,6 +46,8 @@ class SearchResolverConfig:
     api_attribute_visibility_include_internal: bool = False
     # The queryset of formulas
     saved_formulas: dict[str, "ExploreSavedFormula"] | None = None
+    # Temporary to rollout deprecation
+    disable_deprecated_functions: bool = False
     api_attribute_visibility_include_internal_convention_attributes: bool = False
 
     def extra_conditions(

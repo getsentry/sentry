@@ -62,7 +62,7 @@ import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transa
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-import {getSortField} from './fieldRenderers';
+import {getSortField} from './getSortField';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, any> & {

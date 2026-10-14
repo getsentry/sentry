@@ -30,7 +30,6 @@ from sentry.notifications.types import (
     FineTuningAPIKey,
     NotificationOrigin,
 )
-from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.plugins.base import Notification
 from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
@@ -76,7 +75,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.rule),
+            Notification(event=event, rule=NotificationOrigin.from_legacy_rule(self.rule)),
             ActionTargetType.MEMBER,
             self.user.id,
             notification_uuid=notification_uuid,
@@ -118,7 +117,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.create_performance_issue()
         # this is a PerformanceNPlusOneGroupType event
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
+            Notification(event=event, rule=NotificationOrigin.from_legacy_rule(self.rule)),
+            ActionTargetType.MEMBER,
+            self.user.id,
         )
         with self.tasks():
             notification.send()
@@ -171,7 +172,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         event.group.type = MonitorIncidentType.type_id
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
+            Notification(event=event, rule=NotificationOrigin.from_legacy_rule(self.rule)),
+            ActionTargetType.MEMBER,
+            self.user.id,
         )
         with self.tasks():
             notification.send()
@@ -200,7 +203,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         group_event = event.for_group(event.groups[0])
 
         notification = AlertRuleNotification(
-            Notification(event=group_event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
+            Notification(event=group_event, rule=NotificationOrigin.from_legacy_rule(self.rule)),
+            ActionTargetType.MEMBER,
+            self.user.id,
         )
         with self.tasks():
             notification.send()
@@ -245,7 +250,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
         notification = AlertRuleNotification(
-            Notification(event=group_event, rule=rule), ActionTargetType.MEMBER, self.user.id
+            Notification(event=group_event, rule=NotificationOrigin.from_legacy_rule(rule)),
+            ActionTargetType.MEMBER,
+            self.user.id,
         )
         with self.tasks():
             notification.send()
@@ -280,7 +287,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.rule), ActionTargetType.MEMBER, self.user.id
+            Notification(event=event, rule=NotificationOrigin.from_legacy_rule(self.rule)),
+            ActionTargetType.MEMBER,
+            self.user.id,
         )
 
         with self.tasks():
@@ -309,7 +318,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         ProjectOwnership.objects.create(project_id=self.project.id)
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule),
+            Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule)),
             ActionTargetType.ISSUE_OWNERS,
             self.user.id,
             FallthroughChoiceType.ACTIVE_MEMBERS,
@@ -339,15 +348,20 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
     def _assert_issue_owners_env_block(
         self, rule: Rule | NotificationOrigin, environment: Environment
     ) -> None:
-        _, workflow_id_value = get_rule_or_workflow_id(rule, prefer="workflow_id")
-        workflow_id = int(workflow_id_value)
+        origin = (
+            rule
+            if isinstance(rule, NotificationOrigin)
+            else NotificationOrigin.from_legacy_rule(rule)
+        )
+        workflow_id = origin.workflow_id
+        assert workflow_id is not None
         event = self.store_event(
             data={"message": "Hello world", "level": "error", "environment": environment.name},
             project_id=self.project.id,
         )
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule),
+            Notification(event=event, rule=origin),
             ActionTargetType.ISSUE_OWNERS,
             self.user.id,
             FallthroughChoiceType.ACTIVE_MEMBERS,
@@ -499,7 +513,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.team.id
+            Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule)),
+            ActionTargetType.ISSUE_OWNERS,
+            self.team.id,
         )
 
         with self.tasks():
@@ -576,7 +592,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule), ActionTargetType.ISSUE_OWNERS, self.team.id
+            Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule)),
+            ActionTargetType.ISSUE_OWNERS,
+            self.team.id,
         )
 
         with self.tasks():
@@ -663,7 +681,12 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         key = f"mail:p:{self.project.id}"
         origin = NotificationOrigin.from_legacy_rule(rule)
-        backend.add(key, event_to_record(event, [origin]), increment_delay=0, maximum_delay=0)
+        backend.add(
+            key,
+            event_to_record(event.for_group(event.groups[0]), [origin]),
+            increment_delay=0,
+            maximum_delay=0,
+        )
 
         with self.tasks():
             deliver_digest(key)
@@ -737,7 +760,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             name="ja rule",
             action_data=[action_data],
         )
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.TEAM, self.team.id)
@@ -820,7 +843,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             name="ja rule",
             action_data=[action_data],
         )
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.TEAM, self.team.id)
@@ -879,7 +902,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             name="ja rule",
             action_data=[action_data],
         )
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.TEAM, self.team.id)
@@ -912,7 +935,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             name="ja rule",
             action_data=[action_data],
         )
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.TEAM, self.team.id)
@@ -971,7 +994,12 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
         origin = NotificationOrigin.from_legacy_rule(rule)
-        backend.add(key, event_to_record(event, [origin]), increment_delay=0, maximum_delay=0)
+        backend.add(
+            key,
+            event_to_record(event.for_group(event.groups[0]), [origin]),
+            increment_delay=0,
+            maximum_delay=0,
+        )
 
         with self.tasks():
             deliver_digest(key)

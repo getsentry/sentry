@@ -6,6 +6,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
+import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {
   INPUT_STORAGE_KEY_PREFIX,
@@ -1376,6 +1377,67 @@ describe('SeerExplorerContent', () => {
       expect(sendMessage).toHaveBeenCalledWith('hello', 0);
       expect(textarea).toBeEmptyDOMElement();
       expect(sessionStorage.getItem(`${INPUT_STORAGE_KEY_PREFIX}:42`)).toBeNull();
+    });
+  });
+
+  describe('PR widget', () => {
+    function renderWithCodeChanges(features: string[]) {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sessionData: {
+          blocks: [
+            {
+              id: 'msg-1',
+              message: {role: 'assistant', content: 'Made the fix.'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+              merged_file_patches: [
+                {
+                  repo_name: 'org/repo',
+                  diff: '',
+                  patch: {
+                    added: 1,
+                    removed: 0,
+                    hunks: [],
+                    path: 'file.py',
+                    source_file: 'file.py',
+                    target_file: 'file.py',
+                    type: DiffFileType.MODIFIED,
+                  },
+                },
+              ],
+            },
+          ],
+          status: 'completed',
+          updated_at: '2024-01-01T00:01:00Z',
+        },
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization: OrganizationFixture({...organization, features})}
+      );
+    }
+
+    it('shows the Create PR button when there are code changes', async () => {
+      renderWithCodeChanges(['seer-explorer']);
+
+      expect(await screen.findByText('Made the fix.')).toBeInTheDocument();
+      expect(screen.getByText('Create PR')).toBeInTheDocument();
+    });
+
+    it('hides the Create PR button with ask-seer-create-pr', async () => {
+      renderWithCodeChanges(['seer-explorer', 'ask-seer-create-pr']);
+
+      expect(await screen.findByText('Made the fix.')).toBeInTheDocument();
+      expect(screen.queryByText('Create PR')).not.toBeInTheDocument();
     });
   });
 

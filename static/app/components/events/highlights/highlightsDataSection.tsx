@@ -10,7 +10,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
-import {getContextMeta} from 'sentry/components/events/contexts/utils';
+import {getContextMeta} from 'sentry/components/events/contexts/dataUtils';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {EditHighlightsModal} from 'sentry/components/events/highlights/editHighlightsModal';
 import {

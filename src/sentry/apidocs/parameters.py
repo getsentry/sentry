@@ -663,6 +663,51 @@ class DataForwarderParams:
     )
 
 
+class FlagParams:
+    FLAG_LOG_ID = OpenApiParameter(
+        name="flag_log_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the flag log entry you'd like to retrieve.",
+    )
+    FLAG = OpenApiParameter(
+        name="flag",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="The name of a feature flag to filter by. Repeat the parameter to match multiple flags.",
+    )
+    PROVIDER = OpenApiParameter(
+        name="provider",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        enum=["generic", "flagpole", "launchdarkly", "unleash", "statsig", "unknown"],
+        description="The flag provider to filter by. Use `unknown` to match logs without a provider. Repeat the parameter to match multiple providers.",
+    )
+    SORT = OpenApiParameter(
+        name="sort",
+        location="query",
+        required=False,
+        type=str,
+        description="""The field to sort results by.
+
+Available fields are:
+- `action`
+- `createdAt`
+- `createdBy`
+- `createdByType`
+- `flag`
+- `provider`
+
+Prefix with `-` to sort in descending order.
+""",
+    )
+
+
 class SentryAppParams:
     SENTRY_APP_ID_OR_SLUG = OpenApiParameter(
         name="sentry_app_id_or_slug",

@@ -50,6 +50,10 @@ class DatabaseBackedUserService(TestCase):
         assert user.id == result.user.id
         assert result.created is False
 
+    def test_get_user_by_email_ignores_unicode_lookalike(self) -> None:
+        self.create_user(email="admin@email.com")
+        assert user_service.get_user_by_email(email="adm\u0131n@email.com") is None
+
     def test_get_user_with_ident(self) -> None:
         user1 = self.create_user(email="test@email.com", username="1")
         user2 = self.create_user(email="test@email.com", username="2")

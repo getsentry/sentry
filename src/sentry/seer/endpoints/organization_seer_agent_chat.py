@@ -340,10 +340,15 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             resolved = result
 
         try:
-            enable_coding = organization.get_option(
-                "sentry:enable_seer_coding", False
-            ) and features.has(
-                "organizations:seer-explorer-chat-coding", organization, actor=request.user
+            # Seer only exposes write_pull_request when coding and bash mode are also on.
+            has_create_pr = features.has(
+                "organizations:ask-seer-create-pr", organization, actor=request.user
+            )
+            enable_coding = organization.get_option("sentry:enable_seer_coding", False) and (
+                has_create_pr
+                or features.has(
+                    "organizations:seer-explorer-chat-coding", organization, actor=request.user
+                )
             )
 
             has_code_mode_feature = features.has(
@@ -364,8 +369,10 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 organization,
                 request.user,
                 is_interactive=True,
-                enable_bash_mode=override_bash_mode_enabled,
+                # The client still requires seer-explorer-allow-bash-mode.
+                enable_bash_mode=override_bash_mode_enabled or has_create_pr,
                 enable_coding=enable_coding,
+                enable_write_pull_request=has_create_pr,
                 enable_code_mode_tools=enable_code_mode_tools,
                 reasoning_effort="medium",
             )

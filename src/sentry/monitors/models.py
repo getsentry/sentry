@@ -23,6 +23,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    DefaultFieldsModel,
     FlexibleForeignKey,
     LegacyTextJSONField,
     Model,
@@ -351,16 +352,17 @@ class Monitor(Model):
         return next_checkin + get_checkin_margin(self.config.get("checkin_margin"))
 
     def update_config(self, config_payload, validated_config):
-        monitor_config = self.config
         keys = set(config_payload.keys())
 
         # Always update schedule and schedule_type
         keys.update({"schedule", "schedule_type"})
         # Otherwise, only update keys that were specified in the payload
+        monitor_config = {**self.config}
         for key in keys:
             if key in validated_config:
                 monitor_config[key] = validated_config[key]
-        self.save()
+        if monitor_config != self.config:
+            self.update(config=monitor_config)
 
     def get_validated_config(self):
         try:
@@ -472,6 +474,30 @@ def check_organization_monitor_limits_on_save(sender, instance, **kwargs):
 
 
 @cell_silo_model
+class MonitorCheckInConfig(DefaultFieldsModel):
+    """
+    A deduplicated, immutable snapshot of a monitor configuration, referenced
+    by check-ins. Rows are content-addressed by `hash`.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    hash = models.CharField(max_length=64)
+    config = models.JSONField()
+
+    class Meta:
+        app_label = "monitors"
+        db_table = "sentry_monitorcheckinconfig"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["hash"], name="sentry_monitorcheckinconfig_hash_unique"
+            ),
+        ]
+
+    __repr__ = sane_repr("hash")
+
+
+@cell_silo_model
 class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -548,6 +574,16 @@ class MonitorCheckIn(Model):
     monitor_config = LegacyTextJSONField(null=True)
     """
     A snapshot of the monitor configuration at the time of the check-in.
+    """
+
+    checkin_config = FlexibleForeignKey(
+        "monitors.MonitorCheckInConfig",
+        null=True,
+        on_delete=models.PROTECT,
+    )
+    """
+    References the MonitorCheckInConfig holding a snapshot of the monitor
+    configuration at the time of the check-in.
     """
 
     trace_id = UUIDField(null=True)
@@ -637,8 +673,14 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         monitor_env, created = MonitorEnvironment.objects.get_or_create(
             monitor=monitor,
             environment_id=environment.id,
-            defaults={"status": MonitorStatus.ACTIVE, "is_muted": is_monitor_muted(monitor)},
+            # Callable so the muted count only runs when the environment is created
+            defaults={
+                "status": MonitorStatus.ACTIVE,
+                "is_muted": lambda: is_monitor_muted(monitor),
+            },
         )
+        # Avoid re-fetching the monitor when following the relation
+        monitor_env.monitor = monitor
 
         # recompute per-project monitor check-in rate limit quota
         if created:
