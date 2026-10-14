@@ -368,7 +368,15 @@ function OrganizationMenuHeader({
     >
       <Stack gap="md" padding="md lg">
         <ThemeProvider theme={darkTheme}>
-          <Text size="sm" density="fixed" bold tabular variant="primary">
+          <Text
+            size="sm"
+            density="fixed"
+            bold
+            tabular
+            css={theme => css`
+              color: ${theme.tokens.interactive.transparent.neutral.content.headings};
+            `}
+          >
             {t('Organization')}
           </Text>
         </ThemeProvider>
@@ -387,7 +395,14 @@ function OrganizationMenuHeader({
           </Flex>
           <ThemeProvider theme={darkTheme}>
             <Stack gap="0">
-              <Text size="md" density="comfortable" bold variant="primary">
+              <Text
+                size="md"
+                density="comfortable"
+                bold
+                css={theme => css`
+                  color: ${theme.tokens.content.headings};
+                `}
+              >
                 {organization.name || organization.slug}
               </Text>
               <Text
