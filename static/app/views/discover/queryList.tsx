@@ -376,9 +376,9 @@ export function QueryList({
           </StyledEmptyStateWarning>
         ) : (
           <Fragment>
-            {prebuiltViews.map((view, index) => (
+            {prebuiltViews.map(view => (
               <PrebuiltQueryCard
-                key={`${index}-${view.name}`}
+                key={view.name}
                 actions={actions}
                 location={location}
                 organization={organization}
