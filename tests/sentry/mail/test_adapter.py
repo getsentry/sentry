@@ -1634,8 +1634,10 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         self.adapter.rule_notify(as_group_event(event), futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.backend.add.call_count == 1
         record = digests.backend.add.call_args.args[1]
+        workflow_id = futures[0].context.origin.workflow_id
+        assert workflow_id is not None
         assert record.value.identifier_key == IdentifierKey.WORKFLOW
-        assert record.value.rules == [int(rule.data["actions"][0]["workflow_id"])]
+        assert record.value.rules == [workflow_id]
         assert event.group
         mock_logger.info.assert_called_with(
             "mail.adapter.notification.%s",

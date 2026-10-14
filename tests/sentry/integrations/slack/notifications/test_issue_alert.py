@@ -444,7 +444,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             name="ja rule",
             environment_id=development.id,
         )
-        workflow_id = int(legacy_rule.data["actions"][0]["workflow_id"])
+        workflow_id = create_notification_origin(legacy_rule).workflow_id
+        assert workflow_id is not None
         Workflow.objects.filter(id=workflow_id).update(environment_id=production.id)
         workflow_rule = get_rules_from_workflows(self.project, {workflow_id})[workflow_id]
 

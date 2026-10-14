@@ -89,6 +89,9 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
     def test_event_to_record_with_workflow_id(self) -> None:
         project = self.create_project(fire_project_created=True)
         rule = self.create_project_rule(project, include_legacy_rule_id=False)
+        origin = create_notification_origin(rule)
+        workflow_id = origin.workflow_id
+        assert workflow_id is not None
 
         event = self.store_event(
             data={"fingerprint": ["group1"], "timestamp": before_now(minutes=2).isoformat()},
@@ -99,14 +102,15 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         assert len(records) == 1
         record = records[0]
         assert record.value.identifier_key == IdentifierKey.WORKFLOW
-        assert record.value.rules == [rule.data["actions"][0]["workflow_id"]]
+        assert record.value.rules == [workflow_id]
 
     def test_get_rules_from_workflows_uses_workflow_environment_for_linked_rule(self) -> None:
         project = self.create_project(fire_project_created=True)
         development = self.create_environment(project=project, name="development")
         production = self.create_environment(project=project, name="production")
         rule = self.create_project_rule(project=project, environment_id=development.id)
-        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+        workflow_id = create_notification_origin(rule).workflow_id
+        assert workflow_id is not None
         workflow = Workflow.objects.get(id=workflow_id)
         workflow.update(name="Renamed workflow", environment_id=production.id)
 
@@ -121,7 +125,8 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         project = self.create_project(fire_project_created=True)
         environment = self.create_environment(project=project)
         rule = self.create_project_rule(project=project, environment_id=environment.id)
-        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+        workflow_id = create_notification_origin(rule).workflow_id
+        assert workflow_id is not None
         Workflow.objects.filter(id=workflow_id).update(environment_id=None)
 
         rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]

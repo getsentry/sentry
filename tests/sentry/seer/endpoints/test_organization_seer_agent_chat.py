@@ -513,9 +513,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         )
 
         assert response.status_code == 403
-        assert response.data == {
-            "detail": "This conversation belongs to another user and is read-only."
-        }
+        assert response.data == {"detail": "You do not have access to this run."}
         mock_client_class.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")

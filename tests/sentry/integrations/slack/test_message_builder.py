@@ -38,6 +38,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
@@ -381,16 +382,19 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         self.project.save(update_fields=["flags"])
         more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
         notes = "hey @colleen fix it"
+        origin = create_notification_origin(rule)
+        assert origin.legacy_rule_id is not None
+        assert origin.workflow_id is not None
 
         assert SlackIssuesMessageBuilder(
-            group, rules=[create_notification_origin(rule)]
+            group, rules=[origin]
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
             rule=rule,
-            legacy_rule_id=rule.data["actions"][0]["legacy_rule_id"],
-            workflow_id=rule.data["actions"][0]["workflow_id"],
+            legacy_rule_id=origin.legacy_rule_id,
+            workflow_id=origin.workflow_id,
         )
 
         # add extra tag to message
@@ -455,12 +459,17 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     def test_build_group_block_with_workflow_only(self) -> None:
         rule = self.create_project_rule(project=self.project)
-        workflow_id = rule.data["actions"][0]["workflow_id"]
-        rule.data["actions"][0].pop("legacy_rule_id")
+        rule_origin = create_notification_origin(rule)
+        workflow_id = rule_origin.workflow_id
+        assert workflow_id is not None
+        origin = NotificationOrigin(
+            label=rule.label,
+            environment_id=rule.environment_id,
+            workflow_id=workflow_id,
+            legacy_rule_id=None,
+        )
 
-        blocks = SlackIssuesMessageBuilder(
-            self.group, rules=[create_notification_origin(rule)]
-        ).build()["blocks"]
+        blocks = SlackIssuesMessageBuilder(self.group, rules=[origin]).build()["blocks"]
 
         assert orjson.loads(blocks[0]["block_id"]) == {
             "issue": self.group.id,

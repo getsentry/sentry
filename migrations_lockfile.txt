@@ -21,7 +21,7 @@ insights: 0001_squashed_0002_backfill_team_starred
 
 investigations: 0010_add_investigation_seen_and_comment
 
-monitors: 0015_add_checkin_config_fk
+monitors: 0016_drop_checkin_api_latest_index
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0037_rename_agentic_triage_result
 
-sentry: 1210_release_validate_foreign_keys
+sentry: 1211_release_drop_new_id_pending
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
