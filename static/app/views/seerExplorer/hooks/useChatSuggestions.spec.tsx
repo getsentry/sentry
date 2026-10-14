@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {useEffect, useState, type ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -8,7 +8,10 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {
+  LLMContextProvider,
+  useLLMContext,
+} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useChatSuggestions} from './useChatSuggestions';
@@ -17,6 +20,12 @@ const DEFAULT_FALLBACK_SUGGESTIONS = [
   {text: "Walk me through what's on my screen and what I can focus on next."},
   {text: 'Which of my open issues are getting worse, not better?'},
   {text: 'What else should I set up to get more out of Sentry?'},
+];
+
+const ISSUE_FALLBACK_SUGGESTIONS = [
+  {text: "What's the likely root cause of this issue?"},
+  {text: 'When did this start, and what changed around then?'},
+  {text: 'Are other issues failing for the same reason?'},
 ];
 
 const IssueDetailNode = registerLLMContext(
@@ -32,11 +41,44 @@ function IssueDetailPage({children}: {children?: ReactNode}) {
   );
 }
 
+const LoadedIssueDetailNode = registerLLMContext('issue-detail', () => {
+  useLLMContext({shortId: 'ISSUE-1'});
+  return null;
+});
+
+// Registers the issue node 500ms in.
+function SlowIssueDetailPage({children}: {children?: ReactNode}) {
+  const [isLoaded, setIsLoaded] = useState(false);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setIsLoaded(true), 500);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+  return (
+    <LLMContextProvider>
+      {isLoaded && <LoadedIssueDetailNode />}
+      {children}
+    </LLMContextProvider>
+  );
+}
+
 describe('useChatSuggestions', () => {
   const organization = OrganizationFixture({
     features: ['seer-chat-suggestions'],
   });
   const url = `/organizations/${organization.slug}/seer/chat-suggestions/`;
+  const issuePageRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/issues/1/`,
+    },
+    route: '/organizations/:orgId/',
+    children: [
+      {
+        path: 'issues/:groupId/',
+        element: null,
+        handle: {path: '/issues/:groupId/'},
+      },
+    ],
+  };
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([ProjectFixture({id: '1', hasInsightsDb: false})]);
@@ -222,19 +264,7 @@ describe('useChatSuggestions', () => {
       {
         organization,
         additionalWrapper: IssueDetailPage,
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/1/`,
-          },
-          route: '/organizations/:orgId/',
-          children: [
-            {
-              path: 'issues/:groupId/',
-              element: null,
-              handle: {path: '/issues/:groupId/'},
-            },
-          ],
-        },
+        initialRouterConfig: issuePageRouterConfig,
       }
     );
 
@@ -242,13 +272,85 @@ describe('useChatSuggestions', () => {
       expect(result.current).toEqual({
         isLoading: false,
         source: 'fallback',
-        suggestions: [
-          {text: "What's the likely root cause of this issue?"},
-          {text: 'When did this start, and what changed around then?'},
-          {text: 'Are other issues failing for the same reason?'},
-        ],
+        suggestions: ISSUE_FALLBACK_SUGGESTIONS,
       })
     );
+  });
+
+  describe('page loading', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      act(() => jest.runOnlyPendingTimers());
+      jest.useRealTimers();
+    });
+
+    it('returns fallback suggestions when the page never loads', async () => {
+      const request = MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {suggestions: [{text: 'Generated'}]},
+      });
+
+      const {result} = renderHookWithProviders(
+        () => useChatSuggestions({enabled: true, allowStructuredContext: true}),
+        {
+          organization,
+          additionalWrapper: LLMContextProvider,
+          initialRouterConfig: issuePageRouterConfig,
+        }
+      );
+
+      expect(result.current).toEqual({isLoading: true});
+      await act(() => jest.advanceTimersByTimeAsync(3000));
+      await waitFor(() =>
+        expect(result.current).toEqual({
+          isLoading: false,
+          source: 'fallback',
+          suggestions: ISSUE_FALLBACK_SUGGESTIONS,
+        })
+      );
+      expect(request).not.toHaveBeenCalled();
+    });
+
+    it('returns generated suggestions when the page finishes loading', async () => {
+      const request = MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {suggestions: [{text: 'Generated'}]},
+      });
+
+      const {result} = renderHookWithProviders(
+        () => useChatSuggestions({enabled: true, allowStructuredContext: true}),
+        {
+          organization,
+          additionalWrapper: SlowIssueDetailPage,
+          initialRouterConfig: issuePageRouterConfig,
+        }
+      );
+
+      await act(() => jest.advanceTimersByTimeAsync(400));
+      expect(request).not.toHaveBeenCalled();
+
+      await act(() => jest.advanceTimersByTimeAsync(100));
+      await waitFor(() =>
+        expect(result.current).toEqual({
+          isLoading: false,
+          source: 'generated',
+          suggestions: [{text: 'Generated'}],
+        })
+      );
+      expect(request).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            page_context: expect.stringContaining('ISSUE-1'),
+          }),
+        })
+      );
+    });
   });
 
   it.each([
