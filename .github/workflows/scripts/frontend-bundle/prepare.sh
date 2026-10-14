@@ -6,12 +6,14 @@
 #   frontend-bundle.tar.gz  the build as laid out in the repo, extracted by
 #                           getsentry's backend image (single-tenant serves
 #                           /_static/dist/ from the image)
-#   cdn/_static/            what gets uploaded to the CDN bucket
+#   cdn/_static/            what gets uploaded to the CDN bucket; sourcemaps are
+#                           uploaded to Sentry from here too, since path-based
+#                           resolution has to match the CDN layout
 #   configmap.json          entrypoint -> content-hashed name mapping that
 #                           getsentry's GoCD frontend pipeline deploys
 set -euxo pipefail
 
-: "${COMMIT_SHA:?}" "${OUT:?}" "${SENTRY_AUTH_TOKEN:?}"
+: "${COMMIT_SHA:?}" "${OUT:?}"
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dist=src/sentry/static/sentry/dist
@@ -33,14 +35,6 @@ entrypoints="${OUT}/entrypoints"
 mkdir -p "${entrypoints}"
 mv "${cdn}/entrypoints/"* "${entrypoints}"
 rmdir "${cdn}/entrypoints"
-
-# Without matching debug IDs, Sentry resolves source maps by path, so upload
-# from the final CDN layout.
-sentry-cli sourcemaps upload \
-    --use-artifact-bundle "${OUT}/cdn" \
-    --org sentry \
-    --project javascript \
-    --release "frontend@${COMMIT_SHA}"
 
 python3 -S "${script_dir}/hashed_entrypoints.py" \
     --sha "${COMMIT_SHA}" \

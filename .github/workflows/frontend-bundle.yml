@@ -1,9 +1,9 @@
 name: frontend-bundle
 
-# Builds the SaaS frontend bundle for every master commit and publishes it to
-# GCS keyed by SHA. getsentry looks it up by its pinned sentry-version: the
-# backend image extracts frontend-bundle.tar.gz and the GoCD frontend pipeline
-# deploys configmap.json.
+# Builds the SaaS frontend bundle for every master commit and uploads it as a
+# workflow artifact. This workflow holds no cloud or Sentry credentials:
+# getsentry's frontend-bundle workflow downloads the artifact for its pinned
+# sentry-version, uploads the sourcemaps, and publishes it to GCS.
 on:
   push:
     branches:
@@ -13,8 +13,6 @@ env:
   # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
   NODE_OPTIONS: '--max-old-space-size=4096'
-  FRONTEND_BUNDLE_BUCKET: getsentry-frontend-bundles
-  STATIC_BUCKET: sentryio-static
 
 jobs:
   frontend-bundle:
@@ -24,7 +22,6 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
@@ -77,18 +74,13 @@ jobs:
         env:
           COMMIT_SHA: ${{ github.sha }}
           OUT: ${{ runner.temp }}/frontend-bundle
-          SENTRY_AUTH_TOKEN: ${{ secrets.FRONTEND_BUNDLE_SENTRY_AUTH_TOKEN }}
         run: ./.github/workflows/scripts/frontend-bundle/prepare.sh
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.3
+      # getsentry's frontend-bundle workflow picks this up when this SHA lands
+      # in its sentry-version, then uploads sourcemaps and publishes to GCS.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          workload_identity_provider: projects/868781662168/locations/global/workloadIdentityPools/prod-github/providers/github-oidc-pool
-          service_account: gha-sentry-frontend-bundle@sac-prod-sa.iam.gserviceaccount.com
-
-      - name: Upload
-        env:
-          COMMIT_SHA: ${{ github.sha }}
-          OUT: ${{ runner.temp }}/frontend-bundle
-          CLOUDSDK_STORAGE_PARALLEL_COMPOSITE_UPLOAD_ENABLED: 'False'
-        run: ./.github/workflows/scripts/frontend-bundle/upload.sh
+          name: frontend-bundle
+          path: ${{ runner.temp }}/frontend-bundle
+          if-no-files-found: error
+          retention-days: 30
