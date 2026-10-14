@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -14,7 +15,10 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {
+  SIMPLE_TABLE_HEADER_ROW_HEIGHT,
+  SimpleTable,
+} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
@@ -346,7 +350,7 @@ export function SeerRepoTableHeader({
       </SimpleTable.Head>
 
       <ListItemSelectedState selected="indeterminate">
-        <SimpleTable.Body>
+        <SelectionBannerBody>
           <SimpleTable.FullWidthRow>
             <Alert variant="info" system>
               <Flex justify="start" width="100%" wrap="wrap" gap="md">
@@ -368,11 +372,11 @@ export function SeerRepoTableHeader({
               </Flex>
             </Alert>
           </SimpleTable.FullWidthRow>
-        </SimpleTable.Body>
+        </SelectionBannerBody>
       </ListItemSelectedState>
 
       <ListItemSelectedState selected="all">
-        <SimpleTable.Body>
+        <SelectionBannerBody>
           <SimpleTable.FullWidthRow>
             <Alert variant="info" system>
               {/* oxlint-disable-next-line react/refs */}
@@ -391,7 +395,7 @@ export function SeerRepoTableHeader({
                     )}
             </Alert>
           </SimpleTable.FullWidthRow>
-        </SimpleTable.Body>
+        </SelectionBannerBody>
       </ListItemSelectedState>
     </Fragment>
   );
@@ -430,3 +434,9 @@ function SelectAllCheckbox({
     />
   );
 }
+
+const SelectionBannerBody = styled(SimpleTable.Body)`
+  position: sticky;
+  top: ${SIMPLE_TABLE_HEADER_ROW_HEIGHT.default}px;
+  z-index: ${p => p.theme.zIndex.initial};
+`;
