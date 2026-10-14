@@ -1,4 +1,4 @@
-import {Component, Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {ThemeProvider, useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
@@ -234,42 +234,36 @@ type Props = {
   subscription: Subscription;
 };
 
-type State = {
-  deactivatedMemberDismissed: boolean;
-  productTrialDismissed: Record<EventType, boolean>;
-};
-
-class GSBanner extends Component<Props, State> {
+function GSBanner({api, organization, subscription}: Props) {
   // assume dismissed until we've checked the backend
-  state: State = {
-    deactivatedMemberDismissed: true,
-    productTrialDismissed: objectFromBilledCategories(() => true),
-  };
-  async componentDidMount() {
-    this.initializePendo().catch(Sentry.captureException);
-    if (this.props.organization.access.length > 0) {
-      this.tryTriggerTrialEndingModal();
-      this.tryTriggerSuspendedModal();
-      this.tryTriggerNoticeModal();
+  const [deactivatedMemberDismissed, setDeactivatedMemberDismissed] = useState(true);
+  const [productTrialDismissed, setProductTrialDismissed] = useState<
+    Record<EventType, boolean>
+  >(() => objectFromBilledCategories(() => true));
+
+  const trialEndMoment = moment().add(TRIAL_ENDING_DAY_WINDOW, 'days');
+  const hasBillingPerms = organization?.access?.includes('org:billing');
+
+  useEffect(() => {
+    async function run() {
+      initializePendo().catch(Sentry.captureException);
+      if (organization.access.length > 0) {
+        tryTriggerTrialEndingModal();
+        tryTriggerSuspendedModal();
+        tryTriggerNoticeModal();
+      }
+      await checkPrompts();
     }
-    await this.checkPrompts();
-  }
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  get trialEndMoment() {
-    return moment().add(TRIAL_ENDING_DAY_WINDOW, 'days');
-  }
-
-  get hasBillingPerms() {
-    return this.props.organization?.access?.includes('org:billing');
-  }
-
-  async initializePendo() {
-    const {organization, subscription} = this.props;
+  async function initializePendo() {
     if (!window.pendo || typeof window.pendo.initialize !== 'function') {
       return;
     }
     try {
-      const data = await this.props.api.requestPromise(
+      const data = await api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/pendo-details/', {
           path: {organizationIdOrSlug: organization.slug},
         })
@@ -304,10 +298,8 @@ class GSBanner extends Component<Props, State> {
     }
   }
 
-  tryTriggerTrialEndingModal() {
-    const {organization, subscription} = this.props;
-
-    const trialEndingWindow = [moment(), this.trialEndMoment] as const;
+  function tryTriggerTrialEndingModal() {
+    const trialEndingWindow = [moment(), trialEndMoment] as const;
 
     // Only show the trial notice if the user is on a business plan trial
     // Performance trials would require different content not currently supported
@@ -324,9 +316,7 @@ class GSBanner extends Component<Props, State> {
     openTrialEndingModal({organization});
   }
 
-  tryTriggerSuspendedModal() {
-    const {organization, subscription} = this.props;
-
+  function tryTriggerSuspendedModal() {
     if (!subscription.isSuspended) {
       return;
     }
@@ -340,9 +330,7 @@ class GSBanner extends Component<Props, State> {
     ));
   }
 
-  tryTriggerNoticeModal() {
-    const {organization, subscription} = this.props;
-
+  function tryTriggerNoticeModal() {
     const whichModal =
       subscription.isPastDue && subscription.canSelfServe ? ModalType.PAST_DUE : null;
 
@@ -362,7 +350,7 @@ class GSBanner extends Component<Props, State> {
     } as const;
 
     const eventKey = modalAnalytics[whichModal];
-    const billingPermissions = this.hasBillingPerms;
+    const billingPermissions = hasBillingPerms;
 
     if (eventKey) {
       trackGetsentryAnalytics(eventKey, {organization, subscription});
@@ -393,9 +381,7 @@ class GSBanner extends Component<Props, State> {
     );
   }
 
-  async checkPrompts() {
-    const {api, organization, subscription} = this.props;
-
+  async function checkPrompts() {
     if (!subscription.planDetails) {
       return;
     }
@@ -429,18 +415,18 @@ class GSBanner extends Component<Props, State> {
         }
       );
 
-      this.setState({
-        // not billing related prompt checks
-        deactivatedMemberDismissed: promptIsDismissed(
-          checkResults.deactivated_member_alert!
-        ),
-        productTrialDismissed: objectFromBilledCategories(c =>
+      // not billing related prompt checks
+      setDeactivatedMemberDismissed(
+        promptIsDismissed(checkResults.deactivated_member_alert!)
+      );
+      setProductTrialDismissed(
+        objectFromBilledCategories(c =>
           trialPromptIsDismissed(
             checkResults[`${snakeCase(c.plural)}_product_trial_alert`]!,
             subscription
           )
-        ),
-      });
+        )
+      );
     } catch (error) {
       // A RequestError without a status means the fetch itself failed (offline,
       // blocked request, page unload). That's not actionable, so let the check
@@ -453,73 +439,29 @@ class GSBanner extends Component<Props, State> {
     }
   }
 
-  handleSnoozeMemberDeactivatedAlert = () => {
-    const {api, organization, subscription} = this.props;
+  function handleSnoozeMemberDeactivatedAlert() {
     promptsUpdate(api, {
       organization,
       feature: 'deactivated_member_alert',
       status: 'snoozed',
     });
 
-    this.setState({deactivatedMemberDismissed: true});
+    setDeactivatedMemberDismissed(true);
 
     trackGetsentryAnalytics('deactivated_member_alert.snoozed', {
       organization,
       subscription,
     });
-  };
+  }
 
-  handleUpgradeLinkClick = () => {
-    const {organization, subscription} = this.props;
+  function handleUpgradeLinkClick() {
     trackGetsentryAnalytics('deactivated_member_alert.upgrade_link_clicked', {
       organization,
       subscription,
     });
-  };
+  }
 
-  PATHS_FOR_PRODUCT_TRIALS = {
-    '/issues/': {
-      product: DataCategory.ERRORS,
-      categories: [DataCategory.ERRORS],
-    },
-    '/performance/': {
-      product: DataCategory.TRANSACTIONS,
-      categories: [DataCategory.TRANSACTIONS],
-    },
-    '/performance/database/': {
-      product: DataCategory.TRANSACTIONS,
-      categories: [DataCategory.TRANSACTIONS],
-    },
-    '/replays/': {
-      product: DataCategory.REPLAYS,
-      categories: [DataCategory.REPLAYS],
-    },
-    '/profiling/': {
-      product: DataCategory.PROFILES,
-      categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
-    },
-    '/insights/crons/': {
-      product: DataCategory.MONITOR_SEATS,
-      categories: [DataCategory.MONITOR_SEATS],
-    },
-    '/insights/uptime/': {
-      product: DataCategory.UPTIME,
-      categories: [DataCategory.UPTIME],
-    },
-    // TODO(Continuous Profiling)
-    '/profile-duration/': {
-      product: DataCategory.PROFILE_DURATION,
-      categories: [DataCategory.PROFILE_DURATION],
-    },
-    '/profile-duration-ui/': {
-      product: DataCategory.PROFILE_DURATION_UI,
-      categories: [DataCategory.PROFILE_DURATION_UI],
-    },
-  };
-
-  renderProductTrialAlerts() {
-    const {subscription, organization, api} = this.props;
-
+  function renderProductTrialAlerts() {
     const productPath = getProductForPath(subscription, window.location.pathname);
     if (!productPath) {
       return null;
@@ -529,8 +471,7 @@ class GSBanner extends Component<Props, State> {
       .map((category: DataCategory) => {
         const categoryInfo = getCategoryInfoFromPlural(category);
         const categorySnakeCase = snakeCase(category);
-        const isDismissed =
-          this.state.productTrialDismissed[categoryInfo?.singular as EventType];
+        const isDismissed = productTrialDismissed[categoryInfo?.singular as EventType];
         const trial = getProductTrial(subscription.productTrials ?? null, category);
         return trial && !isDismissed ? (
           <ProductTrialAlert
@@ -546,11 +487,9 @@ class GSBanner extends Component<Props, State> {
                 feature: `${categorySnakeCase}_product_trial_alert`,
                 status: 'snoozed',
               });
-              this.setState({
-                productTrialDismissed: {
-                  ...this.state.productTrialDismissed,
-                  [categoryInfo?.singular as EventType]: true,
-                },
+              setProductTrialDismissed({
+                ...productTrialDismissed,
+                [categoryInfo?.singular as EventType]: true,
               });
             }}
           />
@@ -559,153 +498,148 @@ class GSBanner extends Component<Props, State> {
       .filter(Boolean);
   }
 
-  render() {
-    const {organization, subscription} = this.props;
-    const {deactivatedMemberDismissed} = this.state;
+  if (!subscription) {
+    return null;
+  }
 
-    if (!subscription) {
-      return null;
-    }
+  /**
+   * Alert priority:
+   * 1. Past due alert
+   * 2. Overage alerts
+   * 3. Member disabled alerts
+   */
 
-    /**
-     * Alert priority:
-     * 1. Past due alert
-     * 2. Overage alerts
-     * 3. Member disabled alerts
-     */
-
-    // TODO: Clean up render function
-    if (subscription.isPastDue && subscription.canSelfServe) {
-      const billingPermissions = this.hasBillingPerms;
-      const billingUrl = normalizeUrl(
-        `/settings/${organization.slug}/billing/details/?referrer=banner-billing-failure`
-      );
-      const membersPageUrl = makeLinkToOwnersAndBillingMembers(
+  // TODO: Clean up render function
+  if (subscription.isPastDue && subscription.canSelfServe) {
+    const billingPermissions = hasBillingPerms;
+    const billingUrl = normalizeUrl(
+      `/settings/${organization.slug}/billing/details/?referrer=banner-billing-failure`
+    );
+    const membersPageUrl = makeLinkToOwnersAndBillingMembers(
+      organization,
+      'past_due_banner-alert'
+    );
+    const addButtonAnalytics = () => {
+      trackGetsentryAnalytics('billing_failure.button_clicked', {
         organization,
-        'past_due_banner-alert'
-      );
-      const addButtonAnalytics = () => {
-        trackGetsentryAnalytics('billing_failure.button_clicked', {
-          organization,
-          has_permissions: billingPermissions,
-          referrer: 'banner-billing-failure',
-        });
-      };
+        has_permissions: billingPermissions,
+        referrer: 'banner-billing-failure',
+      });
+    };
 
-      return (
-        <Alert.Container>
-          <Alert
-            system
-            variant="danger"
-            data-test-id="banner-alert-past-due"
-            trailingItems={
-              <Flex align="center" height="100%">
-                <Tag variant="danger">{t('Action Required')}</Tag>
-              </Flex>
-            }
-          >
-            {billingPermissions
-              ? tct(
-                  'There was an issue with your payment. [updateUrl:Update your payment information] to ensure uninterrupted access to Sentry.',
-                  {
-                    updateUrl: (
-                      <LinkButton
-                        to={billingUrl}
-                        size="zero"
-                        variant="secondary"
-                        aria-label={t('Update payment information')}
-                        onClick={addButtonAnalytics}
-                      />
-                    ),
-                  }
-                )
-              : tct(
-                  'There was an issue with your payment. Please have the [updateUrl: Org Owner or Billing Member] update your payment information to ensure continued access to Sentry.',
-                  {
-                    updateUrl: (
-                      <LinkButton
-                        to={membersPageUrl}
-                        size="zero"
-                        variant="secondary"
-                        aria-label={t('Org Owner or Billing Member')}
-                        onClick={addButtonAnalytics}
-                      />
-                    ),
-                  }
-                )}
-          </Alert>
-        </Alert.Container>
-      );
-    }
-
-    const productTrialAlerts = this.renderProductTrialAlerts();
-
-    const {membersDeactivatedFromLimit} = subscription;
-    const isOverMemberLimit = membersDeactivatedFromLimit > 0;
-
-    // if there are deactivated members, than anyone who doesn't have org:billing will be
-    // prevented from accessing this view anyways cause they will be deactivated
-    if (isOverMemberLimit && !deactivatedMemberDismissed && this.hasBillingPerms) {
-      const checkoutUrl = `/checkout/${organization.slug}/?referrer=deactivated_member_header`;
-      const wrappedNumber = <strong>{membersDeactivatedFromLimit}</strong>;
-      // only disabling members if the plan allows exactly one member
-      return (
-        <Fragment>
-          {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
-          <Alert.Container>
-            <InvertedAlert
-              trailingItems={
-                <Grid flow="column" align="center" gap="md">
-                  <LinkButton
-                    to={checkoutUrl}
-                    onClick={this.handleUpgradeLinkClick}
-                    size="xs"
-                    variant="primary"
-                  >
-                    {t('Upgrade')}
-                  </LinkButton>
-                  <Button
-                    onClick={this.handleSnoozeMemberDeactivatedAlert}
-                    size="xs"
-                    variant="secondary"
-                    tooltipProps={{
-                      title: t(
-                        'You can also resolve this warning by removing the deactivated members from your organization'
-                      ),
-                    }}
-                  >
-                    {t('Snooze')}
-                  </Button>
-                </Grid>
-              }
-            >
-              {tct(
-                '[firstSentence] [middleSentence] Upgrade your plan to increase your limit.',
+    return (
+      <Alert.Container>
+        <Alert
+          system
+          variant="danger"
+          data-test-id="banner-alert-past-due"
+          trailingItems={
+            <Flex align="center" height="100%">
+              <Tag variant="danger">{t('Action Required')}</Tag>
+            </Flex>
+          }
+        >
+          {billingPermissions
+            ? tct(
+                'There was an issue with your payment. [updateUrl:Update your payment information] to ensure uninterrupted access to Sentry.',
                 {
-                  firstSentence:
-                    subscription.totalLicenses === 1
-                      ? t('Your plan is limited to one user.')
-                      : tct('Your plan is limited to [totalLicenses] users.', {
-                          totalLicenses: subscription.totalLicenses,
-                        }),
-                  middleSentence:
-                    membersDeactivatedFromLimit === 1
-                      ? tct('[wrappedNumber] member has been deactivated.', {
-                          wrappedNumber,
-                        })
-                      : tct('[wrappedNumber] members have been deactivated.', {
-                          wrappedNumber,
-                        }),
+                  updateUrl: (
+                    <LinkButton
+                      to={billingUrl}
+                      size="zero"
+                      variant="secondary"
+                      aria-label={t('Update payment information')}
+                      onClick={addButtonAnalytics}
+                    />
+                  ),
+                }
+              )
+            : tct(
+                'There was an issue with your payment. Please have the [updateUrl: Org Owner or Billing Member] update your payment information to ensure continued access to Sentry.',
+                {
+                  updateUrl: (
+                    <LinkButton
+                      to={membersPageUrl}
+                      size="zero"
+                      variant="secondary"
+                      aria-label={t('Org Owner or Billing Member')}
+                      onClick={addButtonAnalytics}
+                    />
+                  ),
                 }
               )}
-            </InvertedAlert>
-          </Alert.Container>
-        </Fragment>
-      );
-    }
-
-    return productTrialAlerts ?? null;
+        </Alert>
+      </Alert.Container>
+    );
   }
+
+  const productTrialAlerts = renderProductTrialAlerts();
+
+  const {membersDeactivatedFromLimit} = subscription;
+  const isOverMemberLimit = membersDeactivatedFromLimit > 0;
+
+  // if there are deactivated members, than anyone who doesn't have org:billing will be
+  // prevented from accessing this view anyways cause they will be deactivated
+  if (isOverMemberLimit && !deactivatedMemberDismissed && hasBillingPerms) {
+    const checkoutUrl = `/checkout/${organization.slug}/?referrer=deactivated_member_header`;
+    const wrappedNumber = <strong>{membersDeactivatedFromLimit}</strong>;
+    // only disabling members if the plan allows exactly one member
+    return (
+      <Fragment>
+        {productTrialAlerts && productTrialAlerts.length > 0 && productTrialAlerts}
+        <Alert.Container>
+          <InvertedAlert
+            trailingItems={
+              <Grid flow="column" align="center" gap="md">
+                <LinkButton
+                  to={checkoutUrl}
+                  onClick={handleUpgradeLinkClick}
+                  size="xs"
+                  variant="primary"
+                >
+                  {t('Upgrade')}
+                </LinkButton>
+                <Button
+                  onClick={handleSnoozeMemberDeactivatedAlert}
+                  size="xs"
+                  variant="secondary"
+                  tooltipProps={{
+                    title: t(
+                      'You can also resolve this warning by removing the deactivated members from your organization'
+                    ),
+                  }}
+                >
+                  {t('Snooze')}
+                </Button>
+              </Grid>
+            }
+          >
+            {tct(
+              '[firstSentence] [middleSentence] Upgrade your plan to increase your limit.',
+              {
+                firstSentence:
+                  subscription.totalLicenses === 1
+                    ? t('Your plan is limited to one user.')
+                    : tct('Your plan is limited to [totalLicenses] users.', {
+                        totalLicenses: subscription.totalLicenses,
+                      }),
+                middleSentence:
+                  membersDeactivatedFromLimit === 1
+                    ? tct('[wrappedNumber] member has been deactivated.', {
+                        wrappedNumber,
+                      })
+                    : tct('[wrappedNumber] members have been deactivated.', {
+                        wrappedNumber,
+                      }),
+              }
+            )}
+          </InvertedAlert>
+        </Alert.Container>
+      </Fragment>
+    );
+  }
+
+  return productTrialAlerts ?? null;
 }
 
 export default withApi(withSubscription(GSBanner, {noLoader: true}));
