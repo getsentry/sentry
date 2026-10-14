@@ -348,9 +348,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
                 env_name = env.name if env else "[removed]"
 
             attrs[checkin]["environment_name"] = env_name
-            attrs[checkin]["monitor_config"] = checkin_configs.get(
-                checkin.checkin_config_id, checkin.monitor_config
-            )
+            attrs[checkin]["monitor_config"] = checkin_configs.get(checkin.checkin_config_id)
 
         if self._expand("groups") and self.start and self.end:
             # aggregate all the trace_ids in the given set of check-ins
