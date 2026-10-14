@@ -11,7 +11,7 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import type {DetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorDetails';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebar';
+import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebarSectionTitle';
 
 export function getDetectorDetails({
   event,
