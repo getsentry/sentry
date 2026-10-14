@@ -350,7 +350,12 @@ class TestTriggerAutofixFeature(TestCase):
 
     def test_pr_iteration_enables_coding_and_sends_its_step_args(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
-        self.create_seer_agent_run(run=fake_run, source=LEGACY_FEATURE_ID)
+        self.create_seer_agent_run(
+            run=fake_run,
+            source=LEGACY_FEATURE_ID,
+            group=self.group,
+            project=self.group.project,
+        )
 
         with (
             patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,

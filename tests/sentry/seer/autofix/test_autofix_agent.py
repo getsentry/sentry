@@ -799,7 +799,9 @@ class TestTriggerAutofixAgent(TestCase):
         existing_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=67890
         )
-        self.create_seer_agent_run(run=existing_run, group=self.group, source="autofix")
+        self.create_seer_agent_run(
+            run=existing_run, group=self.group, project=self.group.project, source="autofix"
+        )
         mock_feature.return_value = existing_run
 
         with self.feature("organizations:autofix-pr-iteration-in-seer"):
@@ -848,7 +850,9 @@ class TestTriggerAutofixAgent(TestCase):
         existing_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=67890
         )
-        self.create_seer_agent_run(run=existing_run, group=self.group, source="autofix")
+        self.create_seer_agent_run(
+            run=existing_run, group=self.group, project=self.group.project, source="autofix"
+        )
 
         with (
             self.feature("organizations:autofix-pr-iteration-in-seer"),

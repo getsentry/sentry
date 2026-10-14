@@ -1460,6 +1460,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     def test_open_pr(self, mock_explorer_update_request, mock_explorer_state_request):
         self.login_as(user=self.user)
         group = self.create_group()
+        run = self.create_seer_run(organization=group.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(run=run, group=group, project=group.project, source="autofix")
         self._mock_open_pr_requests(
             mock_explorer_update_request, mock_explorer_state_request, group
         )
@@ -1471,7 +1473,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 202, response.data
-        assert response.data == {"run_id": 123, "sentry_run_id": None}
+        assert response.data == {"run_id": 123, "sentry_run_id": str(run.uuid)}
         payload = mock_explorer_update_request.call_args[0][0]["payload"]
         assert mock_explorer_update_request.call_args.kwargs["viewer_context"] == {
             "organization_id": self.organization.id,
@@ -1489,6 +1491,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     ):
         self.login_as(user=self.user)
         group = self.create_group()
+        run = self.create_seer_run(organization=group.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(run=run, group=group, project=group.project, source="autofix")
         self.create_external_user(
             user=self.user,
             organization=self.organization,
