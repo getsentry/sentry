@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
-import {css, ThemeProvider, useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconBuilding} from '@sentry/icons/building';
 import {IconSettings} from '@sentry/icons/settings';
@@ -367,55 +367,57 @@ function OrganizationMenuHeader({
       `}
     >
       <Stack gap="md" padding="md lg">
-        <ThemeProvider theme={darkTheme}>
-          <Text
-            size="sm"
-            density="fixed"
-            tabular
-            css={theme => css`
-              color: ${theme.tokens.interactive.transparent.neutral.content.headings};
-              font-weight: ${theme.font.weight.sans.medium};
-            `}
-          >
-            {t('Organization')}
-          </Text>
-        </ThemeProvider>
+        <Text
+          size="sm"
+          density="fixed"
+          variant="inherit"
+          tabular
+          css={theme => css`
+            color: ${darkTheme.tokens.interactive.transparent.neutral.content.headings};
+            font-weight: ${theme.font.weight.sans.medium};
+          `}
+        >
+          {t('Organization')}
+        </Text>
         <Flex align="center" gap="md">
           <Flex
             align="center"
             justify="center"
-            width="34px"
-            height="34px"
+            width="32px"
+            height="32px"
             radius="md"
             overflow="hidden"
-            border="muted"
             background="primary"
+            css={css`
+              border: 1px solid ${darkTheme.tokens.border.transparent.neutral.muted};
+            `}
           >
-            <OrganizationAvatar organization={organization} size={32} />
+            <OrganizationAvatar organization={organization} size={30} />
           </Flex>
-          <ThemeProvider theme={darkTheme}>
-            <Stack gap="0">
-              <Text
-                size="md"
-                density="default"
-                css={theme => css`
-                  color: ${theme.tokens.content.headings};
-                  font-weight: ${theme.font.weight.sans.medium};
-                `}
-              >
-                {organization.name || organization.slug}
-              </Text>
-              <Text
-                size="sm"
-                density="comfortable"
-                variant="secondary"
-                bold={false}
-                tabular
-              >
-                {tn('%s Project', '%s Projects', projectCount)}
-              </Text>
-            </Stack>
-          </ThemeProvider>
+          <Stack gap="0">
+            <Text
+              size="md"
+              density="comfortable"
+              variant="inherit"
+              css={theme => css`
+                color: ${darkTheme.tokens.content.headings};
+                font-weight: ${theme.font.weight.sans.medium};
+              `}
+            >
+              {organization.name || organization.slug}
+            </Text>
+            <Text
+              size="sm"
+              density="comfortable"
+              variant="inherit"
+              tabular
+              css={css`
+                color: ${darkTheme.tokens.content.secondary};
+              `}
+            >
+              {tn('%s Project', '%s Projects', projectCount)}
+            </Text>
+          </Stack>
         </Flex>
       </Stack>
     </Container>
