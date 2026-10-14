@@ -18,7 +18,7 @@ import tomllib
 import traceback
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from enum import IntEnum, StrEnum
 from pathlib import Path, PurePosixPath
 from typing import Callable
@@ -134,6 +134,8 @@ class ProfileMeasurement:
     adapter_stderr: str = ""
     checker_stderr: str = ""
     unanchored_any_count: int = 0
+    reused_from_tree: str | None = None
+    reuse_reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -153,6 +155,7 @@ class TreeMeasurement:
     any_obligations: frozenset[AnyObligation]
     coverage: frozenset[str]
     source_digests: Mapping[str, str]
+    source_contracts_reused_from_tree: str | None = None
 
 
 @dataclass(frozen=True)
@@ -1125,6 +1128,8 @@ def _profile_report(result: ProfileMeasurement) -> dict[str, object]:
         "adapter_stderr": result.adapter_stderr,
         "checker_stderr": result.checker_stderr,
         "unanchored_any_count": result.unanchored_any_count,
+        "reused_from_tree": result.reused_from_tree,
+        "reuse_reason": result.reuse_reason,
     }
 
 
@@ -2228,9 +2233,11 @@ def _measure_tree(
     tree: str,
     output: Path,
     profiles: Sequence[Profile],
+    reuse_from: TreeMeasurement | None = None,
 ) -> TreeMeasurement:
     root = extract_tree(repo, tree, output)
     inventory = tree_inventory(repo, tree, root)
+    source_digests = _source_digests(inventory, root)
     tree_output = output / "trees" / tree
     tree_output.mkdir(parents=True, exist_ok=True)
     measured: dict[Profile, ProfileMeasurement] = {}
@@ -2240,10 +2247,16 @@ def _measure_tree(
     if not required_profiles.issubset(profiles):
         raise InvalidMeasurement("tree measurement omitted a required core profile")
     for profile in profiles:
-        result = run_profile(profile, root, tree, tree_output, label=profile.value)
+        result = _reusable_profile(reuse_from, profile, inventory, source_digests)
+        reused = result is not None
+        if result is None:
+            result = run_profile(profile, root, tree, tree_output, label=profile.value)
         if profile in (Profile.CONFIGURED, Profile.UNSUPPRESSED, Profile.ALL_STRONG, Profile.PRECISION):
-            result = _coverage_audits(result, inventory, root, tree, tree_output)
-            profile_gaps = _coverage_gaps(inventory, result.graph)
+            if reused:
+                profile_gaps = _coverage_gaps(inventory, result.graph)
+            else:
+                result = _coverage_audits(result, inventory, root, tree, tree_output)
+                profile_gaps = _coverage_gaps(inventory, result.graph)
             if profile == Profile.PRECISION:
                 precision_gaps.extend(profile_gaps)
             else:
@@ -2266,7 +2279,25 @@ def _measure_tree(
                 f"{profile.value} source coverage differs from configured: "
                 f"missing={missing[:10]}, extra={extra[:10]}"
             )
-    bypasses, signatures, omissions, explicit_any = _tree_contracts(inventory, root)
+    reusable_contracts = (
+        reuse_from
+        if reuse_from is not None
+        and not reuse_from.gaps
+        and Profile.PRECISION not in reuse_from.profiles
+        and Profile.PRECISION not in profiles
+        and reuse_from.inventory == inventory
+        and reuse_from.source_digests == source_digests
+        else None
+    )
+    if reusable_contracts is not None:
+        bypasses = reusable_contracts.bypasses
+        signatures = reusable_contracts.signatures
+        omissions = reusable_contracts.signature_omissions
+        explicit_any = reusable_contracts.any_obligations
+        source_contracts_reused_from_tree = reusable_contracts.tree
+    else:
+        bypasses, signatures, omissions, explicit_any = _tree_contracts(inventory, root)
+        source_contracts_reused_from_tree = None
     owned_paths = {
         record.path for record in inventory if record.kind != SourceKind.VENDORED
     }
@@ -2295,11 +2326,44 @@ def _measure_tree(
         omissions,
         frozenset(all_any),
         core_coverage[Profile.ALL_STRONG],
-        {
-            record.path: hashlib.sha256((root / record.path).read_bytes()).hexdigest()
-            for record in inventory
-            if record.kind != SourceKind.VENDORED
-        },
+        source_digests,
+        source_contracts_reused_from_tree,
+    )
+
+
+def _source_digests(inventory: Sequence[SourceFile], root: Path) -> dict[str, str]:
+    return {
+        record.path: hashlib.sha256((root / record.path).read_bytes()).hexdigest()
+        for record in inventory
+        if record.kind != SourceKind.VENDORED
+    }
+
+
+def _reusable_profile(
+    parent: TreeMeasurement | None,
+    profile: Profile,
+    inventory: Sequence[SourceFile],
+    source_digests: Mapping[str, str],
+) -> ProfileMeasurement | None:
+    if parent is None or profile != Profile.ALL_STRONG:
+        return None
+    if parent.gaps or parent.inventory != tuple(inventory) or parent.source_digests != source_digests:
+        return None
+    result = parent.profiles.get(profile)
+    if (
+        result is None
+        or result.profile != profile
+        or result.tree != parent.tree
+        or result.adapter_status != 0
+        or result.checker_status not in (0, 1)
+        or _coverage_gaps(inventory, result.graph)
+        or parent.coverage != _coverage_set(inventory, result.graph)
+    ):
+        return None
+    return replace(
+        result,
+        reused_from_tree=parent.tree,
+        reuse_reason="weaklist-only candidate with identical inventory and source digests",
     )
 
 
@@ -2485,6 +2549,55 @@ def _changed_source_paths(repo: Path, parent_tree: str, candidate_tree: str) -> 
         raise InvalidMeasurement("Git returned a non-UTF-8 source path") from exc
 
 
+def _changed_tree_paths(repo: Path, parent_tree: str, candidate_tree: str) -> tuple[str, ...]:
+    result = subprocess.run(
+        ("git", "diff", "--name-only", "-z", parent_tree, candidate_tree),
+        cwd=repo,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode:
+        raise InvalidMeasurement(
+            f"git diff failed with {result.returncode}: {result.stderr.decode(errors='replace')}"
+        )
+    try:
+        return tuple(sorted(path.decode("utf-8") for path in result.stdout.split(b"\0") if path))
+    except UnicodeDecodeError as exc:
+        raise InvalidMeasurement("Git returned a non-UTF-8 path") from exc
+
+
+def _candidate_allstrong_reuse_allowed(
+    repo: Path,
+    parent_tree: str,
+    candidate_tree: str,
+    source_changes: Sequence[str],
+    parent: TreeMeasurement,
+) -> bool:
+    if candidate_tree == parent_tree or source_changes or parent.tree != parent_tree or parent.gaps:
+        return False
+    result = parent.profiles.get(Profile.ALL_STRONG)
+    if (
+        result is None
+        or result.profile != Profile.ALL_STRONG
+        or result.tree != parent_tree
+        or result.adapter_status != 0
+        or result.checker_status not in (0, 1)
+    ):
+        return False
+    if _changed_tree_paths(repo, parent_tree, candidate_tree) != ("pyproject.toml",):
+        return False
+    parent_config = _tree_file(repo, parent_tree, "pyproject.toml")
+    candidate_config = _tree_file(repo, candidate_tree, "pyproject.toml")
+    if parent_config is None or candidate_config is None:
+        return False
+    try:
+        return clear_marked_section(
+            parent_config.decode("utf-8"), WEAK_SECTION
+        ) == clear_marked_section(candidate_config.decode("utf-8"), WEAK_SECTION)
+    except (InvalidMarkedSection, UnicodeDecodeError):
+        return False
+
+
 def _tree_report(measurement: TreeMeasurement) -> dict[str, object]:
     return {
         "revision": measurement.revision,
@@ -2510,6 +2623,7 @@ def _tree_report(measurement: TreeMeasurement) -> dict[str, object]:
         ],
         "coverage": sorted(measurement.coverage),
         "source_digests": dict(sorted(measurement.source_digests.items())),
+        "source_contracts_reused_from_tree": measurement.source_contracts_reused_from_tree,
     }
 
 
@@ -2765,8 +2879,20 @@ def _command_compare(
     if candidate_tree == parent_tree:
         candidate_measurement = parent_measurement
     else:
+        reuse_allstrong = _candidate_allstrong_reuse_allowed(
+            repo,
+            parent_tree,
+            candidate_tree,
+            source_changes,
+            parent_measurement,
+        )
         candidate_measurement = _measure_tree(
-            repo, candidate_revision, candidate_tree, output, profiles
+            repo,
+            candidate_revision,
+            candidate_tree,
+            output,
+            profiles,
+            reuse_from=parent_measurement if reuse_allstrong else None,
         )
     decision = decide_candidate(
         parent_measurement,

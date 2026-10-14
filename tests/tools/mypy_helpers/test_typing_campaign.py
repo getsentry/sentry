@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import patch
 
@@ -22,6 +23,7 @@ from tools.mypy_helpers.typing_campaign import (
     SourceKind,
     TreeMeasurement,
     _assert_trusted_policy,
+    _candidate_allstrong_reuse_allowed,
     _command_compare,
     _coverage_audits,
     _coverage_gaps,
@@ -29,6 +31,7 @@ from tools.mypy_helpers.typing_campaign import (
     _effective_option_changes,
     _effective_pairs,
     _known_environment_warnings,
+    _measure_tree,
     _mypy_config_policy,
     _policy_changes,
     _run_precision_canaries,
@@ -442,6 +445,244 @@ def test_candidate_policy_rejection_precedes_measurement(tmp_path: Path) -> None
     assert report["reasons"] == ["candidate changes evaluator policy: pyproject.toml"]
     changed_sources.assert_not_called()
     measure_tree.assert_not_called()
+
+
+def test_weaklist_only_candidate_reuses_complete_allstrong_profile(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    source = repo / "src" / "sentry" / "example.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("def run() -> int:\n    return 1\n")
+    subprocess.run(("git", "init", "-q"), cwd=repo, check=True)
+
+    parent_config = """\
+[tool.mypy]
+python_version = "3.13"
+files = ["src/sentry/example.py"]
+# begin: not yet strongly typed
+[[tool.mypy.overrides]]
+module = ["sentry.example"]
+disallow_any_generics = false
+disallow_untyped_defs = false
+strict_equality = false
+# end: not yet strongly typed
+"""
+    config_path = repo / "pyproject.toml"
+    config_path.write_text(parent_config)
+    subprocess.run(("git", "add", "."), cwd=repo, check=True)
+    parent_tree = subprocess.run(
+        ("git", "write-tree"), cwd=repo, capture_output=True, check=True, text=True
+    ).stdout.strip()
+
+    config_path.write_text(
+        parent_config[: parent_config.index("# begin: not yet strongly typed")]
+        + "# begin: not yet strongly typed\n# end: not yet strongly typed\n"
+    )
+    subprocess.run(("git", "add", "."), cwd=repo, check=True)
+    candidate_tree = subprocess.run(
+        ("git", "write-tree"), cwd=repo, capture_output=True, check=True, text=True
+    ).stdout.strip()
+
+    calls: list[Profile] = []
+
+    def fake_run_profile(profile, root, tree, output, *, label):
+        calls.append(profile)
+        weak_options = (
+            (
+                "disallow_any_generics=false",
+                "disallow_untyped_defs=false",
+                "strict_equality=false",
+            )
+            if profile == Profile.CONFIGURED and tree == parent_tree
+            else ()
+        )
+        graph = (
+            ModuleState(
+                "sentry.example",
+                "src/sentry/example.py",
+                True,
+                True,
+                False,
+                weak_options,
+                (),
+                "normal",
+                "normal",
+                (),
+            ),
+        )
+        return ProfileMeasurement(
+            profile,
+            tree,
+            0,
+            1,
+            (),
+            graph,
+            (),
+            (),
+            0.1,
+            None,
+            output,
+        )
+
+    with (
+        patch(
+            "tools.mypy_helpers.typing_campaign.resolve_tree",
+            return_value=("parent", parent_tree),
+        ),
+        patch(
+            "tools.mypy_helpers.typing_campaign._resolve_candidate_tree",
+            return_value=("candidate", candidate_tree),
+        ),
+        patch("tools.mypy_helpers.typing_campaign._assert_trusted_policy"),
+        patch("tools.mypy_helpers.typing_campaign.run_profile", side_effect=fake_run_profile),
+        patch(
+            "tools.mypy_helpers.typing_campaign._coverage_audits",
+            side_effect=lambda result, *_args: result,
+        ),
+    ):
+        exit_code, report = _command_compare(
+            repo,
+            tmp_path / "evaluation",
+            command="evaluate",
+            parent_reference="parent",
+            candidate_reference="candidate",
+        )
+
+    assert exit_code == ExitCode.COMPLETE
+    assert report["adoption_credit"]
+    assert calls == [
+        Profile.CONFIGURED,
+        Profile.UNSUPPRESSED,
+        Profile.ALL_STRONG,
+        Profile.CONFIGURED,
+        Profile.UNSUPPRESSED,
+    ]
+    candidate_report = report["candidate"]
+    assert isinstance(candidate_report, dict)
+    assert candidate_report["source_contracts_reused_from_tree"] == parent_tree
+    candidate_profiles = candidate_report["profiles"]
+    assert isinstance(candidate_profiles, dict)
+    reused = candidate_profiles[Profile.ALL_STRONG.value]
+    assert isinstance(reused, dict)
+    assert reused["tree"] == parent_tree
+    assert reused["reused_from_tree"] == parent_tree
+    assert reused["reuse_reason"] == (
+        "weaklist-only candidate with identical inventory and source digests"
+    )
+
+
+def test_allstrong_profile_reuse_fails_closed_for_other_changes(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    source = repo / "src" / "sentry" / "example.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("def run() -> int:\n    return 1\n")
+    config_path = repo / "pyproject.toml"
+    config_path.write_text("""\
+[tool.mypy]
+python_version = "3.13"
+# begin: not yet strongly typed
+[[tool.mypy.overrides]]
+module = ["sentry.example"]
+disallow_any_generics = false
+disallow_untyped_defs = false
+strict_equality = false
+# end: not yet strongly typed
+""")
+    subprocess.run(("git", "init", "-q"), cwd=repo, check=True)
+    subprocess.run(("git", "add", "."), cwd=repo, check=True)
+    parent_tree = subprocess.run(
+        ("git", "write-tree"), cwd=repo, capture_output=True, check=True, text=True
+    ).stdout.strip()
+
+    config_path.write_text("""\
+[tool.mypy]
+python_version = "3.12"
+""")
+    subprocess.run(("git", "add", "."), cwd=repo, check=True)
+    config_change_tree = subprocess.run(
+        ("git", "write-tree"), cwd=repo, capture_output=True, check=True, text=True
+    ).stdout.strip()
+
+    config_path.write_text("""\
+[tool.mypy]
+python_version = "3.13"
+""")
+    source.write_text("def run() -> int:\n    return 2\n")
+    subprocess.run(("git", "add", "."), cwd=repo, check=True)
+    source_change_tree = subprocess.run(
+        ("git", "write-tree"), cwd=repo, capture_output=True, check=True, text=True
+    ).stdout.strip()
+
+    graph = (
+        ModuleState(
+            "sentry.example",
+            "src/sentry/example.py",
+            True,
+            True,
+            False,
+            (),
+            (),
+            "normal",
+            "normal",
+            (),
+        ),
+    )
+    parent = replace(
+        _tree(graph=graph),
+        tree=parent_tree,
+        profiles={
+            profile: replace(result, tree=parent_tree)
+            for profile, result in _tree(graph=graph).profiles.items()
+        },
+    )
+
+    calls: list[Profile] = []
+
+    def fake_run_profile(profile, root, tree, output, *, label):
+        calls.append(profile)
+        return ProfileMeasurement(
+            profile,
+            tree,
+            0,
+            1,
+            (),
+            graph,
+            (),
+            (),
+            0.1,
+            None,
+            output,
+        )
+
+    assert not _candidate_allstrong_reuse_allowed(
+        repo, parent_tree, config_change_tree, (), parent
+    )
+    assert not _candidate_allstrong_reuse_allowed(
+        repo, parent_tree, source_change_tree, ("src/sentry/example.py",), parent
+    )
+    assert not _candidate_allstrong_reuse_allowed(
+        repo, parent_tree, config_change_tree, (), replace(parent, gaps=("incomplete",))
+    )
+
+    profiles = (Profile.CONFIGURED, Profile.UNSUPPRESSED, Profile.ALL_STRONG)
+    with (
+        patch("tools.mypy_helpers.typing_campaign.run_profile", side_effect=fake_run_profile),
+        patch(
+            "tools.mypy_helpers.typing_campaign._coverage_audits",
+            side_effect=lambda result, *_args: result,
+        ),
+    ):
+        changed_source = _measure_tree(
+            repo,
+            "source-change",
+            source_change_tree,
+            tmp_path / "source-change",
+            profiles,
+            reuse_from=parent,
+        )
+
+    assert calls == list(profiles)
+    assert changed_source.profiles[Profile.ALL_STRONG].reused_from_tree is None
 
 
 def test_preexisting_typing_debt_does_not_invalidate_candidate_comparison() -> None:
