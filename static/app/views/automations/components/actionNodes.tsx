@@ -60,6 +60,7 @@ import {
   WebhookDetails,
   WebhookNode,
 } from 'sentry/views/automations/components/actions/webhook';
+import {ticketActionMetadataMap} from 'sentry/views/automations/components/actions/ticketActionMetadata';
 
 type ActionNode = {
   action: React.ComponentType<any>;
@@ -78,8 +79,7 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Azure DevOps'),
       action: AzureDevOpsNode,
       details: AzureDevOpsDetails,
-      ticketType: t('an Azure DevOps work item'),
-      link: 'https://docs.sentry.io/product/integrations/source-code-mgmt/azure-devops/#issue-sync',
+      ...ticketActionMetadataMap.get(ActionType.AZURE_DEVOPS),
       validate: validateIntegrationId,
     },
   ],
@@ -108,7 +108,7 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('GitHub'),
       action: GithubNode,
       details: GithubDetails,
-      ticketType: t('a GitHub issue'),
+      ...ticketActionMetadataMap.get(ActionType.GITHUB),
       validate: validateIntegrationId,
     },
   ],
@@ -118,7 +118,7 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('GitHub Enterprise'),
       action: GithubEnterpriseNode,
       details: GithubEnterpriseDetails,
-      ticketType: t('a GitHub Enterprise issue'),
+      ...ticketActionMetadataMap.get(ActionType.GITHUB_ENTERPRISE),
       validate: validateIntegrationId,
     },
   ],
@@ -128,8 +128,7 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Jira'),
       action: JiraNode,
       details: JiraDetails,
-      ticketType: t('a Jira issue'),
-      link: 'https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync',
+      ...ticketActionMetadataMap.get(ActionType.JIRA),
       validate: validateIntegrationId,
     },
   ],
@@ -139,8 +138,7 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Jira Server'),
       action: JiraServerNode,
       details: JiraServerDetails,
-      ticketType: t('a Jira Server issue'),
-      link: 'https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync',
+      ...ticketActionMetadataMap.get(ActionType.JIRA_SERVER),
       validate: validateIntegrationId,
     },
   ],

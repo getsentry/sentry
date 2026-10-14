@@ -10,7 +10,7 @@ import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {TicketCreationAction} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
-import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
+import {ticketActionMetadataMap} from 'sentry/views/automations/components/actions/ticketActionMetadata';
 import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';
 
 export function TicketActionSettingsButton() {
@@ -88,9 +88,9 @@ export function TicketActionSettingsButton() {
             {...deps}
             instance={instance}
             onSubmitAction={updateParentFromTicketRule}
-            link={actionNodesMap.get(action.type)?.link || null}
+            link={ticketActionMetadataMap.get(action.type)?.link || null}
             ticketType={
-              actionNodesMap.get(action.type)?.ticketType || t('an external issue')
+              ticketActionMetadataMap.get(action.type)?.ticketType || t('an external issue')
             }
           />
         ))
