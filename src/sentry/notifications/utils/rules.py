@@ -1,11 +1,15 @@
-from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+import logging
+from collections.abc import Iterable
 from typing import Literal
 
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import NotificationOrigin
+from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
+
+logger = logging.getLogger(__name__)
 
 RuleIdType = Literal["workflow_id", "legacy_rule_id"]
 
@@ -96,27 +100,6 @@ def get_key_from_rule_data(rule: Rule | NotificationOrigin, key: str) -> str:
     return value
 
 
-@dataclass
-class RulesAndWorkflows:
-    rules: list[Rule | NotificationOrigin]
-    workflow_rules: list[Rule | NotificationOrigin]
-
-
-def split_rules_by_rule_workflow_id(
-    rules: Sequence[Rule | NotificationOrigin], *, prefer: RuleIdType = "legacy_rule_id"
-) -> RulesAndWorkflows:
-    parsed_rules = []
-    workflow_rules = []
-    for rule in rules:
-        key, _ = get_rule_or_workflow_id(rule, prefer=prefer)
-        match key:
-            case "workflow_id":
-                workflow_rules.append(rule)
-            case "legacy_rule_id":
-                parsed_rules.append(rule)
-    return RulesAndWorkflows(rules=parsed_rules, workflow_rules=workflow_rules)
-
-
 def get_rule_or_workflow_id(
     rule: Rule | NotificationOrigin, *, prefer: RuleIdType = "legacy_rule_id"
 ) -> tuple[RuleIdType, str]:
@@ -137,3 +120,14 @@ def get_rule_or_workflow_id(
     if isinstance(rule, Rule):
         return ("legacy_rule_id", str(rule.id))
     raise AssertionError("Notification origin requires a workflow or legacy rule ID")
+
+
+def get_workflow_url(origin: NotificationOrigin, organization_slug: str) -> str | None:
+    if origin.workflow_id is not None:
+        return absolute_uri(create_link_to_workflow(organization_slug, str(origin.workflow_id)))
+
+    logger.warning(
+        "notifications.workflow_url.missing_workflow_id",
+        extra={"legacy_rule_id": origin.legacy_rule_id},
+    )
+    return None

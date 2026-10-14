@@ -9,10 +9,9 @@ from sentry import tsdb
 from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
 from sentry.notifications.utils.rules import get_notification_origins
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger("sentry.digests")
@@ -73,32 +72,20 @@ def unsplit_key(
 
 
 def event_to_record(
-    event: Event | GroupEvent,
-    rules: Sequence[Rule | NotificationOrigin],
+    event: GroupEvent,
+    rules: Sequence[NotificationOrigin],
     notification_uuid: str | None = None,
-    identifier_key: IdentifierKey = IdentifierKey.RULE,
 ) -> Record:
     if not rules:
         logger.warning("Creating record for %s that does not contain any rules!", event)
 
-    # TODO(iamrajjoshi): The typing on this function is wrong, the type should be GroupEvent
-    # TODO(iamrajjoshi): Creating a PR to fix this
-    assert event.group is not None
     rule_ids = []
-    for rule in rules:
-        origin = (
-            rule
-            if isinstance(rule, NotificationOrigin)
-            else NotificationOrigin.from_legacy_rule(rule)
-        )
-        rule_id = (
-            origin.legacy_rule_id if identifier_key == IdentifierKey.RULE else origin.workflow_id
-        )
-        assert rule_id is not None
-        rule_ids.append(rule_id)
+    for origin in rules:
+        assert origin.workflow_id is not None
+        rule_ids.append(origin.workflow_id)
     return Record(
         event.event_id,
-        Notification(event, rule_ids, notification_uuid, identifier_key),
+        Notification(event, rule_ids, notification_uuid, IdentifierKey.WORKFLOW),
         event.datetime.timestamp(),
     )
 

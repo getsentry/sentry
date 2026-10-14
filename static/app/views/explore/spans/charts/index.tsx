@@ -10,10 +10,11 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {hasDroppedData} from 'sentry/components/droppedData/buckets';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
+import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
-import {hasDroppedData} from 'sentry/components/droppedData/utils';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -122,8 +123,11 @@ export function ExploreCharts({
     EXPLORE_CHART_GROUP
   );
 
+  const dataset = useSpansDataset();
+
   return (
     <ChartList>
+      <DroppedDataLLMContext dataset={dataset} />
       <WidgetSyncContextProvider groupName={EXPLORE_CHART_GROUP}>
         {visualizes.map((visualize, index) => {
           return (
