@@ -875,6 +875,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 provider="example",
                 name="Matrix integration",
             )
+        elif name == "channel_integration":
+            resource = self.create_integration(
+                organization=self.org,
+                external_id=f"matrix-slack-{uuid4()}",
+                provider="slack",
+                name="Matrix Slack integration",
+            )
         elif name == "codeowners_integration":
             resource = self.create_integration(
                 organization=self.org,
@@ -1135,6 +1142,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if placeholder == "issue_id":
             return str(self._resource("group").id)
         if placeholder == "integration_id":
+            if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
+                return str(self._resource("channel_integration").id)
             return str(self._resource("integration").id)
         if placeholder == "data_forwarder_id":
             return str(self._resource("data_forwarder").id)
@@ -1235,6 +1244,8 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         return path
 
     def _query_params(self, endpoint: PublicGetEndpoint | PublicMutationEndpoint) -> dict[str, Any]:
+        if endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
+            return {"channel": "permission-matrix"}
         if endpoint.endpoint_name == "OrganizationEventsEndpoint":
             return {
                 "field": ["id", "project"],
@@ -1979,6 +1990,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             downstream_scope = patch(
                 "sentry.api.endpoints.organization_trace_item_stats.Spans.run_table_query",
                 return_value={"data": []},
+            )
+        elif endpoint.endpoint_name == "OrganizationIntegrationChannelValidateEndpoint":
+            downstream_scope = patch(
+                "sentry.integrations.api.endpoints.organization_integration_channel_validate.get_channel_id",
+                return_value=SimpleNamespace(channel_id="C123"),
             )
         elif endpoint.endpoint_name in {
             "OrganizationProfilingChunksEndpoint",
