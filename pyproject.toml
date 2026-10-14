@@ -1045,7 +1045,6 @@ module = [
     "sentry.models.environment",
     "sentry.models.eventerror",
     "sentry.models.featureadoption",
-    "sentry.models.file",
     "sentry.models.files.*",
     "sentry.models.group",
     "sentry.models.groupbookmark",
