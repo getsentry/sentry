@@ -26,8 +26,8 @@ import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
-import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPrice} from 'getsentry/utils/formatCurrency';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {bigNumFormatter, BigNumUnits} from 'getsentry/views/spendAllocations/utils';
 
 import {ProjectSelectControl} from './projectSelectControl';

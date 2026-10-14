@@ -29,9 +29,9 @@ import {
   getPlanCategoryName,
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
+import {displayPrice} from 'getsentry/utils/formatCurrency';
 import {PerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
 import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
-import {displayPrice} from 'getsentry/utils/formatCurrency';
 import {BudgetModeSettings} from 'getsentry/views/spendLimits/budgetModeSettings';
 import {
   formatPaygPricePerUnit,

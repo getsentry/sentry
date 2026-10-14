@@ -43,8 +43,8 @@ import {
   getSoftCapType,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
-import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {displayPriceWithCents} from 'getsentry/utils/formatCurrency';
+import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
