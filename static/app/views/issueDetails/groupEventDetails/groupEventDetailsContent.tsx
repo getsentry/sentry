@@ -309,5 +309,3 @@ export function EventDetailsContent({
     </DebugMetaSearchProvider>
   );
 }
-
-
