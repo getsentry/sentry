@@ -56,13 +56,6 @@ def _get_redis_client() -> RedisCluster[str] | StrictRedis[str]:
     return redis.redis_clusters.get(settings.SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER)
 
 
-# Helper function for serializing named tuples with orjson.
-def _serialize_named_tuple(data: Any) -> Any:
-    if isinstance(data, tuple) and hasattr(data, "_asdict") and hasattr(data, "_fields"):
-        return list(data)
-    raise TypeError
-
-
 @dataclass
 class AccountConfirmLink:
     user: User
@@ -121,13 +114,14 @@ class AccountConfirmLink:
             "email": self.email,
             "member_id": member.id if member is not None else None,
             "organization_id": self.organization.id,
-            "identity_id": self.identity_id,
+            # str() flattens a MigratingIdentityId to its current id.
+            "identity_id": str(self.identity_id),
             "provider": self.provider.provider,
         }
         client.setex(
             self.verification_key,
             int(_TTL.total_seconds()),
-            orjson.dumps(verification_value, default=_serialize_named_tuple).decode(),
+            orjson.dumps(verification_value).decode(),
         )
 
 
@@ -145,6 +139,14 @@ def get_verification_value_from_key(key: str) -> dict[str, Any] | None:
         return None
 
     verification_value: dict[str, Any] = orjson.loads(verification_str)
+    # Keys written before identity ids were stringified may hold an int, or
+    # ``[id, legacy_id]`` for a serialized MigratingIdentityId. Safe to remove once
+    # _TTL has elapsed after deploy.
+    identity_id = verification_value.get("identity_id")
+    if isinstance(identity_id, list):
+        identity_id = identity_id[0]
+    if identity_id is not None:
+        verification_value["identity_id"] = str(identity_id)
     metrics.incr(
         "idpmigration.confirmation_success",
         tags={"provider": verification_value.get("provider")},
