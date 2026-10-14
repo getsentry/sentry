@@ -10,7 +10,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_conventions.attributes import ATTRIBUTE_METADATA
+from sentry_conventions.attributes import ATTRIBUTE_METADATA, AttributeMetadata
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
@@ -355,6 +355,23 @@ def _search_type_to_context_type(search_type: str) -> ColumnType:
     return "number"
 
 
+def _get_convention_metadata(name: str) -> tuple[AttributeMetadata, str | None] | None:
+    """Return the registered metadata and the segment substituted for ``<key>``."""
+    if metadata := ATTRIBUTE_METADATA.get(name):
+        return metadata, None
+
+    # A <key> replaces one segment, including in indexed MCP result fields.
+    # Prefer the most specific literal prefix if multiple templates match.
+    segments = name.split(".")
+    for index in reversed(range(len(segments))):
+        if not segments[index]:
+            continue
+        template = ".".join([*segments[:index], "<key>", *segments[index + 1 :]])
+        if metadata := ATTRIBUTE_METADATA.get(template):
+            return metadata, segments[index]
+    return None
+
+
 def build_sentry_convention_context(
     public_name: str,
     internal_name: str,
@@ -369,8 +386,8 @@ def build_sentry_convention_context(
     alias or the internal name (see
     ``_update_attribute_definitions_with_deprecations`` in
     ``search/eap/spans/attributes.py``), so we try the public name first and
-    fall back to the internal name. The lookup is purely by name and does not
-    depend on the attribute's source, so conventions defined in
+    fall back to the internal name, including registered ``<key>`` templates.
+    The lookup does not depend on the attribute's source, so conventions defined in
     ``sentry_conventions`` but not in ``attributes.py`` (e.g. ``http.route``)
     still resolve.
 
@@ -378,9 +395,10 @@ def build_sentry_convention_context(
     expected type is compatible, so a custom attribute that merely shares a name
     with a convention but has a different type isn't treated as that convention.
     """
-    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(internal_name)
-    if metadata is None:
+    match = _get_convention_metadata(public_name) or _get_convention_metadata(internal_name)
+    if match is None:
         return None
+    metadata, fragment = match
 
     if attribute_type is not None:
         expected_type = _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value)
@@ -394,9 +412,7 @@ def build_sentry_convention_context(
     context: TraceItemAttributeContext = {
         "isConvention": True,
         "brief": metadata.brief,
-        "isDeprecated": bool(
-            deprecation is not None and (deprecation.status is not None or deprecation.replacement)
-        ),
+        "isDeprecated": deprecation is not None,
     }
 
     if metadata.additional_context:
@@ -414,7 +430,11 @@ def build_sentry_convention_context(
         )
 
     if deprecation is not None and deprecation.replacement:
-        context["replacementAttribute"] = deprecation.replacement
+        context["replacementAttribute"] = (
+            deprecation.replacement.replace("<key>", fragment)
+            if fragment is not None
+            else deprecation.replacement
+        )
 
     return context
 
@@ -535,7 +555,7 @@ def is_known_attribute(name: str, definitions: ColumnDefinitions) -> bool:
         return True
     if name in {column.internal_name for column in definitions.columns.values()}:
         return True
-    return ATTRIBUTE_METADATA.get(name) is not None
+    return _get_convention_metadata(name) is not None
 
 
 def _replacement_superseded_by_present_source(

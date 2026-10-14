@@ -14,7 +14,10 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
 
-from sentry.api.endpoints.organization_trace_item_attributes import build_sentry_convention_context
+from sentry.api.endpoints.organization_trace_item_attributes import (
+    build_sentry_convention_context,
+    is_known_attribute,
+)
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeKey,
 )
@@ -43,6 +46,102 @@ TRUNCATED_ATTRIBUTE_NAME_LIMIT = 5
 
 
 class TestBuildAttributeContext:
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "mcp.tool.result.content_type",
+            "mcp.tool.result.data_size",
+            "mcp.tool.result.mime_type",
+            "mcp.tool.result.name",
+            "mcp.tool.result.resource_mime_type",
+            "mcp.tool.result.resource_uri",
+            "mcp.tool.result.uri",
+            "mcp.tool.result.0.content",
+            "mcp.tool.result.0.content_type",
+            "mcp.tool.result.0.data_size",
+            "mcp.tool.result.0.mime_type",
+            "mcp.tool.result.0.name",
+            "mcp.tool.result.0.resource_mime_type",
+            "mcp.tool.result.0.resource_uri",
+            "mcp.tool.result.0.uri",
+        ],
+    )
+    def test_mcp_result_deprecated_without_replacement(self, name: str) -> None:
+        context = build_sentry_convention_context(name, name)
+
+        assert context is not None
+        assert context["isConvention"] is True
+        assert context["isDeprecated"] is True
+        assert "replacementAttribute" not in context
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "mcp.prompt.result.2.content",
+            "mcp.prompt.result.2.role",
+            "gen_ai.prompt.variable.UserQuery",
+        ],
+    )
+    def test_active_dynamic_convention(self, name: str) -> None:
+        context = build_sentry_convention_context(name, name, "string")
+
+        assert context is not None
+        assert context["isConvention"] is True
+        assert context["isDeprecated"] is False
+        assert "replacementAttribute" not in context
+        assert is_known_attribute(name, SPAN_DEFINITIONS)
+
+    def test_dynamic_convention_type_mismatch(self) -> None:
+        name = "mcp.tool.result.12.data_size"
+
+        assert build_sentry_convention_context(name, name, "number") is not None
+        assert build_sentry_convention_context(name, name, "string") is None
+
+    @pytest.mark.parametrize(
+        ("name", "replacement"),
+        [
+            ("cls.source.2", "browser.web_vital.cls.source.2"),
+            ("url.path.params.UserId", "url.path.parameter.UserId"),
+            ("query.search", "url.query"),
+        ],
+    )
+    def test_dynamic_convention_replacement(self, name: str, replacement: str) -> None:
+        context = build_sentry_convention_context(name, name, "string")
+
+        assert context is not None
+        assert context["isDeprecated"] is True
+        assert context["replacementAttribute"] == replacement
+
+    def test_dynamic_internal_name(self) -> None:
+        context = build_sentry_convention_context(
+            "message.parameter.UserId", "sentry.message.parameter.UserId", "string"
+        )
+
+        assert context is not None
+        assert context["isConvention"] is True
+        assert context["isDeprecated"] is False
+
+    def test_literal_convention_precedes_dynamic_convention(self) -> None:
+        name = "http.response.header.content-length"
+        context = build_sentry_convention_context(name, name, "string")
+
+        assert context is not None
+        assert context["brief"] == ATTRIBUTE_METADATA[name].brief
+        assert build_sentry_convention_context(name, name, "number") is None
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "mcp.tool.result.0.content.extra",
+            "mcp.tool.result.0.unknown",
+            "mcp.tool.result..content",
+            "gen_ai.prompt.variable.",
+        ],
+    )
+    def test_unknown_dynamic_attribute(self, name: str) -> None:
+        assert build_sentry_convention_context(name, name) is None
+        assert not is_known_attribute(name, SPAN_DEFINITIONS)
+
     def test_lookup_by_public_name(self) -> None:
         context = build_sentry_convention_context("device.class", "sentry.device.class")
         assert context is not None
@@ -689,6 +788,42 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
             tags={"foo": "foo", "gen_ai.request.model": "gpt-4", "http.route": "/users/:id"},
         )
+
+    def test_expand_context_mcp_result_formats(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(minutes=10).replace(microsecond=0),
+            tags={
+                "mcp.tool.result.content_type": "text",
+                "mcp.tool.result.0.content": "first",
+                "mcp.tool.result.2.content": "third",
+                "gen_ai.tool.call.result": '{"content":[]}',
+                "mcp.prompt.result.0.content": "prompt",
+                "gen_ai.prompt.variable.Topic": "weather",
+            },
+        )
+
+        response = self.do_request(query={"attributeType": "string", "expand": "context"})
+
+        assert response.status_code == 200, response.data
+        attributes = {item["key"]: item for item in response.data}
+        for name in (
+            "mcp.tool.result.content_type",
+            "mcp.tool.result.0.content",
+            "mcp.tool.result.2.content",
+        ):
+            assert attributes[name]["context"]["isDeprecated"] is True
+            assert "replacementAttribute" not in attributes[name]["context"]
+        for name in (
+            "gen_ai.tool.call.result",
+            "mcp.prompt.result.0.content",
+            "gen_ai.prompt.variable.Topic",
+        ):
+            assert attributes[name]["context"]["isConvention"] is True
+            assert attributes[name]["context"]["isDeprecated"] is False
 
     def test_expand_context(self) -> None:
         self._store_basic_segment()
