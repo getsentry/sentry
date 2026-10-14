@@ -1,6 +1,10 @@
 import {Fragment, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconSearch} from '@sentry/icons/search';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 import {z} from 'zod';
@@ -16,7 +20,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -32,7 +35,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
-import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -455,21 +457,22 @@ function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}
           <Text size="xs" variant="muted">
             {t('or')}
           </Text>
-          <Tooltip
-            title={
-              <Stack align="start" gap="xs">
-                {hidden.map((value, index) => (
-                  <Text key={index} monospace size="sm">
-                    {value}
-                  </Text>
-                ))}
-              </Stack>
-            }
-          >
-            <Tag variant="muted">
-              <Text size="sm">{tn('%s more', '%s more', hidden.length)}</Text>
-            </Tag>
-          </Tooltip>
+          <Tag variant="muted">
+            <InfoText
+              size="sm"
+              title={
+                <Stack align="start" gap="xs">
+                  {hidden.map((value, index) => (
+                    <Text key={index} monospace size="sm">
+                      {value}
+                    </Text>
+                  ))}
+                </Stack>
+              }
+            >
+              {tn('%s more', '%s more', hidden.length)}
+            </InfoText>
+          </Tag>
         </Fragment>
       )}
     </Flex>
@@ -890,7 +893,12 @@ function FilteredVolumeCells({
   return (
     <Fragment>
       <SimpleTable.RowCell>
-        <Container width={`${CHART_WIDTH}px`} height={`${CHART_HEIGHT}px`}>
+        <Container
+          width={`${CHART_WIDTH}px`}
+          height={`${CHART_HEIGHT}px`}
+          role="img"
+          aria-label={t('Filtered volume trend, peak %s', formatAbbreviatedNumber(peak))}
+        >
           <MiniBarChart
             stacked
             animateBars
@@ -1192,7 +1200,9 @@ export function CustomFilters({project}: {project: Project}) {
                     />
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
-                    <Text ellipsis>{filter.name}</Text>
+                    <InfoText mode="overflowOnly" title={filter.name}>
+                      {filter.name}
+                    </InfoText>
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
                     <Text ellipsis variant="muted">

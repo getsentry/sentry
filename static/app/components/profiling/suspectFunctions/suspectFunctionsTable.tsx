@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
 import clamp from 'lodash/clamp';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -8,7 +9,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

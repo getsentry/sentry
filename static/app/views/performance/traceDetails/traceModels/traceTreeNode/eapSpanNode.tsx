@@ -232,11 +232,21 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   get transactionId(): string | undefined {
-    // If the node represents a transaction, we use the transaction_id attached to the node,
-    // otherwise we use the transaction_id of the closest parent transaction.
     return this.value.is_transaction
       ? this.value.transaction_id
       : this.findParentEapTransaction()?.transactionId;
+  }
+
+  get transactionSpanId(): string | undefined {
+    const transactionSpanId = this.value.additional_attributes?.['transaction.span_id'];
+
+    if (typeof transactionSpanId === 'string' && transactionSpanId) {
+      return transactionSpanId;
+    }
+
+    return this.value.is_transaction
+      ? this.id
+      : this.findParentEapTransaction()?.transactionSpanId;
   }
 
   get traceHeaderTitle(): {

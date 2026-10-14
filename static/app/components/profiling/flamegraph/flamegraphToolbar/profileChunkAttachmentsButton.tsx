@@ -1,10 +1,10 @@
+import {IconDownload} from '@sentry/icons/download';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {useRole} from 'sentry/components/acl/useRole';
-import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

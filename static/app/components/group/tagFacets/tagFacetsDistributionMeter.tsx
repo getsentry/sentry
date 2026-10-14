@@ -2,6 +2,7 @@ import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {AnimatePresence, motion} from 'framer-motion';
 import type {LocationDescriptor} from 'history';
 
@@ -12,7 +13,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {TagSegment} from 'sentry/actionCreators/events';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';

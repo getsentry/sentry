@@ -101,7 +101,7 @@ const WindowRoot = styled(Container)`
 
   &[data-dragging] {
     user-select: none;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     border-color: ${p => p.theme.tokens.graphics.neutral.moderate};
   }
 `;

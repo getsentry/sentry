@@ -39,7 +39,7 @@ describe('useDroppedData', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useDroppedData({dataset: DiscoverDatasets.SPANS}),
+      () => useDroppedData({dataset: DiscoverDatasets.SPANS, interval: '1h'}),
       {organization}
     );
 
@@ -50,6 +50,7 @@ describe('useDroppedData', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: DiscoverDatasets.SPANS,
+          interval: '1h',
           referrer: 'api.explore.dropped-data-annotations',
         }),
       })
@@ -66,7 +67,7 @@ describe('useDroppedData', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useDroppedData({dataset: DiscoverDatasets.TRACEMETRICS}),
+      () => useDroppedData({dataset: DiscoverDatasets.TRACEMETRICS, interval: '1h'}),
       {organization}
     );
 
@@ -92,7 +93,7 @@ describe('useDroppedData', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useDroppedData({dataset: DiscoverDatasets.SPANS}),
+      () => useDroppedData({dataset: DiscoverDatasets.SPANS, interval: '1h'}),
       {organization: OrganizationFixture({features: []})}
     );
 

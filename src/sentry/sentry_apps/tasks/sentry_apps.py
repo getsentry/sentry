@@ -47,7 +47,6 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.notifications.types import RuleFuture
-from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
@@ -808,19 +807,16 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
 
         # If the future comes from a rule with a UI component form in the schema, append the issue alert payload
         # TODO(ecosystem): We need to change this payload format after alerts create issues
-        id = f.rule.id
-
-        # if we are using the new workflow engine, we need to use the legacy rule id
-        # Ignore test notifications
-        if int(id) != -1:
-            _, id = get_rule_or_workflow_id(f.rule)
+        origin = f.context.origin
+        id = origin.legacy_rule_id or origin.workflow_id
+        assert id is not None
 
         settings = f.kwargs.get("schema_defined_settings")
         if settings:
             extra_kwargs["additional_payload_key"] = "issue_alert"
             extra_kwargs["additional_payload"] = {
                 "id": int(id),
-                "title": f.rule.label,
+                "title": origin.label,
                 "sentry_app_id": f.kwargs["sentry_app"].id,
                 "settings": settings,
             }
@@ -829,7 +825,7 @@ def notify_sentry_app(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             instance_id=event.event_id,
             group_id=event.group_id,
             occurrence_id=event.occurrence_id if hasattr(event, "occurrence_id") else None,
-            rule_label=f.rule.label,
+            rule_label=origin.label,
             sentry_app_id=f.kwargs["sentry_app"].id,
             **extra_kwargs,
         )

@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
@@ -7,7 +9,6 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconChat, IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
@@ -231,10 +232,22 @@ export function ActivitySection({
       {displayedActivities.map(renderActivityItem)}
     </ActivityLineList>
   );
-  const hiddenActivityCount =
-    displayedActivities.length >= 5 ? displayedActivities.length - 3 : 0;
-  const sidebarVisibleActivities =
-    hiddenActivityCount > 0 ? displayedActivities.slice(0, 3) : displayedActivities;
+  const shouldCollapseSidebar = displayedActivities.length >= 5;
+  const sidebarVisibleActivities = shouldCollapseSidebar
+    ? displayedActivities.slice(0, 3)
+    : displayedActivities;
+  // Count the events inside status-flapping rollups so the label reflects how much
+  // activity is actually hidden, not how many rows it collapses into.
+  const hiddenActivityCount = shouldCollapseSidebar
+    ? displayedActivities
+        .slice(3)
+        .reduce(
+          (count, item) =>
+            count +
+            (item.type === 'collapsed_status_activities' ? item.activities.length : 1),
+          0
+        )
+    : 0;
   const sidebarActivityItems = (
     <Fragment>
       {sidebarVisibleActivities.map(renderActivityItem)}

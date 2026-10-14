@@ -1,12 +1,12 @@
 import {useSortable} from '@dnd-kit/sortable';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import Feature from 'sentry/components/acl/feature';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 
