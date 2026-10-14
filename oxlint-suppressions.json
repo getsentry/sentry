@@ -3805,11 +3805,6 @@
       "count": 4
     }
   },
-  "static/gsApp/components/features/disabledCustomInboundFilters.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/gsApp/components/features/disabledDataForwarding.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
