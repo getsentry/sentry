@@ -55,26 +55,6 @@ describe('transformTimeSeriesResponse', () => {
     ).toEqual([]);
   });
 
-  it('fills null values with zero and keeps bucket metadata', () => {
-    const timeSeries = TimeSeriesFixture({
-      values: [
-        {timestamp: 1000, value: null},
-        {timestamp: 2000, value: 3, incomplete: true, incompleteReason: 'NOT_ELAPSED'},
-      ],
-    });
-
-    const [result] = transformTimeSeriesResponse(
-      {timeSeries: [timeSeries]},
-      WidgetFixture(),
-      0
-    );
-
-    expect(result!.timeSeries.values).toEqual([
-      {timestamp: 1000, value: 0},
-      {timestamp: 2000, value: 3, incomplete: true, incompleteReason: 'NOT_ELAPSED'},
-    ]);
-  });
-
   it('overrides the value type and unit', () => {
     const [result] = transformTimeSeriesResponse(
       {timeSeries: [TimeSeriesFixture()]},

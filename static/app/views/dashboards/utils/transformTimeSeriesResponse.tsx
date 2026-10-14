@@ -15,19 +15,12 @@ const OTHER_SERIES_NAME = 'Other';
 
 export type WidgetTimeSeries = {
   queryIndex: number;
-  /**
-   * Matches the `/events-stats/` series name so saved legend selections keep working.
-   * Prefer `widgetQuery` and `timeSeries` over parsing it.
-   */
   seriesName: string;
   timeSeries: TimeSeries;
   widgetQuery: WidgetQuery;
 };
 
 type Options = {
-  /**
-   * Overrides the response value type and unit, e.g. mobile app size is always bytes
-   */
   meta?: Partial<Pick<TimeSeriesMeta, 'valueType' | 'valueUnit'>>;
 };
 
@@ -62,12 +55,7 @@ export function transformTimeSeriesResponse(
         seriesName: queryPrefix
           ? `${queryPrefix}${SERIES_QUERY_DELIMITER}${seriesName}`
           : seriesName,
-        timeSeries: {
-          ...timeSeries,
-          meta: {...timeSeries.meta, ...meta},
-          // `/events-stats/` zero-filled empty buckets, so keep plotting them as 0
-          values: timeSeries.values.map(item => ({...item, value: item.value ?? 0})),
-        },
+        timeSeries: {...timeSeries, meta: {...timeSeries.meta, ...meta}},
       };
     });
 }
