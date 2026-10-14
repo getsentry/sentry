@@ -5,7 +5,7 @@ import type {TagProps} from '@sentry/scraps/badge';
 import {ProjectsBadge} from '@sentry/scraps/badge';
 import {ROW_HEIGHT, TITLE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {Container, Flex} from '@sentry/scraps/layout';
-import type {LinkProps} from '@sentry/scraps/link';
+import type {LinkDestination} from '@sentry/scraps/link';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -90,25 +90,12 @@ interface EntityHeaderTitleBase {
 export type EntityHeaderTitleProps = EntityHeaderTitleBase &
   (
     | {type: 'text'}
-    | ({type: 'link'} & (
-        | {
-            /**
-             * Where the entity's name leads — usually the list it came from,
-             * filtered to it.
-             */
-            to: LinkProps['to'];
-            externalHref?: never;
-          }
-        | {
-            /**
-             * Where the entity's name leads when that is outside the product —
-             * the branch a build came from on GitHub, say. Renders an
-             * `ExternalLink`, so it opens in a new tab.
-             */
-            externalHref: string;
-            to?: never;
-          }
-      ))
+    /**
+     * Where the entity's name leads: usually the list it came from, filtered
+     * to it, or an `externalHref` when the destination sits outside the
+     * product.
+     */
+    | ({type: 'link'} & LinkDestination)
   );
 
 function LeadingGraphic({graphic}: {graphic: EntityHeaderLeadingGraphic}) {

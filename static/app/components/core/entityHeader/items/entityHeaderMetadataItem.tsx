@@ -7,7 +7,7 @@ import type {UserAvatar} from '@sentry/scraps/avatar';
 import {METADATA_TEXT_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
-import type {LinkProps} from '@sentry/scraps/link';
+import type {LinkDestination} from '@sentry/scraps/link';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -44,24 +44,7 @@ export type EntityHeaderMetadataItemProps = EntityHeaderMetadataItemBase &
         value: React.ReactNode;
         variant?: 'primary' | 'muted' | 'danger' | 'success' | 'warning';
       }
-    | ({type: 'link'; value: string} & (
-        | {
-            /**
-             * Where the value leads — the record it stands for, in the product.
-             */
-            to: LinkProps['to'];
-            externalHref?: never;
-          }
-        | {
-            /**
-             * Where the value leads when that is outside the product — a commit
-             * on GitHub, say. Renders an `ExternalLink`, so it opens in a new
-             * tab.
-             */
-            externalHref: string;
-            to?: never;
-          }
-      ))
+    | ({type: 'link'; value: string} & LinkDestination)
   );
 
 export function EntityHeaderMetadataItemSkeleton() {
@@ -78,17 +61,17 @@ function MetadataValue(props: EntityHeaderMetadataItemProps) {
   if (props.type === 'link') {
     return (
       <Text {...TEXT_STYLES} variant="accent">
-        {styleProps => {
+        {textProps => {
           const link =
             props.externalHref === undefined ? (
-              <Link to={props.to} aria-label={`${label} ${props.value}`} {...styleProps}>
+              <Link to={props.to} aria-label={`${label} ${props.value}`} {...textProps}>
                 {props.value}
               </Link>
             ) : (
               <ExternalLink
                 href={props.externalHref}
                 aria-label={`${label} ${props.value}`}
-                {...styleProps}
+                {...textProps}
               >
                 {props.value}
               </ExternalLink>
