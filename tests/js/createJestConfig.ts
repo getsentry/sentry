@@ -374,7 +374,7 @@ export function createJestConfig(testDirectory?: string): Config.InitialOptions 
     ...config,
     testPathIgnorePatterns: [
       ...(config.testPathIgnorePatterns ?? []),
-      `<rootDir>/(?!${directoryPattern}/)`,
+      `^<rootDir>/(?!${directoryPattern}/)`,
     ],
     collectCoverageFrom: [
       `${testDirectory}/**/*.{js,jsx,ts,tsx}`,
