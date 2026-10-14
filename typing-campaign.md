@@ -1,6 +1,6 @@
 # Sentry typing hillclimb
 
-Status: P1 helper hardening is complete. P2 evaluator work is in progress. Three configured-profile checkpoints are recorded; no repo-wide unsuppressed or all-strong comparison has been measured yet.
+Status: P1 helper hardening is complete. P2 evaluator implementation and helper verification are complete. The first repository-wide configured, unsuppressed and all-strong measurements remain pending. Repository-wide precision accounting also remains pending.
 
 Keep typing work on the existing `typing-hillclimb` branch in this checkout, with one module per ordinary commit and the demonstrated atomic-repair exception below. The only branch, worktree, push and PR exception is a confirmed bug or soundness fix under the defect procedure below. The goal is to remove genuine Python typing debt while preserving runtime behavior and precise contracts.
 
@@ -375,7 +375,19 @@ Backend typing CI installs from `uv.lock` using a private package index, sets up
 
 The custom plugin injects Any into request attributes and other types. Source annotation counts alone miss these obligations. Existing positive and negative plugin tests live in `tests/tools/mypy_helpers/test_plugin.py`; serializer tests also live in `test_typed_validated_data.py` in that directory.
 
-Initial metadata candidates are `sentry.api.api_owners`, `sentry.api.api_publish_status` and `sentry.api.endpoints.frontend_version`. The first two are enums, with an annotated property on the second. The endpoint has an annotated method. All remain weak. These are candidates to probe, not verified clean promotions.
+Initial metadata candidates are `sentry.api.api_owners`, `sentry.api.api_publish_status` and `sentry.api.endpoints.frontend_version`. Read-only inspection found `api_owners` has no methods, `api_publish_status` has an annotated property, and `frontend_version` has an annotated endpoint method. None has passed the all-strong evaluator.
+
+Read-only triage prepared the next small candidates. Run their strong-profile checks only after the P2 core gate passes.
+
+| Module | Inspection finding | Existing behavior coverage |
+| --- | --- | --- |
+| `sentry.api.analytics` | 30-line event declarations with typed fields and no methods | No module-specific test found |
+| `sentry.api.endpoints.auth_validate` | Typed `get(Request) -> Response` method | No focused test found |
+| `sentry.api.endpoints.email_capture` | Typed endpoint, with an inferred `MarketoClient` global and `request.data` boundary | `tests/sentry/api/endpoints/test_email_capture.py` |
+| `sentry.api.endpoints.system_health` | Typed endpoint; response types flow from status checks | No focused test found |
+| `sentry.api.endpoints.warmup` | Typed helpers and endpoint; uses Django's private resolver cache | No focused test found |
+
+`api_owners` is the leading no-code candidate from inspection; validate it before selecting a promotion. Existing runtime suites include `tests/sentry/api/test_api_owners.py`, `tests/apidocs/test_hooks.py` for publish status, and `tests/sentry/api/endpoints/test_frontend_version.py`. This inspection does not establish that any candidate is clean.
 
 Editor integrations must use this virtualenv and `pyproject.toml`. Confirm errors with the repository mypy command because another language server may not load Sentry's plugins.
 
@@ -387,6 +399,7 @@ Append one line per consequential executor judgment: item, decision, evidence an
 - 2026-10-14: verification is now selected by change class (see policy section): a config-only series may share one full configured checkpoint; annotation items need behavior tests plus debt comparison once P2 operates; import/`TYPE_CHECKING`/decorator/stub/plugin edits additionally need fresh-process startup with registration assertions. `--no-warn-unused-configs` stays for focused runs; positional-filename scope is not full-repo proof.
 - 2026-10-14: sweep pivots from empty/tiny weaklist entries to ranked modules needing real annotation; trivial removals retire real obligations but do not demonstrate hillclimb progress on genuine debt.
 - 2026-10-14: P1 keeps mypy generation non-mutating on crashes, stderr, incomplete summaries and malformed markers. Error ranking ignores notes and sorts ascending so the lowest-debt modules appear first.
+- 2026-10-14: P2 compares effective options using installed mypy 2.1.0 fields. It records source targets and rejects count or graph mismatches. This keeps an incomplete adapter response from passing as a full profile.
 
 ## Campaign log
 
@@ -396,6 +409,7 @@ Append one short entry per phase and parked item. Include accepted commits, chan
 - 2026-10-14 checkpoint 2: full configured mypy again green (8229 files, `--num-workers 2`), covering Lane D commits (`testutils.helpers.auth_header` annotated; `utils.cache`, `utils.flag`, `web.constants` metadata-only). `sentry.db.analyze` parked: zero callers, needs `type[Model]` plus new `Any` for the cursor return — owner call whether to type or delete. Four medium worker lanes fanned out for the next 20 modules; coordinator remains single writer.
 - 2026-10-14 checkpoint 3: full configured mypy green (8231 files, `--num-workers 2`), covering Lanes A/B/C serializer, endpoint, and view promotions. Checker behaviors learned: bare `return` in a `-> X | None` body errors (spell `return None`, identical behavior); `== ""` does not narrow `list[str] | str` (narrow `ignore[arg-type]` with reason instead of restructuring); `TYPE_CHECKING` annotations require future annotations or they crash at import; `class_name() ==` does not narrow unions (use `isinstance`). Lane flow corrected two lane proposals (unused `ignore[override]` dropped on `project_event`; `list.py` ignore added) and added first contract tests for `actor` and `project_reprocessing`.
 - 2026-10-14 P1: helper hardening changed generator failure behavior, made notes non-debt, removed active error overrides at zero debt, accepted absent debt overrides, and rebased temporary config paths. `TMPDIR=/Users/josh/dev/sentry/.work/tmp .venv/bin/pytest --basetemp=.work/tmp/pytest-p1-corpus -q tests/tools/mypy_helpers` passed 101 tests in 80.99 seconds. The focused new harness passed 29 tests in 0.48 seconds. Ruff and `git diff --check` passed. The targeted configured mypy run passed for seven helper modules. Its stderr included local option and SDK warnings; P2 must preserve and classify them before accepting profile measurements. No source promotion was included. The full helper corpus took 80.99 seconds; keep using the focused helper selector for iteration and the corpus for phase acceptance.
+- 2026-10-14 P2 implementation checkpoint: the evaluator now measures configured, unsuppressed and all-strong profiles, audits each owned source against its build graph, compares debt and effective settings, and rejects new bypasses and Any obligations. It validates the target manifest against checked graph entries. Precision extraction is available per changed source tree; the synthetic imported/plugin Any canary matches CLI diagnostics. `TMPDIR=/Users/josh/dev/sentry/.work/tmp .venv/bin/pytest --basetemp=.work/tmp/pytest-p2-focused-final -q tests/tools/mypy_helpers/test_typing_campaign.py` passed 27 tests in 2.79 seconds. `TMPDIR=/Users/josh/dev/sentry/.work/tmp .venv/bin/pytest --reuse-db -n3 --basetemp=.work/tmp/pytest-p2-corpus-final -q tests/tools/mypy_helpers` passed 128 tests in 63.16 seconds. Targeted mypy passed for `typing_campaign.py`, `mypy_output.py` and `test_typing_campaign.py`; Ruff, the bypass hook, `py_compile` and `git diff --check` passed. No repository-wide core or precision baseline has run yet. No promotion used this evaluator.
 
 ## For the owner afterwards
 

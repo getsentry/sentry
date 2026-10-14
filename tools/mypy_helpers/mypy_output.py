@@ -13,6 +13,7 @@ class Diagnostic:
     filename: str | None
     severity: str
     code: str | None
+    message: str
 
 
 @dataclass(frozen=True)
@@ -36,6 +37,21 @@ _FAILURE = re.compile(
     r"^Found (?P<errors>\d+) errors? in (?P<files>\d+) files? "
     r"\(checked (?P<checked>\d+) source files?\)$"
 )
+
+
+def parse_diagnostic_line(line: str) -> Diagnostic | None:
+    match = _DIAGNOSTIC.fullmatch(line)
+    if match is not None:
+        return Diagnostic(
+            match["filename"] or None,
+            match["severity"],
+            match["code"],
+            match["message"].rstrip(),
+        )
+    global_error = _GLOBAL_ERROR.fullmatch(line)
+    if global_error is not None:
+        return Diagnostic(None, "error", global_error["code"], global_error["message"].rstrip())
+    return None
 
 
 def parse_mypy_output(stdout: bytes, stderr: bytes, exit_status: int) -> MypyRun:
@@ -73,14 +89,9 @@ def parse_mypy_output(stdout: bytes, stderr: bytes, exit_status: int) -> MypyRun
 
         if saw_summary:
             raise InvalidMypyOutput("mypy wrote output after its summary")
-        match = _DIAGNOSTIC.fullmatch(line)
-        if match is not None:
-            filename = match["filename"] or None
-            diagnostics.append(Diagnostic(filename, match["severity"], match["code"]))
-            continue
-        global_error = _GLOBAL_ERROR.fullmatch(line)
-        if global_error is not None:
-            diagnostics.append(Diagnostic(None, "error", global_error["code"]))
+        diagnostic = parse_diagnostic_line(line)
+        if diagnostic is not None:
+            diagnostics.append(diagnostic)
             continue
         if line.startswith((" ", "\t")) and diagnostics:
             continue
