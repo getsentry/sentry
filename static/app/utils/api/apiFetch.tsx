@@ -3,8 +3,8 @@ import type {QueryFunctionContext, UseInfiniteQueryResult} from '@tanstack/react
 
 import type {ResponseMeta} from 'sentry/types/api';
 import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {QUERY_API_CLIENT} from 'sentry/utils/api/queryApiClient';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 
 export type ApiResponse<TResponseData = unknown> = {
   headers: {

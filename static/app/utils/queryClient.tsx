@@ -6,16 +6,16 @@ import type {
 } from '@tanstack/react-query';
 import {useQuery} from '@tanstack/react-query';
 
-import {Client} from 'sentry/api';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {selectJson} from 'sentry/utils/api/apiOptions';
 import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {QUERY_API_CLIENT} from 'sentry/utils/api/queryApiClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
-export const QUERY_API_CLIENT = new Client();
+export {QUERY_API_CLIENT};
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError> extends Omit<
   UseQueryOptions<ApiResponse<TApiResponse>, TError, TApiResponse, ApiQueryKey>,
