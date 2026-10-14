@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from sentry import features
-from sentry.issues.impact.types import IMPACT_FEATURE_ID
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models.run import SeerRun
+
+IMPACT_FEATURE_ID = "impact_assessment"
 
 
 def assess_impact_for_group(group: Group) -> SeerRun:

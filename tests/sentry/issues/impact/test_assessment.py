@@ -4,8 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.issues.impact.assessment import assess_impact_for_group
-from sentry.issues.impact.types import IMPACT_FEATURE_ID
+from sentry.issues.impact.assessment import IMPACT_FEATURE_ID, assess_impact_for_group
 from sentry.testutils.cases import TestCase
 
 
