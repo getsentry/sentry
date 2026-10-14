@@ -636,7 +636,6 @@ module = [
     "sentry.api.serializers.models.recentsearch",
     "sentry.api.serializers.models.release",
     "sentry.api.serializers.models.release_file",
-    "sentry.api.serializers.models.release_threshold",
     "sentry.api.serializers.models.repository",
     "sentry.api.serializers.models.role",
     "sentry.api.serializers.models.seer_agentic_triage_run",
