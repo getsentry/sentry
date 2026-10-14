@@ -322,12 +322,10 @@ describe('CustomResolutionModal', () => {
 
     await waitFor(() => expect(screen.queryByRole('listbox')).not.toBeInTheDocument());
 
-    await waitFor(
-      () =>
-        expect(screen.getByRole('button', {name: /version/i})).toHaveTextContent(
-          'ancient-release'
-        ),
-      {timeout: 600}
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: /version/i})).toHaveTextContent(
+        'ancient-release'
+      )
     );
   });
 });

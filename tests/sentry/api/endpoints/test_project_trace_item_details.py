@@ -269,18 +269,40 @@ class TestReplacementAttributeFiltering:
         assert len(result) == 1
         assert result[0]["name"] == attr_name
 
-    def test_replacement_attribute_hidden_when_deprecated_source_present(self) -> None:
+    def test_replacement_attribute_hidden_when_normalized_source_present(self) -> None:
         result = convert_rpc_attribute_to_json(
             [
-                {"name": "gen_ai.usage.prompt_tokens", "value": {"valInt": "42"}},
-                {"name": "gen_ai.usage.input_tokens", "value": {"valInt": "42"}},
+                {"name": "gen_ai.tool.output", "value": {"valStr": "result"}},
+                {"name": "gen_ai.tool.call.result", "value": {"valStr": "result"}},
             ],
             SupportedTraceItemType.SPANS,
         )
 
         names = [r["name"] for r in result]
-        assert "gen_ai.usage.prompt_tokens" in names
-        assert "gen_ai.usage.input_tokens" not in names
+        assert "gen_ai.tool.output" in names
+        assert "gen_ai.tool.call.result" not in names
+
+    @pytest.mark.parametrize(
+        "source,replacement,value",
+        [
+            ("gen_ai.usage.prompt_tokens", "gen_ai.usage.input_tokens", {"valInt": "42"}),
+            ("anthropic.tool_result.content", "gen_ai.tool.call.result", {"valStr": "result"}),
+        ],
+    )
+    def test_replacement_attribute_shown_when_backfilled_source_present(
+        self, source: str, replacement: str, value: dict[str, str]
+    ) -> None:
+        result = convert_rpc_attribute_to_json(
+            [
+                {"name": source, "value": value},
+                {"name": replacement, "value": value},
+            ],
+            SupportedTraceItemType.SPANS,
+        )
+
+        names = [r["name"] for r in result]
+        assert source in names
+        assert replacement in names
 
     def test_replacement_array_shown_when_no_deprecated_source(self) -> None:
         result = convert_rpc_attribute_to_json(

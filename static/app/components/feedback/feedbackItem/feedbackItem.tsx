@@ -9,8 +9,8 @@ import {InfoTip} from '@sentry/scraps/info';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
+import {getOrderedContextItems} from 'sentry/components/events/contexts/contextItems';
 import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';
 import {
   TracePreview,
