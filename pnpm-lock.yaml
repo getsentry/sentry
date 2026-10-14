@@ -1269,6 +1269,9 @@ importers:
       '@jest/environment':
         specifier: 30.5.1
         version: 30.5.1
+      '@jest/environment-jsdom-abstract':
+        specifier: 30.5.1
+        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1(@noble/hashes@1.8.0))
       '@jest/test-result':
         specifier: 30.5.1
         version: 30.5.1
@@ -1284,6 +1287,9 @@ importers:
       '@sentry/jest-environment':
         specifier: 8.1.0
         version: 8.1.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1(@noble/hashes@1.8.0)))(@sentry/node@11.6.0(@babel/core@7.29.7(supports-color@8.1.1)))(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@26.6.4)(babel-plugin-macros@3.1.0)(supports-color@8.1.1)(ts-node@10.9.2(@swc/core@1.16.13(@swc/helpers@0.5.23))(@types/node@26.6.4)(@typescript/typescript6@6.0.2)))(jsdom@30.1.1(@noble/hashes@1.8.0))
+      '@sentry/node':
+        specifier: 11.6.0
+        version: 11.6.0(@babel/core@7.29.7(supports-color@8.1.1))
       '@sentry/react':
         specifier: 11.6.0
         version: 11.6.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
@@ -1332,6 +1338,9 @@ importers:
       jest-canvas-mock:
         specifier: ^2.5.8
         version: 2.5.8
+      jest-environment-node:
+        specifier: 30.5.1
+        version: 30.5.1
       jest-fail-on-console:
         specifier: 3.3.4
         version: 3.3.4(@jest/globals@30.5.1(supports-color@8.1.1))
@@ -1341,6 +1350,9 @@ importers:
       jest-resolve:
         specifier: 30.5.1
         version: 30.5.1(patch_hash=f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f)
+      jsdom:
+        specifier: 30.1.1
+        version: 30.1.1(@noble/hashes@1.8.0)
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
