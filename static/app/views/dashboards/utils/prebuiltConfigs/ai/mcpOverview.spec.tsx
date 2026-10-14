@@ -3,6 +3,8 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+// Load the real spans config before the widget's dataset import cycle.
+import 'sentry/views/dashboards/datasetConfig/spans';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 
