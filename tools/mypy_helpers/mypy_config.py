@@ -52,7 +52,7 @@ def relocate_path_options(source: str, source_root: Path) -> str:
         rendered = " " + json.dumps(relocated, ensure_ascii=False)
         replacements.append((value_start, value_end, rendered))
 
-    for start, end, replacement in reversed(replacements):
+    for start, end, replacement in sorted(replacements, reverse=True):
         source_start = header.end() + start
         source_end = header.end() + end
         source = source[:source_start] + replacement + source[source_end:]

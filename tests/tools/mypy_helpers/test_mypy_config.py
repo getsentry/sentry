@@ -9,12 +9,12 @@ def test_relocates_path_options_and_keeps_module_selectors(tmp_path: Path) -> No
     source_root.mkdir()
     config = """\
 [tool.mypy]
+mypy_path = [
+  "fixtures/stubs-for-mypy",
+]
 files = [
   ".",
   "sentry.api",
-]
-mypy_path = [
-  "fixtures/stubs-for-mypy",
 ]
 
 [[tool.mypy.overrides]]
