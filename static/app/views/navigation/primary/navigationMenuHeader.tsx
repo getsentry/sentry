@@ -46,13 +46,7 @@ export function NavigationMenuHeader({
           <Text size="md" bold variant="inherit">
             {name}
           </Text>
-          <Text
-            size="sm"
-            variant="inherit"
-            css={css`
-              opacity: 0.7;
-            `}
-          >
+          <Text size="sm" variant="inherit">
             {detail}
           </Text>
         </Stack>
