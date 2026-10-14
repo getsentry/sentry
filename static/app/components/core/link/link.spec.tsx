@@ -66,6 +66,26 @@ describe('Link', () => {
       expect.objectContaining({'aria-label': 'Open'})
     );
   });
+
+  it('uses Sentry routing for object destinations without duplicating clicks', async () => {
+    const onClick = jest.fn();
+    const {router, tracking} = renderWithTracking(
+      <Link
+        to={{pathname: '/issues/', query: {query: 'is:unresolved'}, hash: '#details'}}
+        onClick={onClick}
+      >
+        Issues
+      </Link>
+    );
+    const link = screen.getByRole('link', {name: 'Issues'});
+    expect(link).toHaveAttribute('href', '/issues/?query=is%3Aunresolved#details');
+    await userEvent.click(link);
+    expect(router.location.pathname).toBe('/issues/');
+    expect(router.location.query).toEqual({query: 'is:unresolved'});
+    expect(router.location.hash).toBe('#details');
+    expect(onClick).toHaveBeenCalledTimes(1);
+    expect(tracking).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('ExternalLink', () => {
