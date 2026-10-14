@@ -33,7 +33,6 @@ interface RouteIdentity {
 
 interface LLMContextReader {
   getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot;
-  waitForLLMContext: LLMContextInternalValue['waitForLLMContext'];
 }
 
 // Internal context — holds the registry operations (registerNode, etc.)
@@ -290,57 +289,16 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
     return () => listenersRef.current.delete(listener);
   }, []);
 
-  /**
-   * Resolves true once no node is loading and `isReady` passes on the snapshot,
-   * or false at `timeoutMs`.
-   * Checks on the next tick rather than on each change, so a render's context
-   * writes have all landed before the snapshot is read.
-   */
-  const waitForLLMContext = useCallback(
-    (
-      isReady: (snapshot: LLMContextSnapshot) => boolean,
-      {timeoutMs, signal}: {timeoutMs: number; signal?: AbortSignal}
-    ): Promise<boolean> =>
-      new Promise((resolve, reject) => {
-        if (signal?.aborted) {
-          reject(new Error('Aborted'));
-          return;
-        }
-
-        let pendingCheckId: number | undefined;
-
-        const finish = (settle: () => void) => {
-          unsubscribe();
-          window.clearTimeout(pendingCheckId);
-          window.clearTimeout(limitTimeoutId);
-          signal?.removeEventListener('abort', onAbort);
-          settle();
-        };
-
-        const onContextChange = () => {
-          if (pendingCheckId !== undefined) {
-            return;
-          }
-          pendingCheckId = window.setTimeout(() => {
-            pendingCheckId = undefined;
-            if (loadingNodeIdsRef.current.size === 0 && isReady(getSnapshot())) {
-              finish(() => resolve(true));
-            }
-          }, 0);
-        };
-
-        const onAbort = () => finish(() => reject(new Error('Aborted')));
-
-        const unsubscribe = subscribe(onContextChange);
-        const limitTimeoutId = window.setTimeout(
-          () => finish(() => resolve(false)),
-          timeoutMs
-        );
-        signal?.addEventListener('abort', onAbort);
-        onContextChange();
-      }),
-    [getSnapshot, subscribe]
-  );
+  // Reads the flat maps rather than building a snapshot: this runs as a
+  // useSyncExternalStore getSnapshot, so on every write and every render.
+  const isNodeReady = useCallback((nodeType: string): boolean => {
+    for (const [nodeId, node] of stateRef.current.nodes) {
+      if (node.nodeType === nodeType && !loadingNodeIdsRef.current.has(nodeId)) {
+        return true;
+      }
+    }
+    return false;
+  }, []);
 
   // Flat (id-keyed) view of the registry, for consumers that need to pair a
   // node's data with its DOM anchor (e.g. Seer XRay Mode) rather than the
@@ -360,18 +318,20 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
     () => ({
       getOverlayNodes,
       getSnapshot,
+      isNodeReady,
       registerNode,
+      subscribe,
       unregisterNode,
       updateNodeData,
-      waitForLLMContext,
     }),
     [
       getOverlayNodes,
       getSnapshot,
+      isNodeReady,
       registerNode,
+      subscribe,
       unregisterNode,
       updateNodeData,
-      waitForLLMContext,
     ]
   );
 
@@ -394,42 +354,30 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
 export const LLM_CONTEXT_MAX_ROWS = 15;
 
 /**
- * useLLMContext — write overload
+ * useLLMContext
  *
- * Call inside a registerLLMContext-wrapped component (or any descendant)
+ * Pass `data` inside a registerLLMContext-wrapped component (or any descendant)
  * to push structured data into the nearest registered context node.
  * Accepts any value type — objects, arrays, strings, numbers, etc.
  *
  *   useLLMContext({ title: 'Error Rate', threshold: 5 });
  *   useLLMContext(someComputedValue);
  *
- * Pass `isLoading` while the data is still being fetched, so waitForLLMContext
- * holds off until the node is complete.
+ * Pass `isLoading` while the data is still being fetched, so the page isn't
+ * reported as ready (see isNodeReady) until the node is complete.
  *
  *   useLLMContext({ rows }, { isLoading: isPending });
- */
-export function useLLMContext(
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- {} here means "any non-undefined value" to distinguish from the no-arg read overload
-  data: {} | null,
-  options?: {isLoading: boolean}
-): void;
-
-/**
- * useLLMContext — read overload
  *
- * Call with no arguments to get getLLMContext and waitForLLMContext.
+ * Omit `data` to only read:
  *
- *   const { getLLMContext, waitForLLMContext } = useLLMContext();
+ *   const { getLLMContext } = useLLMContext();
  *   getLLMContext()      // full tree from root
  *   getLLMContext(true)  // current component's subtree only
- *   await waitForLLMContext(isReady, {timeoutMs})  // false if it timed out
  */
-export function useLLMContext(): LLMContextReader;
-
 export function useLLMContext(
   data?: unknown,
   options?: {isLoading: boolean}
-): void | LLMContextReader {
+): LLMContextReader {
   const ctx = useLLMContextRegistry();
   const nodeId = useContext(LLMNodeContext);
   const prevDataRef = useRef('');
@@ -466,8 +414,6 @@ export function useLLMContext(
     }
   });
 
-  // Read path: always created so hooks run unconditionally.
-  // Only returned when called without data.
   const getLLMContext = useCallback(
     (componentOnly?: boolean): LLMContextSnapshot => {
       if (componentOnly && nodeId) {
@@ -478,8 +424,5 @@ export function useLLMContext(
     [ctx, nodeId]
   );
 
-  if (data === undefined) {
-    return {getLLMContext, waitForLLMContext: ctx.waitForLLMContext};
-  }
-  return undefined;
+  return {getLLMContext};
 }

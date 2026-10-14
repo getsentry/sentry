@@ -1,16 +1,15 @@
-import {useCallback} from 'react';
+import {useCallback, useSyncExternalStore} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {
+  useLLMContext,
+  useLLMContextRegistry,
+} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {
-  LLMContextNodeSnapshot,
   LLMContextNodeType,
   LLMContextSnapshot,
 } from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
-
-// Max wait for the page to finish rendering its context.
-const PAGE_CONTEXT_TIMEOUT_MS = 3000;
 
 /**
  * Routes where the LLMContext tree provides structured page context, mapped to
@@ -100,31 +99,15 @@ export function usePageContextCapture() {
   );
 }
 
-function hasNodeType(
-  nodes: LLMContextNodeSnapshot[],
-  nodeType: LLMContextNodeType
-): boolean {
-  return nodes.some(
-    node => node.nodeType === nodeType || hasNodeType(node.children, nodeType)
-  );
-}
-
-/** Whether the route's page node has registered. Routes without one are always ready. */
-function isPageContextReady(snapshot: LLMContextSnapshot, route: string): boolean {
+/**
+ * Whether the route's page node has registered and finished loading its data.
+ * Routes without a page node are always ready. Re-renders only when this flips.
+ */
+export function usePageContextReady(route: string): boolean {
+  const {subscribe, isNodeReady} = useLLMContextRegistry();
   const expectedNodeType = STRUCTURED_CONTEXT_ROUTES.get(route);
-  return expectedNodeType === undefined || hasNodeType(snapshot.nodes, expectedNodeType);
-}
-
-/** Waits until the page has finished rendering its context. Resolves false if it timed out. */
-export function useWaitForPageContext() {
-  const {waitForLLMContext} = useLLMContext();
-
-  return useCallback(
-    ({route, signal}: {route: string; signal?: AbortSignal}): Promise<boolean> =>
-      waitForLLMContext(snapshot => isPageContextReady(snapshot, route), {
-        timeoutMs: PAGE_CONTEXT_TIMEOUT_MS,
-        signal,
-      }),
-    [waitForLLMContext]
+  return useSyncExternalStore(
+    subscribe,
+    () => expectedNodeType === undefined || isNodeReady(expectedNodeType)
   );
 }
