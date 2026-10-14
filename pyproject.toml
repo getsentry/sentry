@@ -820,7 +820,6 @@ module = [
     "sentry.integrations.discord.spec",
     "sentry.integrations.discord.types",
     "sentry.integrations.discord.urls",
-    "sentry.integrations.errors",
     "sentry.integrations.example.*",
     "sentry.integrations.github",
     "sentry.integrations.github.blame",
