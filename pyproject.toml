@@ -595,7 +595,6 @@ module = [
     "sentry.api.serializers.base",
     "sentry.api.serializers.models",
     "sentry.api.serializers.models.activity",
-    "sentry.api.serializers.models.actor",
     "sentry.api.serializers.models.apiapplication",
     "sentry.api.serializers.models.apiauthorization",
     "sentry.api.serializers.models.apitoken",
