@@ -17,7 +17,7 @@ import {
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 // form.mdx demos
 

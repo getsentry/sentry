@@ -145,6 +145,7 @@ class CheckMissingConfigsTest(ConfigPusherTestMixin):
         self.create_uptime_subscription(subscription_id=_subscription_id("cd"), region_slugs=["a1"])
 
         with (
+            mock.patch.object(tasks, "repair_missing_configs"),
             mock.patch.object(tasks, "metrics") as metrics,
             mock.patch.object(tasks.logger, "warning") as warning,
         ):
@@ -167,6 +168,7 @@ class CheckMissingConfigsTest(ConfigPusherTestMixin):
         db = UptimeSubscriptionRegion.objects.using_replica().db
 
         with (
+            mock.patch.object(tasks, "repair_missing_configs"),
             mock.patch.object(router, "db_for_read", wraps=router.db_for_read) as db_for_read,
             CaptureQueriesContext(connections[db]) as queries,
         ):
@@ -194,16 +196,6 @@ class CheckMissingConfigsTest(ConfigPusherTestMixin):
         _publish(lost_on_b, ["a1"])
         return published, lost_on_b
 
-    def test_repair_option_off_publishes_nothing(self) -> None:
-        _, lost_on_b = self._seed_lost_on_b()
-
-        with mock.patch.object(update_remote_uptime_subscription, "delay") as delay:
-            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="b")
-
-        assert not delay.called
-        self.assert_redis_config("b1", lost_on_b, None, None)
-
-    @override_options({"uptime.config-drift.repair": True})
     def test_repairs_only_missing_and_keeps_status(self) -> None:
         published, lost_on_b = self._seed_lost_on_b()
         assert lost_on_b.status == UptimeSubscription.Status.ACTIVE.value
@@ -230,7 +222,6 @@ class CheckMissingConfigsTest(ConfigPusherTestMixin):
             "uptime.config_repair.queued", amount=1, tags={"cluster": "default"}, sample_rate=1.0
         )
 
-    @override_options({"uptime.config-drift.repair": True})
     def test_second_run_queues_nothing(self) -> None:
         self._seed_lost_on_b()
         with self.tasks():

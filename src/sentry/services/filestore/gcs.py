@@ -3,6 +3,8 @@ from __future__ import annotations
 import mimetypes
 import os
 import posixpath
+import random
+import time
 from collections.abc import Callable
 from tempfile import SpooledTemporaryFile
 
@@ -23,11 +25,15 @@ from requests.exceptions import RequestException
 
 from sentry.net.http import TimeoutAdapter
 from sentry.utils import metrics
-from sentry.utils.retries import ConditionalRetryPolicy, sigmoid_delay
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay, sigmoid_delay
 
 # how many times do we want to try if stuff goes wrong
 GCS_RETRIES = 5
 REPLAY_GCS_RETRIES = 125
+
+# Backoff between try_repeated retries: exponential from 1s, capped at 16s.
+_gcs_retry_delay = exponential_delay(1.0)
+GCS_RETRY_MAX_DELAY = 16.0
 
 
 # Which errors are eligible for retry.
@@ -78,6 +84,9 @@ def try_repeated(func):
                 metrics_tags.update({"success": "0", "exception_class": e.__class__.__name__})
                 metrics.distribution(metrics_key, idx, tags=metrics_tags)
                 raise
+            # Exponential backoff with full jitter before retrying.
+            backoff = min(_gcs_retry_delay(idx + 1), GCS_RETRY_MAX_DELAY)
+            time.sleep(random.uniform(0, backoff))
         idx += 1
 
 

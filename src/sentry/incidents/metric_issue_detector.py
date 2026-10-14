@@ -278,8 +278,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         comparison_delta: int | float | None,
     ) -> timedelta:
         """
-        Compute the appropriate SnubaQuery resolution for a given time window
-        (in seconds), mirroring the logic in create_alert_rule / update_alert_rule.
+        Compute the appropriate SnubaQuery resolution for a given time window in seconds.
         """
         organization = self.context["organization"]
 

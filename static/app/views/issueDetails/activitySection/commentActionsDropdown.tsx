@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {DropdownMenu, type DropdownMenuProps} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {useUser} from 'sentry/utils/useUser';
@@ -31,13 +32,15 @@ export function CommentActionsDropdown({
     <StyledDropdownMenu
       offset={4}
       size="sm"
-      triggerProps={{
-        size: 'zero',
-        showChevron: false,
-        variant: 'transparent',
-        icon: <IconEllipsis />,
-        'aria-label': t('Comment Actions'),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          size="zero"
+          variant="transparent"
+          icon={<IconEllipsis />}
+          aria-label={t('Comment Actions')}
+        />
+      )}
       items={[
         {
           key: 'edit',

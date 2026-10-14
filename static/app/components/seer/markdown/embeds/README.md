@@ -27,7 +27,8 @@ preview in a collapsible panel below.
   `href`, `icon` and `linkLabel` as a group or not at all, and gets a header with the
   toggle alone. The three cannot be split: a label with nowhere to go is not a link.
 - Query embeds go through `QueryEmbedCard`, which is `SeerEmbedBlock` plus the formatted
-  query row.
+  query row. A results table goes in its `table` prop, not `children`, so it runs flush to
+  the card's edges instead of inside the padding.
 - Do not draw a bordered `Container` around a block yourself. A block that needs its own
   chrome is a signal that `SeerEmbedBlock` is missing a slot.
 - Judge `defaultExpanded` per embed. Collapsing does not defer the work -- the panel uses

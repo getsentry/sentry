@@ -12,10 +12,6 @@ import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {
-  SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS,
-  SENTRY_SEARCHABLE_SPAN_STRING_TAGS,
-} from 'sentry/views/explore/constants';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
@@ -37,14 +33,6 @@ export function getProfileMeta(event: EventTransaction | null) {
     };
   }
   return null;
-}
-
-export enum TraceDrawerActionValueKind {
-  TAG = 'tag',
-  MEASUREMENT = 'measurement',
-  ADDITIONAL_DATA = 'additional_data',
-  SENTRY_TAG = 'sentry_tag',
-  ATTRIBUTE = 'attribute',
 }
 
 export enum TraceDrawerActionKind {
@@ -142,12 +130,11 @@ export type KeyValueActionParams = {
   organization: Organization;
   rowKey: string;
   rowValue: React.ReactNode;
-  kind?: TraceDrawerActionValueKind;
   projectIds?: string | string[];
 };
 
 export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemProps[] {
-  const {rowKey, rowValue, kind, projectIds, location, organization} = params;
+  const {rowKey, rowValue, projectIds, location, organization} = params;
   const hasExploreEnabled = organization.features.includes('visibility-explore-view');
 
   if (
@@ -158,32 +145,17 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
     return [];
   }
 
-  const copyAttributeFilterAction: MenuItemProps | null =
-    kind === TraceDrawerActionValueKind.ATTRIBUTE
-      ? {
-          key: 'copy-attribute-filter',
-          label: t('Copy attribute for filter'),
-          onAction: () =>
-            copyToClipboard(getAttributeFilterSearch(rowKey, rowValue), {
-              successMessage: t('Attribute filter copied to clipboard'),
-            }),
-        }
-      : null;
+  const copyAttributeFilterAction: MenuItemProps = {
+    key: 'copy-attribute-filter',
+    label: t('Copy attribute for filter'),
+    onAction: () =>
+      copyToClipboard(getAttributeFilterSearch(rowKey, rowValue), {
+        successMessage: t('Attribute filter copied to clipboard'),
+      }),
+  };
 
   if (!hasExploreEnabled) {
-    return copyAttributeFilterAction ? [copyAttributeFilterAction] : [];
-  }
-
-  // We assume that tags, measurements and additional data (span.data) are dynamic lists of searchable keys in explore.
-  // Any other key must exist in the static list of sentry tags to be deemed searchable.
-  if (
-    kind === TraceDrawerActionValueKind.SENTRY_TAG &&
-    !(
-      SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS.includes(rowKey) ||
-      SENTRY_SEARCHABLE_SPAN_STRING_TAGS.includes(rowKey)
-    )
-  ) {
-    return [];
+    return [copyAttributeFilterAction];
   }
 
   const dropdownOptions = [
@@ -256,16 +228,14 @@ export function getTraceKeyValueActions(params: KeyValueActionParams): MenuItemP
     );
   }
 
-  return copyAttributeFilterAction
-    ? [...dropdownOptions, copyAttributeFilterAction]
-    : dropdownOptions;
+  return [...dropdownOptions, copyAttributeFilterAction];
 }
 
 export function getTraceAttributesTreeActions(
   params: Pick<KeyValueActionParams, 'location' | 'organization' | 'projectIds'>
 ): (content: AttributesTreeContent) => MenuItemProps[] {
   return (content: AttributesTreeContent) => {
-    const rowKey = content.originalAttribute?.original_attribute_key;
+    const rowKey = content.original?.original_attribute_key;
     const rowValue = content.value;
     if (!rowKey || !defined(rowValue)) {
       return [];
@@ -274,7 +244,6 @@ export function getTraceAttributesTreeActions(
     return getTraceKeyValueActions({
       rowKey,
       rowValue,
-      kind: TraceDrawerActionValueKind.ATTRIBUTE,
       projectIds: params.projectIds,
       location: params.location,
       organization: params.organization,

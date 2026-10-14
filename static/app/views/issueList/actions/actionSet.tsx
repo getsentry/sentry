@@ -1,14 +1,15 @@
 import {Fragment, useCallback} from 'react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ArchiveActions} from 'sentry/components/actions/archive';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {BaseGroup} from 'sentry/types/group';
@@ -302,12 +303,14 @@ export function ActionSet({
       <DropdownMenu
         size="sm"
         items={menuItems}
-        triggerProps={{
-          'aria-label': t('More issue actions'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          size: 'xs',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('More issue actions')}
+            icon={<IconEllipsis />}
+            size="xs"
+          />
+        )}
         isDisabled={!anySelected}
       />
     </Fragment>

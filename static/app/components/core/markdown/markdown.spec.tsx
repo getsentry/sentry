@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {expectTypeOf} from 'expect-type';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {Markdown} from '@sentry/scraps/markdown';
 
@@ -178,6 +178,57 @@ describe('Markdown', () => {
   });
 
   describe('component overrides', () => {
+    it('hands a Table override the parsed columns, header, and rows', () => {
+      render(
+        <Markdown
+          raw={'| Name | Count |\n| --- | ---: |\n| **alpha** | 1 |\n| beta | 2 |'}
+          components={{
+            Table: ({columns, header, rows}) => (
+              <div
+                data-test-id="custom-table"
+                data-aligns={columns.map(column => column.align ?? 'none').join(',')}
+              >
+                <div role="row">
+                  {header.map((cell, index) => (
+                    <span key={index} role="columnheader">
+                      {cell}
+                    </span>
+                  ))}
+                </div>
+                {rows.map((row, rowIndex) => (
+                  <div key={rowIndex} role="row">
+                    {row.map((cell, cellIndex) => (
+                      <span key={cellIndex} role="cell">
+                        {cell}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ),
+          }}
+        />
+      );
+
+      expect(screen.getByTestId('custom-table')).toHaveAttribute(
+        'data-aligns',
+        'none,right'
+      );
+      expect(screen.getAllByRole('columnheader').map(cell => cell.textContent)).toEqual([
+        'Name',
+        'Count',
+      ]);
+
+      const [, firstRow, secondRow] = screen.getAllByRole('row');
+      // Cells arrive rendered, inline Markdown included.
+      expect(within(firstRow!).getByText('alpha').tagName).toBe('STRONG');
+      expect(
+        within(secondRow!)
+          .getAllByRole('cell')
+          .map(cell => cell.textContent)
+      ).toEqual(['beta', '2']);
+    });
+
     it('overrides Paragraph component', () => {
       render(
         <Markdown
@@ -397,10 +448,19 @@ describe('Markdown', () => {
       );
     });
 
-    it('suppresses partial tag syntax in text', () => {
-      const {container} = render(<Markdown raw='Some text {% ref type="issue"' />);
+    it('suppresses partial tag syntax in text while streaming', () => {
+      const {container} = render(
+        <Markdown raw='Some text {% ref type="issue"' variant="streaming" />
+      );
       expect(container).toHaveTextContent(/Some text/);
       expect(container).not.toHaveTextContent(/\{%/);
+    });
+
+    it('renders unclosed tag syntax literally in static content', () => {
+      render(<Markdown raw="Seer chat emits {% autofix %} embeds." />);
+      expect(
+        screen.getByText('Seer chat emits {% autofix %} embeds.')
+      ).toBeInTheDocument();
     });
   });
 

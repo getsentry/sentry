@@ -96,7 +96,7 @@ describe('useSaveMetricsMultiQuery', () => {
       body: response,
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [],
     });
     const {result} = renderHookWithProviders(
@@ -109,7 +109,7 @@ describe('useSaveMetricsMultiQuery', () => {
     await waitFor(() => expect(result.current.queries.data).toEqual([]));
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [response],
     });
     await act(async () => {
@@ -137,7 +137,7 @@ describe('useSaveMetricsMultiQuery', () => {
     'rejects a failed %s without refetching queries',
     async action => {
       const listRequest = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/explore/saved/`,
+        url: `/organizations/${organization.slug}/explore/all-queries/`,
         body: [],
       });
       MockApiClient.addMockResponse({
@@ -181,7 +181,7 @@ describe('useSaveMetricsMultiQuery', () => {
 
   it('updates the starred-query URL after saving an existing query', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [savedQuery('old.metric')],
     });
     MockApiClient.addMockResponse({
@@ -214,7 +214,7 @@ describe('useSaveMetricsMultiQuery', () => {
     ).toBeInTheDocument();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [savedQuery('mockMetric')],
     });
     MockApiClient.addMockResponse({

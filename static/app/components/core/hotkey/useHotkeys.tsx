@@ -93,7 +93,8 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
         const preventDefault = !hotkey.skipPreventDefault;
         const inputHasFocus =
           !hotkey.includeInputs && evt.target instanceof HTMLElement
-            ? ['textarea', 'input'].includes(evt.target.tagName.toLowerCase())
+            ? evt.target.isContentEditable ||
+              ['textarea', 'input'].includes(evt.target.tagName.toLowerCase())
             : false;
 
         if (matchesHotkey(hotkey.match, evt) && !inputHasFocus) {

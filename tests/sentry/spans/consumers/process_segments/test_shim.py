@@ -1,5 +1,6 @@
-from typing import cast
+from typing import Any, cast
 
+import pytest
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.shim import (
@@ -18,6 +19,52 @@ from tests.sentry.spans.consumers.process_segments.test_convert import SPAN_KAFK
 def build_segment_span(**kwargs) -> CompatibleSpan:
     segment_span = build_mock_span(project_id=415, is_segment=True, hash="dogs_are_great", **kwargs)
     return make_compatible(segment_span)
+
+
+def test_attribute_value_default() -> None:
+    assert attribute_value({}, "custom", default="fallback") == "fallback"
+    assert (
+        attribute_value({"attributes": {"custom": {"value": None}}}, "custom", default="fallback")
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        {"pathname": "/api/items", "search": "?page=1"},
+        [1, "mixed", False],
+        [1, ["nested", "array"]],
+        [{"role": "user", "content": "Help me"}],
+    ],
+)
+def test_attribute_value_preserves_structured_values(value: Any) -> None:
+    span = {"attributes": {"custom": {"value": value}}}
+
+    assert attribute_value(span, "custom") == value
+    assert attribute_value(span, "custom", default="fallback") == value
+
+
+def test_attribute_value_default_for_missing_envelope_or_value() -> None:
+    assert attribute_value({"attributes": {"custom": None}}, "custom", default="fallback") == (
+        "fallback"
+    )
+    assert attribute_value({"attributes": {"custom": {}}}, "custom", default="fallback") == (
+        "fallback"
+    )
+
+
+def test_attribute_value_preserves_structured_deprecated_attribute() -> None:
+    url = {"pathname": "/api/items", "search": "?page=1"}
+    span = {"attributes": {"url": {"value": url}}}
+
+    assert attribute_value(span, "url.full") == url
+
+
+def test_make_compatible_deprecated_op() -> None:
+    span = build_mock_span(project_id=1)
+    span["attributes"] = {"span.op": {"type": "string", "value": "http.client"}}
+    assert make_compatible(span)["op"] == "http.client"
 
 
 def test_make_compatible() -> None:
@@ -42,6 +89,26 @@ def test_make_compatible() -> None:
 
 
 class TestBuildShimEventData:
+    def test_preserves_structured_detector_data(self) -> None:
+        url = {"pathname": "/api/items", "search": "?page=1"}
+        bindings = ["item", 42, ["nested"]]
+        segment_span = build_segment_span()
+        child_span = make_compatible(
+            build_mock_span(
+                project_id=415,
+                parent_span_id=segment_span["span_id"],
+                attributes={
+                    "url": {"type": "object", "value": url},
+                    "db.sql.bindings": {"type": "array", "value": bindings},
+                },
+            )
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span, child_span])
+
+        assert event["spans"][1]["data"]["url"] == url
+        assert event["spans"][1]["data"]["db.sql.bindings"] == bindings
+
     def test_sets_top_level_event_fields(self) -> None:
         segment_span = build_segment_span(
             attributes={
@@ -63,6 +130,25 @@ class TestBuildShimEventData:
         assert event["start_timestamp"] == segment_span["start_timestamp"]
         assert event["timestamp"] == segment_span["end_timestamp"]
         assert event["transaction"] == attribute_value(segment_span, "sentry.segment.name")
+
+    def test_defaults_platform_to_other(self) -> None:
+        segment_span_empty_platform = build_segment_span(
+            attributes={"sentry.platform": {"value": "", "type": "string"}}
+        )
+        segment_span_no_platform = build_segment_span()
+        no_platform_attributes = segment_span_no_platform["attributes"]
+        assert no_platform_attributes is not None
+        del no_platform_attributes["sentry.platform"]
+
+        event_empty_platform = build_shim_event_data(
+            segment_span_empty_platform, [segment_span_empty_platform]
+        )
+        event_no_platform = build_shim_event_data(
+            segment_span_no_platform, [segment_span_no_platform]
+        )
+
+        assert event_empty_platform["platform"] == "other"
+        assert event_no_platform["platform"] == "other"
 
     def test_reconstructs_contexts(self) -> None:
         segment_span = build_segment_span(
@@ -113,13 +199,336 @@ class TestBuildShimEventData:
             "type": "trace",
         }
 
-    def test_lifts_span_description_to_the_top_level(self) -> None:
-        segment_span = build_segment_span(description="SELECT * FROM dogs")
+    def test_reconstructs_tags(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "dog.name": {"value": "charlie", "type": "string"},
+                "dog.type": {"value": "goofy", "type": "string"},
+            }
+        )
 
         event = build_shim_event_data(segment_span, [segment_span])
-        [event_span] = event["spans"]
 
-        assert event_span["description"] == attribute_value(segment_span, "sentry.description")
+        assert sorted(event["tags"]) == [["dog.name", "charlie"], ["dog.type", "goofy"]]
+
+    def test_excludes_attributes_used_elsewhere_in_the_event_from_tags(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "dog.name": {"value": "maisey", "type": "string"},
+                # These end up at the top level of the event
+                "sentry.segment.name": {"value": "/dogpark", "type": "string"},
+                "sentry.platform": {"value": "python", "type": "string"},
+                # These end up in `event["contexts"]`
+                "sentry.profile_id": {"value": "11211231415908", "type": "string"},
+                "browser.name": {"value": "chrome", "type": "string"},
+                # These end up in `event["user"]`
+                "user.id": {"value": "1231908", "type": "string"},
+                "user.geo.city": {"value": "Boston", "type": "string"},
+                # These end up in `event["sdk"]`
+                "sentry.sdk.name": {"value": "sentry.python", "type": "string"},
+                "sentry.sdk.version": {"value": "4.15.13", "type": "string"},
+                # These end up in `event["request"]`
+                "url.query": {"value": "dogs=great", "type": "string"},
+                "http.request.body.data": {
+                    "value": '{"so": "much", "fur": "everywhere"}',
+                    "type": "string",
+                },
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["tags"] == [["dog.name", "maisey"]]
+
+    def test_excludes_non_string_attributes_from_tags(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "dog.name": {"value": "charlie", "type": "string"},
+                "dog.weight": {"value": 58.4, "type": "double"},
+                "dogs.age": {"value": 13, "type": "integer"},
+                "is_good": {"value": True, "type": "boolean"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["tags"] == [["dog.name", "charlie"]]
+
+    def test_reconstructs_user(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "user.id": {"value": "1231908", "type": "string"},
+                "user.email": {"value": "maisey@dogpark.com", "type": "string"},
+                "user.name": {"value": "maiseythedog", "type": "string"},
+                "user.ip_address": {"value": "192.168.0.1", "type": "string"},
+                "user.geo.country_code": {"value": "US", "type": "string"},
+                "user.geo.region": {"value": "United States", "type": "string"},
+                "user.geo.subdivision": {"value": "Massachusetts", "type": "string"},
+                "user.geo.city": {"value": "Boston", "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["user"] == {
+            "id": "1231908",
+            "email": "maisey@dogpark.com",
+            "username": "maiseythedog",  # Not `user.name` - `event["user"]["username"]` is correct
+            "ip_address": "192.168.0.1",
+            "geo": {
+                "country_code": "US",
+                "region": "United States",
+                "subdivision": "Massachusetts",
+                "city": "Boston",
+            },
+        }
+
+    def test_ensures_string_user_id(self) -> None:
+        segment_span = build_segment_span(
+            attributes={"user.id": {"value": 1231908, "type": "integer"}}
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["user"] == {"id": "1231908"}
+
+    def test_reconstructs_user_with_only_geo(self) -> None:
+        # Relay derives `user.geo.*` from the client IP on both paths, but only ever gets identity
+        # from the SDK, so geo-only is the normal shape for a segment from the span buffer.
+        segment_span = build_segment_span(
+            attributes={"user.geo.city": {"value": "Boston", "type": "string"}}
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["user"] == {"geo": {"city": "Boston"}}
+
+    def test_reconstructs_sdk(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "sentry.sdk.name": {"value": "sentry.python", "type": "string"},
+                "sentry.sdk.version": {"value": "4.15.13", "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["sdk"] == {"name": "sentry.python", "version": "4.15.13"}
+
+    def test_sdk_fields_are_all_or_none(self) -> None:
+        # The `sdk` dict must have both `name` and `version` or the event data on the occurrence
+        # will fail schema validation, so we only include it if we have both
+        no_version_segment_span = build_segment_span(
+            attributes={"sentry.sdk.name": {"value": "sentry.python", "type": "string"}}
+        )
+        no_version_event = build_shim_event_data(no_version_segment_span, [no_version_segment_span])
+        assert "sdk" not in no_version_event
+
+        no_name_segment_span = build_segment_span(
+            attributes={"sentry.sdk.version": {"value": "4.15.13", "type": "string"}}
+        )
+        no_name_event = build_shim_event_data(no_name_segment_span, [no_name_segment_span])
+        assert "sdk" not in no_name_event
+
+        with_both_segment_span = build_segment_span(
+            attributes={
+                "sentry.sdk.name": {"value": "sentry.python", "type": "string"},
+                "sentry.sdk.version": {"value": "4.15.13", "type": "string"},
+            }
+        )
+        with_both_event = build_shim_event_data(with_both_segment_span, [with_both_segment_span])
+        assert with_both_event["sdk"] == {"name": "sentry.python", "version": "4.15.13"}
+
+    def test_reconstructs_request(self) -> None:
+        segment_span = build_segment_span(
+            attributes={
+                "url.full": {"value": "https://dogs.are.great/dogpark", "type": "string"},
+                "http.request.method": {"value": "GET", "type": "string"},
+                "url.query": {"value": "sort=squirrels_caught&order=desc", "type": "string"},
+                "http.request.body.data": {"value": '{"name": "Maisey"}', "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"] == {
+            "url": "https://dogs.are.great/dogpark",
+            "method": "GET",
+            "query_string": [("sort", "squirrels_caught"), ("order", "desc")],  # Params are parsed
+            "data": {"name": "Maisey"},
+        }
+
+    @pytest.mark.parametrize(
+        "url_attribute_names",
+        (
+            # Low -> high priority; we should use the highest priority one we have
+            ("url.template", "http.route", "url.path", "url.full"),
+            ("url.template", "http.route", "url.path"),
+            ("url.template", "http.route"),
+            ("url.template",),
+        ),
+        ids=repr,
+    )
+    def test_url_attribute_prioritization(self, url_attribute_names: tuple[str, ...]) -> None:
+        # Which URL attribute we get is SDK-dependent, and the injection detectors match against
+        # concrete URLs, so the most specific one present should win.
+        segment_span = build_segment_span(
+            attributes={
+                attribute_name: {"value": f"{attribute_name}_value", "type": "string"}
+                # Sort the names alphabetically so they're not added in priority order, thus proving
+                # that it really is our prioritization that's controlling which one we use.
+                for attribute_name in sorted(url_attribute_names)
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        # In each test case, the attribute names are ordered in increasing order of priority, so the
+        # last one should always win
+        assert event["request"]["url"] == f"{url_attribute_names[-1]}_value"
+
+    def test_empty_attributes_do_not_displace_non_empty_ones(self) -> None:
+        # Higher-priority attributes are listed last so that they overwrite lower-priority ones,
+        # but that shouldn't mean that bad values can overwrite good ones.
+        segment_span = build_segment_span(
+            attributes={
+                "url.path": {"value": "/dogpark", "type": "string"},  # lower priority, good value
+                "url.full": {"value": "", "type": "string"},  # higher priority, but bad value
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        assert event["request"]["url"] == "/dogpark"
+
+    @pytest.mark.parametrize(
+        "body",
+        (
+            "dogs are great!",  # Not valid JSON
+            '"dogs are great!"',  # Valid JSON because of the inner quotes, but not a dict
+            '[{"dog": "Maisey"}]',  # Valid JSON but not a dict
+            "90813",  # Valid JSON but not a dict
+            "null",  # Valid JSON but not a dict
+        ),
+        ids=repr,
+    )
+    def test_drops_invalid_request_bodies(self, body: str) -> None:
+        # Our detectors can only use dict-shaped request bodies, so if we have either invalid JSON
+        # or valid JSON of the wrong shape, we can't use it. (Because such values aren't always
+        # globally invalid (just useless to us), we don't error out, just skip them.)
+        segment_span = build_segment_span(
+            attributes={
+                "url.path": {"value": "/dogpark", "type": "string"},
+                "sentry.transaction.method": {"value": "GET", "type": "string"},
+                "http.request.body.data": {"value": body, "type": "string"},
+            }
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span])
+
+        # Invalid request body was dropped, but the rest of the request data made it through
+        assert event["request"] == {"url": "/dogpark", "method": "GET"}
+
+    def test_adds_top_level_fields_to_spans(self) -> None:
+        # In the transaction event protocol these lived at the top level of each span rather than
+        # in `attributes`, and the legacy detectors (plus the occurrence evidence built from what
+        # they find) still read them there.
+        segment_span = build_segment_span(
+            span_op="http.server",
+            description="GET /dogpark",
+            attributes={"sentry.exclusive_time_ms": {"value": 100.0, "type": "double"}},
+        )
+        raw_chld_span_description = (
+            'SELECT "dog"."name", "dog"."age" FROM "dog" WHERE "dog"."id" = 1121'
+        )
+        normalized_chld_span_description = (
+            'SELECT "dog"."name", "dog"."age" FROM "dog" WHERE "dog"."id" = %s'
+        )
+        child_span = make_compatible(
+            build_mock_span(
+                project_id=415,
+                span_op="db",
+                description=raw_chld_span_description,
+                hash="adopt_dont_shop",
+                attributes={
+                    "sentry.normalized_description": {
+                        "value": normalized_chld_span_description,
+                        "type": "string",
+                    },
+                    "sentry.exclusive_time_ms": {"value": 7.0, "type": "double"},
+                },
+            )
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span, child_span])
+        # We make copies of the spans when we put them into the shim event, so these are different
+        # from `segment_span` and `child_span` (tested separately, but that's why we have to pull
+        # them out of the event rather than using the ones we just created).
+        event_segment_span, event_child_span = event["spans"]
+
+        assert event_segment_span["op"] == "http.server"
+        assert event_segment_span["description"] == "GET /dogpark"
+        assert event_segment_span["hash"] == "dogs_are_great"
+        assert event_segment_span["exclusive_time"] == 100.0
+        assert event_segment_span["timestamp"] == segment_span["end_timestamp"]
+
+        assert event_child_span["op"] == "db"
+        # Even when there's a normalized description, it's the raw one which goes at the top level
+        assert event_child_span["description"] == raw_chld_span_description
+        assert event_child_span["hash"] == "adopt_dont_shop"
+        assert event_child_span["exclusive_time"] == 7.0
+        assert event_child_span["timestamp"] == child_span["end_timestamp"]
+
+    def test_adds_sentry_tags_to_spans(self) -> None:
+        shared_attributes = {
+            "sentry.environment": {"value": "production", "type": "string"},
+            "sentry.release": {"value": "9.0.8", "type": "string"},
+            "sentry.platform": {"value": "python", "type": "string"},
+            "sentry.sdk.name": {"value": "sentry.python.flask", "type": "string"},
+        }
+        normalized_description = 'SELECT "dog"."name", "dog"."age" FROM "dog" WHERE "dog"."id" = %s'
+        segment_span = build_segment_span(
+            span_op="http.server",
+            description="GET /dogpark",
+            attributes=shared_attributes,
+        )
+        child_span = make_compatible(
+            build_mock_span(
+                project_id=415,
+                span_op="db",
+                description='SELECT "dog"."name", "dog"."age" FROM "dog" WHERE "dog"."id" = 1121',
+                attributes={
+                    **shared_attributes,
+                    "sentry.system": {"value": "postgresql", "type": "string"},
+                    "sentry.normalized_description": {
+                        "value": normalized_description,
+                        "type": "string",
+                    },
+                },
+            )
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span, child_span])
+        event_segment_span, event_child_span = event["spans"]
+
+        # Relay only sets a normalized description when it knows how to scrub the span's raw
+        # description, so spans without one (like the segment span) don't get a `description` value
+        # here. (Detectors which look for one will fall back to the top-level description in that
+        # case.)
+        assert event_segment_span["sentry_tags"] == {
+            "environment": "production",
+            "platform": "python",
+            "release": "9.0.8",
+            "sdk.name": "sentry.python.flask",
+        }
+        assert event_child_span["sentry_tags"] == {
+            "description": normalized_description,
+            "environment": "production",
+            "platform": "python",
+            "release": "9.0.8",
+            "sdk.name": "sentry.python.flask",
+            "system": "postgresql",
+        }
 
     def test_copies_attributes_into_span_data(self) -> None:
         segment_span = build_segment_span()

@@ -260,9 +260,7 @@ export function OnboardingLayout({
                               project_id: project.id,
                               products: activeProductSelection,
                               step: step.name,
-                              newOrg:
-                                docsFlow === 'onboarding' ||
-                                docsFlow === 'onboarding-scm',
+                              newOrg: docsFlow === 'onboarding-scm',
                               ...docsFlowVariantParams(docsFlow),
                             }
                           )
@@ -286,7 +284,7 @@ export function OnboardingLayout({
 const Divider = styled('hr')<{withBottomMargin?: boolean}>`
   height: 1px;
   width: 100%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   ${p => p.withBottomMargin && `margin-bottom: ${p.theme.space['2xl']}`}

@@ -124,6 +124,7 @@ class GroupActionType(IntEnum):
     SEER_ITERATION_STARTED = 1036
     SEER_ITERATION_COMPLETED = 1037
     SEER_PR_READY_FOR_REVIEW = 1038
+    SMART_ASSIGNMENT_COMPLETED = 1043
 
 
 class ActionSource(StrEnum):
@@ -140,6 +141,7 @@ class ActionSource(StrEnum):
     MSTEAMS = "msteams"
     GITHUB = "github"
     GITHUB_ENTERPRISE = "github_enterprise"
+    CURSOR_ORIGIN = "cursor_origin"
     GITLAB = "gitlab"
     JIRA = "jira"
     JIRA_SERVER = "jira_server"
@@ -597,6 +599,7 @@ class SetResolvedInReleaseAction(GroupAction):
     user_visible = True
     version: Optional[str] = None
     current_release_version: Optional[str] = None
+    commit: Optional[int] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -810,6 +813,17 @@ class SeerIterationCompletedAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SEER_ITERATION_COMPLETED
+
+
+class SmartAssignmentCompletedAction(GroupAction):
+    user_visible = False
+    run_id: int
+    run_uuid: str
+    predicted_assignee_user_ids: list[int | None]
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SMART_ASSIGNMENT_COMPLETED
 
 
 class ReconcileStatusAction(GroupAction):

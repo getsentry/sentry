@@ -11,7 +11,6 @@ export interface AreaChartSeries
 
 export interface AreaChartProps extends Omit<BaseChartProps, 'series'> {
   series: AreaChartSeries[];
-  additionalSeries?: LineSeriesOption[];
   stacked?: boolean;
 }
 

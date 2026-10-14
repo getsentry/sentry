@@ -9,7 +9,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 export type NewAutomationAction = Omit<Action, 'id'>;
 export type NewAutomationDataCondition = Omit<DataCondition, 'id'>;
 
-interface NewAutomationDataConditionGroup extends Omit<
+export interface NewAutomationDataConditionGroup extends Omit<
   DataConditionGroup,
   'actions' | 'conditions' | 'id'
 > {
@@ -38,6 +38,16 @@ export interface Automation extends Readonly<AutomationBase> {
   readonly id: string;
   readonly lastTriggered: string;
   readonly triggers: DataConditionGroup | null;
+}
+
+interface AlertPreviewResult {
+  groupId: string;
+  isThrottled: boolean;
+  triggeredAt: string;
+}
+
+export interface AlertPreviewResponse {
+  results: AlertPreviewResult[];
 }
 
 export interface AutomationFireHistory {

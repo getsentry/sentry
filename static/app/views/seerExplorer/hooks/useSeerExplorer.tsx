@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import * as Sentry from '@sentry/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
@@ -18,14 +17,15 @@ import {
   useApiQuery,
 } from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import type {
-  LLMContextLocation,
-  LLMContextSnapshot,
-} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
-import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
+import {
+  toChatPromptMetadata,
+  type ChatPrompt,
+} from 'sentry/views/seerExplorer/chatPrompt';
+import type {LLMContextLocation} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -37,11 +37,7 @@ import type {
   SeerExplorerResponse,
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
-import {
-  isSeerExplorerEnabled,
-  makeSeerExplorerQueryKey,
-  usePageReferrer,
-} from 'sentry/views/seerExplorer/utils';
+import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
 type SeerExplorerChatResponse = {
   message: Block;
@@ -68,46 +64,6 @@ const makeExplorerUpdateUrl = (orgSlug: string, runId: SeerExplorerRunId | null)
   getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
     path: {organizationIdOrSlug: orgSlug, runId: String(runId)},
   });
-
-/** Routes where the LLMContext tree provides structured page context. */
-const STRUCTURED_CONTEXT_ROUTES = new Set([
-  '/dashboard/:dashboardId/',
-  '/dashboard/:dashboardId/widget-builder/widget/new/',
-  '/dashboard/:dashboardId/widget-builder/widget/:widgetIndex/edit/',
-  '/explore/logs/',
-  '/explore/logs/trace/:traceSlug/',
-  '/explore/metrics/',
-  '/explore/profiling/',
-  '/explore/releases/',
-  '/explore/replays/',
-  '/explore/replays/:replaySlug/',
-  '/explore/traces/',
-  '/explore/traces/trace/:traceSlug/',
-  '/issues/',
-  '/issues/views/:viewId/',
-  '/issues/errors-outages/',
-  '/issues/breached-metrics/',
-  '/issues/warnings/',
-  '/issues/:groupId/',
-  '/issues/:groupId/events/',
-  '/issues/:groupId/events/:eventId/',
-  '/issues/:groupId/replays/',
-  '/issues/:groupId/attachments/',
-  '/issues/:groupId/distributions/',
-  '/issues/:groupId/distributions/:tagKey/',
-  '/monitors/',
-  '/monitors/:detectorId/',
-  '/monitors/:detectorId/edit/',
-  '/monitors/alerts/',
-  '/monitors/alerts/:automationId/',
-  '/monitors/alerts/:automationId/edit/',
-  '/monitors/crons/',
-  '/monitors/errors/',
-  '/monitors/metrics/',
-  '/monitors/mobile-builds/',
-  '/monitors/my-monitors/',
-  '/monitors/uptime/',
-]);
 
 const getOptimisticAssistantTexts = () => [
   t('Looking around...'),
@@ -155,9 +111,8 @@ export const useSeerExplorer = () => {
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
-  const captureAsciiSnapshot = useAsciiSnapshot();
+  const capturePageContext = usePageContextCapture();
   const {getPageReferrer} = usePageReferrer();
-  const {getLLMContext} = useLLMContext();
   const timezone = useTimezone();
   const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState(
     'seer-explorer.override.ctx-eng',
@@ -190,9 +145,11 @@ export const useSeerExplorer = () => {
     false
   );
 
-  const {runId, chatStates} = useSeerExplorerChatState();
+  const {runId, chatStates, chatPrompt: pendingChatPrompt} = useSeerExplorerChatState();
   const dispatch = useSeerExplorerChatDispatch();
   const [lastSentMessage, setLastSentMessage] = useState<{
+    /** The "Ask Seer" question this message answers, if any. */
+    chatPrompt: ChatPrompt | null;
     insertIndex: number;
     loadingPlaceholderContent: string;
     prevInsertIndexBlockId: string | undefined;
@@ -204,9 +161,10 @@ export const useSeerExplorer = () => {
   const [hasSentInterrupt, setHasSentInterrupt] = useState(false);
   // Set when the last chat message or user-input response failed, so the UI can show an
   // alert until a later request succeeds. `query` is the failed chat message, if any,
-  // so the draft can be restored.
+  // so the draft can be restored, and `chatPrompt` the question it answered.
   const [requestError, setRequestError] = useState<{
     runId: SeerExplorerRunId | null;
+    chatPrompt?: ChatPrompt;
     query?: string;
   } | null>(null);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
@@ -301,6 +259,7 @@ export const useSeerExplorer = () => {
     SeerExplorerChatResponse,
     RequestError,
     {
+      chatPrompt: ChatPrompt | null;
       insertIndex: number;
       orgSlug: string;
       overrideBashModeEnabled: boolean;
@@ -308,6 +267,8 @@ export const useSeerExplorer = () => {
       overrideCtxEngEnable: boolean;
       pageLocation: LLMContextLocation | undefined;
       pageName: string;
+      /** The pending prompt this send took from chat state, put back if it fails. */
+      pendingChatPrompt: ChatPrompt | null;
       query: string;
       requestId: string;
       runId: SeerExplorerRunId | null;
@@ -336,6 +297,8 @@ export const useSeerExplorer = () => {
           override_ce_enable: params.overrideCtxEngEnable,
           override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
+          chat_prompt: params.chatPrompt?.text,
+          chat_prompt_context: params.chatPrompt?.context,
         },
       });
     },
@@ -346,7 +309,7 @@ export const useSeerExplorer = () => {
       if (params.runId === null) {
         // Prefer the UUID; fall back to the numeric run_id for legacy runs.
         dispatch({
-          type: 'set run id',
+          type: 'set created run id',
           payload: response.sentry_run_id ?? response.run_id,
         });
       } else {
@@ -366,7 +329,11 @@ export const useSeerExplorer = () => {
       // optimistic user/loading blocks. The UI surfaces the failure and restores the draft.
       restoreSessionData(params.orgSlug, params.runId, context);
       if (isCurrentRun(params.runId)) {
-        setRequestError({runId: params.runId, query: params.query});
+        setRequestError({
+          runId: params.runId,
+          query: params.query,
+          chatPrompt: params.pendingChatPrompt ?? undefined,
+        });
       }
     },
     onSettled: (_data, _error, params) => {
@@ -518,8 +485,11 @@ export const useSeerExplorer = () => {
     setRequestError(null);
   }
 
-  const currentRequestError = useMemo<{query?: string} | null>(
-    () => (requestError?.runId === runId ? {query: requestError.query} : null),
+  const currentRequestError = useMemo<{chatPrompt?: ChatPrompt; query?: string} | null>(
+    () =>
+      requestError?.runId === runId
+        ? {query: requestError.query, chatPrompt: requestError.chatPrompt}
+        : null,
     [requestError, runId]
   );
 
@@ -575,7 +545,8 @@ export const useSeerExplorer = () => {
     (
       query: string,
       explicitInsertIndex?: number,
-      explicitRunId?: SeerExplorerRunId | null
+      explicitRunId?: SeerExplorerRunId | null,
+      explicitChatPrompt?: ChatPrompt | null
     ) => {
       if (!orgSlug) {
         return;
@@ -584,44 +555,36 @@ export const useSeerExplorer = () => {
       // explicitRunId: undefined = use current runId, null = force new run, number = use that run
       const effectiveRunId = explicitRunId === undefined ? runId : explicitRunId;
 
-      // The snapshot is the source of location for both branches below, so take it
-      // once here rather than only on the structured path.
-      let snapshot: LLMContextSnapshot | undefined;
-      try {
-        snapshot = getLLMContext();
-      } catch (e) {
-        Sentry.captureException(e);
-      }
-
-      // Send structured LLMContext JSON on allowlisted pages; fall back to a
-      // coarse ASCII screenshot everywhere else.
-      let screenshot: string | undefined;
+      // explicitChatPrompt: undefined = the pending question, which moves to the optimistic
+      // block now and back to chat state if the send fails; retry passes the one it answered.
+      const usesPendingChatPrompt = explicitChatPrompt === undefined;
+      const chatPrompt: ChatPrompt | null = usesPendingChatPrompt
+        ? pendingChatPrompt
+        : explicitChatPrompt;
+      // A retry answers a pending question only if it's the same one; any other stays pending.
       if (
-        snapshot &&
-        overrideCtxEngEnable &&
-        STRUCTURED_CONTEXT_ROUTES.has(getPageReferrer())
+        pendingChatPrompt &&
+        (usesPendingChatPrompt || pendingChatPrompt.text === explicitChatPrompt?.text)
       ) {
-        try {
-          screenshot = JSON.stringify(snapshot);
-        } catch (e) {
-          Sentry.captureException(e);
-          screenshot = captureAsciiSnapshot?.(snapshot?.location);
-        }
-      } else {
-        screenshot = captureAsciiSnapshot?.(snapshot?.location);
+        dispatch({type: 'set chat prompt', payload: null});
       }
 
       const pageName = getPageReferrer();
 
+      const {snapshot, screenshot} = capturePageContext({
+        route: pageName,
+        allowStructured: overrideCtxEngEnable,
+      });
+
       trackAnalytics('seer.explorer.message_sent', {
-        referrer: getPageReferrer(),
+        referrer: pageName,
         surface: 'global_panel',
         organization,
       });
 
       if (effectiveRunId === null) {
         trackAnalytics('seer.explorer.session_created', {
-          referrer: getPageReferrer(),
+          referrer: pageName,
           surface: 'global_panel',
           organization,
         });
@@ -643,6 +606,7 @@ export const useSeerExplorer = () => {
       setLastSentMessage({
         requestId,
         query,
+        chatPrompt,
         insertIndex: newInsertIndex,
         prevInsertIndexBlockId: blocks[newInsertIndex]?.id,
         loadingPlaceholderContent: placeholderContent,
@@ -652,6 +616,8 @@ export const useSeerExplorer = () => {
       // Send POST request
       sendMessageMutate({
         query,
+        chatPrompt,
+        pendingChatPrompt: usesPendingChatPrompt ? pendingChatPrompt : null,
         requestId,
         insertIndex: newInsertIndex,
         runId: effectiveRunId,
@@ -680,13 +646,14 @@ export const useSeerExplorer = () => {
       orgSlug,
       runId,
       apiData,
-      captureAsciiSnapshot,
-      getLLMContext,
+      capturePageContext,
+      dispatch,
       getPageReferrer,
       organization,
       overrideBashModeEnabled,
       overrideCtxEngEnable,
       overrideCodeModeEnable,
+      pendingChatPrompt,
       sendMessageMutate,
       setLastSentMessage,
       timezone,
@@ -791,6 +758,7 @@ export const useSeerExplorer = () => {
     const {
       insertIndex,
       query: userQuery,
+      chatPrompt,
       prevInsertIndexBlockId,
       loadingPlaceholderContent,
       sentAt,
@@ -815,7 +783,11 @@ export const useSeerExplorer = () => {
     // Apply optimistic blocks with insertIndex truncation
     const optimisticUserBlock: Block = {
       id: `user-${insertIndex}-optimistic`,
-      message: {role: 'user', content: userQuery},
+      message: {
+        role: 'user',
+        content: userQuery,
+        metadata: chatPrompt ? toChatPromptMetadata(chatPrompt) : undefined,
+      },
       timestamp: sentAt,
       loading: false,
     };

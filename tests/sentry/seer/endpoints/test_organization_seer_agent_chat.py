@@ -12,6 +12,7 @@ from sentry.seer.agent.client_models import (
     Usage,
     UsageAccumulator,
 )
+from sentry.seer.agent.client_utils import snapshot_to_markdown
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import APITestCase
@@ -162,6 +163,19 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert mock_client_class.call_args.kwargs["enable_code_mode_tools"] == "off"
 
+    @with_feature(["organizations:ask-seer-create-pr", "organizations:seer-explorer-chat-coding"])
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_create_pr_flag_turns_off_chat_coding(self, mock_client_class: MagicMock):
+        self.organization.update_option("sentry:enable_seer_coding", True)
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(self.url, {"query": "hi"}, format="json")
+
+        assert response.status_code == 200
+        assert mock_client_class.call_args.kwargs["enable_coding"] is False
+
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_calls_client(self, mock_client_class: MagicMock):
         run_uuid = uuid.uuid4()
@@ -185,6 +199,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         )
         mock_client.start_run.assert_called_once_with(
             prompt="What is this error about?",
+            prompt_metadata=None,
             on_page_context=None,
             page_name=None,
             page_location=None,
@@ -230,6 +245,71 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert mock_client.start_run.call_args.kwargs["sent_at"] == sent_at
+
+    @with_feature("organizations:seer-explorer-chat-prompts")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_chat_prompt_is_stored_and_appended_to_page_context(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=1, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+
+        snapshot = {"version": 1, "nodes": [{"nodeType": "dashboard", "data": {"title": "Web"}}]}
+        chat_prompt_context = json.dumps({"title": "p95 latency", "display": "line"})
+        response = self.client.post(
+            self.url,
+            {
+                "query": "why did it jump?",
+                "on_page_context": json.dumps(snapshot),
+                "chat_prompt": "What would you like to know about this widget?",
+                "chat_prompt_context": chat_prompt_context,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+        kwargs = mock_client.start_run.call_args.kwargs
+        assert kwargs["prompt"] == "why did it jump?"
+        assert kwargs["prompt_metadata"] == {
+            "chat_prompt": "What would you like to know about this widget?",
+            "chat_prompt_context": chat_prompt_context,
+        }
+        assert kwargs["on_page_context"] == (
+            snapshot_to_markdown(snapshot)
+            + "\n\n## Chat Prompt\n"
+            + "The user was shown this question in the UI and is replying to it:\n"
+            + "> What would you like to know about this widget?\n"
+            + "### Chat prompt context\n"
+            + '- **title**: "p95 latency"\n'
+            + '- **display**: "line"'
+        )
+
+    @with_feature("organizations:seer-explorer-chat-prompts")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_chat_prompt_continues_run_without_page_context(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=789, user_id=self.user.id
+        )
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/",
+            {"query": "the second one", "chat_prompt": "Which step should I rethink?"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        kwargs = mock_client.continue_run.call_args.kwargs
+        assert kwargs["prompt_metadata"] == {"chat_prompt": "Which step should I rethink?"}
+        assert kwargs["on_page_context"] == (
+            "## Chat Prompt\n"
+            "The user was shown this question in the UI and is replying to it:\n"
+            "> Which step should I rethink?"
+        )
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_rejects_oversized_sent_at(self, mock_client_class: MagicMock):
@@ -304,6 +384,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client.continue_run.assert_called_once_with(
             run_id=789,
             prompt="Follow up question",
+            prompt_metadata=None,
             insert_index=2,
             on_page_context=None,
             page_name=None,

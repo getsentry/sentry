@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {useTimezone} from '@sentry/scraps/datetime';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -23,27 +24,29 @@ function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
   const isUTCLocalTimezone = currentTimezone === 'UTC';
 
   return (
-    <DescriptionList>
-      <dt>{t('Occurred')}</dt>
-      <dd>
-        <TimestampValues>
-          <DateTime date={timestamp} seconds milliseconds timeZone />
-          {!isUTCLocalTimezone && (
-            <DateTime date={timestamp} seconds milliseconds timeZone utc />
-          )}
-        </TimestampValues>
-      </dd>
-      {isUTCLocalTimezone && (
-        <Fragment>
-          <dt />
-          <dd>
-            <TimezoneLink to="/settings/account/details/#timezone">
-              {t('Add your local timezone')}
-            </TimezoneLink>
-          </dd>
-        </Fragment>
-      )}
-    </DescriptionList>
+    <Tooltip.Grid>
+      <DescriptionList terms="strong">
+        <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          <TimestampValues>
+            <DateTime date={timestamp} seconds milliseconds timeZone />
+            {!isUTCLocalTimezone && (
+              <DateTime date={timestamp} seconds milliseconds timeZone utc />
+            )}
+          </TimestampValues>
+        </DescriptionList.Details>
+        {isUTCLocalTimezone && (
+          <Fragment>
+            <DescriptionList.Term />
+            <DescriptionList.Details>
+              <TimezoneLink to="/settings/account/details/#timezone">
+                {t('Add your local timezone')}
+              </TimezoneLink>
+            </DescriptionList.Details>
+          </Fragment>
+        )}
+      </DescriptionList>
+    </Tooltip.Grid>
   );
 }
 
@@ -223,14 +226,6 @@ const BreadcrumbItem = styled(Timeline.Item)`
       )
       100% 1;
   }
-`;
-
-const DescriptionList = styled('dl')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${p => p.theme.space.sm} ${p => p.theme.space.md};
-  text-align: left;
-  margin: 0;
 `;
 
 const TimestampValues = styled('div')`

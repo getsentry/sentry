@@ -51,9 +51,11 @@ def test_epoch_defaults() -> None:
 
 def test_loader_version_defaults() -> None:
     assert get_well_known_default("sentry:default_loader_version", epoch=14) == "9.x"
+    assert get_well_known_default("sentry:default_loader_version", epoch=15) == "10.x"
+    assert get_well_known_default("sentry:default_loader_version", epoch=16) == "10.x"
     assert (
         get_well_known_default("sentry:default_loader_version", epoch=defaults.LATEST_EPOCH)
-        == "10.x"
+        == "11.x"
     )
     assert "11.x" in get_well_known_default("sentry:loader_available_sdk_versions", epoch=1)
     assert "11.x" in get_well_known_default(

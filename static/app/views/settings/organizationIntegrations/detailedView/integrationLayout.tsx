@@ -1,10 +1,16 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconGeneric} from '@sentry/icons/generic';
+import {IconGithub} from '@sentry/icons/github';
+import {IconProject} from '@sentry/icons/project';
 import startCase from 'lodash/startCase';
 
 import type {AlertProps} from '@sentry/scraps/alert';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
+import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
@@ -14,11 +20,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Access} from 'sentry/components/acl/access';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
-import {IconClose} from 'sentry/icons/iconClose';
-import {IconDocs} from 'sentry/icons/iconDocs';
-import {IconGeneric} from 'sentry/icons/iconGeneric';
-import {IconGithub} from 'sentry/icons/iconGithub';
-import {IconProject} from 'sentry/icons/iconProject';
 import {t} from 'sentry/locale';
 import type {
   IntegrationFeature,
@@ -123,7 +124,7 @@ const TabsContainer = styled('div')`
 `;
 
 function Body({
-  integrationName,
+  title,
   alert,
   topSection,
   tabs,
@@ -131,13 +132,13 @@ function Body({
 }: {
   alert: React.ReactNode;
   content: React.ReactNode;
-  integrationName: string;
   tabs: React.ReactNode;
+  title: string | BreadcrumbTitleItem;
   topSection: React.ReactNode;
 }) {
   return (
     <Fragment>
-      <BreadcrumbTitle title={integrationName} />
+      <BreadcrumbTitle title={title} />
       {alert}
       {topSection}
       {tabs}

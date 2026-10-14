@@ -1,15 +1,14 @@
 from unittest import mock
 
 import pytest
-from rest_framework import serializers
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from fixtures.integrations.jira.mock import MockJira
-from sentry.api.serializers.rest_framework.rule import validate_actions
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
+from sentry.notifications.types import NotificationActionContext
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
@@ -50,11 +49,12 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     def trigger(self, event, rule_object):
         action = rule_object.data.get("actions", ())[0]
-        action_inst = self.get_rule(data=action, rule=rule_object)
+        context = NotificationActionContext.from_legacy_rule(rule_object)
+        action_inst = self.get_rule(data=action, context=context)
         results = list(action_inst.after(event=event))
         assert len(results) == 1
 
-        rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(context=context, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
     def get_key(self, event: GroupEvent):
@@ -160,26 +160,6 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 mock_record_event,
                 IntegrationConfigurationError(),
             )
-
-    def test_fails_validation(self) -> None:
-        """
-        Test that the absence of dynamic_form_fields in the action fails validation
-        """
-        with pytest.raises(serializers.ValidationError) as excinfo:
-            validate_actions(
-                {
-                    "actions": [
-                        {
-                            "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-                            "integration": self.integration.id,
-                            "issuetype": "1",
-                            "name": "Create a Jira ticket in the Jira Cloud account",
-                            "project": "10000",
-                        }
-                    ]
-                }
-            )
-        assert excinfo.value.detail == {"actions": "Must configure issue link settings."}
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "create_issue")

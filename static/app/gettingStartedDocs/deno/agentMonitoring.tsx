@@ -20,6 +20,8 @@ const PACKAGE_NAME = '@sentry/deno';
 const MIN_VERSION = '10.61.0';
 
 const sentryImport = `import * as Sentry from "npm:${PACKAGE_NAME}";`;
+const MANUAL_INSTRUMENTATION_DOCS =
+  'https://docs.sentry.io/platforms/javascript/guides/deno/agent-tracing/manual-instrumentation/';
 
 // The data collection step is appended once around these branches, so none can
 // miss or repeat it.
@@ -29,8 +31,7 @@ function configureSteps(params: DocsParams): OnboardingStep[] {
   if (selected === AgentIntegration.MANUAL) {
     return getManualConfigureStep(params, {
       sentryImport,
-      docUrl:
-        'https://docs.sentry.io/platforms/javascript/guides/deno/ai-agent-monitoring/#manual-instrumentation',
+      docUrl: MANUAL_INSTRUMENTATION_DOCS,
     });
   }
 
@@ -135,9 +136,7 @@ prompt: "What is the weather in San Francisco?",
           type: 'custom',
           content: (
             <ManualInstrumentationNote
-              docsLink={
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/deno/ai-agent-monitoring/#manual-instrumentation" />
-              }
+              docsLink={<ExternalLink href={MANUAL_INSTRUMENTATION_DOCS} />}
             />
           ),
         },

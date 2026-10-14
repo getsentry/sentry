@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import {Kbd} from '@sentry/scraps/hotkey/kbd';
+
 import {toArray} from 'sentry/utils/array/toArray';
 
-import {Kbd} from './kbd';
 import {resolveKeyGlyph} from './keyMappings';
 
 interface HotkeyProps {

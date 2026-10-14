@@ -33,6 +33,7 @@ from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
 from sentry.utils.settings import is_self_hosted
+from sudo.utils import grant_sudo_privileges
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -324,13 +325,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         if not authenticated:
             return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
 
-        try:
-            # Must use the httprequest object instead of request
-            auth.login(request._request, promote_request_rpc_user(request))
-            metrics.incr(
-                "sudo_modal.success",
-            )
-        except auth.AuthUserPasswordExpired:
+        user = promote_request_rpc_user(request)
+        if user.is_password_expired:
             metrics.incr(
                 "sudo_modal.failure",
             )
@@ -341,6 +337,12 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        # Must use the HttpRequest so SudoMiddleware can set the sudo cookie.
+        grant_sudo_privileges(request._request)
+        metrics.incr(
+            "sudo_modal.success",
+        )
 
         if request.user.is_superuser and request.data.get("isSuperuserModal"):
             request.superuser.set_logged_in(request.user)

@@ -100,12 +100,12 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
     ) -> None:
         state = run_state or _run_state()
         enqueue_autofix_feedback(
-            log_ctx=PrIterationLogContext(
+            log_ctx=PrIterationLogContext.for_run(
                 self.log,
+                state,
+                self.organization.id,
+                1,
                 iteration=LogCtxIteration.TRIGGERED,
-                run_state=state,
-                organization_id=self.organization.id,
-                group_id=1,
             ),
             run_id=run_id,
             organization_id=self.organization.id,

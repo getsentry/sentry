@@ -18,8 +18,8 @@ from __future__ import annotations
 import logging
 
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import get_iterations
 from sentry.seer.autofix.pr_iteration.details_store import untriggered_iteration
+from sentry.seer.autofix.pr_iteration.iterations import get_iterations
 from sentry.seer.models.run import SeerRun
 
 logger = logging.getLogger(__name__)

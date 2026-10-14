@@ -3,6 +3,7 @@ import logging
 import orjson
 import sentry_sdk
 from pydantic import ValidationError
+from sentry_sdk import traces
 
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
@@ -40,12 +41,11 @@ from sentry.seer.autofix.pr_iteration.ready_for_review import mark_ready_for_rev
 from sentry.seer.autofix.pr_iteration.review_request import request_review_from_context
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker
 from sentry.utils import metrics
-from sentry.utils.tracing import start_span, trace
 
 logger = logging.getLogger(__name__)
 
 
-@trace
+@traces.trace
 def _retrigger_deferred_iteration(
     log_ctx: PrIterationLogContext, resolved: ResolvedGreenCheckSuite
 ) -> None:
@@ -125,32 +125,44 @@ def _retrigger_deferred_iteration(
 
 
 @scm_event_stream.listen_for(event_type="check_suite")
-def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
-    with (
-        sentry_sdk.isolation_scope(),
-        start_span(
+def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent) -> None:
+    """Drop suites we can't act on, then queue the rest for a task that can retry."""
+    with sentry_sdk.isolation_scope():
+        traces.new_trace()
+        with traces.start_span(
             name="pr_iteration.check_suite_listener",
-            op="function",
-            transaction=True,
-        ),
-    ):
-        return _handle_check_suite_event(check_suite_event)
+            attributes={"sentry.op": "function"},
+            parent_span=None,
+        ):
+            if check_suite_event.action != "completed":
+                return None
+
+            conclusion = check_suite_event.check_suite["conclusion"]
+            is_green = conclusion in GREEN_CONCLUSIONS
+            if not is_green and conclusion not in FAILURE_CONCLUSIONS:
+                return None
+
+            # Drop suites nobody behind the installation can act on
+            gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
+            if not resolve_check_suite_flag_gate(
+                check_suite_event, gate_flags
+            ).flagged_organization_ids:
+                return None
+
+            # Lazy: the task module can't load while this listener registers in AppConfig.ready.
+            from sentry.scm.private.ipc import serialize_check_suite_event
+            from sentry.tasks.seer.pr_iteration import process_pr_iteration_check_suite
+
+            process_pr_iteration_check_suite.delay(
+                event_data=serialize_check_suite_event(check_suite_event)
+            )
+            return None
 
 
-def _handle_check_suite_event(check_suite_event: CheckSuiteEvent):
-    if check_suite_event.action != "completed":
-        return None
-
+def process_check_suite_event(check_suite_event: CheckSuiteEvent) -> None:
+    """Act on a suite the listener let through; run by ``process_pr_iteration_check_suite``."""
     conclusion = check_suite_event.check_suite["conclusion"]
     is_green = conclusion in GREEN_CONCLUSIONS
-
-    if not is_green and conclusion not in FAILURE_CONCLUSIONS:
-        return None
-
-    # Drop suites nobody behind the installation can act on
-    gate_flags = GREEN_CHECK_SUITE_FLAGS if is_green else FAILING_CHECK_SUITE_FLAGS
-    if not resolve_check_suite_flag_gate(check_suite_event, gate_flags).flagged_organization_ids:
-        return None
 
     if is_green:
         resolved = resolve_green_check_suite(check_suite_event)
@@ -242,11 +254,9 @@ def _handle_check_suite_event(check_suite_event: CheckSuiteEvent):
         group_id=autofix_run.group_id,
     )
 
-    # Report failures here rather than only in the SCM event stream so they
-    # are searchable under the PR-iteration identity. Swallow so
-    # ``exec_listener`` does not emit a second Sentry event of the same
-    # failure; increment the metric so a counter still exists after the SCM
-    # ``run_listener.failed`` tag goes quiet.
+    # Report failures here so they are searchable under the PR-iteration
+    # identity, and swallow them so the task worker does not report the same
+    # failure a second time.
     try:
         enqueue_autofix_feedback(
             log_ctx=log_ctx,

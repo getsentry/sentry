@@ -1,21 +1,17 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
 import {getContextMeta} from 'sentry/components/events/contexts/utils';
-import {
-  TreeColumn,
-  TreeContainer,
-} from 'sentry/components/events/eventTags/eventTagsTree';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {EditHighlightsModal} from 'sentry/components/events/highlights/editHighlightsModal';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
@@ -24,11 +20,12 @@ import {
 } from 'sentry/components/events/highlights/util';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconEdit} from 'sentry/icons';
+import {KeyValueColumns, KeyValueRow} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useReplayData} from 'sentry/utils/replays/hooks/useReplayData';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -122,8 +119,6 @@ interface HighlightsDataProps {
 function HighlightsData({highlightsProject, event, project}: HighlightsDataProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
   const {openEditHighlightsModal, editProps} = useOpenEditHighlightsModal({
     highlightsProject,
     event,
@@ -158,7 +153,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   );
   const contextReplayId = contextReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
 
-  const tagReplayItem = highlightTagItems.find(e => e.originalTag.key === 'replayId');
+  const tagReplayItem = highlightTagItems.find(e => e.original.key === 'replayId');
   const tagReplayId = tagReplayItem?.value ?? EMPTY_HIGHLIGHT_DEFAULT;
 
   // if the id doesn't exist for either tag or context, it's rendered as '--'
@@ -180,14 +175,14 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   }
   if (tagReplayItem && replayFetchError) {
     tagReplayItem.value = EMPTY_HIGHLIGHT_DEFAULT;
-    tagReplayItem.originalTag.value = EMPTY_HIGHLIGHT_DEFAULT;
+    tagReplayItem.original.value = EMPTY_HIGHLIGHT_DEFAULT;
   }
 
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
     (rowList, {alias, data}, i) => {
       const meta = getContextMeta(event, alias);
       const newRows = data.map((item, j) => (
-        <HighlightContextContent
+        <ContextCardContent
           key={`highlight-ctx-${i}-${j}`}
           meta={meta}
           item={item}
@@ -206,7 +201,7 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
       key={`highlight-tag-${i}`}
       content={content}
       event={event}
-      tagKey={content.originalTag.key}
+      tagKey={content.original.key}
       project={highlightsProject}
       config={{
         disableActions: content.value === EMPTY_HIGHLIGHT_DEFAULT,
@@ -217,18 +212,9 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
   ));
 
   const rows = [...highlightTagRows, ...highlightContextRows];
-  const columns: React.ReactNode[] = [];
-  const columnSize = Math.ceil(rows.length / columnCount);
-  for (let i = 0; i < rows.length; i += columnSize) {
-    columns.push(
-      <HighlightColumn key={`highlight-column-${i}`}>
-        {rows.slice(i, i + columnSize)}
-      </HighlightColumn>
-    );
-  }
 
   return (
-    <HighlightContainer columnCount={columnCount} ref={containerRef}>
+    <Container marginBottom="xl">
       {hasDisabledHighlights ? (
         <EmptyHighlights align="center" justify="center">
           <EmptyHighlightsContent>
@@ -243,9 +229,11 @@ function HighlightsData({highlightsProject, event, project}: HighlightsDataProps
           </EmptyHighlightsContent>
         </EmptyHighlights>
       ) : (
-        columns
+        <KeyValueColumns>
+          {columnCount => splitIntoColumns(rows, columnCount)}
+        </KeyValueColumns>
       )}
-    </HighlightContainer>
+    </Container>
   );
 }
 
@@ -288,50 +276,35 @@ export function HighlightsDataSection({event, project}: HighlightsDataSectionPro
 }
 
 function HighlightsDataLoading() {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
-
   return (
-    <HighlightContainer
-      columnCount={columnCount}
-      ref={containerRef}
-      data-test-id="highlights-loading"
-    >
-      {Array.from({length: columnCount}, (_, columnIndex) => (
-        <HighlightColumn key={columnIndex}>
-          {Array.from({length: 4}, (_row, rowIndex) => (
-            <HighlightLoadingRow key={rowIndex} align="center" columns="subgrid">
-              <HighlightLoadingKey>
-                <HighlightKeyPlaceholder
+    <Container marginBottom="xl" data-test-id="highlights-loading">
+      <KeyValueColumns>
+        {columnCount =>
+          Array.from({length: columnCount}, () =>
+            Array.from({length: 4}, (_row, rowIndex) => (
+              <KeyValueRow key={rowIndex}>
+                <HighlightPlaceholder
                   height="14px"
                   width={rowIndex % 2 === 0 ? '64%' : '48%'}
                 />
-              </HighlightLoadingKey>
-              <HighlightLoadingValue align="center" columns="1fr">
-                <HighlightValuePlaceholder
+                <HighlightPlaceholder
                   height="14px"
                   width={rowIndex % 2 === 0 ? '82%' : '58%'}
                 />
-              </HighlightLoadingValue>
-            </HighlightLoadingRow>
-          ))}
-        </HighlightColumn>
-      ))}
-    </HighlightContainer>
+              </KeyValueRow>
+            ))
+          )
+        }
+      </KeyValueColumns>
+    </Container>
   );
 }
-
-const HighlightContainer = styled(TreeContainer)<{columnCount: number}>`
-  margin-top: 0;
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const EmptyHighlights = styled(Flex)`
   padding: ${p => p.theme.space.xl} ${p => p.theme.space.md};
   border-radius: ${p => p.theme.radius.md};
   border: 1px dashed ${p => p.theme.tokens.border.transparent.neutral.muted};
   background: ${p => p.theme.tokens.background.secondary};
-  grid-column: 1 / -1;
   text-align: center;
   color: ${p => p.theme.tokens.content.secondary};
 `;
@@ -345,40 +318,9 @@ const AddHighlightsButton = styled(Button)`
   margin: ${p => p.theme.space.md} auto 0;
 `;
 
-const HighlightColumn = styled(TreeColumn)`
-  grid-column: span 1;
-`;
-
-const HighlightLoadingRow = styled(Grid)`
-  border-radius: ${p => p.theme.space.xs};
-  padding-left: ${p => p.theme.space.md};
-  grid-column: span 2;
-  column-gap: ${p => p.theme.space.lg};
-  min-height: 24px;
-
-  :nth-child(odd) {
-    background-color: ${p => p.theme.tokens.background.secondary};
-  }
-`;
-
-const HighlightLoadingKey = styled('div')`
-  grid-column: 1 / 2;
-`;
-
-const HighlightLoadingValue = styled(Grid)`
-  grid-column: 2 / 3;
-`;
-
-const HighlightKeyPlaceholder = styled(Placeholder)`
+const HighlightPlaceholder = styled(Placeholder)`
   align-self: center;
-`;
-
-const HighlightValuePlaceholder = styled(Placeholder)`
-  align-self: center;
-`;
-
-const HighlightContextContent = styled(ContextCardContent)`
-  font-size: ${p => p.theme.font.size.sm};
+  margin-block: ${p => p.theme.space['2xs']};
 `;
 
 const highlightModalCss = (theme: Theme) => css`

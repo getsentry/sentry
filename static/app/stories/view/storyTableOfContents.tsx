@@ -1,9 +1,9 @@
 import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {useLocation} from 'react-router-dom';
+import {useLocation} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 type Entry = {
@@ -17,7 +17,7 @@ function toAlphaNumeric(str: string): string {
 
 function getContentEntries(main: HTMLElement): Entry[] {
   const titles = Array.from(main.querySelectorAll('h2, h3, h4, h5, h6')).filter(
-    title => title.closest('[data-test-id="storybook-demo"]') === null
+    title => title.closest('[data-storybook-demo]') === null
   );
   const entries: Entry[] = [];
 
@@ -45,13 +45,18 @@ function useStoryIndex(): Entry[] {
   // automatically scroll to hash
   useEffect(() => {
     if (hash) {
-      const entry = entries.find(e => e.ref.id === hash);
-      if (entry && hash !== scrolled.current) {
+      // Key on the pathname too: different stories share fragments like
+      // `#usage`, so the hash alone can't tell us we already scrolled here.
+      const scrollKey = `${location.pathname}#${hash}`;
+      const entry = entries.find(e => encodeURIComponent(e.ref.id) === hash);
+      if (entry && scrollKey !== scrolled.current) {
         entry.ref.scrollIntoView();
-        scrolled.current = hash;
+        scrolled.current = scrollKey;
       }
+    } else {
+      scrolled.current = '';
     }
-  }, [hash, entries]);
+  }, [hash, entries, location.pathname]);
 
   // populate entries
   useLayoutEffect(() => {
@@ -185,7 +190,15 @@ export function StoryTableOfContents() {
   }
 
   return (
-    <StoryIndexContainer>
+    <Container
+      display={{zero: 'none', '3xl': 'block'}}
+      position="sticky"
+      top="52px"
+      marginRight="xl"
+      height="fit-content"
+      padding="xl"
+      minWidth="0"
+    >
       <StoryIndexTitle>On this page</StoryIndexTitle>
       <StoryIndexList>
         {nestedEntries.map(entry => (
@@ -197,12 +210,23 @@ export function StoryTableOfContents() {
           />
         ))}
       </StoryIndexList>
-    </StoryIndexContainer>
+    </Container>
   );
 }
 
 export function StoryTableOfContentsPlaceholder() {
-  return <StoryIndexContainer aria-hidden="true" />;
+  return (
+    <Container
+      aria-hidden="true"
+      display={{zero: 'none', '3xl': 'block'}}
+      position="sticky"
+      top="52px"
+      marginRight="xl"
+      height="fit-content"
+      padding="xl"
+      minWidth="0"
+    />
+  );
 }
 
 function StoryContentsList({
@@ -226,7 +250,7 @@ function StoryContentsList({
   const LinkComponent = isChild ? StyledChildLink : StyledLink;
 
   return (
-    <Stack as="li" aria-role="listitem">
+    <Stack as="li">
       <LinkComponent
         href={`#${entry.entry.ref.id}`}
         isActive={entry.entry.ref.id === activeId}
@@ -262,20 +286,6 @@ function StoryContentsList({
     </Stack>
   );
 }
-
-const StoryIndexContainer = styled('div')`
-  display: none;
-  position: sticky;
-  top: 52px;
-  margin-inline: 0 ${p => p.theme.space.xl};
-  height: fit-content;
-  padding: ${p => p.theme.space.xl};
-  min-width: 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    display: block;
-  }
-`;
 
 const StoryIndexTitle = styled('div')`
   line-height: 1.25;

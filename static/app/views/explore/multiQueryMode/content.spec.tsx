@@ -1136,7 +1136,7 @@ describe('MultiQueryModeContent', () => {
 
   it('clears the save highlight and refreshes saved queries after updating', async () => {
     const listRequest = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [],
     });
     MockApiClient.addMockResponse({

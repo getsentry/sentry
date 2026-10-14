@@ -1,5 +1,9 @@
+import {IconBuilding} from '@sentry/icons/building';
+import {IconGroup} from '@sentry/icons/group';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconUser} from '@sentry/icons/user';
+
 import type {PromptData} from 'sentry/actionCreators/prompts';
-import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -789,6 +793,7 @@ export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) 
 export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.SPANS,
   DataCategory.LOG_BYTE,
+  DataCategory.TRACE_METRIC_BYTE,
   DataCategory.TRANSACTIONS,
 ]);
 

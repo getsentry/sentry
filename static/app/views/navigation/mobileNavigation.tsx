@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
+import {IconMenu} from '@sentry/icons/menu';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
@@ -8,9 +9,9 @@ import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT,
   NAVIGATION_MOBILE_CONTENT_HEIGHT,
@@ -64,13 +65,14 @@ function MobileHelpMenuFallback() {
 }
 
 function MobilePrimaryNavigation() {
+  const organization = useOrganization({allowNull: true});
   const {view} = useSecondaryNavigation();
 
   return (
     <SizeProvider size="sm">
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
-          <OrganizationDropdown />
+          {organization && <OrganizationDropdown />}
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List>
           <PrimaryNavigationItems />
@@ -86,12 +88,13 @@ function MobilePrimaryNavigation() {
 }
 
 export function MobileNavigation() {
+  const organization = useOrganization({allowNull: true});
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const navPanelRef = useRef<HTMLDivElement>(null);
   const toggleButtonRef = useRef<HTMLButtonElement>(null);
   const {view, setView} = useSecondaryNavigation();
-  const scrollLock = useScrollLock(document.getElementById('main')!);
+  const scrollLock = useScrollLock(document.getElementById('main') ?? document.body);
 
   useEffect(() => {
     const main = document.getElementById('main');
@@ -151,16 +154,18 @@ export function MobileNavigation() {
             aria-label={isOpen ? t('Close main menu') : t('Open main menu')}
           />
           <Stack gap="md" direction="row">
-            <PrimaryNavigation.ButtonBar orientation="horizontal">
-              <PrimaryNavigationFooterItems>
-                <PrimaryNavigation.ButtonContainer>
-                  {buttonProps => <SearchButton {...buttonProps} />}
-                </PrimaryNavigation.ButtonContainer>
-                <ErrorBoundary customComponent={MobileHelpMenuFallback}>
-                  <MobileWhatsNewHelpMenu />
-                </ErrorBoundary>
-              </PrimaryNavigationFooterItems>
-            </PrimaryNavigation.ButtonBar>
+            {organization && (
+              <PrimaryNavigation.ButtonBar orientation="horizontal">
+                <PrimaryNavigationFooterItems>
+                  <PrimaryNavigation.ButtonContainer>
+                    {buttonProps => <SearchButton {...buttonProps} />}
+                  </PrimaryNavigation.ButtonContainer>
+                  <ErrorBoundary customComponent={MobileHelpMenuFallback}>
+                    <MobileWhatsNewHelpMenu />
+                  </ErrorBoundary>
+                </PrimaryNavigationFooterItems>
+              </PrimaryNavigation.ButtonBar>
+            )}
             <PrimaryNavigationFooterItemsUserDropdown />
           </Stack>
         </Flex>

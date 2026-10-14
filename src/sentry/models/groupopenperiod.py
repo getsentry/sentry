@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Collection
+from collections.abc import Collection, Iterable
 from datetime import datetime, timedelta
 
 from django.conf import settings
@@ -113,25 +113,6 @@ class GroupOpenPeriod(DefaultFieldsModel):
         self.update(date_ended=None)
 
 
-def get_last_checked_for_open_period(group: Group) -> datetime:
-    from sentry.incidents.grouptype import MetricIssue
-    from sentry.incidents.models.alert_rule import AlertRule
-
-    event = group.get_latest_event()
-    last_checked = group.last_seen
-    if event and group.type == MetricIssue.type_id:
-        alert_rule_id = event.data.get("contexts", {}).get("metric_alert", {}).get("alert_rule_id")
-        if alert_rule_id:
-            try:
-                alert_rule = AlertRule.objects.get(id=alert_rule_id)
-                now = timezone.now()
-                last_checked = now - timedelta(seconds=alert_rule.snuba_query.time_window)
-            except AlertRule.DoesNotExist:
-                pass
-
-    return last_checked
-
-
 def get_open_periods_for_group(
     group: Group,
     query_start: datetime | None = None,
@@ -161,17 +142,47 @@ def get_open_periods_for_group(
     if not query_end:
         query_end = timezone.now()
 
+    return _filter_open_periods_overlapping_range(
+        GroupOpenPeriod.objects.filter(group=group),
+        query_start=query_start,
+        query_end=query_end,
+    )
+
+
+def get_open_periods_for_groups(
+    group_ids: Iterable[int],
+    query_start: datetime | None = None,
+    query_end: datetime | None = None,
+) -> BaseQuerySet[GroupOpenPeriod]:
+    """
+    Get open periods across many groups that overlap with the query time range, newest first.
+    See `get_open_periods_for_group` for more details on how overlapping works
+    """
+    if not query_start:
+        query_start = timezone.now() - timedelta(days=90)
+
+    if not query_end:
+        query_end = timezone.now()
+
+    return _filter_open_periods_overlapping_range(
+        GroupOpenPeriod.objects.filter(group_id__in=group_ids),
+        query_start=query_start,
+        query_end=query_end,
+    )
+
+
+def _filter_open_periods_overlapping_range(
+    open_periods: BaseQuerySet[GroupOpenPeriod],
+    query_start: datetime,
+    query_end: datetime,
+) -> BaseQuerySet[GroupOpenPeriod]:
     started_before_query_ends = Q(date_started__lte=query_end)
     ended_after_query_starts = Q(date_ended__gte=query_start)
     still_open = Q(date_ended__isnull=True)
 
-    return (
-        GroupOpenPeriod.objects.filter(
-            group=group,
-        )
-        .filter(started_before_query_ends & (ended_after_query_starts | still_open))
-        .order_by("-date_started")
-    )
+    return open_periods.filter(
+        started_before_query_ends & (ended_after_query_starts | still_open)
+    ).order_by("-date_started")
 
 
 def create_open_period(group: Group, start_time: datetime, event_id: str | None = None) -> None:

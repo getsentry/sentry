@@ -15,12 +15,9 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.autofix.pr_iteration.details_store import (
-    open_iterations,
-    remove_iterations_before,
-    update_iteration,
-)
+from sentry.seer.autofix.pr_iteration.details_store import open_iterations, update_iteration
 from sentry.seer.autofix.pr_iteration.emit import (
+    FAILURE_REASON_DATA_KEY,
     PrIterationOutcome,
     bootstrap_iteration,
     complete_pr_iteration_details,
@@ -29,6 +26,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
     outcome_for_pause,
     record_pr_iteration_blocked,
     record_pr_iteration_counts,
+    record_pr_iteration_failure_reason,
     trigger_pr_iteration_details,
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
@@ -107,12 +105,12 @@ class PrIterationDetailsTest(TestCase):
         self.seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=RUN_ID
         )
-        self.log_ctx = PrIterationLogContext(
+        self.log_ctx = PrIterationLogContext.for_run(
             MagicMock(),
+            _run_state(),
+            self.organization.id,
+            self.group.id,
             iteration=LogCtxIteration.TRIGGERED,
-            run_state=_run_state(),
-            organization_id=self.organization.id,
-            group_id=self.group.id,
         )
 
     def _open(self) -> None:
@@ -285,7 +283,6 @@ class PrIterationDetailsTest(TestCase):
                 run_id=RUN_ID,
                 referrer="github_pr_comment",
                 feedback_types="github_pr_comment",
-                iteration_index=0,
                 trigger_source="feedback",
                 feedback_count=2,
                 queued_count=3,
@@ -376,28 +373,51 @@ class PrIterationDetailsTest(TestCase):
 
         assert self._open_rows() == []
 
-    def test_a_row_left_behind_is_discarded_unemitted(self) -> None:
-        # The iteration never reached a completion hook, so no event is owed.
+    def _fail(self, reason: str, *, iteration_id: int | None = None) -> None:
+        record_pr_iteration_failure_reason(
+            log_ctx=self.log_ctx,
+            run_id=RUN_ID,
+            organization_id=self.organization.id,
+            reason=reason,
+            iteration_id=iteration_id,
+        )
+
+    def test_a_refused_trigger_names_its_reason_on_the_waiting_row(self) -> None:
         self._open()
 
-        with patch("sentry.analytics.record") as mock_record:
-            assert remove_iterations_before(timezone.now() + timedelta(minutes=1), 100) == {
-                False: 1
-            }
+        self._fail("stale_head")
 
-        assert not mock_record.called
-        assert self._open_rows() == []
+        (row,) = self._open_rows()
+        assert row.data[FAILURE_REASON_DATA_KEY] == "stale_head"
 
-    def test_the_sweep_counts_triggered_rows_apart(self) -> None:
+    def test_a_reason_goes_on_the_claimed_row_when_the_drain_names_it(self) -> None:
         self._open()
         iteration_id = self._trigger()
         assert iteration_id is not None
+        # The reason must go on the claimed row, not the next waiting one.
         self._open()
 
-        assert remove_iterations_before(timezone.now() + timedelta(minutes=1), 100) == {
-            True: 1,
-            False: 1,
-        }
+        self._fail("no_consumable_feedback", iteration_id=iteration_id)
+
+        claimed, waiting = self._open_rows()
+        assert claimed.id == iteration_id
+        assert claimed.data[FAILURE_REASON_DATA_KEY] == "no_consumable_feedback"
+        assert FAILURE_REASON_DATA_KEY not in waiting.data
+
+    def test_a_batch_that_runs_after_a_refusal_completes_normally(self) -> None:
+        # Refused, then drained: the completed event must not carry the old reason.
+        self._open()
+        self._fail("stale_head")
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._complete(iteration_id)
+
+        event = mock_record.call_args.args[0]
+        assert isinstance(event, AiAutofixPrIterationFeedbackBatchCompletedEvent)
+        assert event.outcome == PrIterationOutcome.ALREADY_PUSHED.value
+        assert self._open_rows() == []
 
     def test_an_unknown_field_never_reaches_the_event(self) -> None:
         self._open()
@@ -430,7 +450,6 @@ class PrIterationDetailsTest(TestCase):
                 run_id=RUN_ID,
                 referrer="github_pr_comment",
                 feedback_types="github_pr_comment",
-                iteration_index=0,
                 trigger_source="feedback",
                 feedback_count=2,
                 queued_count=3,
@@ -496,12 +515,12 @@ class RecordPrIterationBlockedTest(TestCase):
         self.seer_run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=RUN_ID
         )
-        self.log_ctx = PrIterationLogContext(
+        self.log_ctx = PrIterationLogContext.for_run(
             MagicMock(),
+            _run_state(),
+            self.organization.id,
+            self.group.id,
             iteration=LogCtxIteration.UNTRIGGERED,
-            run_state=_run_state(),
-            organization_id=self.organization.id,
-            group_id=self.group.id,
         )
 
     def _open(self) -> None:
@@ -553,7 +572,6 @@ class RecordPrIterationBlockedTest(TestCase):
             project_id=self.project.id,
             group_id=self.group.id,
             run_id=RUN_ID,
-            iteration_index=0,
             duration_ms=0,
             outcome=outcome,
         )

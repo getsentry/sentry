@@ -5,7 +5,11 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useSyncExternalStore,
 } from 'react';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconPin} from '@sentry/icons/pin';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -14,7 +18,6 @@ import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconCopy, IconPin, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
@@ -36,7 +39,6 @@ import {
   type PinnedAttributeValue,
 } from './tracePinnedAttributeValues';
 
-export const TRACE_ATTRIBUTE_PINNING_FEATURE = 'trace-waterfall-attribute-pinning';
 const PINNED_ATTRIBUTE_PARAM = 'pinnedAttribute';
 
 type PinnedAttributeResponse = {
@@ -302,6 +304,25 @@ export function TraceAttributeDivider({
   manager: VirtualizedViewManager;
 }) {
   const previousX = useRef<number | null>(null);
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      manager.scheduler.on('divider resize', onChange);
+      manager.scheduler.on('divider resize end', onChange);
+      manager.scheduler.on('set container physical space', onChange);
+      return () => {
+        manager.scheduler.off('divider resize', onChange);
+        manager.scheduler.off('divider resize end', onChange);
+        manager.scheduler.off('set container physical space', onChange);
+      };
+    },
+    [manager]
+  );
+  const position = useSyncExternalStore(
+    subscribe,
+    () =>
+      manager.columns.list.width +
+      (edge === 'right' ? manager.columns.attribute.width : 0)
+  );
   return (
     <Flex
       role="separator"
@@ -313,11 +334,7 @@ export function TraceAttributeDivider({
       aria-orientation="vertical"
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-valuenow={Math.round(
-        100 *
-          (manager.columns.list.width +
-            (edge === 'right' ? manager.columns.attribute.width : 0))
-      )}
+      aria-valuenow={Math.round(100 * position)}
       tabIndex={0}
       className={`TraceDivider TraceAttributeDivider ${edge}`}
       onKeyDown={event => {

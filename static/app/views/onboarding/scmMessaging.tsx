@@ -269,10 +269,7 @@ export function ScmMessaging({
   ]);
 
   return (
-    // The onboarding flow has no page-level query container (project creation
-    // resolves against `#main`), and the flow's fixed footers preclude one
-    // higher up, so each SCM step declares its own.
-    <Stack containerType="inline-size">
+    <Stack>
       <ScmStepLayout>
         <ScmStepHeader
           heading={SCM_MESSAGING_TITLE}

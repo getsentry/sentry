@@ -162,7 +162,9 @@ class AcceptOrganizationInvite(Endpoint):
                 if not auth_provider
                 else "/"
             )
-            auth.initiate_login(self.request, next_url=url)
+            # Reloading the composed page must preserve an in-progress MFA challenge.
+            if auth.get_pending_2fa_user(request) is None:
+                auth.initiate_login(self.request, next_url=url)
 
         # If the org has SSO setup, we'll store the invite cookie to later
         # associate the org member after authentication. We can avoid needing

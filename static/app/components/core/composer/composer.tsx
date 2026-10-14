@@ -6,7 +6,7 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {QueryStatus} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -98,7 +98,7 @@ function useCaretAnchorPosition({
 
     const start = getDOMPoint(input, activeTrigger.start);
     const end = getDOMPoint(input, activeTrigger.start + trigger.length);
-    const range = document.createRange();
+    const range = input.ownerDocument.createRange();
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
     if (typeof range.getBoundingClientRect !== 'function') {
@@ -165,7 +165,11 @@ export function Composer({
   const activeSources = useMemo(
     () =>
       activeTrigger
-        ? sources.filter(source => source.trigger === activeTrigger.trigger)
+        ? sources.filter(
+            source =>
+              source.trigger === activeTrigger.trigger &&
+              (!source.restrictToStart || activeTrigger.start === 0)
+          )
         : [],
     [sources, activeTrigger]
   );
@@ -262,6 +266,28 @@ export function Composer({
       return;
     }
     const {source, suggestion} = item;
+
+    if (source.onSelect) {
+      const {start, end} = activeTrigger;
+      dismissedRequestKeyRef.current = getRequestKey(activeTrigger);
+      setActiveTrigger(null);
+      source.onSelect(suggestion, {
+        clear: () => {
+          dismissedRequestKeyRef.current = null;
+          selectionToRestoreRef.current = {start: 0, end: 0};
+          onChange({text: '', mentions: []});
+        },
+        insertText: text => {
+          const nextValue = value.slice(0, start) + text + value.slice(end);
+          const retainedMentions = reconcileMentions(value, nextValue, mentions);
+          const nextCaret = start + text.length;
+          dismissedRequestKeyRef.current = null;
+          selectionToRestoreRef.current = {start: nextCaret, end: nextCaret};
+          onChange({text: nextValue, mentions: retainedMentions});
+        },
+      });
+      return;
+    }
 
     const replacement = source.getText(suggestion);
     const trailingText = /\s/.test(value[activeTrigger.end] ?? '') ? '' : ' ';
@@ -372,7 +398,8 @@ export function Composer({
           !event.ctrlKey &&
           !event.metaKey &&
           !event.altKey &&
-          (focusedKey !== null || (event.key === 'Enter' && queryStatus === 'pending'))
+          (focusedKey !== null ||
+            (event.key === 'Enter' && (hasSuggestions || queryStatus === 'pending')))
         ) {
           event.preventDefault();
           if (focusedKey !== null) {

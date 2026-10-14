@@ -653,12 +653,16 @@ def process_group_resolution(
         result["assignedTo"] = assigned_to
 
     if bool(affected):
+        is_bulk = len(group_list) > 1
+        data = dict(activity_data)
+        if is_bulk:
+            data["bulk"] = True
         # If the group is resolved, then create an activities, actions, etc.
         activity = Activity.objects.create_group_activity(
             group,
             ActivityType(activity_type),
             user_id=acting_user.id if acting_user else None,
-            data=dict(activity_data),
+            data=data,
             ident=resolution.id if resolution else None,
             send_notification=False,  # deferred via on_commit below, will also trigger the handlers
         )
@@ -667,7 +671,7 @@ def process_group_resolution(
 
         # TODO(dcramer): we need a solution for activity rollups
         # before sending notifications on bulk changes
-        if not len(group_list) > 1:
+        if not is_bulk:
             # TODO - This will trigger it every time a user clicks resolved
             # should this only trigger through workflow engine or the activity handler?
             transaction.on_commit(

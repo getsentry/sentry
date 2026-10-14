@@ -107,6 +107,11 @@ type InvestigationHypothesesProps = {
    * replaces it as soon as it lands.
    */
   phase?: InvestigationOrchestrationPhase;
+  /**
+   * The run's status from the investigation summary, read the same way as
+   * `phase`: only until the projection arrives.
+   */
+  status?: InvestigationOrchestrationStatus;
 };
 
 /**
@@ -127,6 +132,7 @@ export function InvestigationHypotheses({
   enabled = true,
   investigationId,
   phase: summaryPhase,
+  status: summaryStatus,
 }: InvestigationHypothesesProps) {
   const organization = useOrganization();
   // When the last accepted command was sent, or null if none has been. A
@@ -193,12 +199,17 @@ export function InvestigationHypotheses({
 
   // Nothing is known yet, so the panel goes up empty rather than appearing a
   // moment later. A run with no hypotheses left to produce is skipped: its
-  // panel would open on placeholders and then collapse.
+  // panel would open on placeholders and then collapse. So is a run waiting on
+  // a person — nothing will arrive until they answer.
   if (!projection) {
-    const worthHoldingSpaceFor = enabled && isPending && !SETTLED_PHASES.has(phase ?? '');
+    const worthHoldingSpaceFor =
+      enabled &&
+      isPending &&
+      summaryStatus !== 'awaiting_input' &&
+      !SETTLED_PHASES.has(phase ?? '');
 
     return worthHoldingSpaceFor ? (
-      <Stack gap="2xl">
+      <Stack gap="3xl">
         <HypothesesPanel expanded={panelState.expanded} onExpandedChange={setExpanded}>
           <HypothesisListPlaceholder />
         </HypothesesPanel>
@@ -272,10 +283,15 @@ export function InvestigationHypotheses({
   }
 
   const hasHypotheses = projection.hypotheses.length > 0;
-  const awaitingFirstHypothesis = !hasHypotheses && !SETTLED_PHASES.has(projection.phase);
+  // A run waiting on a person makes no hypotheses until they answer, so a
+  // placeholder there would promise cards that are not coming.
+  const awaitingFirstHypothesis =
+    !hasHypotheses &&
+    projection.status !== 'awaiting_input' &&
+    !SETTLED_PHASES.has(projection.phase);
 
   return (
-    <Stack gap="2xl">
+    <Stack gap="3xl">
       {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
       {hasHypotheses || awaitingFirstHypothesis ? (
         <HypothesesPanel expanded={panelState.expanded} onExpandedChange={setExpanded}>

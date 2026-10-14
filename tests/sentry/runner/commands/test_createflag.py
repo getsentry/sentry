@@ -2,8 +2,8 @@ from datetime import date
 from typing import Any
 
 import yaml
+from sentry_options import condition_operators
 
-from flagpole.conditions import ConditionOperatorKind
 from sentry.runner.commands.createflag import createflag, createissueflag
 from sentry.testutils.cases import CliTestCase
 
@@ -52,8 +52,8 @@ class TestCreateFlag(CliTestCase):
 
     def test_all_condition_types(self) -> None:
         cli_input = ["", "New segment", "", "y"]
-        for condition_type in ConditionOperatorKind:
-            cli_input.extend((f"c_prop_{condition_type.value}", condition_type.value, "y"))
+        for operator in condition_operators():
+            cli_input.extend((f"c_prop_{operator}", operator, "y"))
 
         # Change last input to No to discontinue creating conditions
         cli_input[-1] = "n"
@@ -74,11 +74,11 @@ class TestCreateFlag(CliTestCase):
         list_operators = {"in", "not_in", "matches", "not_matches"}
         assert segment["conditions"] == [
             {
-                "property": f"c_prop_{kind.value}",
-                "operator": kind.value,
-                "value": [] if kind.value in list_operators else "",
+                "property": f"c_prop_{operator}",
+                "operator": operator,
+                "value": [] if operator in list_operators else "",
             }
-            for kind in ConditionOperatorKind
+            for operator in condition_operators()
         ]
 
 

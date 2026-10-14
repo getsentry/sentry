@@ -194,7 +194,7 @@ function SuperuserStaffAccessForm({hasStaff}: Props) {
     const nextUrl = new URL('/auth/login/', urlOrigin);
     nextUrl.searchParams.set('next', window.location.href);
 
-    logout(api, nextUrl.toString());
+    logout(api, {redirectUrl: nextUrl.toString()});
   }, [api, ssoExpired]);
 
   if (ssoExpired) {

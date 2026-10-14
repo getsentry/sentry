@@ -1,3 +1,4 @@
+import {IconChat} from '@sentry/icons/chat';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -13,7 +14,6 @@ import {
   type QueryEmbedColumn,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
-import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
@@ -199,18 +199,19 @@ export default function ConversationsQueryBlock({data}: {data: ConversationsQuer
       icon={IconChat}
       linkLabel={t('View Conversations')}
       query={data.query}
+      table={
+        <QueryEmbedTable
+          columns={COLUMNS}
+          emptyMessage={t('No matching conversations')}
+          errorMessage={t('Unable to load conversations')}
+          isError={conversationsQuery.isError}
+          isPending={conversationsQuery.isPending}
+          rowKey={row => row.conversationId}
+          rows={rows}
+        />
+      }
       testId="seer-conversations-query-embed"
       title={getConversationsQueryTitle(data)}
-    >
-      <QueryEmbedTable
-        columns={COLUMNS}
-        emptyMessage={t('No matching conversations')}
-        errorMessage={t('Unable to load conversations')}
-        isError={conversationsQuery.isError}
-        isPending={conversationsQuery.isPending}
-        rowKey={row => row.conversationId}
-        rows={rows}
-      />
-    </QueryEmbedCard>
+    />
   );
 }

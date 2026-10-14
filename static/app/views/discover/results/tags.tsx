@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptor} from 'history';
 
@@ -16,7 +17,6 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {TagFacetsList} from 'sentry/components/group/tagFacets';
 import {TagFacetsDistributionMeter} from 'sentry/components/group/tagFacets/tagFacetsDistributionMeter';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';

@@ -70,6 +70,37 @@ describe('useTransactionsSeriesQuery', () => {
       );
     });
   });
+
+  it('excludes the Other series for grouped widgets with multiple aggregates', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: [],
+          aggregates: ['count()', 'p95()'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {},
+    });
+
+    renderHookWithProviders(() =>
+      useTransactionsSeriesQuery({widget, organization, pageFilters, enabled: true})
+    );
+
+    await waitFor(() =>
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({query: expect.objectContaining({excludeOther: '1'})})
+      )
+    );
+  });
 });
 
 describe('useTransactionsTableQuery', () => {

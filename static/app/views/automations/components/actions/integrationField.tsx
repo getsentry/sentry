@@ -2,7 +2,7 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t} from 'sentry/locale';
-import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
+import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
 
 export function IntegrationField() {
   const {action, actionId, onUpdate, handler} = useActionNodeContext();

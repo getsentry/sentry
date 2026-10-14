@@ -2,6 +2,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.test import override_settings
+from urllib3 import HTTPConnectionPool, HTTPResponse
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.signed_seer_api import (
@@ -31,6 +33,7 @@ def run_test_case(
     mock.host = "localhost"
     mock.port = None
     mock.scheme = "http"
+    mock.urlopen.return_value = HTTPResponse(status=200)
     with override_settings(SEER_API_SHARED_SECRET=shared_secret):
         make_signed_seer_api_request(
             mock,
@@ -165,6 +168,38 @@ def test_times_request_with_metrics_endpoint(mock_metrics_timer: MagicMock) -> N
         sample_rate=1.0,
         tags={"endpoint": PATH},
     )
+
+
+@pytest.mark.parametrize(
+    ("status", "expected_status_class"),
+    [(200, "2xx"), (404, "4xx"), (503, "5xx")],
+)
+@patch("sentry.utils.metrics.timing")
+def test_times_request_with_status_class(
+    mock_timing: MagicMock, status: int, expected_status_class: str
+) -> None:
+    pool = Mock(host="localhost", port=None, scheme="http")
+    pool.urlopen.return_value = HTTPResponse(status=status)
+
+    response = make_signed_seer_api_request(pool, path=PATH, body=REQUEST_BODY)
+
+    assert response.status == status
+    tags = mock_timing.call_args.args[3]
+    assert tags["status_class"] == expected_status_class
+    assert tags["result"] == "success"
+
+
+@patch("sentry.utils.metrics.timing")
+def test_times_failed_request_with_error_status_class(mock_timing: MagicMock) -> None:
+    pool = Mock(host="localhost", port=None, scheme="http")
+    pool.urlopen.side_effect = ReadTimeoutError(HTTPConnectionPool("localhost"), PATH, "timed out")
+
+    with pytest.raises(ReadTimeoutError):
+        make_signed_seer_api_request(pool, path=PATH, body=REQUEST_BODY)
+
+    tags = mock_timing.call_args.args[3]
+    assert tags["status_class"] == "error"
+    assert tags["result"] == "failure"
 
 
 @patch("sentry.seer.signed_seer_api.make_signed_seer_api_request")

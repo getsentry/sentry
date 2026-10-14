@@ -41,12 +41,12 @@ class PausePrIterationTest(TestCase):
             repo_pr_states={},
         )
         enqueue_autofix_feedback(
-            log_ctx=PrIterationLogContext(
+            log_ctx=PrIterationLogContext.for_run(
                 MagicMock(),
+                run_state,
+                self.organization.id,
+                None,
                 iteration=LogCtxIteration.TRIGGERED,
-                run_state=run_state,
-                organization_id=self.organization.id,
-                group_id=None,
             ),
             run_id=run_id,
             organization_id=self.organization.id,
