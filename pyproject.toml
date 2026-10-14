@@ -726,7 +726,6 @@ module = [
     "sentry.discover.models",
     "sentry.discover.translation.*",
     "sentry.event_manager",
-    "sentry.exceptions",
     "sentry.explore",
     "sentry.explore.endpoints.*",
     "sentry.explore.models",
