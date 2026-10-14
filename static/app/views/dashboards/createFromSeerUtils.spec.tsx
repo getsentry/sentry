@@ -1,6 +1,11 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {
   applySeerWidgetDefaults,
   extractDashboardFromSession,
+  getGeneratedDashboardPageFilters,
+  getProjectSlugsFromWidgets,
+  queryHasPageFilters,
   splitDashboardPrompt,
   statusIsTerminal,
 } from 'sentry/views/dashboards/createFromSeerUtils';
@@ -25,6 +30,19 @@ function makeWidget(overrides: Partial<Widget> = {}): Widget {
     ],
     ...overrides,
   };
+}
+
+function makeWidgetWithConditions(...conditions: string[]): Widget {
+  return makeWidget({
+    queries: conditions.map(condition => ({
+      name: '',
+      conditions: condition,
+      aggregates: ['count()'],
+      columns: [],
+      fields: ['count()'],
+      orderby: '',
+    })),
+  });
 }
 
 function makeSession(
@@ -153,5 +171,195 @@ describe('extractDashboardFromSession', () => {
     expect(result!.widgets[0]!.title).toBe('Count');
     expect(result!.widgets[0]!.displayType).toBe('line');
     expect(result!.widgets[0]!.widgetType).toBe('spans');
+    expect(result!.projects).toEqual([]);
+    expect(result!.environment).toEqual([]);
+  });
+
+  it('extracts the project and environment scope from the artifact', () => {
+    const session = makeSession({
+      blocks: [
+        {
+          id: 'block-1',
+          message: {content: 'Here is your dashboard', role: 'assistant'},
+          timestamp: new Date().toISOString(),
+          artifacts: [
+            {
+              key: 'dashboard',
+              reason: 'generated',
+              data: {
+                title: 'My Dashboard',
+                projects: [1, 2],
+                environment: ['production'],
+                widgets: [],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = extractDashboardFromSession(session);
+
+    expect(result!.projects).toEqual([1, 2]);
+    expect(result!.environment).toEqual(['production']);
+  });
+});
+
+describe('getProjectSlugsFromWidgets', () => {
+  it('collects slugs from single values and lists', () => {
+    const widgets = [
+      makeWidgetWithConditions('project:frontend', 'project:[backend,worker]'),
+      makeWidgetWithConditions('project.name:mobile level:error'),
+    ];
+
+    expect(getProjectSlugsFromWidgets(widgets)).toEqual([
+      'frontend',
+      'backend',
+      'worker',
+      'mobile',
+    ]);
+  });
+
+  it('collects slugs inside boolean groups', () => {
+    const widgets = [makeWidgetWithConditions('(project:frontend OR project:backend)')];
+
+    expect(getProjectSlugsFromWidgets(widgets)).toEqual(['frontend', 'backend']);
+  });
+
+  it('ignores negated, wildcard, and unrelated filters', () => {
+    const widgets = [
+      makeWidgetWithConditions(
+        '!project:frontend project:back* transaction:project:frontend'
+      ),
+    ];
+
+    expect(getProjectSlugsFromWidgets(widgets)).toEqual([]);
+  });
+
+  it('dedupes slugs across widgets', () => {
+    const widgets = [
+      makeWidgetWithConditions('project:frontend'),
+      makeWidgetWithConditions('project:frontend'),
+    ];
+
+    expect(getProjectSlugsFromWidgets(widgets)).toEqual(['frontend']);
+  });
+});
+
+describe('getGeneratedDashboardPageFilters', () => {
+  const memberProject = ProjectFixture({id: '1', slug: 'member', isMember: true});
+  const otherProject = ProjectFixture({id: '2', slug: 'other', isMember: false});
+  const projects = [memberProject, otherProject];
+
+  function makeDashboard(
+    overrides: Partial<
+      Parameters<typeof getGeneratedDashboardPageFilters>[0]['dashboard']
+    >
+  ) {
+    return {projects: [], environment: [], widgets: [], ...overrides};
+  }
+
+  it('returns null when member projects already cover the widget filters', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({widgets: [makeWidgetWithConditions('project:member')]}),
+        query: {},
+        projects,
+      })
+    ).toBeNull();
+  });
+
+  it('adds non-member projects referenced by widget filters to My Projects', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({widgets: [makeWidgetWithConditions('project:other')]}),
+        query: {},
+        projects,
+      })
+    ).toEqual({project: ['1', '2']});
+  });
+
+  it('widens an explicit project selection', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({widgets: [makeWidgetWithConditions('project:member')]}),
+        query: {project: '2'},
+        projects,
+      })
+    ).toEqual({project: ['2', '1']});
+  });
+
+  it('returns null when all projects are selected', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({widgets: [makeWidgetWithConditions('project:other')]}),
+        query: {project: '-1'},
+        projects,
+      })
+    ).toBeNull();
+  });
+
+  it('ignores slugs that do not match a known project', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({
+          widgets: [makeWidgetWithConditions('project:unknown')],
+        }),
+        query: {},
+        projects,
+      })
+    ).toBeNull();
+  });
+
+  it('uses the generated project scope instead of My Projects', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({
+          projects: [2],
+          widgets: [makeWidgetWithConditions('project:member')],
+        }),
+        query: {},
+        projects,
+      })
+    ).toEqual({project: ['2', '1']});
+  });
+
+  it('applies the generated environments when none are selected', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({environment: ['production']}),
+        query: {},
+        projects,
+      })
+    ).toEqual({environment: ['production']});
+
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({environment: ['production']}),
+        query: {environment: 'staging'},
+        projects,
+      })
+    ).toBeNull();
+  });
+});
+
+describe('queryHasPageFilters', () => {
+  it('matches single and multiple query values regardless of order', () => {
+    expect(queryHasPageFilters({project: '1'}, {project: ['1']})).toBe(true);
+    expect(queryHasPageFilters({project: ['2', '1']}, {project: ['1', '2']})).toBe(true);
+    expect(
+      queryHasPageFilters(
+        {project: ['1', '2'], environment: 'production'},
+        {project: ['1', '2'], environment: ['production']}
+      )
+    ).toBe(true);
+  });
+
+  it('does not match when values differ', () => {
+    expect(queryHasPageFilters({}, {project: ['1']})).toBe(false);
+    expect(queryHasPageFilters({project: '1'}, {project: ['1', '2']})).toBe(false);
+    expect(
+      queryHasPageFilters({project: '1'}, {project: ['1'], environment: ['production']})
+    ).toBe(false);
   });
 });

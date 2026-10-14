@@ -11,7 +11,8 @@ import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
 import {extractDashboardFromSession, statusIsTerminal} from './createFromSeerUtils';
-import type {DashboardDetails, Widget} from './types';
+import type {GeneratedDashboard} from './createFromSeerUtils';
+import type {DashboardDetails} from './types';
 
 const POLL_INTERVAL_MS = 500;
 const POST_COMPLETE_POLL_MS = 5000;
@@ -45,10 +46,7 @@ async function startDashboardEditSession(
 }
 
 interface UseSeerDashboardSessionOptions {
-  onDashboardUpdate: (
-    data: {title: string; widgets: Widget[]},
-    seerRunId: number | null
-  ) => void;
+  onDashboardUpdate: (data: GeneratedDashboard, seerRunId: number | null) => void;
   dashboard?: Pick<DashboardDetails, 'title' | 'widgets'>;
   enabled?: boolean;
   onPostCompletePollEnd?: () => void;

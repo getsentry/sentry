@@ -1,7 +1,13 @@
 import * as Sentry from '@sentry/react';
+import type {Location} from 'history';
 
 import {validateDashboard} from 'sentry/actionCreators/dashboards';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {parseSearch, TermOperator, Token} from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {decodeList} from 'sentry/utils/queryString';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 
 import {
@@ -19,6 +25,15 @@ const DASHBOARD_ARTIFACT_KEY = 'dashboard';
 type DashboardArtifact = {
   title: string;
   widgets: WidgetArtifact[];
+  environment?: string[];
+  projects?: number[];
+};
+
+export type GeneratedDashboard = {
+  environment: string[];
+  projects: number[];
+  title: string;
+  widgets: Widget[];
 };
 
 type WidgetArtifact = {
@@ -105,10 +120,7 @@ function applyLimitDefaults(limit: number | null | undefined): number {
  */
 export function extractDashboardFromSession(
   session: NonNullable<SeerExplorerResponse['session']>
-): {
-  title: string;
-  widgets: Widget[];
-} | null {
+): GeneratedDashboard | null {
   for (const block of (session.blocks ?? []).toReversed()) {
     const artifact = block.artifacts?.find(
       a => a.key === DASHBOARD_ARTIFACT_KEY && a.data
@@ -117,6 +129,8 @@ export function extractDashboardFromSession(
       const data = artifact.data as DashboardArtifact;
       return {
         title: data.title,
+        projects: data.projects ?? [],
+        environment: data.environment ?? [],
         widgets: assignDefaultLayout(
           applySeerWidgetDefaults(data.widgets.map(normalizeWidgetCase)).map(
             assignTempId
@@ -127,6 +141,137 @@ export function extractDashboardFromSession(
     }
   }
   return null;
+}
+
+const PROJECT_SLUG_FILTER_KEYS = new Set(['project', 'project.name']);
+
+/**
+ * Collects project slugs that generated widget queries require via positive
+ * `project:` / `project.name:` filters. The events APIs reject these filters
+ * with a 400 when the slug isn't part of the request's project selection, so
+ * the preview must select these projects for the widgets to load.
+ *
+ * Negated and wildcard filters are skipped because the API doesn't require
+ * those projects to be selected.
+ */
+export function getProjectSlugsFromWidgets(widgets: Widget[]): string[] {
+  const slugs = new Set<string>();
+
+  for (const widget of widgets) {
+    for (const query of widget.queries ?? []) {
+      const parsed = parseSearch(query.conditions ?? '', {flattenParenGroups: true});
+
+      for (const token of parsed ?? []) {
+        if (
+          token.type !== Token.FILTER ||
+          token.negated ||
+          (token.operator !== TermOperator.DEFAULT &&
+            token.operator !== TermOperator.EQUAL) ||
+          !PROJECT_SLUG_FILTER_KEYS.has(getKeyName(token.key))
+        ) {
+          continue;
+        }
+
+        const values =
+          token.value.type === Token.VALUE_TEXT_LIST
+            ? token.value.items.map(item => item.value?.value)
+            : token.value.type === Token.VALUE_TEXT
+              ? [token.value.value]
+              : [];
+
+        for (const value of values) {
+          if (value && !value.includes('*')) {
+            slugs.add(value);
+          }
+        }
+      }
+    }
+  }
+
+  return [...slugs];
+}
+
+export type GeneratedDashboardPageFilters = {
+  environment?: string[];
+  project?: string[];
+};
+
+/**
+ * Determines the page filter query params the preview needs so that a
+ * generated dashboard's widgets can query the projects they reference.
+ *
+ * Returns null when the current URL selection already covers the dashboard.
+ * Selections are only ever widened, so a user's explicit selection is kept.
+ */
+export function getGeneratedDashboardPageFilters({
+  dashboard,
+  query,
+  projects,
+}: {
+  dashboard: Pick<GeneratedDashboard, 'environment' | 'projects' | 'widgets'>;
+  projects: Project[];
+  query: Location['query'];
+}): GeneratedDashboardPageFilters | null {
+  const update: GeneratedDashboardPageFilters = {};
+
+  const selectedProjectIds = decodeList(query.project)
+    .map(Number)
+    .filter(id => !Number.isNaN(id));
+  const hasAllProjects = selectedProjectIds.includes(ALL_ACCESS_PROJECTS);
+
+  if (!hasAllProjects) {
+    const slugToId = new Map(projects.map(project => [project.slug, Number(project.id)]));
+    const requiredIds = [
+      ...dashboard.projects,
+      ...getProjectSlugsFromWidgets(dashboard.widgets).flatMap(slug => {
+        const id = slugToId.get(slug);
+        return id === undefined ? [] : [id];
+      }),
+    ];
+
+    // An empty selection means "My Projects". Unless Seer scoped the dashboard
+    // itself, keep those selected so widgets without a project filter keep
+    // showing the same data.
+    const baseIds =
+      selectedProjectIds.length > 0
+        ? selectedProjectIds
+        : dashboard.projects.length > 0
+          ? []
+          : projects
+              .filter(project => project.isMember)
+              .map(project => Number(project.id));
+
+    const baseIdSet = new Set(baseIds);
+    const missingIds = [...new Set(requiredIds)].filter(id => !baseIdSet.has(id));
+
+    if (missingIds.length > 0) {
+      update.project = [...baseIds, ...missingIds].map(String);
+    }
+  }
+
+  if (dashboard.environment.length > 0 && decodeList(query.environment).length === 0) {
+    update.environment = dashboard.environment;
+  }
+
+  return update.project || update.environment ? update : null;
+}
+
+/**
+ * Whether the URL query already reflects the given page filter update.
+ */
+export function queryHasPageFilters(
+  query: Location['query'],
+  pageFilters: GeneratedDashboardPageFilters
+): boolean {
+  const matches = (key: keyof GeneratedDashboardPageFilters) => {
+    const expected = pageFilters[key];
+    if (!expected) {
+      return true;
+    }
+    const actual = new Set(decodeList(query[key]));
+    return actual.size === expected.length && expected.every(value => actual.has(value));
+  };
+  return matches('project') && matches('environment');
 }
 
 export function statusIsTerminal(status?: string | null) {

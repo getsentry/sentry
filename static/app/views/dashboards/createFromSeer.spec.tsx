@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {decodeList} from 'sentry/utils/queryString';
 
 import CreateFromSeer from './createFromSeer';
 
@@ -57,6 +58,34 @@ const MOCKED_COMPLETED_SESSION = {
     ],
   },
 };
+
+function makeCompletedSession(conditions: string) {
+  const [userBlock, assistantBlock] = MOCKED_COMPLETED_SESSION.session.blocks;
+  const artifact = assistantBlock!.artifacts[0]!;
+  return {
+    session: {
+      ...MOCKED_COMPLETED_SESSION.session,
+      blocks: [
+        userBlock,
+        {
+          ...assistantBlock,
+          artifacts: [
+            {
+              ...artifact,
+              data: {
+                ...artifact.data,
+                widgets: artifact.data.widgets.map(widget => ({
+                  ...widget,
+                  queries: widget.queries.map(query => ({...query, conditions})),
+                })),
+              },
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
 
 const MOCKED_PROCESSING_SESSION = {
   session: {
@@ -155,6 +184,67 @@ describe('CreateFromSeer', () => {
     expect(
       await screen.findByPlaceholderText('Ask Seer to modify this dashboard...')
     ).toBeInTheDocument();
+  });
+
+  it('selects projects referenced by generated widget filters', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '2', slug: 'project-slug', isMember: true}),
+      ProjectFixture({id: '3', slug: 'other-project', isMember: false}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: SEER_API_URL,
+      body: makeCompletedSession('project:other-project'),
+    });
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      method: 'GET',
+      body: {},
+    });
+
+    const {router} = render(<CreateFromSeer />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboards/from-seer/',
+          query: {seerRunId: String(SEER_RUN_ID)},
+        },
+      },
+    });
+
+    expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.project).toEqual(['2', '3']);
+    });
+    await waitFor(() => {
+      expect(eventsStatsMock).toHaveBeenCalled();
+    });
+    for (const [, options] of eventsStatsMock.mock.calls) {
+      expect(options.query.project).toEqual([2, 3]);
+    }
+  });
+
+  it('does not select other projects when widgets do not filter on them', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '2', slug: 'project-slug', isMember: true}),
+      ProjectFixture({id: '3', slug: 'other-project', isMember: false}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: SEER_API_URL,
+      body: MOCKED_COMPLETED_SESSION,
+    });
+
+    const {router} = render(<CreateFromSeer />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboards/from-seer/',
+          query: {seerRunId: String(SEER_RUN_ID)},
+        },
+      },
+    });
+
+    expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
+    expect(decodeList(router.location.query.project)).not.toContain('3');
   });
 
   it('sends user input message to seer through the chat panel', async () => {
