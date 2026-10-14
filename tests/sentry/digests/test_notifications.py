@@ -24,6 +24,7 @@ from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -93,7 +94,7 @@ class GroupRecordsTestCase(TestCase):
 
     @cached_property
     def origin(self) -> NotificationOrigin:
-        return NotificationOrigin.from_legacy_rule(self.rule)
+        return create_notification_origin(self.rule)
 
     def test_success(self) -> None:
         events = [
@@ -162,8 +163,8 @@ class SortDigestTestCase(TestCase):
         )
 
         origins = [
-            NotificationOrigin.from_legacy_rule(first_rule),
-            NotificationOrigin.from_legacy_rule(second_rule),
+            create_notification_origin(first_rule),
+            create_notification_origin(second_rule),
         ]
         groups = [self.create_group() for _ in range(3)]
 
