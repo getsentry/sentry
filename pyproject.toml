@@ -1358,7 +1358,6 @@ module = [
     "sentry.testutils.helpers.backups",
     "sentry.testutils.helpers.data_blobs",
     "sentry.testutils.helpers.datetime",
-    "sentry.testutils.helpers.discover",
     "sentry.testutils.helpers.eventprocessing",
     "sentry.testutils.helpers.features",
     "sentry.testutils.helpers.impersonation",
