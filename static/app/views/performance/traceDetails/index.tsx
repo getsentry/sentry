@@ -172,29 +172,36 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const traceStartMs = traceNode?.space[0] ?? 0;
   const traceStartSeconds = traceStartMs > 0 ? traceStartMs / 1000 : 0;
 
+  const isInitialTraceLoading =
+    Boolean(traceSlug) &&
+    (meta.status === 'pending' || trace.status === 'pending' || tree.type === 'loading');
+
   // Push trace metadata into the LLM context tree for Seer Explorer.
-  useLLMContext({
-    contextHint:
-      'Sentry trace detail page. services lists the projects (services) involved in this trace. ' +
-      'You can get the trace waterfall or focus on a specific span, get event details or issue aggregate stats, ' +
-      'get log attributes or metric attributes by trace ID, view a profile flamegraph, ' +
-      'and search live telemetry for related spans/errors/logs/metrics.',
-    traceId: traceSlug,
-    activeTab: currentTab,
-    durationMs: tree.root.children[0]?.space?.[1],
-    nodeCount: tree.list.length,
-    services: Array.from(tree.projects.values()).map(p => p.slug),
-    errors: meta.data?.errorsCount,
-    performanceIssues: meta.data?.performanceIssuesCount,
-    spanCount: meta.data?.spansCount,
-    webVitals: tree.indicators.map(i => ({
-      type: i.type,
-      label: i.label,
-      value: i.measurement.value,
-      unit: i.measurement.unit,
-      poor: i.poor,
-    })),
-  });
+  useLLMContext(
+    {
+      contextHint:
+        'Sentry trace detail page. services lists the projects (services) involved in this trace. ' +
+        'You can get the trace waterfall or focus on a specific span, get event details or issue aggregate stats, ' +
+        'get log attributes or metric attributes by trace ID, view a profile flamegraph, ' +
+        'and search live telemetry for related spans/errors/logs/metrics.',
+      traceId: traceSlug,
+      activeTab: currentTab,
+      durationMs: tree.root.children[0]?.space?.[1],
+      nodeCount: tree.list.length,
+      services: Array.from(tree.projects.values()).map(p => p.slug),
+      errors: meta.data?.errorsCount,
+      performanceIssues: meta.data?.performanceIssuesCount,
+      spanCount: meta.data?.spansCount,
+      webVitals: tree.indicators.map(i => ({
+        type: i.type,
+        label: i.label,
+        value: i.measurement.value,
+        unit: i.measurement.unit,
+        poor: i.poor,
+      })),
+    },
+    {isLoading: isInitialTraceLoading}
+  );
 
   const content = (
     <ViewportConstrainedPage>
@@ -257,10 +264,6 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
       </TraceInnerLayout>
     </ViewportConstrainedPage>
   );
-
-  const isInitialTraceLoading =
-    Boolean(traceSlug) &&
-    (meta.status === 'pending' || trace.status === 'pending' || tree.type === 'loading');
 
   return (
     <SentryDocumentTitle

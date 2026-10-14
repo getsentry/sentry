@@ -124,5 +124,9 @@ export interface LLMContextInternalValue {
   getSnapshot: (fromNodeId?: string) => LLMContextSnapshot;
   registerNode: (nodeId: string, nodeType: string, parentId?: string) => void;
   unregisterNode: (nodeId: string) => void;
-  updateNodeData: (nodeId: string, data: unknown) => void;
+  updateNodeData: (nodeId: string, data: unknown, isLoading?: boolean) => void;
+  waitForLLMContext: (
+    isReady: (snapshot: LLMContextSnapshot) => boolean,
+    options: {timeoutMs: number; signal?: AbortSignal}
+  ) => Promise<boolean>;
 }

@@ -31,6 +31,11 @@ interface RouteIdentity {
   params: Record<string, string>;
 }
 
+interface LLMContextReader {
+  getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot;
+  waitForLLMContext: LLMContextInternalValue['waitForLLMContext'];
+}
+
 // Internal context — holds the registry operations (registerNode, etc.)
 
 const LLMInternalContext = createContext<LLMContextInternalValue | undefined>(undefined);
@@ -212,6 +217,14 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
   const stateRef = useRef(INITIAL_STATE);
   const nodeDataRef = useRef(new Map<string, unknown>());
   const routeRef = useRef<RouteIdentity | null>(null);
+  const listenersRef = useRef(new Set<() => void>());
+  const loadingNodeIdsRef = useRef(new Set<string>());
+
+  const notifyListeners = useCallback(() => {
+    for (const listener of listenersRef.current) {
+      listener();
+    }
+  }, []);
 
   // Stable so LocationWatcher's effect doesn't refire on every provider render.
   const handleRouteChange = useCallback((route: RouteIdentity) => {
@@ -233,29 +246,101 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
       const newNodes = new Map(prev.nodes);
       newNodes.set(nodeId, {nodeType, parentId});
       stateRef.current = {nodes: newNodes, version: prev.version + 1};
+      notifyListeners();
     },
-    []
+    [notifyListeners]
   );
 
-  const unregisterNode = useCallback((nodeId: string) => {
-    const prev = stateRef.current;
-    if (!prev.nodes.has(nodeId)) {
-      return;
-    }
-    const toRemove = collectDescendantIds(prev.nodes, nodeId);
-    const newNodes = new Map(prev.nodes);
-    for (const id of toRemove) {
-      newNodes.delete(id);
-      nodeDataRef.current.delete(id);
-    }
-    stateRef.current = {nodes: newNodes, version: prev.version + 1};
+  const unregisterNode = useCallback(
+    (nodeId: string) => {
+      const prev = stateRef.current;
+      if (!prev.nodes.has(nodeId)) {
+        return;
+      }
+      const toRemove = collectDescendantIds(prev.nodes, nodeId);
+      const newNodes = new Map(prev.nodes);
+      for (const id of toRemove) {
+        newNodes.delete(id);
+        nodeDataRef.current.delete(id);
+        loadingNodeIdsRef.current.delete(id);
+      }
+      stateRef.current = {nodes: newNodes, version: prev.version + 1};
+      notifyListeners();
+    },
+    [notifyListeners]
+  );
+
+  const updateNodeData = useCallback(
+    (nodeId: string, data: unknown, isLoading = false) => {
+      nodeDataRef.current.set(nodeId, data);
+      if (isLoading) {
+        loadingNodeIdsRef.current.add(nodeId);
+      } else {
+        loadingNodeIdsRef.current.delete(nodeId);
+      }
+      // Bump version so consumers using it as a change token detect data updates.
+      stateRef.current = {...stateRef.current, version: stateRef.current.version + 1};
+      notifyListeners();
+    },
+    [notifyListeners]
+  );
+
+  const subscribe = useCallback((listener: () => void) => {
+    listenersRef.current.add(listener);
+    return () => listenersRef.current.delete(listener);
   }, []);
 
-  const updateNodeData = useCallback((nodeId: string, data: unknown) => {
-    nodeDataRef.current.set(nodeId, data);
-    // Bump version so consumers using it as a change token detect data updates.
-    stateRef.current = {...stateRef.current, version: stateRef.current.version + 1};
-  }, []);
+  /**
+   * Resolves true once no node is loading and `isReady` passes on the snapshot,
+   * or false at `timeoutMs`.
+   * Checks on the next tick rather than on each change, so a render's context
+   * writes have all landed before the snapshot is read.
+   */
+  const waitForLLMContext = useCallback(
+    (
+      isReady: (snapshot: LLMContextSnapshot) => boolean,
+      {timeoutMs, signal}: {timeoutMs: number; signal?: AbortSignal}
+    ): Promise<boolean> =>
+      new Promise((resolve, reject) => {
+        if (signal?.aborted) {
+          reject(signal.reason);
+          return;
+        }
+
+        let checkTimeoutId: number | undefined;
+
+        const finish = (settle: () => void) => {
+          unsubscribe();
+          window.clearTimeout(checkTimeoutId);
+          window.clearTimeout(limitTimeoutId);
+          signal?.removeEventListener('abort', onAbort);
+          settle();
+        };
+
+        const check = () => {
+          if (checkTimeoutId !== undefined) {
+            return;
+          }
+          checkTimeoutId = window.setTimeout(() => {
+            checkTimeoutId = undefined;
+            if (loadingNodeIdsRef.current.size === 0 && isReady(getSnapshot())) {
+              finish(() => resolve(true));
+            }
+          }, 0);
+        };
+
+        const onAbort = () => finish(() => reject(signal?.reason));
+
+        const unsubscribe = subscribe(check);
+        const limitTimeoutId = window.setTimeout(
+          () => finish(() => resolve(false)),
+          timeoutMs
+        );
+        signal?.addEventListener('abort', onAbort);
+        check();
+      }),
+    [getSnapshot, subscribe]
+  );
 
   // Flat (id-keyed) view of the registry, for consumers that need to pair a
   // node's data with its DOM anchor (e.g. Seer XRay Mode) rather than the
@@ -278,8 +363,16 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
       registerNode,
       unregisterNode,
       updateNodeData,
+      waitForLLMContext,
     }),
-    [getOverlayNodes, getSnapshot, registerNode, unregisterNode, updateNodeData]
+    [
+      getOverlayNodes,
+      getSnapshot,
+      registerNode,
+      unregisterNode,
+      updateNodeData,
+      waitForLLMContext,
+    ]
   );
 
   return (
@@ -309,29 +402,39 @@ export const LLM_CONTEXT_MAX_ROWS = 15;
  *
  *   useLLMContext({ title: 'Error Rate', threshold: 5 });
  *   useLLMContext(someComputedValue);
+ *
+ * Pass `isLoading` while the data is still being fetched, so waitForLLMContext
+ * holds off until the node is complete.
+ *
+ *   useLLMContext({ rows }, { isLoading: isPending });
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- {} here means "any non-undefined value" to distinguish from the no-arg read overload
-export function useLLMContext(data: {} | null): void;
+export function useLLMContext(
+  // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- {} here means "any non-undefined value" to distinguish from the no-arg read overload
+  data: {} | null,
+  options?: {isLoading: boolean}
+): void;
 
 /**
  * useLLMContext — read overload
  *
- * Call with no arguments to get getLLMContext.
+ * Call with no arguments to get getLLMContext and waitForLLMContext.
  *
- *   const { getLLMContext } = useLLMContext();
+ *   const { getLLMContext, waitForLLMContext } = useLLMContext();
  *   getLLMContext()      // full tree from root
  *   getLLMContext(true)  // current component's subtree only
+ *   await waitForLLMContext(isReady, {timeoutMs})  // false if it timed out
  */
-export function useLLMContext(): {
-  getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot;
-};
+export function useLLMContext(): LLMContextReader;
 
 export function useLLMContext(
-  data?: unknown
-): void | {getLLMContext: (componentOnly?: boolean) => LLMContextSnapshot} {
+  data?: unknown,
+  options?: {isLoading: boolean}
+): void | LLMContextReader {
   const ctx = useLLMContextRegistry();
   const nodeId = useContext(LLMNodeContext);
   const prevDataRef = useRef('');
+  const prevIsLoadingRef = useRef(false);
+  const isLoading = options?.isLoading ?? false;
 
   // Write path: sync data into the nearest node whenever it changes.
   // JSON equality guard prevents redundant writes. updateNodeData writes
@@ -350,11 +453,16 @@ export function useLLMContext(
       serialized = null;
       safeData = {error: 'non-serializable value'};
     }
-    if (serialized === null || serialized !== prevDataRef.current) {
+    if (
+      serialized === null ||
+      serialized !== prevDataRef.current ||
+      isLoading !== prevIsLoadingRef.current
+    ) {
       if (serialized !== null) {
         prevDataRef.current = serialized;
       }
-      ctx.updateNodeData(nodeId, safeData);
+      prevIsLoadingRef.current = isLoading;
+      ctx.updateNodeData(nodeId, safeData, isLoading);
     }
   });
 
@@ -371,7 +479,7 @@ export function useLLMContext(
   );
 
   if (data === undefined) {
-    return {getLLMContext};
+    return {getLLMContext, waitForLLMContext: ctx.waitForLLMContext};
   }
   return undefined;
 }

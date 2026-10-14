@@ -256,7 +256,7 @@ export type SeerAnalyticsEventsParameters = {
     count: number;
     referrer: string;
     source: 'generated' | 'fallback' | 'legacy';
-    fallback_reason?: 'timeout' | 'error' | 'empty';
+    fallback_reason?: 'timeout' | 'error' | 'empty' | 'incomplete_context';
   };
   'seer.explorer.timed_out': {
     run_id: SeerExplorerRunId | null;

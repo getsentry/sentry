@@ -933,39 +933,42 @@ function IssueListOverviewInner({
   // separate from the hard selected project filter the agent should scope to.
   const displayedProjectSlugs = [...new Set(groups.map(g => g.project.slug))];
 
-  useLLMContext({
-    contextHint:
-      (isTaxonomyView
-        ? 'Sentry issue feed — filtered taxonomy view. The query below contains the active category filter. '
-        : 'Sentry issue list page. ') +
-      'Shows a filterable, sortable list of grouped issues. ' +
-      'viewName is the name of the saved issue view being displayed (if any). ' +
-      'query is the current search filter (Sentry search syntax). ' +
-      'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
-      'issueCount is the total matching issues — there may be more than what is displayed. ' +
-      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
-      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction. ' +
-      'displayedProjectSlugs are only the projects represented by currently visible rows. ' +
-      'You can get issue details for aggregate stats, get event details for a specific error event, ' +
-      'and search live telemetry for related spans/errors/logs/metrics.',
-    viewName: groupSearchView?.name,
-    query,
-    sort,
-    issueCount: queryCount,
-    ...toLLMContextProjectFields(selectedProjects),
-    displayedProjectSlugs,
-    environments: selection.environments,
-    dateRange: selection.datetime,
-    displayedIssues: [
-      'shortId|title|issueType|level|priority|events|users|firstSeen',
-      ...groups
-        .slice(0, MAX_ITEMS)
-        .map(
-          g =>
-            `${g.shortId}|${g.title.replace(/[|\n]/g, ' ')}|${g.issueType}|${g.level}|${g.priority}|${'count' in g ? g.count : ''}|${'userCount' in g ? g.userCount : ''}|${g.firstSeen}`
-        ),
-    ].join('\n'),
-  });
+  useLLMContext(
+    {
+      contextHint:
+        (isTaxonomyView
+          ? 'Sentry issue feed — filtered taxonomy view. The query below contains the active category filter. '
+          : 'Sentry issue list page. ') +
+        'Shows a filterable, sortable list of grouped issues. ' +
+        'viewName is the name of the saved issue view being displayed (if any). ' +
+        'query is the current search filter (Sentry search syntax). ' +
+        'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
+        'issueCount is the total matching issues — there may be more than what is displayed. ' +
+        'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+        'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction. ' +
+        'displayedProjectSlugs are only the projects represented by currently visible rows. ' +
+        'You can get issue details for aggregate stats, get event details for a specific error event, ' +
+        'and search live telemetry for related spans/errors/logs/metrics.',
+      viewName: groupSearchView?.name,
+      query,
+      sort,
+      issueCount: queryCount,
+      ...toLLMContextProjectFields(selectedProjects),
+      displayedProjectSlugs,
+      environments: selection.environments,
+      dateRange: selection.datetime,
+      displayedIssues: [
+        'shortId|title|issueType|level|priority|events|users|firstSeen',
+        ...groups
+          .slice(0, MAX_ITEMS)
+          .map(
+            g =>
+              `${g.shortId}|${g.title.replace(/[|\n]/g, ' ')}|${g.issueType}|${g.level}|${g.priority}|${'count' in g ? g.count : ''}|${'userCount' in g ? g.userCount : ''}|${g.firstSeen}`
+          ),
+      ].join('\n'),
+    },
+    {isLoading: issuesLoading}
+  );
 
   return (
     <IssueSelectionProvider visibleGroupIds={groupIds}>

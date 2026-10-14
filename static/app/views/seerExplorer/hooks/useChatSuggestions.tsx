@@ -12,7 +12,10 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
+import {
+  usePageContextCapture,
+  useWaitForPageContext,
+} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 import type {ChatSuggestion} from 'sentry/views/seerExplorer/types';
 
 const SUGGESTIONS_TIMEOUT_MS = 4000;
@@ -48,6 +51,23 @@ function getFallbackChatSuggestions(route: string, hasDbData: boolean): ChatSugg
   ];
 }
 
+/** Why the fallback suggestions are being shown, for analytics. */
+function getFallbackReason(
+  error: Error | null,
+  isPageContextComplete: boolean | undefined
+): 'timeout' | 'error' | 'incomplete_context' | 'empty' {
+  if (error instanceof SuggestionsTimeoutError) {
+    return 'timeout';
+  }
+  if (error) {
+    return 'error';
+  }
+  if (isPageContextComplete === false) {
+    return 'incomplete_context';
+  }
+  return 'empty';
+}
+
 export type ChatSuggestionsState =
   | {isLoading: true}
   | {
@@ -76,6 +96,7 @@ export function useChatSuggestions({
   const {selection} = usePageFilters();
   const {projects} = useProjects();
   const capturePageContext = usePageContextCapture();
+  const waitForPageContext = useWaitForPageContext();
 
   // For the fallback suggestions: do any selected projects (or member projects, if none are selected) send DB data?
   const isProjectSelectionExplicit =
@@ -97,12 +118,19 @@ export function useChatSuggestions({
       selection.projects,
       allowStructuredContext,
     ],
-    queryFn: () => {
+    queryFn: async ({signal}) => {
+      const isPageContextComplete = await waitForPageContext({route, signal});
+      if (!isPageContextComplete) {
+        // Show the fixed suggestions rather than generating from a half-loaded page.
+        return {suggestions: [], isPageContextComplete};
+      }
+
       const {screenshot: pageContext} = capturePageContext({
         route,
         allowStructured: allowStructuredContext,
       });
-      return Promise.race([
+
+      const response = await Promise.race([
         fetchMutation<{suggestions: ChatSuggestion[]}>({
           method: 'POST',
           url: getApiUrl('/organizations/$organizationIdOrSlug/seer/chat-suggestions/', {
@@ -122,9 +150,11 @@ export function useChatSuggestions({
           )
         ),
       ]);
+      return {...response, isPageContextComplete};
     },
     enabled: enabled && hasLlmChatSuggestions,
-    staleTime: 10 * 60 * 1000,
+    // Retry on the next open if the page hadn't finished loading.
+    staleTime: q => (q.state.data?.isPageContextComplete === false ? 0 : 10 * 60 * 1000),
     retry: false,
   });
 
@@ -156,18 +186,21 @@ export function useChatSuggestions({
       source: state.source,
       fallback_reason:
         state.source === 'fallback'
-          ? query.error instanceof SuggestionsTimeoutError
-            ? 'timeout'
-            : query.isError
-              ? 'error'
-              : 'empty'
+          ? getFallbackReason(query.error, query.data?.isPageContextComplete)
           : undefined,
       count: state.suggestions.length,
       action_types: state.suggestions.flatMap(suggestion =>
         suggestion.action_type ? [suggestion.action_type] : []
       ),
     });
-  }, [enabled, state, organization, route, query.error, query.isError]);
+  }, [
+    enabled,
+    state,
+    organization,
+    route,
+    query.error,
+    query.data?.isPageContextComplete,
+  ]);
 
   return state;
 }
