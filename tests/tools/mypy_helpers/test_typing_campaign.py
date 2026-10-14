@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -30,6 +31,7 @@ from tools.mypy_helpers.typing_campaign import (
     main,
     profile_config,
     run_profile,
+    tree_inventory,
 )
 
 
@@ -131,6 +133,24 @@ def test_default_source_classification_keeps_unrecognized_paths_owned() -> None:
 
     assert record.kind == SourceKind.OWNED_IMPLEMENTATION
     assert record.module is None
+
+
+def test_tree_inventory_reads_supported_git_tree_modes(tmp_path: Path) -> None:
+    repository = tmp_path / "repository"
+    source = repository / "src" / "sentry" / "example.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("value = 1\n")
+    subprocess.run(("git", "init", "-q"), cwd=repository, check=True)
+    subprocess.run(("git", "add", "src/sentry/example.py"), cwd=repository, check=True)
+    tree = subprocess.run(
+        ("git", "write-tree"), cwd=repository, capture_output=True, check=True, text=True
+    ).stdout.strip()
+
+    inventory = tree_inventory(repository, tree, repository)
+
+    assert inventory == (
+        SourceFile("src/sentry/example.py", "sentry.example", SourceKind.OWNED_IMPLEMENTATION),
+    )
 
 
 def test_relative_diagnostic_paths_resolve_inside_snapshot(tmp_path: Path) -> None:

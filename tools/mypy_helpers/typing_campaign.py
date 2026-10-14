@@ -730,7 +730,7 @@ def extract_tree(repo: Path, tree: str, output: Path) -> Path:
 
 def tree_inventory(repo: Path, tree: str, root: Path) -> tuple[SourceFile, ...]:
     listing = subprocess.run(
-        ("git", "ls-tree", "-r", "-z", "--format=%(mode)%x09%(path)", tree),
+        ("git", "ls-tree", "-r", "-z", "--format=%(objectmode)%x09%(path)", tree),
         cwd=repo,
         capture_output=True,
         check=False,
