@@ -59,11 +59,14 @@ type ConditionType =
   | 'metric_name'
   | 'log_message'
   | 'release'
-  | 'ip_address';
+  | 'ip_address'
+  | 'tag';
 
 type CustomInboundFilterCondition = {
   type: ConditionType;
   value: string[];
+  // The tag a `tag` condition reads. Absent on every other condition type.
+  key?: string;
 };
 
 // Shape returned by the custom inbound filters API.
@@ -89,7 +92,10 @@ type DataTypeOption = {label: string; value: FilterDataType};
 
 // A single editable condition row in the modal. The API stores a list of
 // values per condition; the row edits them as one text with a value per line.
+// Every row carries a key so switching the property keeps what was typed, but
+// only a property that takes a key shows and saves it.
 type ConditionFormValue = {
+  key: string;
   property: ConditionType;
   value: string;
 };
@@ -125,10 +131,13 @@ type ConditionSpec = {
   description: string | Record<FilterDataType, string>;
   label: string;
   placeholder: string;
-  // The data type whose field this condition reads. Absent for `release` and
-  // `ip_address`, which every data type carries, so they stay on offer whatever
-  // the filter targets.
+  // The data type whose field this condition reads. Absent for `release`,
+  // `ip_address` and `tag`, which every data type carries, so they stay on offer
+  // whatever the filter targets.
   dataType?: FilterDataType;
+  // Set when the condition reads one entry of a key-value bag, named by the
+  // row's key input.
+  takesKey?: boolean;
 };
 
 // Declaration order is the order of the property dropdown, and the first
@@ -190,6 +199,22 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
       'Matches the IP address the data was sent from. Takes single addresses and CIDR ranges, not glob patterns.'
     ),
   },
+  tag: {
+    takesKey: true,
+    label: t('Tag'),
+    placeholder: t('Glob pattern, e.g. free'),
+    description: {
+      all: t(
+        'Matches the tag with this key on errors, and the attribute with this key on spans, logs and metrics. Only tags the SDK sent count. Tags Sentry adds later, such as browser.name, are not available.'
+      ),
+      error: t(
+        'Matches the tag with this key as the SDK sent it. Tags Sentry adds later, such as browser.name, are not available.'
+      ),
+      log: t('Matches the attribute with this key on the log.'),
+      metric: t('Matches the attribute with this key on the metric.'),
+      span: t('Matches the attribute with this key on the span.'),
+    },
+  },
 };
 
 const CONDITION_TYPES = Object.keys(CONDITIONS) as [ConditionType, ...ConditionType[]];
@@ -245,7 +270,7 @@ function getAvailableDataTypeOptions(organization: Organization): DataTypeOption
 }
 
 function emptyCondition(property: ConditionType): ConditionFormValue {
-  return {property, value: ''};
+  return {property, key: '', value: ''};
 }
 
 // The values of a condition row, one per non-empty line of its text.
@@ -261,15 +286,36 @@ const filterSchema = z.object({
   dataType: z.enum(FILTER_DATA_TYPES),
   conditions: z
     .array(
-      z.object({
-        property: z.enum(CONDITION_TYPES),
-        value: z
-          .string()
-          .refine(
-            text => splitConditionValues(text).length > 0,
-            t('Enter a value to match')
-          ),
-      })
+      z
+        .object({
+          property: z.enum(CONDITION_TYPES),
+          key: z.string(),
+          value: z
+            .string()
+            .refine(
+              text => splitConditionValues(text).length > 0,
+              t('Enter a value to match')
+            ),
+        })
+        .superRefine((condition, ctx) => {
+          if (!getCondition(condition.property).takesKey) {
+            return;
+          }
+          const key = condition.key.trim();
+          if (!key) {
+            ctx.addIssue({
+              code: 'custom',
+              path: ['key'],
+              message: t('Enter the tag key'),
+            });
+          } else if (/\s/.test(key)) {
+            ctx.addIssue({
+              code: 'custom',
+              path: ['key'],
+              message: t('A key cannot contain whitespace'),
+            });
+          }
+        })
     )
     .min(1),
 });
@@ -296,6 +342,7 @@ function getDataTypeLabel(filter: CustomInboundFilter): string {
 function filterToFormValues(filter: CustomInboundFilter): FilterFormValues {
   const conditions = filter.conditions.map(condition => ({
     property: condition.type,
+    key: condition.key ?? '',
     value: condition.value.join('\n'),
   }));
   const dataType = getFilterDataType(filter);
@@ -311,10 +358,12 @@ function filterToFormValues(filter: CustomInboundFilter): FilterFormValues {
 function formValuesToConditions(
   values: FilterFormValues
 ): CustomInboundFilterCondition[] {
-  return values.conditions.map(condition => ({
-    type: condition.property,
-    value: splitConditionValues(condition.value),
-  }));
+  return values.conditions.map(condition => {
+    const value = splitConditionValues(condition.value);
+    return getCondition(condition.property).takesKey
+      ? {type: condition.property, key: condition.key.trim(), value}
+      : {type: condition.property, value};
+  });
 }
 
 // The API answers with either `{detail: string}` or a DRF validation error, which
@@ -432,7 +481,8 @@ function ValueTag({value}: {value: string}) {
   );
 }
 
-// One condition of a filter: its property, then the values any of which matches.
+// One condition of a filter: its property, the key it reads if it has one, then
+// the values any of which matches.
 function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}) {
   const visible = condition.value.slice(0, MAX_VISIBLE_VALUES);
   const hidden = condition.value.slice(MAX_VISIBLE_VALUES);
@@ -442,6 +492,11 @@ function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}
       <Text size="sm" variant="muted">
         {getCondition(condition.type).label}
       </Text>
+      {condition.key && (
+        <Text size="sm" monospace>
+          {condition.key}
+        </Text>
+      )}
       {visible.map((value, index) => (
         <Fragment key={index}>
           {index > 0 && (
@@ -595,19 +650,35 @@ function CustomFilterModal({
                       {/* The value textarea grows with its lines, so the row aligns
                           to the top and the single-line cells center on the control
                           height to line up with the first line. On a narrow screen
-                          the row folds into property, "matches", and value lines. */}
+                          the row folds into property, key, "matches", and value
+                          lines. The key cell exists only on a property that reads
+                          one entry of a bag, e.g. a tag. */}
                       <Stack gap="sm">
                         {conditions.map((condition, index) => (
                           <Grid
                             key={index}
-                            areas={{
-                              zero: '"property remove" "matches matches" "value value"',
-                              md: '"property matches value remove"',
-                            }}
-                            columns={{
-                              zero: '1fr max-content',
-                              md: '160px max-content 1fr max-content',
-                            }}
+                            areas={
+                              getCondition(condition.property).takesKey
+                                ? {
+                                    zero: '"property remove" "key key" "matches matches" "value value"',
+                                    md: '"property key matches value remove"',
+                                  }
+                                : {
+                                    zero: '"property remove" "matches matches" "value value"',
+                                    md: '"property matches value remove"',
+                                  }
+                            }
+                            columns={
+                              getCondition(condition.property).takesKey
+                                ? {
+                                    zero: '1fr max-content',
+                                    md: '160px 200px max-content 1fr max-content',
+                                  }
+                                : {
+                                    zero: '1fr max-content',
+                                    md: '160px max-content 1fr max-content',
+                                  }
+                            }
                             gap={{zero: 'xs md', md: 'md'}}
                             align="start"
                           >
@@ -624,6 +695,20 @@ function CustomFilterModal({
                                 )}
                               </form.AppField>
                             </Container>
+                            {getCondition(condition.property).takesKey && (
+                              <Container area="key">
+                                <form.AppField name={`conditions[${index}].key`}>
+                                  {keyField => (
+                                    <keyField.Input
+                                      aria-label={t('Condition key')}
+                                      placeholder={t('Tag key, e.g. customer_tier')}
+                                      value={keyField.state.value}
+                                      onChange={keyField.handleChange}
+                                    />
+                                  )}
+                                </form.AppField>
+                              </Container>
+                            )}
                             <Flex
                               area="matches"
                               align="center"
