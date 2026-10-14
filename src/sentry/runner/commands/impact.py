@@ -31,4 +31,7 @@ def assess(group_id: int) -> None:
             f"Impact assessment failed after recording the attempt: {type(error).__name__}: {error}"
         ) from error
 
-    click.echo(f"Queued Seer Impact assessment {result.uuid} for group {group.id}.")
+    click.echo(
+        f"Queued Seer Impact assessment {result.uuid} for group {group.id}. "
+        "Open the issue in Sentry to see the results."
+    )

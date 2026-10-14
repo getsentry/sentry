@@ -24,8 +24,10 @@ from sentry.issues.action_log.types import (
     FirstSeenAction,
     GroupActionType,
     GroupActorType,
+    ImpactAssessmentAction,
 )
 from sentry.issues.derived.gate import should_serve_action_log_activity
+from sentry.issues.impact.types import get_impact_level
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.commit import Commit
 from sentry.models.pullrequest import PullRequest
@@ -334,7 +336,18 @@ class GroupActionLogEntrySerializer(Serializer):
             else obj.get_type_display()
         )
 
-        if (
+        if obj.type == GroupActionType.IMPACT_ASSESSMENT.value:
+            action = obj.action
+            if not isinstance(action, ImpactAssessmentAction):
+                raise TypeError("Impact assessment entry has an unexpected action type")
+            data = {
+                "score": action.score,
+                "level": get_impact_level(action.score),
+                "description": action.description,
+                "citations": [citation.dict() for citation in action.citations],
+                "sourceEventId": action.source_event_id,
+            }
+        elif (
             obj.type == GroupActionType.SET_RESOLVED_IN_RELEASE.value
             and obj.data
             and obj.data.get("commit")

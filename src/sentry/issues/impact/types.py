@@ -9,6 +9,20 @@ IMPACT_FEATURE_ID: Final = "impact_assessment"
 ImpactLevel = Literal["super_low", "low", "moderate", "high", "super_high"]
 
 
+def get_impact_level(score: float | None) -> ImpactLevel | None:
+    if score is None:
+        return None
+    if score < 20:
+        return "super_low"
+    if score < 40:
+        return "low"
+    if score < 60:
+        return "moderate"
+    if score < 80:
+        return "high"
+    return "super_high"
+
+
 class ImpactCitationData(TypedDict):
     reference: str
     claim: str

@@ -489,11 +489,13 @@ class GroupSerializerDerivedDataTest(TestCase):
                             "source": "span",
                         }
                     ],
+                    "sourceEventId": "a" * 32,
                 },
             },
         )
 
-        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
+        with self.feature("organizations:seer-impact-assessment"):
+            result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
 
         assert result["derivedData"] == {
             "blocker": IssueBlocker.APPROVE_PLAN.value,
@@ -516,8 +518,13 @@ class GroupSerializerDerivedDataTest(TestCase):
                         "source": "span",
                     }
                 ],
+                "sourceEventId": "a" * 32,
             },
         }
+
+        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
+
+        assert "impact" not in result["derivedData"]
 
     def test_derived_data_fix_applied_progress_for_closed_issue(self) -> None:
         group = self.create_group()
