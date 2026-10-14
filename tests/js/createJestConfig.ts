@@ -364,14 +364,36 @@ const config: Config.InitialOptions = {
   },
 };
 
-/** Scope discovery and coverage while retaining the shared setup and CI test list. */
-export function createJestConfig(testDirectory?: string): Config.InitialOptions {
+/** Scope discovery and coverage, with a Node environment for standalone tools. */
+export function createJestConfig(
+  testDirectory?: string,
+  environment: 'jsdom' | 'node' = 'jsdom'
+): Config.InitialOptions {
   if (testDirectory === undefined) {
     return config;
   }
   const directoryPattern = testDirectory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return {
     ...config,
+    roots: [
+      `<rootDir>/${testDirectory}`,
+      // Jest needs manual mocks inside roots, including mocks used across apps.
+      ...(environment === 'jsdom'
+        ? [
+            '<rootDir>/static/app/__mocks__',
+            '<rootDir>/static/app/utils/__mocks__',
+            '<rootDir>/static/gsApp/__mocks__',
+          ].filter(directory => !directory.startsWith(`<rootDir>/${testDirectory}/`))
+        : []),
+    ],
+    ...(environment === 'node'
+      ? {
+          testEnvironment: 'node',
+          testEnvironmentOptions: {},
+          setupFiles: [],
+          setupFilesAfterEnv: [],
+        }
+      : {}),
     testPathIgnorePatterns: [
       ...(config.testPathIgnorePatterns ?? []),
       `^<rootDir>/(?!${directoryPattern}/)`,
