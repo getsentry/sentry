@@ -1,11 +1,5 @@
 import {createContext, useContext} from 'react';
 
-import type {
-  DO_NOT_USE_ButtonProps as ButtonProps,
-  DO_NOT_USE_LinkButtonProps as LinkButtonProps,
-} from '@sentry/scraps/button/types';
-import type {LinkProps} from '@sentry/scraps/link';
-
 export interface AnalyticsProps {
   /**
    * Used when you want to overwrite the default Reload event key for analytics
@@ -24,6 +18,15 @@ export interface AnalyticsProps {
 
 type ClickTrackingType = 'button' | 'link';
 
+interface ClickableProps<Element extends HTMLElement> extends AnalyticsProps {
+  'aria-label'?: string;
+  busy?: boolean;
+  children?: React.ReactNode;
+  disabled?: boolean;
+  onClick?: React.MouseEventHandler<Element>;
+  variant?: string;
+}
+
 export type TrackingProps = AnalyticsProps &
   Record<string, unknown> & {
     clickType: ClickTrackingType;
@@ -33,8 +36,8 @@ const TrackingContext = createContext<(props: TrackingProps) => void>(() => {});
 
 export const TrackingContextProvider = TrackingContext.Provider;
 
-export const useClickTracking = (
-  props: ButtonProps | LinkButtonProps | LinkProps,
+export const useClickTracking = <Element extends HTMLElement>(
+  props: ClickableProps<Element>,
   clickType: ClickTrackingType
 ) => {
   const clickTracking = useContext(TrackingContext);
@@ -42,7 +45,7 @@ export const useClickTracking = (
     props['aria-label'] ??
     (typeof props.children === 'string' ? props.children : undefined);
 
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement | HTMLAnchorElement>) => {
+  const handleClick = (e: React.MouseEvent<Element>) => {
     // Don't allow clicks when disabled or busy
     if (props.disabled || ('busy' in props && props.busy)) {
       e.preventDefault();
@@ -60,7 +63,6 @@ export const useClickTracking = (
       },
       'aria-label': accessibleLabel || '',
     });
-    // @ts-expect-error at this point, we don't know if the button is a button or a link
     props.onClick?.(e);
   };
 

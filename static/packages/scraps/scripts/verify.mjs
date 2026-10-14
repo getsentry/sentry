@@ -142,12 +142,18 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
     Kbd,
     IndeterminateLoader,
     Switch,
+    Link,
+    ExternalLink,
     lightTheme,
     darkTheme,
   } = await import(join(installed, 'dist/index.js'));
   const {Stack: stackSubpath} = await import(join(installed, 'dist/layout/index.js'));
   if (Stack !== stackSubpath) {
     throw new Error('Public subpaths created separate component instances');
+  }
+  const {Link: linkSubpath} = await import(join(installed, 'dist/link/index.js'));
+  if (Link !== linkSubpath) {
+    throw new Error('Public link subpath created a separate component instance');
   }
   for (const theme of [lightTheme, darkTheme]) {
     const html = renderToStaticMarkup(
@@ -168,7 +174,13 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
           createElement(InlineCode, null, 'InlineCode'),
           createElement(Kbd, null, 'Kbd'),
           createElement(IndeterminateLoader),
-          createElement(Switch, {'aria-label': 'Switch'})
+          createElement(Switch, {'aria-label': 'Switch'}),
+          createElement(
+            Link,
+            {to: {pathname: '/issues/', query: {query: 'error'}, hash: 'details'}},
+            'Package link'
+          ),
+          createElement(ExternalLink, {href: 'https://example.com'}, 'External link')
         )
       )
     );
@@ -184,10 +196,18 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
       'Kbd',
       'data-icon="checkmark"',
       'data-icon="close"',
+      'Package link',
+      'External link',
     ]) {
       if (!html.includes(label)) {
         throw new Error(`Server render failed for ${label}`);
       }
+    }
+    if (
+      !html.includes('href="/issues/?query=error#details"') ||
+      !html.includes('rel="noreferrer noopener"')
+    ) {
+      throw new Error('Packed links lost their destinations or security attributes');
     }
   }
   console.log('Verified packed server rendering in both themes.');
