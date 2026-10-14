@@ -27,7 +27,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import {DarkThemeProvider} from 'sentry/utils/theme/darkThemeProvider';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -105,10 +105,12 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         position="right-start"
         minMenuWidth={258}
         menuTitle={
-          <OrganizationMenuHeader
-            organization={organization}
-            projectCount={projects.length}
-          />
+          <DarkThemeProvider>
+            <OrganizationMenuHeader
+              organization={organization}
+              projectCount={projects.length}
+            />
+          </DarkThemeProvider>
         }
         items={[
           {
@@ -278,7 +280,7 @@ function OrganizationMenuHeader({
           variant="inherit"
           tabular
           css={theme => css`
-            color: ${darkTheme.tokens.interactive.transparent.neutral.content.headings};
+            color: ${theme.tokens.interactive.transparent.neutral.content.headings};
             font-weight: ${theme.font.weight.sans.medium};
           `}
         >
@@ -292,9 +294,9 @@ function OrganizationMenuHeader({
             height="32px"
             radius="md"
             overflow="hidden"
-            css={css`
-              background-color: ${lightTheme.tokens.background.primary};
-              border: 1px solid ${darkTheme.tokens.border.transparent.neutral.muted};
+            css={theme => css`
+              background-color: white;
+              border: 1px solid ${theme.tokens.border.transparent.neutral.muted};
             `}
           >
             <OrganizationAvatar organization={organization} size={30} />
@@ -305,7 +307,7 @@ function OrganizationMenuHeader({
               density="comfortable"
               variant="inherit"
               css={theme => css`
-                color: ${darkTheme.tokens.content.headings};
+                color: ${theme.tokens.content.headings};
                 font-weight: ${theme.font.weight.sans.medium};
               `}
             >
@@ -316,8 +318,8 @@ function OrganizationMenuHeader({
               density="comfortable"
               variant="inherit"
               tabular
-              css={css`
-                color: ${darkTheme.tokens.content.secondary};
+              css={theme => css`
+                color: ${theme.tokens.content.secondary};
               `}
             >
               {tn('%s Project', '%s Projects', projectCount)}
