@@ -12,7 +12,13 @@ from typing import Protocol
 from django.db.models import Max, Min
 from django.db.utils import OperationalError
 
-from sentry.issues.derived.check import CheckFailure, CheckId, CheckInvalidated, CheckResult
+from sentry.issues.derived.check import (
+    CheckFailure,
+    CheckId,
+    CheckInvalidated,
+    CheckRecentLogEntry,
+    CheckResult,
+)
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
@@ -65,6 +71,8 @@ class SpawnState:
 
 def _record_check_result(result: CheckResult) -> None:
     outcome = "no_result" if isinstance(result, CheckInvalidated) else "success"
+    if isinstance(result, CheckRecentLogEntry):
+        outcome = "recent_log_entry"
     if isinstance(result, CheckFailure):
         outcome = "mismatch"
         logger.warning(

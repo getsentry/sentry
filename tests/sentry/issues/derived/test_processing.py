@@ -31,6 +31,7 @@ from sentry.issues.derived.check import (
     CheckFailure,
     CheckInvalidated,
     CheckPassed,
+    CheckRecentLogEntry,
     CheckTimeout,
     FeatureDifference,
     check_derived_data,
@@ -155,6 +156,12 @@ def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYS
         )
 
 
+def _age_action_log_entries(group_id: int) -> None:
+    GroupActionLogEntry.objects.filter(group_id=group_id).update(
+        date_updated=django_timezone.now() - timedelta(minutes=11)
+    )
+
+
 @with_feature("projects:issue-action-log-write-to-db")
 class ProcessGroupLogTest(TestCase):
     def setUp(self) -> None:
@@ -247,14 +254,26 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
+        _age_action_log_entries(group.id)
 
         assert check_derived_data(derived, PIPELINE) == CheckPassed()
+
+    def test_check_derived_data_skips_recently_written_log_entry(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        GroupActionLogEntry.objects.filter(group_id=group.id).update(
+            date_added=django_timezone.now() - timedelta(days=30)
+        )
+
+        assert check_derived_data(derived, PIPELINE) == CheckRecentLogEntry()
 
     def test_check_derived_data_reports_different_features(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
         derived.view_count = 0
+        _age_action_log_entries(group.id)
 
         assert check_derived_data(derived, PIPELINE) == CheckFailure(
             group_id=group.id,
@@ -277,6 +296,7 @@ class ProcessGroupLogTest(TestCase):
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
+        _age_action_log_entries(group.id)
 
         with pytest.raises(CheckTimeout) as exc_info:
             check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
@@ -297,6 +317,7 @@ class ProcessGroupLogTest(TestCase):
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
+        _age_action_log_entries(group.id)
 
         with pytest.raises(CheckTimeout) as first_timeout:
             check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
@@ -325,6 +346,9 @@ class ProcessGroupLogTest(TestCase):
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
         entries = list(GroupActionLogEntry.objects.filter(group_id=group.id))
+        _age_action_log_entries(group.id)
+        for entry in entries:
+            entry.date_updated = django_timezone.now() - timedelta(minutes=11)
 
         with patch(
             "sentry.issues.derived.check._entries_through_target_cursor", side_effect=[entries]
@@ -338,6 +362,7 @@ class ProcessGroupLogTest(TestCase):
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
+        _age_action_log_entries(group.id)
 
         with pytest.raises(CheckTimeout) as exc_info:
             check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
@@ -362,6 +387,7 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
+        _age_action_log_entries(group.id)
         original_run = PIPELINE.run
 
         def run_and_invalidate(

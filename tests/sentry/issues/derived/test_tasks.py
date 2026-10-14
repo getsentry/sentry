@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.db.utils import OperationalError
+from django.utils import timezone as django_timezone
 
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewAction
@@ -36,6 +37,7 @@ from sentry.issues.derived.tasks_util import (
     _pick_random_fresh_group_ranges,
     group_id_ranges_for_hash,
 )
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.group import Group, GroupStatus
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
@@ -1141,6 +1143,9 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
         group_ids = sorted(group.id for group in groups)
         for group_id in group_ids:
             process_group_log(group_id)
+        GroupActionLogEntry.objects.filter(group_id__in=group_ids).update(
+            date_updated=django_timezone.now() - timedelta(minutes=11)
+        )
         GroupDerivedData.objects.filter(group_id=group_ids[1]).update(pipeline_hash="stale")
 
         with patch("sentry.issues.derived.tasks_util.metrics.incr") as mock_incr:
@@ -1163,6 +1168,25 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
             ),
             call("issues.derived.check_group", sample_rate=1.0, tags={"result": "success"}),
         ]
+
+    def test_records_recent_log_entry(self) -> None:
+        group = self.create_unprocessed_groups(1)[0]
+        process_group_log(group.id)
+
+        with patch("sentry.issues.derived.tasks_util.metrics.incr") as mock_incr:
+            check_fresh_derived_data_batch(
+                group_id_start=group.id,
+                group_id_end=group.id + 1,
+            )
+
+        assert (
+            call(
+                "issues.derived.check_group",
+                sample_rate=1.0,
+                tags={"result": "recent_log_entry"},
+            )
+            in mock_incr.call_args_list
+        )
 
     def test_reschedules_timed_out_group_with_check_id(self) -> None:
         group = self.create_unprocessed_groups(1)[0]
