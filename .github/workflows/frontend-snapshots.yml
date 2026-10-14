@@ -36,12 +36,15 @@ jobs:
 
       - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
+      - uses: ./.github/actions/node-modules-cache-paths
+        id: workspace-cache
+
       - name: node_modules cache
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: nodemodulescache
         with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', '.node-version') }}
+          path: ${{ steps.workspace-cache.outputs.paths }}
+          key: ${{ runner.os }}-${{ runner.arch }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', 'package.json', '.node-version') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
