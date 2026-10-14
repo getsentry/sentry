@@ -31,7 +31,13 @@ const TABLE_COLUMNS: TableColumnConfig[] = Object.entries(COLUMN_WIDTHS).map(
 );
 const HEADER_COLUMNS = Object.values(COLUMN_WIDTHS).join(' ');
 
-function FixThisMenu({row, onInvestigate}: {row: ReasonRow; onInvestigate?: () => void}) {
+function FixThisMenu({
+  row,
+  onInvestigate,
+}: {
+  row: ReasonRow;
+  onInvestigate?: (row: ReasonRow) => void;
+}) {
   const organization = useOrganization();
   const {onClose: closeDroppedDataDrawer} = useDrawerContentContext();
 
@@ -51,11 +57,9 @@ function FixThisMenu({row, onInvestigate}: {row: ReasonRow; onInvestigate?: () =
           {
             key: 'investigate',
             label: t('Investigate'),
-            // TODO: A follow-up PR will seed Seer with per-reason context via
-            // `openChatPrompt`.
             onAction: () => {
               closeDroppedDataDrawer?.();
-              onInvestigate();
+              onInvestigate(row);
             },
           },
         ]
@@ -90,7 +94,7 @@ function ReasonExpansion({
   onInvestigate,
 }: {
   row: ReasonRow;
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }) {
   return (
     <SimpleTable.FullWidthRow>
@@ -116,7 +120,7 @@ function ReasonTableRow({
   onInvestigate,
 }: {
   row: ReasonRow;
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const description = reasonDescription(row.reason, row.category);
@@ -173,7 +177,7 @@ function ReasonTable({
 }: {
   id: string;
   reasons: ReasonRow[];
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }) {
   return (
     <SimpleTable
@@ -212,7 +216,7 @@ function OutcomeSectionRow({
 }: {
   color: string | undefined;
   section: OutcomeSection;
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const reasonTableId = useId();
@@ -266,7 +270,7 @@ function OutcomeSectionRow({
 interface DroppedDataOutcomeListProps {
   colors: OutcomeColors;
   sections: OutcomeSection[];
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }
 
 export function DroppedDataOutcomeList({

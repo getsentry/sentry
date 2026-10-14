@@ -21,7 +21,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
 from django.conf import settings
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework import serializers
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
@@ -290,8 +290,7 @@ def _ensure_monitor_with_config(
 
     # Update existing monitor
     if monitor and not created:
-        if monitor.config != validated_config:
-            monitor.update_config(config, validated_config)
+        monitor.update_config(config, validated_config)
         if not monitor.is_upserting:
             monitor.update(is_upserting=True)
         if (owner_user_id or owner_team_id) and (
@@ -574,6 +573,16 @@ def update_existing_check_in(
         metrics.incr("monitors.in_progress_heart_beat", tags=metric_kwargs)
 
     existing_check_in.update(**updated_checkin)
+
+
+def _cache_checkin_relations(
+    check_in: MonitorCheckIn, monitor: Monitor, monitor_environment: MonitorEnvironment
+) -> None:
+    # Avoid re-fetching already loaded objects; only when the ids match
+    if check_in.monitor_id == monitor.id:
+        check_in.monitor = monitor
+    if check_in.monitor_environment_id == monitor_environment.id:
+        check_in.monitor_environment = monitor_environment
 
 
 def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
@@ -1015,6 +1024,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                         }
                         raise ProcessingErrorsException([env_mismatch_error], monitor)
 
+                _cache_checkin_relations(check_in, monitor, monitor_environment)
                 span.set_attribute("outcome", "process_existing_checkin")
                 update_existing_check_in(
                     span,
@@ -1051,24 +1061,36 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                 # Record the reported in_progress time when the check is in progress
                 date_in_progress = start_time if status == CheckInStatus.IN_PROGRESS else None
 
-                check_in, created = MonitorCheckIn.objects.get_or_create(
-                    defaults={
-                        "duration": duration,
-                        "status": status,
-                        "date_added": start_time,
-                        "date_updated": start_time,
-                        "date_clock": clock_time,
-                        "date_in_progress": date_in_progress,
-                        "expected_time": expected_time,
-                        "timeout_at": timeout_at,
-                        "monitor_config": checkin_monitor_config,
-                        "trace_id": trace_id,
-                    },
-                    project_id=project_id,
-                    monitor=monitor,
-                    monitor_environment=monitor_environment,
-                    guid=guid,
-                )
+                lookup = {
+                    "guid": guid,
+                    "project_id": project_id,
+                    "monitor": monitor,
+                    "monitor_environment": monitor_environment,
+                }
+                # The guid lookup above found nothing, so create directly
+                # rather than repeat the lookup with get_or_create.
+                try:
+                    with transaction.atomic(router.db_for_write(MonitorCheckIn)):
+                        check_in = MonitorCheckIn.objects.create(
+                            **lookup,
+                            duration=duration,
+                            status=status,
+                            date_added=start_time,
+                            date_updated=start_time,
+                            date_clock=clock_time,
+                            date_in_progress=date_in_progress,
+                            expected_time=expected_time,
+                            timeout_at=timeout_at,
+                            monitor_config=checkin_monitor_config,
+                            trace_id=trace_id,
+                        )
+                    created = True
+                except IntegrityError:
+                    existing = MonitorCheckIn.objects.select_for_update().get_or_none(**lookup)
+                    if existing is None:
+                        raise
+                    check_in = existing
+                    created = False
 
                 # Race condition. The check-in was created (such as an
                 # in_progress) while this check-in was being processed.
@@ -1077,6 +1099,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                 # XXX(epurkhiser): Is this needed since we're already
                 # locking this entire process?
                 if not created:
+                    _cache_checkin_relations(check_in, monitor, monitor_environment)
                     span.set_attribute("outcome", "process_existing_checkin_race_condition")
                     update_existing_check_in(
                         span,

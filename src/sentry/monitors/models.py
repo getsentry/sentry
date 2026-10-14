@@ -351,16 +351,17 @@ class Monitor(Model):
         return next_checkin + get_checkin_margin(self.config.get("checkin_margin"))
 
     def update_config(self, config_payload, validated_config):
-        monitor_config = self.config
         keys = set(config_payload.keys())
 
         # Always update schedule and schedule_type
         keys.update({"schedule", "schedule_type"})
         # Otherwise, only update keys that were specified in the payload
+        monitor_config = {**self.config}
         for key in keys:
             if key in validated_config:
                 monitor_config[key] = validated_config[key]
-        self.save()
+        if monitor_config != self.config:
+            self.update(config=monitor_config)
 
     def get_validated_config(self):
         try:
@@ -637,8 +638,14 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         monitor_env, created = MonitorEnvironment.objects.get_or_create(
             monitor=monitor,
             environment_id=environment.id,
-            defaults={"status": MonitorStatus.ACTIVE, "is_muted": is_monitor_muted(monitor)},
+            # Callable so the muted count only runs when the environment is created
+            defaults={
+                "status": MonitorStatus.ACTIVE,
+                "is_muted": lambda: is_monitor_muted(monitor),
+            },
         )
+        # Avoid re-fetching the monitor when following the relation
+        monitor_env.monitor = monitor
 
         # recompute per-project monitor check-in rate limit quota
         if created:
