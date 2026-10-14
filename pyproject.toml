@@ -695,7 +695,6 @@ module = [
     "sentry.culprit",
     "sentry.db",
     "sentry.db.analyze",
-    "sentry.db.exceptions",
     "sentry.db.models",
     "sentry.db.models.base",
     "sentry.db.models.fields",
