@@ -78,7 +78,7 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
                 "action_id": notification_context.id,
                 "integration_id": notification_context.integration_id,
                 "target_identifier": notification_context.target_identifier,
-                "provider": provider,
+                "provider": str(provider),
             },
         )
         return
@@ -96,7 +96,7 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
                 "action_id": notification_context.id,
                 "integration_id": notification_context.integration_id,
                 "organization_id": organization.id,
-                "provider": provider,
+                "provider": str(provider),
                 "has_integration": integration_context.integration is not None,
                 "has_org_integration": integration_context.organization_integration is not None,
                 "integration_status": integration_context.integration.status

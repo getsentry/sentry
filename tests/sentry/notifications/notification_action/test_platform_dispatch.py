@@ -144,3 +144,60 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
         SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
 
         mock_legacy_send.assert_called_once()
+
+    @mock.patch(f"{PLATFORM_DISPATCH_PATH}.logger")
+    def test_logs_when_integration_id_missing(self, mock_logger: mock.MagicMock) -> None:
+        # Create action without integration_id
+        action = self.create_action(
+            type=Action.Type.SLACK,
+            integration_id=None,
+            config={
+                "target_identifier": "channel123",
+                "target_display": "Channel 123",
+                "target_type": ActionTarget.SPECIFIC,
+            },
+        )
+
+        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(action))
+
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        assert call_args[0][0] == "notification_action.platform_dispatch.missing_target"
+        assert call_args[1]["extra"]["integration_id"] is None
+        assert call_args[1]["extra"]["provider"] == "slack"
+
+    @mock.patch(f"{PLATFORM_DISPATCH_PATH}.logger")
+    def test_logs_when_target_identifier_missing(self, mock_logger: mock.MagicMock) -> None:
+        # Create action without target_identifier
+        action = self.create_action(
+            type=Action.Type.SLACK,
+            integration_id=self.integration.id,
+            config={
+                "target_identifier": None,
+                "target_display": "Channel 123",
+                "target_type": ActionTarget.SPECIFIC,
+            },
+        )
+
+        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(action))
+
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        assert call_args[0][0] == "notification_action.platform_dispatch.missing_target"
+        assert call_args[1]["extra"]["target_identifier"] is None
+        assert call_args[1]["extra"]["provider"] == "slack"
+
+    @mock.patch(f"{PLATFORM_DISPATCH_PATH}.logger")
+    def test_logs_when_integration_inactive(self, mock_logger: mock.MagicMock) -> None:
+        # Mark integration as inactive
+        self.integration.update(status=1)  # ObjectStatus.DISABLED
+
+        SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
+
+        mock_logger.warning.assert_called_once()
+        call_args = mock_logger.warning.call_args
+        assert call_args[0][0] == "notification_action.platform_dispatch.integration_inactive"
+        assert call_args[1]["extra"]["integration_id"] == self.integration.id
+        assert call_args[1]["extra"]["provider"] == "slack"
+        assert call_args[1]["extra"]["has_integration"] is True
+        assert call_args[1]["extra"]["integration_status"] == 1
