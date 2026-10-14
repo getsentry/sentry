@@ -277,6 +277,7 @@ export function SeerRepoTableHeader({
               <CompactSelect
                 disabled={!canWrite}
                 size="xs"
+                strategy="fixed"
                 trigger={props => (
                   <OverlayTrigger.Button {...props}>
                     {t('Code Review')}
@@ -308,6 +309,7 @@ export function SeerRepoTableHeader({
                 disabled={!canWrite}
                 multiple
                 size="xs"
+                strategy="fixed"
                 trigger={props => (
                   <OverlayTrigger.Button {...props}>
                     {t('Triggers')}

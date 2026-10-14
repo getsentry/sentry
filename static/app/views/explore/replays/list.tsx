@@ -3,11 +3,11 @@ import {Fragment} from 'react';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {
   ReplayAccess,
@@ -82,21 +82,20 @@ function ReplaysHeader() {
           title={title}
         />
       ) : (
-        <TopBar.Slot name="title">
-          {title ? (
-            title
-          ) : (
-            <Fragment>
-              {t('Session Replay')}
-              <PageHeadingQuestionTooltip
-                title={t(
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: title || t('Session Replay'),
+            labelTooltip: title ? undefined : (
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/session-replay/">
+                {t(
                   'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
                 )}
-                docsUrl="https://docs.sentry.io/product/session-replay/"
-              />
-            </Fragment>
-          )}
-        </TopBar.Slot>
+              </DocumentationHint>
+            ),
+          }}
+        />
       )}
     </Fragment>
   );
@@ -130,7 +129,7 @@ function ReplaysListBody() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
   const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
-  const {allMobileProj} = useAllMobileProj({});
+  const {allMobileProj} = useAllMobileProj();
 
   const hasSessionReplay = organization.features.includes('session-replay');
 

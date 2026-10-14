@@ -1,5 +1,6 @@
 from typing import Literal, Never, cast
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -23,9 +24,24 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.trace_item_attribute_context import (
+    TraceItemAttributeContextResponse,
     TraceItemAttributeContextSerializer,
 )
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.explore.models import (
     TraceItemAttributeContext,
@@ -42,13 +58,29 @@ AttributeType = Literal["string", "number", "boolean"]
 
 
 class OrganizationTraceItemAttributeContextPutSerializer(serializers.Serializer[Never]):
-    dataset = serializers.ChoiceField(SUPPORTED_DATASETS)
-    attributeType = serializers.ChoiceField(POSSIBLE_ATTRIBUTE_TYPES, source="attribute_type")
-    brief = serializers.CharField(max_length=280)
-    additionalContext = serializers.CharField(
-        source="additional_context", required=False, allow_null=True, allow_blank=True
+    dataset = serializers.ChoiceField(
+        SUPPORTED_DATASETS, help_text="The trace item dataset the attribute belongs to."
     )
-    examples = serializers.ListField(child=serializers.CharField(), required=False)
+    attributeType = serializers.ChoiceField(
+        POSSIBLE_ATTRIBUTE_TYPES,
+        source="attribute_type",
+        help_text="The stored type of the attribute.",
+    )
+    brief = serializers.CharField(
+        max_length=280, help_text="A short description of what the attribute represents."
+    )
+    additionalContext = serializers.CharField(
+        source="additional_context",
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Longer free-form notes about the attribute. Omit to keep the stored value.",
+    )
+    examples = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        help_text="Example values of the attribute. Omit to keep the stored value.",
+    )
 
 
 def attribute_exists_in_storage(
@@ -67,6 +99,7 @@ def attribute_exists_in_storage(
         return attribute_name_exists(meta, attr_type, internal_name)
 
 
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttributesEndpointBase):
     publish_status = {
@@ -75,8 +108,60 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
     owner = ApiOwner.DATA_BROWSING
     permission_classes = (OrganizationEventPermission,)
 
-    def put(self, request: Request, organization: Organization, key: str) -> Response:
-        """Create or update the authored context for a custom trace item attribute."""
+    @extend_schema(
+        operation_id="updateOrganizationTraceItemAttributeContext",
+        summary="Create or Update a Trace Item Attribute's Context",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="key",
+                location="path",
+                required=True,
+                type=str,
+                description="The custom attribute key to set context for.",
+            ),
+            OpenApiParameter(
+                name="project",
+                location="query",
+                required=False,
+                type=str,
+                description=(
+                    "The ID or slug of the single project to scope the context to, or `-1` "
+                    "for organization-wide context. May only be omitted when the "
+                    "organization has exactly one accessible project."
+                ),
+            ),
+        ],
+        request=OrganizationTraceItemAttributeContextPutSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "TraceItemAttributeContextResponse", TraceItemAttributeContextResponse
+            ),
+            201: inline_sentry_response_serializer(
+                "TraceItemAttributeContextResponse", TraceItemAttributeContextResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TraceItemAttributeExamples.UPDATE_TRACE_ITEM_ATTRIBUTE_CONTEXT,
+    )
+    def put(
+        self, request: Request, organization: Organization, key: str
+    ) -> (
+        Response[TraceItemAttributeContextResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
+        """
+        Create or update the authored context (a brief description, notes, and example
+        values) for a custom trace item attribute. Context is scoped to a single project,
+        or to the whole organization when all projects (`-1`) are requested. Sentry-defined
+        attributes cannot be given custom context, and the attribute must have been seen
+        in stored data. Returns `201` when new context is created and `200` when existing
+        context is updated.
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -88,7 +173,7 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
 
         serializer = OrganizationTraceItemAttributeContextPutSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
         data = serializer.validated_data
 
         dataset = data["dataset"]

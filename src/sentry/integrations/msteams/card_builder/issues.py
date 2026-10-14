@@ -29,7 +29,7 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationOrigin
 from sentry.services.eventstore.models import Event, GroupEvent
 
 from .base import MSTeamsMessageBuilder
@@ -52,16 +52,8 @@ from .block import (
 logger = logging.getLogger(__name__)
 
 
-def get_workflow_ids(rules: Sequence[Rule]) -> list[int]:
-    workflow_ids = []
-    for rule in rules:
-        action = rule.data.get("actions", [{}])[0]
-        workflow_id = action.get("workflow_id")
-
-        if workflow_id is not None:
-            workflow_ids.append(int(workflow_id))
-
-    return workflow_ids
+def get_workflow_ids(rules: Sequence[NotificationOrigin]) -> list[int]:
+    return [rule.workflow_id for rule in rules if rule.workflow_id is not None]
 
 
 class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
@@ -69,7 +61,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         self,
         group: Group,
         event: Event | GroupEvent | None,
-        rules: Sequence[Rule],
+        rules: Sequence[NotificationOrigin],
         integration: RpcIntegration,
         workflow_ids: Sequence[int] = (),
     ):
@@ -87,7 +79,9 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
                 "actionType": action_type,
                 "groupId": self.group.id,
                 "eventId": self.event.event_id if self.event else None,
-                "rules": [rule.id for rule in self.rules],
+                "rules": [
+                    rule.legacy_rule_id for rule in self.rules if rule.legacy_rule_id is not None
+                ],
                 "workflows": list(dict.fromkeys([*workflow_ids, *self.workflow_ids])),
                 "integrationId": self.integration.id,
             }
@@ -108,8 +102,9 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         )
 
     def build_group_descr(self) -> TextBlock | None:
-        # TODO: implement with event as well
-        text = build_attachment_text(self.group)
+        # Webhook rebuilds pass a nodestore Event without its occurrence, which yields no text
+        # for occurrence-backed issues.
+        text = build_attachment_text(self.group, self.event) or build_attachment_text(self.group)
         if text:
             return create_text_block(
                 text,

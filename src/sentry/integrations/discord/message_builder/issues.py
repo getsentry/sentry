@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from sentry import tagstore
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import (
@@ -23,8 +25,9 @@ from sentry.integrations.messaging.message_builder import (
 from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import ProjectNotification
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.rules import RuleIdType, get_rule_or_workflow_id
 from sentry.services.eventstore.models import GroupEvent
 
@@ -37,10 +40,11 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         group: Group,
         event: GroupEvent | None = None,
         tags: set[str] | None = None,
-        rules: list[Rule] | None = None,
+        rules: Sequence[NotificationOrigin] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
+        link_decorator: NotificationLinkDecorator | None = None,
     ) -> None:
         self.group = group
         self.event = event
@@ -49,6 +53,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         self.link_to_event = link_to_event
         self.issue_details = issue_details
         self.notification = notification
+        self.link_decorator = link_decorator
 
     def build(self, notification_uuid: str | None = None) -> DiscordMessage:
         project = Project.objects.get_from_cache(id=self.group.project_id)
@@ -90,6 +95,8 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
                     rule_environment_id,
                     notification_uuid=notification_uuid,
                 )
+        if url is not None and self.link_decorator is not None:
+            url = self.link_decorator.decorate_url(url)
 
         embeds = [
             DiscordMessageEmbed(

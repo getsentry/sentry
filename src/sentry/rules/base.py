@@ -2,18 +2,12 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections import namedtuple
 from collections.abc import Callable, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any, ClassVar
-
-from django import forms
+from typing import Any, ClassVar, NamedTuple
 
 from sentry.models.project import Project
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.types import NotificationActionContext, RuleFuture
 from sentry.services.eventstore.models import GroupEvent
-
-if TYPE_CHECKING:
-    from sentry.models.rule import Rule
 
 """
 Rules apply either before an event gets stored, or immediately after.
@@ -45,10 +39,14 @@ by the rule's logic. Each rule condition may be associated with a form.
 - [ACTION:I want to group events when] [RULE:an event matches [FORM]]
 """
 
+
 # Encapsulates a reference to the callback, including arguments. The `key`
 # attribute may be specifically used to key the callbacks when they are
 # collated during rule processing.
-CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
+class CallbackFuture(NamedTuple):
+    callback: Callable[[GroupEvent, Sequence[RuleFuture]], None]
+    kwargs: dict[str, Any]
+    key: str | None
 
 
 class RuleBase(abc.ABC):
@@ -58,12 +56,12 @@ class RuleBase(abc.ABC):
         self,
         project: Project,
         data: MutableMapping[str, Any] | None = None,
-        rule: Rule | None = None,
+        context: NotificationActionContext | None = None,
     ) -> None:
         self.project = project
         self.data = data or {}
         self.had_data = data is not None
-        self.rule = rule
+        self.context = context
 
     id: ClassVar[str]
     label: ClassVar[str]
@@ -75,18 +73,8 @@ class RuleBase(abc.ABC):
     def get_option(self, key: str, default: str | None = None) -> Any:
         return self.data.get(key, default)
 
-    def get_form_instance(self) -> forms.Form | None:
-        return None
-
     def render_label(self) -> str:
         return self.label.format(**self.data)
-
-    def validate_form(self) -> bool:
-        form = self.get_form_instance()
-        if form is None:
-            return True
-        else:
-            return form.is_valid()
 
     def future(
         self,

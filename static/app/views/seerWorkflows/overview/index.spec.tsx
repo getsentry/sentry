@@ -852,20 +852,32 @@ describe('AutofixOverview', () => {
     expect(screen.getByText('5 users')).toBeInTheDocument();
   });
 
-  it('shows the cards when the issueStats call fails instead of blocking forever', async () => {
-    mockOverview({
-      base: {autofix_root_cause: [rootCauseRun]},
-      issueStatsStatusCode: 500,
+  describe('shows the cards when the issueStats call fails instead of blocking forever with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    renderPage();
+    afterEach(async () => {
+      await act(() => jest.runOnlyPendingTimersAsync());
+      jest.useRealTimers();
+    });
 
-    // A failed vitals call must not withhold the cards forever; once the query
-    // settles (after its one retry) the cards render. The timeout covers the
-    // issueStats retry backoff.
-    expect(
-      await screen.findByText('TypeError in checkout cart', undefined, {timeout: 5000})
-    ).toBeInTheDocument();
+    it('shows the cards when the issueStats call fails instead of blocking forever', async () => {
+      const {issueStatsRequest} = mockOverview({
+        base: {autofix_root_cause: [rootCauseRun]},
+        issueStatsStatusCode: 500,
+      });
+
+      renderPage();
+
+      await waitFor(() => expect(issueStatsRequest).toHaveBeenCalledTimes(1));
+      expect(screen.queryByText('TypeError in checkout cart')).not.toBeInTheDocument();
+      await act(() => jest.advanceTimersByTimeAsync(1000));
+      expect(await screen.findByText('TypeError in checkout cart')).toBeInTheDocument();
+      expect(screen.getByText('1.2K events')).toBeInTheDocument();
+      expect(screen.getByText('5 users')).toBeInTheDocument();
+      expect(issueStatsRequest).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('fetches the vitals once for a stable run set, without looping', async () => {
@@ -1761,7 +1773,7 @@ describe('AutofixOverview', () => {
     const fileToggle = await screen.findByRole('button', {
       name: /src\/sentry\/mystery\.py/,
     });
-    const fileRow = fileToggle.closest<HTMLElement>('[data-disclosure]')!;
+    const fileRow = fileToggle.closest<HTMLElement>('[data-test-id="changed-file-row"]')!;
 
     expect(within(fileRow).getByText('+4')).toBeInTheDocument();
     expect(within(fileRow).queryByTestId('tag-background')).not.toBeInTheDocument();
@@ -1924,48 +1936,49 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('No diff available.')).not.toBeInTheDocument();
   });
 
-  it('renders generated code changes for the Create PR step', async () => {
-    const codeChangesRun = {
-      ...rootCauseRun,
-      codeChanges: [
-        {
-          repoName: 'getsentry/sentry',
-          patch: {
-            path: 'src/sentry/foo.py',
-            source_file: 'src/sentry/foo.py',
-            target_file: 'src/sentry/foo.py',
-            type: DiffFileType.MODIFIED,
-            added: 1,
-            removed: 1,
-            hunks: [
-              {
-                source_start: 1,
-                source_length: 1,
-                target_start: 1,
-                target_length: 1,
-                section_header: '',
-                lines: [
-                  {
-                    line_type: DiffLineType.REMOVED,
-                    value: 'old',
-                    source_line_no: 1,
-                    target_line_no: null,
-                    diff_line_no: 1,
-                  },
-                  {
-                    line_type: DiffLineType.ADDED,
-                    value: 'new',
-                    source_line_no: null,
-                    target_line_no: 1,
-                    diff_line_no: 2,
-                  },
-                ],
-              },
-            ],
-          },
+  const codeChangesRun = {
+    ...rootCauseRun,
+    codeChanges: [
+      {
+        repoName: 'getsentry/sentry',
+        patch: {
+          path: 'src/sentry/foo.py',
+          source_file: 'src/sentry/foo.py',
+          target_file: 'src/sentry/foo.py',
+          type: DiffFileType.MODIFIED,
+          added: 1,
+          removed: 1,
+          hunks: [
+            {
+              source_start: 1,
+              source_length: 1,
+              target_start: 1,
+              target_length: 1,
+              section_header: '',
+              lines: [
+                {
+                  line_type: DiffLineType.REMOVED,
+                  value: 'old',
+                  source_line_no: 1,
+                  target_line_no: null,
+                  diff_line_no: 1,
+                },
+                {
+                  line_type: DiffLineType.ADDED,
+                  value: 'new',
+                  source_line_no: null,
+                  target_line_no: 1,
+                  diff_line_no: 2,
+                },
+              ],
+            },
+          ],
         },
-      ],
-    };
+      },
+    ],
+  };
+
+  it('renders generated code changes for the Create PR step', async () => {
     mockOverview({base: {autofix_code_changes: [codeChangesRun]}});
 
     renderPage();
@@ -1976,6 +1989,36 @@ describe('AutofixOverview', () => {
       await screen.findByRole('button', {name: /src\/sentry\/foo\.py/})
     );
     expect(await screen.findByText('new')).toBeInTheDocument();
+  });
+
+  it('shows an error instead of a stale diff when a later code changes turn errored', async () => {
+    mockOverview({
+      base: {autofix_code_changes: [{...codeChangesRun, status: 'error' as const}]},
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        'Seer ran into an error on the latest attempt. Open Seer to retry.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Draft PR'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('seerDrawer=2')
+    );
+  });
+
+  it('renders code changes for a completed run', async () => {
+    mockOverview({
+      base: {autofix_code_changes: [{...codeChangesRun, status: 'completed' as const}]},
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
   });
 
   it('renders a Create PR step run whose code changes are absent', async () => {

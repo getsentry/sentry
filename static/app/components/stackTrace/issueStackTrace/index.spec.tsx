@@ -526,6 +526,33 @@ describe('IssueStackTrace', () => {
     `);
   });
 
+  it('copies stack trace text without ANSI codes when the exception value contains them', async () => {
+    const {event, stacktrace} = makeCopyTestData();
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'ValueError',
+            value: '\x1B[31mlist index\x1B[0m out of range',
+            module: null,
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Text'}));
+
+    const copiedText = jest.mocked(navigator.clipboard.writeText).mock.calls[0]![0];
+    expect(copiedText).toContain('ValueError: list index out of range');
+  });
+
   it('copies stack trace text including exception type and value for chained exceptions', async () => {
     const {event, stacktrace} = makeCopyTestData();
 

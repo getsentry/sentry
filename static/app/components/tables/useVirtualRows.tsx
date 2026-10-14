@@ -5,6 +5,7 @@ interface UseVirtualRowsOptions {
   count: number;
   estimateSize: (index: number) => number;
   getScrollElement: () => HTMLElement | null;
+  enabled?: boolean;
   estimateKey?: unknown;
   gap?: number;
   getItemKey?: (index: number) => string | number | bigint;

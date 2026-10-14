@@ -29,7 +29,7 @@ describe('ExploreParams', () => {
       />
     );
     expect(
-      await screen.findByText(textWithMarkupMatcher('message matches regex foo'))
+      await screen.findByText(textWithMarkupMatcher('message matches regex /foo/'))
     ).toBeInTheDocument();
   });
 

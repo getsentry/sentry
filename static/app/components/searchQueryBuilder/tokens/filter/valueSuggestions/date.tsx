@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import type {SuggestionSection} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
 import {
@@ -6,7 +7,6 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {IconArrow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 
 const RELATIVE_DATE_INPUT_REGEX = /^(\d+)\s*([mhdw]?)/;

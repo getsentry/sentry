@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -10,7 +11,6 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {AlertsMonitorsShowcaseButton} from 'sentry/components/workflowEngine/alertsMonitorsShowcaseButton';
 import {WorkflowEngineListLayout as ListLayout} from 'sentry/components/workflowEngine/layout/list';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';

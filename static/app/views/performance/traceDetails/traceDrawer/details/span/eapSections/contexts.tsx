@@ -1,5 +1,5 @@
-import {getOrderedContextItemsFromContexts} from 'sentry/components/events/contexts';
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
+import {getOrderedContextItemsFromContexts} from 'sentry/components/events/contexts/contextItems';
 import {KeyValueTableCardGrid} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';

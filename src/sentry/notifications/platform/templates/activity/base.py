@@ -96,6 +96,7 @@ class ActivityNotificationData(NotificationData):
     user_settings_url: str | None = None
     email_headers: dict[str, str] | None = None
     email_subject_prefix: str | None = None
+    enhanced_privacy: bool = False
 
 
 def create_activity_notification_example(
@@ -103,6 +104,7 @@ def create_activity_notification_example(
     activity_data: dict[str, Any] | None = None,
 ) -> ActivityNotificationData:
     return ActivityNotificationData(
+        organization_id=1,
         activity_user_name="Jane Doe",
         issue_short_id="JAVASCRIPT-1",
         issue_url=EXAMPLE_ISSUE_URL,
@@ -133,6 +135,15 @@ class AssignedNotificationData(ActivityNotificationData):
     assignee_label: str
     assignee_url: str | None = None
     is_automated: bool = False
+
+
+def build_subject_prefix(data: ActivityNotificationData) -> NotificationTextBlock:
+    if data.issue_title and data.issue_short_id and not data.enhanced_privacy:
+        return PlainTextBlock(text=f"{data.issue_short_id} - {data.issue_title}")
+    elif data.issue_short_id:
+        return PlainTextBlock(text=data.issue_short_id)
+    else:
+        return PlainTextBlock(text="An Issue")
 
 
 def build_footer(data: ActivityNotificationData) -> list[NotificationTextBlock]:
@@ -275,10 +286,12 @@ def build_activity_notification_data(
 
     action_data = dict(
         source=source,
+        organization_id=organization.id,
         activity_type=activity.type,
         issue_short_id=group.qualified_short_id,
         issue_url=absolute_uri(issue_url),
         issue_title=build_attachment_title(group) or "",
+        enhanced_privacy=bool(organization.flags.enhanced_privacy),
         issue_culprit=group.culprit,
         issue_description=build_attachment_text(group),
         project_slug=project.slug,

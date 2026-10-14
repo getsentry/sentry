@@ -149,6 +149,56 @@ describe('FiltersBar', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the dataset for filters on the same key in different datasets', async () => {
+    renderFilterBar({
+      filters: {
+        globalFilter: [
+          {
+            dataset: WidgetType.SPANS,
+            tag: {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
+            value: 'browser.name:[Chrome]',
+          },
+          {
+            dataset: WidgetType.LOGS,
+            tag: {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
+            value: 'browser.name:[Firefox]',
+          },
+          {
+            dataset: WidgetType.SPANS,
+            tag: {key: 'os.name', name: 'OS Name', kind: FieldKind.FIELD},
+            value: 'os.name:[Linux]',
+          },
+        ],
+      },
+    });
+
+    expect(
+      await screen.findByRole('button', {name: /^Spans.*browser\.name.*Chrome/i})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: /^Logs.*browser\.name.*Firefox/i})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /^os\.name.*Linux/i})).toBeInTheDocument();
+  });
+
+  it('shows the dataset in a tooltip on the filter trigger', async () => {
+    renderFilterBar({
+      filters: {
+        globalFilter: [
+          {
+            dataset: WidgetType.SPANS,
+            tag: {key: 'browser.name', name: 'Browser Name', kind: FieldKind.FIELD},
+            value: 'browser.name:[Chrome]',
+          },
+        ],
+      },
+    });
+
+    const trigger = await screen.findByRole('button', {name: /^browser\.name.*Chrome/i});
+    await userEvent.hover(trigger);
+    expect(await screen.findByText('Spans Filter')).toBeInTheDocument();
+  });
+
   it.each([
     ['Logs', 'logs'],
     ['Spans', 'spans'],

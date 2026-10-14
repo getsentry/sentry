@@ -20,7 +20,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 
 from sentry.search.eap import constants
-from sentry.search.eap.aggregate_utils import resolve_key_eq_value_filter
+from sentry.search.eap.aggregate_utils import if_query_validator, resolve_key_eq_value_filter
 from sentry.search.eap.columns import (
     AttributeArgumentDefinition,
     FormulaDefinition,
@@ -115,6 +115,31 @@ def division(args: ResolvedArguments, settings: ResolverSettings) -> Column.Bina
         right=Column(
             aggregation=AttributeAggregation(
                 aggregate=Function.FUNCTION_SUM, key=divisor, extrapolation_mode=extrapolation_mode
+            )
+        ),
+    )
+
+
+def elapsed_if(args: ResolvedArguments, settings: ResolverSettings) -> Column.BinaryFormula:
+    trace_filter = cast(TraceItemFilter, args[0])
+    timestamp = cast(AttributeKey, args[1])
+    extrapolation_mode = settings["extrapolation_mode"]
+    return Column.BinaryFormula(
+        left=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_MAX,
+                key=timestamp,
+                filter=trace_filter,
+                extrapolation_mode=extrapolation_mode,
+            )
+        ),
+        op=Column.BinaryFormula.OP_SUBTRACT,
+        right=Column(
+            conditional_aggregation=AttributeConditionalAggregation(
+                aggregate=Function.FUNCTION_MIN,
+                key=timestamp,
+                filter=trace_filter,
+                extrapolation_mode=extrapolation_mode,
             )
         ),
     )
@@ -1071,12 +1096,14 @@ SPAN_FORMULA_DEFINITIONS = {
             )
         ],
         formula_resolver=trace_status_rate,
+        valid_arithmetic=True,
     ),
     "failure_rate": FormulaDefinition(
         default_search_type="percentage",
         arguments=[],
         formula_resolver=failure_rate,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "failure_rate_if": FormulaDefinition(
         default_search_type="percentage",
@@ -1091,18 +1118,21 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=failure_rate_if,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "ttfd_contribution_rate": FormulaDefinition(
         default_search_type="percentage",
         arguments=[],
         formula_resolver=ttfd_contribution_rate,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "ttid_contribution_rate": FormulaDefinition(
         default_search_type="percentage",
         arguments=[],
         formula_resolver=ttid_contribution_rate,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "opportunity_score": FormulaDefinition(
         default_search_type="percentage",
@@ -1117,6 +1147,7 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=opportunity_score,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "performance_score": FormulaDefinition(
         default_search_type="percentage",
@@ -1132,6 +1163,7 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=performance_score,
         processor=none_if_zero_processor,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "avg_compare": FormulaDefinition(
         default_search_type="percentage",
@@ -1184,6 +1216,7 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=division_if,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "division": FormulaDefinition(
         default_search_type="percentage",
@@ -1211,6 +1244,20 @@ SPAN_FORMULA_DEFINITIONS = {
         formula_resolver=division,
         is_aggregate=True,
     ),
+    "elapsed_if": FormulaDefinition(
+        default_search_type="number",
+        infer_search_type_from_arguments=False,
+        arguments=[
+            ValueArgumentDefinition(argument_types={"query"}, validator=if_query_validator),
+            AttributeArgumentDefinition(
+                attribute_types={"string"},
+                validator=literal_validator(["timestamp"]),
+            ),
+        ],
+        formula_resolver=elapsed_if,
+        is_aggregate=True,
+        private=True,
+    ),
     "time_spent_percentage": FormulaDefinition(
         default_search_type="percentage",
         arguments=[
@@ -1235,15 +1282,21 @@ SPAN_FORMULA_DEFINITIONS = {
         arguments=[],
         formula_resolver=make_epm(_SPAN_COUNT_KEY),
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "tpm": FormulaDefinition(
-        default_search_type="rate", arguments=[], formula_resolver=tpm, is_aggregate=True
+        default_search_type="rate",
+        arguments=[],
+        formula_resolver=tpm,
+        is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "failure_count": FormulaDefinition(
         default_search_type="integer",
         arguments=[],
         formula_resolver=failure_count,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "failure_count_if": FormulaDefinition(
         default_search_type="integer",
@@ -1258,12 +1311,14 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=failure_count_if,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "eps": FormulaDefinition(
         default_search_type="rate",
         arguments=[],
         formula_resolver=make_eps(_SPAN_COUNT_KEY),
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "apdex": FormulaDefinition(
         default_search_type="number",
@@ -1279,6 +1334,7 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=apdex,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
     "user_misery": FormulaDefinition(
         default_search_type="number",
@@ -1294,5 +1350,6 @@ SPAN_FORMULA_DEFINITIONS = {
         ],
         formula_resolver=user_misery,
         is_aggregate=True,
+        valid_arithmetic=True,
     ),
 }

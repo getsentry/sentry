@@ -97,14 +97,18 @@ export function AutomationAlertPreviewTable({
     isError: isGroupsError,
     isPending: isGroupsPending,
   } = useQuery(
-    apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
-      path: groupIds.length ? {organizationIdOrSlug: organization.slug} : skipToken,
-      query: {
-        group: groupIds,
-        project: projectIds,
-      },
-      staleTime: 30_000,
-    })
+    apiOptions.as<Array<Pick<Group, 'id' | 'title' | 'project'>>>()(
+      '/organizations/$organizationIdOrSlug/issues/',
+      {
+        path: groupIds.length ? {organizationIdOrSlug: organization.slug} : skipToken,
+        query: {
+          group: groupIds,
+          project: projectIds,
+          collapse: ['stats', 'unhandled'],
+        },
+        staleTime: 30_000,
+      }
+    )
   );
   const groupsById = new Map(groups.map(group => [group.id, group]));
 

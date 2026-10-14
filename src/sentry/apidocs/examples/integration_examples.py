@@ -589,7 +589,7 @@ class IntegrationExamples:
                             "author": "The Sentry Team",
                             "noun": "Installation",
                             "issue_url": "https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Vercel%20Integration%20Problem",
-                            "source_url": "https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/vercel",
+                            "source_url": "https://docs.sentry.io/integrations/deployment/vercel/",
                             "aspects": {
                                 "externalInstall": {
                                     "url": "https://vercel.com/integrations/sentry/add",

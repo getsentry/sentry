@@ -8,11 +8,15 @@ from typing import Any, Literal
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
+from django.contrib.auth.views import redirect_to_login
 from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
+from django.views.decorators.cache import never_cache
 
 from sentry import analytics
 from sentry.analytics.events.oauth_consent import OAuthConsentEvent
@@ -20,10 +24,13 @@ from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
+from sentry.ratelimits.config import RateLimitConfig
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
-from sentry.utils import metrics
-from sentry.web.frontend.auth_login import AuthLoginView
+from sentry.utils import auth, metrics
+from sentry.web.client_config import get_client_config
+from sentry.web.frontend.base import BaseView, control_silo_view
 
 logger = logging.getLogger("sentry.oauth")
 
@@ -53,11 +60,33 @@ def _expired_authorize_keys(session, now: float) -> list[str]:
     return expired
 
 
-class OAuthAuthorizeView(AuthLoginView):
-    auth_required = False
+@control_silo_view
+@method_decorator(never_cache, name="dispatch")
+class OAuthAuthorizeView(BaseView):
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={"GET": {RateLimitCategory.IP: RateLimit(limit=20, window=1)}}
+    )
 
-    def get_next_uri(self, request: HttpRequest) -> str:
-        return request.get_full_path()
+    def is_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> bool:
+        # GET validates OAuth parameters before prompting for authentication.
+        if request.method == "GET":
+            return False
+
+        return super().is_auth_required(request, *args, **kwargs)
+
+    def handle_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        auth.initiate_login(request, next_url=request.get_full_path())
+
+        response = redirect_to_login(request.get_full_path(), reverse("sentry-login"))
+        response["X-Robots-Tag"] = "noindex, nofollow"
+        return response
+
+    def get_context_data(self, request: HttpRequest, **kwargs) -> dict:
+        return {
+            **super().get_context_data(request, **kwargs),
+            "react_config": get_client_config(request, self.active_organization),
+        }
 
     def redirect_response(self, response_type, redirect_uri, params):
         if response_type == "token":
@@ -112,14 +141,6 @@ class OAuthAuthorizeView(AuthLoginView):
             )
 
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
-
-    def respond_login(self, request: HttpRequest, context, **kwargs):
-        application = kwargs["application"]  # required argument
-        tx_id = kwargs.get("tx_id")  # transaction ID for CSRF-like protection
-        context["banner"] = f"Connect Sentry to {application.name}"
-        if tx_id:
-            context["tx_id"] = tx_id
-        return self.respond("sentry/login.html", context)
 
     def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
         response_type = request.GET.get("response_type")
@@ -269,6 +290,11 @@ class OAuthAuthorizeView(AuthLoginView):
                     state=state,
                 )
 
+        if super().is_auth_required(request, **kwargs):
+            return self.handle_auth_required(request, **kwargs)
+
+        assert request.user.is_authenticated
+
         # Generate a unique transaction ID per authorization request to prevent
         # session overwrite attacks. Without this, an attacker could open a malicious
         # OAuth flow in a popup/redirect, overwriting the legitimate app's session data.
@@ -286,17 +312,13 @@ class OAuthAuthorizeView(AuthLoginView):
             "ru": redirect_uri,
             "sc": scopes,
             "st": state,
-            "uid": request.user.id if request.user.is_authenticated else "",
+            "uid": request.user.id,
             "cc": code_challenge,
             "ccm": code_challenge_method if code_challenge else None,
             "tx": tx_id,
             "ts": now,
         }
         session_key = f"oa2:{tx_id}"
-
-        if not request.user.is_authenticated:
-            request.session[session_key] = payload
-            return super().get(request, application=application, tx_id=tx_id)
 
         # If the application expects org level access, we need to prompt the user to choose which
         # organization they want to give access to every time. We should not presume the user intention
@@ -357,7 +379,7 @@ class OAuthAuthorizeView(AuthLoginView):
             # If application is not org level we should not show organizations to choose from at all
             organization_options = []
 
-        context = self.get_default_context(request) | {
+        context = {
             "user": request.user,
             "application": application,
             "scopes": scopes,
@@ -380,25 +402,9 @@ class OAuthAuthorizeView(AuthLoginView):
         )
         return self.respond("sentry/oauth-authorize.html", context)
 
-    def _logged_out_post(
-        self, request: HttpRequest, application: ApiApplication, **kwargs: Any
-    ) -> HttpResponseBase:
-        # Get tx_id from POST data to find the correct session key
-        tx_id = request.POST.get("tx_id")
-        session_key = f"oa2:{tx_id}" if tx_id else None
-
-        # subtle indirection to avoid "unreachable" after `.is_authenticated` below
-        # since `.post()` mutates `request.user`
-        response = super().post(request, application=application, tx_id=tx_id, **kwargs)
-        if request.user.is_authenticated and session_key:
-            # Login succeeded; the subsequent redirect hits GET /oauth/authorize
-            # again, which mints a fresh tx_id and payload. Drop the now-stale
-            # entry and cycle the session key to defeat fixation.
-            request.session.pop(session_key, None)
-            request.session.cycle_key()
-        return response
-
     def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+        assert request.user.is_authenticated
+
         # Retrieve transaction ID from POST data and use it to get the correct session payload
         tx_id = request.POST.get("tx_id")
         if not tx_id:
@@ -442,11 +448,6 @@ class OAuthAuthorizeView(AuthLoginView):
                 "sentry/oauth-error.html",
                 {"error": mark_safe("Missing or invalid <em>client_id</em> parameter.")},
             )
-
-        if not request.user.is_authenticated:
-            # Don't clean up session key yet - the login retry path needs it
-            # so a bad password followed by a correct one can reuse the same tx_id.
-            return self._logged_out_post(request, application, **kwargs)
 
         # Clean up the session key after verifying the user to prevent replay attacks
         del request.session[session_key]

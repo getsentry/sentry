@@ -1,4 +1,23 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
+import {IconFire} from '@sentry/icons/fire';
+import {IconFix} from '@sentry/icons/fix';
+import {IconFocus} from '@sentry/icons/focus';
+import {IconHappy} from '@sentry/icons/happy';
+import {IconInfo} from '@sentry/icons/info';
+import {IconInput} from '@sentry/icons/input';
+import {IconKeyDown} from '@sentry/icons/keyDown';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconLocation} from '@sentry/icons/location';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconMeh} from '@sentry/icons/meh';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSad} from '@sentry/icons/sad';
+import {IconSort} from '@sentry/icons/sort';
+import {IconTap} from '@sentry/icons/tap';
+import {IconTerminal} from '@sentry/icons/terminal';
+import {IconWarning} from '@sentry/icons/warning';
+import {IconWifi} from '@sentry/icons/wifi';
 
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
@@ -6,27 +25,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {CrumbErrorTitle} from 'sentry/components/replays/breadcrumbs/errorTitle';
 import {SelectorList} from 'sentry/components/replays/breadcrumbs/selectorList';
-import {
-  IconCursorArrow,
-  IconFire,
-  IconFix,
-  IconFocus,
-  IconHappy,
-  IconInfo,
-  IconInput,
-  IconKeyDown,
-  IconLightning,
-  IconLocation,
-  IconMegaphone,
-  IconMeh,
-  IconRefresh,
-  IconSad,
-  IconSort,
-  IconTap,
-  IconTerminal,
-  IconWarning,
-  IconWifi,
-} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {explodeSlug} from 'sentry/utils';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -81,6 +79,22 @@ const DEVICE_CONNECTIVITY_MESSAGE: Record<string, string> = {
   ethernet: t('Device connected to ethernet'),
 };
 
+// Replay attaches every event to the replay as an issue frame, including
+// `captureMessage` and CaptureConsole events at non-error levels, so the level
+// decides how alarming the frame looks.
+function getIssueLevelStyle(level: string): Pick<Details, 'colorGraphicsToken' | 'icon'> {
+  switch (level) {
+    case 'warning':
+      return {colorGraphicsToken: 'warning', icon: <IconWarning size="xs" />};
+    case 'info':
+    case 'log':
+    case 'debug':
+      return {colorGraphicsToken: 'neutral', icon: <IconInfo size="xs" />};
+    default:
+      return {colorGraphicsToken: 'danger', icon: <IconFire size="xs" />};
+  }
+}
+
 const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   'replay.init': (frame: BreadcrumbFrame) => ({
     colorGraphicsToken: 'neutral',
@@ -104,11 +118,10 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
     icon: <IconMegaphone size="xs" />,
   }),
   issue: (frame: ErrorFrame) => ({
-    colorGraphicsToken: 'danger',
+    ...getIssueLevelStyle(frame.data.level),
     description: frame.message,
     tabKey: TabKey.ERRORS,
     title: <CrumbErrorTitle frame={frame} />,
-    icon: <IconFire size="xs" />,
   }),
   'ui.slowClickDetected': (frame: SlowClickFrame) => {
     const node = frame.data.node;

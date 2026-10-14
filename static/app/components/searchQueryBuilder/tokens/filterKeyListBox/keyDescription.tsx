@@ -6,6 +6,7 @@ import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKey
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {
+  DEFAULT_ATTRIBUTE_DESCRIPTION,
   DEFAULT_TAG_DESCRIPTION,
   FieldKind,
   FieldValueType,
@@ -44,34 +45,47 @@ export function ValueType({
 }
 
 export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
+  return (
+    <DescriptionWrapper size={size}>
+      <KeyDetails tag={tag} />
+    </DescriptionWrapper>
+  );
+}
+
+export function KeyDetails({tag}: {tag: Tag}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
 
   const fieldDefinition = getFieldDefinition(tag.key);
 
   const sentryDescription = fieldDefinition?.desc;
 
-  const description =
-    sentryDescription ??
-    (tag.kind === FieldKind.TAG
-      ? DEFAULT_TAG_DESCRIPTION
-      : tag.kind === FieldKind.FEATURE_FLAG
-        ? t('A feature flag evaluated before an error event')
-        : null);
+  const description = sentryDescription ?? getFallbackDescription(tag);
 
   const defaultValueType =
     tag.kind === FieldKind.FEATURE_FLAG ? FieldValueType.BOOLEAN : FieldValueType.STRING;
 
   return (
-    <DescriptionWrapper size={size}>
-      <AttributeDetails
-        description={description}
-        isAddedBySentry={Boolean(sentryDescription)}
-        kind={fieldDefinition?.kind ?? tag.kind}
-        name={getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
-        valueType={fieldDefinition?.valueType ?? defaultValueType}
-      />
-    </DescriptionWrapper>
+    <AttributeDetails
+      description={description}
+      isAddedBySentry={Boolean(sentryDescription)}
+      kind={fieldDefinition?.kind ?? tag.kind}
+      name={getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
+      valueType={fieldDefinition?.valueType ?? defaultValueType}
+    />
   );
+}
+
+function getFallbackDescription(tag: Tag) {
+  if (tag.kind === FieldKind.FEATURE_FLAG) {
+    return t('A feature flag evaluated before an error event');
+  }
+
+  // Sentry's own string attributes are typed as tags, but no user sent them.
+  if (tag.kind === FieldKind.TAG && tag.attributeSource !== 'sentry') {
+    return DEFAULT_TAG_DESCRIPTION;
+  }
+
+  return DEFAULT_ATTRIBUTE_DESCRIPTION;
 }
 
 const DescriptionWrapper = styled('div')<Pick<KeyDescriptionProps, 'size'>>`
