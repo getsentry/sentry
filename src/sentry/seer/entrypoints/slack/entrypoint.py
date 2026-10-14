@@ -8,6 +8,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.investigations.models.orchestration import InvestigationOrchestrationStatus
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -828,6 +829,12 @@ class SlackInvestigationEntrypoint(
         data, fingerprint = build_investigation_status(
             investigation=run.investigation,
             projection=run.projection,
+            phase=run.phase,
+            interrupted=run.status
+            in (
+                InvestigationOrchestrationStatus.FAILED,
+                InvestigationOrchestrationStatus.CANCELLED,
+            ),
             updated_at=run.date_updated,
         )
         if fingerprint == cache_payload["last_sent_state"]:
