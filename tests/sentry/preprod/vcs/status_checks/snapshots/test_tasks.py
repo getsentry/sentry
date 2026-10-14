@@ -591,6 +591,41 @@ class PostSnapshotStatusCheckTaskTest(TestCase):
 
     @patch(f"{TASK_MODULE}.get_status_check_provider")
     @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_action_required_suppressed_when_newer_sibling_comparison_failed(
+        self, mock_get_client, mock_get_provider
+    ):
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_should_not_post"
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        newer_artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=self.commit_comparison,
+            app_id=self.artifact.app_id,
+            build_configuration=self.artifact.build_configuration,
+        )
+        newer_head = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=newer_artifact, image_count=10
+        )
+        newer_base_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=self.commit_comparison
+        )
+        newer_base = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=newer_base_artifact, image_count=10
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=newer_head,
+            base_snapshot_metrics=newer_base,
+            state=PreprodSnapshotComparison.State.FAILED,
+        )
+
+        self._call_task(status=StatusCheckStatus.ACTION_REQUIRED.value)
+
+        mock_provider.create_status_check.assert_not_called()
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
     def test_failure_posted_when_no_newer_successful_sibling(
         self, mock_get_client, mock_get_provider
     ):
