@@ -307,22 +307,22 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
           return;
         }
 
-        let checkTimeoutId: number | undefined;
+        let pendingCheckId: number | undefined;
 
         const finish = (settle: () => void) => {
           unsubscribe();
-          window.clearTimeout(checkTimeoutId);
+          window.clearTimeout(pendingCheckId);
           window.clearTimeout(limitTimeoutId);
           signal?.removeEventListener('abort', onAbort);
           settle();
         };
 
-        const check = () => {
-          if (checkTimeoutId !== undefined) {
+        const onContextChange = () => {
+          if (pendingCheckId !== undefined) {
             return;
           }
-          checkTimeoutId = window.setTimeout(() => {
-            checkTimeoutId = undefined;
+          pendingCheckId = window.setTimeout(() => {
+            pendingCheckId = undefined;
             if (loadingNodeIdsRef.current.size === 0 && isReady(getSnapshot())) {
               finish(() => resolve(true));
             }
@@ -331,13 +331,13 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
 
         const onAbort = () => finish(() => reject(new Error('Aborted')));
 
-        const unsubscribe = subscribe(check);
+        const unsubscribe = subscribe(onContextChange);
         const limitTimeoutId = window.setTimeout(
           () => finish(() => resolve(false)),
           timeoutMs
         );
         signal?.addEventListener('abort', onAbort);
-        check();
+        onContextChange();
       }),
     [getSnapshot, subscribe]
   );
