@@ -27,7 +27,6 @@ import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/deta
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useDetectorStatsPeriods} from 'sentry/views/detectors/hooks/useDetectorStatsPeriods';
-import {detectorsOpenIssuePerOpenPeriod} from 'sentry/views/detectors/utils/issuePerOpenPeriod';
 
 type MetricDetectorDetailsProps = {
   detector: MetricDetector;
@@ -35,6 +34,9 @@ type MetricDetectorDetailsProps = {
 
 export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
   const organization = useOrganization();
+  const detectorsOpenIssuePerOpenPeriod = organization.features.includes(
+    'workflow-engine-rotate-activation-id'
+  );
   const dataSource = detector.dataSources[0];
   const snubaQuery = dataSource.queryObj?.snubaQuery;
 
@@ -74,7 +76,7 @@ export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
           </Flex>
           {snubaQuery && <MetricDetectorDetailsChart detector={detector} />}
           <ErrorBoundary mini>
-            {detectorsOpenIssuePerOpenPeriod(organization) ? (
+            {detectorsOpenIssuePerOpenPeriod ? (
               <MetricDetectorRecentIssues
                 detector={detector}
                 intervalSeconds={intervalSeconds}
