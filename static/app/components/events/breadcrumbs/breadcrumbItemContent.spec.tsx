@@ -186,6 +186,63 @@ describe('BreadcrumbItemContent', () => {
     expect(screen.queryByText('failed')).not.toBeInTheDocument();
   });
 
+  it('hides console data that repeats the message', () => {
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.DEBUG,
+      level: BreadcrumbLevelType.INFO,
+      category: 'console',
+      message: 'UndoManager: startGroupIfNeeded',
+      data: {arguments: ['UndoManager: startGroupIfNeeded'], logger: 'console'},
+    };
+    const {container} = render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    expect(container).toHaveTextContent(/^UndoManager: startGroupIfNeeded$/);
+  });
+
+  it('hides console arguments that join into the message', () => {
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.DEBUG,
+      level: BreadcrumbLevelType.INFO,
+      category: 'console',
+      message: 'loaded 3 items true',
+      data: {arguments: ['loaded', 3, 'items', true], logger: 'console', extra: 'kept'},
+    };
+    render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    expect(screen.getByText('extra')).toBeInTheDocument();
+    expect(screen.queryByText('arguments')).not.toBeInTheDocument();
+    expect(screen.queryByText('logger')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ['object arguments', '[object Object]', [{id: 1}]],
+    ['format strings', 'loaded 3 items', ['loaded %d items', 3]],
+    ['assertions', 'Assertion failed: broken', ['broken']],
+    ['trimmed arguments', 'a long message', ['a long…']],
+  ])('keeps console arguments for %s', (_, message, args) => {
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.DEBUG,
+      level: BreadcrumbLevelType.INFO,
+      category: 'console',
+      message,
+      data: {arguments: args, logger: 'console'},
+    };
+    render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    expect(screen.getByText('arguments')).toBeInTheDocument();
+    expect(screen.queryByText('logger')).not.toBeInTheDocument();
+  });
+
+  it('keeps arguments on breadcrumbs from other categories', () => {
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.DEBUG,
+      level: BreadcrumbLevelType.INFO,
+      category: 'custom',
+      message: 'hello',
+      data: {arguments: ['hello'], logger: 'console'},
+    };
+    render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    expect(screen.getByText('arguments')).toBeInTheDocument();
+    expect(screen.getByText('logger')).toBeInTheDocument();
+  });
+
   it('applies item limits with fullyExpanded', () => {
     const longMessage = 'longMessage'.repeat(100);
     const breadcrumb: BreadcrumbTypeDefault = {

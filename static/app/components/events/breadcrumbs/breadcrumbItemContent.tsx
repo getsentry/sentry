@@ -58,7 +58,7 @@ export function BreadcrumbItemContent({
     </BreadcrumbText>
   ) : null;
 
-  const cleanedBreadcrumbData = cleanBreadcrumbData(bc.data);
+  const cleanedBreadcrumbData = omitRepeatedConsoleData(bc, cleanBreadcrumbData(bc.data));
 
   const defaultData = defined(cleanedBreadcrumbData) ? (
     <Timeline.Data>
@@ -247,6 +247,40 @@ function cleanBreadcrumbData<B extends Record<string, any> | undefined | null>(
   }
 
   return cleanedBreadcrumbData;
+}
+
+/**
+ * The JS SDKs record console calls as `{logger: 'console', arguments: [...args]}`
+ * and set the message to the arguments joined with spaces. Hide the data that
+ * only repeats what the breadcrumb already shows.
+ */
+function omitRepeatedConsoleData(
+  breadcrumb: RawCrumb,
+  data: RawCrumb['data']
+): RawCrumb['data'] {
+  if (breadcrumb.category !== 'console' || !data) {
+    return data;
+  }
+
+  const consoleData: Record<string, any> = {...data};
+
+  // Repeats the category
+  if (consoleData.logger === 'console') {
+    delete consoleData.logger;
+  }
+
+  // Plain values that join into the exact message. Objects, format strings, and
+  // values trimmed or scrubbed differently from the message don't match.
+  const args = consoleData.arguments;
+  if (
+    Array.isArray(args) &&
+    args.every(arg => ['string', 'number', 'boolean'].includes(typeof arg)) &&
+    args.join(' ') === breadcrumb.message
+  ) {
+    delete consoleData.arguments;
+  }
+
+  return Object.keys(consoleData).length > 0 ? consoleData : undefined;
 }
 
 const Link = styled('a')`
