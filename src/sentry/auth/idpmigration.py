@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
@@ -21,6 +22,8 @@ from sentry.utils.security import get_secure_token
 _TTL = timedelta(minutes=10)
 SSO_VERIFICATION_KEY = "confirm_account_verification_key"
 
+logger = logging.getLogger(__name__)
+
 
 def send_one_time_account_confirm_link(
     user: User,
@@ -34,12 +37,13 @@ def send_one_time_account_confirm_link(
     Create a one-time verification key for a user whose SSO identity
     has been deleted, presumably because the parent organization has
     switched identity providers. Store the key in Redis and send it
-    in an email to the associated address.
+    in an email to an address on the account.
 
     :param user: the user profile to link
     :param org: the organization whose SSO provider is being used
     :param provider: the SSO provider
-    :param email: the email address associated with the SSO identity
+    :param email: the IdP-asserted email. Not used as the link recipient; the link
+        goes to an address on the account (see send_confirm_email).
     :param identity_id: the SSO identity id
     """
     link = AccountConfirmLink(user, org, provider, email, identity_id)
@@ -72,6 +76,16 @@ class AccountConfirmLink:
         self.verification_key = f"auth:one-time-key:{self.verification_code}"
 
     def send_confirm_email(self) -> None:
+        recipients = list(self.user.get_verified_emails().values_list("email", flat=True))
+        if not recipients and self.user.email:
+            recipients = [self.user.email]
+        if not recipients:
+            logger.warning(
+                "idpmigration.confirm_link_no_account_email",
+                extra={"user_id": self.user.id, "organization_id": self.organization.id},
+            )
+            return
+
         context = {
             "user": self.user,
             "organization": self.organization.name,
@@ -92,7 +106,7 @@ class AccountConfirmLink:
             type="user.confirm_email",
             context=context,
         )
-        msg.send_async([self.email])
+        msg.send_async(recipients)
         metrics.incr("idpmigration.confirm_link_sent", sample_rate=1.0)
 
     def store_in_redis(self) -> None:

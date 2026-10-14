@@ -1,6 +1,7 @@
 import re
 from typing import cast
 
+from django.core import mail
 from django.urls import reverse
 
 import sentry.auth.idpmigration as idpmigration
@@ -54,6 +55,34 @@ class IDPMigrationTests(TestCase):
         assert value["organization_id"] == self.org.id
         assert value["identity_id"] == self.IDENTITY_ID
         assert value["provider"] == "dummy"
+
+    def test_confirm_link_sent_only_to_verified_account_email(self) -> None:
+        """The link goes to the account's verified address, not the asserted email."""
+        asserted = "other@example.com"
+        with self.tasks():
+            idpmigration.send_one_time_account_confirm_link(
+                self.user, self.org, self.provider, asserted, self.IDENTITY_ID
+            )
+
+        verified = set(self.user.get_verified_emails().values_list("email", flat=True))
+        assert verified
+        assert len(mail.outbox) == 1
+        (sent,) = mail.outbox
+        assert asserted not in sent.to
+        assert set(sent.to) == verified
+
+    def test_confirm_link_falls_back_to_primary_without_verified_email(self) -> None:
+        """With no verified email, the link goes to the primary address, not the asserted one."""
+        self.user.emails.update(is_verified=False)
+        asserted = "other@example.com"
+        with self.tasks():
+            idpmigration.send_one_time_account_confirm_link(
+                self.user, self.org, self.provider, asserted, self.IDENTITY_ID
+            )
+        assert len(mail.outbox) == 1
+        (sent,) = mail.outbox
+        assert asserted not in sent.to
+        assert sent.to == [self.user.email]
 
     def test_verify_account(self) -> None:
         link = idpmigration.send_one_time_account_confirm_link(

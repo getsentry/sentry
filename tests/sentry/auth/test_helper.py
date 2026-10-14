@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
+from django.core import mail
 from django.db import IntegrityError, models, router, transaction
 from django.http import HttpResponseRedirect
 from django.http.response import HttpResponseBase
@@ -650,6 +651,44 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
 
         assert context["existing_user"].id == existing_user.id
         assert "login_form" in context
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_automatic_migration_sends_link_to_verified_email(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        """A passwordless user asserting their own email gets the link at that address."""
+        existing_user = self.create_user(email=self.email)
+        existing_user.update(password="")
+
+        with self.tasks():
+            self.handler.handle_unknown_identity(self.state)
+
+        assert mock_render.call_args.args[0] == "sentry/auth-confirm-account.html"
+        assert len(mail.outbox) == 1
+        (sent,) = mail.outbox
+        assert sent.to == [self.email]
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_confirm_link_sent_to_verified_email_when_asserted_differs(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        """An asserted email that resolves case-insensitively still sends the link
+        to the account's address, not the asserted string."""
+        account_email = "person@example.com"
+        asserted = "PERSON@example.com"
+
+        user = self.create_user(email=account_email)
+        user.update(password="")
+
+        handler = self._handler_with({**self.identity, "email": asserted})
+        with self.tasks():
+            handler.handle_unknown_identity(self.state)
+
+        assert mock_render.call_args.args[0] == "sentry/auth-confirm-account.html"
+        assert len(mail.outbox) == 1
+        (sent,) = mail.outbox
+        assert asserted not in sent.to
+        assert sent.to == [account_email]
 
     @mock.patch("sentry.auth.helper.render_to_response")
     @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
