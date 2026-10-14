@@ -15,6 +15,12 @@ import {Onboarding as MCPOnboarding} from 'sentry/views/insights/pages/mcp/onboa
 import {NodeRuntimeMetricsOnboarding} from 'sentry/views/insights/pages/nodeRuntime/onboarding';
 import {ModuleName} from 'sentry/views/insights/types';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {GenericOnboarding} from './genericOnboarding';
 
@@ -31,7 +37,8 @@ export function PrebuiltDashboardOnboardingGate({
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
-  const onboarding = prebuiltId ? PREBUILT_DASHBOARDS[prebuiltId]?.onboarding : undefined;
+  const prebuiltDashboard = prebuiltId ? PREBUILT_DASHBOARDS[prebuiltId] : undefined;
+  const onboarding = prebuiltDashboard?.onboarding;
 
   const moduleName =
     onboarding?.type === 'module' ? onboarding.moduleName : ModuleName.OTHER;
@@ -52,17 +59,21 @@ export function PrebuiltDashboardOnboardingGate({
   if (onboarding.type === 'module') {
     if (!hasAnySpanData) {
       return (
-        <ModuleLayout.Full>
-          <LegacyOnboarding organization={organization} project={onboardingProject} />
-        </ModuleLayout.Full>
+        <DashboardOnboarding title={prebuiltDashboard?.title}>
+          <ModuleLayout.Full>
+            <LegacyOnboarding organization={organization} project={onboardingProject} />
+          </ModuleLayout.Full>
+        </DashboardOnboarding>
       );
     }
 
     if (!hasFirstSpan) {
       return (
-        <ModuleLayout.Full>
-          <ModulesOnboardingPanel moduleName={onboarding.moduleName} />
-        </ModuleLayout.Full>
+        <DashboardOnboarding title={prebuiltDashboard?.title}>
+          <ModuleLayout.Full>
+            <ModulesOnboardingPanel moduleName={onboarding.moduleName} />
+          </ModuleLayout.Full>
+        </DashboardOnboarding>
       );
     }
 
@@ -70,7 +81,11 @@ export function PrebuiltDashboardOnboardingGate({
   }
 
   if (onboarding.type === 'custom' && onboarding.componentId === 'agent-monitoring') {
-    return <AgentDashboardOnboardingGate>{children}</AgentDashboardOnboardingGate>;
+    return (
+      <AgentDashboardOnboardingGate title={prebuiltDashboard?.title}>
+        {children}
+      </AgentDashboardOnboardingGate>
+    );
   }
 
   const selectedProjects = getSelectedProjectList(
@@ -88,16 +103,34 @@ export function PrebuiltDashboardOnboardingGate({
 
   if (onboarding.type === 'custom') {
     if (onboarding.componentId === 'node-runtime-metrics') {
-      return <NodeRuntimeMetricsOnboarding />;
+      return (
+        <DashboardOnboarding title={prebuiltDashboard?.title}>
+          <NodeRuntimeMetricsOnboarding />
+        </DashboardOnboarding>
+      );
     }
 
-    return <MCPOnboarding />;
+    return (
+      <DashboardOnboarding title={prebuiltDashboard?.title}>
+        <MCPOnboarding />
+      </DashboardOnboarding>
+    );
   }
 
-  return <GenericOnboarding heading={onboarding.description} />;
+  return (
+    <DashboardOnboarding title={prebuiltDashboard?.title}>
+      <GenericOnboarding heading={onboarding.description} />
+    </DashboardOnboarding>
+  );
 }
 
-function AgentDashboardOnboardingGate({children}: {children: React.ReactNode}) {
+function AgentDashboardOnboardingGate({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title: string | undefined;
+}) {
   const {hasAgenticSpans, isLoading, isError} = useHasAgentSpans();
 
   if (isLoading) {
@@ -109,5 +142,31 @@ function AgentDashboardOnboardingGate({children}: {children: React.ReactNode}) {
     return children;
   }
 
-  return <AgentOnboarding />;
+  return (
+    <DashboardOnboarding title={title}>
+      <AgentOnboarding />
+    </DashboardOnboarding>
+  );
 }
+
+function DashboardOnboardingInner({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title: string | undefined;
+}) {
+  const selectedProjects = useSelectedProjectsForLLMContext();
+
+  useLLMContext({
+    contextHint:
+      'Sentry prebuilt dashboard, showing setup instructions instead of widgets because the selected projects have not sent the data this dashboard needs yet.',
+    onboarding: true,
+    title,
+    ...toLLMContextProjectFields(selectedProjects),
+  });
+
+  return children;
+}
+
+const DashboardOnboarding = registerLLMContext('dashboard', DashboardOnboardingInner);

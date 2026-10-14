@@ -56,6 +56,12 @@ import {
 } from 'sentry/views/explore/components/styles';
 import {SetupLogsButton} from 'sentry/views/explore/logs/setupLogsButton';
 import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 type OnboardingProps = {
   organization: Organization;
@@ -580,11 +586,22 @@ type LogsTabOnboardingProps = {
   project: Project;
 };
 
-export function LogsTabOnboarding({
+function LogsTabOnboardingInner({
   organization,
   project,
   datePageFilterProps,
 }: LogsTabOnboardingProps) {
+  const selectedProjects = useSelectedProjectsForLLMContext();
+
+  useLLMContext({
+    contextHint:
+      'Sentry logs explorer page, showing setup instructions because the selected projects have not sent any logs yet. ' +
+      'onboardingProject is the project the setup instructions are for.',
+    onboarding: true,
+    onboardingProject: {slug: project.slug, platform: project.platform},
+    ...toLLMContextProjectFields(selectedProjects),
+  });
+
   return (
     <ExploreBodySearch>
       <Layout.Main width="full">
@@ -606,3 +623,8 @@ export function LogsTabOnboarding({
     </ExploreBodySearch>
   );
 }
+
+export const LogsTabOnboarding = registerLLMContext(
+  'logs-explorer',
+  LogsTabOnboardingInner
+);
