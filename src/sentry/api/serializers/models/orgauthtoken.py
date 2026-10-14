@@ -1,12 +1,37 @@
+from collections.abc import Mapping
+from datetime import datetime
+from typing import Any, NotRequired, TypedDict
+
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, register
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
+
+
+class OrgAuthTokenSerializerResponse(TypedDict):
+    id: str
+    name: str
+    scopes: list[str]
+    tokenLastCharacters: str | None
+    dateCreated: datetime
+    dateLastUsed: datetime | None
+    projectLastUsedId: str | None
+    token: NotRequired[str]
 
 
 @register(OrgAuthToken)
-class OrgAuthTokenSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+class OrgAuthTokenSerializer(Serializer[OrgAuthTokenSerializerResponse]):
+    def serialize(
+        self,
+        obj: OrgAuthToken,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> OrgAuthTokenSerializerResponse:
         token = kwargs["token"]
-        data = {
+        data: OrgAuthTokenSerializerResponse = {
             "id": str(obj.id),
             "name": obj.name,
             "scopes": obj.get_scopes(),
