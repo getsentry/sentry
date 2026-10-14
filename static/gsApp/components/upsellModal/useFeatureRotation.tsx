@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 
-import type {Feature} from './types';
+import type {Feature} from 'getsentry/components/upsellModal/types';
 
 interface Options {
   features: Feature[];

@@ -17,15 +17,14 @@ import {Grid} from '@sentry/scraps/layout';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
+import {FeatureList} from 'getsentry/components/upsellModal/featureList';
+import {Footer} from 'getsentry/components/upsellModal/footer';
+import {HighlightedFeature} from 'getsentry/components/upsellModal/highlightedFeature';
+import type {Feature} from 'getsentry/components/upsellModal/types';
+import {useFeatureRotation} from 'getsentry/components/upsellModal/useFeatureRotation';
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength, hasPerformance, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-
-import {FeatureList} from './featureList';
-import {Footer} from './footer';
-import {HighlightedFeature} from './highlightedFeature';
-import type {Feature} from './types';
-import {useFeatureRotation} from './useFeatureRotation';
 
 /**
  * When the details are first mounted, until the user clicks one we will rotate
