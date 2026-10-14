@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import type {ResponseMeta} from 'sentry/types/api';
+import type {ApiResult} from 'sentry/types/api';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApi} from 'sentry/utils/useApi';
@@ -88,16 +88,18 @@ export function useExportConversation({
     let cursor: string | undefined;
 
     do {
-      const [body, , resp]: [ConversationApiResponse, string, ResponseMeta] =
-        await api.requestPromise(url, {
+      const [body, , resp]: ApiResult<ConversationApiResponse> = await api.requestPromise(
+        url,
+        {
           includeAllArgs: true,
           query: {...baseQuery, per_page: EXPORT_PER_PAGE, cursor},
-        });
+        }
+      );
       if (title === null) {
         title = body.title ?? null;
       }
       spans.push(...(body.spans ?? []));
-      const next = parseLinkHeader(resp.getResponseHeader('Link') ?? null).next;
+      const next = parseLinkHeader(resp?.getResponseHeader('Link') ?? null).next;
       cursor = next?.results ? next.cursor : undefined;
     } while (cursor && spans.length < MAX_EXPORT_SPANS);
 
