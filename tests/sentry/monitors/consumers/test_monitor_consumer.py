@@ -195,7 +195,6 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
-        assert checkin.monitor_config is None
         assert (
             MonitorCheckInConfig.objects.get(id=checkin.checkin_config_id).config == monitor.config
         )
@@ -267,7 +266,6 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
-        assert checkin.monitor_config is None
         assert (
             MonitorCheckInConfig.objects.get(id=checkin.checkin_config_id).config == monitor.config
         )

@@ -25,7 +25,6 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     DefaultFieldsModel,
     FlexibleForeignKey,
-    LegacyTextJSONField,
     Model,
     UUIDField,
     cell_silo_model,
@@ -521,12 +520,6 @@ class MonitorCheckIn(Model):
     Holds the exact time when a check-in would be considered to have timed out.
     This is computed as the sum of date_updated and the user configured
     max_runtime.
-    """
-
-    monitor_config = LegacyTextJSONField(null=True)
-    """
-    Legacy snapshot of the monitor configuration at the time of the check-in.
-    No longer written or read; replaced by `checkin_config`.
     """
 
     checkin_config = FlexibleForeignKey(
