@@ -293,26 +293,26 @@ export function Details({onCloseModal, organization, source, subscription}: Prop
       hasPerformance(subscription.planDetails)
       ? [
           t(
-            `With your trial you have access to Sentry's Power Features, which
+            `With your trial you have access to Sentry’s Power Features, which
              offer a macro-level perspective of error trends and application
              health, while also allowing you to drill down into a single
              issue or event with Dashboards and Discover-powered queries.`
           ),
           t(
-            `We hope you're enjoying these new features to create complex
+            `We hope you’re enjoying these new features to create complex
              queries against event data, see all issues across projects, and
              view dashboards for a comprehensive and holistic view.`
           ),
         ]
       : [
           t(
-            `With your trial you have access to Sentry's Performance Monitoring
+            `With your trial you have access to Sentry’s Performance Monitoring
              features which give you deeper visibility into your frontend page
              load times and database queries that are critical toward
              delivering fast customer experiences.`
           ),
           t(
-            `With just five lines of code, you're now able to highlight your
+            `With just five lines of code, you’re now able to highlight your
              key transactions and set metric alerts to detect latency spikes.
              You can also dive in and query across multiple projects for a
              comprehensive view into your application.`
@@ -363,8 +363,6 @@ export function Details({onCloseModal, organization, source, subscription}: Prop
             {strong: <strong />}
           );
 
-  const orgSub = {organization, subscription};
-
   return (
     <Fragment>
       <Grid columns={{zero: '1fr', xl: 'auto 200px'}} gap={{xl: '3xl'}} marginBottom="xl">
@@ -374,7 +372,11 @@ export function Details({onCloseModal, organization, source, subscription}: Prop
             {...featureContentAnimation}
           >
             {highlightedFeature ? (
-              <HighlightedFeature feature={highlightedFeature} {...orgSub} />
+              <HighlightedFeature
+                feature={highlightedFeature}
+                organization={organization}
+                subscription={subscription}
+              />
             ) : (
               <div data-test-id="default-messaging">
                 {sentences.map((m, i) => (
@@ -392,7 +394,6 @@ export function Details({onCloseModal, organization, source, subscription}: Prop
           withCountdown={hasClickedFeature ? undefined : ROTATE_INTERVAL}
           shouldShowTeamFeatures={shouldShowTeamFeatures}
           shouldShowPerformanceFeatures={!hasPerformance(subscription.planDetails)}
-          {...orgSub}
         />
       </Grid>
       <Footer
