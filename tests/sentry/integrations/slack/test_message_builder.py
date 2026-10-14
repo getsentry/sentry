@@ -382,16 +382,19 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         self.project.save(update_fields=["flags"])
         more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
         notes = "hey @colleen fix it"
+        origin = create_notification_origin(rule)
+        assert origin.legacy_rule_id is not None
+        assert origin.workflow_id is not None
 
         assert SlackIssuesMessageBuilder(
-            group, rules=[create_notification_origin(rule)]
+            group, rules=[origin]
         ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
             rule=rule,
-            legacy_rule_id=rule.data["actions"][0]["legacy_rule_id"],
-            workflow_id=rule.data["actions"][0]["workflow_id"],
+            legacy_rule_id=origin.legacy_rule_id,
+            workflow_id=origin.workflow_id,
         )
 
         # add extra tag to message
@@ -456,7 +459,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     def test_build_group_block_with_workflow_only(self) -> None:
         rule = self.create_project_rule(project=self.project)
-        workflow_id = rule.data["actions"][0]["workflow_id"]
+        rule_origin = create_notification_origin(rule)
+        workflow_id = rule_origin.workflow_id
+        assert workflow_id is not None
         origin = NotificationOrigin(
             label=rule.label,
             environment_id=rule.environment_id,
