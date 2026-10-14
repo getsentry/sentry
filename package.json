@@ -14,7 +14,7 @@
     "type-coverage": "node scripts/type-coverage.ts -p tsconfig.json",
     "type-coverage-diff": "node scripts/type-coverage-diff.ts",
     "test": "sentry-test --watch",
-    "test-all": "pnpm --recursive --parallel --no-bail --no-include-workspace-root --if-present run test --watch=false --passWithNoTests --maxWorkers=2",
+    "test-all": "pnpm --recursive --parallel --no-bail --if-present run test --watch=false --passWithNoTests --maxWorkers=2",
     "test-ci": "node scripts/testCi.js",
     "test-debug": "NODE_OPTIONS=\"$NODE_OPTIONS --inspect-brk\" sentry-test --runInBand",
     "test-precommit": "sentry-test --bail --findRelatedTests -u",

@@ -9,7 +9,6 @@ packages:
   - tests/js/getsentry-test
   - static/oxlint/eslintPluginScraps
   - static/oxlint/eslintPluginSentry
-includeWorkspaceRoot: true
 disallowWorkspaceCycles: true
 shamefullyHoist: true
 minimumReleaseAge: 720
