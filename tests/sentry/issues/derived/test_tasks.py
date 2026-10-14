@@ -1143,9 +1143,6 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
         group_ids = sorted(group.id for group in groups)
         for group_id in group_ids:
             process_group_log(group_id)
-        GroupActionLogEntry.objects.filter(group_id__in=group_ids).update(
-            date_updated=django_timezone.now() - timedelta(minutes=11)
-        )
         GroupDerivedData.objects.filter(group_id=group_ids[1]).update(pipeline_hash="stale")
 
         with patch("sentry.issues.derived.tasks_util.metrics.incr") as mock_incr:
@@ -1169,9 +1166,12 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
             call("issues.derived.check_group", sample_rate=1.0, tags={"result": "success"}),
         ]
 
-    def test_records_recent_log_entry(self) -> None:
+    def test_records_recent_backfill(self) -> None:
         group = self.create_unprocessed_groups(1)[0]
         process_group_log(group.id)
+        GroupActionLogEntry.objects.filter(group_id=group.id).update(
+            date_added=django_timezone.now() - timedelta(days=30)
+        )
 
         with patch("sentry.issues.derived.tasks_util.metrics.incr") as mock_incr:
             check_fresh_derived_data_batch(
@@ -1183,7 +1183,7 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
             call(
                 "issues.derived.check_group",
                 sample_rate=1.0,
-                tags={"result": "recent_log_entry"},
+                tags={"result": "recent_backfill"},
             )
             in mock_incr.call_args_list
         )

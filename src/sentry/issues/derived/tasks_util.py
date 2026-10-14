@@ -16,7 +16,7 @@ from sentry.issues.derived.check import (
     CheckFailure,
     CheckId,
     CheckInvalidated,
-    CheckRecentLogEntry,
+    CheckRecentBackfill,
     CheckResult,
 )
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -71,8 +71,8 @@ class SpawnState:
 
 def _record_check_result(result: CheckResult) -> None:
     outcome = "no_result" if isinstance(result, CheckInvalidated) else "success"
-    if isinstance(result, CheckRecentLogEntry):
-        outcome = "recent_log_entry"
+    if isinstance(result, CheckRecentBackfill):
+        outcome = "recent_backfill"
     if isinstance(result, CheckFailure):
         outcome = "mismatch"
         logger.warning(

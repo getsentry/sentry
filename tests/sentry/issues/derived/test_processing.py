@@ -31,7 +31,7 @@ from sentry.issues.derived.check import (
     CheckFailure,
     CheckInvalidated,
     CheckPassed,
-    CheckRecentLogEntry,
+    CheckRecentBackfill,
     CheckTimeout,
     FeatureDifference,
     check_derived_data,
@@ -254,11 +254,10 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
-        _age_action_log_entries(group.id)
 
         assert check_derived_data(derived, PIPELINE) == CheckPassed()
 
-    def test_check_derived_data_skips_recently_written_log_entry(self) -> None:
+    def test_check_derived_data_skips_recently_backfilled_log_entry(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
@@ -266,7 +265,7 @@ class ProcessGroupLogTest(TestCase):
             date_added=django_timezone.now() - timedelta(days=30)
         )
 
-        assert check_derived_data(derived, PIPELINE) == CheckRecentLogEntry()
+        assert check_derived_data(derived, PIPELINE) == CheckRecentBackfill()
 
     def test_check_derived_data_reports_different_features(self) -> None:
         group = self.create_group()

@@ -145,8 +145,8 @@ class CheckInvalidated:
 
 
 @dataclass(frozen=True)
-class CheckRecentLogEntry:
-    """A check skipped because its replay includes a recently written log entry."""
+class CheckRecentBackfill:
+    """A check skipped because its replay includes a recently backfilled log entry."""
 
     pass
 
@@ -168,7 +168,7 @@ class CheckFailure:
     differences: dict[Feature[Any], FeatureDifference]
 
 
-type CheckResult = CheckPassed | CheckFailure | CheckInvalidated | CheckRecentLogEntry
+type CheckResult = CheckPassed | CheckFailure | CheckInvalidated | CheckRecentBackfill
 
 
 def compare_derived_data(
@@ -310,9 +310,12 @@ def check_derived_data(
 
     deadline = time.monotonic() + timeout.total_seconds() if timeout is not None else None
     while entries := _entries_through_target_cursor(replayed_derived, check_id, batch_size):
-        if any(entry.date_updated >= recent_entry_cutoff for entry in entries):
+        if any(
+            entry.date_updated >= recent_entry_cutoff and entry.date_added < recent_entry_cutoff
+            for entry in entries
+        ):
             _check_cache.delete(check_id)
-            return CheckRecentLogEntry()
+            return CheckRecentBackfill()
         replayed = pipeline.run(
             entries, state=GroupDerivedDataStore.load(pipeline, replayed_derived)
         )
