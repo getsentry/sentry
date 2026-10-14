@@ -35,6 +35,7 @@ class AssessImpactForGroupTest(TestCase):
         assert call["payload"]["project_id"] == self.project.id
         assert call["payload"]["source_event_id"] == event.event_id
         assert call["payload"]["event"]
+        assert isinstance(call["payload"]["event"]["dateCreated"], str)
         assert call["payload"]["available_citations"] == [
             {"source": "event", "reference": f"entire-event:{event.event_id}"}
         ]

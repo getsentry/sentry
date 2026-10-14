@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import orjson
+
 from sentry import features
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.issues.impact.types import IMPACT_FEATURE_ID, AvailableImpactCitation
@@ -17,7 +19,7 @@ def assess_impact_for_group(group: Group) -> SeerRun:
         raise ValueError(f"Group {group.id} has no event available for Impact assessment")
 
     source_event_id = event.event_id
-    serialized_event = serialize(event, serializer=EventSerializer())
+    serialized_event = orjson.loads(orjson.dumps(serialize(event, serializer=EventSerializer())))
     available_citations = [
         # For starters, just cite the whole event, but this should break apart into useful separate components
         # That way we can show rich citations to actual context panes
