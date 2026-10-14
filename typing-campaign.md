@@ -360,6 +360,9 @@ Editor integrations must use this virtualenv and `pyproject.toml`. Confirm error
 
 Append one line per consequential executor judgment: item, decision, evidence and reason. Do not repeat policy or record every command here.
 
+- 2026-10-14: metadata-sweep validation bar raised after owner challenge on `sentry.__main__` (dynamic CLI registration via `import_string` in `sentry/runner/main.py:37-76` is invisible to mypy). Targeted mypy alone accepted for functionless leaves; anything with import-time effects now also requires import/startup smoke. Full-repo mypy runs periodically (every ~10 commits) rather than per commit. Startup proof for `__main__`: `import sentry.runner.main` registers 35 commands, `python -m sentry --help` exits clean.
+- 2026-10-14: sweep pivots from empty/tiny weaklist entries to `find_easiest_modules`-ranked modules needing real annotation; trivial removals retire real obligations but do not demonstrate hillclimb progress on genuine debt.
+
 ## Campaign log
 
 Append one short entry per phase and parked item. Include accepted commits, changed contracts, exact verification commands, outcomes, elapsed times, remaining obligations and retry conditions. Keep raw transient checker output in scratch. Persist only the findings needed to resume or assess the campaign.
