@@ -420,6 +420,10 @@ register(
 )
 
 register(
+    "unmerge.initial-checkpoint-ttl", default=604800, type=Int, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
+register(
     "merge.killswitch-projects",
     default=[],
     type=Any,

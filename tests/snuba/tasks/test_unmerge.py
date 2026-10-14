@@ -46,6 +46,10 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 @patch.object(features, "index", new=index)
 class UnmergeTestCase(TestCase, SnubaTestCase):
+    @with_feature("organizations:unmerge-recovery")
+    def test_unmerge_with_recovery(self) -> None:
+        self.test_unmerge()
+
     @patch("sentry.tasks.unmerge.Group")
     @patch("sentry.tasks.unmerge.current_task")
     def test_selfchain_skips_when_already_spawned(self, mock_current_task, mock_group) -> None:
