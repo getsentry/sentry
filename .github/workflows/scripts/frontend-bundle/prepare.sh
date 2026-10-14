@@ -11,7 +11,7 @@
 #                           getsentry's GoCD frontend pipeline deploys
 set -euxo pipefail
 
-: "${COMMIT_SHA:?}" "${OUT:?}"
+: "${COMMIT_SHA:?}" "${OUT:?}" "${SENTRY_AUTH_TOKEN:?}"
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 dist=src/sentry/static/sentry/dist
@@ -34,15 +34,13 @@ mkdir -p "${entrypoints}"
 mv "${cdn}/entrypoints/"* "${entrypoints}"
 rmdir "${cdn}/entrypoints"
 
-if [[ -n "${SENTRY_AUTH_TOKEN:-}" ]]; then
-    # When debug IDs don't match, Sentry falls back to resolving source maps by
-    # path, which has to mirror the CDN layout. Upload after the layout is final.
-    sentry-cli sourcemaps upload \
-        --use-artifact-bundle "${OUT}/cdn" \
-        --org sentry \
-        --project javascript \
-        --release "frontend@${COMMIT_SHA}"
-fi
+# Without matching debug IDs, Sentry resolves source maps by path, so upload
+# from the final CDN layout.
+sentry-cli sourcemaps upload \
+    --use-artifact-bundle "${OUT}/cdn" \
+    --org sentry \
+    --project javascript \
+    --release "frontend@${COMMIT_SHA}"
 
 python3 -S "${script_dir}/hashed_entrypoints.py" \
     --sha "${COMMIT_SHA}" \

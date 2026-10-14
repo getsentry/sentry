@@ -17,10 +17,9 @@ if gcloud storage ls "${dest}/configmap.json" &>/dev/null; then
     exit 0
 fi
 
-# Everything under _static/dist is content-addressed (or only referenced via
-# the content-hashed entrypoints), so a 10 year cache is safe. --gzip-local
-# stores these compressed with Content-Encoding: gzip while keeping the
-# uncompressed Content-Type.
+# Everything uploaded under _static/dist has a content hash in its name, so a
+# 10 year cache is safe. --gzip-local stores these with Content-Encoding: gzip
+# and the uncompressed Content-Type.
 gcloud storage cp -r \
     --cache-control="public, max-age=315360000" \
     --predefined-acl=publicRead \

@@ -1,20 +1,13 @@
 name: frontend-bundle
 
-# Builds the SaaS frontend bundle once per master commit. getsentry pins sentry
-# by SHA (sentry-version) and looks bundles up by that SHA:
-#   - its backend image extracts frontend-bundle.tar.gz instead of running webpack
-#   - its GoCD frontend pipeline deploys configmap.json
-# Kept separate from self-hosted.yml: the SaaS bundle bakes in a release
-# version and sourcemaps, and its failures shouldn't block self-hosted images.
+# Builds the SaaS frontend bundle for every master commit and publishes it to
+# GCS keyed by SHA. getsentry looks it up by its pinned sentry-version: the
+# backend image extracts frontend-bundle.tar.gz and the GoCD frontend pipeline
+# deploys configmap.json.
 on:
   push:
     branches:
       - master
-
-# Every master SHA needs a bundle, so never cancel.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.sha }}
-  cancel-in-progress: false
 
 env:
   # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
