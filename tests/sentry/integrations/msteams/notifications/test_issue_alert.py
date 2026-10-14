@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
 from sentry.testutils.skips import requires_snuba
@@ -35,7 +35,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
 
         notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule),
+            Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule)),
             ActionTargetType.MEMBER,
             self.user.id,
             notification_uuid=notification_uuid,
@@ -84,7 +84,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
 
         notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule),
+            Notification(event=event, rule=NotificationOrigin.from_legacy_rule(rule)),
             ActionTargetType.ISSUE_OWNERS,
             self.user.id,
             notification_uuid=notification_uuid,

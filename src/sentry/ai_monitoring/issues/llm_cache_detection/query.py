@@ -19,7 +19,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.events.types import SnubaParams, SnubaRow
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams, SnubaRow
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba import SnubaTSResult
@@ -40,6 +40,9 @@ SPAN_NAME = "span.name"
 # can find in their code. The operation name stands in where it is missing.
 AGENT_NAME = AgentLabelSource.AGENT_NAME.value
 OPERATION_NAME = AgentLabelSource.OPERATION_NAME.value
+EMPTY_AGENT_NAME = f'{AGENT_NAME}:""'
+NAMED_AGENT_FILTER = f"has:{AGENT_NAME} !{EMPTY_AGENT_NAME}"
+FALLBACK_AGENT_FILTER = f"(!has:{AGENT_NAME} OR {EMPTY_AGENT_NAME})"
 
 # Deprecated SDK aliases are backfilled onto these attributes at ingestion.
 CACHE_READ_TOKENS = "gen_ai.usage.cache_read.input_tokens"
@@ -100,7 +103,7 @@ def _build_group_filter(stats: CallSiteStats) -> str | None:
     except InvalidSearchQuery:
         return None
     if stats.agent_label_source is AgentLabelSource.OPERATION_NAME:
-        agent_term = f"!has:{AGENT_NAME} {agent_term}"
+        agent_term = f"{FALLBACK_AGENT_FILTER} {agent_term}"
     return f"{GEN_AI_CALL_FILTER} {agent_term} {span_term} {model_term}"
 
 
@@ -112,6 +115,7 @@ def _run_spans_query(
     selected_columns: list[str],
     orderby: list[str] | None,
     limit: int,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
 ) -> EAPResponse:
     return Spans.run_table_query(
         params=SnubaParams(
@@ -127,7 +131,7 @@ def _run_spans_query(
         limit=limit,
         referrer=Referrer.ISSUES_LLM_CACHE_DETECTION.value,
         config=SearchResolverConfig(auto_fields=True),
-        sampling_mode="NORMAL",
+        sampling_mode=sampling_mode,
     )
 
 
@@ -201,31 +205,39 @@ def _to_call_sites(
 
 def fetch_call_site_stats(project: Project, window: DetectionWindow) -> CallSiteQueryResult:
     """Aggregate LLM calls by agent label, span name, and model."""
-    result = _run_spans_query(
-        project,
-        window,
-        query_string=GEN_AI_CALL_FILTER,
-        selected_columns=[
-            AGENT_NAME,
-            OPERATION_NAME,
-            SPAN_NAME,
-            MODEL,
-            COUNT,
-            COUNT_SAMPLE,
-            SUM_INPUT_TOKENS,
-            SUM_CACHE_READ_TOKENS,
-            SUM_CACHE_CREATION_TOKENS,
-            AVG_INPUT_TOKENS,
-        ],
-        orderby=[f"-{SUM_INPUT_TOKENS}"],
-        limit=CALL_SITE_GROUPS_LIMIT,
-    )
-    rows = result.get("data", [])
+    aggregate_columns = [
+        COUNT,
+        COUNT_SAMPLE,
+        SUM_INPUT_TOKENS,
+        SUM_CACHE_READ_TOKENS,
+        SUM_CACHE_CREATION_TOKENS,
+        AVG_INPUT_TOKENS,
+    ]
+    results = [
+        _run_spans_query(
+            project,
+            window,
+            query_string=f"{GEN_AI_CALL_FILTER} {label_filter}",
+            selected_columns=[label, SPAN_NAME, MODEL, *aggregate_columns],
+            orderby=[f"-{SUM_INPUT_TOKENS}"],
+            limit=CALL_SITE_GROUPS_LIMIT,
+            sampling_mode="HIGHEST_ACCURACY",
+        )
+        for label, label_filter in (
+            (AGENT_NAME, NAMED_AGENT_FILTER),
+            (OPERATION_NAME, FALLBACK_AGENT_FILTER),
+        )
+    ]
+    rows = [row for result in results for row in result.get("data", [])]
     call_sites, dropped_calls = _to_call_sites(rows)
+    call_sites.sort(key=lambda stats: stats.sum_input_tokens, reverse=True)
     return CallSiteQueryResult(
-        call_sites=call_sites,
+        call_sites=call_sites[:CALL_SITE_GROUPS_LIMIT],
         dropped_calls=dropped_calls,
-        truncated=len(rows) >= CALL_SITE_GROUPS_LIMIT,
+        truncated=(
+            len(call_sites) > CALL_SITE_GROUPS_LIMIT
+            or any(len(result.get("data", [])) >= CALL_SITE_GROUPS_LIMIT for result in results)
+        ),
     )
 
 

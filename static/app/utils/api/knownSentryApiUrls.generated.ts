@@ -484,7 +484,6 @@ export type KnownSentryApiUrls =
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/groups/stats/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/'
-  | '/projects/$organizationIdOrSlug/$projectIdOrSlug/hooks/$hookId/stats/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/stats/'
   | '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/'

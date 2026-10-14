@@ -870,6 +870,7 @@ TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
 # accessible to the worker.
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
+    "sentry.ai_monitoring.issues.llm_cache_detection.tasks",
     "sentry.ai_monitoring.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
@@ -1232,6 +1233,13 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "fetch-ai-model-metadata": {
         "task": "ai_agent_monitoring:sentry.tasks.ai_agent_monitoring.fetch_ai_model_metadata",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
+    },
+    "llm-cache-issue-detection": {
+        "task": (
+            "issues:sentry.ai_monitoring.issues.llm_cache_detection.tasks."
+            "run_llm_cache_issue_detection"
+        ),
+        "schedule": timedelta(minutes=1),
     },
     "preprod-detect-expired-artifacts": {
         "task": "preprod.size:sentry.preprod.tasks.detect_expired_preprod_artifacts",
@@ -1798,8 +1806,6 @@ SENTRY_METRICS_BACKEND = "sentry.metrics.dummy.DummyMetricsBackend"
 SENTRY_METRICS_OPTIONS: dict[str, Any] = {}
 SENTRY_METRICS_SAMPLE_RATE = 1.0
 SENTRY_METRICS_PREFIX = "sentry."
-# Unused. Kept until getsentry stops assigning it; its settings test requires a default.
-SENTRY_METRICS_SKIP_ALL_INTERNAL = False
 SENTRY_METRICS_DISALLOW_BAD_TAGS = IS_DEV
 
 # Metrics product
@@ -2381,6 +2387,12 @@ SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
 # See discussion on https://github.com/getsentry/sentry/pull/20187
 SENTRY_API_RESPONSE_DELAY = 150 if IS_DEV else None
 
+# Import paths of extra API authentication classes, tried before Sentry's own.
+# They must return None for credentials they don't recognize, or Sentry's token
+# authentication never sees them. They're imported while `sentry.api.base` is
+# loading, so their modules can't import it at the top level, even indirectly.
+SENTRY_EXTRA_API_AUTHENTICATION: list[str] = []
+
 # Watchers for various application purposes (such as compiling static media)
 # XXX(dcramer): this doesn't work outside of a source distribution as the
 # rsbuild.config.ts is not part of Sentry's datafiles
@@ -2504,7 +2516,19 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     "project_root": "/usr/src",
     "in_app_include": ["sentry"],
     "debug": True,
-    "send_default_pii": True,
+    "data_collection": {
+        "http_headers": {
+            "request": {
+                "mode": "denylist",
+                "terms": ["forwarded", "-ip", "remote-", "via", "-user"],
+            }
+        },
+        "cookies": {"mode": "off"},
+        "url_query_params": {
+            "mode": "denylist",
+            "terms": ["forwarded", "-ip", "remote-", "via", "-user"],
+        },
+    },
     "auto_enabling_integrations": False,
     "enable_db_query_source": True,
     # Keep alive is enabled to help avoid losing events due to network

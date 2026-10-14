@@ -23,7 +23,33 @@ DECLARE
     fk_add text;
     fk_drops text[] := '{}';
     fk_adds text[] := '{}';
+    locked_table text;
+    -- The order production statements name these tables in, taken from the primary's logs:
+    -- joins start from sentry_release before deploy and release_project, writes and group
+    -- queries name the rest before it. Locking them any other way deadlocks with those.
+    lock_order text[] := ARRAY[
+        'sentry_releasecommit', 'sentry_releaseactivity', 'sentry_releaseheadcommit',
+        'sentry_distribution', 'sentry_groupresolution',
+        'sentry_groupedmessage', 'sentry_releaseprojectenvironment',
+        'sentry_release',
+        'sentry_deploy', 'sentry_release_project'
+    ];
 BEGIN
+    FOR locked_table IN
+        SELECT table_name
+        FROM (
+            SELECT DISTINCT conrelid::regclass::text AS table_name
+            FROM pg_constraint
+            WHERE contype = 'f' AND confrelid = 'sentry_release'::regclass
+            UNION
+            SELECT 'sentry_release'
+        ) referencing
+        -- A constraint table the list does not know is locked after the ones it does.
+        ORDER BY array_position(lock_order, table_name) NULLS LAST, table_name
+    LOOP
+        EXECUTE format('LOCK TABLE %s IN ACCESS EXCLUSIVE MODE', locked_table);
+    END LOOP;
+
     FOR fk IN
         SELECT
             conrelid::regclass AS table_name,
@@ -34,10 +60,6 @@ BEGIN
         WHERE contype = 'f' AND confrelid = 'sentry_release'::regclass
         ORDER BY conrelid::regclass::text
     LOOP
-        -- Child tables first and sentry_release last: the order a child write takes them when
-        -- its deferred FK check runs at commit, so the two cannot deadlock.
-        EXECUTE format('LOCK TABLE %s IN ACCESS EXCLUSIVE MODE', fk.table_name);
-
         -- The primary key cannot be dropped while a foreign key still depends on it.
         fk_drop := format(
             'ALTER TABLE %s DROP CONSTRAINT %I', fk.table_name, fk.constraint_name
@@ -57,8 +79,6 @@ BEGIN
         -- Queued for after the column rename, so sentry_release(id) is the wide column.
         fk_adds := array_append(fk_adds, fk_add);
     END LOOP;
-
-    LOCK TABLE "sentry_release" IN ACCESS EXCLUSIVE MODE;
 
     id_sequence := pg_get_serial_sequence('sentry_release', 'id');
     IF id_sequence IS NULL THEN
