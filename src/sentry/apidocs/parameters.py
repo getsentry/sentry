@@ -33,10 +33,9 @@ def mark_parameter_experimental(parameter: OpenApiParameter) -> OpenApiParameter
 
     description = parameter.description
     text = description if isinstance(description, str) else str(description or "")
-    if not text.startswith("**Experimental:**"):
-        parameter.description = (
-            f"{EXPERIMENTAL_PARAMETER_NOTICE}\n\n{text}" if text else EXPERIMENTAL_PARAMETER_NOTICE
-        )
+    parameter.description = (
+        f"{EXPERIMENTAL_PARAMETER_NOTICE}\n\n{text}" if text else EXPERIMENTAL_PARAMETER_NOTICE
+    )
     return parameter
 
 
