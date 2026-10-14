@@ -6,16 +6,22 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ActivityFeedItem} from './activityFeedItem';
 import {getActivityItem} from './activityItem';
-import {ActivityLineHeadline, ActivityLineRow} from './layout';
+import {ActivityLineContent, ActivityLineHeadline, ActivityLineRow} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
 interface ActivityLineProps {
   group: Group;
   item: ActivityFeedItem;
+  children?: React.ReactNode;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
-export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProps) {
+export function ActivityLine({
+  item,
+  group,
+  timestampUnitStyle,
+  children,
+}: ActivityLineProps) {
   const organization = useOrganization();
   const showProgress = organization.features.includes('issue-activity-progress');
   const {issueCategory, project} = group;
@@ -53,6 +59,7 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
         source={activityItem.source}
         timestamp={timestamp}
       />
+      {children && <ActivityLineContent>{children}</ActivityLineContent>}
     </ActivityLineRow>
   );
 }

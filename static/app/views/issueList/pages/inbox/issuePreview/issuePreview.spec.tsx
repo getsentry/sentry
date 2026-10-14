@@ -1,3 +1,4 @@
+import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {
   AutofixRootCauseArtifactFixture,
   ExplorerAutofixBlockFixture,
@@ -192,6 +193,22 @@ describe('IssuePreview', () => {
     expect(within(stackTrace).getByText('an error occurred')).toBeVisible();
     expect(within(stackTrace).getByText('doThing')).toBeVisible();
     expect(summaryRequest).not.toHaveBeenCalled();
+  });
+
+  it('shows a newly posted timeline comment', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/comments/`,
+      method: 'POST',
+      body: ActivityFeedFixture({data: {text: 'Investigating this issue'}}),
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+    const editor = await screen.findByRole('combobox', {name: 'Add a comment'});
+    // user-event does not yet recognize contenteditable="plaintext-only".
+    editor.setAttribute('contenteditable', 'true');
+    await userEvent.type(editor, 'Investigating this issue');
+    await userEvent.click(screen.getByRole('button', {name: 'Comment'}));
+    expect(await screen.findByText('Investigating this issue')).toBeVisible();
   });
 
   describe('issue summary', () => {

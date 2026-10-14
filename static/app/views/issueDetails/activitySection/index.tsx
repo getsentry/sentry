@@ -6,19 +6,20 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {t, tct, tn} from 'sentry/locale';
-import type {NoteType} from 'sentry/types/alerts';
-import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {RequestError} from 'sentry/utils/requestError/requestError';
+import {t, tn} from 'sentry/locale';
+import type {Group, GroupActivity} from 'sentry/types/group';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivityFeed} from 'sentry/views/issueDetails/activitySection/activityFeed';
-import {buildActivityFeedItems} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
+import {
+  ActivityFeedItem,
+  getActivityFeedItemKey,
+} from 'sentry/views/issueDetails/activitySection/activityFeedItem';
+import {
+  buildActivityFeedItems,
+  type DisplayedActivityFeedItem,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
-import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
+import {useActivityComments} from 'sentry/views/issueDetails/activitySection/useActivityComments';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -54,63 +55,14 @@ export function ActivitySection({
   minHeight = 96,
   placeholder = t('Add a comment\u2026'),
 }: ActivitySectionProps) {
-  const organization = useOrganization();
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const activities = providedActivities ?? group.activity;
-  const {createComment, deleteComment, updateComment} = useMutateActivity({
-    organization,
+  const {onCreate, onDelete, onUpdate} = useActivityComments({
     group,
+    activities,
+    onActivityChange,
   });
-
-  async function handleCreate(data: NoteType) {
-    try {
-      const result = await createComment(data);
-      trackAnalytics('issue_details.comment_created', {organization});
-      addSuccessMessage(t('Comment posted'));
-      onActivityChange?.([result, ...activities]);
-    } catch (error) {
-      const detail =
-        error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
-          ? error.responseJSON.detail
-          : null;
-      addErrorMessage(
-        detail ? tct('Error: [msg]', {msg: detail}) : t('Unable to post comment')
-      );
-      throw error;
-    }
-  }
-
-  async function handleDelete(item: GroupActivityNote) {
-    const commentId = item.commentId;
-    await deleteComment(commentId);
-    trackAnalytics('issue_details.comment_deleted', {organization});
-    addSuccessMessage(t('Comment removed'));
-    onActivityChange?.(
-      activities.filter(
-        activity => !isActivityNote(activity) || activity.commentId !== commentId
-      )
-    );
-  }
-
-  async function handleUpdate(item: GroupActivityNote, data: NoteType) {
-    try {
-      const commentId = item.commentId;
-      const result = await updateComment(commentId, data);
-      trackAnalytics('issue_details.comment_updated', {organization});
-      addSuccessMessage(t('Comment updated'));
-      onActivityChange?.(
-        activities.map(activity =>
-          isActivityNote(activity) && activity.commentId === commentId
-            ? {...activity, data: {...activity.data, ...result.data}}
-            : activity
-        )
-      );
-    } catch (error) {
-      addErrorMessage(t('Unable to update comment'));
-      throw error;
-    }
-  }
 
   const isStandalone = variant === 'standalone';
   const activityLink = {
@@ -135,26 +87,31 @@ export function ActivitySection({
   const inputVariant = isStandalone ? 'full' : 'compact';
   const timestampUnitStyle = isStandalone ? undefined : 'short';
 
+  const renderActivityItem = (item: DisplayedActivityFeedItem) => (
+    <ActivityFeedItem
+      key={getActivityFeedItemKey(item)}
+      item={item}
+      group={group}
+      inputVariant={inputVariant}
+      timestampUnitStyle={timestampUnitStyle}
+      onCommentDelete={onDelete}
+      onCommentUpdate={onUpdate}
+    />
+  );
+
   const noteInput = (
     <ActivityNoteInput
       storageKey="groupinput:latest"
       itemKey={group.id}
       minHeight={minHeight}
-      onSubmit={handleCreate}
+      onSubmit={onCreate}
       placeholder={placeholder}
       variant={inputVariant}
     />
   );
 
   const timeline = (
-    <ActivityFeed
-      group={group}
-      items={displayedActivities}
-      inputVariant={inputVariant}
-      timestampUnitStyle={timestampUnitStyle}
-      onCommentDelete={handleDelete}
-      onCommentUpdate={handleUpdate}
-    />
+    <ActivityFeed>{displayedActivities.map(renderActivityItem)}</ActivityFeed>
   );
   const shouldCollapseSidebar = displayedActivities.length >= 5;
   const sidebarVisibleActivities = shouldCollapseSidebar
@@ -173,14 +130,8 @@ export function ActivitySection({
         )
     : 0;
   const sidebarActivityItems = (
-    <ActivityFeed
-      group={group}
-      items={sidebarVisibleActivities}
-      inputVariant={inputVariant}
-      timestampUnitStyle={timestampUnitStyle}
-      onCommentDelete={handleDelete}
-      onCommentUpdate={handleUpdate}
-    >
+    <ActivityFeed>
+      {sidebarVisibleActivities.map(renderActivityItem)}
       <MoreActivityRow>
         <MoreActivityIcon>
           <RotatedEllipsisIcon direction="up" />

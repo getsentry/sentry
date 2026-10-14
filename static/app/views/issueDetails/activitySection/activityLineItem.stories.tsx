@@ -13,12 +13,12 @@ import {RepositoryStatus} from 'sentry/types/integrations';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {ActivityFeed} from 'sentry/views/issueDetails/activitySection/activityFeed';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
   isActivityNote,
@@ -474,7 +474,7 @@ function ActivityExamples({items}: {items: GroupActivity[]}) {
 
 function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
   return (
-    <ActivityLineList>
+    <ActivityFeed>
       {items.map((item, index) =>
         item.type === 'activity' && isActivityNote(item.activity) ? (
           <ActivityLineNote
@@ -493,7 +493,7 @@ function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
           />
         )
       )}
-    </ActivityLineList>
+    </ActivityFeed>
   );
 }
 
@@ -505,13 +505,13 @@ function CommentExample() {
   }
 
   return (
-    <ActivityLineList>
+    <ActivityFeed>
       <ActivityLineNote
         activity={{...note, user: activeUser}}
         inputVariant="full"
         onDelete={async () => {}}
         onUpdate={async () => {}}
       />
-    </ActivityLineList>
+    </ActivityFeed>
   );
 }

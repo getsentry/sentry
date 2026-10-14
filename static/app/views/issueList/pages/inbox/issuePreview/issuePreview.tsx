@@ -30,7 +30,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {IssueDetailsContextProvider, SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -67,6 +66,8 @@ import {
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSummary';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
+
+import {IssuePreviewTimeline} from './issuePreviewTimeline';
 
 interface IssuePreviewProps {
   groupId: string;
@@ -353,12 +354,7 @@ function IssuePreviewContent() {
                   }
                   sectionKey={SectionKey.ACTIVITY}
                 >
-                  <ActivitySection
-                    group={group}
-                    minHeight={40}
-                    variant="standalone"
-                    placeholder={t('Add a comment. Tag users with @, or teams with #')}
-                  />
+                  <IssuePreviewTimeline group={group} />
                 </FoldSection>
               </ErrorBoundary>
             </Container>

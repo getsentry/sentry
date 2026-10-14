@@ -2619,7 +2619,7 @@
   },
   "static/app/views/issueDetails/activitySection/activityLineItem/layout.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 3
+      "count": 2
     }
   },
   "static/app/views/issueDetails/activitySection/activityLineItem/note.tsx": {

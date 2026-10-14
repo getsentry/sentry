@@ -116,11 +116,3 @@ export const ActivityLineContent = styled('div')`
   grid-row: 2;
   min-width: 0;
 `;
-
-export const ActivityLineList = styled('div')`
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space.md};
-  container-name: activity-list;
-  container-type: inline-size;
-`;
