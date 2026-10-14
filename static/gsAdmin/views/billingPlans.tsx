@@ -8,7 +8,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
-import {ResultTable} from 'sentry/components/resultTable';
+import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
 import type {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
@@ -348,7 +348,7 @@ function PricingTable({pricing}: {pricing: Record<string, Price>}) {
         <tbody>
           {Object.entries(pricing).map(([platform, price]) => (
             <tr key={platform}>
-              <td>{platform}</td>
+              <ResultTableRowHeader>{platform}</ResultTableRowHeader>
               <td data-label="Monthly">{formatCurrency(price.monthly)}</td>
               <td data-label="Annual">{formatCurrency(price.annual)}</td>
             </tr>
@@ -408,7 +408,7 @@ function PriceTiersTable({
           <tbody>
             {tiers.map((tier, index) => (
               <tr key={`${dataCategoryId}-${tier.tier}-${index}`}>
-                <td>{tier.tier}</td>
+                <ResultTableRowHeader>{tier.tier}</ResultTableRowHeader>
                 <td data-label="Volume">{Number(tier.volume).toLocaleString('en-US')}</td>
                 <td data-label="Monthly">{formatCurrency(tier.monthly)}</td>
                 <td data-label="Annual">{formatCurrency(tier.annual)}</td>
