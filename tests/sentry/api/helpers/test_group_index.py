@@ -957,11 +957,6 @@ class UpdateGroupsSnapshotTest(TestCase):
         *,
         post_update_signal_enabled: bool,
     ) -> list[dict[str, Any]]:
-        """
-        With the option on (production), status snapshots come from the post_update signal and the
-        manual post_save fallbacks are skipped. With it off (CI default), they come from post_save.
-        On-commit callbacks run, as they would once the request's transaction commits.
-        """
         http_request = self.make_request(user=self.user, method="GET")
         http_request.GET = QueryDict(query_string=f"id={group.id}")
         request = _wrap_request(http_request, data=data)
