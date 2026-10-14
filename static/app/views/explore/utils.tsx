@@ -638,6 +638,7 @@ function getConversationsUrlFromSavedQueryUrl({
     start: normalizeDateTimeString(savedQuery.start),
     end: normalizeDateTimeString(savedQuery.end),
     statsPeriod: savedQuery.range,
+    errorsOnly: savedQuery.errorsOnly ? true : undefined,
     id: savedQuery.id,
     title: savedQuery.name,
   };

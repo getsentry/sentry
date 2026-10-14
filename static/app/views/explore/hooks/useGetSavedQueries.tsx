@@ -143,6 +143,7 @@ export type ReadableSavedQuery = {
   crossEvents?: CrossEvent[];
   end?: string;
   environment?: string[];
+  errorsOnly?: boolean;
   isPrebuilt?: boolean;
   range?: string;
   start?: string;
@@ -167,6 +168,7 @@ export class SavedQuery {
   createdBy?: User;
   end?: string | DateString;
   environment?: string[];
+  errorsOnly?: boolean;
   isPrebuilt?: boolean;
   range?: string;
   start?: string | DateString;
@@ -191,6 +193,7 @@ export class SavedQuery {
     this.createdBy = savedQuery.createdBy;
     this.end = savedQuery.end;
     this.environment = savedQuery.environment;
+    this.errorsOnly = savedQuery.errorsOnly;
     this.isPrebuilt = savedQuery.isPrebuilt;
     this.range = savedQuery.range;
     this.start = savedQuery.start;
