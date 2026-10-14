@@ -903,7 +903,6 @@ module = [
     "sentry.integrations.opsgenie.metrics",
     "sentry.integrations.opsgenie.utils",
     "sentry.integrations.pipeline",
-    "sentry.integrations.referrer_ids",
     "sentry.integrations.slack",
     "sentry.integrations.slack.actions.*",
     "sentry.integrations.slack.analytics",
