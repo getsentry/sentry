@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
@@ -10,6 +11,11 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
+from sentry.integrations.slack.webhooks.actions.investigation import (
+    InvalidInvestigationActionValue,
+    MissingInvestigationAction,
+    _get_investigation_source,
+)
 from sentry.investigations.models import Investigation
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -217,6 +223,17 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert not Investigation.objects.exists()
 
     @with_feature(FEATURES)
+    def test_malformed_action_value_is_unavailable(self) -> None:
+        action = {**self.get_action(), "value": "not json"}
+
+        response = self.post_webhook_block_kit(
+            action_data=[action], original_message=self.get_original_message()
+        )
+
+        assert response.data["text"] == "Seer can't start an investigation for this alert."
+        assert not Investigation.objects.exists()
+
+    @with_feature(FEATURES)
     @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
     @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
     def test_creates_investigation(
@@ -339,3 +356,17 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             "Seer couldn't start an investigation: An unexpected error occurred"
         )
         self.mock_update.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("data", "error"),
+    [
+        ({}, MissingInvestigationAction),
+        ({"actions": []}, MissingInvestigationAction),
+        ({"actions": [{}]}, InvalidInvestigationActionValue),
+        ({"actions": [{"value": "not json"}]}, InvalidInvestigationActionValue),
+    ],
+)
+def test_get_investigation_source_errors(data: dict[str, Any], error: type[Exception]) -> None:
+    with pytest.raises(error):
+        _get_investigation_source(MagicMock(data=data))

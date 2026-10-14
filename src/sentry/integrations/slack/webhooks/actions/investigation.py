@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping
 from typing import Any
 
@@ -24,6 +25,8 @@ from sentry.seer.entrypoints.slack.entrypoint import (
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.users.services.user import RpcUser
 
+logger = logging.getLogger(__name__)
+
 INVESTIGATION_UNAVAILABLE_MESSAGE = "Seer can't start an investigation for this alert."
 INVESTIGATION_NOT_MEMBER_MESSAGE = (
     "You must be a member of the *{org_name}* Sentry organization to start a Seer investigation."
@@ -37,17 +40,31 @@ def _respond_ephemeral(text: str) -> Response:
     return Response({"response_type": "ephemeral", "replace_original": False, "text": text})
 
 
-def _get_investigation_source(slack_request: SlackActionRequest) -> dict[str, Any] | None:
+class InvestigationActionError(Exception):
+    pass
+
+
+class MissingInvestigationAction(InvestigationActionError):
+    pass
+
+
+class InvalidInvestigationActionValue(InvestigationActionError):
+    pass
+
+
+def _get_investigation_source(slack_request: SlackActionRequest) -> dict[str, Any]:
     actions = slack_request.data.get("actions")
     if not isinstance(actions, list) or not actions or not isinstance(actions[0], Mapping):
-        return None
+        raise MissingInvestigationAction("Request has no actions")
     value = actions[0].get("value")
     if not isinstance(value, str):
-        return None
+        raise InvalidInvestigationActionValue(
+            f"Expected a string value, got {type(value).__name__}"
+        )
     try:
         ref = orjson.loads(value)
-    except orjson.JSONDecodeError:
-        return None
+    except orjson.JSONDecodeError as e:
+        raise InvalidInvestigationActionValue("Value is not valid JSON") from e
     return {"type": "metric_open_period", "ref": ref}
 
 
@@ -98,8 +115,18 @@ def handle_seer_investigation_start(
     if not organization.flags.allow_joinleave:
         return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
 
-    source = _get_investigation_source(slack_request)
-    if source is None:
+    try:
+        source = _get_investigation_source(slack_request)
+    except InvestigationActionError as e:
+        logger.warning(
+            "slack.investigation.invalid_action",
+            extra={
+                "organization_id": organization.id,
+                "integration_id": slack_request.integration.id,
+                "error_type": type(e).__name__,
+                "reason": str(e),
+            },
+        )
         return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
     try:
         resolved_source = resolve_investigation_source(
