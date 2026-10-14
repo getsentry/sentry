@@ -638,7 +638,6 @@ module = [
     "sentry.api.serializers.models.seer_agentic_triage_run",
     "sentry.api.serializers.models.tagvalue",
     "sentry.api.serializers.models.team",
-    "sentry.api.serializers.models.user_social_auth",
     "sentry.api.serializers.models.userreport",
     "sentry.api.serializers.models.userrollback",
     "sentry.api.serializers.release_details_types",
