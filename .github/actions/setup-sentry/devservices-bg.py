@@ -60,7 +60,12 @@ def start() -> None:
 def run(cmd: list[str]) -> None:
     rc = 1  # if anything raises, the traceback goes to the log and this is recorded
     try:
-        rc = subprocess.run(cmd, cwd=os.environ.get("DEVSERVICES_WORKDIR")).returncode
+        rc = subprocess.run(
+            cmd, cwd=os.environ.get("DEVSERVICES_WORKDIR"), timeout=TIMEOUT
+        ).returncode
+    except subprocess.TimeoutExpired:
+        print(f"::error::devservices up timed out after {TIMEOUT:.0f}s")
+        rc = 124
     finally:
         # Write-then-rename, so readers never see a partial file.
         tmp = EXIT_FILE.with_suffix(".tmp")
@@ -69,12 +74,12 @@ def run(cmd: list[str]) -> None:
 
 
 def wait() -> int:
-    deadline = time.monotonic() + TIMEOUT
+    deadline = time.monotonic() + TIMEOUT + 60  # backstop; run's timeout fires first
     while not EXIT_FILE.exists() and time.monotonic() < deadline:
         time.sleep(1)
     print(LOG_FILE.read_text(errors="replace"))
     if not EXIT_FILE.exists():
-        print(f"::error::devservices up timed out after {TIMEOUT:.0f}s")
+        print("::error::Timed out waiting for devservices up")
         return 124
     rc = int(EXIT_FILE.read_text())
     if rc != 0:

@@ -115,6 +115,7 @@ runs:
         ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
         DEVSERVICES_WORKDIR: ${{ inputs.workdir }}
         DEVSERVICES_LOCKFILE: ${{ inputs.workdir }}/uv.lock
+        DEVSERVICES_TIMEOUT: ${{ inputs.devservices-timeout-minutes }}
         DEVSERVICES_MODE: ${{ inputs.mode }}
         GITHUB_TOKEN: ${{ github.token }}
       run: python3 "$ACTION_PATH/devservices-bg.py" start
