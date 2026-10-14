@@ -18,6 +18,26 @@ class ConditionType(StrEnum):
     GEO_COUNTRY_CODE = "geo_country_code"
 
 
+class ConditionOperator(StrEnum):
+    """
+    How a condition compares its values to the field. ``matches`` drops data whose
+    field matches any value, ``does_not_match`` data whose field matches none. The
+    ordered operators compare one value as a release version.
+    """
+
+    MATCHES = "matches"
+    DOES_NOT_MATCH = "does_not_match"
+    GT = "gt"
+    GTE = "gte"
+    LT = "lt"
+    LTE = "lte"
+
+
+COMPARISON_OPERATORS = frozenset(
+    {ConditionOperator.GT, ConditionOperator.GTE, ConditionOperator.LT, ConditionOperator.LTE}
+)
+
+
 class DataType(StrEnum):
     ALL = "all"
     ERROR = "error"

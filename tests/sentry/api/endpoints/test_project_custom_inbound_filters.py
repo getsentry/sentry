@@ -103,25 +103,28 @@ class CustomInboundFiltersTest(APITestCase):
         assert datetime.fromisoformat(second_data.pop("dateCreated")) == second_filter.date_added
         assert datetime.fromisoformat(second_data.pop("dateUpdated")) == second_filter.date_updated
 
+        # A row stored before operators existed reads as `matches`.
         assert first_data == {
             "id": str(first_filter.id),
             "name": "Release filter",
             "active": True,
             "dataType": "all",
-            "conditions": [{"type": "release", "value": ["1.*"]}],
+            "conditions": [{"type": "release", "operator": "matches", "value": ["1.*"]}],
         }
         assert second_data == {
             "id": str(second_filter.id),
             "name": "Error filter",
             "active": False,
             "dataType": "error",
-            "conditions": [{"type": "error_message", "value": ["TypeError*"]}],
+            "conditions": [
+                {"type": "error_message", "operator": "matches", "value": ["TypeError*"]}
+            ],
         }
 
     def test_post(self) -> None:
         conditions = [
-            {"type": "release", "value": ["1.*"]},
-            {"type": "error_message", "value": ["TypeError*"]},
+            {"type": "release", "operator": "matches", "value": ["1.*"]},
+            {"type": "error_message", "operator": "does_not_match", "value": ["TypeError*"]},
         ]
 
         with self.feature(self.features), outbox_runner():
@@ -170,6 +173,106 @@ class CustomInboundFiltersTest(APITestCase):
         custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
         assert response.data["name"] is None
         assert custom_filter.name is None
+
+    def test_post_without_operator_stores_matches(self) -> None:
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[{"type": "release", "value": ["1.*"]}],
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        expected = [{"type": "release", "operator": "matches", "value": ["1.*"]}]
+        assert response.data["conditions"] == expected
+        assert custom_filter.conditions == expected
+
+    def test_post_release_comparison(self) -> None:
+        conditions = [
+            {"type": "release", "operator": "gte", "value": ["1.2.0"]},
+            {"type": "release", "operator": "lt", "value": ["myapp@2.0"]},
+        ]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Old versions",
+                dataType="all",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_rejects_unknown_operator(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[{"type": "release", "operator": "contains", "value": ["1."]}],
+            )
+
+        assert '"contains" is not a valid choice.' in str(
+            response.data["conditions"][0]["operator"][0]
+        )
+
+    def test_rejects_comparison_on_a_field_that_is_not_a_release(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[
+                    {"type": "release", "operator": "gte", "value": ["1.2.0"]},
+                    {"type": "error_message", "operator": "gt", "value": ["1.2.0"]},
+                ],
+            )
+
+        assert response.data["conditions"][0] == {}
+        assert str(response.data["conditions"][1]["operator"][0]) == (
+            "The gt operator only applies to release."
+        )
+
+    def test_rejects_comparison_with_several_values(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[{"type": "release", "operator": "lte", "value": ["1.2.0", "2.0.0"]}],
+            )
+
+        assert str(response.data["conditions"][0]["value"][0]) == (
+            "The lte operator takes exactly one value."
+        )
+
+    def test_rejects_comparison_against_a_release_without_a_version(self) -> None:
+        cases = ["2*", "a4b7e0f9c2d1", "1.0/beta", "x" * 300]
+
+        for value in cases:
+            with self.feature(self.features):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    dataType="error",
+                    conditions=[{"type": "release", "operator": "gt", "value": [value]}],
+                )
+
+            assert str(response.data["conditions"][0]["value"][0]) == (
+                f"{value} is not a release with a version such as 1.2.0 or myapp@1.2.0."
+            )
 
     def test_without_inbound_filters_v2_feature(self) -> None:
         with self.feature(["projects:custom-inbound-filters"]):
@@ -279,7 +382,13 @@ class CustomInboundFiltersTest(APITestCase):
 
     def test_post_ip_address(self) -> None:
         """An IP condition reads the envelope, so every data type takes it."""
-        conditions = [{"type": "ip_address", "value": ["10.0.0.0/8", "2001:db8::1"]}]
+        conditions = [
+            {
+                "type": "ip_address",
+                "operator": "does_not_match",
+                "value": ["10.0.0.0/8", "2001:db8::1"],
+            }
+        ]
 
         with self.feature(self.features), outbox_runner():
             response = self.get_success_response(
@@ -298,7 +407,7 @@ class CustomInboundFiltersTest(APITestCase):
 
     def test_post_geo_country_code(self) -> None:
         """A country code is a free glob: Relay matches it case-insensitively."""
-        conditions = [{"type": "geo_country_code", "value": ["US", "c?"]}]
+        conditions = [{"type": "geo_country_code", "operator": "matches", "value": ["US", "c?"]}]
 
         with self.feature(self.features), outbox_runner():
             response = self.get_success_response(
@@ -368,8 +477,8 @@ class CustomInboundFiltersTest(APITestCase):
 
     def test_allows_error_type_with_error_message(self) -> None:
         conditions = [
-            {"type": "error_type", "value": ["TypeError"]},
-            {"type": "error_message", "value": ["*undefined*"]},
+            {"type": "error_type", "operator": "matches", "value": ["TypeError"]},
+            {"type": "error_message", "operator": "matches", "value": ["*undefined*"]},
         ]
 
         with self.feature(self.features):
@@ -388,8 +497,8 @@ class CustomInboundFiltersTest(APITestCase):
 
     def test_allows_duplicate_condition_types(self) -> None:
         conditions = [
-            {"type": "release", "value": [">2"]},
-            {"type": "release", "value": ["<4"]},
+            {"type": "release", "operator": "gt", "value": ["2.0"]},
+            {"type": "release", "operator": "lt", "value": ["4.0"]},
         ]
 
         with self.feature(self.features):
@@ -602,10 +711,14 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert response.data["name"] == "Original filter"
         assert response.data["active"] is True
         assert response.data["dataType"] == "error"
-        assert response.data["conditions"] == [{"type": "release", "value": ["1.*"]}]
+        assert response.data["conditions"] == [
+            {"type": "release", "operator": "matches", "value": ["1.*"]}
+        ]
 
     def test_put(self) -> None:
-        new_conditions = [{"type": "error_message", "value": ["TypeError*"]}]
+        new_conditions = [
+            {"type": "error_message", "operator": "does_not_match", "value": ["TypeError*"]}
+        ]
 
         with self.feature(self.features), outbox_runner():
             response = self.get_success_response(
@@ -664,6 +777,36 @@ class CustomInboundFilterDetailsTest(APITestCase):
             )
         assert audit_entry.data["operation"] == "edit"
         assert audit_entry.data["changes"] == {"active": {"old": True, "new": False}}
+
+    def test_put_conditions_without_operator_stores_matches(self) -> None:
+        """A partial update skips field defaults, so the operator is filled in by hand."""
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                conditions=[{"type": "release", "value": ["2.*"]}],
+            )
+
+        self.custom_filter.refresh_from_db()
+        expected = [{"type": "release", "operator": "matches", "value": ["2.*"]}]
+        assert response.data["conditions"] == expected
+        assert self.custom_filter.conditions == expected
+
+    def test_put_rejects_comparison_on_a_field_that_is_not_a_release(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                conditions=[{"type": "error_type", "operator": "lt", "value": ["1.0"]}],
+            )
+
+        assert str(response.data["conditions"][0]["operator"][0]) == (
+            "The lt operator only applies to release."
+        )
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.conditions == [{"type": "release", "value": ["1.*"]}]
 
     def test_put_name_only_change_skips_project_config_invalidation(self) -> None:
         with (
@@ -746,7 +889,9 @@ class CustomInboundFilterDetailsTest(APITestCase):
 
         self.custom_filter.refresh_from_db()
         assert self.custom_filter.data_type == "all"
-        assert self.custom_filter.conditions == [{"type": "release", "value": ["2.*"]}]
+        assert self.custom_filter.conditions == [
+            {"type": "release", "operator": "matches", "value": ["2.*"]}
+        ]
 
     def test_put_rejects_data_type_the_stored_conditions_do_not_fit(self) -> None:
         """Widening alone would strand conditions the new data type cannot read."""
@@ -810,8 +955,8 @@ class CustomInboundFilterDetailsTest(APITestCase):
         )
 
         same_size = [
-            {"type": "release", "value": ["b" * (stored_size - 3)]},
-            {"type": "error_message", "value": ["c", "dd"]},
+            {"type": "release", "operator": "matches", "value": ["b" * (stored_size - 3)]},
+            {"type": "error_message", "operator": "matches", "value": ["c", "dd"]},
         ]
         with self.feature(self.features):
             self.get_success_response(
