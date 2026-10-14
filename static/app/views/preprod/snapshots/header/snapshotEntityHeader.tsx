@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
+import {IconBranch} from '@sentry/icons/branch';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconCommit} from '@sentry/icons/commit';
 import {IconPullRequest} from '@sentry/icons/pullRequest';
@@ -7,6 +9,7 @@ import {IconTimer} from '@sentry/icons/timer';
 import {Tag} from '@sentry/scraps/badge';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {
+  EntityHeaderMetadataItemProps,
   EntityHeaderProps,
   EntityHeaderTitleProps,
 } from '@sentry/scraps/entityHeader';
@@ -16,11 +19,12 @@ import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {isSnapshotApproved} from 'sentry/views/preprod/types/buildDetailsTypes';
+import type {BuildDetailsVcsInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {
   SnapshotApprover,
   SnapshotDetailsApiResponse,
 } from 'sentry/views/preprod/types/snapshotTypes';
-import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
+import {getPrUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
 
 const AUTO_APPROVED_EXPLANATION = t(
   'Automatically approved because the changes match a previously approved build on this PR.'
@@ -42,6 +46,7 @@ function approvalTooltip(approvers: SnapshotApprover[], isAutoApproved: boolean)
 
   return (
     <Fragment>
+      <Tooltip.Header>{t('Approved by')}</Tooltip.Header>
       <Tooltip.Grid columns="1fr max-content">
         {approvers.map((approver, index) => (
           <Tooltip.Row
@@ -74,14 +79,32 @@ function approvalTag(data: SnapshotDetailsApiResponse) {
 
   if (isSnapshotApproved(approvalStatus)) {
     const isAutoApproved = approvalStatus === 'auto_approved';
-    const tooltip = approvalTooltip(data.approvers ?? [], isAutoApproved);
+    const approvers = data.approvers ?? [];
+    const tooltip = approvalTooltip(approvers, isAutoApproved);
     const tag = (
       <Tag variant="success" icon={<IconCheckmark />}>
         {isAutoApproved ? t('Auto-approved') : t('Approved')}
       </Tag>
     );
 
-    return tooltip ? <Tooltip title={tooltip}>{tag}</Tooltip> : tag;
+    if (!tooltip) {
+      return tag;
+    }
+
+    return (
+      <Fragment>
+        <Tooltip title={tooltip}>{tag}</Tooltip>
+        {/*
+          A Tag is not focusable, so the tooltip above is reachable by pointer
+          only — its content is not in the DOM until it opens.
+        */}
+        {approvers.length > 0 && (
+          <VisuallyHidden>
+            {t('Approved by %s', approvers.map(approverName).join(', '))}
+          </VisuallyHidden>
+        )}
+      </Fragment>
+    );
   }
 
   if (approvalStatus === 'requires_approval') {
@@ -96,52 +119,54 @@ function approvalTag(data: SnapshotDetailsApiResponse) {
 }
 
 function buildTitle(data: SnapshotDetailsApiResponse): EntityHeaderTitleProps {
-  const branch = data.vcs_info.head_ref;
-  // The pull request is where the branch is being reviewed, so it is the more
-  // useful of the two. The branch itself stands in when there is no PR.
-  const titleUrl = getPrUrl(data.vcs_info) ?? getBranchUrl(data.vcs_info, branch);
-  const tags = [approvalTag(data)];
+  return {
+    type: 'text',
+    label: t('App'),
+    // Required by the snapshot upload endpoint, but nullable everywhere it is
+    // typed. The fallback matches the one the GitHub check renders.
+    value: data.app_id || t('Unknown App'),
+    tags: [approvalTag(data)],
+  };
+}
 
-  if (!branch) {
-    // Without a commit comparison there is no branch, sha or PR at all, so the
-    // app is the only thing left that names this build.
-    return {
-      type: 'text',
-      label: data.app_id ? t('App') : t('Snapshot'),
-      value: data.app_id || t('Unknown snapshot'),
-      tags,
-    };
+function pullRequestItem(
+  vcsInfo: BuildDetailsVcsInfo
+): EntityHeaderMetadataItemProps | null {
+  if (!vcsInfo.pr_number) {
+    return null;
   }
 
-  const title = {label: t('Branch'), value: branch, tags};
+  const item = {
+    label: t('Pull request'),
+    value: `#${vcsInfo.pr_number}`,
+    leadingGraphic: <IconPullRequest size="md" />,
+  };
+  const prUrl = getPrUrl(vcsInfo);
 
-  return titleUrl
-    ? {...title, type: 'link', externalHref: titleUrl}
-    : {...title, type: 'text'};
+  return prUrl ? {...item, type: 'link', externalHref: prUrl} : {...item, type: 'text'};
 }
 
 function buildMetadata(data: SnapshotDetailsApiResponse): EntityHeaderProps['metadata'] {
   const {vcs_info: vcsInfo} = data;
-  const shaUrl = getShaUrl(vcsInfo, vcsInfo.head_sha);
   const shortSha = vcsInfo.head_sha?.slice(0, 7);
 
   return {
     label: t('Snapshot build'),
     items: [
-      vcsInfo.pr_number
+      pullRequestItem(vcsInfo),
+      vcsInfo.head_ref
         ? {
             type: 'text',
-            label: t('Pull request'),
-            value: `#${vcsInfo.pr_number}`,
-            leadingGraphic: <IconPullRequest size="md" />,
+            label: t('Branch'),
+            value: vcsInfo.head_ref,
+            leadingGraphic: <IconBranch size="md" />,
           }
         : null,
-      shortSha && shaUrl
+      shortSha
         ? {
-            type: 'link',
+            type: 'text',
             label: t('Commit'),
             value: shortSha,
-            externalHref: shaUrl,
             leadingGraphic: <IconCommit size="md" />,
           }
         : null,
@@ -154,8 +179,8 @@ export function SnapshotEntityHeader({data, isLoading}: SnapshotEntityHeaderProp
     return (
       <EntityHeader
         isLoading
-        title={{type: 'text', label: t('Branch'), value: t('Snapshot')}}
-        metadata={{label: t('Snapshot build'), items: [null, null]}}
+        title={{type: 'text', label: t('App'), value: t('Unknown App')}}
+        metadata={{label: t('Snapshot build'), items: [null, null, null]}}
       />
     );
   }
