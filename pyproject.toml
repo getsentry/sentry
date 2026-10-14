@@ -1409,7 +1409,6 @@ module = [
     "sentry.utils.auth",
     "sentry.utils.avatar",
     "sentry.utils.batching_kafka_consumer",
-    "sentry.utils.cache",
     "sentry.utils.circuit_breaker",
     "sentry.utils.circuit_breaker2",
     "sentry.utils.codecs",
