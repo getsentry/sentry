@@ -14,7 +14,7 @@ from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str, smart_str
-from google.api_core.exceptions import BadGateway, GatewayTimeout, ServiceUnavailable
+from google.api_core.exceptions import GatewayTimeout, ServiceUnavailable
 from google.auth.exceptions import RefreshError, TransportError
 from google.cloud.exceptions import NotFound
 from google.cloud.storage.blob import Blob
@@ -45,10 +45,6 @@ GCS_RETRYABLE_ERRORS = (
     ServiceUnavailable,
     GatewayTimeout,
 )
-
-# Replay uploads also retry 502s. GCS documents them as transient, and replay keys and
-# payloads are deterministic, so re-uploading the same object is safe.
-REPLAY_GCS_RETRYABLE_ERRORS = (*GCS_RETRYABLE_ERRORS, BadGateway)
 
 # how long are we willing to wait?
 GCS_TIMEOUT = 6.0
@@ -419,8 +415,8 @@ class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
         """Retry an action with sigmoid delay for a maximum of five attempts."""
 
         def should_retry(attempt: int, e: Exception) -> bool:
-            """Retry transient GCS exceptions up to the limit."""
-            return attempt <= REPLAY_GCS_RETRIES and isinstance(e, REPLAY_GCS_RETRYABLE_ERRORS)
+            """Retry gateway timeout exceptions up to the limit."""
+            return attempt <= REPLAY_GCS_RETRIES and isinstance(e, GCS_RETRYABLE_ERRORS)
 
         # Retry cadence: After a brief period of fast retries the function will retry once
         # per second for two minutes.

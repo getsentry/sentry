@@ -9,6 +9,7 @@ from sentry_sdk import set_tag, traces
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.replays.lib.storage import REPLAY_STORAGE_RETRYABLE_ERRORS
 from sentry.replays.usecases.ingest import (
     DropEvent,
     Event,
@@ -18,7 +19,6 @@ from sentry.replays.usecases.ingest import (
     track_recording_metadata,
 )
 from sentry.replays.usecases.ingest.types import ProcessorContext
-from sentry.services.filestore.gcs import REPLAY_GCS_RETRYABLE_ERRORS
 from sentry.utils import json, metrics
 
 RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
@@ -140,7 +140,7 @@ def commit_message(message: ProcessedEvent, context: ProcessorContext) -> None:
         commit_recording_message(message, context)
         track_recording_metadata(message)
         return None
-    except REPLAY_GCS_RETRYABLE_ERRORS:
+    except REPLAY_STORAGE_RETRYABLE_ERRORS:
         raise
     except DropEvent:
         return None

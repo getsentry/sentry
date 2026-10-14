@@ -13,16 +13,33 @@ from io import BytesIO
 
 from django.conf import settings
 from django.db.utils import IntegrityError
-from google.api_core.exceptions import TooManyRequests
+from google.api_core.exceptions import BadGateway, TooManyRequests
 
 from sentry import options
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.services.filestore.gcs import GCS_RETRYABLE_ERRORS
 from sentry.utils import metrics
+from sentry.utils.retries import ConditionalRetryPolicy, sigmoid_delay
 
 logger = logging.getLogger()
+
+# GCS documents 502s as transient, but the shared filestore retry policy doesn't retry them.
+# Replay keys and payloads are deterministic, so re-uploading the same segment is safe.
+REPLAY_UPLOAD_BAD_GATEWAY_RETRIES = 5
+
+# Errors which should fail the recording task so it can be retried, rather than dropping the
+# segment.
+REPLAY_STORAGE_RETRYABLE_ERRORS = (*GCS_RETRYABLE_ERRORS, BadGateway)
+
+
+def _should_retry_upload(attempt: int, e: Exception) -> bool:
+    return attempt <= REPLAY_UPLOAD_BAD_GATEWAY_RETRIES and isinstance(e, BadGateway)
+
+
+_upload_retry_policy = ConditionalRetryPolicy(_should_retry_upload, sigmoid_delay())
 
 
 @dataclasses.dataclass
@@ -206,7 +223,7 @@ class SimpleStorageBlob:
         storage = get_storage(self._make_storage_options())
         try:
             with measure_storage_operation("put", "replays", None, len(value), "gzip"):
-                storage.save(key, BytesIO(value))
+                _upload_retry_policy(lambda: storage.save(key, BytesIO(value)))
         except TooManyRequests:
             # if we 429 because of a dupe segment problem, ignore it
             metrics.incr("replays.lib.storage.TooManyRequests")
