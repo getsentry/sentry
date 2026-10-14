@@ -1,5 +1,15 @@
 import type {size} from '@sentry/scraps/tokens/size';
 
+export type {
+  AlertVariant,
+  BorderVariant,
+  ButtonVariant,
+  ContentVariant,
+  GraphicsVariant,
+  SurfaceVariant,
+  TagVariant,
+} from '@sentry/scraps/variants';
+
 /**
  * Font size constraint for body typography.
  */
@@ -43,49 +53,6 @@ export type MotionEasing = 'smooth' | 'snap' | 'enter' | 'exit' | 'spring';
  */
 export type MotionDuration = 'fast' | 'moderate' | 'slow';
 
-// Theme Variants
-
-/**
- * Background surface level for layered UI elements.
- */
-export type SurfaceVariant = 'primary' | 'secondary' | 'tertiary';
-
-/**
- * Semantic color variant for conveying meaning through color.
- */
-type SemanticVariant =
-  | 'accent'
-  | 'danger'
-  | 'neutral'
-  | 'promotion'
-  | 'success'
-  | 'warning';
-
-/**
- * Content/text color variant.
- */
-export type ContentVariant =
-  | Exclude<SemanticVariant, 'neutral'>
-  | 'primary'
-  | 'secondary';
-
-/**
- * Graphics/icon color variant.
- */
-export type GraphicsVariant = SemanticVariant;
-
-/**
- * Border color variant.
- */
-export type BorderVariant =
-  | Exclude<SemanticVariant, 'neutral'>
-  | 'primary'
-  | 'secondary'
-  | 'muted'
-  | 'none';
-
-// Component Variants (should be moved locally, aligned to SemanticVariant)
-
 /**
  * Icon size constraint.
  */
@@ -98,22 +65,6 @@ export type IconSize = SizeRange<'xs', '2xl'>;
  * directory, use `ComponentProps['size']` instead.
  */
 export type FormSize = SizeRange<'xs', 'md'>;
-
-/**
- * Tag color scheme.
- */
-export type TagVariant =
-  | 'muted'
-  | 'info'
-  | 'success'
-  | 'warning'
-  | 'danger'
-  | 'promotion';
-
-/**
- * Alert/status color scheme.
- */
-export type AlertVariant = 'muted' | 'info' | 'warning' | 'success' | 'danger';
 
 // Internal types
 
