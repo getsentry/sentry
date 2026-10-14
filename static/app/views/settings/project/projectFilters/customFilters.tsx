@@ -1,6 +1,10 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconSearch} from '@sentry/icons/search';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 import {z} from 'zod';
@@ -31,7 +35,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
-import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -73,6 +76,19 @@ type CustomInboundFilter = {
   name: string | null;
   // Absent until the API stores the data type on the filter.
   dataType?: FilterDataType;
+};
+
+// The body of the validate endpoint: a filter without its name, which is what the
+// name suggestion fills in. `id` names the stored filter an edit replaces.
+type CustomInboundFilterDraft = {
+  conditions: CustomInboundFilterCondition[];
+  dataType: FilterDataType;
+  id?: string;
+};
+
+type CustomInboundFilterValidation = {
+  errors: Record<string, unknown>;
+  suggestedName: string | null;
 };
 
 type PropertyOption = {label: string; value: ConditionType};
@@ -314,6 +330,19 @@ function formValuesToConditions(
   }));
 }
 
+// The draft a name suggestion describes, or undefined while a condition still has
+// no value: the API refuses such a draft, so there is nothing to describe yet.
+function getCompleteDraft(
+  values: FilterFormValues,
+  filterId: string | undefined
+): CustomInboundFilterDraft | undefined {
+  const conditions = formValuesToConditions(values);
+  if (conditions.some(condition => condition.value.length === 0)) {
+    return undefined;
+  }
+  return {id: filterId, dataType: values.dataType, conditions};
+}
+
 // The API answers with either `{detail: string}` or a DRF validation error, which
 // nests messages under field names and list indexes, e.g.
 // `{conditions: [{}, {value: ['... is not an IP address or CIDR range.']}]}`. Both
@@ -481,6 +510,7 @@ function CustomFilterModal({
   Body,
   Footer,
   closeModal,
+  organization,
   project,
   filter,
   dataTypeOptions,
@@ -488,6 +518,7 @@ function CustomFilterModal({
 }: ModalRenderProps & {
   dataTypeOptions: DataTypeOption[];
   onSave: (values: FilterFormValues) => Promise<unknown>;
+  organization: Organization;
   project: Project;
   filter?: CustomInboundFilter;
 }) {
@@ -504,10 +535,61 @@ function CustomFilterModal({
   );
   const theme = useTheme();
 
+  const canSuggestName =
+    organization.features.includes('inbound-filters-name-suggestion') &&
+    !organization.hideAiFeatures;
+  const validateUrl = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/validate/',
+    {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
+  );
+  const suggestNameMutation = useMutation({
+    mutationFn: (draft: CustomInboundFilterDraft) =>
+      fetchMutation<CustomInboundFilterValidation>({
+        method: 'POST',
+        url: validateUrl,
+        data: draft,
+      }),
+  });
+  // The last draft asked about and the name its answer filled in. A draft is asked
+  // about once, so clearing its suggestion does not bring it back. A suggestion
+  // replaces an empty name or the previous suggestion, never a name the user typed.
+  const lastSuggestion = useRef({draftKey: '', name: ''});
+
+  const suggestName = (values: FilterFormValues) => {
+    const draft = getCompleteDraft(values, filter?.id);
+    const draftKey = JSON.stringify(draft);
+    const nameIsOpen =
+      values.name.trim() === '' || values.name === lastSuggestion.current.name;
+    if (
+      !canSuggestName ||
+      !draft ||
+      !nameIsOpen ||
+      draftKey === lastSuggestion.current.draftKey
+    ) {
+      return;
+    }
+    lastSuggestion.current.draftKey = draftKey;
+    // A later request supersedes this one: its callbacks are skipped.
+    suggestNameMutation.mutate(draft, {
+      onSuccess: ({suggestedName}) => {
+        const name = form.getFieldValue('name');
+        const stillOpen = name.trim() === '' || name === lastSuggestion.current.name;
+        if (!suggestedName || !stillOpen) {
+          return;
+        }
+        lastSuggestion.current.name = suggestedName;
+        form.setFieldValue('name', suggestedName);
+      },
+    });
+  };
+
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: filterSchema},
+    listeners: {
+      onBlur: ({formApi}) => suggestName(formApi.state.values),
+    },
     onSubmit: ({value}) =>
       onSave(value)
         .then(() => closeModal())
@@ -537,7 +619,11 @@ function CustomFilterModal({
                   <field.Input
                     value={field.state.value}
                     onChange={field.handleChange}
-                    placeholder={t('e.g. Ignore flaky connection errors')}
+                    placeholder={
+                      suggestNameMutation.isPending
+                        ? t('Suggesting a name…')
+                        : t('e.g. Ignore flaky connection errors')
+                    }
                   />
                 </field.Layout.Stack>
               )}
@@ -1122,6 +1208,7 @@ export function CustomFilters({project}: {project: Project}) {
               deps => (
                 <CustomFilterModal
                   {...deps}
+                  organization={organization}
                   project={project}
                   dataTypeOptions={dataTypeOptions}
                   onSave={handleCreate}
@@ -1240,6 +1327,7 @@ export function CustomFilters({project}: {project: Project}) {
                             deps => (
                               <CustomFilterModal
                                 {...deps}
+                                organization={organization}
                                 project={project}
                                 filter={filter}
                                 dataTypeOptions={dataTypeOptions}

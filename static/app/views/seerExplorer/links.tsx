@@ -39,7 +39,12 @@ import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathname
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {callRecordLabel} from 'sentry/views/seerExplorer/callRecords';
-import type {CallRecord, ToolLink} from 'sentry/views/seerExplorer/types';
+import type {
+  CallRecord,
+  ToolCall,
+  ToolLink,
+  ToolResult,
+} from 'sentry/views/seerExplorer/types';
 
 /**
  * Where a Code Mode call sends you.
@@ -847,6 +852,55 @@ export function subjectFromCallRecord(record: CallRecord): LinkSubject {
 /** A link seer emitted directly, as something the rules can match on. */
 export function subjectFromToolLink(link: ToolLink): LinkSubject {
   return {kind: 'link', params: link.params ?? {}, name: link.kind};
+}
+
+export function getValidToolLinks(
+  tool_links: Array<ToolLink | null>,
+  tool_results: Array<ToolResult | null>,
+  tool_calls: ToolCall[],
+  organization: Organization,
+  projects?: Array<{id: string; slug: string}>
+) {
+  // Get valid tool links sorted by their corresponding tool call indices
+  // Also create a mapping from tool call index to sorted link index
+  const mappedLinks = tool_links
+    .map((link, idx) => {
+      if (!link) {
+        return null;
+      }
+
+      // Don't show links for tools that returned errors, but do show for empty results
+      if (link.params?.is_error === true) {
+        return null;
+      }
+
+      // get tool_call_id from tool_results, which we expect to be aligned with tool_links.
+      const toolCallId = tool_results[idx]?.tool_call_id;
+      const toolCallIndex = toolCallId
+        ? tool_calls.findIndex(call => call.id === toolCallId)
+        : -1;
+      const canBuildUrl =
+        resolveLink(subjectFromToolLink(link), {organization, projects})?.url !==
+        undefined;
+
+      if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
+        return {link, toolCallIndex};
+      }
+      return null;
+    })
+    .filter(item => item !== null)
+    .sort((a, b) => a.toolCallIndex - b.toolCallIndex);
+
+  // Create mapping from tool call index to sorted link index
+  const toolCallToLinkMap = new Map<number, number>();
+  mappedLinks.forEach((item, sortedIndex) => {
+    toolCallToLinkMap.set(item.toolCallIndex, sortedIndex);
+  });
+
+  return {
+    sortedToolLinks: mappedLinks.map(item => item.link),
+    toolCallToLinkIndexMap: toolCallToLinkMap,
+  };
 }
 
 /**

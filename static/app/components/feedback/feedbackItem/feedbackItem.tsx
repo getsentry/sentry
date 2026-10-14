@@ -1,12 +1,16 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
+import {IconFire} from '@sentry/icons/fire';
+import {IconSpan} from '@sentry/icons/span';
+import {IconTag} from '@sentry/icons/tag';
 
 import {InfoTip} from '@sentry/scraps/info';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
+import {getOrderedContextItems} from 'sentry/components/events/contexts/contextItems';
 import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';
 import {
   TracePreview,
@@ -23,7 +27,6 @@ import {MessageSection} from 'sentry/components/feedback/feedbackItem/messageSec
 import {MessageTitle} from 'sentry/components/feedback/feedbackItem/messageTitle';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {KeyValueTableCardGrid} from 'sentry/components/tables/keyValueTable';
-import {IconChat, IconFire, IconSpan, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';

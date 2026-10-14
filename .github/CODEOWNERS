@@ -190,6 +190,7 @@ vercel.json                                              @getsentry/owners-js-bu
 build-utils/                                             @getsentry/owners-js-build
 oxlint.config.ts                                         @getsentry/owners-js-build
 oxlint-suppressions.json                                 @getsentry/design-engineering
+/.github/workflows/prune-oxlint-suppressions.yml           @getsentry/design-engineering
 /scripts/custom-oxlint.ts                                @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 jest.config.ts                                           @getsentry/owners-js-build
@@ -356,6 +357,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/ingestion_delay/                                         @getsentry/data-browsing
 /tests/sentry/ingestion_delay/                                       @getsentry/data-browsing
 /src/sentry/api/helpers/ingestion_delay.py                           @getsentry/data-browsing
+
+/src/sentry/api/helpers/timeseries_processing.py                     @getsentry/app-backend @getsentry/data-browsing
+/tests/sentry/api/helpers/test_timeseries_processing.py              @getsentry/app-backend @getsentry/data-browsing
 
 
 /src/sentry/api/endpoints/organization_explore_formulas.py                          @getsentry/data-browsing

@@ -1,4 +1,4 @@
-from unittest import TestCase, mock
+from unittest import TestCase
 
 import pytest
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
@@ -18,7 +18,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry import features
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
@@ -27,8 +26,6 @@ from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.ourlogs import OurLogs
-from sentry.testutils.helpers.features import with_feature
-from sentry.users.services.user import RpcUser
 
 
 class OurLogsRunTableQueryTest(TestCase):
@@ -362,7 +359,6 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    @with_feature("organizations:ourlogs-regex-searches")
     def test_regex_query(self) -> None:
         where, having, _ = self.regex_resolver.resolve_query("message://^ERROR//")
         assert where == TraceItemFilter(
@@ -374,7 +370,6 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    @with_feature("organizations:ourlogs-regex-searches")
     def test_regex_query_negated(self) -> None:
         where, having, _ = self.regex_resolver.resolve_query("!message://^ERROR//")
         assert where == TraceItemFilter(
@@ -394,7 +389,6 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    @with_feature("organizations:ourlogs-regex-searches")
     def test_regex_query_on_an_attribute(self) -> None:
         where, having, _ = self.regex_resolver.resolve_query("foo://ba[rz]//")
         assert where == TraceItemFilter(
@@ -406,7 +400,6 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
-    @with_feature("organizations:ourlogs-regex-searches")
     def test_regex_query_keeps_the_pattern_verbatim(self) -> None:
         """Regex metacharacters must not be rewritten the way wildcard patterns are."""
         where, _, _ = self.regex_resolver.resolve_query("message://a*b%c_d\\*e//")
@@ -418,7 +411,6 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
-    @with_feature("organizations:ourlogs-regex-searches")
     def test_regex_query_is_case_insensitive_when_requested(self) -> None:
         resolver = SearchResolver(
             params=SnubaParams(organization=self.organization, case_insensitive=True),
@@ -434,19 +426,16 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
-    @with_feature("organizations:ourlogs-regex-searches")
     def test_regex_query_raises_when_the_key_is_backed_by_a_filter_alias(self) -> None:
         with pytest.raises(InvalidSearchQuery) as err:
             self.regex_resolver.resolve_query("release://^1\\.2//")
         assert str(err.value) == "Cannot use regular expressions with release"
 
-    @with_feature("organizations:ourlogs-regex-searches")
     def test_regex_query_raises_when_the_key_is_backed_by_a_virtual_column(self) -> None:
         with pytest.raises(InvalidSearchQuery) as err:
             self.regex_resolver.resolve_query("project://^sen//")
         assert str(err.value) == "Cannot use regular expressions with project"
 
-    @with_feature("organizations:ourlogs-regex-searches")
     def test_regex_query_raises_on_a_virtual_column_in_a_timeseries_request(self) -> None:
         resolver = SearchResolver(
             params=SnubaParams(organization=self.organization, granularity_secs=60),
@@ -457,44 +446,12 @@ class SearchResolverQueryTest(TestCase):
             resolver.resolve_query("project://^sen//")
         assert str(err.value) == "Cannot use regular expressions with project"
 
-    @with_feature("organizations:ourlogs-regex-searches")
     def test_regex_query_raises_when_the_attribute_is_not_a_string(self) -> None:
         with pytest.raises(InvalidSearchQuery) as err:
             self.regex_resolver.resolve_query("tags[foo,boolean]://tru.//")
         assert "not a string attribute" in str(err.value)
 
-    def test_regex_value_is_a_literal_without_the_feature(self) -> None:
-        regex_shaped, _, _ = self.regex_resolver.resolve_query("message://^ERROR//")
-        quoted, _, _ = self.regex_resolver.resolve_query('message:"//^ERROR//"')
-
-        assert regex_shaped == quoted
-
-    def test_regex_feature_is_checked_with_the_requesting_user_as_actor(self) -> None:
-        """The flag's rollout targets user emails, which only resolve when an actor is passed."""
-        user = RpcUser(id=7, email="user@example.com")
-        resolver = SearchResolver(
-            params=SnubaParams(organization=self.organization, user=user),
-            config=SearchResolverConfig(),
-            definitions=OURLOG_DEFINITIONS,
-        )
-
-        with mock.patch.object(features, "has", return_value=True) as has:
-            where, _, _ = resolver.resolve_query("message://^ERROR//")
-
-        assert (
-            mock.call("organizations:ourlogs-regex-searches", self.organization, actor=user)
-            in has.call_args_list
-        )
-        assert where == TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=AttributeKey(name="sentry.body", type=AttributeKey.Type.TYPE_STRING),
-                op=ComparisonFilter.OP_REGEXP,
-                value=AttributeValue(val_str="^ERROR"),
-            )
-        )
-
-    @with_feature("organizations:ourlogs-regex-searches")
-    def test_regex_value_is_a_literal_outside_logs(self) -> None:
+    def test_regex_value_is_a_literal_when_the_dataset_is_spans(self) -> None:
         resolver = SearchResolver(
             params=SnubaParams(organization=self.organization),
             config=SearchResolverConfig(),

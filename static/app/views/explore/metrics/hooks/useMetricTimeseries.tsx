@@ -25,7 +25,7 @@ import {
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
-const METRIC_TIMESERIES_REFERRER = 'api.explore.tracemetrics-timeseries';
+export const METRIC_TIMESERIES_REFERRER = 'api.explore.tracemetrics-timeseries';
 
 interface UseMetricTimeseriesOptions {
   enabled: boolean;

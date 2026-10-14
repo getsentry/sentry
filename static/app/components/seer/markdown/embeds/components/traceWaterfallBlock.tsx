@@ -1,10 +1,10 @@
 import {useMemo} from 'react';
+import {IconSpan} from '@sentry/icons/span';
 
 import {Container} from '@sentry/scraps/layout';
 
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {getShortEventId} from 'sentry/utils/events';

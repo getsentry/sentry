@@ -1,3 +1,5 @@
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
@@ -6,7 +8,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {useBulkEditFeedbacks} from 'sentry/components/feedback/list/useBulkEditFeedbacks';
 import type {Mailbox} from 'sentry/components/feedback/useMailbox';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {GroupStatus} from 'sentry/types/group';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
