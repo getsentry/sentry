@@ -1675,6 +1675,14 @@ const config = defineConfig({
       rules: {'boundaries/no-unknown-files': 'off'},
     },
     {
+      files: ['static/packages/*/jest.config.mjs'],
+      // Package test configs can import the shared root CI helper.
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+        'import-js/no-relative-packages': 'off',
+      },
+    },
+    {
       files: ['static/packages/scraps/scripts/*.mjs'],
       rules: {
         'boundaries/no-unknown-files': 'off',

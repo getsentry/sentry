@@ -171,6 +171,9 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
+      - name: Test workspace CI runner
+        run: node --test scripts/testCi.test.ts
+
       # On PRs, HEAD is the merge commit; its parents (HEAD^1, HEAD^2) are base and head.
       # Merge base of those two determines which tests to run via --findRelatedTests.
       # If merge base can't be computed or non-frontend files changed, the full

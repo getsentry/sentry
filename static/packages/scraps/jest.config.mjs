@@ -1,3 +1,5 @@
+import {runOnFirstShard} from '../../../scripts/jestSingleShard.js';
+
 const config = {
   testEnvironment: '<rootDir>/test/env/environment.mjs',
   setupFilesAfterEnv: ['<rootDir>/test/env/setup.ts'],
@@ -23,4 +25,4 @@ const config = {
   clearMocks: true,
 };
 
-export default config;
+export default runOnFirstShard(config);

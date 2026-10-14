@@ -98,7 +98,7 @@ pnpm test-ci components/avatar.spec.tsx        # specific file(s)
 pnpm --filter @sentry-internal/app test        # watch Sentry app tests
 ```
 
-`test-ci` runs app tests first, then workspace package tests in parallel. File arguments select app tests; package tests always run. In sharded CI, only shard 0 runs package tests.
+`test-ci` runs each workspace's test script with its scoped Jest config, with up to two workspaces in parallel. File arguments select matching tests across workspaces. App, lint, and test-support suites share the global CI test list and load balancing. Icons and Scraps run only on shard 0 in sharded CI. New small standalone suites can use `runOnFirstShard` from `scripts/jestSingleShard.js`; larger suites can use the shared scoped config. Balance reports are written separately per workspace under `.artifacts/jest-balance/` and merged by CI.
 
 `pnpm test` uses one Jest watcher for app, lint, and test-support tests. `pnpm test-all` runs all workspace test scripts once with watch mode disabled. App, lint, and test-support scripts have scoped Jest configs.
 

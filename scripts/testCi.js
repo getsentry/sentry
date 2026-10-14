@@ -1,47 +1,42 @@
 import {spawnSync} from 'node:child_process';
+import {resolve} from 'node:path';
 
-import {run} from 'sentry-test/runner';
-
-/**
- * @param {string} command
- * @param {string[]} args
- */
-function runTests(command, args) {
-  const result = spawnSync(command, args, {stdio: 'inherit'});
-  if (result.error) {
-    throw result.error;
+// pnpm runs scripts from each workspace directory. Resolve the processor before
+// changing directories so every workspace can use the same CLI argument.
+const args = process.argv.slice(2);
+for (const [index, arg] of args.entries()) {
+  const next = args[index + 1];
+  if (arg === '--testResultsProcessor' && next) {
+    args[index + 1] = resolve(next);
+  } else if (arg.startsWith('--testResultsProcessor=')) {
+    args[index] =
+      '--testResultsProcessor=' + resolve(arg.slice('--testResultsProcessor='.length));
   }
-  return result.status ?? 1;
 }
 
-const appStatus = await run([
-  '--ci',
-  '--maxWorkers=75%',
-  '--colors',
-  ...process.argv.slice(2),
-]);
-
-let packageStatus = 0;
-// Only one CI shard runs package tests. Local runs always include them.
-if (
-  !process.env.CI ||
-  !process.env.CI_NODE_TOTAL ||
-  !process.env.CI_NODE_INDEX ||
-  process.env.CI_NODE_INDEX === '0'
-) {
-  packageStatus = runTests('pnpm', [
+const result = spawnSync(
+  'pnpm',
+  [
     '--recursive',
-    '--parallel',
+    '--workspace-concurrency=2',
+    '--stream',
+    '--no-sort',
     '--no-bail',
-    '--filter',
-    './static/packages/*',
+    '--no-include-workspace-root',
     '--if-present',
     'run',
     'test',
     '--ci',
+    '--watch=false',
+    '--passWithNoTests',
     '--maxWorkers=2',
     '--watchman=false',
-  ]);
+    '--colors',
+    ...args,
+  ],
+  {stdio: 'inherit'}
+);
+if (result.error) {
+  throw result.error;
 }
-
-process.exitCode = appStatus || packageStatus;
+process.exitCode = result.status ?? 1;
