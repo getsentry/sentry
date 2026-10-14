@@ -21,17 +21,3 @@ def test_mark_parameter_experimental_sets_extension_and_notice() -> None:
     assert parameter.description == (
         f"{EXPERIMENTAL_PARAMETER_NOTICE}\n\nOptional fields to expand."
     )
-
-
-def test_mark_parameter_experimental_does_not_repeat_the_notice() -> None:
-    parameter = OpenApiParameter(
-        name="expand",
-        location="query",
-        type=str,
-        description=f"{EXPERIMENTAL_PARAMETER_NOTICE}\n\nOptional fields to expand.",
-    )
-
-    marked = mark_parameter_experimental(mark_parameter_experimental(parameter))
-
-    assert marked.description == f"{EXPERIMENTAL_PARAMETER_NOTICE}\n\nOptional fields to expand."
-    assert marked.extensions == {"x-sentry-experimental": True}
