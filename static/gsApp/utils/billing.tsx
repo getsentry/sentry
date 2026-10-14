@@ -40,7 +40,37 @@ import type {
 } from 'getsentry/types';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {titleCase} from 'getsentry/utils/titleCase';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+
+const CURRENCY_LOCALE = 'en-US';
+
+/**
+ * Always include $ and cents in the price.
+ *
+ * $100.01 => $100.01
+ * $100.00 => $100.00
+ * $100.30 => $100.30
+ * -100 => -$100.00
+ */
+export function displayPriceWithCents({
+  cents,
+  minimumFractionDigits,
+  maximumFractionDigits,
+}: {
+  cents: number;
+  maximumFractionDigits?: number;
+  minimumFractionDigits?: number;
+}): string {
+  const dollars = cents / 100;
+  const prefix = dollars >= 0 ? '$' : '-$';
+
+  return (
+    prefix +
+    Math.abs(dollars).toLocaleString(CURRENCY_LOCALE, {
+      minimumFractionDigits: minimumFractionDigits ?? 2,
+      maximumFractionDigits: maximumFractionDigits ?? 2,
+    })
+  );
+}
 
 export const MILLISECONDS_IN_HOUR = 3600_000;
 

@@ -30,6 +30,7 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {
+  displayPriceWithCents,
   getReservedBudgetCategoryForAddOn,
   getSlot,
   hasPartnerMigrationFeature,
@@ -52,6 +53,8 @@ import {
   parseOnDemandBudgetsFromSubscription,
   trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/spendLimits/utils';
+
+export {displayPriceWithCents};
 
 const CURRENCY_LOCALE = 'en-US';
 
@@ -98,35 +101,6 @@ export function displayPrice({cents, formatBigNum = false}: DisplayPriceTypes): 
     return displayPriceWithCents({cents});
   }
   return prefix + Math.abs(dollars).toLocaleString(CURRENCY_LOCALE);
-}
-
-/**
- * Always include $ and cents in the price.
- *
- * $100.01 => $100.01
- * $100.00 => $100.00
- * $100.30 => $100.30
- * -100 => -$100.00
- */
-export function displayPriceWithCents({
-  cents,
-  minimumFractionDigits,
-  maximumFractionDigits,
-}: {
-  cents: number;
-  maximumFractionDigits?: number;
-  minimumFractionDigits?: number;
-}): string {
-  const dollars = cents / 100;
-  const prefix = dollars >= 0 ? '$' : '-$';
-
-  return (
-    prefix +
-    Math.abs(dollars).toLocaleString(CURRENCY_LOCALE, {
-      minimumFractionDigits: minimumFractionDigits ?? 2,
-      maximumFractionDigits: maximumFractionDigits ?? 2,
-    })
-  );
 }
 
 type UnitPriceProps = {
