@@ -595,8 +595,10 @@ function LogsTabOnboardingInner({
 
   useLLMContext({
     contextHint:
-      'Sentry logs explorer page, showing setup instructions because the selected projects have not sent any logs yet. ' +
-      'onboardingProject is the project the setup instructions are for.',
+      'Sentry logs explorer page. Shows setup instructions because the selected projects have not sent any logs yet. ' +
+      'onboardingProject is the project the setup instructions are for. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     onboarding: true,
     onboardingProject: {slug: project.slug, platform: project.platform},
     ...toLLMContextProjectFields(selectedProjects),

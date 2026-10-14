@@ -160,7 +160,9 @@ function DashboardOnboardingInner({
 
   useLLMContext({
     contextHint:
-      'Sentry prebuilt dashboard, showing setup instructions instead of widgets because the selected projects have not sent the data this dashboard needs yet.',
+      'Sentry prebuilt dashboard. Shows setup instructions instead of widgets because the selected projects have not sent the data this dashboard needs yet. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     onboarding: true,
     title,
     ...toLLMContextProjectFields(selectedProjects),
