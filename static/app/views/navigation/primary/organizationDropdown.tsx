@@ -264,6 +264,8 @@ function OrganizationMenuHeader({
   organization: OrganizationSummary;
   projectCount: number;
 }) {
+  const lightTheme = useInvertedTheme();
+
   return (
     <Container
       radius="md md 0 0"
@@ -279,20 +281,20 @@ function OrganizationMenuHeader({
           {t('Organization')}
         </Text>
         <Flex align="center" gap="md">
-          <Flex
-            align="center"
-            justify="center"
-            width="32px"
-            height="32px"
-            radius="md"
-            overflow="hidden"
-            css={theme => css`
-              background-color: white;
-              border: 1px solid ${theme.tokens.border.transparent.neutral.muted};
-            `}
-          >
-            <OrganizationAvatar organization={organization} size={30} />
-          </Flex>
+          <ThemeProvider theme={lightTheme}>
+            <Flex
+              align="center"
+              justify="center"
+              width="32px"
+              height="32px"
+              radius="md"
+              overflow="hidden"
+              background="primary"
+              border="muted"
+            >
+              <OrganizationAvatar organization={organization} size={30} />
+            </Flex>
+          </ThemeProvider>
           <Stack gap="0">
             <Text size="md" density="comfortable" variant="primary" bold>
               {organization.name || organization.slug}
