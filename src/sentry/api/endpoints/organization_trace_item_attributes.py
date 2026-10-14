@@ -225,7 +225,11 @@ EXPAND_QUERY_PARAM = OpenApiParameter(
     many=True,
     type=str,
     enum=["context"],
+    # The endpoint is PUBLIC, but the context shape is still evolving, so only this
+    # parameter is flagged experimental.
+    extensions={"x-sentry-experimental": True},
     description=(
+        "**Experimental:** This parameter is under active development and may change.\n\n"
         "Optional fields to expand. Pass `context` to include attribute metadata "
         "(brief, examples, deprecation, etc.)."
     ),
@@ -724,6 +728,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         """
         List the attribute keys available on a given trace item dataset (spans, logs,
         trace metrics, etc.), with optional substring and structured filtering.
+
+        Pass `expand=context` (experimental) to include each attribute's metadata:
+        a brief description, examples, and deprecation details.
         """
         if not self.has_feature(organization, request):
             return Response(status=404)

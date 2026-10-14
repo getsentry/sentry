@@ -1,4 +1,4 @@
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 from sentry.search.eap.types import ColumnType
 
@@ -35,7 +35,7 @@ class TraceItemAttributeContext(TypedDict):
     # double-counting warnings). Sourced from ``additional_context``.
     details: NotRequired[list[str]]
     # Example value(s) for the attribute, normalized to a list.
-    examples: NotRequired[list[Any]]
+    examples: NotRequired[list[str | int | float | bool]]
     # The attribute that replaces this one, when deprecated.
     replacementAttribute: NotRequired[str]
 
