@@ -631,7 +631,6 @@ module = [
     "sentry.api.serializers.models.projectcodeowners",
     "sentry.api.serializers.models.projectownership",
     "sentry.api.serializers.models.pullrequest",
-    "sentry.api.serializers.models.recentsearch",
     "sentry.api.serializers.models.release",
     "sentry.api.serializers.models.release_file",
     "sentry.api.serializers.models.repository",
