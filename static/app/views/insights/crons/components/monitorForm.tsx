@@ -441,7 +441,7 @@ export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: 
             </PanelBody>
           </Panel>
         </InputGroup>
-        {monitor?.config.alert_rule_id && (
+        {!!monitor?.config.alert_rule_id && (
           <Fragment>
             <StyledListItem>{t('Notifications')}</StyledListItem>
             <ListItemSubText>
