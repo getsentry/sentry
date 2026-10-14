@@ -1,4 +1,4 @@
-import {Component, Fragment, isValidElement} from 'react';
+import {Fragment, isValidElement, useCallback, useEffect, useRef, useState} from 'react';
 
 import {Container} from '@sentry/scraps/layout';
 
@@ -113,28 +113,32 @@ type ConfirmMessageProps = ConfirmMessageRenderProps &
     | 'onConfirm'
   >;
 
-type State = {
-  confirmCallback: ((params: AdminConfirmParams) => void) | null;
-  invalidTicketURL: boolean;
-  notes: string | null;
-  ticketURL: string | null;
-};
+function AdminConfirmMessage({
+  renderModalSpecificContent,
+  modalSpecificContent,
+  showAuditFields,
+  showTicketURL,
+  confirm,
+  close,
+  disableConfirmButton,
+  setConfirmCallback,
+  onConfirm,
+}: ConfirmMessageProps) {
+  const [invalidTicketURL, setInvalidTicketURL] = useState(false);
 
-class AdminConfirmMessage extends Component<ConfirmMessageProps, State> {
-  state: State = {
-    notes: null,
-    ticketURL: null,
-    invalidTicketURL: false,
-    confirmCallback: null,
-  };
+  // These values are only read when the user confirms, so they are kept in
+  // refs to ensure the registered confirm handler always sees the latest
+  // values without needing to re-render.
+  const notesRef = useRef<string | null>(null);
+  const ticketURLRef = useRef<string | null>(null);
+  const confirmCallbackRef = useRef<((params: AdminConfirmParams) => void) | null>(
+    null
+  );
 
-  componentDidMount() {
-    this.props.setConfirmCallback?.(this.handleConfirm);
-  }
-
-  handleConfirm = () => {
-    const {onConfirm} = this.props;
-    const {notes, ticketURL, confirmCallback} = this.state;
+  const handleConfirm = useCallback(() => {
+    const notes = notesRef.current;
+    const ticketURL = ticketURLRef.current;
+    const confirmCallback = confirmCallbackRef.current;
 
     const params = {...(notes && {notes}), ...(ticketURL && {ticketURL})};
 
@@ -145,81 +149,77 @@ class AdminConfirmMessage extends Component<ConfirmMessageProps, State> {
     } else {
       confirmCallback(params);
     }
-  };
+  }, [onConfirm]);
 
-  render() {
-    const {
-      renderModalSpecificContent,
-      modalSpecificContent,
-      showAuditFields,
-      showTicketURL,
-      confirm,
-      close,
-      disableConfirmButton,
-      onConfirm,
-    } = this.props;
+  useEffect(() => {
+    setConfirmCallback?.(handleConfirm);
+  }, [setConfirmCallback, handleConfirm]);
 
-    const bodyTopHalf =
-      renderModalSpecificContent === undefined ? (
-        isValidElement(modalSpecificContent) ? (
-          modalSpecificContent
-        ) : (
-          <p>
-            <strong>{modalSpecificContent}</strong>
-          </p>
-        )
+  const bodyTopHalf =
+    renderModalSpecificContent === undefined ? (
+      isValidElement(modalSpecificContent) ? (
+        modalSpecificContent
       ) : (
-        renderModalSpecificContent({
-          confirm,
-          close,
-          disableConfirmButton,
-          // XXX(epurkhiser): This can bit a bit confusing. Since this component
-          // is already augmenting the Confirm component, we're actually
-          // accepting a different confirmCallback, which accepts the audit
-          // parameters.
-          setConfirmCallback: confirmCallback => this.setState({confirmCallback}),
-          onConfirm,
-        })
-      );
+        <p>
+          <strong>{modalSpecificContent}</strong>
+        </p>
+      )
+    ) : (
+      renderModalSpecificContent({
+        confirm,
+        close,
+        disableConfirmButton,
+        // XXX(epurkhiser): This can bit a bit confusing. Since this component
+        // is already augmenting the Confirm component, we're actually
+        // accepting a different confirmCallback, which accepts the audit
+        // parameters.
+        setConfirmCallback: confirmCallback => {
+          confirmCallbackRef.current = confirmCallback;
+        },
+        onConfirm,
+      })
+    );
 
-    return (
-      <Fragment>
-        {bodyTopHalf}
+  return (
+    <Fragment>
+      {bodyTopHalf}
 
-        {showAuditFields && (
-          <Container marginTop="xl">
-            {showTicketURL && (
-              <InputField
-                data-test-id="url-field"
-                name="ticket-url"
-                type="url"
-                label="TicketURL"
-                inline={false}
-                stacked
-                flexibleControlStateSize
-                onChange={(ticketURL: any) => this.setState({ticketURL})}
-                error={this.state.invalidTicketURL ? 'Invalid ticket URL' : undefined}
-                onBlur={(_: any, e: any) => {
-                  const invalidTicketURL =
-                    !e.target.checkValidity() && e.target.value !== '';
-                  this.setState({invalidTicketURL});
-                  disableConfirmButton(invalidTicketURL);
-                }}
-              />
-            )}
-            <TextareaField
-              data-test-id="notes-field"
-              name="notes"
-              label="Notes"
+      {showAuditFields && (
+        <Container marginTop="xl">
+          {showTicketURL && (
+            <InputField
+              data-test-id="url-field"
+              name="ticket-url"
+              type="url"
+              label="TicketURL"
               inline={false}
               stacked
-              autosize
               flexibleControlStateSize
-              onChange={(notes: any) => this.setState({notes})}
+              onChange={(ticketURL: any) => {
+                ticketURLRef.current = ticketURL;
+              }}
+              error={invalidTicketURL ? 'Invalid ticket URL' : undefined}
+              onBlur={(_: any, e: any) => {
+                const isInvalid = !e.target.checkValidity() && e.target.value !== '';
+                setInvalidTicketURL(isInvalid);
+                disableConfirmButton(isInvalid);
+              }}
             />
-          </Container>
-        )}
-      </Fragment>
-    );
-  }
+          )}
+          <TextareaField
+            data-test-id="notes-field"
+            name="notes"
+            label="Notes"
+            inline={false}
+            stacked
+            autosize
+            flexibleControlStateSize
+            onChange={(notes: any) => {
+              notesRef.current = notes;
+            }}
+          />
+        </Container>
+      )}
+    </Fragment>
+  );
 }
