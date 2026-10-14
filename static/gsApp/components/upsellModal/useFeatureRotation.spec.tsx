@@ -22,8 +22,11 @@ describe('useFeatureRotation', () => {
   });
 
   afterEach(() => {
-    act(() => jest.runOnlyPendingTimers());
-    jest.useRealTimers();
+    try {
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('waits for the first delay, then rotates on the interval and wraps around', () => {
