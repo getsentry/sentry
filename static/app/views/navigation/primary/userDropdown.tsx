@@ -215,7 +215,7 @@ export function UserDropdown() {
             title={t('User')}
             avatar={<UserAvatar user={user} size={32} />}
             name={user.name || user.username || user.email}
-            detail={user.email}
+            subtitle={user.email}
           />
         ) : undefined
       }

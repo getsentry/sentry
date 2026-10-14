@@ -5,17 +5,17 @@ import {Text} from '@sentry/scraps/text';
 
 interface NavigationMenuHeaderProps {
   avatar: React.ReactNode;
-  detail: React.ReactNode;
-  name: React.ReactNode;
-  title: React.ReactNode;
+  name: string;
+  subtitle: string;
+  title: string;
   accentColor?: string;
 }
 
 export function NavigationMenuHeader({
   accentColor,
   avatar,
-  detail,
   name,
+  subtitle,
   title,
 }: NavigationMenuHeaderProps) {
   const theme = useTheme();
@@ -47,7 +47,7 @@ export function NavigationMenuHeader({
             {name}
           </Text>
           <Text size="sm" variant="inherit">
-            {detail}
+            {subtitle}
           </Text>
         </Stack>
       </Flex>
