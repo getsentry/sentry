@@ -108,16 +108,19 @@ function AutomationsListInner() {
 
   const selectedProjects = useSelectedProjectsForLLMContext();
 
-  useLLMContext({
-    contextHint: CONTEXT_HINT,
-    query,
-    sort: sort ? `${sort.kind === 'asc' ? '' : '-'}${sort.field}` : '',
-    alertCount: hits,
-    cursor,
-    isLoading,
-    ...toLLMContextProjectFields(selectedProjects),
-    displayedAlerts: formatAutomationRows(automations ?? []),
-  });
+  useLLMContext(
+    {
+      contextHint: CONTEXT_HINT,
+      query,
+      sort: sort ? `${sort.kind === 'asc' ? '' : '-'}${sort.field}` : '',
+      alertCount: hits,
+      cursor,
+      isLoading,
+      ...toLLMContextProjectFields(selectedProjects),
+      displayedAlerts: formatAutomationRows(automations ?? []),
+    },
+    {isLoading}
+  );
 
   return (
     <SentryDocumentTitle title={t('Alerts')}>

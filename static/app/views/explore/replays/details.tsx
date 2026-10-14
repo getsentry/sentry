@@ -76,21 +76,24 @@ function ReplayDetailsContent() {
     mobile: replay?.isVideoReplay(),
   });
 
-  useLLMContext({
-    contextHint:
-      'Sentry session replay detail page. The user is viewing a specific recorded browser session. You can look up full details for this replay using the replayId below, query for related replay sessions, or search live telemetry for errors and spans associated with this session.',
-    replayId: replayRecord?.id,
-    replaySlug,
-    projectSlug: readerResult.projectSlug,
-    browser: replayRecord?.browser.name,
-    os: replayRecord?.os.name,
-    duration: replayRecord?.duration,
-    countErrors: replayRecord?.count_errors,
-    countRageClicks: replayRecord?.count_rage_clicks,
-    countDeadClicks: replayRecord?.count_dead_clicks,
-    environment: replayRecord?.environment,
-    platform: replayRecord?.platform,
-  });
+  useLLMContext(
+    {
+      contextHint:
+        'Sentry session replay detail page. The user is viewing a specific recorded browser session. You can look up full details for this replay using the replayId below, query for related replay sessions, or search live telemetry for errors and spans associated with this session.',
+      replayId: replayRecord?.id,
+      replaySlug,
+      projectSlug: readerResult.projectSlug,
+      browser: replayRecord?.browser.name,
+      os: replayRecord?.os.name,
+      duration: replayRecord?.duration,
+      countErrors: replayRecord?.count_errors,
+      countRageClicks: replayRecord?.count_rage_clicks,
+      countDeadClicks: replayRecord?.count_dead_clicks,
+      environment: replayRecord?.environment,
+      platform: replayRecord?.platform,
+    },
+    {isLoading: readerResult.isPending}
+  );
 
   const title = replayRecord
     ? `${

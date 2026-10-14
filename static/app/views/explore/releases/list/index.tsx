@@ -300,21 +300,24 @@ function ReleasesListInnerPage() {
 
   const selectedProjects = useSelectedProjectsForLLMContext();
 
-  useLLMContext({
-    contextHint:
-      'Sentry releases list page. Shows deployed releases with crash-free rates, adoption, and session/user health. ' +
-      'Users can search, sort, filter by status (active/archived), and toggle sessions vs users display. ' +
-      'You can search live telemetry filtered by release to query related errors, spans, or logs (e.g. "errors in release 1.2.3 in the last 7 days"). ' +
-      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
-      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
-    searchQuery: activeQuery,
-    activeSort,
-    activeDisplay,
-    activeStatus,
-    selectedTab,
-    currentSelectedDateRange: selection.datetime,
-    ...toLLMContextProjectFields(selectedProjects),
-  });
+  useLLMContext(
+    {
+      contextHint:
+        'Sentry releases list page. Shows deployed releases with crash-free rates, adoption, and session/user health. ' +
+        'Users can search, sort, filter by status (active/archived), and toggle sessions vs users display. ' +
+        'You can search live telemetry filtered by release to query related errors, spans, or logs (e.g. "errors in release 1.2.3 in the last 7 days"). ' +
+        'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+        'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
+      searchQuery: activeQuery,
+      activeSort,
+      activeDisplay,
+      activeStatus,
+      selectedTab,
+      currentSelectedDateRange: selection.datetime,
+      ...toLLMContextProjectFields(selectedProjects),
+    },
+    {isLoading: selectedTab === 'releases' && isReleasesPending}
+  );
 
   const handleSearch = useCallback(
     (query: string) => {
