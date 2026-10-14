@@ -2,6 +2,7 @@ import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChat} from '@sentry/icons/chat';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconIssues} from '@sentry/icons/issues';
 import {IconStack} from '@sentry/icons/stack';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
@@ -12,7 +13,8 @@ import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {Separator} from '@sentry/scraps/separator';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
@@ -60,7 +62,11 @@ import {
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
-import type {InvestigationDetail} from 'sentry/views/investigations/types';
+import type {
+  InvestigationBlock,
+  InvestigationDetail,
+} from 'sentry/views/investigations/types';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
@@ -302,17 +308,26 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     );
   }
 
-  const blocks = investigation.blocks ?? [];
-  const summaryBlock = investigation.template ? blocks[0] : undefined;
-  const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
-  const visibleSummaryBlock =
-    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock)
-      ? summaryBlock
-      : undefined;
-  const visibleNotebookCells = notebookCells.filter(block =>
+  const visibleBlocks = (investigation.blocks ?? []).filter(block =>
     shouldDisplayInvestigationBlock(block)
   );
+  const awaitingReportCell = isAwaitingReportCell(investigation);
   const source = getInvestigationSource(investigation);
+  const {data: sourceGroup} = useQuery({
+    ...groupApiOptions({
+      organizationSlug: organization.slug,
+      groupId: source.groupId ?? '',
+      environments: [],
+    }),
+    enabled: Boolean(source.groupId),
+  });
+  // With a summary on top, everything Seer did to reach it sits below a rule
+  // under its own heading. Without one there is nothing to set it apart from.
+  const showDetailsHeading =
+    Boolean(investigation.summary && investigation.summaryDescription) &&
+    (Boolean(investigation.orchestration) ||
+      visibleBlocks.length > 0 ||
+      awaitingReportCell);
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -402,7 +417,10 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                       `/organizations/${organization.slug}/issues/${source.groupId}/`
                     )}
                   >
-                    {source.monitorName ?? t('View issue')}
+                    <Flex as="span" align="center" gap="xs">
+                      <IconIssues size="xs" />
+                      {sourceGroup?.shortId ?? source.monitorName ?? t('View issue')}
+                    </Flex>
                   </Link>
                 ) : (
                   <Text variant="muted">
@@ -470,55 +488,57 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         <Layout.Body padding={{xl: '0 lg lg', '3xl': '0 xl lg'}}>
           <Layout.Main width="full">
             <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto" gap="3xl">
-              {/*
-               * Only an agentic investigation has hypotheses, and `orchestration`
-               * being present is the only thing that says one is: it is null for
-               * manual and template investigations, whose orchestration endpoint
-               * 404s.
-               */}
-              {investigation.orchestration ? (
-                <InvestigationHypotheses
-                  investigationId={investigation.id}
-                  phase={investigation.orchestration.phase}
-                  status={investigation.orchestration.status}
-                />
-              ) : null}
-
               <InvestigationSummaryCard
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
               />
 
-              {visibleSummaryBlock ? (
-                <InvestigationCell
-                  block={visibleSummaryBlock}
-                  canRun={investigation.status === 'active'}
-                  investigation={investigation}
-                  commentCount={commentCounts?.[visibleSummaryBlock.id]}
-                  onComment={
-                    isArchived && commentCounts && !commentCounts[visibleSummaryBlock.id]
-                      ? undefined
-                      : openBlockComments
-                  }
-                />
-              ) : null}
+              {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
 
-              {visibleNotebookCells.map(block => (
-                <InvestigationCell
-                  key={block.id}
-                  block={block}
-                  canRun={investigation.status === 'active'}
-                  investigation={investigation}
-                  commentCount={commentCounts?.[block.id]}
-                  onComment={
-                    isArchived && commentCounts && !commentCounts[block.id]
-                      ? undefined
-                      : openBlockComments
-                  }
-                />
-              ))}
-              {isAwaitingReportCell(investigation) ? (
-                <InvestigationCellPlaceholder />
+              <DetailsIntro gap="lg">
+                {showDetailsHeading ? (
+                  <Heading as="h2" size="lg">
+                    {t('Investigation details')}
+                  </Heading>
+                ) : null}
+                {/*
+                 * Only an agentic investigation has hypotheses, and `orchestration`
+                 * being present is the only thing that says one is: it is null for
+                 * manual and template investigations, whose orchestration endpoint
+                 * 404s.
+                 */}
+                {investigation.orchestration ? (
+                  <InvestigationHypotheses
+                    investigationId={investigation.id}
+                    phase={investigation.orchestration.phase}
+                    status={investigation.orchestration.status}
+                  />
+                ) : null}
+              </DetailsIntro>
+
+              {visibleBlocks.length > 0 || awaitingReportCell ? (
+                <Stack>
+                  {visibleBlocks.map((block, index) => (
+                    <Container key={block.id} paddingTop={getCellSpacing(block, index)}>
+                      <InvestigationCell
+                        block={block}
+                        canRun={investigation.status === 'active'}
+                        investigation={investigation}
+                        commentCount={commentCounts?.[block.id]}
+                        onComment={
+                          isArchived && commentCounts && !commentCounts[block.id]
+                            ? undefined
+                            : openBlockComments
+                        }
+                      />
+                    </Container>
+                  ))}
+                  {awaitingReportCell ? (
+                    <Container paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}>
+                      <InvestigationCellPlaceholder />
+                    </Container>
+                  ) : null}
+                </Stack>
               ) : null}
               <InvestigationActivity
                 investigation={investigation}
@@ -532,6 +552,18 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       </Stack>
     </SentryDocumentTitle>
   );
+}
+
+/**
+ * The report reads as sections: each text cell opens one, and the query cells
+ * after it are the evidence for what it says, so they sit just under it rather
+ * than a whole section's gap away.
+ */
+function getCellSpacing(block: InvestigationBlock, index: number) {
+  if (index === 0) {
+    return '0';
+  }
+  return block.kind === 'query' ? 'lg' : '3xl';
 }
 
 // Seer reaches the reporting phase once it is done with the hypotheses, but the
@@ -612,6 +644,17 @@ const NotebookTitleInput = styled(Input)`
   &:focus {
     background: ${p => p.theme.tokens.background.secondary};
     border-color: ${p => p.theme.tokens.border.primary};
+  }
+`;
+
+/**
+ * The hypotheses render nothing for a run that has none to show, which can
+ * leave this wrapper with no children. Dropping it then keeps the page's gap
+ * from opening up twice around an empty element.
+ */
+const DetailsIntro = styled(Stack)`
+  &:empty {
+    display: none;
   }
 `;
 

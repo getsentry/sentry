@@ -392,11 +392,30 @@ function QueryResult({
 
   const hasInsetContent = Boolean(header || hasExecutionAlert(block) || body);
 
+  // Seer files the evidence behind a report collapsed, so the report reads as
+  // prose with its proof a click away. A cell with something to say right now
+  // opens anyway: one still being written shows its placeholder, and one that
+  // failed shows why. A run started on a closed cell opens it, so the reader
+  // sees the new result land rather than finding it later.
+  const working = isBlockWorking(block);
+  const [expanded, setExpanded] = useState(
+    () => block.display.queryCollapsed !== true || working || hasExecutionAlert(block)
+  );
+  const [wasWorking, setWasWorking] = useState(working);
+  if (working !== wasWorking) {
+    setWasWorking(working);
+    if (working) {
+      setExpanded(true);
+    }
+  }
+
   return (
     <CellHoverSurface width="100%">
       <SeerEmbedBlock
         actions={actions}
+        expanded={expanded}
         gap="0"
+        onExpandedChange={setExpanded}
         padding="0"
         testId="query-cell"
         title={title}
