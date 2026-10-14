@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 import {IconMail} from '@sentry/icons/mail';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {PluginIcon, type PluginIconProps} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
@@ -59,6 +60,10 @@ export const ActionMetadata: Partial<
   [ActionType.PLUGIN]: {
     name: t('Plugin'),
     icon: <StyledPluginIcon pluginId="placeholder" size={ICON_SIZE} />,
+  },
+  [ActionType.SEER_INVESTIGATION]: {
+    name: t('Seer Investigation'),
+    icon: <IconSeer size="md" />,
   },
   [ActionType.SENTRY_APP]: {
     name: t('Sentry App'),

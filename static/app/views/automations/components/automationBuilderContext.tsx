@@ -440,6 +440,7 @@ function getActionTargetType(actionType: ActionType): ActionTarget | null {
     // See PluginActionTranslator and WebhookActionTranslator in src/sentry/workflow_engine/typings/notification_action.py
     case ActionType.PLUGIN:
     case ActionType.WEBHOOK:
+    case ActionType.SEER_INVESTIGATION:
       return null;
     case ActionType.EMAIL:
       return ActionTarget.ISSUE_OWNERS;

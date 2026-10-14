@@ -639,3 +639,31 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             status_code=200,
         )
         assert len(response.data) == 0
+
+    def test_seer_investigation_requires_features(self) -> None:
+        @self.registry.register(Action.Type.SEER_INVESTIGATION)
+        @dataclass(frozen=True)
+        class SeerInvestigationActionHandler(ActionHandler):
+            group = ActionHandler.Group.SEER
+            config_schema = {}
+            data_schema = {}
+
+        response = self.get_success_response(self.organization.slug, status_code=200)
+        assert response.data == []
+
+        with self.feature("organizations:investigations"):
+            response = self.get_success_response(self.organization.slug, status_code=200)
+            assert response.data == []
+
+        with self.feature(
+            ["organizations:investigations", "organizations:investigations-alert-action"]
+        ):
+            response = self.get_success_response(self.organization.slug, status_code=200)
+            assert response.data == [
+                {
+                    "type": Action.Type.SEER_INVESTIGATION,
+                    "handlerGroup": ActionHandler.Group.SEER.value,
+                    "configSchema": {},
+                    "dataSchema": {},
+                }
+            ]
