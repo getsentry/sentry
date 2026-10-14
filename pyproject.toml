@@ -452,7 +452,6 @@ module = [
     "sentry.adoption.*",
     "sentry.api",
     "sentry.api.analytics",
-    "sentry.api.api_owners",
     "sentry.api.api_publish_status",
     "sentry.api.authentication",
     "sentry.api.base",
