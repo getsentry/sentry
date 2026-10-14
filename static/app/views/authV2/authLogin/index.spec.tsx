@@ -1258,6 +1258,47 @@ describe('AuthLogin', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders a session warning shared by both login configs once', async () => {
+    const sessionExpired = 'Your session has expired.';
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {
+        canRegister: true,
+        githubLoginLink: '',
+        googleLoginLink: '',
+        hasNewsletter: false,
+        pendingMfa: null,
+        serverHostname: 'sentry.example.com',
+        vstsLoginLink: '',
+        warning: sessionExpired,
+      } satisfies AuthConfig,
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'password',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: null,
+        warnings: [sessionExpired],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    expect(await screen.findByText(sessionExpired)).toBeInTheDocument();
+    expect(screen.getAllByText(sessionExpired)).toHaveLength(1);
+  });
+
   it('does not render alerts for an empty organization warning list', async () => {
     mockFocusedPasswordOrganization([]);
 

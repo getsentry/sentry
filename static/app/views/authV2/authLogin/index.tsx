@@ -92,6 +92,11 @@ export default function AuthLogin() {
     !authOrganization.provider
   );
   const organizationWarnings = authOrganization?.warnings ?? [];
+  // The organization config repeats the session-expired warning from the auth config.
+  const loginWarning =
+    loginConfig?.warning && !organizationWarnings.includes(loginConfig.warning)
+      ? loginConfig.warning
+      : undefined;
   const isAuthOrganizationNotFound = isNotFoundError(authOrganizationError);
   const hasAuthOrganizationError = Boolean(
     authOrganizationError && !isAuthOrganizationNotFound
@@ -339,7 +344,7 @@ export default function AuthLogin() {
       </Stack>
 
       {(organizationWarnings.length > 0 ||
-        loginConfig?.warning ||
+        loginWarning ||
         loginConfig?.loginBannerMarkdown) && (
         <Stack width="100%" gap="md">
           {organizationWarnings.map((warning, index) => (
@@ -347,7 +352,7 @@ export default function AuthLogin() {
               {warning}
             </Alert>
           ))}
-          {loginConfig?.warning && <Alert variant="warning">{loginConfig.warning}</Alert>}
+          {loginWarning && <Alert variant="warning">{loginWarning}</Alert>}
           {loginConfig?.loginBannerMarkdown && (
             <Alert variant="muted">
               <MarkedText text={loginConfig.loginBannerMarkdown} inline />
