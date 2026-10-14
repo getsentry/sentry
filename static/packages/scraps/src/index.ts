@@ -3,6 +3,7 @@ export * from './text';
 export * from './separator';
 export * from './quote';
 export * from './loader';
+export * from './link';
 export {InlineCode} from './code/inlineCode';
 export {Kbd} from './hotkey/kbd';
 export * from './theme';

@@ -1,11 +1,9 @@
-import {type LinkProps as ReactRouterLinkProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, type Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
 
-import type {ButtonVariant} from '@sentry/scraps/button/types';
 import {getTextStyles} from '@sentry/scraps/text/text';
+import type {Theme} from '@sentry/scraps/theme';
 import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {useLinkBehavior} from './linkBehaviorContext';
@@ -14,29 +12,32 @@ export interface LinkProps
   extends
     React.RefAttributes<HTMLAnchorElement>,
     AnalyticsProps,
-    Pick<
-      ReactRouterLinkProps,
-      'to' | 'replace' | 'preventScrollReset' | 'state' | 'reloadDocument'
-    >,
     Omit<
       React.DetailedHTMLProps<React.HTMLAttributes<HTMLAnchorElement>, HTMLAnchorElement>,
       'href' | 'target' | 'as' | 'css'
     > {
   [key: `data-${string}`]: string | undefined;
   /**
-   * The string path or LocationDescriptor object.
-   *
-   * If your link target is a string literal or a `LocationDescriptor` with
-   * a literal `pathname`, you need to use the slug based URL
-   * e.g `/organizations/${slug}/issues/`. This ensures that your link will
-   * work in environments that do have customer-domains (saas) and those without
-   * customer-domains (single-tenant).
+   * The string path or destination object. A LinkBehaviorContextProvider can
+   * normalize destinations and handle client-side routing.
    */
-  to: LocationDescriptor;
+  to:
+    | string
+    | {
+        hash?: string;
+        pathname?: string;
+        query?: Record<string, unknown>;
+        search?: string;
+        state?: unknown;
+      };
   /**
    * Indicator if the link should be disabled
    */
   disabled?: boolean;
+  preventScrollReset?: boolean;
+  reloadDocument?: boolean;
+  replace?: boolean;
+  state?: unknown;
 }
 
 /**
@@ -55,7 +56,6 @@ const getLinkStyles = ({
   theme: Theme;
   disabled?: LinkProps['disabled'];
 }) => css`
-  /* @TODO(jonasbadalic) This was defined on theme and only used here */
   border-radius: 2px;
   pointer-events: ${disabled ? 'none' : undefined};
   color: ${disabled ? theme.tokens.content.disabled : undefined};
@@ -66,7 +66,8 @@ const getLinkStyles = ({
 
   &:focus-visible {
     text-decoration: none;
-    ${theme.focusRing()}
+    outline: none;
+    box-shadow: 0 0 0 2px ${theme.tokens.focus.default};
   }
 `;
 
@@ -84,7 +85,7 @@ const Anchor = styled('a', {
 
 type LinkPropsWithButtonBehavior = LinkProps & {
   busy?: boolean;
-  variant?: ButtonVariant;
+  variant?: string;
 };
 
 function LinkBase(props: LinkPropsWithButtonBehavior) {
@@ -95,14 +96,6 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
   const propsWithBehavior = behavior();
   const {handleClick} = useClickTracking(propsWithBehavior, 'link');
 
-  if (props.disabled) {
-    // Removing the "to" prop here to prevent the anchor from being rendered with to="
-    // [object Object]" when "to" prop is a LocationDescriptor object. Have to create a
-    // new object here, as we can't delete the "to" prop as it is a required prop.
-    const {to: _to, ...restProps} = props;
-    return <Anchor {...restProps} />;
-  }
-
   const {
     analyticsEventKey: _analyticsEventKey,
     analyticsEventName: _analyticsEventName,
@@ -110,7 +103,19 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
     busy: _busy,
     variant: _variant,
     ...linkProps
-  } = propsWithBehavior;
+  } = props.disabled ? props : propsWithBehavior;
+
+  if (props.disabled) {
+    const {
+      to: _to,
+      replace: _replace,
+      preventScrollReset: _preventScrollReset,
+      reloadDocument: _reloadDocument,
+      state: _state,
+      ...restProps
+    } = linkProps;
+    return <Anchor {...restProps} />;
+  }
 
   return <Component {...linkProps} onClick={handleClick} />;
 }
