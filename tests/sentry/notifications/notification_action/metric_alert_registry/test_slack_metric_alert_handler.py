@@ -7,7 +7,7 @@ from unittest import mock
 from unittest.mock import patch
 
 import orjson
-from slack_sdk.web import SlackResponse  # noqa: F401
+from slack_sdk.web import SlackResponse
 
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
@@ -29,7 +29,7 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
 from sentry.notifications.notification_action.utils import metric_alert_notification_data_factory
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options  # noqa: F401
+from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
