@@ -94,7 +94,6 @@ describe('Tags', () => {
     render(
       <Tags
         eventView={view}
-        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         location={defaultLocation}
@@ -126,7 +125,6 @@ describe('Tags', () => {
     const {router} = render(
       <Tags
         eventView={view}
-        api={new MockApiClient()}
         organization={org}
         totalValues={30}
         location={defaultLocation}
@@ -164,7 +162,6 @@ describe('Tags', () => {
     render(
       <Tags
         eventView={view}
-        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         location={defaultLocation}
@@ -196,7 +193,6 @@ describe('Tags', () => {
     render(
       <Tags
         eventView={view}
-        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         location={LocationFixture({
@@ -269,7 +265,6 @@ describe('Tags', () => {
     render(
       <Tags
         eventView={view}
-        api={new MockApiClient()}
         totalValues={30}
         organization={org}
         location={defaultLocation}
