@@ -83,6 +83,7 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until('[data-test-id="bookmark"]')
         button = self.browser.element('[data-test-id="bookmark"]')
         button.click()
+        self.browser.wait_until(xpath="//*[@role='status'][contains(., 'Issue bookmarked')]")
         self.browser.click('button[aria-label="More Actions"]')
         self.browser.wait_until('[data-test-id="unbookmark"]')
 
