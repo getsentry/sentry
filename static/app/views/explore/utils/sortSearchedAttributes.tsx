@@ -54,11 +54,7 @@ export function sortSearchedAttributes<Value extends SelectKey>({
     return {score: 0};
   }
 
-  const isKnown =
-    getFieldDefinition(
-      String(option.value),
-      getFieldDefinitionType(fieldDefinitionType)
-    ) !== null;
+  const isKnown = isKnownAttribute(String(option.value), fieldDefinitionType);
 
   const prefixBoost =
     result.start === 0 && result.end === normalizedSearch.length ? 8 : 0;
@@ -100,14 +96,38 @@ export function sortKnownAttributes<Value extends SelectOption<string>>(
   b: Value,
   traceItemType: TraceItemDataset
 ) {
-  const aKnown =
-    getFieldDefinition(a.value, getFieldDefinitionType(traceItemType)) !== null;
-  const bKnown =
-    getFieldDefinition(b.value, getFieldDefinitionType(traceItemType)) !== null;
+  const aKnown = isKnownAttribute(a.value, traceItemType);
+  const bKnown = isKnownAttribute(b.value, traceItemType);
   if (aKnown !== bKnown) {
     return aKnown ? -1 : 1;
+  }
+  // Keeps known and user attributes with the same name in a stable order,
+  // e.g. `message` then `tags[message,string]`.
+  if (prettifyTagKey(a.value) === prettifyTagKey(b.value)) {
+    return Number(isWrappedTagKey(a.value)) - Number(isWrappedTagKey(b.value));
   }
   const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
   const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
   return aLabel.localeCompare(bLabel);
+}
+
+/**
+ * Whether the key uses the explicitly typed `tags[name,type]` syntax.
+ */
+function isWrappedTagKey(key: string) {
+  return prettifyTagKey(key) !== key;
+}
+
+/**
+ * Whether the attribute is a known field (i.e., in Sentry conventions)
+ */
+function isKnownAttribute(key: string, fieldDefinitionType: SortFieldDefinitionType) {
+  const definitionType = getFieldDefinitionType(fieldDefinitionType);
+  if (getFieldDefinition(key, definitionType) !== null) {
+    return true;
+  }
+  return (
+    isWrappedTagKey(key) &&
+    getFieldDefinition(prettifyTagKey(key), definitionType) !== null
+  );
 }

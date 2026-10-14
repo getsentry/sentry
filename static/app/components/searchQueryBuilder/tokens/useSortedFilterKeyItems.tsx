@@ -155,6 +155,44 @@ function getValueSuggestionsFromSearchResult(
   };
 }
 
+/**
+ * Handles collision between known and user-sent attributes,
+ * (i.e.'message' and 'tags[message,string]') by placing the user
+ * attribute directly after the known attribute.
+ */
+function placeUserAttributesAfterKnownKeys(items: SearchKeyItem[]): SearchKeyItem[] {
+  const isUserAttribute = (item: SearchKeyItem) =>
+    item.type === 'item' &&
+    item.tag.attributeSource === 'user' &&
+    prettifyTagKey(item.value) !== item.value;
+  const sentryKeyValues = new Set(
+    items
+      .filter(item => item.type === 'item' && !isUserAttribute(item))
+      .map(item => item.value)
+  );
+
+  const userAttributesByName = new Map<string, SearchKeyItem[]>();
+  const rest: SearchKeyItem[] = [];
+  for (const item of items) {
+    const name = prettifyTagKey(item.value);
+    if (isUserAttribute(item) && sentryKeyValues.has(name)) {
+      userAttributesByName.set(name, [...(userAttributesByName.get(name) ?? []), item]);
+    } else {
+      rest.push(item);
+    }
+  }
+
+  if (userAttributesByName.size === 0) {
+    return items;
+  }
+
+  return rest.flatMap(item =>
+    item.type === 'item' && !isUserAttribute(item)
+      ? [item, ...(userAttributesByName.get(item.value) ?? [])]
+      : [item]
+  );
+}
+
 export function useSortedFilterKeyItems({
   inputValue,
   filterValue,
@@ -326,41 +364,22 @@ export function useSortedFilterKeyItems({
       });
 
     // Partition into tiers so that prioritized keys always appear above every
-    // other match, keys whose display name exactly matches the input come next,
-    // and async-only keys always appear below static keys.
+    // other match, and async-only keys always appear below static keys.
     // Fuzzy score order is preserved within each tier.
-    const normalizedFilterValue = stripArrayMembershipOperator(filterValue)
-      .trim()
-      .toLowerCase();
-    // A user-sent attribute can share its display name with a Sentry key (e.g.
-    // `message` and `tags[message,string]`). Prioritize the Sentry key while
-    // also matching the user-sent attribute if it exists
-    const isExactNameMatch = (item: (typeof allKeyItems)[number]) =>
-      item.type === 'item' &&
-      prettifyTagKey(item.value).toLowerCase() === normalizedFilterValue;
-    const isUserAttribute = (item: (typeof allKeyItems)[number]) =>
-      item.type === 'item' && item.tag.attributeSource === 'user';
-
     const prioritizedKeyItems = allKeyItems.filter(item =>
       prioritizedKeys.has(item.value)
     );
-    const exactNameKeyItems = allKeyItems
-      .filter(item => !prioritizedKeys.has(item.value) && isExactNameMatch(item))
-      .sort((a, b) => Number(isUserAttribute(a)) - Number(isUserAttribute(b)));
-    const isRemainingItem = (item: (typeof allKeyItems)[number]) =>
-      !prioritizedKeys.has(item.value) && !isExactNameMatch(item);
     const staticKeyItems = allKeyItems.filter(
-      item => isRemainingItem(item) && !asyncOnlyKeys.has(item.value)
+      item => !prioritizedKeys.has(item.value) && !asyncOnlyKeys.has(item.value)
     );
     const asyncKeyItems = allKeyItems.filter(
-      item => isRemainingItem(item) && asyncOnlyKeys.has(item.value)
+      item => !prioritizedKeys.has(item.value) && asyncOnlyKeys.has(item.value)
     );
-    const keyItems = [
+    const keyItems = placeUserAttributesAfterKnownKeys([
       ...prioritizedKeyItems,
-      ...exactNameKeyItems,
       ...staticKeyItems,
       ...asyncKeyItems,
-    ];
+    ]);
 
     if (includeSuggestions) {
       const rawSearchSection: KeySectionItem = {

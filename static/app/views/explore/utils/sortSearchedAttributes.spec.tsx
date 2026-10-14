@@ -1,13 +1,19 @@
+import {prettifyTagKey} from 'sentry/utils/fields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
+import {
+  sortKnownAttributes,
+  sortSearchedAttributes,
+} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 function rank(values: string[], searchText: string) {
   return values
-    .map(value => ({
-      value,
+    .map(value => ({key: value, value, label: prettifyTagKey(value), textValue: value}))
+    .toSorted((a, b) => sortKnownAttributes(a, b, TraceItemDataset.LOGS))
+    .map(option => ({
+      value: option.value,
       score: sortSearchedAttributes({
         fieldDefinitionType: TraceItemDataset.LOGS,
-        option: {key: value, value, label: value, textValue: value},
+        option,
         searchText,
       }).score,
     }))
@@ -36,6 +42,25 @@ describe('sortSearchedAttributes', () => {
     expect(ranked.slice(0, 2)).toEqual(['message', 'tags[message,string]']);
     expect(ranked).toHaveLength(4);
   });
+
+  it.each(['mess', 'messa', 'message'])(
+    'keeps a user attribute right after its Sentry field when searching %s',
+    searchText => {
+      const ranked = rank(
+        ['message.parameter.0', 'tags[message,string]', 'message.template', 'message'],
+        searchText
+      );
+      expect(ranked.slice(0, 2)).toEqual(['message', 'tags[message,string]']);
+    }
+  );
+
+  it.each(['i', 'id'])(
+    'keeps a user number attribute right after its Sentry field when searching %s',
+    searchText => {
+      const ranked = rank(['tags[id,number]', 'id.foo', 'id'], searchText);
+      expect(ranked.slice(0, 2)).toEqual(['id', 'tags[id,number]']);
+    }
+  );
 
   it('still matches explicitly typed keys by their tag syntax', () => {
     expect(rank(['tags[message,string]', 'message'], 'tags[')).toEqual([
