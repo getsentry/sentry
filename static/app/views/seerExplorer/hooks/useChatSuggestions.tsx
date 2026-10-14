@@ -51,7 +51,6 @@ function getFallbackChatSuggestions(route: string, hasDbData: boolean): ChatSugg
   ];
 }
 
-/** Why the fallback suggestions are being shown, for analytics. */
 function getFallbackReason(
   error: Error | null,
   isPageContextComplete: boolean | undefined
@@ -153,7 +152,7 @@ export function useChatSuggestions({
       return {...response, isPageContextComplete};
     },
     enabled: enabled && hasLlmChatSuggestions,
-    // Retry on the next open if the page hadn't finished loading.
+    // Retry on the next open if the page context hadn't finished loading.
     staleTime: q => (q.state.data?.isPageContextComplete === false ? 0 : 10 * 60 * 1000),
     retry: false,
   });
@@ -162,11 +161,7 @@ export function useChatSuggestions({
     if (!hasLlmChatSuggestions) {
       return {isLoading: false, source: 'legacy', suggestions: LEGACY_SUGGESTIONS};
     }
-    if (
-      query.isPending ||
-      // Show loading while retrying an incomplete result, rather than swapping the fallback:
-      (query.isFetching && query.data?.isPageContextComplete === false)
-    ) {
+    if (query.isPending || query.isFetching) {
       return {isLoading: true};
     }
     const generatedSuggestions = query.data?.suggestions ?? [];
