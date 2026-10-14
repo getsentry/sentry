@@ -23,13 +23,10 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {
-  DURATION_UNITS,
-  getFieldRenderer,
-  SIZE_UNITS,
-} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Column} from 'sentry/utils/discover/fields';
 import {getEquationAliasIndex, isEquationAlias} from 'sentry/utils/discover/fields';
+import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldUnits';
 import {
   DisplayModes,
   SavedQueryDatasets,

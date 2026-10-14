@@ -16,13 +16,10 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {nullableValue} from 'sentry/utils/discover/emptyFieldValues';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {
-  getFieldRenderer,
-  nullableValue,
-  renderUrlCellValue,
-} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer, renderUrlCellValue} from 'sentry/utils/discover/fieldRenderers';
 import {Container} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';

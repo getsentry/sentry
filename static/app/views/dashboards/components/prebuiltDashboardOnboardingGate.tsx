@@ -1,3 +1,4 @@
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -8,6 +9,7 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useHasAgentSpans} from 'sentry/views/insights/pages/agents/hooks/useHasAgentSpans';
 import {Onboarding as AgentOnboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {Onboarding as MCPOnboarding} from 'sentry/views/insights/pages/mcp/onboarding';
 import {NodeRuntimeMetricsOnboarding} from 'sentry/views/insights/pages/nodeRuntime/onboarding';
@@ -67,6 +69,10 @@ export function PrebuiltDashboardOnboardingGate({
     return children;
   }
 
+  if (onboarding.type === 'custom' && onboarding.componentId === 'agent-monitoring') {
+    return <AgentDashboardOnboardingGate>{children}</AgentDashboardOnboardingGate>;
+  }
+
   const selectedProjects = getSelectedProjectList(
     pageFilters.selection.projects,
     projects
@@ -81,10 +87,6 @@ export function PrebuiltDashboardOnboardingGate({
   }
 
   if (onboarding.type === 'custom') {
-    if (onboarding.componentId === 'agent-monitoring') {
-      return <AgentOnboarding />;
-    }
-
     if (onboarding.componentId === 'node-runtime-metrics') {
       return <NodeRuntimeMetricsOnboarding />;
     }
@@ -93,4 +95,19 @@ export function PrebuiltDashboardOnboardingGate({
   }
 
   return <GenericOnboarding heading={onboarding.description} />;
+}
+
+function AgentDashboardOnboardingGate({children}: {children: React.ReactNode}) {
+  const {hasAgenticSpans, isLoading, isError} = useHasAgentSpans();
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  // A failed availability check is not evidence that instrumentation is missing.
+  if (hasAgenticSpans || isError) {
+    return children;
+  }
+
+  return <AgentOnboarding />;
 }

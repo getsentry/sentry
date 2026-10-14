@@ -3,15 +3,16 @@ import type {Theme} from '@emotion/react';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {Outcome} from 'sentry/types/core';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 const OUTCOME_LABELS: Partial<Record<Outcome, string>> = {
-  [Outcome.CLIENT_DISCARD]: t('Client discard'),
-  [Outcome.FILTERED]: t('Inbound filter'),
-  [Outcome.INVALID]: t('Invalid or malformed'),
-  [Outcome.RATE_LIMITED]: t('Rate limited'),
-  [Outcome.ABUSE]: t('Abuse limit'),
-  [Outcome.CARDINALITY_LIMITED]: t('Cardinality limit'),
+  [Outcome.CLIENT_DISCARD]: t('Client Discard'),
+  [Outcome.FILTERED]: t('Inbound Filter'),
+  [Outcome.INVALID]: t('Invalid or Malformed'),
+  [Outcome.RATE_LIMITED]: t('Rate Limited'),
+  [Outcome.ABUSE]: t('Abuse Limit'),
+  [Outcome.CARDINALITY_LIMITED]: t('Cardinality Limit'),
 };
 
 export function outcomeLabel(outcome: string): string {
@@ -105,28 +106,51 @@ const REASON_DESCRIPTIONS: Record<
       : t('Your organization hit its quota for this event type.'),
 };
 
-function dataTypeName(category: string): string | undefined {
-  return Object.values(DATA_CATEGORY_INFO).find(info => info.name === category)
-    ?.displayName;
+export function dataCategoryInfo(category: string) {
+  return Object.values(DATA_CATEGORY_INFO).find(info => info.name === category);
 }
 
 export function reasonDescription(reason: string, category: string): string | undefined {
   const description = REASON_DESCRIPTIONS[normalizeReason(reason)];
   return typeof description === 'function'
-    ? description(dataTypeName(category))
+    ? description(dataCategoryInfo(category)?.displayName)
     : description;
 }
 
-export function getOutcomeColors(
-  outcomes: string[],
-  theme: Theme
-): Record<string, string> {
-  const palette = theme.chart.getColorPalette(Math.max(outcomes.length - 1, 0));
+export function buildInvestigatePrompt(args: {
+  category: string;
+  dataset: DiscoverDatasets;
+  outcome: string;
+  reason: string;
+}): string {
+  const outcome = outcomeLabel(args.outcome);
+  const reason = reasonTitle(args.reason);
+  const detail = reasonDescription(args.reason, args.category);
+  return t(
+    'My %s data is being dropped as "%s" (%s).%s Why is this happening and how do I fix it?',
+    args.dataset,
+    outcome,
+    reason,
+    detail ? ` ${detail}` : ''
+  );
+}
 
-  return outcomes.reduce<Record<string, string>>((acc, outcome, index) => {
+export type OutcomeColors = Record<string, string>;
+
+export function getOutcomeColors(outcomes: string[], theme: Theme): OutcomeColors {
+  const orderedOutcomes = [...new Set(outcomes)].sort();
+  const palette = theme.chart.getColorPalette(Math.max(orderedOutcomes.length - 1, 0));
+
+  return orderedOutcomes.reduce<OutcomeColors>((acc, outcome, index) => {
     acc[outcome] = palette[index % palette.length]!;
     return acc;
   }, {});
+}
+
+export type OutcomeSelection = Record<string, boolean>;
+
+export function isOutcomeSelected(selection: OutcomeSelection, outcome: string): boolean {
+  return selection[outcome] !== false;
 }
 
 // Shares run tiny (a reason can be a sliver of all traffic), so floor the

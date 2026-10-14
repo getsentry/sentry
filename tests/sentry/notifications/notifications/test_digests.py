@@ -34,6 +34,12 @@ pytestmark = [requires_snuba]
 USER_COUNT = 2
 
 
+def as_group_event(event: Event | GroupEvent) -> GroupEvent:
+    if isinstance(event, GroupEvent):
+        return event
+    return event.for_group(event.groups[0])
+
+
 class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTestCase):
     def add_event(self, fingerprint: str, backend: Backend, event_type: str = "error") -> None:
         event: Event | GroupEvent | None
@@ -63,7 +69,12 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
 
         assert event is not None
         origin = NotificationOrigin.from_legacy_rule(self.rule)
-        backend.add(self.key, event_to_record(event, [origin]), increment_delay=0, maximum_delay=0)
+        backend.add(
+            self.key,
+            event_to_record(as_group_event(event), [origin]),
+            increment_delay=0,
+            maximum_delay=0,
+        )
 
     def run_test(
         self,
@@ -294,13 +305,13 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         origin = NotificationOrigin.from_legacy_rule(rule)
         backend.add(
             key,
-            event_to_record(event1, [origin], notification_uuid),
+            event_to_record(as_group_event(event1), [origin], notification_uuid),
             increment_delay=0,
             maximum_delay=0,
         )
         backend.add(
             key,
-            event_to_record(event2, [origin], notification_uuid),
+            event_to_record(as_group_event(event2), [origin], notification_uuid),
             increment_delay=0,
             maximum_delay=0,
         )
@@ -369,7 +380,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             )
             backend.add(
                 key,
-                event_to_record(event, [origin], notification_uuid),
+                event_to_record(as_group_event(event), [origin], notification_uuid),
                 increment_delay=0,
                 maximum_delay=0,
             )
