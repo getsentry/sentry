@@ -1461,7 +1461,6 @@ module = [
     "sentry.web",
     "sentry.web.api",
     "sentry.web.client_config",
-    "sentry.web.constants",
     "sentry.web.debug_urls",
     "sentry.web.decorators",
     "sentry.web.forms.*",
