@@ -139,8 +139,6 @@ const StyledBreak = styled('hr')`
   border-color: ${p => p.theme.tokens.border.primary};
 `;
 
-
-
 const Side = styled(Layout.Side)<{isBottomSidebar: boolean}>`
   position: relative;
   padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
