@@ -208,6 +208,31 @@ describe('viewSamplesTarget', () => {
     });
   });
 
+  it('drill down with boolean group by value', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: ['tags[api_token_is_sentry_app,boolean]'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        'tags[api_token_is_sentry_app,boolean]': false,
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'tags[api_token_is_sentry_app,boolean]:false',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
   it('drill down with numeric group by value', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({

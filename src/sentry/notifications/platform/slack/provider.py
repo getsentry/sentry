@@ -30,6 +30,7 @@ from sentry.notifications.platform.target import (
     PreparedIntegrationNotificationTarget,
 )
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationData,
@@ -65,7 +66,11 @@ class SlackRenderable(TypedDict):
 class SlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         # Slack does not support rich text in the subject
         subject_block = HeaderBlock(text=PlainTextObject(text=rendered_template.subject_text))

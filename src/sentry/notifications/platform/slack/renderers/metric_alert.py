@@ -5,6 +5,7 @@ from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -19,7 +20,11 @@ from sentry.notifications.platform.types import (
 class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](
-        cls, *, data: DataT, rendered_template: NotificationRenderedTemplate
+        cls,
+        *,
+        data: DataT,
+        rendered_template: NotificationRenderedTemplate,
+        link_decorator: NotificationLinkDecorator,
     ) -> SlackRenderable:
         if not isinstance(data, MetricAlertNotificationData):
             raise ValueError(f"SlackMetricAlertRenderer does not support {data.__class__.__name__}")
@@ -45,7 +50,8 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
             )
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(status, ""))
-        fallback_text = f"<{data.title_link}|*{escape_slack_text(data.title)}*>"
+        title_link = link_decorator.decorate_url(data.title_link)
+        fallback_text = f"<{title_link}|*{escape_slack_text(data.title)}*>"
         slack_body = BlockSlackMessageBuilder._build_blocks(
             *blocks, fallback_text=fallback_text, color=color
         )

@@ -1331,6 +1331,8 @@ class SearchResolver:
                         "function_name": function_name,
                     },
                 )
+                if self.config.disable_deprecated_functions:
+                    raise
                 return self._resolve_function(
                     deprecated_definition, function_name, alias, columns, default_value
                 )

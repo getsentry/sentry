@@ -244,6 +244,20 @@ export type SeerAnalyticsEventsParameters = {
     /** Seer pane size as a percent of the available split axis, 0–100. */
     seer_size_percent: number;
   };
+  'seer.explorer.suggestion_clicked': {
+    position: number;
+    referrer: string;
+    source: 'generated' | 'fallback' | 'legacy';
+    action_type?: string;
+    kind?: 'question' | 'action';
+  };
+  'seer.explorer.suggestions_shown': {
+    action_types: string[];
+    count: number;
+    referrer: string;
+    source: 'generated' | 'fallback' | 'legacy';
+    fallback_reason?: 'timeout' | 'error' | 'empty';
+  };
   'seer.explorer.timed_out': {
     run_id: SeerExplorerRunId | null;
   };
@@ -293,6 +307,8 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'seer.explorer.session_link_copied': 'Seer Explorer: Session Link Copied',
   'seer.explorer.sidebar.position_changed': 'Seer Explorer: Sidebar Position Changed',
   'seer.explorer.sidebar.resized': 'Seer Explorer: Sidebar Resized',
+  'seer.explorer.suggestion_clicked': 'Seer Explorer: Suggestion Clicked',
+  'seer.explorer.suggestions_shown': 'Seer Explorer: Suggestions Shown',
   'seer.explorer.timed_out': 'Seer Explorer: Timed Out',
   'seer.explorer.update_slack_clicked': 'Seer Explorer: Update Slack Clicked',
 };
