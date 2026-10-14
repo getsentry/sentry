@@ -28,6 +28,11 @@ import type {
 } from 'sentry/views/preprod/types/snapshotTypes';
 import {getPrUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
 
+// The 225px default leaves roughly 100px for a name once the avatar, gaps and
+// timestamp are taken out. Still a ceiling, not a width — the tooltip sizes to
+// its rows and only wraps past this.
+const APPROVERS_TOOLTIP_MAX_WIDTH = 320;
+
 const AUTO_APPROVED_EXPLANATION = t(
   'Automatically approved because the changes match a previously approved build on this PR.'
 );
@@ -113,7 +118,13 @@ function approvalTag(data: SnapshotDetailsApiResponse) {
 
     return (
       <Fragment>
-        <Tooltip title={tooltip}>{tag}</Tooltip>
+        <Tooltip
+          title={tooltip}
+          // Prose keeps the sentence-width default; the approver grid does not.
+          maxWidth={approvers.length > 0 ? APPROVERS_TOOLTIP_MAX_WIDTH : undefined}
+        >
+          {tag}
+        </Tooltip>
         {/*
           A Tag is not focusable, so the tooltip above is reachable by pointer
           only — its content is not in the DOM until it opens.
