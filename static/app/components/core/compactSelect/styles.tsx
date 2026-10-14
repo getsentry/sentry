@@ -7,6 +7,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {MenuSectionLabel} from '@sentry/scraps/menuSectionLabel';
 
 export const ListWrap = styled('ul')`
   margin: 0;
@@ -46,12 +47,8 @@ export const ListWrap = styled('ul')`
   }
 `;
 
-export const ListLabel = styled('p')`
+export const ListLabel = styled(MenuSectionLabel)`
   display: inline-block;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
   white-space: nowrap;
   margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
   padding-right: ${p => p.theme.space.md};
@@ -92,12 +89,8 @@ export const SectionHeader = styled('div')`
   }
 `;
 
-export const SectionTitle = styled('p')`
+export const SectionTitle = styled(MenuSectionLabel)`
   display: inline-block;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
   white-space: nowrap;
 
   margin: 0;

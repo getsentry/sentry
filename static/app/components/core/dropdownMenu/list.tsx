@@ -1,4 +1,13 @@
-import {Fragment, useCallback, useContext, useMemo, useRef} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {createPortal} from 'react-dom';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -13,7 +22,8 @@ import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {MenuSearch} from '@sentry/scraps/menuSearch';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -185,9 +195,12 @@ function DropdownMenuList({
   zIndex,
   ...props
 }: DropdownMenuListProps) {
-  const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
+  const {rootOverlayState, parentMenuState, menuZIndex} = useContext(DropdownMenuContext);
   const safetyTriangle = useSafetyTriangle();
-  const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
+  const state = useTreeState<MenuItemProps>({
+    ...props,
+    selectionMode: 'single',
+  });
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
 
   // Implement focus states, keyboard navigation, aria-label,...
@@ -247,10 +260,19 @@ function DropdownMenuList({
   const contextValue = useMemo(
     () => ({
       rootOverlayState: rootOverlayState ?? overlayState,
+      menuZIndex: zIndex ?? menuZIndex ?? theme.zIndex.dropdown,
       parentMenuState: state,
       safetyTriangle,
     }),
-    [rootOverlayState, overlayState, state, safetyTriangle]
+    [
+      rootOverlayState,
+      overlayState,
+      state,
+      safetyTriangle,
+      zIndex,
+      menuZIndex,
+      theme.zIndex.dropdown,
+    ]
   );
   return (
     <FocusScope restoreFocus autoFocus>
@@ -259,7 +281,7 @@ function DropdownMenuList({
         {...overlayPositionProps}
       >
         <DropdownMenuContext value={contextValue}>
-          <StyledOverlay>
+          <StyledOverlay style={{maxHeight: overlayPositionProps.style?.maxHeight}}>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
             <DropdownMenuListWrap
               ref={menuRef}
@@ -308,11 +330,14 @@ function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
     .filter(item => !item.hidden)
     .map(item => {
       const href = makeItemHref(item);
+      const submenuItems =
+        typeof item.submenu === 'object' ? item.submenu.items : undefined;
+      const children = item.children ?? submenuItems;
 
       return {
         ...item,
         ...(href === undefined ? {} : {href}),
-        ...(item.children ? {children: removeHiddenItemsAndSetHref(item.children)} : {}),
+        ...(children ? {children: removeHiddenItemsAndSetHref(children)} : {}),
       };
     });
 }
@@ -401,10 +426,15 @@ function DropdownSubmenu({
   onClose,
   size,
 }: DropdownSubmenuProps) {
-  const {rootOverlayState} = useContext(DropdownMenuContext);
+  const {rootOverlayState, menuZIndex} = useContext(DropdownMenuContext);
   const submenu = node.value?.submenu;
   const options = typeof submenu === 'object' ? submenu : {};
+  const hasSearch = Boolean(options.search);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [openedByClick, setOpenedByClick] = useState(false);
   const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
+  const submenuIsSelected = state.selectionManager.isSelected(node.key);
+  const selectedKeys = state.selectionManager.selectedKeys;
   const {
     isOpen,
     state: overlayState,
@@ -413,10 +443,11 @@ function DropdownSubmenu({
     overlayProps,
     overlayRef,
   } = useOverlay({
-    isOpen: state.selectionManager.isSelected(node.key),
+    isOpen: submenuIsSelected || (openedByClick && selectedKeys.size === 0),
     onClose: rootOverlayState?.close,
     disableTrigger: isDisabled,
     position: options.position ?? 'right-start',
+    strategy: 'fixed',
     offset: -4,
     preventOverflowOptions: {
       boundary: document.body,
@@ -429,10 +460,27 @@ function DropdownSubmenu({
     triggerRef
   );
   const isFocused = state.selectionManager.focusedKey === node.key;
+  const availableHeight = overlayProps.style?.maxHeight;
+  const menuMaxHeight = options.maxHeight
+    ? `min(${options.maxHeight}px, ${
+        typeof availableHeight === 'number'
+          ? `${availableHeight}px`
+          : (availableHeight ?? '100vh')
+      })`
+    : availableHeight;
+
+  useEffect(() => {
+    if (!isOpen || !hasSearch) {
+      return;
+    }
+    const frame = requestAnimationFrame(() => searchRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [hasSearch, isOpen]);
 
   return (
     <Container as="li" display="contents" role="presentation">
       <DropdownMenuItem
+        onClickCapture={() => setOpenedByClick(true)}
         menuItemRef={useCallback(
           element => {
             setTriggerElement(element);
@@ -452,20 +500,46 @@ function DropdownSubmenu({
         state={state}
         closeOnSelect={false}
       />
-      {isOpen && (
-        <DropdownMenuContent
-          onClose={onClose}
-          closeOnSelect={closeOnSelect}
-          disableTextSelection={disableTextSelection}
-          menuTitle={options.title}
-          size={size}
-          {...menuProps}
-          items={items}
-          autoFocus={false}
-          overlayState={overlayState}
-          overlayPositionProps={overlayProps}
-        />
-      )}
+      {isOpen &&
+        createPortal(
+          <DropdownMenuContent
+            onClose={onClose}
+            closeOnSelect={closeOnSelect}
+            disableTextSelection={disableTextSelection}
+            menuTitle={
+              options.search ? (
+                <Stack gap="sm">
+                  {options.title}
+                  <MenuSearch
+                    ref={searchRef}
+                    showIcon={false}
+                    aria-label={options.search.placeholder}
+                    placeholder={options.search.placeholder}
+                    value={options.search.value}
+                    onChange={event => options.search?.onChange(event.target.value)}
+                    onKeyDown={event => event.stopPropagation()}
+                  />
+                </Stack>
+              ) : (
+                options.title
+              )
+            }
+            size={size}
+            zIndex={menuZIndex === undefined ? undefined : menuZIndex + 1}
+            {...menuProps}
+            items={items}
+            autoFocus={false}
+            overlayState={overlayState}
+            overlayPositionProps={{
+              ...overlayProps,
+              style: {
+                ...overlayProps.style,
+                maxHeight: menuMaxHeight,
+              },
+            }}
+          />,
+          document.body
+        )}
     </Container>
   );
 }
@@ -473,6 +547,7 @@ function DropdownSubmenu({
 const StyledOverlay = styled(Overlay)`
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 `;
 
 const DropdownMenuListWrap = styled('ul')<{
@@ -484,6 +559,7 @@ const DropdownMenuListWrap = styled('ul')<{
   font-size: ${p => p.theme.font.size.md};
   overflow-x: hidden;
   overflow-y: auto;
+  min-height: 0;
 
   ${p =>
     p.disableTextSelection &&
