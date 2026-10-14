@@ -24,13 +24,13 @@ export const SERIES_NAME_PART_DELIMITER = ' : ';
  */
 export const SERIES_QUERY_DELIMITER = ' > ';
 
+/** Converts a legacy series whose query and alias prefixes have already been removed. */
 export function transformLegacySeriesToTimeSeries(
   timeseriesResult: Series | undefined,
   timeseriesResultsTypes: Record<string, AggregationOutputType> | undefined,
   timeseriesResultsUnits: Record<string, DataUnit> | undefined,
   fields: string[] = [],
-  yAxis = '',
-  alias?: string
+  yAxis = ''
 ): TimeSeries | null {
   if (!timeseriesResult) {
     return null;
@@ -55,9 +55,8 @@ export function transformLegacySeriesToTimeSeries(
 
   const isOther = splitSeriesName.includes('Other');
 
-  // Extract group values by filtering out alias and yAxis from the series name
-  // Series name format: "alias : groupValue1,groupValue2 : yAxis" or "groupValue1,groupValue2" or "groupValue1,groupValue2 : yAxis"
-  const groupValuesPart = splitSeriesName.find(name => name !== alias && name !== yAxis);
+  // The caller removes query prefixes; the remaining name contains groups and yAxis.
+  const groupValuesPart = splitSeriesName.find(name => name !== yAxis);
 
   const groupBy =
     fields.length > 0 && groupValuesPart ? parseGroupBy(groupValuesPart, fields) : null;
