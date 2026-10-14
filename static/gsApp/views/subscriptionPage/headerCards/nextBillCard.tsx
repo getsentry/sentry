@@ -19,7 +19,7 @@ import {
   getCredits,
   getFees,
 } from 'getsentry/utils/billing';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {displayPriceWithCents} from 'getsentry/utils/formatCurrency';
 import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
 type NextBillInvoiceItem = Pick<PreviewInvoiceItem, 'amount' | 'type' | 'description'>;

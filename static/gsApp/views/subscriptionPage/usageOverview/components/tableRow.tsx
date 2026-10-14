@@ -36,7 +36,8 @@ import {
   isByteCategory,
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
-import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
+import {displayPriceWithCents} from 'getsentry/utils/formatCurrency';
+import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {ProductBreakdownPanel} from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import {ProductTrialRibbon} from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
 import {SIDE_PANEL_MIN_CONTAINER_BREAKPOINT} from 'getsentry/views/subscriptionPage/usageOverview/constants';

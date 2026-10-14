@@ -24,7 +24,7 @@ import {
   type Subscription,
 } from 'getsentry/types';
 import {displayBudgetName, hasBillingAccess} from 'getsentry/utils/billing';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
+import {displayPrice} from 'getsentry/utils/formatCurrency';
 import {openSpendLimitsPricingModal} from 'getsentry/views/spendLimits/pricingModal';
 import {
   getTotalBudget,

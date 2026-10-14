@@ -10,7 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import type {PreviewData, Subscription} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {displayPriceWithCents} from 'getsentry/utils/formatCurrency';
 
 import type {Reservations} from './types';
 

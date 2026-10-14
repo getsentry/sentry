@@ -28,7 +28,7 @@ import {
   supportsPayg,
 } from 'getsentry/utils/billing';
 import {calculateSeerUserSpend} from 'getsentry/utils/dataCategory';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {displayPriceWithCents} from 'getsentry/utils/formatCurrency';
 
 interface BaseProps {
   activeProductTrial: ProductTrial | null;

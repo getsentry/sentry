@@ -15,7 +15,7 @@ import {
   getPlanCategoryName,
   getReservedBudgetDisplayName,
 } from 'getsentry/utils/dataCategory';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {displayPriceWithCents} from 'getsentry/utils/formatCurrency';
 import {
   formatOnDemandBudget,
   isOnDemandBudgetsEqual,

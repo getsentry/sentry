@@ -13,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
 import type {Invoice} from 'getsentry/types';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {displayPriceWithCents} from 'getsentry/utils/formatCurrency';
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
   invoice: Invoice;

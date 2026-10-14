@@ -38,6 +38,7 @@ import {
   isTeamPlanFamily,
 } from 'getsentry/utils/billing';
 import {isCheckoutCategory} from 'getsentry/utils/dataCategory';
+import {CURRENCY_LOCALE, displayPrice} from 'getsentry/utils/formatCurrency';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';
 import type {State as CheckoutState} from 'getsentry/views/amCheckout/';
@@ -46,27 +47,15 @@ import type {
   CheckoutFormData,
   PlanContent,
 } from 'getsentry/views/amCheckout/types';
-import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 import {
   normalizeOnDemandBudget,
   parseOnDemandBudgetsFromSubscription,
   trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/spendLimits/utils';
 
-const CURRENCY_LOCALE = 'en-US';
-
-/**
- * Includes $, and cents in the price when needed.
- *
- * 100.01 => $100.01
- * 100.00 => $100
- * 100.30 => $100.30
- * -100 => -$100
- */
-type DisplayPriceTypes = {
-  cents: number;
-  formatBigNum?: boolean;
-};
+// Re-exported for existing `utils.displayPrice(...)` namespace callers in checkout.
+// formatCurrency does not import this module, so this does not create a cycle.
+export {displayPrice, displayPriceWithCents} from 'getsentry/utils/formatCurrency';
 
 // Intent details returned by CustomerSubscriptionEndpoint
 // when there is an error and customer card actions are
@@ -85,49 +74,6 @@ type APIDataProps = {
   referrer?: string;
   shouldUpdateOnDemand?: boolean;
 };
-
-export function displayPrice({cents, formatBigNum = false}: DisplayPriceTypes): string {
-  const dollars = cents / 100;
-  const prefix = dollars >= 0 ? '$' : '-$';
-
-  if (formatBigNum) {
-    return prefix + bigNumFormatter(Math.abs(dollars));
-  }
-  const hasCents = dollars % 1 !== 0;
-  if (hasCents) {
-    return displayPriceWithCents({cents});
-  }
-  return prefix + Math.abs(dollars).toLocaleString(CURRENCY_LOCALE);
-}
-
-/**
- * Always include $ and cents in the price.
- *
- * $100.01 => $100.01
- * $100.00 => $100.00
- * $100.30 => $100.30
- * -100 => -$100.00
- */
-export function displayPriceWithCents({
-  cents,
-  minimumFractionDigits,
-  maximumFractionDigits,
-}: {
-  cents: number;
-  maximumFractionDigits?: number;
-  minimumFractionDigits?: number;
-}): string {
-  const dollars = cents / 100;
-  const prefix = dollars >= 0 ? '$' : '-$';
-
-  return (
-    prefix +
-    Math.abs(dollars).toLocaleString(CURRENCY_LOCALE, {
-      minimumFractionDigits: minimumFractionDigits ?? 2,
-      maximumFractionDigits: maximumFractionDigits ?? 2,
-    })
-  );
-}
 
 type UnitPriceProps = {
   cents: number;

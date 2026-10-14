@@ -10,8 +10,7 @@ import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {BillingHistory, ReservedBudgetMetricHistory} from 'getsentry/types';
 import {formatReservedWithUnits, formatUsageWithUnits} from 'getsentry/utils/billing';
 import {getPlanCategoryName, sortCategories} from 'getsentry/utils/dataCategory';
-import {formatCurrency} from 'getsentry/utils/formatCurrency';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {displayPriceWithCents, formatCurrency} from 'getsentry/utils/formatCurrency';
 
 type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   orgId: string;

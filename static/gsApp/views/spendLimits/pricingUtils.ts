@@ -2,7 +2,8 @@ import {DataCategory} from 'sentry/types/core';
 
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {Plan} from 'getsentry/types';
-import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
+import {displayPriceWithCents} from 'getsentry/utils/formatCurrency';
+import {getBucket} from 'getsentry/views/amCheckout/utils';
 
 export function formatPaygPricePerUnit({
   payAsYouGoPricePerUnit,

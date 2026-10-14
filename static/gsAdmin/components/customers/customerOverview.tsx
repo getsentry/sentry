@@ -58,10 +58,9 @@ import {
   getReservedBudgetDisplayName,
   sortCategories,
 } from 'getsentry/utils/dataCategory';
-import {formatCurrency} from 'getsentry/utils/formatCurrency';
+import {displayPriceWithCents, formatCurrency} from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {titleCase} from 'getsentry/utils/titleCase';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type CustomerUpdateAction = (data: Record<string, unknown>) => Promise<unknown>;
 
