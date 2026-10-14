@@ -477,8 +477,6 @@ As on the title, a value pointing outside the product takes `externalHref` rathe
 
 `tooltip` adds an explanation on hover against the value, with an underline to signal it.
 
-A value is capped at 280px and truncates with an ellipsis past it, so one long value — a branch name, a release — cannot crowd the rest of the row out. The row is a single line of facts, so values truncate rather than wrap. The full text stays in the DOM, so a screen reader still reads all of it; only the sighted tail is lost. Keys and qualifiers are not capped, being short fixed strings.
-
 ### Leading graphic
 
 `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon` for a browser, OS or SDK, or a `UserAvatar` for a person. Unlike the title's, this one is a node — there is no fixed set of things a property can be about, so the slot takes whatever the caller already has rather than growing a `type` for each.

@@ -4,12 +4,9 @@ import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import type {PlatformIcon} from 'platformicons';
 
 import type {UserAvatar} from '@sentry/scraps/avatar';
-import {
-  METADATA_TEXT_HEIGHT,
-  METADATA_VALUE_MAX_WIDTH,
-} from '@sentry/scraps/entityHeader/constants';
+import {METADATA_TEXT_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -21,15 +18,6 @@ const TEXT_STYLES = {
   size: 'md',
   density: 'comfortable',
   wrap: 'nowrap',
-} as const;
-
-// `ellipsis` and `wrap` are mutually exclusive on Text, so the value takes its
-// own styles. Only the value can be long enough to need truncating — a key and
-// its qualifier are short, fixed strings.
-const VALUE_TEXT_STYLES = {
-  size: 'md',
-  density: 'comfortable',
-  ellipsis: true,
 } as const;
 
 interface EntityHeaderMetadataItemBase {
@@ -89,7 +77,7 @@ function MetadataValue(props: EntityHeaderMetadataItemProps) {
 
   if (props.type === 'link') {
     return (
-      <Text {...VALUE_TEXT_STYLES} variant="accent">
+      <Text {...TEXT_STYLES} variant="accent">
         {styleProps => {
           const link =
             props.externalHref === undefined ? (
@@ -118,11 +106,11 @@ function MetadataValue(props: EntityHeaderMetadataItemProps) {
   }
 
   return tooltip ? (
-    <InfoText title={tooltip} variant={props.variant} {...VALUE_TEXT_STYLES}>
+    <InfoText title={tooltip} variant={props.variant} {...TEXT_STYLES}>
       {props.value}
     </InfoText>
   ) : (
-    <Text variant={props.variant} {...VALUE_TEXT_STYLES}>
+    <Text variant={props.variant} {...TEXT_STYLES}>
       {props.value}
     </Text>
   );
@@ -166,9 +154,7 @@ export function EntityHeaderMetadataItem(
             ) : (
               <VisuallyHidden>{label}</VisuallyHidden>
             ))}
-          <Container minWidth={0} maxWidth={METADATA_VALUE_MAX_WIDTH}>
-            <MetadataValue {...props} />
-          </Container>
+          <MetadataValue {...props} />
           {secondary && (
             <Fragment>
               {/*
