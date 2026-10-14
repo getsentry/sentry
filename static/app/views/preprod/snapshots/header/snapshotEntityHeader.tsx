@@ -6,6 +6,7 @@ import {IconCommit} from '@sentry/icons/commit';
 import {IconPullRequest} from '@sentry/icons/pullRequest';
 import {IconTimer} from '@sentry/icons/timer';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {
@@ -18,6 +19,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
+import type {AvatarUser} from 'sentry/types/user';
 import {isSnapshotApproved} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {BuildDetailsVcsInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {
@@ -39,6 +41,19 @@ function approverName(approver: SnapshotApprover) {
   return approver.name || approver.username || approver.email || t('Unknown user');
 }
 
+function toAvatarUser(approver: SnapshotApprover, index: number): AvatarUser {
+  return {
+    id: approver.id ?? `approver-${index}`,
+    name: approver.name ?? '',
+    email: approver.email ?? '',
+    username: approver.username ?? '',
+    ip_address: '',
+    avatar: approver.avatar_url
+      ? {avatarType: 'upload' as const, avatarUuid: '', avatarUrl: approver.avatar_url}
+      : undefined,
+  };
+}
+
 function approvalTooltip(approvers: SnapshotApprover[], isAutoApproved: boolean) {
   if (approvers.length === 0) {
     return isAutoApproved ? AUTO_APPROVED_EXPLANATION : null;
@@ -47,12 +62,17 @@ function approvalTooltip(approvers: SnapshotApprover[], isAutoApproved: boolean)
   return (
     <Fragment>
       <Tooltip.Header>{t('Approved by')}</Tooltip.Header>
-      <Tooltip.Grid columns="1fr max-content">
+      <Tooltip.Grid columns="max-content 1fr max-content">
         {approvers.map((approver, index) => (
           <Tooltip.Row
             key={index}
+            leadingItems={<UserAvatar user={toAvatarUser(approver, index)} size={16} />}
             trailingItems={
-              approver.approved_at ? <TimeSince date={approver.approved_at} /> : undefined
+              approver.approved_at ? (
+                // The absolute date this normally hides behind a tooltip would
+                // be a tooltip inside a tooltip, which nothing can reach.
+                <TimeSince date={approver.approved_at} disabledAbsoluteTooltip />
+              ) : undefined
             }
           >
             {approverName(approver)}
