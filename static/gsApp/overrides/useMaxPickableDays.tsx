@@ -77,6 +77,8 @@ function getMaxPickableDaysBySubscription(
       };
     }
     case DataCategory.TRACE_METRICS: {
+      // EAP stores full-fidelity data for 30 days (EAP_FULL_FIDELITY_RETENTION_DAYS).
+      // Queries beyond that window return downsampled data with reduced fidelity.
       const maxPickableDays = Math.max(
         ...[
           30, // default 30 day retention
