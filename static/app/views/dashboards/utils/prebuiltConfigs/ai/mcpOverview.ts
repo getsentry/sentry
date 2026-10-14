@@ -1,7 +1,4 @@
-import {
-  SEARCH_MCP__TRANSPORT,
-  SEARCH_NETWORK__PROTOCOL__NAME,
-} from '@sentry/conventions/attributes/search';
+import {SEARCH_MCP__TRANSPORT} from '@sentry/conventions/attributes/search';
 
 import {t} from 'sentry/locale';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -21,6 +18,20 @@ const MCP_SERVER_FILTER = `${SpanFields.SPAN_OP}:mcp.server`;
 const MCP_TOOL_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.GEN_AI_TOOL_NAME}`;
 const MCP_RESOURCE_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.MCP_RESOURCE_URI}`;
 const MCP_PROMPT_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.GEN_AI_PROMPT_NAME}`;
+
+// Match known implementations exactly so custom HTTP transports keep their names.
+const HTTP_TRANSPORTS = [
+  'http',
+  'sse',
+  'StreamableHTTPServerTransport',
+  'NodeStreamableHTTPServerTransport',
+  'WebStandardStreamableHTTPServerTransport',
+  'PerRequestHTTPServerTransport',
+  'SSEServerTransport',
+  'SseServerTransport',
+];
+const STDIO_TRANSPORTS = ['stdio', 'StdioServerTransport'];
+const KNOWN_TRANSPORTS = [...HTTP_TRANSPORTS, ...STDIO_TRANSPORTS];
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -62,18 +73,11 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       ],
       limit: 3,
     },
-  ],
-  0,
-  {h: 3, minH: 3}
-);
-
-const TRANSPORT_WIDGETS = spaceWidgetsEquallyOnRow(
-  [
     {
-      id: 'mcp-overview-transport-implementation',
-      title: t('MCP Transport'),
+      id: 'mcp-overview-transport-distribution',
+      title: t('Transport Distribution'),
       description: t(
-        'Transport implementation reported by the SDK, including custom class names. Older SDKs may report categories such as http or stdio. Missing values mean the implementation was not captured.'
+        'MCP requests by transport: http, stdio, and the most-used custom transport names. Missing values mean the MCP transport was not captured.'
       ),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
@@ -81,50 +85,40 @@ const TRANSPORT_WIDGETS = spaceWidgetsEquallyOnRow(
       legendType: 'breakdown',
       queries: [
         {
-          name: '',
-          conditions: MCP_SERVER_FILTER,
+          name: 'http',
+          seriesLabel: 'query',
+          conditions: `${MCP_SERVER_FILTER} ${SEARCH_MCP__TRANSPORT}:[${HTTP_TRANSPORTS.join(',')}]`,
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          fieldAliases: [WIDGET_COLUMN_LABELS.count],
+          orderby: '-count()',
+        },
+        {
+          name: 'stdio',
+          seriesLabel: 'query',
+          conditions: `${MCP_SERVER_FILTER} ${SEARCH_MCP__TRANSPORT}:[${STDIO_TRANSPORTS.join(',')}]`,
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          fieldAliases: [WIDGET_COLUMN_LABELS.count],
+          orderby: '-count()',
+        },
+        {
+          name: 'custom',
+          seriesLabel: 'group',
+          conditions: `${MCP_SERVER_FILTER} (!has:${SEARCH_MCP__TRANSPORT} OR !${SEARCH_MCP__TRANSPORT}:[${KNOWN_TRANSPORTS.join(',')}])`,
           fields: [SEARCH_MCP__TRANSPORT, 'count()'],
           aggregates: ['count()'],
           columns: [SEARCH_MCP__TRANSPORT],
-          fieldAliases: [t('MCP transport'), WIDGET_COLUMN_LABELS.count],
-          orderby: '-count()',
-        },
-      ],
-      limit: 3,
-    },
-    {
-      id: 'mcp-overview-transport-distribution',
-      title: t('Reported Network Protocol and Transport'),
-      description: t(
-        'Reported protocol and network transport, such as http with tcp or quic, or pipe. Older data may contain MCP transport names or resource URI schemes. Missing values mean the network details were not captured.'
-      ),
-      displayType: DisplayType.BAR,
-      widgetType: WidgetType.SPANS,
-      interval: '1h',
-      legendType: 'breakdown',
-      queries: [
-        {
-          name: '',
-          conditions: MCP_SERVER_FILTER,
-          fields: [
-            SEARCH_NETWORK__PROTOCOL__NAME,
-            SpanFields.NETWORK_TRANSPORT,
-            'count()',
-          ],
-          aggregates: ['count()'],
-          columns: [SEARCH_NETWORK__PROTOCOL__NAME, SpanFields.NETWORK_TRANSPORT],
-          fieldAliases: [
-            t('Protocol'),
-            t('Network transport'),
-            WIDGET_COLUMN_LABELS.count,
-          ],
+          fieldAliases: [t('Transport'), WIDGET_COLUMN_LABELS.count],
           orderby: '-count()',
         },
       ],
       limit: 3,
     },
   ],
-  3,
+  0,
   {h: 3, minH: 3}
 );
 
@@ -212,7 +206,7 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       limit: 3,
     },
   ],
-  6,
+  3,
   {h: 3, minH: 3}
 );
 
@@ -255,7 +249,7 @@ const OVERVIEW_TABLE: PrebuiltWidget = {
   ],
   layout: {
     x: 0,
-    y: 9,
+    y: 6,
     w: 6,
     h: 4,
     minH: 2,
@@ -268,12 +262,7 @@ export const MCP_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   title: MCP_OVERVIEW_DASHBOARD_TITLE,
   description: MCP_OVERVIEW_DASHBOARD_DESCRIPTION,
   filters: {},
-  widgets: [
-    ...FIRST_ROW_WIDGETS,
-    ...TRANSPORT_WIDGETS,
-    ...SECOND_ROW_WIDGETS,
-    OVERVIEW_TABLE,
-  ],
+  widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, OVERVIEW_TABLE],
   onboarding: {
     type: 'custom',
     componentId: 'mcp',
