@@ -7,14 +7,14 @@ import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
-import {AvatarButton} from '@sentry/scraps/avatarButton';
+import {AvatarButton, useAvatarColors} from '@sentry/scraps/avatarButton';
 import {
   DropdownMenu,
   type DropdownMenuProps,
   type MenuItemProps,
 } from '@sentry/scraps/dropdownMenu';
 import {InfoTip} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
@@ -34,6 +34,8 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {NavigationMenuHeader} from './navigationMenuHeader';
 
 interface OrganizationDropdownProps {
   /**
@@ -68,26 +70,27 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     identifier: organization.slug,
     name: organization.name || organization.slug,
   };
+  const avatarProps =
+    organization.avatar.avatarType === 'upload' && organization.avatar.avatarUrl
+      ? {
+          type: 'upload' as const,
+          uploadUrl: organization.avatar.avatarUrl,
+          ...letterAvatarProps,
+        }
+      : organization.avatar.avatarType === 'gravatar' && organization.avatar.avatarUrl
+        ? {
+            type: 'gravatar' as const,
+            gravatarId: organization.avatar.avatarUrl,
+            ...letterAvatarProps,
+          }
+        : {type: 'letter_avatar' as const, ...letterAvatarProps};
+  const avatarColors = useAvatarColors(avatarProps);
 
   const size = useSizeContext();
 
   const trigger: DropdownMenuProps['trigger'] = triggerProps => (
     <AvatarButton
-      avatar={
-        organization.avatar.avatarType === 'upload' && organization.avatar.avatarUrl
-          ? {
-              type: 'upload',
-              uploadUrl: organization.avatar.avatarUrl,
-              ...letterAvatarProps,
-            }
-          : organization.avatar.avatarType === 'gravatar' && organization.avatar.avatarUrl
-            ? {
-                type: 'gravatar',
-                gravatarId: organization.avatar.avatarUrl,
-                ...letterAvatarProps,
-              }
-            : {type: 'letter_avatar', ...letterAvatarProps}
-      }
+      avatar={avatarProps}
       size={size}
       aria-label={t('Toggle organization menu')}
       {...triggerProps}
@@ -105,9 +108,27 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         position="right-start"
         minMenuWidth={258}
         menuTitle={
-          <OrganizationMenuHeader
-            organization={organization}
-            projectCount={projects.length}
+          <NavigationMenuHeader
+            accentColor={avatarColors.type === 'image' ? avatarColors.chonk : undefined}
+            title={t('Organization')}
+            avatar={
+              <Flex
+                align="center"
+                justify="center"
+                width="32px"
+                height="32px"
+                radius="md"
+                overflow="hidden"
+                css={css`
+                  background-color: ${lightTheme.tokens.background.primary};
+                  border: 1px solid ${darkTheme.tokens.border.transparent.neutral.muted};
+                `}
+              >
+                <OrganizationAvatar organization={organization} size={30} />
+              </Flex>
+            }
+            name={organization.name || organization.slug}
+            subtitle={tn('%s Project', '%s Projects', projects.length)}
           />
         }
         items={[
@@ -251,81 +272,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         },
       ]}
     />
-  );
-}
-
-function OrganizationMenuHeader({
-  organization,
-  projectCount,
-}: {
-  organization: OrganizationSummary;
-  projectCount: number;
-}) {
-  return (
-    <Container
-      radius="md md 0 0"
-      padding="xs"
-      css={theme => css`
-        /* Extend the header background through the menu title's padding. */
-        margin: -${theme.space.sm} -${theme.space.lg};
-        background: linear-gradient(90deg, #2c155c, #4e168c);
-      `}
-    >
-      <Stack gap="md" padding="md lg">
-        <Text
-          size="sm"
-          density="fixed"
-          variant="inherit"
-          tabular
-          css={theme => css`
-            color: ${darkTheme.tokens.interactive.transparent.neutral.content.headings};
-            font-weight: ${theme.font.weight.sans.medium};
-          `}
-        >
-          {t('Organization')}
-        </Text>
-        <Flex align="center" gap="md">
-          <Flex
-            align="center"
-            justify="center"
-            width="32px"
-            height="32px"
-            radius="md"
-            overflow="hidden"
-            css={css`
-              background-color: ${lightTheme.tokens.background.primary};
-              border: 1px solid ${darkTheme.tokens.border.transparent.neutral.muted};
-            `}
-          >
-            <OrganizationAvatar organization={organization} size={30} />
-          </Flex>
-          <Stack gap="0">
-            <Text
-              size="md"
-              density="comfortable"
-              variant="inherit"
-              css={theme => css`
-                color: ${darkTheme.tokens.content.headings};
-                font-weight: ${theme.font.weight.sans.medium};
-              `}
-            >
-              {organization.name || organization.slug}
-            </Text>
-            <Text
-              size="sm"
-              density="comfortable"
-              variant="inherit"
-              tabular
-              css={css`
-                color: ${darkTheme.tokens.content.secondary};
-              `}
-            >
-              {tn('%s Project', '%s Projects', projectCount)}
-            </Text>
-          </Stack>
-        </Flex>
-      </Stack>
-    </Container>
   );
 }
 

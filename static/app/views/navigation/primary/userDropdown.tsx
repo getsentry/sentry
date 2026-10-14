@@ -20,6 +20,7 @@ import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {NavigationMenuHeader} from './navigationMenuHeader';
 
@@ -36,7 +37,7 @@ export function UserDropdown() {
   const portalContainerRef = useRef<HTMLElement | null>(null);
   const theme = useTheme();
   const {mutate: updateOptions} = useMutateUserOptions();
-  const settingsV3 = organization?.features.includes('settings-v3') ?? false;
+  const settingsV3 = useSettingsV3();
 
   useEffect(() => {
     portalContainerRef.current = document.body;

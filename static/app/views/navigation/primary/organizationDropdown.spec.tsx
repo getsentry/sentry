@@ -52,9 +52,7 @@ describe('OrganizationDropdown', () => {
     expect(screen.getByText('Organization')).toBeInTheDocument();
     expect(screen.getAllByText('Organization Name')).toHaveLength(1);
     expect(screen.getByText('0 Projects')).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', {name: 'Organization Settings'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Settings'})).toBeInTheDocument();
   });
 
   it('can switch orgs', async () => {
