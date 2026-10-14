@@ -4,6 +4,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
+import type {ReasonRow} from 'sentry/components/droppedData/drawer/outcomeSections';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 
 function OutcomeList({
@@ -13,7 +14,7 @@ function OutcomeList({
 }: {
   acceptedEvents: DroppedEventsBucket[];
   droppedEvents: DroppedEventsBucket[];
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }) {
   return (
     <DroppedDataOutcomeList
@@ -260,7 +261,9 @@ describe('DroppedDataOutcomeList', () => {
     );
 
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigate'}));
-    expect(onInvestigate).toHaveBeenCalledTimes(1);
+    expect(onInvestigate).toHaveBeenCalledWith(
+      expect.objectContaining({outcome: 'rate_limited', reason: 'smart_rate_limit'})
+    );
   });
 
   it('hides investigate when there is no Seer hand-off', async () => {
