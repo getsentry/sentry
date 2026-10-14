@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
@@ -34,56 +34,47 @@ type Props = {
   confirmedQuery?: boolean;
 };
 
-type State = {
-  error: string;
-  hasLoaded: boolean;
-  hasMore: boolean;
-  loading: boolean;
-  tags: Tag[];
-  totalValues: null | number;
-  nextCursor?: string;
-};
+type FacetsPayload = ReturnType<EventView['getFacetsAPIPayload']>;
 
-class Tags extends Component<Props, State> {
-  state: State = {
-    loading: true,
-    tags: [],
-    totalValues: null,
-    error: '',
-    hasMore: false,
-    hasLoaded: false,
-  };
+function Tags({
+  api,
+  eventView,
+  generateUrl,
+  location,
+  organization,
+  totalValues,
+  confirmedQuery,
+}: Props) {
+  const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
 
-  componentDidMount() {
-    this.fetchData(true);
-  }
+  // Tracks the most recent request so that stale responses are ignored.
+  const requestIdRef = useRef(0);
+  const isMountedRef = useRef(false);
+  // Values from the previous effect run, used to mirror componentDidUpdate.
+  const prevRef = useRef<{
+    confirmedQuery: boolean | undefined;
+    payload: FacetsPayload;
+  } | null>(null);
 
-  componentDidUpdate(prevProps: Props) {
-    if (
-      this.shouldRefetchData(prevProps) ||
-      prevProps.confirmedQuery !== this.props.confirmedQuery
-    ) {
-      this.fetchData();
-    }
-  }
+  const facetsPayload = eventView.getFacetsAPIPayload(location);
 
-  shouldRefetchData = (prevProps: Props): boolean => {
-    const thisAPIPayload = this.props.eventView.getFacetsAPIPayload(this.props.location);
-    const otherAPIPayload = prevProps.eventView.getFacetsAPIPayload(prevProps.location);
-
-    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-  };
-
-  fetchData = async (
+  const fetchData = async (
     forceFetchData = false,
-    nextCursor?: string,
+    cursor?: string,
     appendTags?: boolean
   ) => {
-    const {api, organization, eventView, location, confirmedQuery} = this.props;
+    const requestId = ++requestIdRef.current;
 
-    this.setState({loading: true, error: ''});
+    setLoading(true);
+    setError('');
     if (!appendTags) {
-      this.setState({hasLoaded: false, tags: []});
+      setHasLoaded(false);
+      setTags([]);
     }
 
     // Fetch should be forced after mounting as confirmedQuery isn't guaranteed
@@ -93,26 +84,32 @@ class Tags extends Component<Props, State> {
       return;
     }
 
+    const isStale = () => !isMountedRef.current || requestId !== requestIdRef.current;
+
     try {
       const [data, , resp] = await fetchTagFacets(api, organization.slug, {
         ...eventView.getFacetsAPIPayload(location),
-        cursor: nextCursor,
+        cursor,
       });
 
-      const pageLinks = resp?.getResponseHeader('Link') ?? undefined;
-      let hasMore = false;
-      let cursor: string | undefined;
-      if (pageLinks) {
-        const paginationObject = parseLinkHeader(pageLinks);
-        hasMore = paginationObject?.next?.results ?? false;
-        cursor = paginationObject.next?.cursor;
+      if (isStale()) {
+        return;
       }
 
-      let tags = data;
-      if (appendTags) {
-        tags = [...this.state.tags, ...tags];
+      const pageLinks = resp?.getResponseHeader('Link') ?? undefined;
+      let more = false;
+      let newCursor: string | undefined;
+      if (pageLinks) {
+        const paginationObject = parseLinkHeader(pageLinks);
+        more = paginationObject?.next?.results ?? false;
+        newCursor = paginationObject.next?.cursor;
       }
-      this.setState({loading: false, hasLoaded: true, tags, hasMore, nextCursor: cursor});
+
+      setTags(prevTags => (appendTags ? [...prevTags, ...data] : data));
+      setLoading(false);
+      setHasLoaded(true);
+      setHasMore(more);
+      setNextCursor(newCursor);
     } catch (err: any) {
       if (
         err.status !== 400 &&
@@ -121,13 +118,43 @@ class Tags extends Component<Props, State> {
       ) {
         Sentry.captureException(err);
       }
-      this.setState({loading: false, error: err});
+
+      if (isStale()) {
+        return;
+      }
+
+      setLoading(false);
+      setError(err);
     }
   };
 
-  renderTag(tag: Tag, index: number) {
-    const {generateUrl, totalValues} = this.props;
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
+  // Runs after every render: force a fetch on mount, then refetch only when the
+  // facets payload or confirmedQuery changes (same as the former lifecycles).
+  useEffect(() => {
+    const prev = prevRef.current;
+    prevRef.current = {payload: facetsPayload, confirmedQuery};
+
+    if (prev === null) {
+      fetchData(true);
+      return;
+    }
+
+    if (
+      !isAPIPayloadSimilar(facetsPayload, prev.payload) ||
+      prev.confirmedQuery !== confirmedQuery
+    ) {
+      fetchData();
+    }
+  });
+
+  const renderTag = (tag: Tag, index: number) => {
     const segments: TagSegment[] = tag.topValues.map(segment => {
       return {
         ...segment,
@@ -151,9 +178,9 @@ class Tags extends Component<Props, State> {
         />
       </li>
     );
-  }
+  };
 
-  renderPlaceholders() {
+  const renderPlaceholders = () => {
     return (
       <Fragment>
         <StyledPlaceholderTitle key="title-1" />
@@ -164,12 +191,11 @@ class Tags extends Component<Props, State> {
         <StyledPlaceholder key="bar-3" />
       </Fragment>
     );
-  }
+  };
 
-  renderBody = () => {
-    const {loading, hasLoaded, error, tags, hasMore, nextCursor} = this.state;
+  const renderBody = () => {
     if (loading && !hasLoaded) {
-      return this.renderPlaceholders();
+      return renderPlaceholders();
     }
     if (error) {
       return (
@@ -184,11 +210,11 @@ class Tags extends Component<Props, State> {
         <Fragment>
           {/* sentry-discover-tags-chromext depends on a stable id */}
           <StyledTagFacetList id="tag-facet-list">
-            {tags.map((tag, index) => this.renderTag(tag, index))}
+            {tags.map((tag, index) => renderTag(tag, index))}
           </StyledTagFacetList>
           {hasMore &&
             (loading ? (
-              this.renderPlaceholders()
+              renderPlaceholders()
             ) : (
               <Stack align="center">
                 <Button
@@ -197,7 +223,7 @@ class Tags extends Component<Props, State> {
                   disabled={loading}
                   aria-label={t('Show More')}
                   onClick={() => {
-                    this.fetchData(true, nextCursor, true);
+                    fetchData(true, nextCursor, true);
                   }}
                 >
                   {t('Show More')}
@@ -211,14 +237,12 @@ class Tags extends Component<Props, State> {
     return <StyledEmptyStateWarning small>{t('No tags found')}</StyledEmptyStateWarning>;
   };
 
-  render() {
-    return (
-      <Fragment>
-        <SectionHeading>{t('Tag Summary')}</SectionHeading>
-        {this.renderBody()}
-      </Fragment>
-    );
-  }
+  return (
+    <Fragment>
+      <SectionHeading>{t('Tag Summary')}</SectionHeading>
+      {renderBody()}
+    </Fragment>
+  );
 }
 
 function formatTag(key: string, value: string): string {
