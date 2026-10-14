@@ -76,84 +76,6 @@ export function UserDropdown() {
 
   const size = useSizeContext();
 
-  const settingsV3Items = [
-    {
-      key: 'settings',
-      label: t('Settings'),
-      leadingItems: <IconSettings size="sm" />,
-      to: '/settings/account/',
-    },
-    {
-      key: 'preferences',
-      label: t('Preferences'),
-      leadingItems: <IconSliders size="sm" />,
-      submenu: {title: t('Preferences')},
-      children: [
-        {
-          key: 'theme',
-          label: t('Theme'),
-          children: [
-            {
-              key: 'theme-system',
-              label: t('Default to system'),
-              leadingItems:
-                user.options.theme === 'system' ? <IconCheckmark size="sm" /> : undefined,
-              onAction: () => updateOptions({theme: 'system'}),
-            },
-            {
-              key: 'theme-light',
-              label: t('Light'),
-              leadingItems:
-                user.options.theme === 'light' ? <IconCheckmark size="sm" /> : undefined,
-              onAction: () => updateOptions({theme: 'light'}),
-            },
-            {
-              key: 'theme-dark',
-              label: t('Dark'),
-              leadingItems:
-                user.options.theme === 'dark' ? <IconCheckmark size="sm" /> : undefined,
-              onAction: () => updateOptions({theme: 'dark'}),
-            },
-          ],
-        },
-        {
-          key: 'time-format',
-          label: t('Time Format'),
-          children: [
-            {
-              key: 'time-format-false',
-              label: t('12 hour'),
-              leadingItems: user.options.clock24Hours ? undefined : (
-                <IconCheckmark size="sm" />
-              ),
-              onAction: () => updateOptions({clock24Hours: false}),
-            },
-            {
-              key: 'time-format-true',
-              label: t('24 hour'),
-              leadingItems: user.options.clock24Hours ? (
-                <IconCheckmark size="sm" />
-              ) : undefined,
-              onAction: () => updateOptions({clock24Hours: true}),
-            },
-          ],
-        },
-      ],
-    },
-    {
-      key: 'admin',
-      label: t('Admin'),
-      to: '/manage/',
-      hidden: !isActiveSuperuser(),
-    },
-    {
-      key: 'signout',
-      label: t('Sign Out'),
-      priority: 'danger' as const,
-      onAction: handleLogout,
-    },
-  ];
-
   if (settingsV3) {
     return (
       <DropdownMenu
@@ -183,7 +105,89 @@ export function UserDropdown() {
             subtitle={user.email}
           />
         }
-        items={settingsV3Items}
+        items={[
+          {
+            key: 'settings',
+            label: t('Settings'),
+            leadingItems: <IconSettings size="sm" />,
+            to: '/settings/account/',
+          },
+          {
+            key: 'preferences',
+            label: t('Preferences'),
+            leadingItems: <IconSliders size="sm" />,
+            submenu: {title: t('Preferences')},
+            children: [
+              {
+                key: 'theme',
+                label: t('Theme'),
+                children: [
+                  {
+                    key: 'theme-system',
+                    label: t('Default to system'),
+                    leadingItems:
+                      user.options.theme === 'system' ? (
+                        <IconCheckmark size="sm" />
+                      ) : undefined,
+                    onAction: () => updateOptions({theme: 'system'}),
+                  },
+                  {
+                    key: 'theme-light',
+                    label: t('Light'),
+                    leadingItems:
+                      user.options.theme === 'light' ? (
+                        <IconCheckmark size="sm" />
+                      ) : undefined,
+                    onAction: () => updateOptions({theme: 'light'}),
+                  },
+                  {
+                    key: 'theme-dark',
+                    label: t('Dark'),
+                    leadingItems:
+                      user.options.theme === 'dark' ? (
+                        <IconCheckmark size="sm" />
+                      ) : undefined,
+                    onAction: () => updateOptions({theme: 'dark'}),
+                  },
+                ],
+              },
+              {
+                key: 'time-format',
+                label: t('Time Format'),
+                children: [
+                  {
+                    key: 'time-format-false',
+                    label: t('12 hour'),
+                    leadingItems: user.options.clock24Hours ? undefined : (
+                      <IconCheckmark size="sm" />
+                    ),
+                    onAction: () => updateOptions({clock24Hours: false}),
+                  },
+                  {
+                    key: 'time-format-true',
+                    label: t('24 hour'),
+                    leadingItems: user.options.clock24Hours ? (
+                      <IconCheckmark size="sm" />
+                    ) : undefined,
+                    onAction: () => updateOptions({clock24Hours: true}),
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            key: 'admin',
+            label: t('Admin'),
+            to: '/manage/',
+            hidden: !isActiveSuperuser(),
+          },
+          {
+            key: 'signout',
+            label: t('Sign Out'),
+            priority: 'danger' as const,
+            onAction: handleLogout,
+          },
+        ]}
       />
     );
   }
