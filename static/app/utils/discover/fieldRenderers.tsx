@@ -107,8 +107,6 @@ import {
 } from './styles';
 import {TeamKeyTransactionFieldWrapper as TeamKeyTransactionField} from './teamKeyTransactionField';
 
-export {nullableValue} from 'sentry/utils/discover/nullableValue';
-
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */

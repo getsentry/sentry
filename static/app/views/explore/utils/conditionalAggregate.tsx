@@ -32,8 +32,6 @@ import {
   parseConditionalAggregate,
 } from 'sentry/views/explore/utils/parseConditionalAggregate';
 
-export {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
-
 /**
  * Shown when a visualize aggregate is used as a key in a series `_if` filter.
  */

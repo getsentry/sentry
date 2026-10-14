@@ -47,8 +47,6 @@ import {
 import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
-export {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
-
 interface ToolbarVisualizeProps {
   allowEquations: boolean;
   setVisualizes: (visualizes: BaseVisualize[]) => void;

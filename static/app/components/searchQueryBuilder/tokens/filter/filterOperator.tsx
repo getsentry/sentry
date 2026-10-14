@@ -28,8 +28,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
-
 interface FilterOperatorProps {
   item: Node<ParseResultToken>;
   onOpenChange: (isOpen: boolean) => void;

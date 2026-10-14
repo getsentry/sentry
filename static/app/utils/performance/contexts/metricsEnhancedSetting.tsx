@@ -13,14 +13,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export {
-  useMEPSettingContext,
-  MEPConsumer,
-  AutoSampleState,
-  MEPState,
-  canUseMetricsData,
-} from 'sentry/utils/performance/contexts/useMEPSettingContext';
-
 const METRIC_SETTING_PARAM = 'metricSetting';
 
 export function MEPSettingProvider({

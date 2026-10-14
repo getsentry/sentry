@@ -25,8 +25,6 @@ import {Tab} from 'sentry/views/performance/transactionSummary/tabs';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
-export {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
-
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.
 const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleName>> = {
   app_starts_module: ModuleName.APP_START,
