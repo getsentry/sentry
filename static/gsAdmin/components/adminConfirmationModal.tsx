@@ -163,6 +163,10 @@ function AdminConfirmMessage({
         </p>
       )
     ) : (
+      // Consumers register their confirm callback during render (class
+      // constructors), so it must live in a ref: setting state here would
+      // update this component while rendering a child.
+      // oxlint-disable-next-line react/refs
       renderModalSpecificContent({
         confirm,
         close,
