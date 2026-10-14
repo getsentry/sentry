@@ -38,6 +38,7 @@ import {
   SessionTerm,
 } from 'sentry/views/explore/releases/utils/sessionTerm';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
+import {DisplayModes} from 'sentry/views/projectDetail/displayModes';
 import {
   getANRRateText,
   isPlatformANRCompatible,
@@ -47,8 +48,6 @@ import {
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';
 import {ProjectErrorsBasicChart} from './charts/projectErrorsBasicChart';
-
-import {DisplayModes} from 'sentry/views/projectDetail/displayModes';
 
 type Props = {
   chartId: string;
