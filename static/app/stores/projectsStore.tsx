@@ -1,6 +1,5 @@
 import {createStore} from 'reflux';
 
-import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {clearQueryCache} from 'sentry/appQueryClient';
 import type {Team} from 'sentry/types/organization';
@@ -29,7 +28,7 @@ interface ProjectsStoreDefinition
   loadInitialData(projects: Project[]): void;
   onAddTeam(team: Team, projectSlug: string): void;
   onChangeSlug(prevSlug: string, newSlug: string): void;
-  onCreateSuccess(project: Project, orgSlug: string): void;
+  onCreateSuccess(project: Project): void;
   onDeleteProject(projectSlug: string): void;
   onDeleteTeam(slug: string): void;
   onRemoveTeam(teamSlug: string, projectSlug: string): void;
@@ -85,14 +84,12 @@ const storeConfig: ProjectsStoreDefinition = {
   },
 
   onCreateSuccess(project: Project, orgSlug: string) {
-    const newProjects = this.state.projects
+  onCreateSuccess(project: Project) {
       .concat([project])
       .sort((a, b) => a.slug.localeCompare(b.slug));
     this.state = {...this.state, projects: newProjects};
 
     // Reload organization details since we've created a new project
-    fetchOrganizationDetails(this.api, orgSlug);
-    clearQueryCache();
 
     this.trigger(new Set([project.id]));
   },
