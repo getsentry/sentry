@@ -20,7 +20,7 @@ script and config that use the root's `sentry-test` binary, which pnpm makes ava
 workspace scripts. Test support and lint packages also have scoped test scripts;
 Icons and Scraps use their own Jest configurations.
 
-The root `test` command invokes these scripts through pnpm. The root `test-ci`
+The root `test-all` command invokes these scripts through pnpm. The root `test-ci`
 command keeps one Jest process for application, test-support, and lint suites so
 CI discovery and sharding remain unchanged. It runs Icons and Scraps separately.
 Coverage and sharding still use paths relative to the repository root.
