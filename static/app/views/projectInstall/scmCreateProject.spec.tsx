@@ -1079,7 +1079,7 @@ describe('ScmCreateProject', () => {
 
   it('creates from an existing integration and detected repository platform', async () => {
     const repoLinkRequest = mockExistingGithubRepository();
-    const {createRequest, project} = mockProjectCreation('python', 'python');
+    const {createRequest, project} = mockProjectCreation('sentry', 'python');
     const {router} = render(<ScmCreateProject />, {organization});
 
     expect(await screen.findByRole('button', {name: /getsentry/})).toBeInTheDocument();
@@ -1089,7 +1089,7 @@ describe('ScmCreateProject', () => {
 
     expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
+      expect(screen.getByPlaceholderText('project-name')).toHaveValue('sentry');
     });
     expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
       'aria-disabled',
@@ -1141,7 +1141,7 @@ describe('ScmCreateProject', () => {
 
     expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
+      expect(screen.getByPlaceholderText('project-name')).toHaveValue('sentry');
     });
     expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
       'aria-disabled',
@@ -1210,7 +1210,7 @@ describe('ScmCreateProject', () => {
 
     expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
+      expect(screen.getByPlaceholderText('project-name')).toHaveValue('relay');
     });
     await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
 
