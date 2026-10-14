@@ -1,9 +1,9 @@
 name: frontend-bundle
 
-# Builds the SaaS frontend bundle for every master commit and uploads it as a
-# workflow artifact. This workflow holds no cloud or Sentry credentials:
-# getsentry's frontend-bundle workflow downloads the artifact for its pinned
-# sentry-version, uploads the sourcemaps, and publishes it to GCS.
+# Builds the SaaS frontend bundle for every master commit, uploads it as a
+# workflow artifact, and dispatches getsentry's frontend-bundle workflow to
+# publish it. This repo holds no cloud or Sentry credentials for the bundle:
+# getsentry uploads the sourcemaps and publishes to the CDN and GCS.
 on:
   push:
     branches:
@@ -76,11 +76,42 @@ jobs:
           OUT: ${{ runner.temp }}/frontend-bundle
         run: ./.github/workflows/scripts/frontend-bundle/prepare.sh
 
-      # getsentry's frontend-bundle workflow picks this up when this SHA lands
-      # in its sentry-version, then uploads sourcemaps and publishes to GCS.
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: frontend-bundle
           path: ${{ runner.temp }}/frontend-bundle
           if-no-files-found: error
           retention-days: 30
+
+  # A separate job so the dispatch token never shares a runner with the
+  # third-party code that the build installs and runs.
+  publish:
+    if: github.repository == 'getsentry/sentry'
+    needs: frontend-bundle
+    name: dispatch getsentry publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: getsentry token
+        id: getsentry
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private-key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+          repositories: |
+            getsentry
+          permission-actions: write
+
+      # getsentry doesn't trust these inputs: it checks through the API that
+      # the run is a master push of this workflow for this SHA before
+      # publishing anything.
+      - name: Dispatch getsentry frontend-bundle
+        env:
+          GH_TOKEN: ${{ steps.getsentry.outputs.token }}
+        run: |
+          gh workflow run frontend-bundle.yml \
+            --repo getsentry/getsentry \
+            --ref master \
+            -f sentry-sha="${GITHUB_SHA}" \
+            -f sentry-run-id="${GITHUB_RUN_ID}"
