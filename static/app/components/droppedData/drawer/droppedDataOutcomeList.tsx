@@ -17,6 +17,7 @@ import {
   dataCategoryInfo,
   formatDroppedShare,
   reasonDescription,
+  reasonLongDescription,
   reasonTitle,
   type OutcomeColors,
 } from 'sentry/components/droppedData/outcomes';
@@ -96,19 +97,18 @@ function ReasonExpansion({
   row: ReasonRow;
   onInvestigate?: (row: ReasonRow) => void;
 }) {
+  const longDescription = reasonLongDescription(row.reason);
+
   return (
     <SimpleTable.FullWidthRow>
       <Flex
         align="center"
-        justify="between"
+        justify={longDescription ? 'between' : 'end'}
         gap="md"
         padding="lg xl"
         background="secondary"
       >
-        {/* TODO: full description of the reason will be wired in separately. */}
-        <Text size="md">
-          {t('A short description of this drop reason will go here.')}
-        </Text>
+        {longDescription && <Text size="md">{longDescription}</Text>}
         <FixThisMenu row={row} onInvestigate={onInvestigate} />
       </Flex>
     </SimpleTable.FullWidthRow>

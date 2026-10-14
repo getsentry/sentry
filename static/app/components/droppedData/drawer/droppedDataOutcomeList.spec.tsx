@@ -226,6 +226,31 @@ describe('DroppedDataOutcomeList', () => {
     expect(screen.getByRole('button', {name: 'Fix this'})).toBeInTheDocument();
   });
 
+  it('shows the long description when a reason row is expanded', async () => {
+    render(
+      <OutcomeList
+        droppedEvents={[
+          DroppedEventFixture({
+            outcome: 'client_discard',
+            reason: 'send_error',
+            start: 0,
+            end: 60_000,
+            count: 10,
+          }),
+        ]}
+        acceptedEvents={[]}
+      />
+    );
+
+    const longDescription =
+      'The event reached Sentry but was rejected with an error code.';
+    expect(screen.queryByText(longDescription)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
+
+    expect(screen.getByText(longDescription)).toBeInTheDocument();
+  });
+
   it('opens the fix-this menu with investigate, settings, and docs entries', async () => {
     const onInvestigate = jest.fn();
     render(
