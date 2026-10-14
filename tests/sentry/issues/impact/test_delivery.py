@@ -19,7 +19,10 @@ class DeliverImpactAssessmentTest(TestCase):
             source=IMPACT_FEATURE_ID,
             group=self.group,
             project=self.project,
-            extras={"source_event_id": "a" * 32},
+            extras={
+                "source_event_id": "a" * 32,
+                "available_citation_references": [f"entire-event:{'a' * 32}"],
+            },
         )
 
     def test_registers_delivery_handler(self) -> None:
@@ -36,9 +39,9 @@ class DeliverImpactAssessmentTest(TestCase):
                     "description": "Users cannot submit an order.",
                     "citations": [
                         {
-                            "reference": "trace",
-                            "claim": "The request failed.",
-                            "source": "trace",
+                            "source": "event",
+                            "reference": f"entire-event:{'a' * 32}",
+                            "claim": "The request failed before order creation.",
                         }
                     ],
                 },
@@ -53,7 +56,9 @@ class DeliverImpactAssessmentTest(TestCase):
         assert isinstance(action, ImpactAssessmentAction)
         assert action.score == 75
         assert action.description == "Users cannot submit an order."
-        assert action.citations[0].reference == "trace"
+        assert action.citations[0].source == "event"
+        assert action.citations[0].reference == f"entire-event:{'a' * 32}"
+        assert action.citations[0].claim == "The request failed before order creation."
 
     def test_completed_delivery_is_idempotent(self) -> None:
         for _ in range(2):
@@ -67,9 +72,9 @@ class DeliverImpactAssessmentTest(TestCase):
                         "description": "Monitor details are unavailable.",
                         "citations": [
                             {
-                                "reference": "event",
-                                "claim": "The monitor details operation failed.",
                                 "source": "event",
+                                "reference": f"entire-event:{'a' * 32}",
+                                "claim": "The monitor details operation failed.",
                             }
                         ],
                     },
@@ -83,6 +88,28 @@ class DeliverImpactAssessmentTest(TestCase):
             ).count()
             == 1
         )
+
+    def test_unavailable_citation_is_not_published(self) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            deliver_impact_assessment(
+                organization_id=self.organization.id,
+                run_uuid=self.agent_run.run.uuid,
+                status="completed",
+                result={
+                    "score": 50,
+                    "description": "Monitor details are unavailable.",
+                    "citations": [
+                        {
+                            "source": "trace",
+                            "reference": "trace:invented",
+                            "claim": "An invented trace failed.",
+                        }
+                    ],
+                },
+                error=None,
+            )
+
+        assert not GroupActionLogEntry.objects.filter(group_id=self.group.id).exists()
 
     def test_failed_delivery_does_not_mutate_run(self) -> None:
         original_extras = self.agent_run.extras

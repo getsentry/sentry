@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from sentry import features
+from sentry.api.serializers import EventSerializer, serialize
+from sentry.issues.impact.types import IMPACT_FEATURE_ID, AvailableImpactCitation
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models.run import SeerRun
-
-IMPACT_FEATURE_ID = "impact_assessment"
 
 
 def assess_impact_for_group(group: Group) -> SeerRun:
@@ -16,9 +16,16 @@ def assess_impact_for_group(group: Group) -> SeerRun:
     if event is None:
         raise ValueError(f"Group {group.id} has no event available for Impact assessment")
 
-    # TODO(Leander): Use the event to create stable references to event evidence for citations in the response.
-    # For now, the ImpactCitation is arbitrary and can't really be used in practice.
     source_event_id = event.event_id
+    serialized_event = serialize(event, serializer=EventSerializer())
+    available_citations = [
+        # For starters, just cite the whole event, but this should break apart into useful separate components
+        # That way we can show rich citations to actual context panes
+        AvailableImpactCitation(
+            source="event",
+            reference=f"entire-event:{source_event_id}",
+        )
+    ]
     client = SeerAgentClient(group.organization, project=group.project, group=group)
     return client.start_feature_run(
         feature_id=IMPACT_FEATURE_ID,
@@ -26,6 +33,8 @@ def assess_impact_for_group(group: Group) -> SeerRun:
             "group_id": group.id,
             "project_id": group.project_id,
             "source_event_id": source_event_id,
+            "event": serialized_event,
+            "available_citations": available_citations,
             # TODO(Leander): Allow users to enter custom project_context for better impact assessment
             "project_context": None,
         },
@@ -34,5 +43,8 @@ def assess_impact_for_group(group: Group) -> SeerRun:
         flush=False,
         extras={
             "source_event_id": source_event_id,
+            "available_citation_references": [
+                citation["reference"] for citation in available_citations
+            ],
         },
     )

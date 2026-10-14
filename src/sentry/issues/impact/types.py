@@ -15,6 +15,11 @@ class ImpactCitationData(TypedDict):
     source: str
 
 
+class AvailableImpactCitation(TypedDict):
+    reference: str
+    source: str
+
+
 class ImpactDerivedData(TypedDict):
     score: float | None
     level: ImpactLevel | None
@@ -52,6 +57,7 @@ class ProjectImpactContext(BaseModel):
     )
 
 
+# Keep these Seer response models in sync with the corresponding contract in Seer.
 class SeerImpactAssessmentResponse(BaseModel):
     score: float | None = Field(
         default=None,
@@ -70,5 +76,5 @@ class SeerImpactAssessmentResponse(BaseModel):
     citations: list[ImpactCitation] = Field(
         min_items=1,
         max_items=16,
-        description="Evidence-backed claims supporting the Impact assessment.",
+        description="Citations selected from the available citation catalog.",
     )
