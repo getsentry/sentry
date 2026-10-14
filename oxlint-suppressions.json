@@ -2292,14 +2292,9 @@
       "count": 1
     }
   },
-  "static/app/views/explore/releases/list/releaseCard/columns.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/explore/releases/list/releaseCard/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 4
+      "count": 5
     }
   },
   "static/app/views/explore/releases/list/releaseCard/releaseCardCommits.tsx": {

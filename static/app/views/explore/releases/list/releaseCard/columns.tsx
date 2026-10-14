@@ -15,6 +15,7 @@ export function getReleaseProjectColumns(
   };
 }
 
+// eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing styles moved from releaseCard/index.tsx.
 export const ReleaseProjectColumn = styled('div')`
   width: 100%;
   white-space: nowrap;
