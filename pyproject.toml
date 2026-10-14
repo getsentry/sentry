@@ -814,7 +814,6 @@ module = [
     "sentry.integrations.github.search",
     "sentry.integrations.github.status_check",
     "sentry.integrations.github.tasks.*",
-    "sentry.integrations.github.types",
     "sentry.integrations.github.urls",
     "sentry.integrations.github.utils",
     "sentry.integrations.github.webhook_types",
