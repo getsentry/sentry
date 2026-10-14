@@ -42,10 +42,10 @@ export function Tags({
   totalValues,
   confirmedQuery,
 }: Props) {
-  const facetsPayload = eventView.getFacetsAPIPayload(location);
+  const eventsPayload = eventView.getEventsAPIPayload(location);
   const query = {
-    ...pick(facetsPayload, PERFORMANCE_URL_PARAM),
-    query: facetsPayload.query,
+    ...pick(eventsPayload, PERFORMANCE_URL_PARAM),
+    query: eventsPayload.query,
   };
 
   // The parent pulses confirmedQuery once a potentially expensive query is
