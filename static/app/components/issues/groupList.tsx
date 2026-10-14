@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
@@ -18,6 +19,7 @@ import {
 import {
   StreamGroupTable,
   useStreamGroupColumns,
+  type StreamGroupTableBorder,
 } from 'sentry/components/stream/groupColumns';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
@@ -49,6 +51,7 @@ export type GroupListProps = {
    */
   numPlaceholderRows: number;
   queryParams: Record<string, number | string | string[] | undefined | null>;
+  border?: StreamGroupTableBorder;
   canSelectGroups?: boolean;
   /**
    * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
@@ -109,6 +112,7 @@ export function GroupList({
   queryParams,
   endpoint = {path: '/organizations/$organizationIdOrSlug/issues/'},
   onFetchSuccess,
+  border = 'full',
   renderEmptyMessage,
   queryFilterDescription,
   source,
@@ -327,14 +331,20 @@ export function GroupList({
     if (typeof renderEmptyMessage === 'function') {
       return renderEmptyMessage();
     }
-    return (
+    const emptyStateWarning = (
+      <EmptyStateWarning>
+        <p>{t("There don't seem to be any events fitting the query.")}</p>
+      </EmptyStateWarning>
+    );
+
+    return border === 'full' ? (
       <Panel>
-        <PanelBody>
-          <EmptyStateWarning>
-            <p>{t("There don't seem to be any events fitting the query.")}</p>
-          </EmptyStateWarning>
-        </PanelBody>
+        <PanelBody>{emptyStateWarning}</PanelBody>
       </Panel>
+    ) : (
+      <Container borderTop={border === 'top' ? 'primary' : undefined}>
+        {emptyStateWarning}
+      </Container>
     );
   }
 
@@ -345,8 +355,8 @@ export function GroupList({
 
   return (
     <Fragment>
-      <StreamGroupTable columns={columns}>
-        {withHeader && <GroupListHeader columns={columns} />}
+      <StreamGroupTable border={border} columns={columns}>
+        {withHeader && <GroupListHeader columns={columns} square={border !== 'full'} />}
         <SimpleTable.Body>
           {loading
             ? Array.from({length: numPlaceholderRows}, (_, i) => (

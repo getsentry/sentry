@@ -1,6 +1,7 @@
-import {Fragment, useMemo, useRef, type ReactNode} from 'react';
+import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
+import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -9,7 +10,9 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {
+  STREAM_GROUP_HEADER_LABELS,
   StreamGroupHeaderCell,
+  StreamGroupHeaderRow,
   type StreamGroupColumn,
 } from 'sentry/components/stream/groupColumns';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -56,6 +59,17 @@ type IssueListActionsProps = {
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 };
 
+const labelAnimationProps: MotionNodeAnimationOptions = {
+  initial: {translateY: 8, opacity: 0},
+  animate: {translateY: 0, opacity: 1},
+  transition: {duration: 0.1},
+};
+
+const actionsAnimationProps: MotionNodeAnimationOptions = {
+  ...labelAnimationProps,
+  exit: {translateY: -8, opacity: 0},
+};
+
 function ActionsBarPriority({
   anySelected,
   columns,
@@ -69,6 +83,7 @@ function ActionsBarPriority({
   handleDelete,
   handleMerge,
   handleUpdate,
+  isStuck,
   toggleSelectAllVisible,
   selectedProjectSlug,
   selectionEnabled,
@@ -83,6 +98,7 @@ function ActionsBarPriority({
   handleDelete: () => void;
   handleMerge: () => void;
   handleUpdate: (data: IssueUpdateData) => void;
+  isStuck: boolean;
   multiSelected: boolean;
   onSelectStatsPeriod: (period: string) => void;
   pageSelected: boolean;
@@ -98,70 +114,92 @@ function ActionsBarPriority({
   const shouldDisplayActions = anySelected && selectionEnabled;
 
   return (
-    <SimpleTable.HeaderRow>
-      {columns.map(column => {
-        if (column.key === 'select') {
-          return (
-            <SelectHeaderCell key={column.key}>
-              <Flex>
-                <Checkbox
-                  onChange={toggleSelectAllVisible}
-                  checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-                  aria-label={pageSelected ? t('Deselect all') : t('Select all')}
-                  disabled={displayReprocessingActions}
-                />
-              </Flex>
-            </SelectHeaderCell>
-          );
-        }
-
-        if (shouldDisplayActions) {
-          return column.key === 'issue' ? (
-            <StreamGroupHeaderCell key={column.key} column={column} variant="remaining">
-              {displayReprocessingActions ? null : (
-                <Grid
-                  width={{zero: 'auto', '4xl': '50%'}}
-                  gap="xs"
-                  flow="column"
-                  justify="start"
-                  whiteSpace="nowrap"
-                >
-                  <ActionSet
-                    queryCount={queryCount}
-                    query={query}
-                    issues={selectedIdsSet}
-                    allInQuerySelected={allInQuerySelected}
-                    anySelected={anySelected}
-                    multiSelected={multiSelected}
-                    selectedProjectSlug={selectedProjectSlug}
-                    onShouldConfirm={action =>
-                      shouldConfirm(action, {pageSelected, selectedIdsSet})
-                    }
-                    onDelete={handleDelete}
-                    onMerge={handleMerge}
-                    onUpdate={handleUpdate}
+    <StreamGroupHeaderRow square={isStuck}>
+      <AnimatePresence initial={false}>
+        {columns.map(column => {
+          if (column.key === 'select') {
+            return (
+              <SelectHeaderCell key={column.key}>
+                <Flex>
+                  <Checkbox
+                    onChange={toggleSelectAllVisible}
+                    checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                    aria-label={pageSelected ? t('Deselect all') : t('Select all')}
+                    disabled={displayReprocessingActions}
                   />
-                </Grid>
-              )}
-            </StreamGroupHeaderCell>
-          ) : null;
-        }
+                </Flex>
+              </SelectHeaderCell>
+            );
+          }
 
-        if (column.key === 'graph') {
+          if (column.key === 'issue') {
+            return (
+              <StreamGroupHeaderCell
+                key={column.key}
+                column={column}
+                variant={shouldDisplayActions ? 'remaining' : undefined}
+              >
+                <AnimatePresence initial={false} mode="wait">
+                  {shouldDisplayActions ? (
+                    displayReprocessingActions ? null : (
+                      <ActionSetGrid
+                        key="actions"
+                        width={{zero: 'auto', '4xl': '50%'}}
+                        gap="xs"
+                        flow="column"
+                        justify="start"
+                        whiteSpace="nowrap"
+                        {...actionsAnimationProps}
+                      >
+                        <ActionSet
+                          queryCount={queryCount}
+                          query={query}
+                          issues={selectedIdsSet}
+                          allInQuerySelected={allInQuerySelected}
+                          anySelected={anySelected}
+                          multiSelected={multiSelected}
+                          selectedProjectSlug={selectedProjectSlug}
+                          onShouldConfirm={action =>
+                            shouldConfirm(action, {pageSelected, selectedIdsSet})
+                          }
+                          onDelete={handleDelete}
+                          onMerge={handleMerge}
+                          onUpdate={handleUpdate}
+                        />
+                      </ActionSetGrid>
+                    )
+                  ) : (
+                    <motion.div key="label" {...labelAnimationProps}>
+                      {STREAM_GROUP_HEADER_LABELS[column.key]}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </StreamGroupHeaderCell>
+            );
+          }
+
+          if (shouldDisplayActions) {
+            return null;
+          }
+
           return (
             <StreamGroupHeaderCell key={column.key} column={column}>
-              <TrendHeader
-                onSelectStatsPeriod={onSelectStatsPeriod}
-                selection={selection}
-                statsPeriod={statsPeriod}
-              />
+              <motion.div {...labelAnimationProps}>
+                {column.key === 'graph' ? (
+                  <TrendHeader
+                    onSelectStatsPeriod={onSelectStatsPeriod}
+                    selection={selection}
+                    statsPeriod={statsPeriod}
+                  />
+                ) : (
+                  STREAM_GROUP_HEADER_LABELS[column.key]
+                )}
+              </motion.div>
             </StreamGroupHeaderCell>
           );
-        }
-
-        return <StreamGroupHeaderCell key={column.key} column={column} />;
-      })}
-    </SimpleTable.HeaderRow>
+        })}
+      </AnimatePresence>
+    </StreamGroupHeaderRow>
   );
 }
 
@@ -195,6 +233,11 @@ export function IssueListActions({
   }, [selectedIdsSet]);
   const area = useAnalyticsArea();
   const numIssues = selectedIdsSet.size;
+  const stickyHeadRef = useRef<HTMLTableSectionElement>(null);
+  const {pageContentTop} = useTopOffset();
+  const isStuck = useIsStuck(stickyHeadRef, {
+    offset: Number.parseInt(pageContentTop, 10) || 0,
+  });
 
   function actionSelectedGroups(callback: (itemIds: string[] | undefined) => void) {
     const selectedIds = allInQuerySelected
@@ -279,8 +322,9 @@ export function IssueListActions({
   }
 
   return (
-    <StickyHead>
+    <StyledStickyHead ref={stickyHeadRef}>
       <ActionsBarPriority
+        isStuck={isStuck}
         query={query}
         queryCount={queryCount}
         selection={selection}
@@ -343,20 +387,6 @@ export function IssueListActions({
           </Alert>
         </SimpleTable.FullWidthRow>
       )}
-    </StickyHead>
-  );
-}
-
-function StickyHead({children}: {children: ReactNode}) {
-  const ref = useRef<HTMLTableSectionElement>(null);
-  const {pageContentTop} = useTopOffset();
-  const isStuck = useIsStuck(ref, {
-    offset: Number.parseInt(pageContentTop, 10) || 0,
-  });
-
-  return (
-    <StyledStickyHead ref={ref} {...(isStuck ? {'data-stuck': ''} : {})}>
-      {children}
     </StyledStickyHead>
   );
 }
@@ -382,6 +412,10 @@ function shouldConfirm(
   }
 }
 
+const ActionSetGrid = styled(motion.create(Grid))`
+  font-weight: ${p => p.theme.font.weight.sans.regular};
+`;
+
 const SelectHeaderCell = styled(SimpleTable.HeaderCell)`
   padding: 0 0 0 ${p => p.theme.space.xl};
 `;
@@ -390,10 +424,4 @@ const StyledStickyHead = styled(SimpleTable.Head)`
   position: sticky;
   top: var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px);
   z-index: ${p => p.theme.zIndex.header};
-
-  /* Square off the header row while it is stuck, so no color peeks through
-   * its rounded corners. */
-  &[data-stuck] > tr {
-    border-radius: 0;
-  }
 `;

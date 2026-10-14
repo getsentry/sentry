@@ -1,5 +1,4 @@
 import {lazy} from 'react';
-import styled from '@emotion/styled';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {GroupListColumn, GroupListProps} from 'sentry/components/issues/groupList';
@@ -39,38 +38,20 @@ export function QueryEmbedIssueList({
 }: QueryEmbedIssueListProps) {
   return (
     <ErrorBoundary mini>
-      <FlushIssueList>
-        <LazyLoad
-          LazyComponent={LazyGroupList}
-          canSelectGroups={false}
-          numPlaceholderRows={3}
-          query={query}
-          queryParams={queryParams}
-          source={source}
-          staleTime={30_000}
-          useFilteredStats
-          withChart
-          withColumns={PREVIEW_COLUMNS}
-          withPagination={false}
-        />
-      </FlushIssueList>
+      <LazyLoad
+        LazyComponent={LazyGroupList}
+        canSelectGroups={false}
+        border="top"
+        numPlaceholderRows={3}
+        query={query}
+        queryParams={queryParams}
+        source={source}
+        staleTime={30_000}
+        useFilteredStats
+        withChart
+        withColumns={PREVIEW_COLUMNS}
+        withPagination={false}
+      />
     </ErrorBoundary>
   );
 }
-
-/**
- * Mirrors `QueryEmbedTable`'s `FlushTable`: the card's border already frames
- * the list, so `GroupList`'s table keeps only its top rule.
- */
-const FlushIssueList = styled('div')`
-  > div,
-  > div > table {
-    border-width: 1px 0 0;
-    border-radius: 0;
-    margin-bottom: 0;
-  }
-
-  > div > table > thead > tr {
-    border-radius: 0;
-  }
-`;

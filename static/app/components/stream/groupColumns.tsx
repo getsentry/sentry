@@ -1,4 +1,5 @@
 import type {ComponentProps, HTMLAttributes, ReactNode} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container, type FlexProps} from '@sentry/scraps/layout';
@@ -138,7 +139,7 @@ export function useStreamGroupColumns({canSelect, ...options}: StreamGroupColumn
   };
 }
 
-const HEADER_LABELS: Record<StreamGroupColumnKey, ReactNode> = {
+export const STREAM_GROUP_HEADER_LABELS: Record<StreamGroupColumnKey, ReactNode> = {
   select: null,
   issue: t('Issue'),
   lastSeen: t('Last Seen'),
@@ -170,7 +171,7 @@ interface StreamGroupHeaderCellProps extends ComponentProps<
 
 export function StreamGroupHeaderCell({
   column,
-  children = HEADER_LABELS[column.key],
+  children = STREAM_GROUP_HEADER_LABELS[column.key],
   ...props
 }: StreamGroupHeaderCellProps) {
   const HeaderCell = column.followsSelect ? SelectFollowingHeaderCell : StyledHeaderCell;
@@ -207,8 +208,10 @@ interface StreamGroupCellProps extends Omit<FlexProps<'td'>, 'column'> {
 }
 
 export function StreamGroupCell({column, ...props}: StreamGroupCellProps) {
+  const Cell = column.key === 'select' ? SelectRowCell : SimpleTable.RowCell;
+
   return (
-    <SimpleTable.RowCell
+    <Cell
       {...(column.key === 'select' ? SELECT_CELL_PROPS : {})}
       {...(column.followsSelect ? {paddingLeft: 'md'} : {})}
       {...(RIGHT_ALIGNED_COLUMNS.has(column.key) ? {justify: 'end'} : {})}
@@ -217,24 +220,58 @@ export function StreamGroupCell({column, ...props}: StreamGroupCellProps) {
   );
 }
 
+const SelectRowCell = styled(SimpleTable.RowCell)`
+  z-index: 1;
+`;
+
+export const StreamGroupHeaderRow = styled(SimpleTable.HeaderRow, {
+  shouldForwardProp: prop => prop !== 'square',
+})<{square?: boolean}>`
+  ${p =>
+    p.square &&
+    css`
+      border-radius: 0;
+    `}
+`;
+
+export type StreamGroupTableBorder = 'full' | 'top' | 'none';
+
 interface StreamGroupTableProps extends Omit<
   HTMLAttributes<HTMLTableElement>,
   'children'
 > {
   children: ReactNode;
   columns: StreamGroupColumn[];
+  border?: StreamGroupTableBorder;
 }
 
-export function StreamGroupTable({children, columns, ...props}: StreamGroupTableProps) {
+export function StreamGroupTable({
+  border = 'full',
+  children,
+  columns,
+  ...props
+}: StreamGroupTableProps) {
   return (
-    <Container containerType="inline-size" marginBottom="xl">
-      <StyledStreamGroupTable {...props} customSections columns={columns}>
+    <Container
+      containerType="inline-size"
+      marginBottom={border === 'full' ? 'xl' : undefined}
+    >
+      <StyledStreamGroupTable {...props} border={border} customSections columns={columns}>
         {children}
       </StyledStreamGroupTable>
     </Container>
   );
 }
 
-const StyledStreamGroupTable = styled(SimpleTable)`
+const StyledStreamGroupTable = styled(SimpleTable, {
+  shouldForwardProp: prop => prop !== 'border',
+})<{border: StreamGroupTableBorder}>`
   overflow: visible;
+
+  ${p =>
+    p.border !== 'full' &&
+    css`
+      border-width: ${p.border === 'top' ? '1px 0 0' : '0'};
+      border-radius: 0;
+    `}
 `;
