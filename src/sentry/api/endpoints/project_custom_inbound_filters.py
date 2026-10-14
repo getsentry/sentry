@@ -25,7 +25,11 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
-from sentry.ingest.inbound_filters import get_supported_condition_types
+from sentry.ingest.inbound_filters import (
+    get_supported_condition_types,
+    is_version,
+    parse_version_comparison,
+)
 from sentry.models.custominboundfilter import (
     MAX_FILTERS_PER_PROJECT,
     ConditionType,
@@ -105,9 +109,10 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         choices=[condition_type.value for condition_type in ConditionType],
         help_text=(
             "The field the condition matches against. Every `dataType` accepts `release` and "
-            "`ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
-            "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
-            "`metric_name`. `span` and `all` accept no other types."
+            "`ip_address`. In addition, `error` accepts `error_type`, `error_message`, "
+            "`geo_country_code`, `browser_name` and `browser_version`, `log` accepts "
+            "`log_message`, and `metric` accepts `metric_name`. `span` and `all` accept no "
+            "other types."
         ),
     )
     value = serializers.ListField(
@@ -115,7 +120,10 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         allow_empty=False,
         help_text=(
             "Glob patterns the field is matched against. The condition matches when any "
-            "pattern matches, so multiple values act as OR."
+            "pattern matches, so multiple values act as OR. A `browser_version` value that "
+            "starts with `>`, `>=`, `<`, `<=` or `=`, such as `<111` or `>=15.4`, compares "
+            "versions instead of matching the text. `ip_address` values are addresses or "
+            "CIDR ranges."
         ),
     )
 
@@ -127,6 +135,24 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             if invalid:
                 raise serializers.ValidationError(
                     {"value": f"{', '.join(invalid)} is not an IP address or CIDR range."}
+                )
+        # Relay never matches a comparison against a value it cannot read a version from,
+        # so a typo would silently disable part of the filter.
+        if attrs["type"] == ConditionType.BROWSER_VERSION:
+            invalid = [
+                value
+                for value in attrs["value"]
+                if (comparison := parse_version_comparison(value))
+                and not is_version(comparison.version)
+            ]
+            if invalid:
+                raise serializers.ValidationError(
+                    {
+                        "value": (
+                            f"{', '.join(invalid)} does not compare against a version "
+                            "such as 111 or 15.4."
+                        )
+                    }
                 )
         return attrs
 

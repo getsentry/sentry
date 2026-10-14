@@ -1,10 +1,15 @@
+import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any, Literal, cast
 
+import orjson
 from django.conf import settings
 from rest_framework import serializers
+from sentry_relay.exceptions import InvalidReleaseError
+from sentry_relay.processing import parse_release
 
+from sentry.constants import SEMVER_FAKE_PACKAGE
 from sentry.models.custominboundfilter import (
     MAX_FILTERS_PER_PROJECT,
     ConditionType,
@@ -563,7 +568,7 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
     )
 
 
-# Builds the Relay condition that matches one filter condition's glob values.
+# Builds the Relay condition that matches one filter condition's values.
 _ConditionMatcher = Callable[[list[str]], RuleCondition]
 
 # The matcher for each condition type a data type supports.
@@ -585,6 +590,82 @@ def _cidr_matcher(name: str) -> _ConditionMatcher:
 
 
 _client_ip_matcher = _cidr_matcher("envelope.client_ip")
+
+
+VersionComparator = Literal["eq", "gt", "gte", "lt", "lte"]
+
+_VERSION_COMPARATORS: Mapping[str, VersionComparator] = {
+    ">=": "gte",
+    "<=": "lte",
+    ">": "gt",
+    "<": "lt",
+    "=": "eq",
+}
+
+_VERSION_COMPARISON_RE = re.compile(r"(>=|<=|>|<|=)\s*(.+)")
+
+
+@dataclass(frozen=True)
+class VersionComparison:
+    comparator: VersionComparator
+    # The version to compare against, such as `111` or `15.4`.
+    version: str
+
+
+def parse_version_comparison(value: str) -> VersionComparison | None:
+    """
+    Reads a condition value that compares versions: one with a leading comparator,
+    such as `>=15.4` or `<111`. Returns None for any other value, which is a glob
+    pattern.
+
+    The comparison is returned whether or not its version parses, so that the caller
+    can reject one that does not.
+    """
+    match = _VERSION_COMPARISON_RE.fullmatch(value)
+    if match is None:
+        return None
+    return VersionComparison(_VERSION_COMPARATORS[match.group(1)], match.group(2))
+
+
+def is_version(value: str) -> bool:
+    """
+    Whether Relay reads a version out of the value, so that it can compare it. A
+    value such as `111`, `15.4` or `120.0.6099.129` has one to four numeric
+    components. A glob pattern or a word has none.
+    """
+    try:
+        parsed = parse_release(f"{SEMVER_FAKE_PACKAGE}@{value}", json_loads=orjson.loads)
+    except InvalidReleaseError:
+        return False
+    return parsed.get("version_parsed") is not None
+
+
+def _version_matcher(name: str) -> _ConditionMatcher:
+    # Glob values share one condition; each comparison is a condition of its own, as
+    # Relay takes one comparator and version per `release` condition.
+    def match(values: list[str]) -> RuleCondition:
+        globs: list[str] = []
+        conditions: list[RuleCondition] = []
+        for value in values:
+            comparison = parse_version_comparison(value)
+            if comparison is None:
+                globs.append(value)
+            else:
+                conditions.append(
+                    {
+                        "op": "release",
+                        "name": name,
+                        "comparator": comparison.comparator,
+                        "value": comparison.version,
+                    }
+                )
+        if globs:
+            conditions.insert(0, {"op": "glob", "name": name, "value": globs})
+        if len(conditions) == 1:
+            return conditions[0]
+        return {"op": "or", "inner": conditions}
+
+    return match
 
 
 _CONDITION_MATCHERS: Mapping[
@@ -613,6 +694,14 @@ _CONDITION_MATCHERS: Mapping[
     # Relay fills the geo from the client IP before filtering, unless the SDK sent one.
     ConditionType.GEO_COUNTRY_CODE: {
         DataType.ERROR: _field_matcher("event.user.geo.country_code"),
+    },
+    # Relay fills the browser context from the User-Agent header before filtering, unless
+    # the SDK sent one. Only errors carry it.
+    ConditionType.BROWSER_NAME: {
+        DataType.ERROR: _field_matcher("event.contexts.browser.name"),
+    },
+    ConditionType.BROWSER_VERSION: {
+        DataType.ERROR: _version_matcher("event.contexts.browser.version"),
     },
 }
 
