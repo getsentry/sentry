@@ -1337,7 +1337,6 @@ module = [
     "sentry.tasks.web_vitals_issue_detection",
     "sentry.tasks.weekly_escalating_forecast",
     "sentry.tempest",
-    "sentry.tempest.apps",
     "sentry.tempest.models",
     "sentry.tempest.permissions",
     "sentry.tempest.serializers",
