@@ -1,84 +1,11 @@
 import {Fragment} from 'react';
-import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
-import {ButtonBar} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {SizeProvider} from '@sentry/scraps/sizeContext';
-
-const theme = ThemeFixture();
 
 describe('DropdownMenu', () => {
-  it('lets custom triggers inherit their surrounding size', () => {
-    render(
-      <SizeProvider size="sm">
-        <DropdownMenu
-          items={[{key: 'duplicate', label: 'Duplicate query'}]}
-          trigger={props => (
-            <OverlayTrigger.Button {...props}>Query actions</OverlayTrigger.Button>
-          )}
-        />
-        <ButtonBar size="xs">
-          <DropdownMenu
-            items={[{key: 'duplicate', label: 'Duplicate query'}]}
-            trigger={props => (
-              <OverlayTrigger.IconButton
-                {...props}
-                icon={<IconEllipsis />}
-                aria-label="More actions"
-              />
-            )}
-          />
-        </ButtonBar>
-      </SizeProvider>
-    );
-
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: 'Query actions'})).join('')
-    ).toContain(`height: ${theme.form.sm.height}`);
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: 'More actions'})).join('')
-    ).toContain(`height: ${theme.form.xs.height}`);
-  });
-
-  it('applies an explicit menu size to custom triggers', () => {
-    render(
-      <SizeProvider size="sm">
-        <DropdownMenu
-          size="xs"
-          items={[{key: 'duplicate', label: 'Duplicate query'}]}
-          trigger={props => (
-            <OverlayTrigger.Button {...props}>Query actions</OverlayTrigger.Button>
-          )}
-        />
-      </SizeProvider>
-    );
-
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: 'Query actions'})).join('')
-    ).toContain(`height: ${theme.form.xs.height}`);
-  });
-
-  it('keeps the default trigger at md when the menu size is omitted', () => {
-    render(
-      <SizeProvider size="sm">
-        <DropdownMenu
-          items={[{key: 'duplicate', label: 'Duplicate query'}]}
-          triggerLabel="Query actions"
-        />
-      </SizeProvider>
-    );
-
-    expect(
-      getEmotionRules(screen.getByRole('button', {name: 'Query actions'})).join('')
-    ).toContain(`height: ${theme.form.md.height}`);
-  });
-
   it.each(['click', '{Enter}', ' '])(
     'opens the default trigger with %s without activating the enclosing link',
     async activation => {

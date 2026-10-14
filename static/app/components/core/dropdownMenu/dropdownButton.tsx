@@ -5,6 +5,8 @@ import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
+import {useResponsivePropValue} from '@sentry/scraps/layout';
+import {useSizeContext} from '@sentry/scraps/sizeContext';
 
 export type DropdownButtonProps = DistributedOmit<ButtonProps, 'type' | 'prefix'> & {
   /**
@@ -24,7 +26,7 @@ export type DropdownButtonProps = DistributedOmit<ButtonProps, 'type' | 'prefix'
 export function DropdownButton({
   children,
   prefix,
-  size,
+  size: explicitSize,
   isOpen = false,
   showChevron = true,
   disabled = false,
@@ -32,6 +34,9 @@ export function DropdownButton({
   onClick,
   ...props
 }: DropdownButtonProps) {
+  const contextSize = useSizeContext();
+  const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
+
   return (
     <StyledButton
       aria-haspopup="true"
