@@ -657,7 +657,10 @@ def _known_environment_warnings(output: str) -> tuple[str, ...]:
             index += 1
             continue
         if _SDK_WARNING.fullmatch(line):
-            if index + 1 >= len(lines) or lines[index + 1] != "  warnings.warn()":
+            if index + 1 >= len(lines) or lines[index + 1] not in {
+                "  warnings.warn(",
+                "  warnings.warn()",
+            }:
                 raise InvalidMeasurement("incomplete Sentry SDK warning from checker setup")
             warnings.append("Sentry SDK setup warning: no DSN is configured")
             index += 2

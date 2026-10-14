@@ -21,6 +21,7 @@ from tools.mypy_helpers.typing_campaign import (
     TreeMeasurement,
     _diagnostic_record,
     _effective_pairs,
+    _known_environment_warnings,
     _run_precision_canaries,
     _source_contracts,
     _validate_targets,
@@ -151,6 +152,30 @@ def test_tree_inventory_reads_supported_git_tree_modes(tmp_path: Path) -> None:
     assert inventory == (
         SourceFile("src/sentry/example.py", "sentry.example", SourceKind.OWNED_IMPLEMENTATION),
     )
+
+
+@pytest.mark.parametrize("source_line", ("  warnings.warn(", "  warnings.warn()"))
+def test_known_environment_warnings_classifies_sentry_sdk_warning(source_line: str) -> None:
+    output = (
+        "/checkout/src/sentry/utils/sdk.py:420: Warning: Sentry SDK not initialized: no DSN available. "
+        "Set `backend_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists.\n"
+        f"{source_line}\n"
+    )
+
+    assert _known_environment_warnings(output) == (
+        "Sentry SDK setup warning: no DSN is configured",
+    )
+
+
+def test_known_environment_warnings_rejects_unexpected_sdk_source_line() -> None:
+    output = (
+        "/checkout/src/sentry/utils/sdk.py:420: Warning: Sentry SDK not initialized: no DSN available. "
+        "Set `backend_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists.\n"
+        "  warnings.warn(message)\n"
+    )
+
+    with pytest.raises(InvalidMeasurement, match="incomplete Sentry SDK warning"):
+        _known_environment_warnings(output)
 
 
 def test_relative_diagnostic_paths_resolve_inside_snapshot(tmp_path: Path) -> None:
