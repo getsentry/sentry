@@ -172,7 +172,7 @@ describe('EventNavigation', () => {
     });
   });
 
-  describe('open periods button', () => {
+  describe('open period count', () => {
     const metricGroup = GroupFixture({
       id: group.id,
       issueCategory: IssueCategory.METRIC,
@@ -205,50 +205,6 @@ describe('EventNavigation', () => {
       const openPeriodsTab = screen.getByRole('tab', {name: /Open Periods/});
 
       expect(within(openPeriodsTab).getByText('3')).toBeInTheDocument();
-    });
-
-    it('shows the open period count on the first tab when each firing opens its own metric issue', () => {
-      const issueDetailsContext = jest.mocked(useIssueDetails)();
-
-      jest
-        .mocked(useIssueDetails)
-        .mockReturnValue({...issueDetailsContext, eventCount: 3});
-
-      renderMetricNav(
-        OrganizationFixture({
-          features: [
-            'discover-basic',
-            'autofix-page',
-            'workflow-engine-rotate-activation-id',
-          ],
-          hideAiFeatures: false,
-        })
-      );
-
-      const openPeriodsTab = screen.getByRole('tab', {name: /Open Periods/});
-
-      expect(within(openPeriodsTab).getByText('3')).toBeInTheDocument();
-    });
-
-    it('links to the open periods list for metric issues', () => {
-      renderMetricNav(organization);
-
-      expect(screen.getByRole('button', {name: /More Open Periods/})).toHaveAttribute(
-        'href',
-        expect.stringContaining(TabPaths[Tab.OPEN_PERIODS])
-      );
-    });
-
-    it('hides the open periods list when each firing opens its own metric issue', () => {
-      renderMetricNav(
-        OrganizationFixture({
-          features: ['discover-basic', 'workflow-engine-rotate-activation-id'],
-        })
-      );
-
-      expect(
-        screen.queryByRole('button', {name: /More Open Periods/})
-      ).not.toBeInTheDocument();
     });
   });
 
