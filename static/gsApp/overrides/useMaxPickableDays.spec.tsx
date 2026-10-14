@@ -214,7 +214,7 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 90/90 days for tracemetrics', () => {
+    it('returns 396/396 days for tracemetrics', () => {
       const {result} = renderHookWithProviders(
         () =>
           useMaxPickableDays({
@@ -225,8 +225,8 @@ describe('useMaxPickableDays', () => {
 
       expect(result.current).toEqual({
         defaultPeriod: '24h',
-        maxPickableDays: 90,
-        maxUpgradableDays: 90,
+        maxPickableDays: 396,
+        maxUpgradableDays: 396,
       });
     });
 
