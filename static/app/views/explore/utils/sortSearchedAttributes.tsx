@@ -5,7 +5,11 @@ import type {
   SelectOptionWithKey,
 } from '@sentry/scraps/compactSelect';
 
-import {getFieldDefinition, type GetFieldDefinitionType} from 'sentry/utils/fields';
+import {
+  getFieldDefinition,
+  prettifyTagKey,
+  type GetFieldDefinitionType,
+} from 'sentry/utils/fields';
 import {fzf} from 'sentry/utils/search/fzf';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -38,7 +42,14 @@ export function sortSearchedAttributes<Value extends SelectKey>({
     return {score: 0};
   }
 
-  const result = fzf(text, normalizedSearch, false);
+  // A user attribute that shares a name with a Sentry field (e.g. `message`) has
+  // the explicitly typed key `tags[message,string]` as its text, but it should
+  // still match the search text `message`. Use the prettified key for scoring
+  const displayText = prettifyTagKey(String(option.value));
+  const normalizedDisplayText = displayText.toLowerCase();
+  const scoreText = normalizedDisplayText.includes(normalizedSearch) ? displayText : text;
+
+  const result = fzf(scoreText, normalizedSearch, false);
   if (result.end === -1) {
     return {score: 0};
   }

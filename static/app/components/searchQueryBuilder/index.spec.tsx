@@ -2107,6 +2107,47 @@ describe('SearchQueryBuilder', () => {
       expect(keyOrder()[0]).toMatch(/^message/);
     });
 
+    it('sorts keys whose display name exactly matches the input to the top', async () => {
+      // A user-sent `message` attribute collides with Sentry's `message` key and
+      // comes back from the API as `tags[message,string]`.
+      const mockGetTagKeys = jest.fn().mockResolvedValue([
+        {key: 'message.template', name: 'message.template', kind: FieldKind.TAG},
+        {
+          key: 'tags[message,string]',
+          name: 'message',
+          kind: FieldKind.TAG,
+          attributeSource: 'user',
+        },
+      ]);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          getTagKeys={mockGetTagKeys}
+        />
+      );
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('message');
+
+      await waitFor(() => {
+        expect(screen.getAllByRole('option', {name: 'message'})).toHaveLength(2);
+      });
+
+      const options = screen.getAllByRole('option');
+      // Both exact matches come before partial matches
+      expect(options[0]).toHaveAccessibleName('message');
+      expect(options[1]).toHaveAccessibleName('message');
+      expect(options[2]).toHaveAccessibleName('message.template');
+
+      // Sentry's key comes before the user attribute
+      await userEvent.click(options[1]!);
+      expect(
+        await screen.findByRole('row', {
+          name: `tags[message,string]:${WildcardOperators.CONTAINS}""`,
+        })
+      ).toBeInTheDocument();
+    });
+
     it('does not highlight non-contiguous fuzzy filter key matches', async () => {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
       await userEvent.click(getLastInput());
@@ -3676,6 +3717,57 @@ describe('SearchQueryBuilder', () => {
             expect.anything()
           );
         });
+      });
+
+      it('describes the attribute when hovering the value', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="has:browser.name" />);
+
+        await userEvent.hover(
+          screen.getByRole('button', {name: 'Edit value for filter: has'})
+        );
+
+        expect(await screen.findByText('Added by Sentry')).toBeInTheDocument();
+      });
+
+      it('describes a user tag value with the generic tag description', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="has:tags[foo,string]" />
+        );
+
+        await userEvent.hover(
+          screen.getByRole('button', {name: 'Edit value for filter: has'})
+        );
+
+        expect(
+          await screen.findByText('A tag sent with one or more events')
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Added by Sentry')).not.toBeInTheDocument();
+      });
+
+      it('describes each attribute suggestion when it is focused', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="has:browser.name" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: has'})
+        );
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        await userEvent.keyboard('foo');
+        await screen.findByRole('option', {name: 'foo'});
+        await userEvent.keyboard('{ArrowDown}');
+
+        // `tags[foo,string]` is a user tag, so it gets the generic tag description
+        expect(
+          await screen.findByText('A tag sent with one or more events')
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Added by Sentry')).not.toBeInTheDocument();
+
+        await userEvent.clear(input);
+        await userEvent.keyboard('browser.name');
+        await screen.findByRole('option', {name: 'browser.name'});
+        await userEvent.keyboard('{ArrowDown}');
+
+        expect(await screen.findByText('Added by Sentry')).toBeInTheDocument();
       });
 
       it('replaces the whole attribute when the seeded text is cleared', async () => {

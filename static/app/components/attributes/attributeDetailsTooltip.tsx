@@ -53,7 +53,9 @@ export function AttributeDetailsTooltip({
   const user = useUser();
   const fieldDefinition =
     getFieldDefinition(attributeKey, fieldDefinitionType) ??
-    (name === undefined ? null : getFieldDefinition(name, fieldDefinitionType));
+    (name === undefined || isUserStringAttributeKey(attributeKey)
+      ? null
+      : getFieldDefinition(name, fieldDefinitionType));
   const attributeName = name ?? attributeKey;
 
   return (
@@ -78,4 +80,14 @@ export function AttributeDetailsTooltip({
       {children ?? attributeName}
     </InfoText>
   );
+}
+
+/**
+ * The API only wraps a string attribute in `tags[…,string]` when a user sent it
+ * under a name Sentry already defines (e.g. `message`), so it can be queried
+ * apart from Sentry's field. Its name must not pick up that field's definition.
+ * Number and boolean keys are always wrapped, so they still fall back to the name.
+ */
+function isUserStringAttributeKey(attributeKey: string) {
+  return /^tags\[.+,string\]$/.test(attributeKey);
 }

@@ -22,7 +22,7 @@ import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import {FieldKey, FieldKind} from 'sentry/utils/fields';
+import {FieldKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 
 type FilterKeySearchItem = {
@@ -326,18 +326,41 @@ export function useSortedFilterKeyItems({
       });
 
     // Partition into tiers so that prioritized keys always appear above every
-    // other match, and async-only keys always appear below static keys.
+    // other match, keys whose display name exactly matches the input come next,
+    // and async-only keys always appear below static keys.
     // Fuzzy score order is preserved within each tier.
+    const normalizedFilterValue = stripArrayMembershipOperator(filterValue)
+      .trim()
+      .toLowerCase();
+    // A user-sent attribute can share its display name with a Sentry key (e.g.
+    // `message` and `tags[message,string]`). Prioritize the Sentry key while
+    // also matching the user-sent attribute if it exists
+    const isExactNameMatch = (item: (typeof allKeyItems)[number]) =>
+      item.type === 'item' &&
+      prettifyTagKey(item.value).toLowerCase() === normalizedFilterValue;
+    const isUserAttribute = (item: (typeof allKeyItems)[number]) =>
+      item.type === 'item' && item.tag.attributeSource === 'user';
+
     const prioritizedKeyItems = allKeyItems.filter(item =>
       prioritizedKeys.has(item.value)
     );
+    const exactNameKeyItems = allKeyItems
+      .filter(item => !prioritizedKeys.has(item.value) && isExactNameMatch(item))
+      .sort((a, b) => Number(isUserAttribute(a)) - Number(isUserAttribute(b)));
+    const isRemainingItem = (item: (typeof allKeyItems)[number]) =>
+      !prioritizedKeys.has(item.value) && !isExactNameMatch(item);
     const staticKeyItems = allKeyItems.filter(
-      item => !prioritizedKeys.has(item.value) && !asyncOnlyKeys.has(item.value)
+      item => isRemainingItem(item) && !asyncOnlyKeys.has(item.value)
     );
     const asyncKeyItems = allKeyItems.filter(
-      item => !prioritizedKeys.has(item.value) && asyncOnlyKeys.has(item.value)
+      item => isRemainingItem(item) && asyncOnlyKeys.has(item.value)
     );
-    const keyItems = [...prioritizedKeyItems, ...staticKeyItems, ...asyncKeyItems];
+    const keyItems = [
+      ...prioritizedKeyItems,
+      ...exactNameKeyItems,
+      ...staticKeyItems,
+      ...asyncKeyItems,
+    ];
 
     if (includeSuggestions) {
       const rawSearchSection: KeySectionItem = {
