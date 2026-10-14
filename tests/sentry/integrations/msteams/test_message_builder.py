@@ -49,11 +49,11 @@ from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
-from sentry.notifications.types import NotificationOrigin
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
+    create_notification_origin,
 )
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -122,7 +122,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             self.create_project_rule(name="rule1"),
             self.create_project_rule(name="rule2"),
         ]
-        self.origins = [NotificationOrigin.from_legacy_rule(rule) for rule in self.rules]
+        self.origins = [create_notification_origin(rule) for rule in self.rules]
 
     def test_simple(self) -> None:
         card = MSTeamsMessageBuilder().build(
@@ -431,7 +431,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         payload = MSTeamsIssueMessageBuilder(
             group=self.group1,
             event=self.event1,
-            rules=[NotificationOrigin.from_legacy_rule(self.rules[0])],
+            rules=[create_notification_origin(self.rules[0])],
             integration=self.integration,
         ).generate_action_payload(ACTION_TYPE.RESOLVE)["payload"]
 
