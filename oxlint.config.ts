@@ -399,6 +399,7 @@ const config = defineConfig({
       {
         category: 'test-support',
         pattern: [
+          'jest.config.mjs',
           'scripts/testCi.js',
           'static/{app,gsApp,gsAdmin}/jest.config.mjs',
           'static/oxlint/*/jest.config.mjs',
