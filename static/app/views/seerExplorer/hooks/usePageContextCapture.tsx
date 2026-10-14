@@ -9,7 +9,7 @@ import type {
 } from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 
-// Max wait for the page to finish rendering its context before capturing anyway.
+// Max wait for the page to finish rendering its context.
 const PAGE_CONTEXT_TIMEOUT_MS = 3000;
 
 /**
@@ -100,7 +100,10 @@ export function usePageContextCapture() {
   );
 }
 
-function hasNodeType(nodes: LLMContextNodeSnapshot[], nodeType: string): boolean {
+function hasNodeType(
+  nodes: LLMContextNodeSnapshot[],
+  nodeType: LLMContextNodeType
+): boolean {
   return nodes.some(
     node => node.nodeType === nodeType || hasNodeType(node.children, nodeType)
   );
@@ -111,6 +114,7 @@ function isPageContextReady(snapshot: LLMContextSnapshot, route: string): boolea
   const expectedNodeType = STRUCTURED_CONTEXT_ROUTES.get(route);
   return expectedNodeType === undefined || hasNodeType(snapshot.nodes, expectedNodeType);
 }
+
 /** Waits until the page has finished rendering its context. Resolves false if it timed out. */
 export function useWaitForPageContext() {
   const {waitForLLMContext} = useLLMContext();

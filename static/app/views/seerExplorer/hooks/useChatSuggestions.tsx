@@ -162,7 +162,11 @@ export function useChatSuggestions({
     if (!hasLlmChatSuggestions) {
       return {isLoading: false, source: 'legacy', suggestions: LEGACY_SUGGESTIONS};
     }
-    if (query.isPending) {
+    if (
+      query.isPending ||
+      // Show loading while retrying an incomplete result, rather than swapping the fallback:
+      (query.isFetching && query.data?.isPageContextComplete === false)
+    ) {
       return {isLoading: true};
     }
     const generatedSuggestions = query.data?.suggestions ?? [];
@@ -174,7 +178,14 @@ export function useChatSuggestions({
       source: 'fallback',
       suggestions: getFallbackChatSuggestions(route, hasDbData),
     };
-  }, [hasLlmChatSuggestions, query.isPending, query.data, route, hasDbData]);
+  }, [
+    hasLlmChatSuggestions,
+    query.isPending,
+    query.isFetching,
+    query.data,
+    route,
+    hasDbData,
+  ]);
 
   useEffect(() => {
     if (!enabled || state.isLoading) {

@@ -92,7 +92,7 @@ function ReplayDetailsContent() {
       environment: replayRecord?.environment,
       platform: replayRecord?.platform,
     },
-    {isLoading: readerResult.isPending}
+    {isLoading: !replayRecord && readerResult.isPending}
   );
 
   const title = replayRecord
