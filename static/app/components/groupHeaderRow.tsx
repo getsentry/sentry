@@ -23,6 +23,10 @@ import {EventTitleError} from './eventTitleError';
 interface GroupHeaderRowProps {
   data: Group;
   eventId?: string;
+  /**
+   * Omit the event message line under the title.
+   */
+  hideMessage?: boolean;
   query?: string;
   source?: string;
 }
@@ -64,7 +68,13 @@ function usePreloadGroupOnHover({
 /**
  * Displays a group/issue title row (i.e. in Stream)
  */
-export function GroupHeaderRow({data, query, eventId, source}: GroupHeaderRowProps) {
+export function GroupHeaderRow({
+  data,
+  query,
+  eventId,
+  source,
+  hideMessage = false,
+}: GroupHeaderRowProps) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -102,11 +112,13 @@ export function GroupHeaderRow({data, query, eventId, source}: GroupHeaderRowPro
           </ErrorBoundary>
         </TitleWithLink>
       </Title>
-      <StyledEventMessage
-        level={data.level}
-        message={getMessage(data)}
-        type={data.type}
-      />
+      {hideMessage ? null : (
+        <StyledEventMessage
+          level={data.level}
+          message={getMessage(data)}
+          type={data.type}
+        />
+      )}
     </div>
   );
 }

@@ -1292,6 +1292,21 @@ export enum ProgressState {
   FIX_APPLIED = 'fix_applied',
 }
 
+export type AutofixBlocker =
+  | 'none'
+  | 'approve_root_cause'
+  | 'approve_plan'
+  | 'approve_code_changes'
+  | 'merge_pr';
+
+export type LastCompletedAutofixStep =
+  | 'none'
+  | 'root_cause'
+  | 'solution'
+  | 'code_changes'
+  | 'pr_created'
+  | 'pr_iteration';
+
 interface GroupDerivedData {
   hasOpenFixPr: boolean;
   hasRootCause: boolean;
@@ -1300,6 +1315,8 @@ interface GroupDerivedData {
   progress: ProgressState;
   status: 'open' | 'closed';
   viewCount: number;
+  blocker?: AutofixBlocker;
+  lastCompletedAutofixStep?: LastCompletedAutofixStep;
 }
 
 // TODO(ts): incomplete
