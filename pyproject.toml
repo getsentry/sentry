@@ -598,7 +598,6 @@ module = [
     "sentry.api.serializers.models.actor",
     "sentry.api.serializers.models.apiapplication",
     "sentry.api.serializers.models.apiauthorization",
-    "sentry.api.serializers.models.apikey",
     "sentry.api.serializers.models.apitoken",
     "sentry.api.serializers.models.artifactbundle",
     "sentry.api.serializers.models.auditlogentry",
