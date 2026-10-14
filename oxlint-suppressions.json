@@ -962,7 +962,7 @@
   },
   "static/app/components/profiling/flamegraph/flamegraphDrawer/flamegraphDrawer.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 3
+      "count": 2
     }
   },
   "static/app/components/profiling/flamegraph/flamegraphLayout.tsx": {

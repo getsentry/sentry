@@ -1,15 +1,23 @@
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-export const ProfilingDetailsFrameTabs = styled('ul')`
-  display: flex;
-  list-style-type: none;
-  padding: 0 ${p => p.theme.space.md};
-  margin: 0;
-  border-top: 1px solid ${prop => prop.theme.tokens.border.primary};
-  background-color: ${props => props.theme.tokens.background.secondary};
-  user-select: none;
-  grid-area: tabs;
-`;
+import {Flex} from '@sentry/scraps/layout';
+
+export function ProfilingDetailsFrameTabs({children}: {children: ReactNode}) {
+  return (
+    <Flex
+      as="ul"
+      padding="0 md"
+      margin="0"
+      borderTop="primary"
+      background="secondary"
+      area="tabs"
+      style={{listStyleType: 'none', userSelect: 'none'}}
+    >
+      {children}
+    </Flex>
+  );
+}
 
 export const ProfilingDetailsListItem = styled('li')<{
   margin?: 'none';
