@@ -217,8 +217,11 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert not Investigation.objects.exists()
 
     @with_feature(FEATURES)
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
     @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
-    def test_creates_investigation(self, mock_count: MagicMock) -> None:
+    def test_creates_investigation(
+        self, mock_count: MagicMock, mock_record_sent: MagicMock
+    ) -> None:
         response = self.click()
 
         assert response.status_code == 200
@@ -249,6 +252,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert post_kwargs["text"] == (
             f"<@{self.external_id}> started a Seer investigation for this alert."
         )
+        mock_record_sent.assert_called_once()
 
         assert SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
             entrypoint_key="slack", investigation_id=investigation.id
@@ -300,6 +304,25 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert cache_payload is not None
 
     @with_feature(FEATURES)
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    def test_slack_error_during_started_message_still_creates_investigation(
+        self, mock_record_sent: MagicMock
+    ) -> None:
+        self.mock_post_message.side_effect = SlackApiError(
+            "error", _slack_response({"ok": False, "error": "invalid_blocks"})
+        )
+
+        response = self.click()
+
+        assert response.status_code == 200
+        (investigation,) = self.investigations()
+        mock_record_sent.assert_not_called()
+        cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+            entrypoint_key="slack", investigation_id=investigation.id
+        )
+        assert cache_payload is not None
+
+    @with_feature(FEATURES)
     @patch(
         "sentry.seer.entrypoints.operator.create_agentic_breached_metric_investigation",
         side_effect=Exception("boom"),
@@ -311,6 +334,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert self.investigations() == []
         ephemeral_kwargs = self.mock_post_ephemeral.call_args.kwargs
         assert ephemeral_kwargs["user"] == self.external_id
+        assert ephemeral_kwargs["thread_ts"] == MESSAGE_TS
         assert ephemeral_kwargs["text"] == (
             "Seer couldn't start an investigation: An unexpected error occurred"
         )
