@@ -1,9 +1,9 @@
-import {memo, useId, useRef, useState} from 'react';
+import {memo, useCallback, useId, useRef} from 'react';
 import {createPortal} from 'react-dom';
-import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {autoUpdate, hide, offset, useFloating} from '@floating-ui/react-dom';
 import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -12,6 +12,7 @@ import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {flipOverlay, shiftOverlay} from 'sentry/utils/overlayPositioning';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
 /**
@@ -348,18 +349,12 @@ function BaseMenuListItem<T extends React.ElementType = 'li'>({
 
 export const MenuListItem = memo(BaseMenuListItem) as typeof BaseMenuListItem;
 
-const POPPER_OPTIONS = {
-  placement: 'right-start' as const,
-  strategy: 'fixed' as const,
-  modifiers: [
-    {
-      name: 'offset',
-      options: {
-        offset: [-4, 8],
-      },
-    },
-  ],
-};
+const DETAILS_MIDDLEWARE = [
+  offset({crossAxis: -4, mainAxis: 8}),
+  flipOverlay(),
+  shiftOverlay(),
+  hide(),
+];
 
 function DetailsOverlay({
   children,
@@ -373,17 +368,37 @@ function DetailsOverlay({
   size: Props['size'];
 }) {
   const theme = useTheme();
-  const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
+  const {
+    refs: {setReference, setFloating},
+    floatingStyles,
+    middlewareData,
+  } = useFloating({
+    placement: 'right-start',
+    strategy: 'fixed',
+    middleware: DETAILS_MIDDLEWARE,
+    whileElementsMounted: autoUpdate,
+  });
 
-  // oxlint-disable-next-line react/refs
-  const popper = usePopper(itemRef.current, overlayElement, POPPER_OPTIONS);
+  // Position against the menu item for as long as the overlay is mounted
+  const overlayRef = useCallback(
+    (overlay: HTMLDivElement) => {
+      setReference(itemRef.current);
+      setFloating(overlay);
+
+      return () => {
+        setReference(null);
+        setFloating(null);
+      };
+    },
+    [itemRef, setReference, setFloating]
+  );
 
   return createPortal(
     <StyledPositionWrapper
-      {...popper.attributes.popper}
-      ref={setOverlayElement}
+      data-reference-hidden={middlewareData.hide?.referenceHidden}
+      ref={overlayRef}
       zIndex={theme.zIndex.tooltip}
-      style={popper.styles.popper}
+      style={floatingStyles}
     >
       <StyledOverlay id={id} role="tooltip" placement="right-start" size={size}>
         {children}
@@ -397,7 +412,7 @@ function DetailsOverlay({
 }
 
 const StyledPositionWrapper = styled(PositionWrapper)`
-  &[data-popper-reference-hidden='true'] {
+  &[data-reference-hidden='true'] {
     opacity: 0;
     pointer-events: none;
   }

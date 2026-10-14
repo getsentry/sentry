@@ -72,7 +72,7 @@ function useEditorValueSync({mentions, text}: ComposerValue) {
 }
 
 /**
- * Positions the Popper anchor over the active trigger as the editor moves or resizes.
+ * Positions the overlay anchor over the active trigger as the editor moves or resizes.
  */
 function useCaretAnchorPosition({
   activeTrigger,
@@ -84,7 +84,7 @@ function useCaretAnchorPosition({
   activeTrigger: ActiveTrigger | null;
   inputRef: React.RefObject<HTMLDivElement | null>;
   trigger: string | undefined;
-  updateOverlayPosition: (() => void) | null | undefined;
+  updateOverlayPosition: () => void;
   value: string;
 }) {
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -111,7 +111,7 @@ function useCaretAnchorPosition({
     anchor.style.top = `${rangeRect.top - containerRect.top}px`;
     anchor.style.width = `${Math.max(1, rangeRect.width)}px`;
     anchor.style.height = `${Math.max(1, rangeRect.height)}px`;
-    updateOverlayPosition?.();
+    updateOverlayPosition();
   }, [activeTrigger, inputRef, trigger, updateOverlayPosition]);
 
   useLayoutEffect(() => {

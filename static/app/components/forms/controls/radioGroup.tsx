@@ -1,10 +1,11 @@
 import {Fragment} from 'react';
-import type {PopperProps} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {Radio} from '@sentry/scraps/radio';
 import {Tooltip} from '@sentry/scraps/tooltip';
+
+import type {OverlayPlacement} from 'sentry/utils/overlayPositioning';
 
 interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   orientInline?: boolean;
@@ -30,7 +31,7 @@ interface BaseRadioGroupProps<C extends string> {
    * Switch the radio items to flow left to right, instead of vertically.
    */
   orientInline?: boolean;
-  tooltipPosition?: PopperProps<any>['placement'];
+  tooltipPosition?: OverlayPlacement;
 }
 
 /**
