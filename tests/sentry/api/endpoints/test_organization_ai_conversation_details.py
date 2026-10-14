@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import MagicMock, call, patch
 from uuid import uuid4
 
+import pytest
 from django.urls import reverse
 from urllib3.exceptions import ReadTimeoutError
 
@@ -1057,6 +1058,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             cost=0.01,
             input_cost=0.006,
             output_cost=0.004,
+            cache_read_cost=0.001,
+            cache_write_cost=0.002,
+            reasoning_cost=0.003,
             request_model="requested-model-a",
             response_model="model-a",
             trace_id=trace_id,
@@ -1074,6 +1078,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             cost=0.02,
             input_cost=0.012,
             output_cost=0.008,
+            cache_read_cost=0.002,
+            cache_write_cost=0.004,
+            reasoning_cost=0.006,
             request_model="model-b",
             trace_id=trace_id,
         )
@@ -1085,6 +1092,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             tool_name="database",
             status="internal_error",
             trace_id=trace_id,
+            cache_read_cost=1.0,
+            cache_write_cost=2.0,
+            reasoning_cost=3.0,
         )
 
         query: dict[str, Any] = {
@@ -1101,6 +1111,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             "cacheReadTokens": 30,
             "cacheWriteTokens": 15,
             "endTimestamp": int(now.timestamp() * 1000),
+            "cacheReadCost": pytest.approx(0.003),
+            "cacheWriteCost": pytest.approx(0.006),
+            "reasoningCost": pytest.approx(0.009),
             "errors": 1,
             "errorToolNames": ["database"],
             "inputTokens": 190,
@@ -1129,6 +1142,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 "reasoningTokens": 8,
                 "inputCost": 0.012,
                 "outputCost": 0.008,
+                "cacheReadCost": 0.002,
+                "cacheWriteCost": 0.004,
+                "reasoningCost": 0.006,
                 "totalCost": 0.02,
             },
             {
@@ -1142,6 +1158,9 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 "reasoningTokens": 4,
                 "inputCost": 0.006,
                 "outputCost": 0.004,
+                "cacheReadCost": 0.001,
+                "cacheWriteCost": 0.002,
+                "reasoningCost": 0.003,
                 "totalCost": 0.01,
             },
         ]
@@ -1158,6 +1177,50 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert next_response.status_code == 200
         assert next_response.data["stats"] is None
         assert len(mock_run_bulk.call_args.args[0]) == 1
+
+    def test_missing_cost_breakdowns_without_costs(self) -> None:
+        self._assert_missing_cost_breakdowns(None, None, None)
+
+    def test_missing_cost_breakdowns_with_sdk_costs(self) -> None:
+        self._assert_missing_cost_breakdowns(0.006, 0.004, 0.01)
+
+    def _assert_missing_cost_breakdowns(
+        self, input_cost: float | None, output_cost: float | None, total_cost: float | None
+    ) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            operation_type="ai_client",
+            request_model="model-a",
+            cache_read_tokens=10,
+            cache_write_tokens=5,
+            reasoning_tokens=4,
+            input_cost=input_cost,
+            output_cost=output_cost,
+            cost=total_cost,
+        )
+
+        response = self.do_request(
+            conversation_id,
+            {
+                "project": [self.project.id],
+                "start": (now - timedelta(hours=1)).isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+            },
+        )
+
+        assert response.status_code == 200
+        stats = response.data["stats"]
+        usage = stats["usageByModel"][0]
+        for breakdown in ("cacheReadCost", "cacheWriteCost", "reasoningCost"):
+            assert stats[breakdown] == 0
+            assert usage[breakdown] == 0
+        assert usage["inputCost"] == (input_cost or 0)
+        assert usage["outputCost"] == (output_cost or 0)
+        assert usage["totalCost"] == (total_cost or 0)
+        assert stats["totalCost"] == (total_cost or 0)
 
     def test_timeout_returns_504(self) -> None:
         conversation_id = uuid4().hex
