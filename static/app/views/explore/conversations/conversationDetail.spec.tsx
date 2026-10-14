@@ -148,20 +148,62 @@ describe('ConversationDetailPage span default selection', () => {
     await waitFor(() => expect(detailPane()).toBeInTheDocument());
   });
 
-  it('shows the copy transcript button only on the transcript tab', async () => {
+  it('shows the export transcript button only on the transcript tab', async () => {
     renderPage();
 
-    // The transcript tab exposes the copy control once messages have loaded.
+    // The transcript tab exposes the export control once messages have loaded.
     expect(
-      await screen.findByRole('button', {name: 'Copy Transcript'})
+      await screen.findByRole('button', {name: 'Export transcript'})
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'Timeline'}));
 
-    // The timeline tab has no transcript to copy.
+    // The timeline tab has no transcript to export.
     expect(
-      screen.queryByRole('button', {name: 'Copy Transcript'})
+      screen.queryByRole('button', {name: 'Export transcript'})
     ).not.toBeInTheDocument();
+  });
+
+  it('downloads the full conversation transcript as a markdown file', async () => {
+    const blobs: Blob[] = [];
+    const createObjectURL = jest.fn((blob: Blob) => {
+      blobs.push(blob);
+      return 'blob:conversation';
+    });
+    window.URL.createObjectURL = createObjectURL;
+    window.URL.revokeObjectURL = jest.fn();
+    const clickSpy = jest
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {});
+
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Export transcript'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Download .md'}));
+
+    await waitFor(() => expect(createObjectURL).toHaveBeenCalled());
+    expect(clickSpy).toHaveBeenCalled();
+
+    const markdown = await blobs[0]!.text();
+    expect(markdown).toContain('First answer');
+    expect(markdown).toContain('Second answer');
+
+    clickSpy.mockRestore();
+  });
+
+  it('copies the full conversation transcript to the clipboard', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {clipboard: {writeText}});
+
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Export transcript'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy to clipboard'}));
+
+    await waitFor(() => expect(writeText).toHaveBeenCalled());
+    const copied = writeText.mock.calls[0]![0] as string;
+    expect(copied).toContain('First answer');
+    expect(copied).toContain('Second answer');
   });
 });
 

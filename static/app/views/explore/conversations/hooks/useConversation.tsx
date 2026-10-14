@@ -7,6 +7,7 @@ import {
 } from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
@@ -32,7 +33,7 @@ export interface UseConversationsOptions {
 /**
  * Raw span data returned from the AI conversation details endpoint
  */
-interface ConversationApiSpan {
+export interface ConversationApiSpan {
   'gen_ai.conversation.id': string;
   parent_span: string;
   'precise.finish_ts': number;
@@ -114,7 +115,7 @@ export interface ConversationStats {
   usageByModel: ConversationModelUsage[];
 }
 
-interface ConversationApiResponse {
+export interface ConversationApiResponse {
   conversationId: string;
   spans: ConversationApiSpan[];
   stats: ConversationStats;
@@ -133,6 +134,11 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
 
 interface UseConversationResult {
   error: boolean;
+  /**
+   * Whether the entire conversation is already in the cache (nothing loading
+   * and no further pages), so an export can reuse `nodes` without refetching.
+   */
+  isFullyLoaded: boolean;
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
@@ -361,16 +367,17 @@ function orderDepthFirst(
   return ordered;
 }
 
-const MAX_PAGES = 100;
+const ONE_HOUR_MS = 60 * 60 * 1000;
 
-export function useConversation(
-  conversation: UseConversationsOptions
-): UseConversationResult {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  const ONE_HOUR_MS = 60 * 60 * 1000;
-
+/**
+ * Builds the span query params (projects + time window) for the conversation
+ * details endpoint. Shared by the display hook and the export fetch so both
+ * request exactly the same window.
+ */
+export function buildConversationQueryParams(
+  conversation: UseConversationsOptions,
+  selection: PageFilters
+) {
   const defaultPeriod = getDefaultPageFilterSelection().datetime.period;
   const hasExplicitDatetime =
     selection.datetime.start !== null ||
@@ -389,10 +396,45 @@ export function useConversation(
   const selectedProjects = conversation.projects ?? selection.projects;
   const project = selectedProjects.length > 0 ? selectedProjects : [ALL_ACCESS_PROJECTS];
 
-  const queryParams = {
-    project,
-    ...datetimeParams,
-  };
+  return {project, ...datetimeParams};
+}
+
+/**
+ * Transforms the flat API spans accumulated across pages into the ordered,
+ * node-shaped structure the UI renders. Shared by the hook's render path and
+ * the on-demand full-conversation export so both produce identical nodes.
+ */
+export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
+  nodeTraceMap: Map<string, string>;
+  nodes: AITraceSpanNode[];
+} {
+  if (allSpans.length === 0) {
+    return {nodes: [], nodeTraceMap: new Map<string, string>()};
+  }
+
+  const traceMap = new Map<string, string>();
+  const genAiSpans = allSpans.filter(isGenAiSpan);
+  const nodeMap = new Map<string, AITraceSpanNode>();
+
+  const transformedNodes = genAiSpans.map(apiSpan => {
+    const node = createNodeFromApiSpan(apiSpan, nodeMap);
+    nodeMap.set(node.id, node);
+    traceMap.set(node.id, apiSpan.trace);
+    return node;
+  });
+
+  return {nodes: orderDepthFirst(transformedNodes, nodeMap), nodeTraceMap: traceMap};
+}
+
+const MAX_PAGES = 100;
+
+export function useConversation(
+  conversation: UseConversationsOptions
+): UseConversationResult {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const queryParams = buildConversationQueryParams(conversation, selection);
 
   const {
     data,
@@ -438,24 +480,12 @@ export function useConversation(
   const title = firstPage?.title ?? null;
   const stats = firstPage?.stats ?? null;
 
-  const {nodes, nodeTraceMap} = useMemo(() => {
-    if (allSpans.length === 0) {
-      return {nodes: [], nodeTraceMap: new Map<string, string>()};
-    }
+  const {nodes, nodeTraceMap} = useMemo(
+    () => buildConversationNodes(allSpans),
+    [allSpans]
+  );
 
-    const traceMap = new Map<string, string>();
-    const genAiSpans = allSpans.filter(isGenAiSpan);
-    const nodeMap = new Map<string, AITraceSpanNode>();
-
-    const transformedNodes = genAiSpans.map(apiSpan => {
-      const node = createNodeFromApiSpan(apiSpan, nodeMap);
-      nodeMap.set(node.id, node);
-      traceMap.set(node.id, apiSpan.trace);
-      return node;
-    });
-
-    return {nodes: orderDepthFirst(transformedNodes, nodeMap), nodeTraceMap: traceMap};
-  }, [allSpans]);
+  const isLoadingAny = isLoading || isFetchingNextPage || canFetchNextPage;
 
   if (!conversation.conversationId) {
     return {
@@ -465,6 +495,7 @@ export function useConversation(
       isLoading: false,
       error: false,
       title: null,
+      isFullyLoaded: false,
     };
   }
 
@@ -472,8 +503,12 @@ export function useConversation(
     stats,
     nodes,
     nodeTraceMap,
-    isLoading: isLoading || isFetchingNextPage || canFetchNextPage,
+    isLoading: isLoadingAny,
     error: isError,
     title,
+    // Every page is already in the cache: nothing is loading and the endpoint
+    // reported no further pages. The export can then reuse `nodes` directly
+    // instead of re-fetching.
+    isFullyLoaded: !isLoadingAny && !hasNextPage,
   };
 }
