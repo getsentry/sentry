@@ -303,7 +303,7 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
     ): Promise<boolean> =>
       new Promise((resolve, reject) => {
         if (signal?.aborted) {
-          reject(signal.reason);
+          reject(new Error('Aborted'));
           return;
         }
 
@@ -329,7 +329,7 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
           }, 0);
         };
 
-        const onAbort = () => finish(() => reject(signal?.reason));
+        const onAbort = () => finish(() => reject(new Error('Aborted')));
 
         const unsubscribe = subscribe(check);
         const limitTimeoutId = window.setTimeout(

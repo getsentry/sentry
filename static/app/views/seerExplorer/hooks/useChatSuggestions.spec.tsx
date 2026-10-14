@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -8,6 +9,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useChatSuggestions} from './useChatSuggestions';
 
@@ -16,6 +18,19 @@ const DEFAULT_FALLBACK_SUGGESTIONS = [
   {text: 'Which of my open issues are getting worse, not better?'},
   {text: 'What else should I set up to get more out of Sentry?'},
 ];
+
+const IssueDetailNode = registerLLMContext(
+  'issue-detail',
+  ({children}: {children?: ReactNode}) => children
+);
+
+function IssueDetailPage({children}: {children?: ReactNode}) {
+  return (
+    <LLMContextProvider>
+      <IssueDetailNode>{children}</IssueDetailNode>
+    </LLMContextProvider>
+  );
+}
 
 describe('useChatSuggestions', () => {
   const organization = OrganizationFixture({
@@ -184,7 +199,7 @@ describe('useChatSuggestions', () => {
       );
 
       expect(result.current).toEqual({isLoading: true});
-      act(() => jest.advanceTimersByTime(4000));
+      await act(() => jest.advanceTimersByTimeAsync(4000));
       await waitFor(() =>
         expect(result.current).toEqual({
           isLoading: false,
@@ -206,7 +221,7 @@ describe('useChatSuggestions', () => {
       () => useChatSuggestions({enabled: true, allowStructuredContext: false}),
       {
         organization,
-        additionalWrapper: LLMContextProvider,
+        additionalWrapper: IssueDetailPage,
         initialRouterConfig: {
           location: {
             pathname: `/organizations/${organization.slug}/issues/1/`,

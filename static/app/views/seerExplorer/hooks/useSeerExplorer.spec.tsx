@@ -34,6 +34,7 @@ describe('useSeerExplorer', () => {
           query: {},
         },
       }),
+      waitForLLMContext: () => Promise.resolve(true),
     });
   });
 
