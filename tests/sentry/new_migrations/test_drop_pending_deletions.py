@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import connection, models
 from django.db.migrations.state import ModelState
 
@@ -10,7 +12,7 @@ from tools.migrations.drop_pending_deletions import pending_deletion_sql
 APP = "drift_test"
 
 
-def _model(name: str, *fields: tuple[str, models.Field]) -> ModelState:
+def _model(name: str, *fields: tuple[str, models.Field[Any, Any]]) -> ModelState:
     return ModelState(APP, name, [("id", models.BigAutoField(primary_key=True)), *fields])
 
 
