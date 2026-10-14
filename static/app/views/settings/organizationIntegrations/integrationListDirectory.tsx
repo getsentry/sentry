@@ -51,7 +51,7 @@ import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/or
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
 import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
-import {legacyWebhooksQueryOptions} from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
+import {legacyWebhooksQueryOptions} from 'sentry/views/settings/organizationIntegrations/legacyWebhooksQueryOptions';
 
 const FirstPartyIntegrationAlert = OverrideOrDefault({
   overrideName: 'component:first-party-integration-alert',
