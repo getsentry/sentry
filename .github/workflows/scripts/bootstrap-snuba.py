@@ -7,16 +7,13 @@ Phase 2: Stop snuba-snuba-1 and start per-worker API containers.
 
 Usage:
   bootstrap-snuba.py           Run in the foreground, after devservices is up.
-  bootstrap-snuba.py --start   Start in the background and return immediately.
-  bootstrap-snuba.py --wait    Wait for a background run, print its log and
-                               exit with its status.
+  bootstrap-snuba.py --start   Run in the background.
+  bootstrap-snuba.py --wait    Wait for the background run and exit with its status.
 
-When DEVSERVICES_STATUS_FILE is set (setup-sentry writes the exit status of
-``devservices up`` there), the expensive phase 1 starts as soon as ClickHouse,
-Kafka and Redis are healthy, overlapping devservices' wait for snuba-snuba-1.
-Phase 2 then waits for ``devservices up`` to exit successfully, so
-snuba-snuba-1 is never stopped while devservices is still health-checking it.
-If devservices fails, the bootstrap fails fast instead of timing out.
+With DEVSERVICES_STATUS_FILE set (the exit status of a background
+``devservices up``), phase 1 starts once ClickHouse, Kafka and Redis are
+healthy, and phase 2 waits for ``devservices up`` to succeed, since it
+health-checks snuba-snuba-1. If devservices fails, this fails fast.
 
 Requires: XDIST_WORKERS env var
 """
@@ -28,7 +25,6 @@ import os
 import subprocess
 import sys
 import time
-import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from typing import Any, Callable
@@ -48,14 +44,13 @@ SNUBA_ENV = {
 
 ENV_ARGS = [flag for k, v in SNUBA_ENV.items() for flag in ("-e", f"{k}={v}")]
 
-# Containers that `snuba bootstrap` talks to. In early mode phase 1 waits for
-# Docker to report all of them healthy (the same check devservices uses).
+# What `snuba bootstrap` talks to. In early mode phase 1 only waits for these.
 BOOTSTRAP_DEPENDENCIES = ("snuba-clickhouse-1", "kafka-kafka-1", "redis-redis-1")
 
 # Set by the workflow when setup-sentry starts devservices in the background.
 DEVSERVICES_STATUS_FILE = os.environ.get("DEVSERVICES_STATUS_FILE", "")
 EARLY = bool(DEVSERVICES_STATUS_FILE)
-# devservices up itself is bounded by a 10 minute timeout in setup-sentry.
+# setup-sentry stops waiting for devservices up after 10 minutes.
 PREREQ_TIMEOUT = 900 if EARLY else 300
 
 STATE_DIR = os.path.join(os.environ.get("RUNNER_TEMP", "/tmp"), "snuba-bootstrap")
@@ -135,21 +130,16 @@ def run_parallel(fn: Callable[[int], Any], workers: range, *, fail_fast: bool = 
     return rc
 
 
-def devservices_status() -> int | None:
-    """Exit status of `devservices up`, or None if it hasn't exited yet."""
+def devservices_succeeded() -> bool:
+    """True once `devservices up` has succeeded. Fails fast if it failed."""
     try:
         with open(DEVSERVICES_STATUS_FILE) as f:
-            return int(f.read().strip())
+            status = int(f.read())
     except (OSError, ValueError):
-        return None
-
-
-def check_devservices() -> bool:
-    """True once `devservices up` has succeeded. Fails fast if it failed."""
-    status = devservices_status()
-    if status is not None and status != 0:
+        return False  # still running
+    if status != 0:
         fail(f"devservices up failed (exit {status}); not bootstrapping Snuba")
-    return status == 0
+    return True
 
 
 def container_healthy(container: str) -> bool:
@@ -167,11 +157,9 @@ def wait_for_prerequisites(timeout: int = PREREQ_TIMEOUT) -> None:
         ch_ok = http_ok("http://localhost:8123/")
         container_ok = bool(docker_inspect("snuba-snuba-1", "{{.Id}}"))
         if EARLY:
-            # Don't wait for snuba-snuba-1 to finish its own bootstrap, only for
-            # the services `snuba bootstrap` needs. Once devservices up has
-            # succeeded everything is healthy, so that alone is also enough
-            # (in case container names ever change).
-            deps_ok = check_devservices() or all(
+            # Only wait for what `snuba bootstrap` needs, not for snuba-snuba-1
+            # to finish its own bootstrap.
+            deps_ok = devservices_succeeded() or all(
                 container_healthy(c) for c in BOOTSTRAP_DEPENDENCIES
             )
         else:
@@ -201,7 +189,7 @@ def wait_for_devservices(timeout: int = PREREQ_TIMEOUT) -> None:
         return
     log("Waiting for devservices up to finish...")
     start = time.monotonic()
-    while not check_devservices():
+    while not devservices_succeeded():
         if time.monotonic() - start > timeout:
             fail("Timed out waiting for devservices up to finish")
         time.sleep(1)
@@ -316,71 +304,52 @@ def main() -> None:
 
 def start_background() -> None:
     os.makedirs(STATE_DIR, exist_ok=True)
-    for path in (LOG_FILE, EXIT_FILE):
-        if os.path.exists(path):
-            os.remove(path)
     with open(LOG_FILE, "w") as log_file:
-        proc = subprocess.Popen(
-            [sys.executable, os.path.abspath(__file__), "--run-background"],
+        # A new session, so it outlives this step.
+        subprocess.Popen(
+            [sys.executable, __file__, "--run-background"],
             stdin=subprocess.DEVNULL,
             stdout=log_file,
             stderr=subprocess.STDOUT,
             start_new_session=True,
         )
-    log(f"Started Snuba bootstrap in the background (pid {proc.pid}), log: {LOG_FILE}")
+    log(f"Started Snuba bootstrap in the background, log: {LOG_FILE}")
 
 
 def run_background() -> None:
-    rc = 1
-    try:
-        main()
-        rc = 0
-    except SystemExit as e:
-        rc = e.code if isinstance(e.code, int) else (0 if e.code is None else 1)
-    except BaseException:
-        traceback.print_exc()
-    finally:
-        sys.stdout.flush()
-        tmp = f"{EXIT_FILE}.tmp"
-        with open(tmp, "w") as f:
-            f.write(f"{rc}\n")
-        os.replace(tmp, EXIT_FILE)
+    # Run the bootstrap as a child, so any failure, including an uncaught
+    # exception, ends up as its exit status. Write-then-rename, so --wait never
+    # reads a partial file.
+    rc = subprocess.call([sys.executable, __file__])
+    with open(f"{EXIT_FILE}.tmp", "w") as f:
+        f.write(f"{rc}\n")
+    os.replace(f"{EXIT_FILE}.tmp", EXIT_FILE)
 
 
 def wait_background(timeout: int = WAIT_TIMEOUT) -> None:
-    if not os.path.exists(LOG_FILE):
-        fail("No background Snuba bootstrap found; was it started with --start?")
-    start = time.monotonic()
-    next_status_at = 30.0
-    while not os.path.exists(EXIT_FILE):
-        elapsed = time.monotonic() - start
-        if elapsed > timeout:
-            with open(LOG_FILE) as f:
-                log(f.read())
-            fail(f"Timed out after {timeout}s waiting for the background Snuba bootstrap")
-        if elapsed >= next_status_at:
-            log(f"  still waiting for background Snuba bootstrap ({elapsed:.0f}s)")
-            next_status_at = elapsed + 30
+    deadline = time.monotonic() + timeout
+    while not os.path.exists(EXIT_FILE) and time.monotonic() < deadline:
         time.sleep(1)
-    log(f"Background Snuba bootstrap finished (waited {time.monotonic() - start:.0f}s):")
     with open(LOG_FILE) as f:
         log(f.read())
+    if not os.path.exists(EXIT_FILE):
+        fail(f"Timed out after {timeout}s waiting for the background Snuba bootstrap")
     with open(EXIT_FILE) as f:
-        rc = int(f.read().strip())
+        rc = int(f.read())
     if rc != 0:
         log(f"::error::Background Snuba bootstrap failed (exit {rc})")
     sys.exit(rc)
 
 
 if __name__ == "__main__":
-    mode = sys.argv[1] if len(sys.argv) > 1 else ""
-    if mode == "--start":
-        start_background()
-    elif mode == "--run-background":
-        run_background()
-    elif mode == "--wait":
-        wait_background()
-    elif mode == "":
-        main()
-    else:
-        fail(f"Unknown argument: {mode}")
+    match sys.argv[1:]:
+        case []:
+            main()
+        case ["--start"]:
+            start_background()
+        case ["--run-background"]:
+            run_background()
+        case ["--wait"]:
+            wait_background()
+        case _:
+            fail(f"Unknown arguments: {sys.argv[1:]}")

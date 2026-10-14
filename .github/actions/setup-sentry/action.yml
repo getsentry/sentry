@@ -24,11 +24,7 @@ inputs:
     required: false
     default: '10'
   early-devservices:
-    description: >-
-      Start devservices in the background before the Python environment is set
-      up (via `uv run`, with the devservices version pinned in uv.lock), so
-      image pulls and health checks overlap the venv restore. Its exit status
-      is written to $RUNNER_TEMP/devservices-ci/up.exit (see bootstrap-snuba.py).
+    description: 'Start devservices before the venv setup, so the two overlap (see devservices-bg.py)'
     required: false
     default: 'false'
 
@@ -119,7 +115,6 @@ runs:
         ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
         DEVSERVICES_WORKDIR: ${{ inputs.workdir }}
         DEVSERVICES_LOCKFILE: ${{ inputs.workdir }}/uv.lock
-        DEVSERVICES_TIMEOUT: ${{ inputs.devservices-timeout-minutes }}
         DEVSERVICES_MODE: ${{ inputs.mode }}
         GITHUB_TOKEN: ${{ github.token }}
       run: python3 "$ACTION_PATH/devservices-bg.py" start
@@ -165,7 +160,6 @@ runs:
         sentry init
 
         if [ "$EARLY_DEVSERVICES" = true ]; then
-          # Started in the background above.
           python3 "$ACTION_PATH/devservices-bg.py" wait
         else
           # Prevent git from spawning background gc/maintenance processes during
