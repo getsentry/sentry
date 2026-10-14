@@ -1,5 +1,7 @@
 import {createContext, useContext} from 'react';
 
+import type {ButtonVariant} from '@sentry/scraps/variants';
+
 export interface AnalyticsProps {
   /**
    * Used when you want to overwrite the default Reload event key for analytics
@@ -24,7 +26,7 @@ interface ClickableProps<Element extends HTMLElement> extends AnalyticsProps {
   children?: React.ReactNode;
   disabled?: boolean;
   onClick?: React.MouseEventHandler<Element>;
-  variant?: string;
+  variant?: ButtonVariant;
 }
 
 export type TrackingProps = AnalyticsProps &
