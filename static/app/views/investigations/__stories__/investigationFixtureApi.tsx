@@ -203,12 +203,23 @@ function createFixtureHandler(config: FixtureApiConfig): FixtureHandler {
 
   return (path, options) => {
     // The header links to the issue a breached metric investigation came from,
-    // and names it by the short ID it fetches.
-    const group = path.startsWith(issuesPath)
-      ? config.groups?.[path.slice(issuesPath.length).replace(/\/$/, '')]
-      : undefined;
-    if (group) {
-      return Promise.resolve({body: cloneFixture(group)});
+    // and names it by the short ID it fetches. An issue the story does not
+    // provide is a 404 here rather than a request to the real API.
+    if (path.startsWith(issuesPath)) {
+      const group = config.groups?.[path.slice(issuesPath.length).replace(/\/$/, '')];
+      if (group) {
+        return Promise.resolve({body: cloneFixture(group)});
+      }
+      const response: ResponseMeta = {
+        status: 404,
+        statusText: 'Not Found',
+        responseJSON: {detail: 'The requested resource does not exist'},
+        responseText: 'Not Found',
+        getResponseHeader: () => null,
+      };
+      return Promise.reject(
+        new RequestError('GET', path, new Error('Fixture issue not found'), response)
+      );
     }
     if (!path.startsWith(basePath)) {
       return NO_MATCH;

@@ -340,7 +340,7 @@ function HypothesesPanel({
       onExpandedChange={onExpandedChange}
       status={
         tally ? (
-          <Text size="sm" variant="muted" wrap="nowrap">
+          <Text size="sm" variant="muted" bold={false} wrap="nowrap">
             {tally}
           </Text>
         ) : null

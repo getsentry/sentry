@@ -175,6 +175,7 @@ const agenticReportOrchestration = InvestigationOrchestrationFixture({
   status: 'completed',
   startedAt: '2026-10-07T16:22:00Z',
   finishedAt: '2026-10-07T16:26:05Z',
+  activeSince: null,
   activeTimeElapsedSeconds: 245,
   hypotheses: [
     InvestigationHypothesisFixture({
