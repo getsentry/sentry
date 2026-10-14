@@ -128,7 +128,10 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 label: t('Switch'),
                 leadingItems: <IconBuilding />,
                 submenu: true,
-                hidden: config.singleOrganization || isDemoModeActive(),
+                hidden:
+                  config.singleOrganization ||
+                  isDemoModeActive() ||
+                  (activeOrgs.length === 0 && inactiveOrgs.length === 0),
                 children: [
                   {
                     key: 'active-orgs',

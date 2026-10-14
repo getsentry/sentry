@@ -16,6 +16,7 @@ describe('OrganizationDropdown', () => {
 
   beforeEach(() => {
     ConfigStore.set('user', UserFixture());
+    ConfigStore.set('features', new Set());
   });
 
   it('displays org info and links', async () => {
@@ -60,6 +61,44 @@ describe('OrganizationDropdown', () => {
       'href',
       '/organizations/org-2/issues/'
     );
+  });
+
+  it('hides the empty settings v3 switch submenu', async () => {
+    ConfigStore.set('features', new Set(['organizations:create']));
+    const settingsV3Organization = OrganizationFixture({
+      ...organization,
+      features: ['settings-v3'],
+    });
+    OrganizationsStore.load([settingsV3Organization]);
+
+    render(<OrganizationDropdown />, {organization: settingsV3Organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+
+    expect(screen.queryByRole('menuitemradio', {name: 'Switch'})).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Create Organization'})
+    ).toBeInTheDocument();
+  });
+
+  it('shows the settings v3 switch submenu when another organization is available', async () => {
+    const settingsV3Organization = OrganizationFixture({
+      ...organization,
+      features: ['settings-v3'],
+    });
+    OrganizationsStore.load([
+      settingsV3Organization,
+      OrganizationFixture({id: 'other-org', name: 'Other Org', slug: 'other-org'}),
+    ]);
+
+    render(<OrganizationDropdown />, {organization: settingsV3Organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Switch'}));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: /Other Org/})
+    ).toBeInTheDocument();
   });
 
   it('Shows inactive orgs in their own section', async () => {
