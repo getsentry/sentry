@@ -122,7 +122,8 @@ class NotificationHelpersTest(TestCase):
 
         [rule_details] = get_rules([origin], self.organization, self.project)
 
-        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+        workflow_id = origin.workflow_id
+        assert workflow_id is not None
         assert rule_details.id == workflow_id
         assert rule_details.status_url == (
             f"/organizations/{self.organization.slug}/monitors/alerts/{workflow_id}/"
