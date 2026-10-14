@@ -15,7 +15,7 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0005_increase_flag_max_length
 
-hybridcloud: 0043_add_dashboard_create_scope
+hybridcloud: 0044_remove_scopes_bitfield_pending
 
 insights: 0001_squashed_0002_backfill_team_starred
 
@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0037_rename_agentic_triage_result
 
-sentry: 1214_release_drop_new_id
+sentry: 1215_remove_scopes_bitfield_pending
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
