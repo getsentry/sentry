@@ -58,7 +58,7 @@ export function BreadcrumbItemContent({
     </BreadcrumbText>
   ) : null;
 
-  const cleanedBreadcrumbData = omitRepeatedConsoleData(bc, cleanBreadcrumbData(bc.data));
+  const cleanedBreadcrumbData = cleanBreadcrumbData(bc.data);
 
   const defaultData = defined(cleanedBreadcrumbData) ? (
     <Timeline.Data>
@@ -66,6 +66,7 @@ export function BreadcrumbItemContent({
         value={cleanedBreadcrumbData}
         meta={meta?.data}
         {...structuredDataProps}
+        forceDefaultExpand={!shouldCollapseData(bc, cleanedBreadcrumbData)}
       />
     </Timeline.Data>
   ) : null;
@@ -147,7 +148,12 @@ function HTTPCrumbContent({
       </BreadcrumbText>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
-          <StructuredData value={otherData} meta={meta?.data} {...structuredDataProps} />
+          <StructuredData
+            value={otherData}
+            meta={meta?.data}
+            {...structuredDataProps}
+            forceDefaultExpand={!shouldCollapseData(breadcrumb, otherData)}
+          />
         </Timeline.Data>
       ) : null}
     </Fragment>
@@ -250,37 +256,33 @@ function cleanBreadcrumbData<B extends Record<string, any> | undefined | null>(
 }
 
 /**
- * The JS SDKs record console calls as `{logger: 'console', arguments: [...args]}`
- * and set the message to the arguments joined with spaces. Hide the data that
- * only repeats what the breadcrumb already shows.
+ * Collapse data that only has fields the JS SDKs add on their own.
  */
-function omitRepeatedConsoleData(
-  breadcrumb: RawCrumb,
-  data: RawCrumb['data']
-): RawCrumb['data'] {
-  if (breadcrumb.category !== 'console' || !data) {
-    return data;
+function shouldCollapseData(breadcrumb: RawCrumb, data: Record<string, any>): boolean {
+  const onlyHas = (...keys: string[]) =>
+    Object.keys(data).every(key => keys.includes(key));
+
+  // The message is the arguments joined, except objects become "[object Object]"
+  if (breadcrumb.category === 'console') {
+    const args = data.arguments ?? [];
+    return (
+      onlyHas('logger', 'arguments') &&
+      Array.isArray(args) &&
+      args.every(arg => typeof arg !== 'object' || arg === null)
+    );
   }
 
-  const consoleData: Record<string, any> = {...data};
-
-  // Repeats the category
-  if (consoleData.logger === 'console') {
-    delete consoleData.logger;
+  // The component name is already in the message
+  if (breadcrumb.category?.startsWith('ui.')) {
+    return onlyHas('ui.component_name');
   }
 
-  // Plain values that join into the exact message. Objects, format strings, and
-  // values trimmed or scrubbed differently from the message don't match.
-  const args = consoleData.arguments;
-  if (
-    Array.isArray(args) &&
-    args.every(arg => ['string', 'number', 'boolean'].includes(typeof arg)) &&
-    args.join(' ') === breadcrumb.message
-  ) {
-    delete consoleData.arguments;
+  // Replay adds body sizes to fetch and xhr
+  if (breadcrumb.type === BreadcrumbType.HTTP) {
+    return onlyHas('request_body_size', 'response_body_size');
   }
 
-  return Object.keys(consoleData).length > 0 ? consoleData : undefined;
+  return false;
 }
 
 const Link = styled('a')`

@@ -7,6 +7,7 @@ import {
   BreadcrumbType,
   type BreadcrumbTypeDefault,
   type BreadcrumbTypeHTTP,
+  type RawCrumb,
 } from 'sentry/types/breadcrumbs';
 
 describe('BreadcrumbItemContent', () => {
@@ -186,61 +187,56 @@ describe('BreadcrumbItemContent', () => {
     expect(screen.queryByText('failed')).not.toBeInTheDocument();
   });
 
-  it('hides console data that repeats the message', () => {
-    const breadcrumb: BreadcrumbTypeDefault = {
-      type: BreadcrumbType.DEBUG,
-      level: BreadcrumbLevelType.INFO,
-      category: 'console',
-      message: 'UndoManager: startGroupIfNeeded',
-      data: {arguments: ['UndoManager: startGroupIfNeeded'], logger: 'console'},
-    };
-    const {container} = render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
-    expect(container).toHaveTextContent(/^UndoManager: startGroupIfNeeded$/);
-  });
+  describe('data the SDK adds on its own', () => {
+    it.each<[string, RawCrumb, string]>([
+      [
+        'console arguments',
+        {
+          type: BreadcrumbType.DEBUG,
+          level: BreadcrumbLevelType.INFO,
+          category: 'console',
+          message: 'UndoManager: startGroupIfNeeded',
+          data: {arguments: ['UndoManager: startGroupIfNeeded'], logger: 'console'},
+        },
+        '2 items',
+      ],
+      [
+        'click component names',
+        {
+          type: BreadcrumbType.UI,
+          level: BreadcrumbLevelType.INFO,
+          category: 'ui.click',
+          message: 'LinkBase > Component',
+          data: {'ui.component_name': 'Component'},
+        },
+        '1 item',
+      ],
+      [
+        'fetch body sizes',
+        {
+          type: BreadcrumbType.HTTP,
+          level: BreadcrumbLevelType.INFO,
+          category: 'fetch',
+          data: {method: 'GET', url: 'https://example.com', response_body_size: 2},
+        },
+        '1 item',
+      ],
+    ])('collapses %s', (_, breadcrumb, itemCount) => {
+      render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+      expect(screen.getByRole('button', {name: itemCount})).toBeInTheDocument();
+    });
 
-  it('hides console arguments that join into the message', () => {
-    const breadcrumb: BreadcrumbTypeDefault = {
-      type: BreadcrumbType.DEBUG,
-      level: BreadcrumbLevelType.INFO,
-      category: 'console',
-      message: 'loaded 3 items true',
-      data: {arguments: ['loaded', 3, 'items', true], logger: 'console', extra: 'kept'},
-    };
-    render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
-    expect(screen.getByText('extra')).toBeInTheDocument();
-    expect(screen.queryByText('arguments')).not.toBeInTheDocument();
-    expect(screen.queryByText('logger')).not.toBeInTheDocument();
-  });
-
-  it.each([
-    ['object arguments', '[object Object]', [{id: 1}]],
-    ['format strings', 'loaded 3 items', ['loaded %d items', 3]],
-    ['assertions', 'Assertion failed: broken', ['broken']],
-    ['trimmed arguments', 'a long message', ['a long…']],
-  ])('keeps console arguments for %s', (_, message, args) => {
-    const breadcrumb: BreadcrumbTypeDefault = {
-      type: BreadcrumbType.DEBUG,
-      level: BreadcrumbLevelType.INFO,
-      category: 'console',
-      message,
-      data: {arguments: args, logger: 'console'},
-    };
-    render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
-    expect(screen.getByText('arguments')).toBeInTheDocument();
-    expect(screen.queryByText('logger')).not.toBeInTheDocument();
-  });
-
-  it('keeps arguments on breadcrumbs from other categories', () => {
-    const breadcrumb: BreadcrumbTypeDefault = {
-      type: BreadcrumbType.DEBUG,
-      level: BreadcrumbLevelType.INFO,
-      category: 'custom',
-      message: 'hello',
-      data: {arguments: ['hello'], logger: 'console'},
-    };
-    render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
-    expect(screen.getByText('arguments')).toBeInTheDocument();
-    expect(screen.getByText('logger')).toBeInTheDocument();
+    it('keeps console objects expanded', () => {
+      const breadcrumb: BreadcrumbTypeDefault = {
+        type: BreadcrumbType.DEBUG,
+        level: BreadcrumbLevelType.INFO,
+        category: 'console',
+        message: 'user [object Object]',
+        data: {arguments: ['user', {id: 1}], logger: 'console'},
+      };
+      render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+      expect(screen.getByText('arguments')).toBeInTheDocument();
+    });
   });
 
   it('applies item limits with fullyExpanded', () => {
