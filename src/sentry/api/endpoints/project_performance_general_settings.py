@@ -21,7 +21,6 @@ class ProjectPerformanceGeneralSettingsSerializer(serializers.Serializer):
 class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
     owner = ApiOwner.DATA_BROWSING
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
     }
