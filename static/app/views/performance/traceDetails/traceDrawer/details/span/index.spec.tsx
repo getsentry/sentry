@@ -14,6 +14,7 @@ import {
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {makeSentrySampledProfile} from 'sentry/utils/profiling/profile/testUtils';
+import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {TraceTreeNodeExtra} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {makeEAPSpan} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
@@ -47,6 +48,128 @@ describe('SpanNodeDetails', () => {
       body: [],
     });
   });
+
+  it('shows one canonical input and output for an MCP span classified as an AI tool', async () => {
+    const organization = OrganizationFixture();
+    const project = ProjectFixture({id: '1', slug: 'project_slug'});
+    const attributes = {
+      'gen_ai.operation.type': 'tool',
+      'gen_ai.tool.name': 'example',
+      'gen_ai.tool.call.arguments': '{"Topic":"canonical input"}',
+      'gen_ai.tool.call.result': '{"content":[],"structuredContent":{"ok":false}}',
+      'mcp.request.argument.topic': '"legacy input"',
+      'mcp.tool.result.content': 'legacy output',
+      'mcp.transport': 'CustomHTTPTransport',
+      'network.transport': 'tcp',
+    };
+    const spanValue = makeEAPSpan({
+      event_id: 'mcp-span-id',
+      op: 'mcp.server',
+      name: 'mcp.server',
+      description: 'tools/call example',
+      additional_attributes: attributes,
+    });
+    const node = new EapSpanNode(null, spanValue, createMockExtra({organization}));
+
+    act(() => ProjectsStore.loadInitialData([project]));
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/${spanValue.event_id}/`,
+      body: {
+        itemId: spanValue.event_id,
+        timestamp: new Date().toISOString(),
+        attributes: Object.entries(attributes).map(([name, value]) => ({
+          name,
+          type: 'str',
+          value,
+        })),
+        meta: {},
+      },
+    });
+
+    render(
+      <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+        <EAPSpanNodeDetails
+          node={node}
+          organization={organization}
+          onTabScrollToNode={jest.fn()}
+          traceId="test-trace-id"
+          tree={TraceTree.Empty()}
+        />
+      </TraceStateProvider>,
+      {organization}
+    );
+
+    const input = await screen.findByRole('region', {name: 'Input'});
+    const output = screen.getByRole('region', {name: 'Output'});
+    expect(within(input).getByText('Topic')).toBeInTheDocument();
+    expect(within(output).getByText('structuredContent')).toBeInTheDocument();
+    expect(within(input).queryByText('legacy input')).not.toBeInTheDocument();
+    expect(within(output).queryByText('legacy output')).not.toBeInTheDocument();
+    expect(screen.getByText('MCP Transport')).toBeInTheDocument();
+    expect(screen.getByText('Transport')).toBeInTheDocument();
+  });
+
+  it.each<{content: Record<string, string>; section: string | null}>([
+    {content: {'mcp.request.argument.query': 'captured input'}, section: 'Input'},
+    {content: {'mcp.tool.result.0.content': 'captured output'}, section: 'Output'},
+    {content: {'mcp.tool.result.content_type': 'text'}, section: null},
+  ])(
+    'matches the capture alert to the MCP $section section',
+    async ({content, section}) => {
+      const organization = OrganizationFixture();
+      const project = ProjectFixture({id: '1', slug: 'project_slug'});
+      const attributes: Record<string, string> = {
+        'gen_ai.operation.type': 'tool',
+        'sdk.name': 'sentry.javascript.node',
+        ...content,
+      };
+      const spanValue = makeEAPSpan({
+        event_id: 'mcp-legacy-span',
+        op: 'mcp.server',
+        name: 'mcp.server',
+        description: 'tools/call example',
+        additional_attributes: attributes,
+      });
+      const node = new EapSpanNode(null, spanValue, createMockExtra({organization}));
+      act(() => ProjectsStore.loadInitialData([project]));
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${spanValue.event_id}/`,
+        body: {
+          itemId: spanValue.event_id,
+          timestamp: new Date().toISOString(),
+          attributes: Object.entries(attributes).map(([name, value]) => ({
+            name,
+            type: 'str',
+            value,
+          })),
+          meta: {},
+        },
+      });
+
+      render(
+        <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
+          <EAPSpanNodeDetails
+            node={node}
+            organization={organization}
+            onTabScrollToNode={jest.fn()}
+            traceId="test-trace-id"
+            tree={TraceTree.Empty()}
+          />
+        </TraceStateProvider>,
+        {organization}
+      );
+
+      const alert = 'Missing the input and output of your AI model?';
+      if (section) {
+        expect(await screen.findByRole('region', {name: section})).toBeInTheDocument();
+        expect(screen.queryByText(alert)).not.toBeInTheDocument();
+      } else {
+        expect(await screen.findByText(alert)).toBeInTheDocument();
+        expect(screen.queryByRole('region', {name: 'Input'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('region', {name: 'Output'})).not.toBeInTheDocument();
+      }
+    }
+  );
 
   it.each([
     {isTransaction: false, nodeType: 'span'},
