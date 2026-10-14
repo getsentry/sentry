@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useEffectEvent, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import incidentsPerformanceImg from 'getsentry-images/features/alert-builder.svg';
@@ -25,6 +25,7 @@ import {FeatureList} from './featureList';
 import {Footer} from './footer';
 import {HighlightedFeature} from './highlightedFeature';
 import type {Feature} from './types';
+import {useFeatureRotation} from './useFeatureRotation';
 
 /**
  * When the details are first mounted, until the user clicks one we will rotate
@@ -183,111 +184,16 @@ const PERFORMANCE_FEATURES = selectFeatures([
   'user-misery',
 ]).filter(Boolean);
 
-export function Details({onCloseModal, organization, source, subscription}: Props) {
-  const shouldShowTeamFeatures = subscription.isFree || subscription.onTrialPlan;
-
-  const features = useMemo<Feature[]>(() => {
-    if (hasPerformance(subscription.planDetails)) {
-      return shouldShowTeamFeatures
-        ? [...BUSINESS_FEATURES, ...TEAM_FEATURES]
-        : BUSINESS_FEATURES;
-    }
+function getFeatures(subscription: Subscription): Feature[] {
+  if (!hasPerformance(subscription.planDetails)) {
     return PERFORMANCE_FEATURES;
-  }, [subscription.planDetails, shouldShowTeamFeatures]);
+  }
+  return subscription.isFree || subscription.onTrialPlan
+    ? [...BUSINESS_FEATURES, ...TEAM_FEATURES]
+    : BUSINESS_FEATURES;
+}
 
-  const initialHighlightedFeatureId = features.some(f => f.id === source) ? source : null;
-
-  const [highlightedFeatureId, setHighlightedFeatureId] = useState<string | null>(
-    initialHighlightedFeatureId
-  );
-  const [hasClickedFeature, setHasClickedFeature] = useState(false);
-
-  // Track the latest highlightedFeatureId in a ref so the unmount cleanup
-  // can read the current value without re-running the mount effect.
-  const highlightedFeatureIdRef = useRef<string | null>(initialHighlightedFeatureId);
-  useEffect(() => {
-    highlightedFeatureIdRef.current = highlightedFeatureId;
-  }, [highlightedFeatureId]);
-
-  const autoRotateTimeoutRef = useRef<number | null>(null);
-  const autoRotateIntervalRef = useRef<number | null>(null);
-
-  const stopAutoRotate = useCallback(() => {
-    if (autoRotateTimeoutRef.current !== null) {
-      clearTimeout(autoRotateTimeoutRef.current);
-      autoRotateTimeoutRef.current = null;
-    }
-    if (autoRotateIntervalRef.current !== null) {
-      clearInterval(autoRotateIntervalRef.current);
-      autoRotateIntervalRef.current = null;
-    }
-  }, []);
-
-  const selectFeature = useCallback(
-    (feature: Feature) => {
-      stopAutoRotate();
-      setHighlightedFeatureId(currentId =>
-        feature.id === currentId ? null : feature.id
-      );
-      setHasClickedFeature(true);
-      trackGetsentryAnalytics('business_landing.clicked', {
-        organization,
-        subscription,
-        source,
-        type: `selected ${feature.id}`,
-      });
-    },
-    [stopAutoRotate, organization, subscription, source]
-  );
-
-  useEffect(() => {
-    trackGetsentryAnalytics('business_landing.viewed', {
-      organization,
-      subscription,
-      source,
-      initial_feature: highlightedFeatureIdRef.current || '',
-      has_permissions: organization.access.includes('org:billing'),
-    });
-
-    features.forEach(feat => {
-      const img = new Image();
-      img.src = feat.image;
-    });
-
-    const showNextFeature = () => {
-      setHighlightedFeatureId(currentId => {
-        const featureIds = features.map(f => f.id);
-        const nextIndex = currentId ? featureIds.indexOf(currentId) + 1 : 0;
-        return featureIds[nextIndex % features.length]!;
-      });
-    };
-
-    const firstAutoRotate = () => {
-      showNextFeature();
-      autoRotateIntervalRef.current = window.setInterval(
-        showNextFeature,
-        ROTATE_INTERVAL
-      );
-    };
-    autoRotateTimeoutRef.current = window.setTimeout(
-      firstAutoRotate,
-      FIRST_ROTATE_TIMEOUT
-    );
-
-    return () => {
-      trackGetsentryAnalytics('business_landing.closed', {
-        organization,
-        subscription,
-        source,
-        closing_feature: highlightedFeatureIdRef.current ?? '',
-      });
-      stopAutoRotate();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const highlightedFeature = features.find(feat => feat.id === highlightedFeatureId);
-
+function getDefaultMessaging(subscription: Subscription, organization: Organization) {
   const sentences = isTrial(subscription)
     ? // If the subscription already has performance
       hasPerformance(subscription.planDetails)
@@ -363,6 +269,88 @@ export function Details({onCloseModal, organization, source, subscription}: Prop
             {strong: <strong />}
           );
 
+  return {sentences, cta};
+}
+
+function usePreloadImages(urls: string[]) {
+  useEffect(() => {
+    for (const url of urls) {
+      const img = new Image();
+      img.src = url;
+    }
+  }, [urls]);
+}
+
+interface LandingAnalyticsOptions {
+  highlightedFeatureId: string | null;
+  organization: Organization;
+  source: string;
+  subscription: Subscription;
+}
+
+/**
+ * Tracks when the landing is viewed and closed. The closed event reports
+ * whichever feature is highlighted at unmount, not the one at mount.
+ */
+export function useUpsellLandingAnalytics({
+  highlightedFeatureId,
+  organization,
+  source,
+  subscription,
+}: LandingAnalyticsOptions) {
+  const trackViewed = useEffectEvent(() => {
+    trackGetsentryAnalytics('business_landing.viewed', {
+      organization,
+      subscription,
+      source,
+      initial_feature: highlightedFeatureId || '',
+      has_permissions: organization.access.includes('org:billing'),
+    });
+  });
+  const trackClosed = useEffectEvent(() => {
+    trackGetsentryAnalytics('business_landing.closed', {
+      organization,
+      subscription,
+      source,
+      closing_feature: highlightedFeatureId ?? '',
+    });
+  });
+
+  useEffect(() => {
+    trackViewed();
+    return () => trackClosed();
+  }, []);
+}
+
+export function Details({onCloseModal, organization, source, subscription}: Props) {
+  // Frozen at mount so the rotation can't drift from the rendered list if the
+  // subscription updates while the modal is open.
+  const [features] = useState(() => getFeatures(subscription));
+  const imageUrls = useMemo(() => features.map(f => f.image), [features]);
+
+  const {highlightedFeatureId, hasClickedFeature, selectFeature} = useFeatureRotation({
+    features,
+    initialFeatureId: features.some(f => f.id === source) ? source : null,
+    firstDelayMs: FIRST_ROTATE_TIMEOUT,
+    intervalMs: ROTATE_INTERVAL,
+  });
+
+  useUpsellLandingAnalytics({highlightedFeatureId, organization, source, subscription});
+  usePreloadImages(imageUrls);
+
+  const handleFeatureClick = (feature: Feature) => {
+    selectFeature(feature);
+    trackGetsentryAnalytics('business_landing.clicked', {
+      organization,
+      subscription,
+      source,
+      type: `selected ${feature.id}`,
+    });
+  };
+
+  const highlightedFeature = features.find(feat => feat.id === highlightedFeatureId);
+  const {sentences, cta} = getDefaultMessaging(subscription, organization);
+
   return (
     <Fragment>
       <Grid columns={{zero: '1fr', xl: 'auto 200px'}} gap={{xl: '3xl'}} marginBottom="xl">
@@ -390,9 +378,9 @@ export function Details({onCloseModal, organization, source, subscription}: Prop
         <FeatureList
           features={features}
           selected={highlightedFeature}
-          onClick={selectFeature}
+          onClick={handleFeatureClick}
           withCountdown={hasClickedFeature ? undefined : ROTATE_INTERVAL}
-          shouldShowTeamFeatures={shouldShowTeamFeatures}
+          shouldShowTeamFeatures={subscription.isFree || subscription.onTrialPlan}
           shouldShowPerformanceFeatures={!hasPerformance(subscription.planDetails)}
         />
       </Grid>
