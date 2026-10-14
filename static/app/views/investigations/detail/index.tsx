@@ -321,13 +321,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     }),
     enabled: Boolean(source.groupId),
   });
+  const hasDetails =
+    Boolean(investigation.orchestration) ||
+    visibleBlocks.length > 0 ||
+    awaitingReportCell;
   // With a summary on top, everything Seer did to reach it sits below a rule
   // under its own heading. Without one there is nothing to set it apart from.
   const showDetailsHeading =
-    Boolean(investigation.summary && investigation.summaryDescription) &&
-    (Boolean(investigation.orchestration) ||
-      visibleBlocks.length > 0 ||
-      awaitingReportCell);
+    hasDetails && Boolean(investigation.summary && investigation.summaryDescription);
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -495,49 +496,55 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
 
               {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
 
-              <DetailsIntro gap="lg">
-                {showDetailsHeading ? (
-                  <Heading as="h2" size="lg">
-                    {t('Investigation details')}
-                  </Heading>
-                ) : null}
-                {/*
-                 * Only an agentic investigation has hypotheses, and `orchestration`
-                 * being present is the only thing that says one is: it is null for
-                 * manual and template investigations, whose orchestration endpoint
-                 * 404s.
-                 */}
-                {investigation.orchestration ? (
-                  <InvestigationHypotheses
-                    investigationId={investigation.id}
-                    phase={investigation.orchestration.phase}
-                    status={investigation.orchestration.status}
-                  />
-                ) : null}
-              </DetailsIntro>
-
-              {visibleBlocks.length > 0 || awaitingReportCell ? (
-                <Stack>
-                  {visibleBlocks.map((block, index) => (
-                    <Container key={block.id} paddingTop={getCellSpacing(block, index)}>
-                      <InvestigationCell
-                        block={block}
-                        canRun={investigation.status === 'active'}
-                        investigation={investigation}
-                        commentCount={commentCounts?.[block.id]}
-                        onComment={
-                          isArchived && commentCounts && !commentCounts[block.id]
-                            ? undefined
-                            : openBlockComments
-                        }
-                      />
-                    </Container>
-                  ))}
-                  {awaitingReportCell ? (
-                    <Container paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}>
-                      <InvestigationCellPlaceholder />
-                    </Container>
+              {hasDetails ? (
+                <Stack gap="lg">
+                  {showDetailsHeading ? (
+                    <Heading as="h2" size="lg">
+                      {t('Investigation details')}
+                    </Heading>
                   ) : null}
+                  <DetailsBody gap="3xl">
+                    {/*
+                     * Only an agentic investigation has hypotheses, and `orchestration`
+                     * being present is the only thing that says one is: it is null for
+                     * manual and template investigations, whose orchestration endpoint
+                     * 404s.
+                     */}
+                    {investigation.orchestration ? (
+                      <InvestigationHypotheses
+                        investigationId={investigation.id}
+                        phase={investigation.orchestration.phase}
+                        status={investigation.orchestration.status}
+                      />
+                    ) : null}
+                    {visibleBlocks.length > 0 || awaitingReportCell ? (
+                      <Stack>
+                        {visibleBlocks.map((block, index) => (
+                          <Container
+                            key={block.id}
+                            paddingTop={getCellSpacing(block, index)}
+                          >
+                            <InvestigationCell
+                              block={block}
+                              canRun={investigation.status === 'active'}
+                              investigation={investigation}
+                              commentCount={commentCounts?.[block.id]}
+                              onComment={
+                                isArchived && commentCounts && !commentCounts[block.id]
+                                  ? undefined
+                                  : openBlockComments
+                              }
+                            />
+                          </Container>
+                        ))}
+                        {awaitingReportCell ? (
+                          <Container paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}>
+                            <InvestigationCellPlaceholder />
+                          </Container>
+                        ) : null}
+                      </Stack>
+                    ) : null}
+                  </DetailsBody>
                 </Stack>
               ) : null}
               <InvestigationActivity
@@ -649,10 +656,10 @@ const NotebookTitleInput = styled(Input)`
 
 /**
  * The hypotheses render nothing for a run that has none to show, which can
- * leave this wrapper with no children. Dropping it then keeps the page's gap
- * from opening up twice around an empty element.
+ * leave this wrapper with no children. Dropping it then keeps the heading's gap
+ * from opening up over an empty element.
  */
-const DetailsIntro = styled(Stack)`
+const DetailsBody = styled(Stack)`
   &:empty {
     display: none;
   }
