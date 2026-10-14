@@ -38,14 +38,16 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.monitors.grouptype import MonitorIncidentType
-from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import (
+    create_legacy_notification_origin,
+    create_notification_origin,
+)
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -382,7 +384,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         self.project.save(update_fields=["flags"])
         more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
         notes = "hey @colleen fix it"
-        origin = create_notification_origin(rule)
+        origin = create_legacy_notification_origin(rule)
         assert origin.legacy_rule_id is not None
         assert origin.workflow_id is not None
 
@@ -458,22 +460,15 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert SlackIssuesMessageBuilder(group).build() == test_message
 
     def test_build_group_block_with_workflow_only(self) -> None:
-        rule = self.create_project_rule(project=self.project)
-        rule_origin = create_notification_origin(rule)
-        workflow_id = rule_origin.workflow_id
-        assert workflow_id is not None
-        origin = NotificationOrigin(
-            label=rule.label,
-            environment_id=rule.environment_id,
-            workflow_id=workflow_id,
-            legacy_rule_id=None,
-        )
+        workflow = self.create_workflow(organization=self.organization)
 
-        blocks = SlackIssuesMessageBuilder(self.group, rules=[origin]).build()["blocks"]
+        blocks = SlackIssuesMessageBuilder(
+            self.group, rules=[create_notification_origin(workflow)]
+        ).build()["blocks"]
 
         assert orjson.loads(blocks[0]["block_id"]) == {
             "issue": self.group.id,
-            "workflow": workflow_id,
+            "workflow": workflow.id,
         }
 
     def test_build_group_block_with_message(self) -> None:
@@ -1323,7 +1318,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         assert group
         group.update(type=1, substatus=GroupSubStatus.ONGOING, times_seen=3)
 
-        context = get_context(group, [create_notification_origin(rule)])
+        context = get_context(group, [create_legacy_notification_origin(rule)])
         assert (
             context
             == f"Events: *3*   Users Affected: *7*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
@@ -1331,7 +1326,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
 
         # filter users affected by env
         rule.update(environment_id=env.id)
-        context = get_context(group, [create_notification_origin(rule)])
+        context = get_context(group, [create_legacy_notification_origin(rule)])
         assert (
             context
             == f"Events: *3*   Users Affected: *5*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"

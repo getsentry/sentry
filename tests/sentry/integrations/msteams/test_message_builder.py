@@ -49,7 +49,6 @@ from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
-from sentry.notifications.types import NotificationOrigin
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
@@ -119,11 +118,11 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert self.event1.group is not None
         self.group1 = self.event1.group
 
-        self.rules = [
-            self.create_project_rule(name="rule1"),
-            self.create_project_rule(name="rule2"),
+        workflows = [
+            self.create_workflow(organization=self.org, name="rule1"),
+            self.create_workflow(organization=self.org, name="rule2"),
         ]
-        self.origins = [create_notification_origin(rule) for rule in self.rules]
+        self.origins = [create_notification_origin(workflow) for workflow in workflows]
 
     def test_simple(self) -> None:
         card = MSTeamsMessageBuilder().build(
@@ -426,22 +425,17 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_issue_action_payload_includes_workflow_ids_only(self) -> None:
         origin = self.origins[0]
-        rule = NotificationOrigin(
-            label=origin.label,
-            environment_id=origin.environment_id,
-            legacy_rule_id=origin.legacy_rule_id,
-            workflow_id=123,
-        )
+        assert origin.workflow_id is not None
 
         payload = MSTeamsIssueMessageBuilder(
             group=self.group1,
             event=self.event1,
-            rules=[rule],
+            rules=[origin],
             integration=self.integration,
         ).generate_action_payload(ACTION_TYPE.RESOLVE)["payload"]
 
         assert "rules" not in payload
-        assert payload["workflows"] == [123]
+        assert payload["workflows"] == [origin.workflow_id]
 
     def test_issue_description_uses_event(self) -> None:
         self.event1.data["metadata"].update({"value": "event error"})

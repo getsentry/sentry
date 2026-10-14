@@ -15,7 +15,10 @@ from sentry.testutils.asserts import (
     assert_slo_metric,
 )
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import (
+    create_legacy_notification_origin,
+    create_notification_origin,
+)
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -79,12 +82,12 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = self.create_project_rule(name="my rule")
+        workflow = self.create_workflow(organization=self.organization, name="my rule")
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[create_notification_origin(rule)],
+                rules=[create_notification_origin(workflow)],
                 event=event,
                 group=group,
                 priority="P2",
@@ -102,7 +105,7 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Workflows": "my rule",
-                "Triggering Workflow URLs": f"http://example.com/organizations/baz/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/",
+                "Triggering Workflow URLs": f"http://example.com/organizations/baz/monitors/alerts/{workflow.id}/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
@@ -140,18 +143,12 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = self.create_project_rule(
-            action_data=[
-                {
-                    "legacy_rule_id": "123",
-                }
-            ]
-        )
+        workflow = self.create_workflow(organization=self.organization)
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[create_notification_origin(rule)],
+                rules=[create_notification_origin(workflow)],
                 event=event,
                 group=group,
                 priority="P2",
@@ -168,8 +165,8 @@ class OpsgenieClientTest(APITestCase):
             "priority": "P2",
             "details": {
                 "Project Name": self.project.name,
-                "Triggering Workflows": rule.label,
-                "Triggering Workflow URLs": f"http://example.com/organizations/baz/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/",
+                "Triggering Workflows": workflow.name,
+                "Triggering Workflow URLs": f"http://example.com/organizations/baz/monitors/alerts/{workflow.id}/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
@@ -205,19 +202,12 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = self.create_project_rule(
-            action_data=[
-                {
-                    "workflow_id": "123",
-                }
-            ],
-            include_legacy_rule_id=False,
-        )
+        workflow = self.create_workflow(organization=self.organization)
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[create_notification_origin(rule)],
+                rules=[create_notification_origin(workflow)],
                 event=event,
                 group=group,
                 priority="P2",
@@ -234,8 +224,8 @@ class OpsgenieClientTest(APITestCase):
             "priority": "P2",
             "details": {
                 "Project Name": self.project.name,
-                "Triggering Workflows": rule.label,
-                "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.slug}/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/",
+                "Triggering Workflows": workflow.name,
+                "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.slug}/monitors/alerts/{workflow.id}/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
@@ -262,7 +252,7 @@ class OpsgenieClientTest(APITestCase):
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         payload = client.build_issue_alert_payload(
             data=event,
-            rules=[create_notification_origin(rule)],
+            rules=[create_legacy_notification_origin(rule)],
             event=event,
             group=group,
             priority="P2",
@@ -300,7 +290,7 @@ class OpsgenieClientTest(APITestCase):
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         payload = client.build_issue_alert_payload(
             data=event,
-            rules=[create_notification_origin(rule)],
+            rules=[create_legacy_notification_origin(rule)],
             event=event,
             group=group,
             priority="P2",
@@ -338,13 +328,13 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = self.create_project_rule(name="my rule")
+        workflow = self.create_workflow(organization=self.organization, name="my rule")
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
 
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[create_notification_origin(rule)],
+                rules=[create_notification_origin(workflow)],
                 event=event,
                 group=group,
                 priority="P2",

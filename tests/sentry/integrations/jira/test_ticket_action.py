@@ -16,7 +16,7 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers.notifications import create_notification_action_context
+from sentry.testutils.helpers.notifications import create_legacy_notification_action_context
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
@@ -49,7 +49,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     def trigger(self, event, rule_object):
         action = rule_object.data.get("actions", ())[0]
-        context = create_notification_action_context(rule_object)
+        context = create_legacy_notification_action_context(rule_object)
         action_inst = self.get_rule(data=action, context=context)
         results = list(action_inst.after(event=event))
         assert len(results) == 1

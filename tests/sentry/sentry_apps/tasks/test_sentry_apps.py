@@ -52,7 +52,7 @@ from sentry.testutils.asserts import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import create_notification_action_context
+from sentry.testutils.helpers.notifications import create_legacy_notification_action_context
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -123,7 +123,7 @@ MockResponse502 = MockResponse(headers, json_content, "", False, 502, raiseHTTPE
 class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
     def setUp(self) -> None:
         self.sentry_app = self.create_sentry_app(organization=self.organization)
-        self.rule = self.create_project_rule(name="Issa Rule")
+        self.context = self.create_notification_action_context(name="Issa Rule")
         self.install = self.create_sentry_app_installation(
             organization=self.organization, slug=self.sentry_app.slug
         )
@@ -143,7 +143,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
                 instance_id=group_event.event_id,
                 group_id=group_event.group_id,
                 occurrence_id=None,
-                rule_label=self.rule.label,
+                rule_label=self.context.origin.label,
                 sentry_app_id=9999,
             )
 
@@ -174,7 +174,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
                 instance_id=str(123),
                 group_id=issue.id,
                 occurrence_id=None,
-                rule_label=self.rule.label,
+                rule_label=self.context.origin.label,
                 sentry_app_id=self.sentry_app.id,
             )
 
@@ -196,7 +196,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group_event = GroupEvent.from_event(event, event.group)
-        rule_future = RuleFuture(context=create_notification_action_context(self.rule), kwargs={})
+        rule_future = RuleFuture(context=self.context, kwargs={})
 
         with self.tasks():
             notify_sentry_app(group_event, [rule_future])
@@ -211,7 +211,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert event.group is not None
         group_event = GroupEvent.from_event(event, event.group)
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.rule),
+            context=self.context,
             kwargs={"sentry_app": sentry_app},
         )
 
@@ -241,7 +241,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         group = event.group
         group_event = GroupEvent.from_event(event, group)
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.rule),
+            context=self.context,
             kwargs={"sentry_app": self.sentry_app},
         )
 
@@ -255,7 +255,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             "installation": {"uuid": self.install.uuid},
             "data": {
                 "event": ANY,  # tested below
-                "triggered_rule": self.rule.label,
+                "triggered_rule": self.context.origin.label,
             },
             "actor": {"type": "application", "id": "sentry", "name": "Sentry"},
         }
@@ -321,7 +321,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         ]
 
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.rule),
+            context=self.context,
             kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
         )
 
@@ -332,10 +332,10 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         payload = json.loads(kwargs["data"])
 
         assert payload["action"] == "triggered"
-        assert payload["data"]["triggered_rule"] == self.rule.label
+        assert payload["data"]["triggered_rule"] == self.context.origin.label
         assert payload["data"]["issue_alert"] == {
-            "id": self.rule.id,
-            "title": self.rule.label,
+            "id": self.context.origin.workflow_id,
+            "title": self.context.origin.label,
             "sentry_app_id": self.sentry_app.id,
             "settings": settings,
         }
@@ -382,7 +382,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         ]
 
         rule_future = RuleFuture(
-            context=create_notification_action_context(rule),
+            context=create_legacy_notification_action_context(rule),
             kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
         )
 
@@ -434,7 +434,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.rule),
+            context=self.context,
             kwargs={"sentry_app": self.sentry_app},
         )
 
@@ -448,7 +448,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
             "installation": {"uuid": self.install.uuid},
             "data": {
                 "event": ANY,  # tested below
-                "triggered_rule": self.rule.label,
+                "triggered_rule": self.context.origin.label,
             },
             "actor": {"type": "application", "id": "sentry", "name": "Sentry"},
         }
@@ -526,7 +526,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.rule),
+            context=self.context,
             kwargs={"sentry_app": self.sentry_app},
         )
 
@@ -567,7 +567,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         ]
 
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.rule),
+            context=self.context,
             kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
         )
 
@@ -578,10 +578,10 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         payload = json.loads(kwargs["data"])
 
         assert payload["action"] == "triggered"
-        assert payload["data"]["triggered_rule"] == self.rule.label
+        assert payload["data"]["triggered_rule"] == self.context.origin.label
         assert payload["data"]["issue_alert"] == {
-            "id": self.rule.id,
-            "title": self.rule.label,
+            "id": self.context.origin.workflow_id,
+            "title": self.context.origin.label,
             "sentry_app_id": self.sentry_app.id,
             "settings": settings,
         }

@@ -22,7 +22,7 @@ from sentry.testutils.helpers.analytics import (
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import (
     TEST_ISSUE_OCCURRENCE,
-    create_notification_action_context,
+    create_legacy_notification_action_context,
 )
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -106,7 +106,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.project_rule),
+            context=create_legacy_notification_action_context(self.project_rule),
             kwargs=results[0].kwargs,
         )
         results[0].callback(event, futures=[rule_future])
@@ -160,7 +160,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.project_rule),
+            context=create_legacy_notification_action_context(self.project_rule),
             kwargs=results[0].kwargs,
         )
         results[0].callback(event, futures=[rule_future])
@@ -199,7 +199,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.project_rule),
+            context=create_legacy_notification_action_context(self.project_rule),
             kwargs=results[0].kwargs,
         )
         results[0].callback(group_event, futures=[rule_future])
@@ -242,7 +242,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.project_rule),
+            context=create_legacy_notification_action_context(self.project_rule),
             kwargs=results[0].kwargs,
         )
         results[0].callback(event, futures=[rule_future])

@@ -23,12 +23,10 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.notifications import create_notification_action_context
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
-from sentry.workflow_engine.models import Action
 from tests.sentry.integrations.slack.test_notifications import (
     additional_attachment_generator_block_kit,
 )
@@ -98,14 +96,11 @@ class SlackNotifyActionTest(RuleTestCase):
     ) -> None:
         event = self.get_event()
 
-        fake_rule = self.create_project_rule()
-        action = Action.objects.all().order_by("id").first()
-        assert action
-        fake_rule.id = action.id
+        action = self.create_action()
 
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel"},
-            context=create_notification_action_context(fake_rule),
+            context=self.create_notification_action_context(action=action),
         )
 
         results = list(rule.after(event=event))
@@ -420,17 +415,14 @@ class SlackNotifyActionTest(RuleTestCase):
         ):
             event = self.get_event()
 
-            fake_rule = self.create_project_rule()
-            action = Action.objects.all().order_by("id").first()
-            assert action
-            fake_rule.id = action.id
+            action = self.create_action()
             rule = self.get_rule(
                 data={
                     "workspace": self.integration.id,
                     "channel": "#my-channel",
                     "channel_id": "123",
                 },
-                context=create_notification_action_context(fake_rule),
+                context=self.create_notification_action_context(action=action),
             )
 
             notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
