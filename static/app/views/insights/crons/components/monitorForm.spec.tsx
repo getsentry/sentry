@@ -133,18 +133,6 @@ describe('MonitorForm', () => {
     const ownerSelect = screen.getByRole('textbox', {name: 'Owner'});
     await selectEvent.select(ownerSelect, 'John Smith');
 
-    const notifySelect = screen.getByRole('textbox', {name: 'Notify'});
-
-    await selectEvent.openMenu(notifySelect);
-    expect(
-      screen.getByRole('menuitemcheckbox', {name: 'John Smith'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemcheckbox', {name: '#test-team'})
-    ).toBeInTheDocument();
-
-    await selectEvent.select(notifySelect, 'John Smith');
-
     const submitMock = MockApiClient.addMockResponse({
       url: apiEndpont,
       method: 'POST',
@@ -162,11 +150,6 @@ describe('MonitorForm', () => {
       timezone: 'America/Los_Angeles',
     };
 
-    const alertRule = {
-      environment: undefined,
-      targets: [{targetIdentifier: 1, targetType: 'Member'}],
-    };
-
     expect(submitMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -175,10 +158,10 @@ describe('MonitorForm', () => {
           project: 'project-slug',
           owner: `user:${member.user?.id}`,
           config,
-          alertRule,
         },
       })
     );
+    expect(submitMock.mock.calls[0]?.[1]?.data).not.toHaveProperty('alertRule');
 
     expect(mockHandleSubmitSuccess).toHaveBeenCalled();
   });
@@ -243,11 +226,16 @@ describe('MonitorForm', () => {
     expect(ownerOption).toBeChecked();
     await userEvent.keyboard('{Escape}');
 
-    // Alert rule configuration
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Notify'}));
-    const memberOption = screen.getByRole('menuitemcheckbox', {name: member.user?.name});
-    expect(memberOption).toBeChecked();
-    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('textbox', {name: 'Notify'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Environment'})).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: 'Customize notification configuration in Alerts',
+      })
+    ).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/alerts/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`
+    );
 
     const submitMock = MockApiClient.addMockResponse({
       url: apiEndpont,
@@ -280,11 +268,6 @@ describe('MonitorForm', () => {
       failureIssueThreshold: '10',
     };
 
-    const alertRule = {
-      environment: undefined,
-      targets: [{targetIdentifier: 1, targetType: 'Member'}],
-    };
-
     expect(submitMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -294,10 +277,10 @@ describe('MonitorForm', () => {
           project: monitor.project.slug,
           owner: `user:${member.user?.id}`,
           config,
-          alertRule,
         },
       })
     );
+    expect(submitMock.mock.calls[0]?.[1]?.data).not.toHaveProperty('alertRule');
   });
 
   it('filters non-ASCII characters from crontab schedule', async () => {
