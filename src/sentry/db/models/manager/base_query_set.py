@@ -38,10 +38,15 @@ class BaseQuerySet(QuerySet[M, R]):
         """
         Copied and modified from `Queryset.update()` to support `RETURNING <returned_fields>`
         """
-        pk = self.model._meta.pk.name
+        if not returned_fields:
+            raise ValueError("Must return at least one field")
 
-        if self._with_post_update_signal and pk not in returned_fields:
-            raise ValueError(f"Must return `{pk}` to send the post_update signal")
+        pk_name = self.model._meta.pk.name
+
+        if self._with_post_update_signal and returned_fields[0] != pk_name:
+            raise ValueError(
+                f"Must return `{pk_name}` as the first field to send the post_update signal"
+            )
 
         self._not_support_combined_queries("update")  # type: ignore[attr-defined]
         if self.query.is_sliced:
@@ -83,9 +88,7 @@ class BaseQuerySet(QuerySet[M, R]):
         self._result_cache = None
 
         if self._with_post_update_signal:
-            pk_index = returned_fields.index(pk)
-
-            model_ids = [row[pk_index] for row in result_ids]
+            model_ids = [row[0] for row in result_ids]
 
             self._send_post_update_signal(updated_fields=list(kwargs.keys()), model_ids=model_ids)
 
@@ -101,8 +104,8 @@ class BaseQuerySet(QuerySet[M, R]):
 
     def update(self, **kwargs: Any) -> int:
         if self._with_post_update_signal:
-            pk = self.model._meta.pk.name
-            return len(self.update_with_returning([pk], **kwargs))
+            pk_name = self.model._meta.pk.name
+            return len(self.update_with_returning([pk_name], **kwargs))
         else:
             return super().update(**kwargs)
 

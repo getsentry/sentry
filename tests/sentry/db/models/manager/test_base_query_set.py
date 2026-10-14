@@ -59,15 +59,27 @@ class TestUpdateWithReturning(TestCase):
             returned_fields=["id"], message="hi"
         )
 
+    def test_raises_when_no_fields_returned(self) -> None:
+        original_message = self.group.message
+
+        queryset = Group.objects.filter(id=self.group.id)
+
+        with pytest.raises(ValueError, match="at least one field"):
+            queryset.update_with_returning(returned_fields=[], message="hi")
+
+        self.group.refresh_from_db()
+
+        assert self.group.message == original_message
+
     def test_sends_post_update_signal_with_ids_from_returned_rows(self) -> None:
         queryset = Group.objects.filter(id=self.group.id).with_post_update_signal(True)
 
         with catch_signal(post_update) as handler:
             returned = queryset.update_with_returning(
-                returned_fields=["message", "id"], message="hi"
+                returned_fields=["id", "message"], message="hi"
             )
 
-        assert returned == [("hi", self.group.id)]
+        assert returned == [(self.group.id, "hi")]
 
         handler.assert_called_once_with(
             signal=post_update,
@@ -83,6 +95,18 @@ class TestUpdateWithReturning(TestCase):
 
         with pytest.raises(ValueError, match="post_update"):
             queryset.update_with_returning(returned_fields=["message"], message="hi")
+
+        self.group.refresh_from_db()
+
+        assert self.group.message == original_message
+
+    def test_raises_when_signal_enabled_and_primary_key_not_first(self) -> None:
+        original_message = self.group.message
+
+        queryset = Group.objects.filter(id=self.group.id).with_post_update_signal(True)
+
+        with pytest.raises(ValueError, match="first field"):
+            queryset.update_with_returning(returned_fields=["message", "id"], message="hi")
 
         self.group.refresh_from_db()
 
