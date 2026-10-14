@@ -9,6 +9,9 @@ import {
 } from 'react';
 import {css, keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconList} from '@sentry/icons/list';
+import {IconSearch} from '@sentry/icons/search';
+import {IconWarning} from '@sentry/icons/warning';
 import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -28,7 +31,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {ResultTable} from 'sentry/components/resultTable';
-import {IconList, IconSearch, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Cell} from 'sentry/types/system';
 import {getCells} from 'sentry/utils/cells';
@@ -773,7 +775,7 @@ export function ResultGrid({
    * which ones have matches for the current query. Runs only after the active
    * region returns no results, so there is no cost on the common path.
    */
-  const probeOtherRegions = (
+  const probeOtherRegions = async (
     baseParams: Record<string, any>,
     currentCell: Cell | undefined
   ) => {
@@ -791,34 +793,30 @@ export function ResultGrid({
     // how many. The admin customers endpoint doesn't return an X-Hits total, so
     // we deliberately surface presence only rather than an unreliable count.
     const probeParams = {...baseParams, cursor: '', per_page: 1};
-    const matches: Cell[] = [];
-    let remaining = otherCells.length;
 
-    const finalize = () => {
-      remaining -= 1;
-      // Ignore results from a probe that has since been superseded.
-      if (remaining > 0 || token !== probeTokenRef.current) {
-        return;
-      }
-      matches.sort((a, b) => a.name.localeCompare(b.name));
-      setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
-    };
+    // A failed probe is treated as "no match" for that region.
+    const probeResults = await Promise.allSettled(
+      otherCells.map(async probedCell => {
+        const data = await api.requestPromise(cellEndpoint(probedCell), {
+          method,
+          host: probedCell.locality_url,
+          data: probeParams,
+        });
+        const rows = rowsFromData?.(data, probedCell) ?? data;
+        return Array.isArray(rows) && rows.length > 0 ? probedCell : null;
+      })
+    );
 
-    otherCells.forEach(probedCell => {
-      api.request(cellEndpoint(probedCell), {
-        method,
-        host: probedCell.locality_url,
-        data: probeParams,
-        success: data => {
-          const rows = rowsFromData?.(data, probedCell) ?? data;
-          if (Array.isArray(rows) && rows.length > 0) {
-            matches.push(probedCell);
-          }
-          finalize();
-        },
-        error: () => finalize(),
-      });
-    });
+    // Ignore results from a probe that has since been superseded.
+    if (token !== probeTokenRef.current) {
+      return;
+    }
+
+    const matches = probeResults
+      .map(result => (result.status === 'fulfilled' ? result.value : null))
+      .filter((matchedCell): matchedCell is Cell => matchedCell !== null)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
   };
 
   // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
@@ -839,6 +837,9 @@ export function ResultGrid({
   /**
    * Request one page from each given region, merge the rows into the table and
    * record the cursor of any region that reports a further page.
+   *
+   * Each region's fetch is fire-and-forget: results are applied to React state
+   * as they arrive, so the caller does not need to await this function.
    */
   const fetchRegionPages = (
     pages: Array<{cell: Cell; cursor: string}>,
@@ -848,7 +849,7 @@ export function ResultGrid({
     const names = pages.map(page => page.cell.name);
     const sortBy = request.sortBy;
 
-    pages.forEach(({cell: pageCell, cursor}) => {
+    pages.forEach(async ({cell: pageCell, cursor}) => {
       const markFailed = () => {
         if (token !== fetchTokenRef.current) {
           return;
@@ -871,53 +872,46 @@ export function ResultGrid({
         });
       };
 
-      const pageRequest = api.request(cellEndpoint(pageCell), {
-        method,
-        host: pageCell.locality_url,
-        data: {...queryParams, cursor},
-        success: (data, _, resp) => {
-          if (token !== fetchTokenRef.current) {
-            return;
+      try {
+        const [data, _, resp] = await api.requestPromise(cellEndpoint(pageCell), {
+          method,
+          host: pageCell.locality_url,
+          data: {...queryParams, cursor},
+          includeAllArgs: true,
+        });
+        if (token !== fetchTokenRef.current) {
+          return;
+        }
+        const rows = rowsFromData?.(data, pageCell) ?? data;
+        const tagged = (Array.isArray(rows) ? rows : []).map(row => ({
+          ...row,
+          __region: pageCell,
+        }));
+        const next = parseLinkHeader(resp?.getResponseHeader('Link') ?? '').next;
+        const nextCursor = next?.results === true ? (next.cursor ?? '') : '';
+
+        setResults(prev => {
+          if (!prev.pendingRegions.includes(pageCell.name)) {
+            return prev;
           }
-          const rows = rowsFromData?.(data, pageCell) ?? data;
-          const tagged = (Array.isArray(rows) ? rows : []).map(row => ({
-            ...row,
-            __region: pageCell,
-          }));
-          const next = parseLinkHeader(resp?.getResponseHeader('Link') ?? '').next;
-          const nextCursor = next?.results === true ? (next.cursor ?? '') : '';
-
-          setResults(prev => {
-            if (!prev.pendingRegions.includes(pageCell.name)) {
-              return prev;
-            }
-            const regionCursors = {...prev.regionCursors};
-            if (nextCursor) {
-              regionCursors[pageCell.name] = nextCursor;
-            } else {
-              delete regionCursors[pageCell.name];
-            }
-            return {
-              ...prev,
-              rows: sortRows([...prev.rows, ...tagged], sortBy),
-              pendingRegions: prev.pendingRegions.filter(name => name !== pageCell.name),
-              regionCursors,
-            };
-          });
-          onLoad?.();
-        },
-        error: res => {
-          markFailed();
-          onError?.(res);
-        },
-      });
-
-      // The API client swallows a rejection of the fetch itself (a blocked
-      // request, a network failure) without running either callback, which
-      // would leave the region pending forever. Catch it here so the region
-      // resolves to failed. An abort from api.clear() also lands here, but
-      // the fetch token was already bumped by then, so markFailed ignores it.
-      pageRequest?.requestPromise?.catch(markFailed);
+          const regionCursors = {...prev.regionCursors};
+          if (nextCursor) {
+            regionCursors[pageCell.name] = nextCursor;
+          } else {
+            delete regionCursors[pageCell.name];
+          }
+          return {
+            ...prev,
+            rows: sortRows([...prev.rows, ...tagged], sortBy),
+            pendingRegions: prev.pendingRegions.filter(name => name !== pageCell.name),
+            regionCursors,
+          };
+        });
+        onLoad?.();
+      } catch (err) {
+        markFailed();
+        onError?.(err);
+      }
     });
   };
 
@@ -1019,11 +1013,20 @@ export function ResultGrid({
     const activeCell = cell;
     const token = fetchTokenRef.current;
 
-    const activeRequest = api.request(cellEndpoint(activeCell), {
-      method,
-      host: activeCell ? activeCell.locality_url : undefined,
-      data: queryParams,
-      success: (data, _, resp) => {
+    const fetchActiveCell = async () => {
+      try {
+        const [data, , resp] = await api.requestPromise(cellEndpoint(activeCell), {
+          method,
+          host: activeCell ? activeCell.locality_url : undefined,
+          data: queryParams,
+          includeAllArgs: true,
+        });
+
+        // A newer fetch superseded this one while it was in flight.
+        if (token !== fetchTokenRef.current) {
+          return;
+        }
+
         const rows = rowsFromData?.(data, activeCell) ?? data;
         const rowsArray = Array.isArray(rows) ? rows : [];
 
@@ -1068,25 +1071,21 @@ export function ResultGrid({
         // when the active region has results or no search is active. This flags
         // that the same subject (e.g. a user) also has records elsewhere.
         if (missingExactMatch || probeAllRegions) {
-          probeOtherRegions({...queryParams, query}, activeCell);
+          void probeOtherRegions({...queryParams, query}, activeCell);
         }
-      },
-      error: res => {
+      } catch (err) {
+        // requestPromise rejects on error responses and on failed fetches (a
+        // blocked request, a network failure). Requests aborted by api.clear()
+        // never settle, and a superseded fetch is ignored via the token.
+        if (token !== fetchTokenRef.current) {
+          return;
+        }
         setResults(prev => ({...prev, loading: false, error: true}));
-        onError?.(res);
-      },
-    });
-
-    // The API client swallows a rejection of the fetch itself (a blocked
-    // request, a network failure) without running either callback, which would
-    // leave the grid stuck on its loading state. Surface it as an error here.
-    // An abort from api.clear() also lands here, but the fetch token was
-    // already bumped by then, so a superseded request is ignored.
-    activeRequest?.requestPromise?.catch(() => {
-      if (token === fetchTokenRef.current) {
-        setResults(prev => ({...prev, loading: false, error: true}));
+        onError?.(err);
       }
-    });
+    };
+
+    void fetchActiveCell();
   });
 
   // A fetch is driven by the URL when `useQueryString` is on, and by the local

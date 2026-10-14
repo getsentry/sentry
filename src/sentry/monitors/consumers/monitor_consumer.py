@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
+import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
@@ -20,12 +21,13 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
 from django.conf import settings
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework import serializers
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
+from sentry_sdk import traces
+from sentry_sdk.scope import Scope
 from sentry_sdk.traces import StreamedSpan
-from sentry_sdk.tracing import Span, Transaction
 
 from sentry import options, quotas, ratelimits
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
@@ -90,7 +92,6 @@ from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -289,8 +290,7 @@ def _ensure_monitor_with_config(
 
     # Update existing monitor
     if monitor and not created:
-        if monitor.config != validated_config:
-            monitor.update_config(config, validated_config)
+        monitor.update_config(config, validated_config)
         if not monitor.is_upserting:
             monitor.update(is_upserting=True)
         if (owner_user_id or owner_team_id) and (
@@ -359,7 +359,7 @@ class _CheckinUpdateKwargs(TypedDict):
 
 
 def transform_checkin_uuid(
-    span: Transaction | Span | StreamedSpan,
+    span: StreamedSpan,
     metric_kwargs: dict[str, str],
     monitor_slug: str,
     check_in_id: str,
@@ -381,7 +381,7 @@ def transform_checkin_uuid(
         pass
 
     if check_in_guid is None:
-        set_span_tag(span, "result", "failed_guid_validation")
+        span.set_attribute("result", "failed_guid_validation")
         logger.info(
             "monitors.consumer.guid_validation_failed",
             extra={"guid": check_in_id, "slug": monitor_slug},
@@ -400,7 +400,7 @@ def transform_checkin_uuid(
 
 
 def update_existing_check_in(
-    span: Transaction | Span | StreamedSpan,
+    span: StreamedSpan,
     metric_kwargs: dict[str, str],
     project_id: int,
     monitor_environment: MonitorEnvironment,
@@ -427,7 +427,7 @@ def update_existing_check_in(
             "monitors.checkin.result",
             tags={"source": "consumer", "status": "guid_mismatch"},
         )
-        set_span_tag(span, "result", "guid_mismatch")
+        span.set_attribute("result", "guid_mismatch")
         logger.info(
             "monitors.consumer.guid_exists",
             extra={
@@ -480,7 +480,7 @@ def update_existing_check_in(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "checkin_finished"},
         )
-        set_span_tag(span, "result", "checkin_finished")
+        span.set_attribute("result", "checkin_finished")
         logger.info(
             "monitors.consumer.check_in_closed",
             extra={
@@ -512,7 +512,7 @@ def update_existing_check_in(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_duration_check"},
         )
-        set_span_tag(span, "result", "failed_duration_check")
+        span.set_attribute("result", "failed_duration_check")
         logger.info(
             "monitors.consumer.invalid_implicit_duration",
             extra={
@@ -575,7 +575,17 @@ def update_existing_check_in(
     existing_check_in.update(**updated_checkin)
 
 
-def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan) -> None:
+def _cache_checkin_relations(
+    check_in: MonitorCheckIn, monitor: Monitor, monitor_environment: MonitorEnvironment
+) -> None:
+    # Avoid re-fetching already loaded objects; only when the ids match
+    if check_in.monitor_id == monitor.id:
+        check_in.monitor = monitor
+    if check_in.monitor_environment_id == monitor_environment.id:
+        check_in.monitor_environment = monitor_environment
+
+
+def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     params = item.payload
 
     # XXX: The start_time is when relay received the original envelope store
@@ -743,7 +753,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_checkin_validation"},
         )
-        set_span_tag(span, "result", "failed_checkin_validation")
+        span.set_attribute("result", "failed_checkin_validation")
         logger.info(
             "monitors.consumer.checkin_validation_failed",
             extra={"guid": guid.hex, "payload": params},
@@ -783,7 +793,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_monitor_limits"},
         )
-        set_span_tag(span, "result", "failed_monitor_limits")
+        span.set_attribute("result", "failed_monitor_limits")
         logger.info(
             "monitors.consumer.monitor_limit_exceeded",
             extra={"guid": guid.hex, "project": project.id, "slug": monitor_slug},
@@ -815,7 +825,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_validation"},
         )
-        set_span_tag(span, "result", "failed_validation")
+        span.set_attribute("result", "failed_validation")
         logger.info(
             "monitors.consumer.monitor_validation_failed",
             extra={"guid": guid.hex, "project": project.id, "payload": params},
@@ -870,7 +880,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "monitor_disabled"},
         )
-        set_span_tag(span, "result", "monitor_disabled")
+        span.set_attribute("result", "monitor_disabled")
         track_outcome(
             org_id=project.organization_id,
             project_id=project.id,
@@ -896,7 +906,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_monitor_environment_limits"},
         )
-        set_span_tag(span, "result", "failed_monitor_environment_limits")
+        span.set_attribute("result", "failed_monitor_environment_limits")
         logger.info(
             "monitors.consumer.monitor_environment_limit_exceeded",
             extra={
@@ -925,7 +935,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "failed_monitor_environment_name_length"},
         )
-        set_span_tag(span, "result", "failed_monitor_environment_name_length")
+        span.set_attribute("result", "failed_monitor_environment_name_length")
         logger.info(
             "monitors.consumer.monitor_environment_validation_failed",
             extra={
@@ -985,7 +995,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                                 "status": "failed_monitor_environment_guid_match",
                             },
                         )
-                        set_span_tag(span, "result", "failed_monitor_environment_guid_match")
+                        span.set_attribute("result", "failed_monitor_environment_guid_match")
                         logger.info(
                             "monitors.consumer.monitor_environment_mismatch",
                             extra={
@@ -1014,7 +1024,8 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                         }
                         raise ProcessingErrorsException([env_mismatch_error], monitor)
 
-                set_span_tag(span, "outcome", "process_existing_checkin")
+                _cache_checkin_relations(check_in, monitor, monitor_environment)
+                span.set_attribute("outcome", "process_existing_checkin")
                 update_existing_check_in(
                     span,
                     metric_kwargs,
@@ -1050,24 +1061,36 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                 # Record the reported in_progress time when the check is in progress
                 date_in_progress = start_time if status == CheckInStatus.IN_PROGRESS else None
 
-                check_in, created = MonitorCheckIn.objects.get_or_create(
-                    defaults={
-                        "duration": duration,
-                        "status": status,
-                        "date_added": start_time,
-                        "date_updated": start_time,
-                        "date_clock": clock_time,
-                        "date_in_progress": date_in_progress,
-                        "expected_time": expected_time,
-                        "timeout_at": timeout_at,
-                        "monitor_config": checkin_monitor_config,
-                        "trace_id": trace_id,
-                    },
-                    project_id=project_id,
-                    monitor=monitor,
-                    monitor_environment=monitor_environment,
-                    guid=guid,
-                )
+                lookup = {
+                    "guid": guid,
+                    "project_id": project_id,
+                    "monitor": monitor,
+                    "monitor_environment": monitor_environment,
+                }
+                # The guid lookup above found nothing, so create directly
+                # rather than repeat the lookup with get_or_create.
+                try:
+                    with transaction.atomic(router.db_for_write(MonitorCheckIn)):
+                        check_in = MonitorCheckIn.objects.create(
+                            **lookup,
+                            duration=duration,
+                            status=status,
+                            date_added=start_time,
+                            date_updated=start_time,
+                            date_clock=clock_time,
+                            date_in_progress=date_in_progress,
+                            expected_time=expected_time,
+                            timeout_at=timeout_at,
+                            monitor_config=checkin_monitor_config,
+                            trace_id=trace_id,
+                        )
+                    created = True
+                except IntegrityError:
+                    existing = MonitorCheckIn.objects.select_for_update().get_or_none(**lookup)
+                    if existing is None:
+                        raise
+                    check_in = existing
+                    created = False
 
                 # Race condition. The check-in was created (such as an
                 # in_progress) while this check-in was being processed.
@@ -1076,7 +1099,8 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                 # XXX(epurkhiser): Is this needed since we're already
                 # locking this entire process?
                 if not created:
-                    set_span_tag(span, "outcome", "process_existing_checkin_race_condition")
+                    _cache_checkin_relations(check_in, monitor, monitor_environment)
+                    span.set_attribute("outcome", "process_existing_checkin_race_condition")
                     update_existing_check_in(
                         span,
                         metric_kwargs,
@@ -1088,7 +1112,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                         duration,
                     )
                 else:
-                    set_span_tag(span, "outcome", "create_new_checkin")
+                    span.set_attribute("outcome", "create_new_checkin")
                     with in_test_hide_transaction_boundary():
                         signal_first_checkin(project, monitor)
                     metrics.incr(
@@ -1149,7 +1173,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "error"},
         )
-        set_span_tag(span, "result", "error")
+        span.set_attribute("result", "error")
         logger.exception("Failed to process check-in")
 
     if non_fatal_processing_errors:
@@ -1160,16 +1184,26 @@ def process_checkin(item: CheckinItem) -> None:
     """
     Process an individual check-in
     """
-    with start_span(
-        op="_process_checkin",
-        name="monitors.monitor_consumer",
-        transaction=True,
-        custom_sampling_context={"sample_rate": settings.SENTRY_MONITORS_CHECKIN_APM_SAMPLING},
-    ) as txn:
+    traces.new_trace()
+    propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+    prev_sampling_context = propagation_context.custom_sampling_context
+    Scope.set_custom_sampling_context(
+        {"sample_rate": settings.SENTRY_MONITORS_CHECKIN_APM_SAMPLING}
+    )
+    try:
+        span = traces.start_span(
+            name="monitors.monitor_consumer",
+            attributes={"sentry.op": "_process_checkin"},
+            parent_span=None,
+        )
+    finally:
+        propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+        propagation_context.custom_sampling_context = prev_sampling_context
+    with span:
         try:
             # Deepcopy the checkin here so that it's not modified. We need the original when we get a
             # `ProcessingErrorsException`
-            _process_checkin(deepcopy(item), txn)
+            _process_checkin(deepcopy(item), span)
         except ProcessingErrorsException as e:
             handle_processing_errors(item, e)
         except Exception:
@@ -1234,12 +1268,22 @@ def process_batch(
     metrics.gauge("monitors.checkin.parallel_batch_groups", len(checkin_mapping))
 
     # Submit check-in groups for processing
-    with start_span(
-        op="process_batch",
-        name="monitors.monitor_consumer",
-        transaction=True,
-        custom_sampling_context={"sample_rate": settings.SENTRY_MONITORS_CHECKIN_APM_SAMPLING},
-    ):
+    traces.new_trace()
+    propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+    prev_sampling_context = propagation_context.custom_sampling_context
+    Scope.set_custom_sampling_context(
+        {"sample_rate": settings.SENTRY_MONITORS_CHECKIN_APM_SAMPLING}
+    )
+    try:
+        span = traces.start_span(
+            name="monitors.monitor_consumer",
+            attributes={"sentry.op": "process_batch"},
+            parent_span=None,
+        )
+    finally:
+        propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+        propagation_context.custom_sampling_context = prev_sampling_context
+    with span:
         futures = [
             executor.submit(process_checkin_group, group) for group in checkin_mapping.values()
         ]

@@ -28,6 +28,7 @@ import type {
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
+import {isEventViewEndInFuture} from 'sentry/views/insights/common/queries/useSpansQuery';
 import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
 
 type SeriesMap = Record<string, TimeSeries[]>;
@@ -37,8 +38,6 @@ interface Options<Fields> {
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
   fields?: string[];
-  includeAnnotations?: boolean;
-  includeMeasuredIngestionDelayMetadata?: boolean;
   interval?: string;
   logQuery?: string[];
   metricQuery?: string[];
@@ -71,8 +70,6 @@ export const useSortedTimeSeries = <
     logQuery,
     metricQuery,
     spanQuery,
-    includeAnnotations,
-    includeMeasuredIngestionDelayMetadata,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -100,6 +97,15 @@ export const useSortedTimeSeries = <
     ? intervalToMilliseconds(eventView.interval)
     : undefined;
 
+  let staleTime = isEventViewEndInFuture(eventView) ? 0 : Infinity;
+  if (
+    usesRelativeDateRange &&
+    defined(intervalInMilliseconds) &&
+    intervalInMilliseconds !== 0
+  ) {
+    staleTime = intervalInMilliseconds;
+  }
+
   const groupBy = fields?.filter(
     field => !(yAxis as unknown as string[]).includes(field)
   );
@@ -118,18 +124,11 @@ export const useSortedTimeSeries = <
       metricQuery,
       spanQuery,
       interval,
-      includeMeasuredIngestionDelayMetadata,
       sampling: samplingMode,
-      includeAnnotations,
       extrapolate: !disableAggregateExtrapolation,
       queryOptions: {
         enabled: enabled && pageFilters.isReady,
-        staleTime:
-          usesRelativeDateRange &&
-          defined(intervalInMilliseconds) &&
-          intervalInMilliseconds !== 0
-            ? intervalInMilliseconds
-            : Infinity,
+        staleTime,
       },
     },
     referrer

@@ -43,8 +43,6 @@ class SavedQueryStarredOrderSerializer(serializers.Serializer[dict[str, Any]]):
 class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     """
     Reorder a user's starred saved queries as one list spanning Discover and Explore.
-    This is meant to be used over ExploreSavedQueryStarredOrderEndpoint
-
 
     Discover and Explore stars share a single ``position``. A payload containing
     a subset of starred queries will only permute on that subset.

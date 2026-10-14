@@ -9,9 +9,11 @@ function renderMapping({
   value = {stackRoot: '', sourceRoot: '', branch: ''},
   editing = false,
   isNew = false,
+  projectSlug,
 }: {
   editing?: boolean;
   isNew?: boolean;
+  projectSlug?: string;
   value?: PathMappingValue;
 } = {}) {
   function Wrapper() {
@@ -30,6 +32,7 @@ function renderMapping({
           value={value}
           onDelete={jest.fn()}
           onExpandToggle={jest.fn()}
+          projectSlug={projectSlug}
         />
       </form.AppForm>
     );
@@ -84,29 +87,52 @@ describe('PathMapping', () => {
 
     expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveAttribute(
       'placeholder',
-      'src/'
+      'e.g src/'
     );
     expect(screen.getByRole('textbox', {name: /repository prefix/i})).toHaveAttribute(
       'placeholder',
-      'src/app'
+      'e.g src/app/'
     );
   });
 
-  it('renders preview using placeholder example and updates on input', async () => {
+  it('renders preview using placeholder example and updates on input', () => {
     renderMapping({editing: true, isNew: true});
 
+    expect(screen.getByText('Example preview')).toBeInTheDocument();
     expect(screen.getByText('In your stack trace')).toBeInTheDocument();
     expect(screen.getByText('Sentry opens in your repo')).toBeInTheDocument();
+    // No accent highlights — just the bare suffix on each side
+    expect(screen.getAllByText('views/index.tsx')).toHaveLength(2);
+  });
 
-    // Preview shows placeholder values while inputs are empty
-    expect(screen.getByText('src/')).toBeInTheDocument();
-    expect(screen.getByText('src/app/')).toBeInTheDocument();
+  it('accents only the filled prefix once a value is typed', async () => {
+    renderMapping({editing: true, isNew: true});
 
-    // Typing updates the stack root in the preview
     await userEvent.type(
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
       'lib/'
     );
+
     expect(screen.getByText('lib/')).toBeInTheDocument();
+  });
+
+  it('explains the disabled delete with a link to Code Owners', async () => {
+    renderMapping({
+      projectSlug: 'my-project',
+      value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main', hasCodeOwner: true},
+    });
+
+    const deleteButton = screen.getByRole('button', {name: 'Delete path mapping'});
+    expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(deleteButton);
+
+    expect(await screen.findByRole('link', {name: 'Code Owners'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/projects/my-project/ownership/')
+    );
+    expect(
+      screen.getByText(/Remove the Code Owners connection before editing these paths/)
+    ).toBeInTheDocument();
   });
 });

@@ -6,11 +6,11 @@ import {useConversations} from './useConversations';
 
 const BASE_CONVERSATION = {
   conversationId: 'conv-1',
-  duration: 1000,
   endTimestamp: 2000,
   errors: 0,
   llmCalls: 1,
   startTimestamp: 1000,
+  timeSpan: 1000,
   toolCalls: 0,
   toolErrors: 0,
   toolNames: [],

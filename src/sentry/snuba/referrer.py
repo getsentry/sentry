@@ -440,6 +440,7 @@ class Referrer(StrEnum):
     # Misc
     API_INSIGHTS_ORG_EVENT_AVERAGE_SPAN = "api.insights.org-event-average-span"
 
+    API_CODE_MAPPING_STACK_PREFIXES = "api.code-mapping.stack-prefixes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_METRICS_TOTALS = "api.metrics.totals"
@@ -603,7 +604,6 @@ class Referrer(StrEnum):
     API_TRACE_METRICS_TAG_VALUES_RPC = "api.tracemetrics.tags-values.rpc"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
-    API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
     API_SERIALIZER_PROJECTS_GET_STATS = "api.serializer.projects.get_stats"
     API_SERIALIZER_PROJECTS_GET_TRANSACTION_STATS = "api.serializer.projects.get_transaction_stats"
@@ -684,6 +684,7 @@ class Referrer(StrEnum):
     ISSUE_DETAILS_STREAMLINE_GRAPH = "issue_details.streamline_graph"
     ISSUE_DETAILS_STREAMLINE_LIST = "issue_details.streamline_list"
     ISSUES_ESCALATING_ISSUE_VELOCITY = "sentry.issues.escalating.issue_velocity"
+    ISSUES_LLM_CACHE_DETECTION = "issues.llm_cache_detection"
     ISSUES_LLM_ISSUE_DETECTION_TRANSACTION = "issues.llm_issue_detection.transaction"
     ISSUES_LLM_ISSUE_DETECTION_TRACE = "issues.llm_issue_detection.trace"
     ISSUES_LLM_ISSUE_DETECTION_SPAN_COUNT = "issues.llm_issue_detection.span_count"
@@ -889,7 +890,6 @@ class Referrer(StrEnum):
     )
     TRANSACTION_ANOMALY_DETECTION = "transaction-anomaly-detection"
 
-    TSDB_MODELID_0 = "tsdb-modelid:0"
     TSDB_MODELID_1 = "tsdb-modelid:1"
     TSDB_MODELID_4 = "tsdb-modelid:4"
     TSDB_MODELID_7 = "tsdb-modelid:7"
@@ -897,7 +897,6 @@ class Referrer(StrEnum):
     TSDB_MODELID_100 = "tsdb-modelid:100"
     TSDB_MODELID_101 = "tsdb-modelid:101"
     TSDB_MODELID_104 = "tsdb-modelid:104"
-    TSDB_MODELID_105 = "tsdb-modelid:105"
     TSDB_MODELID_200 = "tsdb-modelid:200"
     TSDB_MODELID_201 = "tsdb-modelid:201"
     TSDB_MODELID_202 = "tsdb-modelid:202"
@@ -921,7 +920,6 @@ class Referrer(StrEnum):
     TSDB_MODELID_609 = "tsdb-modelid:609"
     TSDB_MODELID_610 = "tsdb-modelid:610"
     TSDB_MODELID_611 = "tsdb-modelid:611"
-    TSDB_MODELID_700 = "tsdb-modelid:700"
     TSDB_MODELID_800 = "tsdb-modelid:800"
     TSDB_MODELID_801 = "tsdb-modelid:801"
 

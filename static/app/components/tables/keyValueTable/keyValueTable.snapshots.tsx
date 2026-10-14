@@ -1,5 +1,8 @@
 import {Button} from '@sentry/scraps/button';
 
+import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
+
+import {KeyValueColumns} from './keyValueColumns';
 import {KeyValueTableCard} from './keyValueTableCard';
 import {
   KeyValueTableDataRow,
@@ -19,10 +22,7 @@ describe('KeyValueTable', () => {
     'card',
     () => (
       <div style={{padding: 8, width: 500}}>
-        <KeyValueTableCard
-          title="Dataset KeyValueTableCardTitle"
-          contentItems={contentItems}
-        />
+        <KeyValueTableCard title="Dataset" contentItems={contentItems} />
       </div>
     ),
     {tags: {area: 'core', variant: 'card'}}
@@ -93,16 +93,6 @@ describe('KeyValueTable', () => {
   );
 
   it.snapshot(
-    'card-expand-left',
-    () => (
-      <div style={{padding: 8, width: 500}}>
-        <KeyValueTableCard contentItems={contentItems} itemProps={{expandLeft: true}} />
-      </div>
-    ),
-    {tags: {area: 'core', variant: 'card'}}
-  );
-
-  it.snapshot(
     'card-standalone-row',
     () => (
       <div style={{padding: 8, width: 500}}>
@@ -122,5 +112,33 @@ describe('KeyValueTable', () => {
       </div>
     ),
     {tags: {area: 'core', variant: 'card'}}
+  );
+
+  it.snapshot(
+    'columns-mixed-rows',
+    () => (
+      <div style={{padding: 8, width: 800}}>
+        <KeyValueColumns columnCount={2}>
+          {() => [
+            [
+              <KeyValueTreeRow key="tree" label="browser" value="Chrome 140" />,
+              <KeyValueTreeRow
+                key="tree-branch"
+                label="name"
+                value="Chrome"
+                spacerCount={1}
+              />,
+              <KeyValueTreeRow key="tree-error" label="errored" value="" hasErrors />,
+            ],
+            contentItems
+              .slice(0, 3)
+              .map(rowProps => (
+                <KeyValueTableDataRow key={rowProps.item.key} {...rowProps} />
+              )),
+          ]}
+        </KeyValueColumns>
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'columns'}}
   );
 });

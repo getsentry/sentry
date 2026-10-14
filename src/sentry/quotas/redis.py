@@ -12,23 +12,18 @@ from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.quotas.base import (
-    NotRateLimited,
     Quota,
     QuotaConfig,
     QuotaDimension,
     QuotaGroupBy,
     QuotaScope,
-    RateLimited,
 )
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,
     is_instance_redis_cluster,
-    load_redis_script,
     validate_dynamic_cluster,
 )
-
-is_rate_limited = load_redis_script("quotas/is_rate_limited.lua")
 
 
 class RedisQuota(Quota):
@@ -206,73 +201,3 @@ class RedisQuota(Quota):
     def get_next_period_start(self, interval: int, shift: int, timestamp: float) -> float:
         """Return the timestamp when the next rate limit period begins for an interval."""
         return (((timestamp - shift) // interval) + 1) * interval + shift
-
-    def is_rate_limited(
-        self, project: Project, key: ProjectKey | None = None, timestamp: float | None = None
-    ) -> RateLimited | NotRateLimited:
-        # XXX: This is effectively deprecated and scheduled for removal. Event
-        # ingestion quotas are now enforced in Relay. This function will be
-        # deleted once the Python store endpoints are removed.
-
-        if timestamp is None:
-            timestamp = time()
-
-        # Relay supports separate rate limiting per data category and and can
-        # handle scopes explicitly. This function implements a simplified logic
-        # that treats all events the same and ignores transaction rate limits.
-        # Thus, we filter for (1) no categories, which implies this quota
-        # affects all data, and (2) quotas that specify `error` events.
-        quotas = [
-            q
-            for q in self.get_quotas(project, key=key)
-            if not q.categories or DataCategory.ERROR in q.categories
-        ]
-
-        # If there are no quotas to actually check, skip the trip to the database.
-        if not quotas:
-            return NotRateLimited()
-
-        keys: list[str] = []
-        args: list[int] = []
-        for quota in quotas:
-            if quota.limit == 0:
-                # A zero-sized quota is the absolute worst-case. Do not call
-                # into Redis at all, and do not increment any keys, as one
-                # quota has reached capacity (this is how regular quotas behave
-                # as well).
-                assert quota.window is None
-                assert not quota.should_track
-                return RateLimited(retry_after=None, reason_code=quota.reason_code)
-
-            assert quota.should_track
-
-            shift: int = project.organization_id % quota.window
-            quota_key = self.__get_redis_key(quota, timestamp, shift, project.organization_id)
-            return_key = self.get_refunded_quota_key(quota_key)
-            keys.extend((quota_key, return_key))
-            expiry = self.get_next_period_start(quota.window, shift, timestamp) + self.grace
-
-            # limit=None is represented as limit=-1 in lua
-            lua_quota = quota.limit if quota.limit is not None else -1
-            args.extend((lua_quota, int(expiry)))
-
-        if not keys or not args:
-            return NotRateLimited()
-
-        client = self.__get_redis_client(str(project.organization_id))
-        rejections = is_rate_limited(keys, args, client)
-
-        if not any(rejections):
-            return NotRateLimited()
-
-        worst_case: tuple[float, int | None] = (0, None)
-        for quota, rejected in zip(quotas, rejections):
-            if not rejected:
-                continue
-
-            shift = project.organization_id % quota.window
-            delay = self.get_next_period_start(quota.window, shift, timestamp) - timestamp
-            if delay > worst_case[0]:
-                worst_case = (delay, quota.reason_code)
-
-        return RateLimited(retry_after=worst_case[0], reason_code=worst_case[1])

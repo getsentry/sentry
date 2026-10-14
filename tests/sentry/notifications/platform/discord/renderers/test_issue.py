@@ -8,19 +8,35 @@ from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.models.group import Group
 from sentry.notifications.platform.discord.provider import (
     DiscordNotificationProvider,
+    DiscordRenderable,
 )
 from sentry.notifications.platform.discord.renderers.issue import IssueDiscordRenderer
 from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
 )
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
 )
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification
+
+
+def render_issue(
+    data: NotificationData, rendered_template: NotificationRenderedTemplate
+) -> DiscordRenderable:
+    return IssueDiscordRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            data=data, provider=NotificationProviderKey.DISCORD
+        ),
+    )
 
 
 class IssueDiscordRendererTest(TestCase):
@@ -62,7 +78,7 @@ class IssueDiscordRendererTest(TestCase):
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
-            IssueDiscordRenderer.render(
+            render_issue(
                 data=invalid_data,
                 rendered_template=rendered_template,
             )
@@ -71,7 +87,7 @@ class IssueDiscordRendererTest(TestCase):
         data, event, group = self._create_data()
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueDiscordRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -88,7 +104,7 @@ class IssueDiscordRendererTest(TestCase):
         url = embed.get("url")
         assert (
             url is not None
-            and f"{self.organization.slug}/issues/{group.id}/events/{event.event_id}/?referrer=discord&workflow_id=1&alert_type=issue"
+            and f"{self.organization.slug}/issues/{group.id}/?referrer=discord&notification_uuid=test-uuid&workflow_id=1&alert_type=issue"
             in url
         )
         color = embed.get("color")
@@ -105,7 +121,7 @@ class IssueDiscordRendererTest(TestCase):
         )
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueDiscordRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )

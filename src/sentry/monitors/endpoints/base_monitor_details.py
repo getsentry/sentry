@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from django.db import router, transaction
 from django.db.models import QuerySet
 from django.utils.crypto import get_random_string
@@ -7,7 +9,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, quotas
+from sentry import audit_log, features, quotas
 from sentry.api.base import BaseEndpointMixin
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
@@ -20,11 +22,14 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
-from sentry.monitors.utils import ensure_cron_detector_deletion
+from sentry.monitors.utils import ensure_cron_detector_deletion, get_request_attribution
 from sentry.monitors.validators import MonitorValidator
+from sentry.utils import metrics
 from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.db import atomic_transaction
 from sentry.workflow_engine.models import Detector
+
+logger = logging.getLogger(__name__)
 
 
 class MonitorDetailsMixin(BaseEndpointMixin):
@@ -37,6 +42,22 @@ class MonitorDetailsMixin(BaseEndpointMixin):
 
         environments = get_environments(request, project.organization)
         expand = request.GET.getlist("expand", [])
+
+        # expand=alertRule is slated for removal; track who still relies on it.
+        if "alertRule" in expand:
+            attribution = get_request_attribution(request)
+            metrics.incr("monitors.serializer.expand_alert_rule", tags=attribution, sample_rate=1.0)
+            logger.info(
+                "monitors.serializer.expand_alert_rule",
+                extra={"organization_id": project.organization_id, **attribution},
+            )
+
+            if features.has(
+                "organizations:crons-disable-alert-rule",
+                project.organization,
+                actor=request.user,
+            ):
+                expand = [value for value in expand if value != "alertRule"]
 
         return self.respond(
             serialize(

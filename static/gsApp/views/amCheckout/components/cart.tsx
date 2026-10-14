@@ -1,6 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconLock} from '@sentry/icons/lock';
+import {IconSentry} from '@sentry/icons/sentry';
 import {AnimatePresence, motion} from 'framer-motion';
 import moment from 'moment-timezone';
 
@@ -13,13 +16,11 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useApi} from 'sentry/utils/useApi';
-import {useMedia} from 'sentry/utils/useMedia';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
@@ -176,9 +177,6 @@ function ItemWithPrice({
 }
 
 function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
-  const theme = useTheme();
-  const isXSmallScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
-
   const additionalProductCategories = useMemo(
     () =>
       Object.values(activePlan.addOnCategories).flatMap(addOn => addOn.dataCategories),
@@ -264,23 +262,14 @@ function ItemsSummary({activePlan, formData}: ItemsSummaryProps) {
                       })}
                     >
                       <Tag variant="muted" icon={<IconLock locked size="xs" />}>
-                        {isXSmallScreen ? (
-                          <Text size="xs">
-                            {tct('Unlock with [budgetTerm]', {
-                              budgetTerm: displayBudgetName(activePlan, {
-                                title: true,
-                                abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
-                              }),
-                            })}
-                          </Text>
-                        ) : (
-                          tct('Unlock with [budgetTerm]', {
+                        <Text size={{zero: 'xs', sm: 'sm'}}>
+                          {tct('Unlock with [budgetTerm]', {
                             budgetTerm: displayBudgetName(activePlan, {
                               title: true,
                               abbreviated: activePlan.budgetTerm === 'pay-as-you-go',
                             }),
-                          })
-                        )}
+                          })}
+                        </Text>
                       </Tag>
                     </Tooltip>
                   )

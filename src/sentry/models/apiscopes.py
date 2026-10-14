@@ -123,9 +123,7 @@ class HasApiScopes(models.Model):
         """
         Returns a list of the token's scopes in alphabetical order.
         """
-        if self.scope_list:
-            return sorted(self.scope_list)
-        return sorted([k for k, v in self.scopes.items() if v])
+        return sorted(self.scope_list)
 
     def has_scope(self, scope: str) -> bool:
         """
