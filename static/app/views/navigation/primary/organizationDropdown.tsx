@@ -46,6 +46,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
   const config = useLegacyStore(ConfigStore);
   const theme = useTheme();
+  const invertedTheme = useInvertedTheme();
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -105,10 +106,12 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         position="right-start"
         minMenuWidth={258}
         menuTitle={
-          <OrganizationMenuHeader
-            organization={organization}
-            projectCount={projects.length}
-          />
+          <ThemeProvider theme={theme.type === 'dark' ? theme : invertedTheme}>
+            <OrganizationMenuHeader
+              organization={organization}
+              projectCount={projects.length}
+            />
+          </ThemeProvider>
         }
         items={[
           {
@@ -261,10 +264,6 @@ function OrganizationMenuHeader({
   organization: OrganizationSummary;
   projectCount: number;
 }) {
-  const currentTheme = useTheme();
-  const invertedTheme = useInvertedTheme();
-  const textTheme = currentTheme.type === 'dark' ? currentTheme : invertedTheme;
-
   return (
     <Container
       radius="md md 0 0"
@@ -276,11 +275,9 @@ function OrganizationMenuHeader({
       `}
     >
       <Stack gap="md" padding="md lg">
-        <ThemeProvider theme={textTheme}>
-          <Text size="sm" density="fixed" variant="primary" bold tabular>
-            {t('Organization')}
-          </Text>
-        </ThemeProvider>
+        <Text size="sm" density="fixed" variant="primary" bold tabular>
+          {t('Organization')}
+        </Text>
         <Flex align="center" gap="md">
           <Flex
             align="center"
@@ -296,16 +293,14 @@ function OrganizationMenuHeader({
           >
             <OrganizationAvatar organization={organization} size={30} />
           </Flex>
-          <ThemeProvider theme={textTheme}>
-            <Stack gap="0">
-              <Text size="md" density="comfortable" variant="primary" bold>
-                {organization.name || organization.slug}
-              </Text>
-              <Text size="sm" density="comfortable" variant="muted" tabular>
-                {tn('%s Project', '%s Projects', projectCount)}
-              </Text>
-            </Stack>
-          </ThemeProvider>
+          <Stack gap="0">
+            <Text size="md" density="comfortable" variant="primary" bold>
+              {organization.name || organization.slug}
+            </Text>
+            <Text size="sm" density="comfortable" variant="muted" tabular>
+              {tn('%s Project', '%s Projects', projectCount)}
+            </Text>
+          </Stack>
         </Flex>
       </Stack>
     </Container>
