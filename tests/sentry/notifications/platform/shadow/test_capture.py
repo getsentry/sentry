@@ -19,9 +19,9 @@ from sentry.notifications.platform.shadow.capture import (
     shadow_read,
 )
 from sentry.notifications.platform.types import (
+    SHADOW_PROVIDERS,
     NotificationProviderKey,
     NotificationSource,
-    SHADOW_PROVIDERS,
 )
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.services.eventstore.models import GroupEvent

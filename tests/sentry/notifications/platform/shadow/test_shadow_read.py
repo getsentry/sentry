@@ -31,9 +31,9 @@ from sentry.notifications.notification_action.utils import (
 from sentry.notifications.platform.shadow.capture import _variant
 from sentry.notifications.platform.shadow.compare import ShadowOutcome
 from sentry.notifications.platform.types import (
+    SHADOW_PROVIDERS,
     NotificationProviderKey,
     NotificationSource,
-    SHADOW_PROVIDERS,
 )
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
