@@ -22,7 +22,7 @@ import {
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
+import {defaultComparisonMap} from 'sentry/views/automations/components/actionFilters/dataConditionDefaultComparisons';
 
 export function EventUniqueUserFrequencyCountDetails({
   condition,
@@ -128,7 +128,7 @@ function ComparisonTypeField() {
           type: option.value,
           comparison: {
             ...condition.comparison,
-            ...dataConditionNodesMap.get(option.value)?.defaultComparison,
+            ...defaultComparisonMap.get(option.value),
           },
         });
         removeError(condition.id);
