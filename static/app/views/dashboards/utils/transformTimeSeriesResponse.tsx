@@ -24,6 +24,7 @@ type Options = {
   meta?: Partial<Pick<TimeSeriesMeta, 'valueType' | 'valueUnit'>>;
 };
 
+/** @public */
 export function transformTimeSeriesResponse(
   response: EventsTimeSeriesResponse,
   widget: Widget,
