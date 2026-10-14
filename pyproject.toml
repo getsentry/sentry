@@ -1222,7 +1222,6 @@ module = [
     "sentry.search.events.datasets.*",
     "sentry.search.events.fields",
     "sentry.search.events.types",
-    "sentry.search.exceptions",
     "sentry.search.snuba",
     "sentry.search.snuba.executors",
     "sentry.search.utils",
