@@ -89,11 +89,8 @@ def build_test_message_blocks(
 
     title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
 
-    if rule:
-        if legacy_rule_id:
-            block_id = f'{{"issue":{group.id},"rule":{legacy_rule_id},"workflow":{workflow_id}}}'
-        else:
-            block_id = f'{{"issue":{group.id},"workflow":{workflow_id}}}'
+    if rule and workflow_id:
+        block_id = f'{{"issue":{group.id},"workflow":{workflow_id}}}'
     else:
         block_id = f'{{"issue":{group.id}}}'
 
