@@ -131,9 +131,7 @@ function AdminConfirmMessage({
   // values without needing to re-render.
   const notesRef = useRef<string | null>(null);
   const ticketURLRef = useRef<string | null>(null);
-  const confirmCallbackRef = useRef<((params: AdminConfirmParams) => void) | null>(
-    null
-  );
+  const confirmCallbackRef = useRef<((params: AdminConfirmParams) => void) | null>(null);
 
   const handleConfirm = useCallback(() => {
     const notes = notesRef.current;
