@@ -11,10 +11,11 @@ from django.db import router, transaction
 from django.db.models.base import Model
 from taskbroker_client.state import current_task
 
-from sentry import similarity, tsdb
+from sentry import features, similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, parse_log_level
 from sentry.culprit import generate_culprit
-from sentry.issues.action_log import ActionSource, action_context_scope, publish_action
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log.backfill import BackfillEntry, backfill_actions
 from sentry.issues.action_log.types import FirstSeenAction, first_seen_idempotency_key
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.activity import Activity
@@ -442,17 +443,28 @@ def repair_denormalizations(
 def publish_destination_first_seen(project: Project, destination_ids: Collection[int]) -> None:
     # Unmerge creates destinations without going through _create_group, so log their
     # FIRST_SEEN here. Batches are scanned newest-first and each one can move first_seen
-    # earlier, so it's only final once the scan is complete. Destinations that already
-    # have the entry (e.g. one passed in that came from ingest) are deduped by the key.
+    # earlier, so it's only final once the scan is complete. By then the destination
+    # already has log entries (e.g. UNMERGE_DESTINATION), so the entry is inserted
+    # directly with date_added=first_seen to keep it the oldest in the log; the outbox
+    # would date it at drain time. Destinations that already have the entry (e.g. one
+    # passed in that came from ingest) are deduped by the key.
+    if not features.has("projects:issue-action-log-write-to-db", project):
+        return
     for group_id, first_seen in Group.objects.filter(
         project_id=project.id, id__in=destination_ids
     ).values_list("id", "first_seen"):
-        publish_action(
-            FirstSeenAction(first_seen=first_seen),
-            source=ActionSource.SYSTEM,
+        backfill_actions(
+            entries=[
+                BackfillEntry(
+                    action=FirstSeenAction(first_seen=first_seen),
+                    actor=SYSTEM_ACTOR,
+                    source=ActionSource.SYSTEM,
+                    date_added=first_seen,
+                    idempotency_key=first_seen_idempotency_key(group_id),
+                )
+            ],
             group_id=group_id,
-            project=project,
-            idempotency_key=first_seen_idempotency_key(group_id),
+            project_id=project.id,
         )
 
 

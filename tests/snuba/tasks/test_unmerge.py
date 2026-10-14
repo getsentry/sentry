@@ -15,7 +15,6 @@ from django.utils import timezone
 from sentry import eventstream, tsdb
 from sentry.issues.action_log.types import (
     ActionSource,
-    FirstSeenAction,
     GroupActionType,
     first_seen_idempotency_key,
 )
@@ -43,7 +42,6 @@ from sentry.tasks.unmerge import (
 )
 from sentry.taskworker.selfchain_idempotency import mark_spawned
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
@@ -666,7 +664,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         # Events are scanned newest-first, so the batch that creates the destination
         # doesn't contain its oldest event.
-        with capture_action_log() as log, outbox_runner(), self.tasks():
+        with outbox_runner(), self.tasks():
             unmerge.delay(
                 self.project.id, source.id, None, [get_fingerprint(moved[0])], None, batch_size=2
             )
@@ -674,17 +672,18 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         destination = Group.objects.exclude(id=source.id).get(project_id=self.project.id)
         assert destination.first_seen == now
 
-        log.assert_logged(
-            FirstSeenAction,
-            group_id=destination.id,
-            source=ActionSource.SYSTEM,
-            first_seen=now,
-        )
         entry = GroupActionLogEntry.objects.get(
             group_id=destination.id, type=GroupActionType.FIRST_SEEN
         )
         assert entry.idempotency_key == first_seen_idempotency_key(destination.id)
+        assert entry.source == ActionSource.SYSTEM
+        assert entry.date_added == now
         assert entry.data == {"first_seen": now.isoformat()}
+        # The activity feed only serves a logged FIRST_SEEN when it's the oldest entry,
+        # and UNMERGE_DESTINATION was logged before the scan finished.
+        log = GroupActionLogEntry.objects.get_actions_for_group(destination, 100)
+        assert GroupActionType.UNMERGE_DESTINATION in {e.type for e in log}
+        assert log[-1].id == entry.id
 
     @mock.patch("sentry.tasks.unmerge.similarity")
     def test_repair_denormalizations_skips_similarity_when_backfilled_to_seer(
@@ -734,35 +733,42 @@ class StartUnmergeTest(TestCase):
 
 
 class PublishDestinationFirstSeenTest(TestCase):
-    def test_publishes_final_first_seen(self) -> None:
+    def _entries(self, group_id: int) -> list[GroupActionLogEntry]:
+        return list(
+            GroupActionLogEntry.objects.filter(group_id=group_id, type=GroupActionType.FIRST_SEEN)
+        )
+
+    def test_dated_at_first_seen(self) -> None:
         first_seen = before_now(days=3).replace(microsecond=0)
         group = self.create_group(project=self.project, first_seen=first_seen)
 
-        with capture_action_log() as log:
-            publish_destination_first_seen(self.project, [group.id])
+        publish_destination_first_seen(self.project, [group.id])
 
-        log.assert_logged(
-            FirstSeenAction,
-            group_id=group.id,
-            source=ActionSource.SYSTEM,
-            first_seen=first_seen,
-        )
+        [entry] = self._entries(group.id)
+        assert entry.idempotency_key == first_seen_idempotency_key(group.id)
+        assert entry.source == ActionSource.SYSTEM
+        assert entry.date_added == first_seen
+        assert entry.data == {"first_seen": first_seen.isoformat()}
 
     def test_idempotent(self) -> None:
         group = self.create_group(project=self.project)
 
-        with outbox_runner():
-            publish_destination_first_seen(self.project, [group.id])
-            publish_destination_first_seen(self.project, [group.id])
+        publish_destination_first_seen(self.project, [group.id])
+        publish_destination_first_seen(self.project, [group.id])
 
-        entry = GroupActionLogEntry.objects.get(group_id=group.id, type=GroupActionType.FIRST_SEEN)
-        assert entry.idempotency_key == first_seen_idempotency_key(group.id)
-        assert entry.data == {"first_seen": group.first_seen.isoformat()}
+        assert len(self._entries(group.id)) == 1
 
     def test_ignores_other_projects(self) -> None:
         other_group = self.create_group(project=self.create_project())
 
-        with capture_action_log() as log:
-            publish_destination_first_seen(self.project, [other_group.id])
+        publish_destination_first_seen(self.project, [other_group.id])
 
-        log.assert_not_logged(FirstSeenAction)
+        assert self._entries(other_group.id) == []
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_skipped_when_write_disabled(self) -> None:
+        group = self.create_group(project=self.project)
+
+        publish_destination_first_seen(self.project, [group.id])
+
+        assert self._entries(group.id) == []
