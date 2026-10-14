@@ -1692,7 +1692,8 @@ class TestEnsureAssociationWithDetector(TestCase):
     def test_feedback_group_returns_false(self) -> None:
         group = self.create_group(project=self.project, type=FeedbackGroup.type_id)
 
-        assert not ensure_association_with_detector(group)
+        with self.assertNumQueries(0):
+            assert not ensure_association_with_detector(group)
         assert not DetectorGroup.objects.filter(group_id=group.id).exists()
 
     def test_deleted_detector_creates_null_association(self) -> None:
