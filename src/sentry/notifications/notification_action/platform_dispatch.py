@@ -90,6 +90,11 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
         or integration_context.integration is None
         or integration_context.integration.status != ObjectStatus.ACTIVE
     ):
+        integration_status = (
+            integration_context.integration.status
+            if integration_context.integration is not None
+            else None
+        )
         logger.warning(
             "notification_action.platform_dispatch.integration_inactive",
             extra={
@@ -99,9 +104,7 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
                 "provider": str(provider),
                 "has_integration": integration_context.integration is not None,
                 "has_org_integration": integration_context.organization_integration is not None,
-                "integration_status": integration_context.integration.status
-                if integration_context.integration
-                else None,
+                "integration_status": integration_status,
             },
         )
         return
