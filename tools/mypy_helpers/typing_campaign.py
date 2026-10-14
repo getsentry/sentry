@@ -1605,17 +1605,15 @@ def _coverage_audits(
 def _effective_pairs(
     inventory: Sequence[SourceFile], graph: Sequence[ModuleState]
 ) -> tuple[frozenset[tuple[str, str]], frozenset[tuple[str, str]]]:
-    modules_by_path = {
-        record.path: record.module
-        for record in inventory
-        if record.kind != SourceKind.VENDORED and record.module is not None
+    owned_paths = {
+        record.path for record in inventory if record.kind != SourceKind.VENDORED
     }
     weak: set[tuple[str, str]] = set()
     suppressed: set[tuple[str, str]] = set()
     for state in graph:
-        module = modules_by_path.get(state.path)
-        if module is None:
+        if state.path not in owned_paths:
             continue
+        module = state.module
         weak.update((module, option) for option in state.weak_options)
         if state.follow_imports in {"silent", "skip"}:
             weak.add((module, f"follow_imports={state.follow_imports}"))
@@ -1717,15 +1715,17 @@ def _effective_option_changes(
     additions: set[tuple[str, str]] = set()
     removals: set[tuple[str, str]] = set()
     import_policy_changes: set[tuple[str, str]] = set()
-    modules_by_path = {
-        record.path: record.module or record.path
-        for record in (*parent.inventory, *candidate.inventory)
-        if record.kind != SourceKind.VENDORED and record.module is not None
-    }
     for path in set(parent_states) & set(candidate_states):
-        module = modules_by_path[path]
-        previous = dict(parent_states[path].effective_options)
-        current = dict(candidate_states[path].effective_options)
+        parent_state = parent_states[path]
+        candidate_state = candidate_states[path]
+        module = candidate_state.module
+        if parent_state.module != candidate_state.module:
+            import_policy_changes.add(
+                (module, f"module={parent_state.module}->{candidate_state.module}")
+            )
+            continue
+        previous = dict(parent_state.effective_options)
+        current = dict(candidate_state.effective_options)
         for name in previous.keys() & current.keys():
             old = previous[name]
             new = current[name]
@@ -1937,6 +1937,9 @@ def decide_candidate(
     if source_removals:
         reasons.extend(f"owned source was removed: {path}" for path in sorted(source_removals))
 
+    configured_additions, configured_removals = _profile_comparison(
+        parent, candidate, Profile.CONFIGURED
+    )
     allstrong_additions, allstrong_removals = _profile_comparison(
         parent, candidate, Profile.ALL_STRONG
     )
@@ -1950,6 +1953,7 @@ def decide_candidate(
             parent, candidate, Profile.PRECISION
         )
     for profile_name, additions in (
+        (Profile.CONFIGURED.value, configured_additions),
         (Profile.ALL_STRONG.value, allstrong_additions),
         (Profile.UNSUPPRESSED.value, unsuppressed_additions),
         (Profile.PRECISION.value, precision_additions),
@@ -1957,14 +1961,6 @@ def decide_candidate(
         reasons.extend(
             f"new {profile_name} error {item.path} [{item.code}]: {item.message}"
             for item in additions
-        )
-
-    candidate_configured_errors = _owned_diagnostics(
-        candidate.profiles[Profile.CONFIGURED], candidate.inventory
-    )
-    if candidate_configured_errors:
-        reasons.append(
-            f"configured profile has {len(candidate_configured_errors)} owned errors"
         )
 
     bypass_additions = candidate.bypasses - parent.bypasses
@@ -2103,6 +2099,8 @@ def decide_candidate(
         "effective_weakening_additions": sorted(option_weak_additions),
         "effective_weakening_removals": sorted(option_weak_removals),
         "effective_import_policy_changes": sorted(import_policy_changes),
+        "configured_error_additions": [asdict(item) for item in configured_additions],
+        "configured_error_removals": [asdict(item) for item in configured_removals],
         "all_strong_error_additions": [asdict(item) for item in allstrong_additions],
         "all_strong_error_removals": [asdict(item) for item in allstrong_removals],
         "unsuppressed_error_additions": [asdict(item) for item in unsuppressed_additions],
@@ -2326,17 +2324,17 @@ def _tree_file(repo: Path, tree: str, path: str) -> bytes | None:
     return result.stdout
 
 
-def _assert_trusted_policy(repo: Path, parent: str) -> None:
+def _assert_trusted_policy(repo: Path) -> None:
     for relative_path in _POLICY_PATHS:
         trusted_path = repo / relative_path
-        accepted_content = _tree_file(repo, parent, relative_path)
-        if accepted_content is None or not trusted_path.is_file():
+        committed_content = _tree_file(repo, "HEAD", relative_path)
+        if committed_content is None or not trusted_path.is_file():
             raise InvalidMeasurement(
-                f"accepted parent does not contain the trusted evaluator dependency {relative_path}"
+                f"HEAD does not contain the trusted evaluator dependency {relative_path}"
             )
-        if trusted_path.read_bytes() != accepted_content:
+        if trusted_path.read_bytes() != committed_content:
             raise InvalidMeasurement(
-                f"working evaluator differs from accepted parent at {relative_path}"
+                f"working evaluator differs from committed HEAD at {relative_path}"
             )
 
 
@@ -2404,6 +2402,35 @@ def _mypy_config_policy(source: str) -> dict[str, object]:
         raise InvalidMeasurement(f"mypy configuration is invalid: {exc}") from exc
 
 
+def _generated_mypy_pairs(source: str, section_name: str) -> frozenset[tuple[str, str]]:
+    _validate_generated_mypy_section(source, section_name)
+    try:
+        section = marked_section(source, section_name)
+        if section is None:
+            return frozenset()
+        parsed = tomllib.loads(source[section.content_start : section.content_end])
+    except (InvalidMarkedSection, tomllib.TOMLDecodeError) as exc:
+        raise InvalidMeasurement(
+            f"generated mypy section {section_name!r} is invalid: {exc}"
+        ) from exc
+    if not parsed:
+        return frozenset()
+    overrides = parsed["tool"]["mypy"]["overrides"]
+    if section_name == ERROR_SECTION:
+        return frozenset(
+            (module, code)
+            for override in overrides
+            for module in override["module"]
+            for code in override["disable_error_code"]
+        )
+    return frozenset(
+        (module, option)
+        for override in overrides
+        for module in override["module"]
+        for option in WEAK_OPTIONS
+    )
+
+
 def _policy_changes(repo: Path, parent_tree: str, candidate_tree: str) -> tuple[str, ...]:
     changed = []
     for relative_path in _POLICY_PATHS:
@@ -2420,9 +2447,15 @@ def _policy_changes(repo: Path, parent_tree: str, candidate_tree: str) -> tuple[
         candidate_policy = _mypy_config_policy(candidate_config.decode("utf-8"))
     except UnicodeDecodeError as exc:
         raise InvalidMeasurement("pyproject.toml is not UTF-8") from exc
+    for section_name in (ERROR_SECTION, WEAK_SECTION):
+        parent_pairs = _generated_mypy_pairs(parent_config.decode("utf-8"), section_name)
+        candidate_pairs = _generated_mypy_pairs(candidate_config.decode("utf-8"), section_name)
+        if candidate_pairs - parent_pairs:
+            changed.append("pyproject.toml")
+            break
     if parent_policy != candidate_policy:
         changed.append("pyproject.toml")
-    return tuple(changed)
+    return tuple(dict.fromkeys(changed))
 
 
 def _changed_source_paths(repo: Path, parent_tree: str, candidate_tree: str) -> tuple[str, ...]:
@@ -2708,7 +2741,7 @@ def _command_compare(
 ) -> tuple[ExitCode, dict[str, object]]:
     parent_revision, parent_tree = resolve_tree(repo, parent_reference)
     candidate_revision, candidate_tree = _resolve_candidate_tree(repo, candidate_reference)
-    _assert_trusted_policy(repo, parent_revision)
+    _assert_trusted_policy(repo)
     changed_policy = _policy_changes(repo, parent_tree, candidate_tree)
     if changed_policy:
         reasons = ("candidate changes evaluator policy: " + ", ".join(changed_policy),)

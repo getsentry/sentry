@@ -7,6 +7,8 @@ from unittest.mock import patch
 import pytest
 
 from tools.mypy_helpers.typing_campaign import (
+    ERROR_SECTION,
+    WEAK_SECTION,
     AnyObligation,
     Decision,
     DiagnosticRecord,
@@ -19,13 +21,16 @@ from tools.mypy_helpers.typing_campaign import (
     SourceFile,
     SourceKind,
     TreeMeasurement,
+    _assert_trusted_policy,
     _command_compare,
     _coverage_audits,
     _coverage_gaps,
     _diagnostic_record,
+    _effective_option_changes,
     _effective_pairs,
     _known_environment_warnings,
     _mypy_config_policy,
+    _policy_changes,
     _run_precision_canaries,
     _source_contracts,
     _validate_targets,
@@ -65,19 +70,23 @@ def _tree(
     weak: frozenset[tuple[str, str]] = frozenset(),
     suppressed: frozenset[tuple[str, str]] = frozenset(),
     diagnostics: tuple[DiagnosticRecord, ...] = (),
+    configured_diagnostics: tuple[DiagnosticRecord, ...] = (),
     bypasses: frozenset[tuple[str, str]] = frozenset(),
     omissions: frozenset[tuple[str, str, str]] = frozenset(),
     any_obligations: frozenset[AnyObligation] = frozenset(),
     source_digests: dict[str, str] | None = None,
     signatures: dict[tuple[str, str, str], str] | None = None,
     graph: tuple[ModuleState, ...] = (),
+    inventory: tuple[SourceFile, ...] | None = None,
     profiles: tuple[Profile, ...] = (
         Profile.CONFIGURED,
         Profile.UNSUPPRESSED,
         Profile.ALL_STRONG,
     ),
 ) -> TreeMeasurement:
-    inventory = (SourceFile("src/sentry/example.py", "sentry.example", SourceKind.OWNED_IMPLEMENTATION),)
+    inventory = inventory or (
+        SourceFile("src/sentry/example.py", "sentry.example", SourceKind.OWNED_IMPLEMENTATION),
+    )
     return TreeMeasurement(
         "revision",
         "tree",
@@ -86,7 +95,11 @@ def _tree(
         {
             profile: _profile(
                 profile,
-                diagnostics if profile == Profile.ALL_STRONG else (),
+                diagnostics
+                if profile == Profile.ALL_STRONG
+                else configured_diagnostics
+                if profile == Profile.CONFIGURED
+                else (),
                 graph,
             )
             for profile in profiles
@@ -99,8 +112,8 @@ def _tree(
         signatures or {},
         omissions,
         any_obligations,
-        frozenset({"src/sentry/example.py"}),
-        source_digests or {"src/sentry/example.py": "unchanged"},
+        frozenset(record.path for record in inventory),
+        source_digests or {record.path: "unchanged" for record in inventory},
     )
 
 
@@ -285,6 +298,117 @@ ignore_missing_imports = true
 
     with pytest.raises(InvalidMeasurement, match="unsupported override fields"):
         _mypy_config_policy(source)
+
+
+@pytest.mark.parametrize(
+    ("section_name", "parent_block", "candidate_block"),
+    (
+        (
+            WEAK_SECTION,
+            '["sentry.example"]',
+            '["sentry.example", "sentry.unmatched.*"]',
+        ),
+        (
+            ERROR_SECTION,
+            '["sentry.example"]',
+            '["sentry.example", "sentry.unmatched.*"]',
+        ),
+    ),
+)
+def test_policy_rejects_unmatched_generated_module_patterns(
+    section_name: str, parent_block: str, candidate_block: str
+) -> None:
+    section_setting = (
+        'disable_error_code = ["misc"]'
+        if section_name == ERROR_SECTION
+        else "disallow_any_generics = false\n"
+        "disallow_untyped_defs = false\n"
+        "strict_equality = false"
+    )
+    start = f"# begin: {section_name}"
+    end = f"# end: {section_name}"
+    parent_config = (
+        "[tool.mypy]\n"
+        f"{start}\n"
+        "[[tool.mypy.overrides]]\n"
+        f"module = {parent_block}\n"
+        f"{section_setting}\n"
+        f"{end}\n"
+    )
+    candidate_config = parent_config.replace(
+        f"module = {parent_block}", f"module = {candidate_block}"
+    )
+
+    with (
+        patch("tools.mypy_helpers.typing_campaign._POLICY_PATHS", ()),
+        patch(
+            "tools.mypy_helpers.typing_campaign._tree_file",
+            side_effect=lambda _repo, tree, path: {
+                ("parent", "pyproject.toml"): parent_config.encode(),
+                ("candidate", "pyproject.toml"): candidate_config.encode(),
+            }.get((tree, path)),
+        ),
+    ):
+        changes = _policy_changes(Path("."), "parent", "candidate")
+
+    assert changes == ("pyproject.toml",)
+
+
+def test_policy_allows_generated_debt_removals() -> None:
+    parent_config = """\
+[tool.mypy]
+# begin: not yet strongly typed
+[[tool.mypy.overrides]]
+module = ["sentry.example"]
+disallow_any_generics = false
+disallow_untyped_defs = false
+strict_equality = false
+# end: not yet strongly typed
+"""
+    candidate_config = "[tool.mypy]\n"
+
+    with (
+        patch("tools.mypy_helpers.typing_campaign._POLICY_PATHS", ()),
+        patch(
+            "tools.mypy_helpers.typing_campaign._tree_file",
+            side_effect=lambda _repo, tree, path: {
+                ("parent", "pyproject.toml"): parent_config.encode(),
+                ("candidate", "pyproject.toml"): candidate_config.encode(),
+            }.get((tree, path)),
+        ),
+    ):
+        changes = _policy_changes(Path("."), "parent", "candidate")
+
+    assert changes == ()
+
+
+def test_policy_rejects_new_generated_error_code() -> None:
+    parent_config = """\
+[tool.mypy]
+# begin: sentry modules with typing issues
+[[tool.mypy.overrides]]
+module = ["sentry.example"]
+disable_error_code = ["misc"]
+# end: sentry modules with typing issues
+"""
+    candidate_config = parent_config.replace(
+        'disable_error_code = ["misc"]',
+        'disable_error_code = ["misc", "arg-type"]',
+    )
+
+    with (
+        patch("tools.mypy_helpers.typing_campaign._POLICY_PATHS", ()),
+        patch(
+            "tools.mypy_helpers.typing_campaign._tree_file",
+            side_effect=lambda _repo, tree, path: {
+                ("parent", "pyproject.toml"): parent_config.encode(),
+                ("candidate", "pyproject.toml"): candidate_config.encode(),
+            }.get((tree, path)),
+        ),
+    ):
+        changes = _policy_changes(Path("."), "parent", "candidate")
+
+    assert changes == ("pyproject.toml",)
 
 
 def test_candidate_policy_rejection_precedes_measurement(tmp_path: Path) -> None:
@@ -611,6 +735,38 @@ def test_evaluate_accepts_removed_effective_weak_pair() -> None:
     assert decision.adoption_credit
 
 
+def test_evaluate_accepts_unchanged_configured_debt() -> None:
+    configured_error = DiagnosticRecord(
+        "src/sentry/example.py", "arg-type", "existing configured debt"
+    )
+    parent = _tree(
+        weak=frozenset({("sentry.example", "disallow_untyped_defs")}),
+        configured_diagnostics=(configured_error,),
+    )
+    candidate = _tree(configured_diagnostics=(configured_error,))
+
+    decision = decide_candidate(parent, candidate, require_adoption_credit=True)
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.adoption_credit
+    assert decision.details["configured_error_additions"] == []
+
+
+def test_new_configured_diagnostic_rejects_candidate() -> None:
+    configured_error = DiagnosticRecord(
+        "src/sentry/example.py", "arg-type", "new configured debt"
+    )
+
+    decision = decide_candidate(
+        _tree(),
+        _tree(configured_diagnostics=(configured_error,)),
+        require_adoption_credit=False,
+    )
+
+    assert decision.outcome == Outcome.REJECTED
+    assert any("new configured error" in reason for reason in decision.reasons)
+
+
 def test_evaluate_rejects_debt_removal_across_multiple_modules() -> None:
     parent = _tree(
         weak=frozenset(
@@ -708,6 +864,110 @@ def test_guard_rejects_changed_effective_import_policy() -> None:
 
     assert decision.outcome == Outcome.REJECTED
     assert any("changed effective import policy" in reason for reason in decision.reasons)
+
+
+def test_trusted_policy_uses_committed_head_for_prior_candidate(tmp_path: Path) -> None:
+    policy_path = "tools/mypy_helpers/typing_campaign.py"
+    trusted_path = tmp_path / policy_path
+    trusted_path.parent.mkdir(parents=True)
+    trusted_path.write_bytes(b"trusted infrastructure")
+
+    with (
+        patch("tools.mypy_helpers.typing_campaign._POLICY_PATHS", (policy_path,)),
+        patch(
+            "tools.mypy_helpers.typing_campaign._tree_file",
+            return_value=b"trusted infrastructure",
+        ) as tree_file,
+    ):
+        _assert_trusted_policy(tmp_path)
+
+    tree_file.assert_called_once_with(tmp_path, "HEAD", policy_path)
+
+
+def test_trusted_policy_rejects_uncommitted_evaluator_changes(tmp_path: Path) -> None:
+    policy_path = "tools/mypy_helpers/typing_campaign.py"
+    trusted_path = tmp_path / policy_path
+    trusted_path.parent.mkdir(parents=True)
+    trusted_path.write_bytes(b"uncommitted change")
+
+    with (
+        patch("tools.mypy_helpers.typing_campaign._POLICY_PATHS", (policy_path,)),
+        patch(
+            "tools.mypy_helpers.typing_campaign._tree_file",
+            return_value=b"committed infrastructure",
+        ),
+        pytest.raises(InvalidMeasurement, match="differs from committed HEAD"),
+    ):
+        _assert_trusted_policy(tmp_path)
+
+
+def test_effective_pairs_uses_graph_module_for_generated_source() -> None:
+    source = SourceFile(
+        "src/sentry/releases/migrations/0001_release_models.py",
+        None,
+        SourceKind.OWNED_GENERATED,
+    )
+    state = ModuleState(
+        "sentry.releases.migrations.0001_release_models",
+        source.path,
+        True,
+        True,
+        False,
+        ("disallow_untyped_defs=false",),
+        (),
+        "normal",
+        "False",
+        (("disallow_untyped_defs", "False"),),
+    )
+
+    weak, _ = _effective_pairs((source,), (state,))
+
+    assert (
+        "sentry.releases.migrations.0001_release_models",
+        "disallow_untyped_defs=false",
+    ) in weak
+
+
+def test_guard_detects_generated_source_weakening_without_inventory_module() -> None:
+    source = SourceFile(
+        "src/sentry/releases/migrations/0001_release_models.py",
+        None,
+        SourceKind.OWNED_GENERATED,
+    )
+    parent_state = ModuleState(
+        "sentry.releases.migrations.0001_release_models",
+        source.path,
+        True,
+        True,
+        False,
+        (),
+        (),
+        "normal",
+        "False",
+        (("disallow_untyped_defs", "True"),),
+    )
+    candidate_state = ModuleState(
+        "sentry.releases.migrations.0001_release_models",
+        source.path,
+        True,
+        True,
+        False,
+        (),
+        (),
+        "normal",
+        "False",
+        (("disallow_untyped_defs", "False"),),
+    )
+
+    additions, _, _ = _effective_option_changes(
+        _tree(graph=(parent_state,), inventory=(source,)),
+        _tree(graph=(candidate_state,), inventory=(source,)),
+    )
+
+    assert (
+        "sentry.releases.migrations.0001_release_models",
+        "disallow_untyped_defs=false",
+    ) in additions
 
 
 def test_effective_pairs_captures_stub_import_skips() -> None:
