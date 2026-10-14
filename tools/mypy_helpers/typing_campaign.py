@@ -41,6 +41,7 @@ WEAK_OPTIONS = ("disallow_any_generics", "disallow_untyped_defs", "strict_equali
 FIRST_PARTY_ROOTS = frozenset({"sentry", "tests", "fixtures", "tools"})
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CONFIGURED = "configured"
+STANDALONE_SOURCE_BATCH_SIZE = 8
 
 
 class ExitCode(IntEnum):
@@ -1555,15 +1556,16 @@ def _coverage_audits(
         if (by_path[path].kind == SourceKind.NON_IMPORTABLE or by_path[path].module is None)
         and path.endswith(".py")
     )
-    for index, path in enumerate(standalone):
+    for batch_index, start in enumerate(range(0, len(standalone), STANDALONE_SOURCE_BATCH_SIZE)):
+        source_paths = tuple(standalone[start : start + STANDALONE_SOURCE_BATCH_SIZE])
         supplemental.append(
             run_profile(
                 primary.profile,
                 root,
                 tree,
                 output,
-                source_paths=(path,),
-                label=f"{primary.profile.value}-executable-{index:04d}",
+                source_paths=source_paths,
+                label=f"{primary.profile.value}-standalone-{batch_index:04d}",
             )
         )
     return _merge_profiles(primary.profile, tree, primary, supplemental)

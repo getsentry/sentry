@@ -19,6 +19,7 @@ from tools.mypy_helpers.typing_campaign import (
     SourceFile,
     SourceKind,
     TreeMeasurement,
+    _coverage_audits,
     _diagnostic_record,
     _effective_pairs,
     _known_environment_warnings,
@@ -312,6 +313,68 @@ def test_precision_adapter_exports_stable_any_obligations(tmp_path: Path) -> Non
     assert state.checked
     assert "implicit_reexport" in dict(state.effective_options)
     assert "no_implicit_reexport" not in dict(state.effective_options)
+
+
+def test_coverage_audits_batch_standalone_sources(tmp_path: Path) -> None:
+    root = tmp_path / "snapshot"
+    package = root / "src" / "sentry"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    standalone_paths = tuple(f"bin/script_{index}.py" for index in range(9))
+    for path in standalone_paths:
+        source_path = root / path
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_text("value: int = 1\n")
+    (root / "pyproject.toml").write_text(
+        "[tool.mypy]\n"
+        "python_version = '3.13'\n"
+        "files = ['src/sentry']\n"
+        "mypy_path = ['src']\n"
+        "namespace_packages = true\n"
+        "explicit_package_bases = true\n"
+    )
+    output = tmp_path / "measurements"
+    output.mkdir()
+    primary_output = output / "configured"
+    primary_output.mkdir()
+    primary = ProfileMeasurement(
+        Profile.CONFIGURED,
+        "synthetic-tree",
+        0,
+        1,
+        (),
+        (
+            ModuleState(
+                "sentry",
+                "src/sentry/__init__.py",
+                True,
+                True,
+                False,
+                (),
+                (),
+                "normal",
+                "normal",
+                (),
+            ),
+        ),
+        (),
+        (),
+        0.0,
+        None,
+        primary_output,
+    )
+    inventory = (
+        classify_source("src/sentry/__init__.py"),
+        *(classify_source(path) for path in standalone_paths),
+    )
+
+    measured = _coverage_audits(primary, inventory, root, "synthetic-tree", output)
+
+    checked_paths = {
+        state.path for state in measured.graph if state.ast_retained and state.checked
+    }
+    assert set(standalone_paths).issubset(checked_paths)
+    assert len(list(output.glob("configured-standalone-*"))) == 2
 
 
 def test_precision_canaries_cover_imported_plugin_any_and_cli_parity(tmp_path: Path) -> None:
