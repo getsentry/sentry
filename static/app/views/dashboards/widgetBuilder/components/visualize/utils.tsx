@@ -265,6 +265,7 @@ export const AggregateCompactSelect = styled(CompactSelect)<{
 
 export const LegendAliasInput = styled(Input)``;
 
+// eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing styles moved from visualize/index.tsx.
 export const ParameterRefinements = styled('div')`
   display: flex;
   flex-direction: row;
@@ -275,6 +276,7 @@ export const ParameterRefinements = styled('div')`
   }
 `;
 
+// eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing styles moved from visualize/index.tsx.
 export const FieldBar = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
@@ -318,6 +320,7 @@ export function FieldRow(props: FlexProps) {
   return <Flex gap="md" width="100%" minWidth="0" {...props} />;
 }
 
+// eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing styles moved from visualize/index.tsx.
 export const FieldExtras = styled('div')<{compact: boolean}>`
   display: flex;
   flex-direction: row;

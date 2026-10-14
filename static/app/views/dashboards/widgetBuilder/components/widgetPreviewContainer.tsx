@@ -203,6 +203,7 @@ export function WidgetPreviewContainer({
         >
           {openWidgetTemplates && !hasUrlParams ? (
             <WidgetPreviewPlaceholder>
+              {/* eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing heading moved from newWidgetBuilder.tsx. */}
               <h6 style={{margin: 0}}>{t('Widget Title')}</h6>
               <TemplateWidgetPreviewPlaceholder>
                 <p style={{margin: 0}}>{t('Select a widget to preview')}</p>
@@ -287,6 +288,7 @@ const DraggableWidgetContainer = styled('div')`
   }
 `;
 
+// eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing styles moved from newWidgetBuilder.tsx.
 const DroppableGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -300,6 +302,7 @@ const DroppableGrid = styled('div')`
   left: 0;
 `;
 
+// eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing styles moved from newWidgetBuilder.tsx.
 const TemplateWidgetPreviewPlaceholder = styled('div')`
   display: flex;
   flex-direction: column;
