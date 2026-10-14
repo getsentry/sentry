@@ -599,6 +599,7 @@ const config = defineConfig({
     '@sentry/scraps/no-token-import': 'error',
     '@sentry/scraps/prefer-info-text': 'error',
     '@sentry/scraps/prefer-stack-for-column-flex': 'error',
+    '@sentry/scraps/require-field-component': 'error',
     '@sentry/scraps/require-render-prop-spread': 'error',
     '@sentry/scraps/use-semantic-token': [
       'error',
@@ -1418,6 +1419,11 @@ const config = defineConfig({
     'unicorn-js/prefer-simple-condition-first': 'off',
   },
   overrides: [
+    {
+      // AutoSaveForm forwards the field API to its caller's render function.
+      files: ['static/app/components/core/form/autoSaveForm.tsx'],
+      rules: {'@sentry/scraps/require-field-component': 'off'},
+    },
     {
       files: [
         'tests/js/jestReactRouterResolver.cjs',

@@ -5,6 +5,7 @@ import {noTokenImport} from './noTokenImport.ts';
 import {preferInfoText} from './preferInfoText.ts';
 import {preferPrimitives} from './preferPrimitives.ts';
 import {preferStackForColumnFlex} from './preferStackForColumnFlex.ts';
+import {requireFieldComponent} from './requireFieldComponent.ts';
 import {requireRenderPropSpread} from './requireRenderPropSpread.ts';
 import {restrictJsxSlotChildren} from './restrictJsxSlotChildren.ts';
 import {useSemanticToken} from './useSemanticToken.ts';
@@ -17,6 +18,7 @@ export const rules = {
   'prefer-info-text': preferInfoText,
   'prefer-primitives': preferPrimitives,
   'prefer-stack-for-column-flex': preferStackForColumnFlex,
+  'require-field-component': requireFieldComponent,
   'require-render-prop-spread': requireRenderPropSpread,
   'restrict-jsx-slot-children': restrictJsxSlotChildren,
   'use-semantic-token': useSemanticToken,
