@@ -89,7 +89,7 @@ type SetStateOnUrl = (
  * stats org component. Used by the "component:enhanced-org-stats" override
  * to render its own usage stats component.
  */
-export type UsageStatsOrgRenderArgs = {
+type UsageStatsOrgRenderArgs = {
   chartTransform: string | undefined;
   clientDiscard: boolean;
   dataCategory: DataCategoryInfo['plural'];
