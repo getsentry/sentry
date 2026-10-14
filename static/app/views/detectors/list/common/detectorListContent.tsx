@@ -130,7 +130,7 @@ function DetectorListContentInner({
         new Map(projects.map(project => [project.id, project.slug]))
       ),
     },
-    {isLoading}
+    {isLoading: !isSuccess && !isError}
   );
 
   return (

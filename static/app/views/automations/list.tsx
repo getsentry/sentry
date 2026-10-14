@@ -76,7 +76,7 @@ function AutomationsListInner() {
   const navigate = useNavigate();
 
   const {queryOptions, enabled, cursor, sort, query} = useAutomationListQueryOptions();
-  const {data, isLoading, isError, isSuccess} = useQuery({
+  const {data, isLoading, isPending, isError, isSuccess} = useQuery({
     ...queryOptions,
     select: selectJsonWithHeaders,
     enabled,
@@ -119,7 +119,7 @@ function AutomationsListInner() {
       ...toLLMContextProjectFields(selectedProjects),
       displayedAlerts: formatAutomationRows(automations ?? []),
     },
-    {isLoading}
+    {isLoading: isPending}
   );
 
   return (
