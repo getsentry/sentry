@@ -74,7 +74,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
 )
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
-from sentry.api.endpoints.project_web_vitals_detection import ProjectWebVitalsDetectionEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -3331,11 +3330,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/performance/configure/$",
         ProjectPerformanceGeneralSettingsEndpoint.as_view(),
         name="sentry-api-0-project-performance-general-settings",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/web-vitals-detector/$",
-        ProjectWebVitalsDetectionEndpoint.as_view(),
-        name="sentry-api-0-project-web-vitals-detection",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/legacy-webhooks/$",
