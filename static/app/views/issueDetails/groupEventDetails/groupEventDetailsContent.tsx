@@ -60,7 +60,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanProblemSection';
 import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanTroubleshootingSection';
 import {SectionKey} from 'sentry/views/issueDetails/context';
-import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 import {getHangProfileData} from 'sentry/views/issueDetails/metricKitHangProfileSection';
@@ -311,10 +310,4 @@ export function EventDetailsContent({
   );
 }
 
-export function GroupEventDetailsContent({
-  group,
-  event,
-  project,
-}: EventDetailsContentProps) {
-  return <EventDetails event={event} group={group} project={project} />;
-}
+

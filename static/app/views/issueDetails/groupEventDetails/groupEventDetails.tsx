@@ -20,8 +20,8 @@ import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
-import {GroupEventDetailsContent} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
+import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
 import {ReprocessingProgress} from 'sentry/views/issueDetails/reprocessingProgress';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -143,7 +143,7 @@ function GroupEventDetails() {
       onRetry={refetchEvent}
     />
   ) : (
-    <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
+    <EventDetails group={group} event={eventWithMeta} project={project} />
   );
 
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
