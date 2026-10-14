@@ -6,6 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {
   COMPONENT_CATEGORY_CONFIG,
   COMPONENT_CATEGORY_ORDER,
@@ -40,8 +41,8 @@ export class StoryTreeNode {
     this.label = displayLabel ?? routeLabel;
     this.category = inferFileCategory(filesystemPath);
 
-    if (this.category === 'product') {
-      const [_app, ...segments] = this.filesystemPath.split('/');
+    if (isTreeSection(this.category)) {
+      const [_root, ...segments] = this.filesystemPath.split('/');
       // Remove the filename from the path
       segments.pop()!;
       const pathPrefix =
@@ -111,7 +112,14 @@ function normalizeFilename(filename: string) {
   );
 }
 
-export type StoryCategory = 'principles' | 'patterns' | 'core' | 'product';
+type StoryRoot = 'app' | 'gsApp' | 'gsAdmin';
+
+export type StoryCategory =
+  | 'principles'
+  | 'patterns'
+  | 'core'
+  | 'product'
+  | Exclude<StoryRoot, 'app'>;
 
 type StorySection = 'overview' | StoryCategory;
 
@@ -123,6 +131,8 @@ export const SECTION_CONFIG: Record<StorySection, {label: string}> = {
   patterns: {label: 'Patterns'},
   core: {label: 'Components'},
   product: {label: 'Shared'},
+  gsApp: {label: 'gsApp'},
+  gsAdmin: {label: 'gsAdmin'},
 };
 
 export const COMPONENT_SUBCATEGORY_CONFIG = COMPONENT_CATEGORY_CONFIG;
@@ -133,7 +143,39 @@ export const SECTION_ORDER: StorySection[] = [
   'patterns',
   'core',
   'product',
+  'gsApp',
+  'gsAdmin',
 ];
+
+/**
+ * Sections whose stories are nested by folder, with routes built from the
+ * file path.
+ */
+export function isTreeSection(section: StorySection) {
+  return section === 'product' || section === 'gsApp' || section === 'gsAdmin';
+}
+
+function getStoryRoot(file: string): StoryRoot {
+  if (file.startsWith('gsApp/')) {
+    return 'gsApp';
+  }
+  if (file.startsWith('gsAdmin/')) {
+    return 'gsAdmin';
+  }
+  return 'app';
+}
+
+/**
+ * Self-hosted servers never load getsentry, so its stories are hidden there.
+ * The stories are lazy imports, so hiding them also means their code is never
+ * fetched.
+ */
+function getVisibleStoryFiles() {
+  if (ConfigStore.get('sentryMode') !== 'SELF_HOSTED') {
+    return storyFiles;
+  }
+  return storyFiles.filter(file => getStoryRoot(file) === 'app');
+}
 
 const COMPONENT_SUBCATEGORY_ORDER = COMPONENT_CATEGORY_ORDER;
 
@@ -160,7 +202,7 @@ export function useFlatStoryList(): StoryTreeNode[] {
       grouped.set(section, {direct: [], bySubcategory: new Map()});
     }
 
-    for (const file of storyFiles) {
+    for (const file of getVisibleStoryFiles()) {
       const loc = inferStoryLocation(file);
       const sectionData = grouped.get(loc.section);
       if (!sectionData) {
@@ -218,19 +260,22 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
     }
 
     // Collect files by section
-    const productFiles: string[] = [];
+    const treeFilesBySection = new Map<StorySection, string[]>();
     const coreFilesBySubcategory = new Map<ComponentSubcategory, string[]>();
 
-    for (const file of storyFiles) {
+    for (const file of getVisibleStoryFiles()) {
       const loc = inferStoryLocation(file);
       const sectionData = hierarchy.get(loc.section);
       if (!sectionData) {
         continue;
       }
 
-      // Special handling for 'product' section - collect files for tree building
-      if (loc.section === 'product') {
-        productFiles.push(file);
+      // Tree sections collect files so the folder hierarchy can be built below
+      if (isTreeSection(loc.section)) {
+        if (!treeFilesBySection.has(loc.section)) {
+          treeFilesBySection.set(loc.section, []);
+        }
+        treeFilesBySection.get(loc.section)!.push(file);
         continue;
       }
 
@@ -247,10 +292,8 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
       sectionData.stories.push(createStoryLeaf(file, loc.section));
     }
 
-    // Build tree structure for 'product'/'Shared' section
-    if (productFiles.length > 0) {
-      const productTree = buildProductTree(productFiles);
-      hierarchy.set('product', {stories: productTree});
+    for (const [section, files] of treeFilesBySection) {
+      hierarchy.set(section, {stories: buildProductTree(files, section)});
     }
 
     // Build tree structure for 'core'/'Components' section
@@ -261,8 +304,8 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
 
     // Sort stories within each section
     for (const [section, sectionData] of hierarchy) {
-      // Skip 'product' and 'core' - already sorted by tree builders
-      if (section === 'product' || section === 'core') {
+      // Tree sections and 'core' are already sorted by the tree builders
+      if (isTreeSection(section) || section === 'core') {
         continue;
       }
 
@@ -274,6 +317,11 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
 }
 
 function inferFileCategory(path: string): StoryCategory {
+  const root = getStoryRoot(path);
+  if (root !== 'app') {
+    return root;
+  }
+
   if (isPrinciplesFile(path)) {
     return 'principles';
   }
@@ -296,6 +344,12 @@ interface StoryLocation {
 }
 
 function inferStoryLocation(path: string): StoryLocation {
+  // Each getsentry root is its own section
+  const root = getStoryRoot(path);
+  if (root !== 'app') {
+    return {section: root};
+  }
+
   // Overview section
   if (isOverviewFile(path)) {
     return {section: 'overview'};
@@ -379,16 +433,16 @@ function formatName(name: string) {
 }
 
 /**
- * Builds a nested tree structure from flat product/shared file paths.
- * Strips 'app/' prefix and creates intermediate folder nodes.
+ * Builds a nested tree structure from flat file paths in a tree section.
+ * Strips the root directory and creates intermediate folder nodes.
  * Example: "app/components/forms/form.stories.tsx" → components/forms/Form
  */
-function buildProductTree(files: string[]): StoryTreeNode[] {
+function buildProductTree(files: string[], section: StorySection): StoryTreeNode[] {
   const root = new StoryTreeNode('root', '', '');
 
   for (const file of files) {
-    // Strip 'app/' prefix, keep rest of path
-    const normalizedPath = file.replace(/^app\//, '');
+    // Strip the root directory, keep rest of path
+    const normalizedPath = file.replace(/^[^/]+\//, '');
     const parts = normalizedPath.split('/');
 
     let currentNode = root;
@@ -413,7 +467,7 @@ function buildProductTree(files: string[]): StoryTreeNode[] {
 
     // Add the actual story file as leaf node
     const name = inferComponentName(file);
-    currentNode.children[name] = createStoryLeaf(file, 'product');
+    currentNode.children[name] = createStoryLeaf(file, section);
   }
 
   // Sort recursively: folders first, then alphabetically

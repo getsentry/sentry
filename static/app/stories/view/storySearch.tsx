@@ -20,6 +20,7 @@ import {storyFrontmatterIndex, storyHeadingIndex} from 'sentry/stories/storyMani
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,
+  isTreeSection,
   SECTION_CONFIG,
   SECTION_ORDER,
   useStoryHierarchy,
@@ -200,7 +201,7 @@ export function StorySearch() {
             options: searchItems(allCoreNodes, inputValue),
           });
         }
-      } else if (section === 'product' && data.stories.length > 0) {
+      } else if (isTreeSection(section) && data.stories.length > 0) {
         const flattenedStories = data.stories.flatMap(tree => tree.flat());
         sections.push({
           key: section,
