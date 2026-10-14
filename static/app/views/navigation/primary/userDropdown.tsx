@@ -76,42 +76,6 @@ export function UserDropdown() {
 
   const size = useSizeContext();
 
-  const legacyItems = [
-    {
-      key: 'user',
-      label: (
-        <Flex align="center" gap="md">
-          <UserAvatar user={user} size={32} />
-          <Stack gap="xs">
-            <Text size="sm" bold uppercase variant="primary">
-              {user.name === user.email
-                ? user.email.split('@')[0]?.split('.').join(' ')
-                : user.name}
-            </Text>
-            <Text size="xs" variant="muted">
-              {user.email}
-            </Text>
-          </Stack>
-        </Flex>
-      ),
-      textValue: t('User Summary'),
-      children: [
-        {
-          key: 'user-settings',
-          label: t('User Settings'),
-          to: '/settings/account/',
-        },
-        {
-          key: 'admin',
-          label: t('Admin'),
-          to: '/manage/',
-          hidden: !isActiveSuperuser(),
-        },
-        {key: 'signout', label: t('Sign Out'), onAction: handleLogout},
-      ],
-    },
-  ];
-
   const settingsV3Items = [
     {
       key: 'settings',
@@ -190,6 +154,76 @@ export function UserDropdown() {
     },
   ];
 
+  if (settingsV3) {
+    return (
+      <DropdownMenu
+        usePortal
+        size={size}
+        portalContainerRef={portalContainerRef}
+        zIndex={theme.zIndex.modal}
+        renderWrapAs={PassthroughWrapper}
+        position={layout === 'mobile' ? 'bottom' : 'right-end'}
+        minMenuWidth={224}
+        trigger={triggerProps => (
+          <AvatarButton
+            {...triggerProps}
+            aria-label={user.email}
+            avatar={avatarProps}
+            onClick={e => {
+              handleTriggerClick();
+              triggerProps.onClick?.(e);
+            }}
+          />
+        )}
+        menuTitle={
+          <NavigationMenuHeader
+            title={t('User')}
+            avatar={<UserAvatar user={user} size={32} />}
+            name={user.name || user.username || user.email}
+            subtitle={user.email}
+          />
+        }
+        items={settingsV3Items}
+      />
+    );
+  }
+
+  const legacyItems = [
+    {
+      key: 'user',
+      label: (
+        <Flex align="center" gap="md">
+          <UserAvatar user={user} size={32} />
+          <Stack gap="xs">
+            <Text size="sm" bold uppercase variant="primary">
+              {user.name === user.email
+                ? user.email.split('@')[0]?.split('.').join(' ')
+                : user.name}
+            </Text>
+            <Text size="xs" variant="muted">
+              {user.email}
+            </Text>
+          </Stack>
+        </Flex>
+      ),
+      textValue: t('User Summary'),
+      children: [
+        {
+          key: 'user-settings',
+          label: t('User Settings'),
+          to: '/settings/account/',
+        },
+        {
+          key: 'admin',
+          label: t('Admin'),
+          to: '/manage/',
+          hidden: !isActiveSuperuser(),
+        },
+        {key: 'signout', label: t('Sign Out'), onAction: handleLogout},
+      ],
+    },
+  ];
+
   return (
     <DropdownMenu
       usePortal
@@ -198,7 +232,7 @@ export function UserDropdown() {
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
-      minMenuWidth={settingsV3 ? 224 : 200}
+      minMenuWidth={200}
       trigger={triggerProps => (
         <AvatarButton
           {...triggerProps}
@@ -210,17 +244,7 @@ export function UserDropdown() {
           }}
         />
       )}
-      menuTitle={
-        settingsV3 ? (
-          <NavigationMenuHeader
-            title={t('User')}
-            avatar={<UserAvatar user={user} size={32} />}
-            name={user.name || user.username || user.email}
-            subtitle={user.email}
-          />
-        ) : undefined
-      }
-      items={settingsV3 ? settingsV3Items : legacyItems}
+      items={legacyItems}
     />
   );
 }
