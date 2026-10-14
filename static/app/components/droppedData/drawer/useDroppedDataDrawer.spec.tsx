@@ -333,6 +333,16 @@ describe('useDroppedDataDrawer', () => {
     const chatUrl = `/organizations/${seerOrganization.slug}/seer/explorer-chat/`;
     MockApiClient.addMockResponse({url: chatUrl, method: 'GET', body: {session: null}});
     MockApiClient.addMockResponse({
+      url: chatUrl,
+      method: 'POST',
+      body: {run_id: 1, message: {role: 'user', content: ''}},
+    });
+    MockApiClient.addMockResponse({
+      url: `${chatUrl}1/`,
+      method: 'GET',
+      body: {session: {run_id: 1, blocks: [], status: 'completed'}},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${seerOrganization.slug}/seer/runs/`,
       body: [],
     });
