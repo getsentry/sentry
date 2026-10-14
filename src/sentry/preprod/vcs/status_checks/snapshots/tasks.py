@@ -359,6 +359,7 @@ def _compute_snapshot_status(
     changes_map: dict[int, bool],
 ) -> StatusCheckStatus:
     has_in_progress = False
+    needs_approval = False
 
     for artifact in artifacts:
         metrics = snapshot_metrics_map.get(artifact.id)
@@ -378,7 +379,10 @@ def _compute_snapshot_status(
                     return StatusCheckStatus.FAILURE
             case PreprodSnapshotComparison.State.SUCCESS:
                 if changes_map.get(artifact.id, False) and artifact.id not in approvals_map:
-                    return StatusCheckStatus.FAILURE
+                    needs_approval = True
+
+    if needs_approval:
+        return StatusCheckStatus.ACTION_REQUIRED
 
     if has_in_progress:
         return StatusCheckStatus.IN_PROGRESS
@@ -466,7 +470,7 @@ def post_snapshot_status_check_task(
             return
 
     if (
-        status_enum == StatusCheckStatus.FAILURE
+        status_enum in (StatusCheckStatus.FAILURE, StatusCheckStatus.ACTION_REQUIRED)
         and preprod_artifact.commit_comparison_id is not None
     ):
         superseded = (
