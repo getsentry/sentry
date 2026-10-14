@@ -7,7 +7,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
-import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
@@ -140,7 +139,7 @@ const StyledBreak = styled('hr')`
   border-color: ${p => p.theme.tokens.border.primary};
 `;
 
-export {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebarSectionTitle';
+
 
 const Side = styled(Layout.Side)<{isBottomSidebar: boolean}>`
   position: relative;
