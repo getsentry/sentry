@@ -85,7 +85,7 @@ jobs:
           python3 -m tools.fast_editable --path .
           python3 -m sentry.build.main
 
-      - uses: getsentry/action-build-and-push-images@07a1c835f7a78e0f438fc766cc6024ed0ca1bf03
+      - uses: getsentry/action-build-and-push-images@3714f354c0bc912a95221f193c9643cdba966e34
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         with:
           image_name: 'sentry'
@@ -98,6 +98,9 @@ jobs:
           ghcr: true
           tag_nightly: false
           tag_latest: false
+          # Restoring cached layers is slower than rebuilding them here.
+          cache_from: ''
+          cache_to: ''
 
       # getsentry/action-build-and-push-images only publishes on push, so the
       # daily and manual distroless builds use the Docker actions directly.
@@ -125,7 +128,6 @@ jobs:
             SOURCE_COMMIT=${{ github.sha }}
             TARGETARCH=${{ matrix.platform }}
           tags: ghcr.io/getsentry/sentry:${{ github.sha }}-distroless-${{ matrix.platform }}
-          cache-from: type=gha,scope=buildcache
           push: ${{ github.ref_name == 'master' }}
 
   assemble:

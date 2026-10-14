@@ -17,7 +17,12 @@ from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
 )
-from sentry.notifications.platform.types import NotificationRenderedTemplate
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationRenderedTemplate,
+)
+from sentry.notifications.types import NotificationOrigin
 from sentry.testutils.cases import TestCase
 
 
@@ -61,7 +66,10 @@ class IssueCardLegacyParityTest(TestCase):
         rpc_integration = integration_service.get_integration(integration_id=self.integration.id)
         assert rpc_integration is not None
         return MSTeamsIssueMessageBuilder(
-            self.issue_group, self.event, [self.rule], rpc_integration
+            self.issue_group,
+            self.event,
+            [NotificationOrigin.from_legacy_rule(self.rule)],
+            rpc_integration,
         ).build_group_card()
 
     def platform_card(self) -> AdaptiveCard:
@@ -75,6 +83,9 @@ class IssueCardLegacyParityTest(TestCase):
         return IssueMSTeamsRenderer.render(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+            link_decorator=NotificationLinkDecorator(
+                data=data, provider=NotificationProviderKey.MSTEAMS
+            ),
         )
 
     def assert_parity(self) -> None:

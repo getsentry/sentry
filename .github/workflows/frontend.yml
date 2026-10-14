@@ -72,6 +72,8 @@ jobs:
     name: oxlint
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    outputs:
+      budgets: ${{ steps.ratchet.outputs.budgets }}
     permissions:
       contents: read
       actions: read
@@ -135,6 +137,15 @@ jobs:
         env:
           MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
+
+  prune-oxlint-suppressions:
+    needs: oxlint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.oxlint.outputs.budgets == 'stale'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/prune-oxlint-suppressions.yml
+    secrets:
+      SENTRY_INTERNAL_APP_PRIVATE_KEY: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'
