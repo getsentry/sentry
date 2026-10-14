@@ -1,7 +1,10 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
+import {
+  ATTRIBUTE_SEARCH_METADATA,
+  SEARCH_MCP__TRANSPORT,
+} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
@@ -102,6 +105,10 @@ export function getHighlightedSpanAttributes({
   const attributeObject = ensureAttributeObject(attributes);
   const genAiOpType = attributeObject['gen_ai.operation.type'] as string | undefined;
 
+  if (op?.startsWith('mcp.')) {
+    return getMCPAttributes(attributeObject);
+  }
+
   if (genAiOpType) {
     return getAISpanAttributes({
       attributes: attributeObject,
@@ -110,10 +117,6 @@ export function getHighlightedSpanAttributes({
       op,
       description,
     });
-  }
-
-  if (op?.startsWith('mcp.')) {
-    return getMCPAttributes(attributeObject);
   }
 
   return [];
@@ -455,6 +458,14 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
     highlightedAttributes.push({
       name: t('Prompt Name'),
       value: promptName,
+    });
+  }
+
+  const mcpTransport = attributes[SEARCH_MCP__TRANSPORT];
+  if (mcpTransport) {
+    highlightedAttributes.push({
+      name: t('MCP Transport'),
+      value: mcpTransport,
     });
   }
 
