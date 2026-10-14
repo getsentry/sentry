@@ -12,14 +12,17 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import issue_notification_data_factory
 from sentry.notifications.platform.shadow.capture import (
-    SHADOW_PROVIDERS,
     LegacyRender,
     _variant,
     collecting,
     record_legacy_render,
     shadow_read,
 )
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationSource,
+    SHADOW_PROVIDERS,
+)
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase

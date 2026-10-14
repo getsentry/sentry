@@ -18,6 +18,7 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
     NotificationSource,
+    SHADOW_PROVIDERS,
 )
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
@@ -28,13 +29,6 @@ from sentry.workflow_engine.models import Action, AlertRuleWorkflow
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
-
-SHADOW_PROVIDERS: dict[str, NotificationProviderKey] = {
-    Action.Type.SLACK: NotificationProviderKey.SLACK,
-    Action.Type.SLACK_STAGING: NotificationProviderKey.SLACK_STAGING,
-    Action.Type.DISCORD: NotificationProviderKey.DISCORD,
-    Action.Type.MSTEAMS: NotificationProviderKey.MSTEAMS,
-}
 
 SHADOW_SOURCES = frozenset({NotificationSource.ISSUE, NotificationSource.METRIC_ALERT})
 

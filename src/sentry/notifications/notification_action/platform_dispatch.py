@@ -13,7 +13,6 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
 )
 from sentry.notifications.notification_action.utils import metric_alert_notification_data_factory
 from sentry.notifications.platform.service import NotificationService
-from sentry.notifications.platform.shadow.capture import SHADOW_PROVIDERS
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.threading import ThreadingOptions, ThreadKey
@@ -21,6 +20,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationSource,
     NotificationTargetResourceType,
+    SHADOW_PROVIDERS,
 )
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext

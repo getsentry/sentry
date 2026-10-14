@@ -28,9 +28,13 @@ from sentry.notifications.notification_action.utils import (
     issue_notification_data_factory,
     metric_alert_notification_data_factory,
 )
-from sentry.notifications.platform.shadow.capture import SHADOW_PROVIDERS, _variant
+from sentry.notifications.platform.shadow.capture import _variant
 from sentry.notifications.platform.shadow.compare import ShadowOutcome
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.notifications.platform.types import (
+    NotificationProviderKey,
+    NotificationSource,
+    SHADOW_PROVIDERS,
+)
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.snuba.dataset import Dataset
