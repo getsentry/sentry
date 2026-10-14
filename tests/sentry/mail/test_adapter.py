@@ -209,6 +209,8 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
 
         origin = self.create_notification_origin(name="my rule")
+        workflow_id = origin.workflow_id
+        assert workflow_id is not None
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification = Notification(event=event, rule=origin)
@@ -237,7 +239,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 id=0,
                 actor_type="User",
                 notification_uuid="",
-                alert_id=origin.workflow_id,
+                alert_id=workflow_id,
             ),
             exclude_fields=[
                 "id",
@@ -254,7 +256,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="email",
-                alert_id=origin.workflow_id,
+                alert_id=workflow_id,
                 alert_type="issue_alert",
                 external_id="ANY",
                 notification_uuid="ANY",
