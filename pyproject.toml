@@ -708,7 +708,6 @@ module = [
     "sentry.db.models.fields.slug",
     "sentry.db.models.fields.text",
     "sentry.db.models.fields.uuid",
-    "sentry.db.models.indexes",
     "sentry.db.models.query",
     "sentry.db.postgres.*",
     "sentry.db.router",
