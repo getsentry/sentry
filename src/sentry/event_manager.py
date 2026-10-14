@@ -1684,16 +1684,17 @@ def _create_group(
 
     create_open_period(group=group, start_time=group.first_seen, event_id=event.event_id)
 
-    # Group creation is on the ingest hot path, so leave the outbox for the periodic
-    # drain rather than flushing on commit.
-    with outbox_context(flush=False):
-        publish_action(
-            FirstSeenAction(first_seen=group.first_seen),
-            source=ActionSource.SYSTEM,
-            group_id=group.id,
-            project=project,
-            idempotency_key=first_seen_idempotency_key(group.id),
-        )
+    if not options.get("issues.action_log.first_seen_on_create.killswitch"):
+        # Group creation is on the ingest hot path, so leave the outbox for the periodic
+        # drain rather than flushing on commit.
+        with outbox_context(flush=False):
+            publish_action(
+                FirstSeenAction(first_seen=group.first_seen),
+                source=ActionSource.SYSTEM,
+                group_id=group.id,
+                project=project,
+                idempotency_key=first_seen_idempotency_key(group.id),
+            )
 
     return group
 

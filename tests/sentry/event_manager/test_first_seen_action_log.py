@@ -15,6 +15,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.skips import requires_snuba
 
@@ -77,6 +78,14 @@ class FirstSeenActionLogTest(TestCase):
     def test_no_outbox_when_write_disabled(self) -> None:
         group_id = self._store()
 
+        assert not GroupActionLogOutbox.objects.filter(shard_identifier=group_id).exists()
+
+    @override_options({"issues.action_log.first_seen_on_create.killswitch": True})
+    def test_not_published_when_killswitch_enabled(self) -> None:
+        with capture_action_log() as log:
+            group_id = self._store()
+
+        log.assert_not_logged(FirstSeenAction)
         assert not GroupActionLogOutbox.objects.filter(shard_identifier=group_id).exists()
 
 
