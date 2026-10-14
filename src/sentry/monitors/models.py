@@ -485,6 +485,11 @@ class MonitorCheckInConfig(DefaultFieldsModel):
     hash = models.CharField(max_length=64)
     config = models.JSONField()
 
+    # Rows never change, so they can stay cached for a long time
+    objects: ClassVar[BaseManager[Self]] = BaseManager(
+        cache_fields=("hash",), cache_ttl=60 * 60 * 24
+    )
+
     class Meta:
         app_label = "monitors"
         db_table = "sentry_monitorcheckinconfig"
@@ -573,7 +578,8 @@ class MonitorCheckIn(Model):
 
     monitor_config = LegacyTextJSONField(null=True)
     """
-    A snapshot of the monitor configuration at the time of the check-in.
+    Legacy snapshot of the monitor configuration at the time of the check-in.
+    No longer written; replaced by `checkin_config`.
     """
 
     checkin_config = FlexibleForeignKey(
