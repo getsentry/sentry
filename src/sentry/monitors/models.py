@@ -351,16 +351,17 @@ class Monitor(Model):
         return next_checkin + get_checkin_margin(self.config.get("checkin_margin"))
 
     def update_config(self, config_payload, validated_config):
-        monitor_config = self.config
         keys = set(config_payload.keys())
 
         # Always update schedule and schedule_type
         keys.update({"schedule", "schedule_type"})
         # Otherwise, only update keys that were specified in the payload
+        monitor_config = {**self.config}
         for key in keys:
             if key in validated_config:
                 monitor_config[key] = validated_config[key]
-        self.save()
+        if monitor_config != self.config:
+            self.update(config=monitor_config)
 
     def get_validated_config(self):
         try:

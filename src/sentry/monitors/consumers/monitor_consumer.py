@@ -290,8 +290,7 @@ def _ensure_monitor_with_config(
 
     # Update existing monitor
     if monitor and not created:
-        if monitor.config != validated_config:
-            monitor.update_config(config, validated_config)
+        monitor.update_config(config, validated_config)
         if not monitor.is_upserting:
             monitor.update(is_upserting=True)
         if (owner_user_id or owner_team_id) and (
