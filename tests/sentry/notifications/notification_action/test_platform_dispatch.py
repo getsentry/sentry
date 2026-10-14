@@ -37,7 +37,9 @@ def slack_response(client: mock.MagicMock, ts: str) -> SlackResponse:
 
 
 @override_options({"notifications.platform-rollout.internal-testing": {"metric-alert": 1.0}})
-@override_options({"notifications.platform.alert-providers": {"metric-alert": ["slack", "slack_staging"]}})
+@override_options(
+    {"notifications.platform.alert-providers": {"metric-alert": ["slack", "slack_staging"]}}
+)
 @with_feature("organizations:notification-platform.internal-testing")
 class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
     def setUp(self) -> None:
