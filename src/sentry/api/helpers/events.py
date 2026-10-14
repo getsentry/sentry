@@ -90,7 +90,7 @@ def get_query_builder_for_group(
 
     return DiscoverQueryBuilder(
         dataset=dataset,
-        query=f"issue:{group.qualified_short_id} {query}",
+        query=f"issue.id:{group.id} {query}",
         params={},
         snuba_params=snuba_params,
         selected_columns=selected_columns,

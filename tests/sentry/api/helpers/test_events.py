@@ -2,12 +2,35 @@ from __future__ import annotations
 
 import datetime
 from typing import Any
+from unittest.mock import patch
+
+from snuba_sdk import Column, Condition, Op
 
 from sentry.api.helpers.events import get_events_for_group_eap, get_query_builder_for_group
 from sentry.models.group import Group
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+
+
+class TestGetQueryBuilderForGroup(TestCase):
+    def test_filters_by_group_id_without_short_id_lookup(self) -> None:
+        group = self.create_group(project=self.project)
+        snuba_params = SnubaParams(
+            start=before_now(days=1),
+            end=before_now(),
+            organization=self.organization,
+            projects=[self.project],
+            environments=[],
+        )
+
+        with patch.object(Group.objects, "by_qualified_short_id_bulk") as by_short_id:
+            builder = get_query_builder_for_group(
+                query="", snuba_params=snuba_params, group=group, limit=10, offset=0
+            )
+
+        by_short_id.assert_not_called()
+        assert Condition(Column("group_id"), Op.EQ, group.id) in builder.where
 
 
 class TestEAPRunGroupEventsQuery(TestCase, SnubaTestCase):
