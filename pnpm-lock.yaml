@@ -1253,7 +1253,7 @@ importers:
         version: '@typescript/typescript6@6.0.2'
 
   tests/js:
-    dependencies:
+    devDependencies:
       '@emotion/cache':
         specifier: ^11.14.0
         version: 11.14.0
@@ -1326,6 +1326,24 @@ importers:
       '@testing-library/user-event':
         specifier: 14.6.7
         version: 14.6.7(@testing-library/dom@10.4.1)
+      '@types/history':
+        specifier: ^3.2.5
+        version: 3.2.5
+      '@types/jest':
+        specifier: 30.0.0
+        version: 30.0.0
+      '@types/lodash':
+        specifier: ^4.17.24
+        version: 4.17.24
+      '@types/node':
+        specifier: 26.6.4
+        version: 26.6.4
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
       echarts-for-react:
         specifier: 3.0.6
         version: 3.0.6(echarts@6.1.0)(react@19.3.0)
@@ -1398,34 +1416,21 @@ importers:
       sonner:
         specifier: 2.0.8
         version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-    devDependencies:
-      '@types/history':
-        specifier: ^3.2.5
-        version: 3.2.5
-      '@types/jest':
-        specifier: 30.0.0
-        version: 30.0.0
-      '@types/lodash':
-        specifier: ^4.17.24
-        version: 4.17.24
-      '@types/node':
-        specifier: 26.6.4
-        version: 26.6.4
-      '@types/react':
-        specifier: 19.3.0
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 19.3.0
-        version: 19.3.0(@types/react@19.3.0)
 
   tests/js/getsentry-test:
-    dependencies:
+    devDependencies:
       '@stripe/react-stripe-js':
         specifier: ^3.9.2
         version: 3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@stripe/stripe-js':
         specifier: ^5.10.0
         version: 5.10.0
+      '@types/lodash':
+        specifier: ^4.17.24
+        version: 4.17.24
+      '@types/node':
+        specifier: 26.6.4
+        version: 26.6.4
       getsentry:
         specifier: workspace:@sentry-internal/gs-app@*
         version: link:../../../static/gsApp
@@ -1447,13 +1452,6 @@ importers:
       sentry-fixture:
         specifier: workspace:@sentry-internal/sentry-test@*
         version: link:..
-    devDependencies:
-      '@types/lodash':
-        specifier: ^4.17.24
-        version: 4.17.24
-      '@types/node':
-        specifier: 26.6.4
-        version: 26.6.4
 
 packages:
 
