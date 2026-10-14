@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import ipaddress
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
@@ -27,6 +27,7 @@ from sentry.apidocs.response_types import (
 )
 from sentry.ingest.inbound_filters import get_supported_condition_types
 from sentry.models.custominboundfilter import (
+    KEYED_CONDITION_TYPES,
     MAX_FILTERS_PER_PROJECT,
     ConditionType,
     CustomInboundFilter,
@@ -40,6 +41,8 @@ MAX_CONDITIONS_PER_FILTER = 10
 # filter bounds how much matching work a single filter can cause. A filter stored
 # before this cap keeps its size but cannot grow.
 MAX_CONDITION_VALUE_CHARS_PER_FILTER = 4000
+# The longest tag or attribute key Sentry stores.
+MAX_CONDITION_KEY_LENGTH = 200
 
 
 # Ingestion feature an organization needs before a filter can target a data type.
@@ -51,6 +54,7 @@ _REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[DataType, str] = {
 
 class CustomInboundFilterCondition(TypedDict):
     type: str
+    key: NotRequired[str]
     value: list[str]
 
 
@@ -104,10 +108,22 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
     type = serializers.ChoiceField(
         choices=[condition_type.value for condition_type in ConditionType],
         help_text=(
-            "The field the condition matches against. Every `dataType` accepts `release` and "
-            "`ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
-            "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
-            "`metric_name`. `span` and `all` accept no other types."
+            "The field the condition matches against. Every `dataType` accepts `release`, "
+            "`ip_address` and `tag`. In addition, `error` accepts `error_type`, "
+            "`error_message` and `geo_country_code`, `log` accepts `log_message`, and "
+            "`metric` accepts `metric_name`. `span` and `all` accept no other types."
+        ),
+    )
+    key = serializers.CharField(
+        required=False,
+        allow_blank=False,
+        trim_whitespace=True,
+        max_length=MAX_CONDITION_KEY_LENGTH,
+        help_text=(
+            "The tag a `tag` condition reads, e.g. `customer_tier`. On spans, logs and "
+            "metrics it names an attribute instead. Required for `tag` conditions and not "
+            "accepted on any other type. Only tags the SDK sent are visible: the tags Sentry "
+            "derives after ingestion, such as `browser.name`, are not."
         ),
     )
     value = serializers.ListField(
@@ -120,6 +136,16 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
     )
 
     def validate(self, attrs: CustomInboundFilterCondition) -> CustomInboundFilterCondition:
+        takes_key = attrs["type"] in KEYED_CONDITION_TYPES
+        if takes_key and "key" not in attrs:
+            raise serializers.ValidationError({"key": "A tag condition needs the tag's key."})
+        if not takes_key and "key" in attrs:
+            raise serializers.ValidationError(
+                {"key": f"A {attrs['type']} condition does not take a key."}
+            )
+        if takes_key and any(char.isspace() for char in attrs["key"]):
+            raise serializers.ValidationError({"key": "A key cannot contain whitespace."})
+
         # Relay drops an entry it cannot parse as an address or range, so a typo would
         # silently disable part of the filter.
         if attrs["type"] == ConditionType.IP_ADDRESS:

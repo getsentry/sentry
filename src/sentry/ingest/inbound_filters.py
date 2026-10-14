@@ -6,6 +6,7 @@ from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
+    KEYED_CONDITION_TYPES,
     MAX_FILTERS_PER_PROJECT,
     ConditionType,
     CustomInboundFilter,
@@ -462,7 +463,7 @@ def _ip_denylist_generic_filters(project: Project) -> list[GenericFilter]:
     if not ips:
         return []
 
-    return [_generic_filter(FilterStatKeys.IP_ADDRESS, _client_ip_matcher(ips))]
+    return [_generic_filter(FilterStatKeys.IP_ADDRESS, _client_ip_condition(ips))]
 
 
 @dataclass(frozen=True)
@@ -563,28 +564,37 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
     )
 
 
-# Builds the Relay condition that matches one filter condition's glob values.
-_ConditionMatcher = Callable[[list[str]], RuleCondition]
+# Builds the Relay condition that matches one filter condition's glob values. ``key`` is
+# the entry of a key-value bag the condition reads, e.g. a tag. It is None when the
+# condition type reads a fixed field.
+_ConditionMatcher = Callable[[str | None, list[str]], RuleCondition]
 
 # The matcher for each condition type a data type supports.
 _ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
 
 
+def _fixed_matcher(build: Callable[[list[str]], RuleCondition]) -> _ConditionMatcher:
+    def match(key: str | None, values: list[str]) -> RuleCondition:
+        return build(values)
+
+    return match
+
+
 def _field_matcher(name: str) -> _ConditionMatcher:
-    def match(values: list[str]) -> RuleCondition:
-        return {"op": "glob", "name": name, "value": values}
+    return _fixed_matcher(lambda values: {"op": "glob", "name": name, "value": values})
+
+
+def _keyed_field_matcher(template: str) -> _ConditionMatcher:
+    """Globs against the field ``template`` names once its ``{key}`` is filled in."""
+
+    def match(key: str | None, values: list[str]) -> RuleCondition:
+        return {"op": "glob", "name": template.format(key=key), "value": values}
 
     return match
 
 
-def _cidr_matcher(name: str) -> _ConditionMatcher:
-    def match(values: list[str]) -> RuleCondition:
-        return {"op": "cidr", "name": name, "value": values}
-
-    return match
-
-
-_client_ip_matcher = _cidr_matcher("envelope.client_ip")
+def _client_ip_condition(ips: list[str]) -> RuleCondition:
+    return {"op": "cidr", "name": "envelope.client_ip", "value": ips}
 
 
 _CONDITION_MATCHERS: Mapping[
@@ -592,10 +602,10 @@ _CONDITION_MATCHERS: Mapping[
     _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
 ] = {
     ConditionType.ERROR_TYPE: {
-        DataType.ERROR: _custom_error_type_condition,
+        DataType.ERROR: _fixed_matcher(_custom_error_type_condition),
     },
     ConditionType.ERROR_MESSAGE: {
-        DataType.ERROR: _custom_error_message_condition,
+        DataType.ERROR: _fixed_matcher(_custom_error_message_condition),
     },
     ConditionType.LOG_MESSAGE: {
         DataType.LOG: _field_matcher("log.body"),
@@ -609,10 +619,19 @@ _CONDITION_MATCHERS: Mapping[
         DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.release.value"),
         DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
     },
-    ConditionType.IP_ADDRESS: _client_ip_matcher,
+    ConditionType.IP_ADDRESS: _fixed_matcher(_client_ip_condition),
     # Relay fills the geo from the client IP before filtering, unless the SDK sent one.
     ConditionType.GEO_COUNTRY_CODE: {
         DataType.ERROR: _field_matcher("event.user.geo.country_code"),
+    },
+    # Relay sees the tags the SDK sent. The tags Sentry derives later, such as
+    # browser.name, are not on the event yet. Spans, logs and metrics carry no tags, so
+    # the key names an attribute there.
+    ConditionType.TAG: {
+        DataType.ERROR: _keyed_field_matcher("event.tags.{key}"),
+        DataType.LOG: _keyed_field_matcher("log.attributes.{key}.value"),
+        DataType.METRIC: _keyed_field_matcher("trace_metric.attributes.{key}.value"),
+        DataType.SPAN: _keyed_field_matcher("span.attributes.{key}.value"),
     },
 }
 
@@ -622,8 +641,8 @@ _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
 def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
     # Relay reads a field the item does not carry as no match, so the OR reduces to the
     # item's own field.
-    def match(values: list[str]) -> RuleCondition:
-        return {"op": "or", "inner": [matcher(values) for matcher in matchers]}
+    def match(key: str | None, values: list[str]) -> RuleCondition:
+        return {"op": "or", "inner": [matcher(key, values) for matcher in matchers]}
 
     return match
 
@@ -663,9 +682,9 @@ def _custom_filter_condition(
 
     Conditions are combined with AND. Returns None if the filter cannot be translated
     (a missing data type, a data type, condition type, or value shape unknown to this
-    revision, or a condition type whose field the filter's data type does not carry):
-    since every condition narrows the match, dropping only the broken condition would
-    filter more data than configured.
+    revision, a key missing or unexpected for the condition type, or a condition type
+    whose field the filter's data type does not carry): since every condition narrows
+    the match, dropping only the broken condition would filter more data than configured.
     """
     if not conditions or data_type is None:
         return None
@@ -686,10 +705,17 @@ def _custom_filter_condition(
         if not (isinstance(values, list) and values and all(isinstance(v, str) for v in values)):
             return None
 
+        key = condition.get("key")
+        if condition_type in KEYED_CONDITION_TYPES:
+            if not (isinstance(key, str) and key):
+                return None
+        elif key is not None:
+            return None
+
         matcher = matchers.get(condition_type)
         if matcher is None:
             return None
-        rule_conditions.append(matcher(values))
+        rule_conditions.append(matcher(key, values))
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]

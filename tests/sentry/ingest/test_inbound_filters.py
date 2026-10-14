@@ -250,6 +250,19 @@ def error_type_rule_condition(values: list[str]) -> dict:
     }
 
 
+def tag_rule_condition(key: str, values: list[str]) -> dict:
+    """The catch-all shape: the tag on errors, the attribute of that key elsewhere."""
+    return {
+        "op": "or",
+        "inner": [
+            {"op": "glob", "name": f"event.tags.{key}", "value": values},
+            {"op": "glob", "name": f"log.attributes.{key}.value", "value": values},
+            {"op": "glob", "name": f"trace_metric.attributes.{key}.value", "value": values},
+            {"op": "glob", "name": f"span.attributes.{key}.value", "value": values},
+        ],
+    }
+
+
 def release_rule_condition(values: list[str]) -> dict:
     """The catch-all shape: the release field of every data type, combined with OR."""
     return {
@@ -432,6 +445,55 @@ def release_rule_condition(values: list[str]) -> dict:
             },
             id="ip_address_combines_with_item_conditions",
         ),
+        pytest.param(
+            "error",
+            [{"type": "tag", "key": "customer_tier", "value": ["free", "trial*"]}],
+            {"op": "glob", "name": "event.tags.customer_tier", "value": ["free", "trial*"]},
+            id="tag_reads_the_event_tag_of_that_key",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "tag", "key": "http.request.method", "value": ["OPTIONS"]}],
+            {
+                "op": "glob",
+                "name": "span.attributes.http.request.method.value",
+                "value": ["OPTIONS"],
+            },
+            id="tag_reads_the_span_attribute_of_that_key",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "tag", "key": "logger", "value": ["noisy.*"]}],
+            {"op": "glob", "name": "log.attributes.logger.value", "value": ["noisy.*"]},
+            id="tag_reads_the_log_attribute_of_that_key",
+        ),
+        pytest.param(
+            "metric",
+            [{"type": "tag", "key": "region", "value": ["eu-*"]}],
+            {"op": "glob", "name": "trace_metric.attributes.region.value", "value": ["eu-*"]},
+            id="tag_reads_the_metric_attribute_of_that_key",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "tag", "key": "customer_tier", "value": ["free"]}],
+            tag_rule_condition("customer_tier", ["free"]),
+            id="catch_all_tag",
+        ),
+        pytest.param(
+            "error",
+            [
+                {"type": "tag", "key": "customer_tier", "value": ["free"]},
+                {"type": "tag", "key": "feature", "value": ["beta_*"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "event.tags.customer_tier", "value": ["free"]},
+                    {"op": "glob", "name": "event.tags.feature", "value": ["beta_*"]},
+                ],
+            },
+            id="two_tag_conditions_read_two_keys",
+        ),
     ],
 )
 def test_custom_inbound_filter_condition_translation(
@@ -583,6 +645,20 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
         ],
     )
     factories.create_project_custom_inbound_filter(default_project, conditions=[])
+    # A tag condition without a key names no field, and a key on another condition type
+    # means the row was written by a revision with a different shape.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "tag", "value": ["free"]}],
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "tag", "key": "", "value": ["free"]}],
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "release", "key": "customer_tier", "value": ["1.*"]}],
+    )
     valid_filter = factories.create_project_custom_inbound_filter(
         default_project,
         conditions=[{"type": "release", "value": ["1.*"]}],
