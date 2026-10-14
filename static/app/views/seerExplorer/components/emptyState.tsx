@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
@@ -22,7 +22,11 @@ interface EmptyStateProps {
   isLoading?: boolean;
   /** Resets to a fresh session. Rendered as the recovery action on error states. */
   onStartNewChat?: () => void;
-  onSuggestionClick?: (suggestion: ChatSuggestion, position: number) => void;
+  onSuggestionClick?: (
+    suggestion: ChatSuggestion,
+    position: number,
+    isLate: boolean
+  ) => void;
   runId?: SeerExplorerRunId | null;
   suggestions?: ChatSuggestionsState;
 }
@@ -38,6 +42,7 @@ export function EmptyState({
   suggestions,
 }: EmptyStateProps) {
   const theme = useTheme();
+  const [isShowingLateSuggestions, setIsShowingLateSuggestions] = useState(false);
   const runIdDisplay = runId?.toString() ?? 'null';
   return (
     <Container>
@@ -80,24 +85,50 @@ export function EmptyState({
               paddingTop="2xl"
               aria-hidden={suggestions.isLoading || undefined}
             >
-              {suggestions.isLoading
-                ? Array.from({length: SUGGESTION_PLACEHOLDER_COUNT}, (_, index) => (
-                    <Placeholder
-                      key={index}
-                      width="240px"
-                      height={theme.form.sm.height}
-                      testId="suggestion-placeholder"
-                    />
-                  ))
-                : suggestions.suggestions.map((suggestion, index) => (
+              {suggestions.isLoading ? (
+                Array.from({length: SUGGESTION_PLACEHOLDER_COUNT}, (_, index) => (
+                  <Placeholder
+                    key={index}
+                    width="240px"
+                    height={theme.form.sm.height}
+                    testId="suggestion-placeholder"
+                  />
+                ))
+              ) : (
+                <Fragment>
+                  {suggestions.suggestions.map((suggestion, index) => (
                     <SuggestionButton
                       key={index}
                       size="sm"
-                      onClick={() => onSuggestionClick(suggestion, index)}
+                      onClick={() => onSuggestionClick(suggestion, index, false)}
                     >
                       {suggestion.text}
                     </SuggestionButton>
                   ))}
+                  {/* Arrived after the fallback was showing; revealed on request
+                      so the list doesn't change under the user. */}
+                  {suggestions.lateSuggestions &&
+                    (isShowingLateSuggestions ? (
+                      suggestions.lateSuggestions.map((suggestion, index) => (
+                        <SuggestionButton
+                          key={`late-${index}`}
+                          size="sm"
+                          onClick={() => onSuggestionClick(suggestion, index, true)}
+                        >
+                          {suggestion.text}
+                        </SuggestionButton>
+                      ))
+                    ) : (
+                      <Button
+                        variant="link"
+                        size="zero"
+                        onClick={() => setIsShowingLateSuggestions(true)}
+                      >
+                        {t('Show page-specific suggestions')}
+                      </Button>
+                    ))}
+                </Fragment>
+              )}
             </Stack>
           )}
           {displaySlackAgentReminder && (

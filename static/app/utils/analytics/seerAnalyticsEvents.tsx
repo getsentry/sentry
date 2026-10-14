@@ -245,6 +245,8 @@ export type SeerAnalyticsEventsParameters = {
     seer_size_percent: number;
   };
   'seer.explorer.suggestion_clicked': {
+    /** Generated suggestion revealed via "Show page-specific suggestions" after the fallback. */
+    is_late: boolean;
     position: number;
     referrer: string;
     source: 'generated' | 'fallback' | 'legacy';

@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {useMatches} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 
@@ -14,18 +14,13 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
   usePageContextCapture,
-  useWaitForPageContext,
+  usePageContextReady,
 } from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 import type {ChatSuggestion} from 'sentry/views/seerExplorer/types';
 
+// How long the placeholders show before the fixed suggestions replace them.
+// Covers both the page loading its context and the request itself.
 const SUGGESTIONS_TIMEOUT_MS = 4000;
-
-class SuggestionsTimeoutError extends Error {
-  constructor() {
-    super('Timed out generating suggestions');
-    this.name = 'SuggestionsTimeoutError';
-  }
-}
 
 const LEGACY_SUGGESTIONS: ChatSuggestion[] = [
   {text: t('Which of my open issues are getting worse, not better?')},
@@ -51,20 +46,44 @@ function getFallbackChatSuggestions(route: string, hasDbData: boolean): ChatSugg
   ];
 }
 
-function getFallbackReason(
-  error: Error | null,
-  isPageContextComplete: boolean | undefined
-): 'timeout' | 'error' | 'incomplete_context' | 'empty' {
-  if (error instanceof SuggestionsTimeoutError) {
-    return 'timeout';
-  }
-  if (error) {
-    return 'error';
-  }
-  if (isPageContextComplete === false) {
-    return 'incomplete_context';
-  }
-  return 'empty';
+type TimeoutReason = 'timeout' | 'incomplete_context';
+
+/**
+ * Resolves to a reason once `isWaiting` has held for SUGGESTIONS_TIMEOUT_MS.
+ * Keyed by route so navigating with the panel open starts a fresh wait, and
+ * latched so a late response doesn't swap out suggestions the user is reading.
+ */
+function useSuggestionsTimeout({
+  route,
+  isWaiting,
+  isPageReady,
+}: {
+  isPageReady: boolean;
+  isWaiting: boolean;
+  route: string;
+}): TimeoutReason | null {
+  const [timedOut, setTimedOut] = useState<{reason: TimeoutReason; route: string}>();
+
+  // Read when the timer fires, without restarting it when the page becomes ready.
+  const isPageReadyRef = useRef(isPageReady);
+  useEffect(() => {
+    isPageReadyRef.current = isPageReady;
+  });
+
+  useEffect(() => {
+    if (!isWaiting) {
+      return;
+    }
+    const timeoutId = window.setTimeout(() => {
+      setTimedOut({
+        route,
+        reason: isPageReadyRef.current ? 'timeout' : 'incomplete_context',
+      });
+    }, SUGGESTIONS_TIMEOUT_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [route, isWaiting]);
+
+  return timedOut?.route === route ? timedOut.reason : null;
 }
 
 export type ChatSuggestionsState =
@@ -73,6 +92,8 @@ export type ChatSuggestionsState =
       isLoading: false;
       source: 'generated' | 'fallback' | 'legacy'; // for analytics purposes
       suggestions: ChatSuggestion[];
+      /** Generated suggestions that arrived after the fallback was already showing. */
+      lateSuggestions?: ChatSuggestion[];
     };
 
 /**
@@ -95,7 +116,7 @@ export function useChatSuggestions({
   const {selection} = usePageFilters();
   const {projects} = useProjects();
   const capturePageContext = usePageContextCapture();
-  const waitForPageContext = useWaitForPageContext();
+  const isPageReady = usePageContextReady(route);
 
   // For the fallback suggestions: do any selected projects (or member projects, if none are selected) send DB data?
   const isProjectSelectionExplicit =
@@ -117,96 +138,84 @@ export function useChatSuggestions({
       selection.projects,
       allowStructuredContext,
     ],
-    queryFn: async ({signal}) => {
-      const isPageContextComplete = await waitForPageContext({route, signal});
-      if (!isPageContextComplete) {
-        // Show the fixed suggestions rather than generating from a half-loaded page.
-        return {suggestions: [], isPageContextComplete};
-      }
-
+    queryFn: () => {
       const {screenshot: pageContext} = capturePageContext({
         route,
         allowStructured: allowStructuredContext,
       });
-
-      const response = await Promise.race([
-        fetchMutation<{suggestions: ChatSuggestion[]}>({
-          method: 'POST',
-          url: getApiUrl('/organizations/$organizationIdOrSlug/seer/chat-suggestions/', {
-            path: {organizationIdOrSlug: organization?.slug ?? ''},
-          }),
-          data: {
-            route,
-            route_params: params,
-            page_context: pageContext ?? '',
-            project_ids: selection.projects,
-          },
+      return fetchMutation<{suggestions: ChatSuggestion[]}>({
+        method: 'POST',
+        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/chat-suggestions/', {
+          path: {organizationIdOrSlug: organization?.slug ?? ''},
         }),
-        new Promise<never>((_, reject) =>
-          window.setTimeout(
-            () => reject(new SuggestionsTimeoutError()),
-            SUGGESTIONS_TIMEOUT_MS
-          )
-        ),
-      ]);
-      return {...response, isPageContextComplete};
+        data: {
+          route,
+          route_params: params,
+          page_context: pageContext ?? '',
+          project_ids: selection.projects,
+        },
+      });
     },
-    enabled: enabled && hasLlmChatSuggestions,
-    // Retry on the next open if the page context hadn't finished loading.
-    staleTime: q => (q.state.data?.isPageContextComplete === false ? 0 : 10 * 60 * 1000),
+    // Generating from a half-loaded page gives generic suggestions, so hold the
+    // request until the page has reported its context.
+    enabled: enabled && hasLlmChatSuggestions && isPageReady,
+    staleTime: 10 * 60 * 1000,
     retry: false,
   });
 
-  const state = useMemo((): ChatSuggestionsState => {
+  const timeoutReason = useSuggestionsTimeout({
+    route,
+    isWaiting: enabled && hasLlmChatSuggestions && query.isPending,
+    isPageReady,
+  });
+  const hasTimedOut = timeoutReason !== null;
+
+  // Once timed out, what's shown is fixed; the response only feeds lateSuggestions.
+  const onTimeSuggestions = hasTimedOut ? undefined : query.data?.suggestions;
+  const isWaitingOnTime = !hasTimedOut && query.isPending;
+  const lateSuggestions =
+    hasTimedOut && query.data?.suggestions.length ? query.data.suggestions : undefined;
+
+  const shownState = useMemo((): ChatSuggestionsState => {
     if (!hasLlmChatSuggestions) {
       return {isLoading: false, source: 'legacy', suggestions: LEGACY_SUGGESTIONS};
     }
-    if (query.isPending || query.isFetching) {
-      return {isLoading: true};
+    if (onTimeSuggestions?.length) {
+      return {isLoading: false, source: 'generated', suggestions: onTimeSuggestions};
     }
-    const generatedSuggestions = query.data?.suggestions ?? [];
-    if (generatedSuggestions.length > 0) {
-      return {isLoading: false, source: 'generated', suggestions: generatedSuggestions};
+    if (isWaitingOnTime) {
+      return {isLoading: true};
     }
     return {
       isLoading: false,
       source: 'fallback',
       suggestions: getFallbackChatSuggestions(route, hasDbData),
     };
-  }, [
-    hasLlmChatSuggestions,
-    query.isPending,
-    query.isFetching,
-    query.data,
-    route,
-    hasDbData,
-  ]);
+  }, [hasLlmChatSuggestions, onTimeSuggestions, isWaitingOnTime, route, hasDbData]);
+
+  const fallbackReason = timeoutReason ?? (query.isError ? 'error' : 'empty');
 
   useEffect(() => {
-    if (!enabled || state.isLoading) {
+    if (!enabled || shownState.isLoading) {
       return;
     }
     trackAnalytics('seer.explorer.suggestions_shown', {
       organization,
       referrer: route,
-      source: state.source,
-      fallback_reason:
-        state.source === 'fallback'
-          ? getFallbackReason(query.error, query.data?.isPageContextComplete)
-          : undefined,
-      count: state.suggestions.length,
-      action_types: state.suggestions.flatMap(suggestion =>
+      source: shownState.source,
+      fallback_reason: shownState.source === 'fallback' ? fallbackReason : undefined,
+      count: shownState.suggestions.length,
+      action_types: shownState.suggestions.flatMap(suggestion =>
         suggestion.action_type ? [suggestion.action_type] : []
       ),
     });
-  }, [
-    enabled,
-    state,
-    organization,
-    route,
-    query.error,
-    query.data?.isPageContextComplete,
-  ]);
+  }, [enabled, shownState, organization, route, fallbackReason]);
 
-  return state;
+  return useMemo(
+    () =>
+      shownState.isLoading || !lateSuggestions
+        ? shownState
+        : {...shownState, lateSuggestions},
+    [shownState, lateSuggestions]
+  );
 }
