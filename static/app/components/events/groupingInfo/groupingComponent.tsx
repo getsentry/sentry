@@ -95,29 +95,6 @@ export function GroupingComponent({component, showNonContributing}: Props) {
           folded={folded}
           className="collapse-button"
           variant="link"
-const GroupingValue = styled('code')<{
-  valueType: string;
-  contributes?: boolean;
-}>`
-  display: inline-block;
-  margin: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs}
-    ${p => p.theme.space['2xs']} 0;
-  font-size: ${p => p.theme.font.size.sm};
-  padding: 0 ${p => p.theme.space['2xs']};
-  background: ${p => (p.contributes ? 'rgba(112, 163, 214, 0.1)' : 'transparent')};
-  color: ${p =>
-    p.contributes ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
-
-  ${({valueType, theme, contributes}) =>
-    (valueType === 'function' || valueType === 'symbol') &&
-    css`
-      font-weight: ${contributes ? theme.font.weight.sans.medium : 'normal'};
-      color: ${
-        contributes ? theme.tokens.content.primary : theme.tokens.content.secondary
-      };
-    `}
-`;
-
           icon={<IconChevron direction={folded ? 'right' : 'down'} legacySize="10px" />}
           onClick={() => setFolded(!folded)}
           aria-label={component.name || component.id}
@@ -177,6 +154,29 @@ const GroupingComponentWrapper = styled('div')<{isContributing: boolean}>`
 
 export const GroupingHint = styled('small')`
   font-size: 0.8em;
+`;
+
+const GroupingValue = styled('code')<{
+  valueType: string;
+  contributes?: boolean;
+}>`
+  display: inline-block;
+  margin: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs}
+    ${p => p.theme.space['2xs']} 0;
+  font-size: ${p => p.theme.font.size.sm};
+  padding: 0 ${p => p.theme.space['2xs']};
+  background: ${p => (p.contributes ? 'rgba(112, 163, 214, 0.1)' : 'transparent')};
+  color: ${p =>
+    p.contributes ? p.theme.tokens.content.primary : p.theme.tokens.content.secondary};
+
+  ${({valueType, theme, contributes}) =>
+    (valueType === 'function' || valueType === 'symbol') &&
+    css`
+      font-weight: ${contributes ? theme.font.weight.sans.medium : 'normal'};
+      color: ${
+        contributes ? theme.tokens.content.primary : theme.tokens.content.secondary
+      };
+    `}
 `;
 
 const GroupingComponentList = styled('ul')<{hasFold: boolean; isInline: boolean}>`
