@@ -16,13 +16,12 @@ import {
   TermOperator,
   Token,
   wildcardOperators,
-  type RegexOperator,
   type WildcardOperator,
 } from './tokens';
 import {getKeyName} from './utils';
 
 export {regexOperators, TermOperator, Token, wildcardOperators};
-export type {RegexOperator, WildcardOperator};
+export type {WildcardOperator};
 
 type TextFn = () => string;
 type LocationFn = () => LocationRange;
