@@ -12,10 +12,7 @@ export const dataConditionDefaultComparisons = new Map<
   DataConditionType,
   Record<string, unknown>
 >([
-  [
-    DataConditionType.EVENT_FREQUENCY_COUNT,
-    {value: 100, interval: Interval.ONE_HOUR},
-  ],
+  [DataConditionType.EVENT_FREQUENCY_COUNT, {value: 100, interval: Interval.ONE_HOUR}],
   [
     DataConditionType.EVENT_FREQUENCY_PERCENT,
     {value: 100, interval: Interval.ONE_HOUR, comparisonInterval: Interval.ONE_WEEK},
@@ -28,10 +25,7 @@ export const dataConditionDefaultComparisons = new Map<
     DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
     {value: 100, interval: Interval.ONE_HOUR, comparisonInterval: Interval.ONE_WEEK},
   ],
-  [
-    DataConditionType.PERCENT_SESSIONS_COUNT,
-    {value: 100, interval: Interval.ONE_HOUR},
-  ],
+  [DataConditionType.PERCENT_SESSIONS_COUNT, {value: 100, interval: Interval.ONE_HOUR}],
   [
     DataConditionType.PERCENT_SESSIONS_PERCENT,
     {value: 100, interval: Interval.ONE_HOUR, comparisonInterval: Interval.ONE_WEEK},

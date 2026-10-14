@@ -14,6 +14,7 @@ import {
   COMPARISON_INTERVAL_CHOICES,
   INTERVAL_CHOICES,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import {dataConditionDefaultComparisons} from 'sentry/views/automations/components/actionFilters/defaultComparisons';
 import {
   SubfilterDetailsList,
   SubfiltersList,
@@ -22,7 +23,6 @@ import {
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
-import {dataConditionDefaultComparisons} from 'sentry/views/automations/components/actionFilters/defaultComparisons';
 
 export function EventUniqueUserFrequencyCountDetails({
   condition,
