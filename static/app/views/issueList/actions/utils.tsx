@@ -22,10 +22,10 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
+import {BULK_LIMIT, BULK_LIMIT_STR} from './constants';
 import {ExtraDescription} from './extraDescription';
 
-export const BULK_LIMIT = 1000;
-export const BULK_LIMIT_STR = BULK_LIMIT.toLocaleString();
+export {BULK_LIMIT, BULK_LIMIT_STR};
 
 export enum ConfirmAction {
   RESOLVE = 'resolve',
