@@ -28,7 +28,11 @@ from sentry.seer.breakpoints import BreakpointData
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.statistical_detectors.algorithm import MovingAverageDetectorState
 from sentry.statistical_detectors.base import DetectorPayload, TrendType
-from sentry.statistical_detectors.detector import TrendBundle, generate_fingerprint
+from sentry.statistical_detectors.detector import (
+    MISSING_ISSUE_GROUP_GRACE_PERIOD,
+    TrendBundle,
+    generate_fingerprint,
+)
 from sentry.statistical_detectors.redis import (
     FUNCTION_CHANGE_POINT_LEASE_DURATION,
     FunctionChangePointQueue,
@@ -256,8 +260,8 @@ def test_limit_regressions_by_project(detector_cls, ratelimit, timestamp, expect
                 (1, False, "1"),
                 (2, True, "1"),
             ],
-            [None],
-            id="existing active",
+            [2],
+            id="existing active without issue",
         ),
         pytest.param(
             [
@@ -289,7 +293,7 @@ def test_get_regression_versions(
     project,
     timestamp,
 ):
-    if regression_groups:
+    with freeze_time(timestamp - MISSING_ISSUE_GROUP_GRACE_PERIOD):
         RegressionGroup.objects.bulk_create(
             RegressionGroup(
                 type=detector_cls.regression_type.value,
@@ -325,13 +329,106 @@ def test_get_regression_versions(
     def mock_regressions():
         yield from breakpoints
 
-    regressions = list(detector_cls.get_regression_versions(mock_regressions()))
+    with freeze_time(timestamp):
+        regressions = list(detector_cls.get_regression_versions(mock_regressions()))
 
     assert regressions == [
         (expected_version, None if expected_version == 0 else timestamp, breakpoints[i])
         for i, expected_version in enumerate(expected_versions)
         if expected_version is not None
     ]
+    assert all(
+        not group.active
+        for group in get_regression_groups(
+            detector_cls.regression_type,
+            [(project.id, generate_fingerprint(detector_cls.regression_type, "1"))],
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    ["age", "expected_versions", "expected_groups"],
+    [
+        pytest.param(timedelta(0), [], [(1, True)], id="just created"),
+        pytest.param(
+            MISSING_ISSUE_GROUP_GRACE_PERIOD - timedelta(microseconds=1),
+            [],
+            [(1, True)],
+            id="before grace expires",
+        ),
+        pytest.param(
+            MISSING_ISSUE_GROUP_GRACE_PERIOD,
+            [1],
+            [(1, False), (2, True)],
+            id="grace boundary",
+        ),
+        pytest.param(
+            MISSING_ISSUE_GROUP_GRACE_PERIOD + timedelta(microseconds=1),
+            [1],
+            [(1, False), (2, True)],
+            id="after grace expires",
+        ),
+    ],
+)
+@django_db_all
+def test_missing_issue_group_grace_period(
+    age, expected_versions, expected_groups, project, timestamp
+):
+    detector_cls = FunctionRegressionDetector
+    fingerprint = generate_fingerprint(detector_cls.regression_type, "123")
+    previous_breakpoint = timestamp - timedelta(days=2)
+    original_group = RegressionGroup(
+        type=detector_cls.regression_type.value,
+        date_regressed=previous_breakpoint,
+        version=1,
+        active=True,
+        project_id=project.id,
+        fingerprint=fingerprint,
+        baseline=100,
+        regressed=200,
+    )
+    with freeze_time(timestamp - age):
+        RegressionGroup.objects.bulk_create([original_group])
+
+    regression: BreakpointData = {
+        "project": str(project.id),
+        "transaction": "123",
+        "aggregate_range_1": 200,
+        "aggregate_range_2": 400,
+        "unweighted_t_value": 1.23,
+        "unweighted_p_value": 1.23,
+        "trend_percentage": 1.23,
+        "absolute_percentage_change": 1.23,
+        "trend_difference": 1.23,
+        "breakpoint": (timestamp - timedelta(hours=12)).timestamp(),
+    }
+
+    def get_regressions():
+        yield regression
+
+    with freeze_time(timestamp):
+        versions = list(detector_cls.get_regression_versions(get_regressions()))
+        assert versions == [
+            (version, previous_breakpoint, regression) for version in expected_versions
+        ]
+        original_group.refresh_from_db()
+        assert original_group.active == (not expected_versions)
+
+        emitted = list(detector_cls.save_regressions_with_versions(get_regressions()))
+        assert emitted == [regression for _ in expected_versions]
+
+    assert (
+        list(
+            RegressionGroup.objects.filter(
+                type=detector_cls.regression_type.value,
+                project_id=project.id,
+                fingerprint=fingerprint,
+            )
+            .order_by("version")
+            .values_list("version", "active")
+        )
+        == expected_groups
+    )
 
 
 @pytest.mark.parametrize(
@@ -1116,23 +1213,28 @@ def test_new_regression_group(
         ),
     ],
 )
+@pytest.mark.parametrize("active", [False, True])
 @django_db_all
 def test_save_regressions_with_versions(
     detector_cls,
     object_name,
     project,
     timestamp,
+    active,
 ):
-    RegressionGroup.objects.create(
+    fingerprint = generate_fingerprint(detector_cls.regression_type, object_name)
+    original_group = RegressionGroup(
         type=detector_cls.regression_type.value,
         date_regressed=timestamp,
         version=1,
-        active=False,
+        active=active,
         project_id=project.id,
-        fingerprint=generate_fingerprint(detector_cls.regression_type, object_name),
+        fingerprint=fingerprint,
         baseline=100,
         regressed=300,
     )
+    with freeze_time(timestamp - MISSING_ISSUE_GROUP_GRACE_PERIOD):
+        RegressionGroup.objects.bulk_create([original_group])
 
     def get_regressions(ts):
         yield {
@@ -1159,6 +1261,151 @@ def test_save_regressions_with_versions(
     regressions = get_regressions(timestamp + timedelta(hours=24))
     regressions = detector_cls.save_regressions_with_versions(regressions)
     assert len(list(regressions)) == 1
+
+    original_group.refresh_from_db()
+    assert not original_group.active
+    new_group = RegressionGroup.objects.get(
+        type=detector_cls.regression_type.value,
+        project_id=project.id,
+        fingerprint=fingerprint,
+        version=2,
+    )
+    assert new_group.active
+    assert new_group.date_regressed == timestamp + timedelta(hours=24)
+
+
+@pytest.mark.parametrize(
+    ["age", "expected_active"],
+    [
+        pytest.param(timedelta(0), True, id="just created"),
+        pytest.param(
+            MISSING_ISSUE_GROUP_GRACE_PERIOD - timedelta(microseconds=1),
+            True,
+            id="before grace expires",
+        ),
+        pytest.param(MISSING_ISSUE_GROUP_GRACE_PERIOD, False, id="grace boundary"),
+        pytest.param(
+            MISSING_ISSUE_GROUP_GRACE_PERIOD + timedelta(microseconds=1),
+            False,
+            id="after grace expires",
+        ),
+    ],
+)
+@pytest.mark.parametrize("trend_type", [TrendType.Unchanged, TrendType.Regressed])
+@mock.patch("sentry.tasks.statistical_detectors.FunctionRegressionDetector.detect_trends")
+@mock.patch("sentry.tasks.statistical_detectors.FunctionChangePointQueue")
+@mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
+@django_db_all
+def test_detect_function_trends_missing_issue_group(
+    produce_occurrence_to_kafka,
+    change_point_queue,
+    detect_trends,
+    age,
+    expected_active,
+    trend_type,
+    project,
+    timestamp,
+):
+    detector_cls = FunctionRegressionDetector
+    original_group = RegressionGroup(
+        type=detector_cls.regression_type.value,
+        date_regressed=timestamp - timedelta(days=2),
+        version=1,
+        active=True,
+        project_id=project.id,
+        fingerprint=generate_fingerprint(detector_cls.regression_type, "123"),
+        baseline=100_000_000,
+        regressed=300_000_000,
+    )
+    with freeze_time(timestamp - age):
+        RegressionGroup.objects.bulk_create([original_group])
+
+    def get_trends():
+        yield TrendBundle(
+            type=trend_type,
+            score=1,
+            payload=DetectorPayload(
+                project_id=project.id,
+                group="123",
+                fingerprint="",
+                count=100,
+                value=500_000_000,
+                timestamp=timestamp - timedelta(hours=1),
+            ),
+            state=MovingAverageDetectorState(
+                timestamp=timestamp - timedelta(hours=1),
+                count=100,
+                moving_avg_short=500_000_000,
+                moving_avg_long=500_000_000,
+            ),
+        )
+
+    detect_trends.return_value = get_trends()
+    with freeze_time(timestamp), override_options({"statistical_detectors.enable": True}):
+        detect_function_trends([project.id], timestamp.isoformat())
+
+    expected_enqueue_calls = [mock.call([(project.id, "123", timestamp + timedelta(hours=12))])] * (
+        not expected_active and trend_type == TrendType.Regressed
+    )
+    assert change_point_queue.return_value.enqueue_many.call_args_list == expected_enqueue_calls
+    original_group.refresh_from_db()
+    assert original_group.active == expected_active
+    assert original_group.version == 1
+    assert RegressionGroup.objects.filter(project_id=project.id).count() == 1
+    produce_occurrence_to_kafka.assert_not_called()
+
+
+@pytest.mark.parametrize("batch_size", [1, 2, 100])
+@django_db_all
+def test_filter_escalating_groups_missing_issues_in_batches(batch_size, project, timestamp):
+    detector_cls = FunctionRegressionDetector
+    bundles = []
+    groups = []
+    ages = [
+        MISSING_ISSUE_GROUP_GRACE_PERIOD + timedelta(hours=1),
+        timedelta(0),
+        MISSING_ISSUE_GROUP_GRACE_PERIOD,
+    ]
+    for index, age in enumerate(ages):
+        group = RegressionGroup(
+            type=detector_cls.regression_type.value,
+            date_regressed=timestamp - timedelta(days=2),
+            version=1,
+            active=True,
+            project_id=project.id,
+            fingerprint=generate_fingerprint(detector_cls.regression_type, index),
+            baseline=100_000_000,
+            regressed=300_000_000,
+        )
+        with freeze_time(timestamp - age):
+            RegressionGroup.objects.bulk_create([group])
+        groups.append(group)
+        bundles.append(
+            TrendBundle(
+                type=TrendType.Unchanged,
+                score=1,
+                payload=DetectorPayload(
+                    project_id=project.id,
+                    group=index,
+                    fingerprint="",
+                    count=100,
+                    value=500_000_000,
+                    timestamp=timestamp - timedelta(hours=1),
+                ),
+                regression_group=group,
+            )
+        )
+
+    with freeze_time(timestamp):
+        assert list(detector_cls._filter_escalating_groups(bundles, batch_size=batch_size)) == [
+            (bundles[0], False),
+            (bundles[2], False),
+        ]
+
+    for group in groups:
+        group.refresh_from_db()
+    assert [group.active for group in groups] == [False, True, False]
+    assert RegressionGroup.objects.filter(project_id=project.id).count() == 3
 
 
 @pytest.mark.parametrize(
