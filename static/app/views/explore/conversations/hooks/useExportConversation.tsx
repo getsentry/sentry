@@ -1,13 +1,10 @@
 import {useCallback, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import type {ResponseMeta} from 'sentry/types/api';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApi} from 'sentry/utils/useApi';
@@ -74,7 +71,10 @@ export function useExportConversation({
   title: loadedTitle,
   isFullyLoaded,
 }: UseExportConversationOptions): UseExportConversationResult {
-  const api = useApi();
+  // Keep the export request alive if the button unmounts mid-flight (e.g. the
+  // user switches off the transcript tab); otherwise useApi aborts it on unmount
+  // and a large-conversation export dies silently.
+  const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const [isExporting, setIsExporting] = useState(false);
@@ -88,16 +88,16 @@ export function useExportConversation({
     let cursor: string | undefined;
 
     do {
-      const [data, , resp] = await api.requestPromise(url, {
-        includeAllArgs: true,
-        query: {...baseQuery, per_page: EXPORT_PER_PAGE, cursor},
-      });
-      const body = data as ConversationApiResponse;
+      const [body, , resp]: [ConversationApiResponse, string, ResponseMeta] =
+        await api.requestPromise(url, {
+          includeAllArgs: true,
+          query: {...baseQuery, per_page: EXPORT_PER_PAGE, cursor},
+        });
       if (title === null) {
         title = body.title ?? null;
       }
       spans.push(...(body.spans ?? []));
-      const next = parseLinkHeader(resp?.getResponseHeader('Link') ?? null).next;
+      const next = parseLinkHeader(resp.getResponseHeader('Link') ?? null).next;
       cursor = next?.results ? next.cursor : undefined;
     } while (cursor && spans.length < MAX_EXPORT_SPANS);
 
@@ -123,7 +123,6 @@ export function useExportConversation({
         }
 
         setIsExporting(true);
-        addLoadingMessage(t('Loading the full conversation...'));
         await sink(await fetchConversation());
       } catch (error) {
         Sentry.captureException(error);
