@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconBuilding} from '@sentry/icons/building';
 import {IconSettings} from '@sentry/icons/settings';
@@ -27,7 +27,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -108,26 +107,8 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         minMenuWidth={258}
         menuTitle={
           <NavigationMenuHeader
-            gradientAvatar={avatarProps}
-            title={t('Organization')}
-            avatar={
-              <Flex
-                align="center"
-                justify="center"
-                width="32px"
-                height="32px"
-                radius="md"
-                overflow="hidden"
-                css={css`
-                  background-color: ${lightTheme.tokens.background.primary};
-                  border: 1px solid ${darkTheme.tokens.border.transparent.neutral.muted};
-                `}
-              >
-                <OrganizationAvatar organization={organization} size={30} />
-              </Flex>
-            }
-            name={organization.name || organization.slug}
-            subtitle={tn('%s Project', '%s Projects', projects.length)}
+            organization={organization}
+            projectCount={projects.length}
           />
         }
         items={[

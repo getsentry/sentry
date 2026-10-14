@@ -97,14 +97,7 @@ export function UserDropdown() {
             }}
           />
         )}
-        menuTitle={
-          <NavigationMenuHeader
-            title={t('User')}
-            avatar={<UserAvatar user={user} size={32} />}
-            name={user.name || user.username || user.email}
-            subtitle={user.email}
-          />
-        }
+        menuTitle={<NavigationMenuHeader user={user} />}
         items={[
           {
             key: 'settings',

@@ -1,29 +1,42 @@
 import {css} from '@emotion/react';
 
-import type {BaseAvatarProps} from '@sentry/scraps/avatar';
+import {OrganizationAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {useAvatarColors} from '@sentry/scraps/avatarButton';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {darkTheme} from 'sentry/utils/theme/theme';
+import {t, tn} from 'sentry/locale';
+import type {OrganizationSummary} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
-interface NavigationMenuHeaderProps {
-  avatar: React.ReactNode;
-  name: string;
-  subtitle: string;
-  title: string;
-  gradientAvatar?: BaseAvatarProps;
-}
+type NavigationMenuHeaderProps =
+  | {organization: OrganizationSummary; projectCount: number; user?: never}
+  | {user: User; organization?: never; projectCount?: never};
 
-export function NavigationMenuHeader({
-  avatar,
-  gradientAvatar,
-  name,
-  subtitle,
-  title,
-}: NavigationMenuHeaderProps) {
-  const avatarColors = useAvatarColors(gradientAvatar);
+export function NavigationMenuHeader(props: NavigationMenuHeaderProps) {
+  const {organization} = props;
+  const avatar = organization?.avatar;
+  const avatarIdentity = {
+    identifier: organization?.slug ?? '',
+    name: organization?.name || organization?.slug || '',
+  };
+  const avatarColors = useAvatarColors(
+    avatar?.avatarType === 'upload' && avatar.avatarUrl
+      ? {type: 'upload', uploadUrl: avatar.avatarUrl, ...avatarIdentity}
+      : avatar?.avatarType === 'gravatar' && avatar.avatarUrl
+        ? {type: 'gravatar', gravatarId: avatar.avatarUrl, ...avatarIdentity}
+        : undefined
+  );
   const accentColor = avatarColors.type === 'image' ? avatarColors.chonk : undefined;
+
+  const title = organization ? t('Organization') : t('User');
+  const name = organization
+    ? organization.name || organization.slug
+    : props.user.name || props.user.username || props.user.email;
+  const subtitle = organization
+    ? tn('%s Project', '%s Projects', props.projectCount)
+    : props.user.email;
 
   return (
     <Container
@@ -50,7 +63,24 @@ export function NavigationMenuHeader({
           {title}
         </Text>
         <Flex align="center" gap="md">
-          {avatar}
+          {organization ? (
+            <Flex
+              align="center"
+              justify="center"
+              width="32px"
+              height="32px"
+              radius="md"
+              overflow="hidden"
+              css={css`
+                background-color: ${lightTheme.tokens.background.primary};
+                border: 1px solid ${darkTheme.tokens.border.transparent.neutral.muted};
+              `}
+            >
+              <OrganizationAvatar organization={organization} size={30} />
+            </Flex>
+          ) : (
+            <UserAvatar user={props.user} size={32} />
+          )}
           <Stack gap="0">
             <Text size="md" density="comfortable" bold variant="inherit">
               {name}
