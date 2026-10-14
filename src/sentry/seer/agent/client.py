@@ -791,6 +791,7 @@ class SeerAgentClient:
             "code_review_enabled": self.code_review_enabled,
             "enable_pr_context_tools": self.enable_pr_context_tools,
             "enable_write_pull_request": self.enable_write_pull_request,
+            "enable_bash_mode": self.enable_bash_mode,
             "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 
