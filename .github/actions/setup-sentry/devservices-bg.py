@@ -1,26 +1,14 @@
 #!/usr/bin/env python3
-"""Run `devservices up` for CI, optionally in the background.
+"""Run `devservices up` in the background, so image pulls and health checks
+overlap the rest of the CI setup.
 
-Starting it in the background lets image pulls and container health checks
-overlap the Python environment setup.
+  devservices-bg.py start  Start `devservices up --mode $DEVSERVICES_MODE` in the
+                           background via `uv run`, with the devservices version
+                           pinned in $DEVSERVICES_LOCKFILE. No sentry venv needed.
+  devservices-bg.py wait   Wait for it, print its output and exit with its status.
 
-  devservices-bg.py start  Install the devservices version pinned in
-                           $DEVSERVICES_LOCKFILE into a throwaway venv using the
-                           system python, then start `devservices up` in the
-                           background. Never fails the step: if anything goes
-                           wrong it prints a warning and `wait` falls back to
-                           the foreground.
-  devservices-bg.py wait   Wait for a background `devservices up`, print its log
-                           and exit with its status. If `start` didn't run or
-                           didn't succeed, run `devservices up` in the
-                           foreground with whatever devservices is on PATH.
-
-Either way the exit status of `devservices up` is written to
-$RUNNER_TEMP/devservices-ci/up.exit, which bootstrap-snuba.py watches via
-DEVSERVICES_STATUS_FILE.
-
-Environment: DEVSERVICES_MODE, DEVSERVICES_TIMEOUT (minutes, default 10),
-DEVSERVICES_WORKDIR (default .), DEVSERVICES_LOCKFILE (start only).
+The exit status goes to $RUNNER_TEMP/devservices-ci/up.exit, which
+bootstrap-snuba.py also watches (DEVSERVICES_STATUS_FILE).
 
 Stdlib only. Kept in sync with getsentry's
 .github/actions/start-devservices/devservices-bg.py.
@@ -29,196 +17,92 @@ Stdlib only. Kept in sync with getsentry's
 from __future__ import annotations
 
 import os
-import shutil
 import signal
 import subprocess
 import sys
 import time
+import tomllib  # python >= 3.11; the runner's system python3 is 3.12
 import traceback
 from pathlib import Path
 
 STATE_DIR = Path(os.environ["RUNNER_TEMP"]) / "devservices-ci"
 LOG_FILE = STATE_DIR / "up.log"
 EXIT_FILE = STATE_DIR / "up.exit"
-STARTED_FILE = STATE_DIR / "started"
-PID_FILE = STATE_DIR / "pid"
-VENV = STATE_DIR / "venv"
-
-WORKDIR = os.environ.get("DEVSERVICES_WORKDIR", ".")
 TIMEOUT = float(os.environ.get("DEVSERVICES_TIMEOUT", "10")) * 60
 
-# Prevent git from spawning background gc/maintenance processes during
-# dependency clones, which races with shutil.copytree (git 2.54 regression).
-GIT_CONFIG = {"gc.auto": "0", "maintenance.auto": "0", "fetch.writeCommitGraph": "false"}
 
-
-def git_config_set() -> None:
-    for key, value in GIT_CONFIG.items():
-        subprocess.run(["git", "config", "--global", key, value], check=True)
-
-
-def git_config_unset() -> None:
-    # Idempotent: unsetting a key that isn't set is fine.
-    for key in GIT_CONFIG:
-        subprocess.run(["git", "config", "--global", "--unset", key], check=False)
-
-
-def write_status(rc: int) -> None:
-    tmp = EXIT_FILE.with_suffix(".tmp")
-    tmp.write_text(f"{rc}\n")
-    tmp.replace(EXIT_FILE)
-
-
-def kill_group(pgid: int, sig: signal.Signals) -> None:
-    try:
-        os.killpg(pgid, sig)
-    except ProcessLookupError:
-        pass
-
-
-def devservices_up(devservices: str) -> int:
-    """Run `devservices up`, killing it after TIMEOUT. Returns its exit status."""
-    mode = os.environ["DEVSERVICES_MODE"]
-    # Own process group, so a timeout also kills docker compose & co. (like
-    # coreutils `timeout` did). `wait` uses the pid file as a backstop.
-    proc = subprocess.Popen([devservices, "up", "--mode", mode], cwd=WORKDIR, process_group=0)
-    PID_FILE.write_text(f"{proc.pid}\n")
-    try:
-        return proc.wait(timeout=TIMEOUT)
-    except subprocess.TimeoutExpired:
-        print(f"::error::devservices up timed out after {TIMEOUT:.0f}s", flush=True)
-        kill_group(proc.pid, signal.SIGTERM)
-        try:
-            proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            pass
-        kill_group(proc.pid, signal.SIGKILL)
-        proc.wait()
-        return 124
-
-
-def pinned_devservices(lockfile: str) -> tuple[str, str]:
-    import tomllib  # python >= 3.11; the runner's system python3 is 3.12
-
-    with open(lockfile, "rb") as f:
-        lock = tomllib.load(f)
-    pkgs = [p for p in lock["package"] if p["name"] == "devservices"]
+def uv_run_devservices() -> list[str]:
+    with open(os.environ["DEVSERVICES_LOCKFILE"], "rb") as f:
+        pkgs = [p for p in tomllib.load(f)["package"] if p["name"] == "devservices"]
     if len(pkgs) != 1:
-        raise RuntimeError(f"expected one devservices package in {lockfile}, found {len(pkgs)}")
-    index = pkgs[0].get("source", {}).get("registry", "https://pypi.org/simple")
-    return pkgs[0]["version"], index
-
-
-def start() -> int:
-    try:
-        shutil.rmtree(STATE_DIR, ignore_errors=True)
-        STATE_DIR.mkdir(parents=True)
-        version, index = pinned_devservices(os.environ["DEVSERVICES_LOCKFILE"])
-        print(f"Installing devservices=={version} from {index}", flush=True)
-        # Run uv from the state dir so it doesn't pick up the repo's
-        # pyproject.toml (and its requires-python) as a project.
-        env = {**os.environ, "UV_PYTHON_DOWNLOADS": "never"}
-        venv_python = str(VENV / "bin" / "python")
-        for cmd in (
-            ["uv", "venv", "--quiet", "--python", "python3", str(VENV)],
-            ["uv", "pip", "install", "--quiet", "--python", venv_python]
-            + ["--index-url", index, f"devservices=={version}"],
-        ):
-            subprocess.run(cmd, cwd=STATE_DIR, env=env, check=True)
-
-        git_config_set()
-        STARTED_FILE.touch()
-        with open(LOG_FILE, "w") as log:
-            # New session so it keeps running after this step's shell exits.
-            subprocess.Popen(
-                [sys.executable, os.path.abspath(__file__), "run-background"],
-                stdin=subprocess.DEVNULL,
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                start_new_session=True,
-            )
-    except Exception as e:
-        # Popen is the last thing that can fail, and if it does no child
-        # exists, so nothing is running and `wait` can safely start over.
-        STARTED_FILE.unlink(missing_ok=True)
-        git_config_unset()
-        print(
-            f"::warning::Couldn't start devservices early ({e}); "
-            "it will start after the Python setup instead",
-            flush=True,
+        raise SystemExit(
+            f"::error::expected one devservices package in the lockfile, found {len(pkgs)}"
         )
-        return 0
-    print(f"Started devservices up in the background (log: {LOG_FILE})", flush=True)
-    return 0
+    (pkg,) = pkgs
+    # --python: the system python, so uv doesn't download .python-version's.
+    # --default-index: the lockfile's index (getsentry has no uv index config).
+    return [
+        "uv", "run", "--no-project", "--python", "python3",
+        "--default-index", pkg["source"]["registry"],
+        "--with", f"devservices=={pkg['version']}",
+        "--", "devservices", "up", "--mode", os.environ["DEVSERVICES_MODE"],
+    ]  # fmt: skip
 
 
-def run_background() -> int:
+def start() -> None:
+    cmd = uv_run_devservices()
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"Running in the background (log: {LOG_FILE}): {' '.join(cmd)}", flush=True)
+    if os.fork():
+        return
+
+    # Child: detach from the step, so it keeps running after the step exits.
+    os.setsid()
+    with open(os.devnull) as devnull, open(LOG_FILE, "w") as log:
+        os.dup2(devnull.fileno(), 0)
+        os.dup2(log.fileno(), 1)
+        os.dup2(log.fileno(), 2)
     rc = 1
     try:
-        rc = devservices_up(str(VENV / "bin" / "devservices"))
+        # Own process group, so a timeout also kills devservices and compose.
+        proc = subprocess.Popen(
+            cmd, cwd=os.environ.get("DEVSERVICES_WORKDIR", "."), process_group=0
+        )
+        try:
+            rc = proc.wait(timeout=TIMEOUT)
+        except subprocess.TimeoutExpired:
+            print(f"::error::devservices up timed out after {TIMEOUT:.0f}s", flush=True)
+            os.killpg(proc.pid, signal.SIGKILL)
+            proc.wait()
+            rc = 124
     except BaseException:
         traceback.print_exc()
     finally:
-        sys.stdout.flush()
-        git_config_unset()
-        write_status(rc)
-    return rc
-
-
-def run_foreground() -> int:
-    STATE_DIR.mkdir(parents=True, exist_ok=True)
-    devservices = shutil.which("devservices")
-    if devservices is None:
-        print("::error::devservices not found on PATH", flush=True)
-        write_status(127)
-        return 127
-    git_config_set()
-    rc = 1
-    try:
-        rc = devservices_up(devservices)
-    finally:
-        write_status(rc)
-        git_config_unset()
-    return rc
+        tmp = EXIT_FILE.with_suffix(".tmp")
+        tmp.write_text(f"{rc}\n")
+        tmp.replace(EXIT_FILE)
+        os._exit(0)
 
 
 def wait() -> int:
-    if not STARTED_FILE.exists():
-        return run_foreground()
-
-    # devservices up is already bounded by TIMEOUT; this is a backstop in case
-    # the background process itself died without writing its status.
-    start_time = time.monotonic()
-    next_status = 30.0
+    deadline = time.monotonic() + TIMEOUT + 60  # backstop; start's timeout fires first
     while not EXIT_FILE.exists():
-        elapsed = time.monotonic() - start_time
-        if elapsed > TIMEOUT + 60:
+        if time.monotonic() > deadline:
             print(LOG_FILE.read_text(errors="replace"), flush=True)
-            print("::error::Timed out waiting for background devservices up", flush=True)
-            if PID_FILE.exists():
-                kill_group(int(PID_FILE.read_text()), signal.SIGKILL)
-            write_status(124)
-            git_config_unset()
+            print("::error::Timed out waiting for devservices up", flush=True)
             return 124
-        if elapsed >= next_status:
-            print(f"still waiting for background devservices up ({elapsed:.0f}s)", flush=True)
-            next_status = elapsed + 30
         time.sleep(1)
-
     print(LOG_FILE.read_text(errors="replace"), flush=True)
-    rc = int(EXIT_FILE.read_text().strip())
+    rc = int(EXIT_FILE.read_text())
     if rc != 0:
         print(f"::error::devservices up failed (exit {rc})", flush=True)
     return rc
 
 
-def main() -> int:
-    commands = {"start": start, "wait": wait, "run-background": run_background}
-    if len(sys.argv) != 2 or sys.argv[1] not in commands:
-        print(f"usage: {sys.argv[0]} start|wait", file=sys.stderr)
-        return 2
-    return commands[sys.argv[1]]()
-
-
 if __name__ == "__main__":
-    sys.exit(main())
+    if sys.argv[1:] == ["start"]:
+        start()
+    elif sys.argv[1:] == ["wait"]:
+        sys.exit(wait())
+    else:
+        sys.exit(f"usage: {sys.argv[0]} start|wait")
