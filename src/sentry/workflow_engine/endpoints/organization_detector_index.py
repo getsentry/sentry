@@ -466,6 +466,14 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                         {"detail": assign_result.reason}, status=status.HTTP_400_BAD_REQUEST
                     )
 
+        # We update detectors individually to ensure post_save signals are called
+        with transaction.atomic(router.db_for_write(Detector)):
+            for detector in queryset:
+                if detector.type not in SEAT_DETECTOR_TYPES:
+                    detector.update(enabled=enabled)
+
+        # Seat detectors commit one at a time, so keep going past failures
+        failed_detectors = []
         for detector in seat_detectors:
             detector_validator = get_detector_validator_for_update(
                 request,
@@ -475,14 +483,19 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                 partial=True,
                 data={"enabled": enabled},
             )
-            detector_validator.is_valid(raise_exception=True)
-            detector_validator.save()
+            try:
+                detector_validator.is_valid(raise_exception=True)
+                detector_validator.save()
+            except ValidationError:
+                failed_detectors.append(detector)
 
-        # We update detectors individually to ensure post_save signals are called
-        with transaction.atomic(router.db_for_write(Detector)):
-            for detector in queryset:
-                if detector.type not in SEAT_DETECTOR_TYPES:
-                    detector.update(enabled=enabled)
+        if failed_detectors:
+            action = "enable" if enabled else "disable"
+            names = ", ".join(detector.name for detector in failed_detectors)
+            return Response(
+                {"detail": f"Failed to {action} some monitors: {names}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return self.paginate(
             request=request,

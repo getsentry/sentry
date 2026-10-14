@@ -16,6 +16,7 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.environment import Environment
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.monitors.models import Monitor
 from sentry.monitors.utils import ensure_cron_detector
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.search.utils import _HACKY_INVALID_USER
@@ -1437,6 +1438,88 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert detector.enabled is False
         assert self.detector.enabled is False
         assert not mock_assign_seat.called
+
+    @patch(
+        "sentry.quotas.backend.check_assign_seat",
+        return_value=SeatAssignmentResult(assignable=True),
+    )
+    @patch(
+        "sentry.quotas.backend.check_assign_seats",
+        return_value=SeatAssignmentResult(assignable=True),
+    )
+    def test_update_detectors_enable_cron_seat_fails_mid_batch(
+        self, mock_check_assign_seats: MagicMock, mock_check_assign_seat: MagicMock
+    ) -> None:
+        ok_monitor = self.create_monitor(project=self.project, status=ObjectStatus.DISABLED)
+        ok_detector = ensure_cron_detector(ok_monitor)
+        assert ok_detector is not None
+        failed_monitor = self.create_monitor(
+            project=self.project, status=ObjectStatus.DISABLED, name="No seat"
+        )
+        failed_detector = ensure_cron_detector(failed_monitor)
+        assert failed_detector is not None
+        ok_detector.update(enabled=False)
+        failed_detector.update(enabled=False)
+        self.detector.update(enabled=False)
+
+        def assign_seat(seat_object: Monitor) -> Outcome:
+            return Outcome.RATE_LIMITED if seat_object.id == failed_monitor.id else Outcome.ACCEPTED
+
+        with patch("sentry.quotas.backend.assign_seat", side_effect=assign_seat):
+            response = self.get_error_response(
+                self.organization.slug,
+                qs_params=[
+                    ("id", str(ok_detector.id)),
+                    ("id", str(failed_detector.id)),
+                    ("id", str(self.detector.id)),
+                ],
+                enabled=True,
+                status_code=400,
+            )
+
+        assert response.data["detail"] == f"Failed to enable some monitors: {failed_detector.name}"
+        ok_monitor.refresh_from_db()
+        ok_detector.refresh_from_db()
+        failed_monitor.refresh_from_db()
+        failed_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert ok_monitor.status == ObjectStatus.ACTIVE
+        assert ok_detector.enabled is True
+        assert failed_monitor.status == ObjectStatus.DISABLED
+        assert failed_detector.enabled is False
+        assert self.detector.enabled is True
+
+    @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.RATE_LIMITED)
+    @patch(
+        "sentry.quotas.backend.check_assign_seat",
+        side_effect=[
+            SeatAssignmentResult(assignable=True),
+            SeatAssignmentResult(assignable=False, reason="Over quota"),
+        ],
+    )
+    @patch(
+        "sentry.quotas.backend.check_assign_seats",
+        return_value=SeatAssignmentResult(assignable=True),
+    )
+    def test_update_detectors_enable_uptime_seat_fails(
+        self,
+        mock_check_assign_seats: MagicMock,
+        mock_check_assign_seat: MagicMock,
+        mock_assign_seat: MagicMock,
+    ) -> None:
+        detector = self.create_uptime_detector()
+        disable_uptime_detector(detector)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(detector.id)},
+            enabled=True,
+            status_code=400,
+        )
+
+        assert response.data["detail"] == f"Failed to enable some monitors: {detector.name}"
+        detector.refresh_from_db()
+        assert detector.enabled is False
 
     def test_update_detectors_disable_uptime(self) -> None:
         detector = self.create_uptime_detector()
