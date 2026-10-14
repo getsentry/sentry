@@ -628,7 +628,6 @@ module = [
     "sentry.api.serializers.models.organizationmemberinvite",
     "sentry.api.serializers.models.project",
     "sentry.api.serializers.models.project_key",
-    "sentry.api.serializers.models.project_platform",
     "sentry.api.serializers.models.project_transaction_threshold",
     "sentry.api.serializers.models.projectcodeowners",
     "sentry.api.serializers.models.projectownership",
