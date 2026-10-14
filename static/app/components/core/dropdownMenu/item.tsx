@@ -25,6 +25,8 @@ export interface MenuItemProps extends MenuListItemProps {
    * Sub-items that are nested inside this item. By default, sub-items are
    * rendered collectively as menu sections inside the current menu. If
    * `submenu` is set, then they will be rendered together in a sub-menu.
+   * For new submenus, prefer `submenu.items` so the submenu configuration
+   * and its content stay together.
    */
   children?: MenuItemProps[];
   /**
@@ -56,12 +58,23 @@ export interface MenuItemProps extends MenuListItemProps {
    */
   onAction?: () => void;
   /**
-   * Renders this item as a trigger for a nested sub-menu (only works when
-   * `children` is also defined). Pass `true` for the defaults, or an object to
-   * customize the sub-menu: `title` is shown as its header, and `position`
-   * overrides where it opens relative to this item (defaults to `right-start`).
+   * Renders this item as a trigger for a nested menu. Pass `true` with
+   * `children` for the legacy form, or an object with `items` to define the
+   * nested menu in one place. `position` defaults to `right-start`.
    */
-  submenu?: boolean | {position?: UseOverlayProps['position']; title?: string};
+  submenu?:
+    | boolean
+    | {
+        items?: MenuItemProps[];
+        maxHeight?: number;
+        position?: UseOverlayProps['position'];
+        search?: {
+          onChange: (value: string) => void;
+          value: string;
+          placeholder?: string;
+        };
+        title?: string;
+      };
   /**
    * A plain text version of the `label` prop if the label is not a string. Used for
    * filtering and keyboard select (quick-focusing on options by typing the first letter).
@@ -91,6 +104,7 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
    * Ref to the inner focusable menu item.
    */
   menuItemRef?: React.Ref<HTMLElement>;
+  onClickCapture?: React.MouseEventHandler<HTMLElement>;
   /**
    * Handler that is called when the menu should close after selecting an item
    */

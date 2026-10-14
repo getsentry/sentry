@@ -9,6 +9,8 @@ import type {useSafetyTriangle} from './useSafetyTriangle';
 export type OverlayState = ReturnType<typeof useOverlay>['state'];
 
 interface DropdownMenuContextValue {
+  /** Stacking level of the current menu, used by portalled submenus. */
+  menuZIndex?: number;
   /**
    * Menu state (from @react-aria's useTreeState) of the parent menu. To be used to
    * close the current submenu.

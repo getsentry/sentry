@@ -7,13 +7,12 @@ import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
-import {IconSearch} from '@sentry/icons/search';
 
 import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
-import {InputGroup} from '@sentry/scraps/input';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {MenuSearch} from '@sentry/scraps/menuSearch';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
@@ -433,15 +432,9 @@ export function Control<Value extends SelectKey>({
   const [menuFullWidth, setMenuFullWidth] = useState<number>();
   // When search box is focused, read the menu's width and lock it at that value to
   // prevent visual jumps during search
-  const onSearchFocus = useCallback(
-    () => setMenuFullWidth(overlayRef.current?.offsetWidth),
-    [overlayRef]
-  );
+  const onSearchFocus = () => setMenuFullWidth(overlayRef.current?.offsetWidth);
   // When search box is blurred, release the lock the menu's width
-  const onSearchBlur = useCallback(
-    () => !search && setMenuFullWidth(undefined),
-    [search]
-  );
+  const onSearchBlur = () => !search && setMenuFullWidth(undefined);
 
   /**
    * Trigger label, generated from current selection values. If more than one option is
@@ -582,30 +575,16 @@ export function Control<Value extends SelectKey>({
                   </MenuHeader>
                 )}
                 {searchEnabled && (
-                  <InputGroup>
-                    <InputGroup.LeadingItems disablePointerEvents>
-                      <Flex
-                        paddingLeft="2xs"
-                        align="center"
-                        justify="center"
-                        // Center the icon by visual weight
-                        style={{transform: 'translateY(1px) translateX(1px)'}}
-                      >
-                        <IconSearch size="xs" variant="muted" />
-                      </Flex>
-                    </InputGroup.LeadingItems>
-                    <SearchInput
-                      ref={searchRef}
-                      data-1p-ignore
-                      placeholder={normalizedSearch?.placeholder ?? 'Search…'}
-                      value={searchInputValue}
-                      onFocus={onSearchFocus}
-                      onBlur={onSearchBlur}
-                      onChange={e => updateSearch(e.target.value)}
-                      size="xs"
-                      {...searchKeyboardProps}
-                    />
-                  </InputGroup>
+                  <MenuSearch
+                    ref={searchRef}
+                    data-1p-ignore
+                    placeholder={normalizedSearch?.placeholder ?? 'Search…'}
+                    value={searchInputValue}
+                    onFocus={onSearchFocus}
+                    onBlur={onSearchBlur}
+                    onChange={e => updateSearch(e.target.value)}
+                    {...searchKeyboardProps}
+                  />
                 )}
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})
@@ -701,17 +680,6 @@ export const ClearButton = styled(Button)`
   margin: -${p => p.theme.space['2xs']} -${p => p.theme.space.xs};
 `;
 
-const SearchInput = styled(InputGroup.Input)`
-  appearance: none;
-  width: calc(100% - ${p => p.theme.space.xs} * 2);
-  margin: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
-
-  /* Add 1px to top margin if immediately preceded by menu header, to account for the
-  header's shadow border. Account for InputGroup wrapper div. */
-  [data-menu-has-header='true'] > * > & {
-    margin-top: calc(${p => p.theme.space.xs} + 1px);
-  }
-`;
 const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {

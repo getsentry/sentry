@@ -94,8 +94,7 @@ export interface DropdownMenuProps
   /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
-   * scrollable container that messes with the menu's position. Some features, namely
-   * submenus, will not work correctly inside portals.
+   * scrollable container that messes with the menu's position.
    *
    * Consider passing `strategy` as `'fixed'` before using `usePortal`
    */

@@ -93,7 +93,7 @@ Set `label` and `onAction` on each item. Keys must be unique across the complete
 
 ## Sections, Links, and Submenus
 
-Group related items by adding `children` without setting `submenu`. Use `to` for internal links and `externalHref` for external links. Set `submenu` and `children` together to create a nested menu.
+Group related items by adding `children` without setting `submenu`. Use `to` for internal links and `externalHref` for external links. Put nested items in `submenu.items` to open them in an adjacent menu. Menu items use the existing `MenuListItem` primitive.
 
 <Storybook.Demo>
   <Flex direction="column" gap="md">
@@ -111,11 +111,13 @@ Group related items by adding `children` without setting `submenu`. Use `to` for
         {
           key: 'export',
           label: 'Export',
-          submenu: {title: 'Export options'},
-          children: [
-            {key: 'csv', label: 'Export as CSV', onAction: () => {}},
-            {key: 'json', label: 'Export as JSON', onAction: () => {}},
-          ],
+          submenu: {
+            title: 'Export options',
+            items: [
+              {key: 'csv', label: 'Export as CSV', onAction: () => {}},
+              {key: 'json', label: 'Export as JSON', onAction: () => {}},
+            ],
+          },
         },
       ]}
     />
@@ -140,11 +142,13 @@ Group related items by adding `children` without setting `submenu`. Use `to` for
     {
       key: 'export',
       label: 'Export',
-      submenu: {title: 'Export options'},
-      children: [
-        {key: 'csv', label: 'Export as CSV', onAction: () => {}},
-        {key: 'json', label: 'Export as JSON', onAction: () => {}},
-      ],
+      submenu: {
+        title: 'Export options',
+        items: [
+          {key: 'csv', label: 'Export as CSV', onAction: () => {}},
+          {key: 'json', label: 'Export as JSON', onAction: () => {}},
+        ],
+      },
     },
   ]}
 />
@@ -158,7 +162,7 @@ Group related items by adding `children` without setting `submenu`. Use `to` for
 />
 ```
 
-Submenus open on hover or with the right arrow key. Pass an object to `submenu` to set a title or change the submenu position.
+Submenus open on hover or with the right arrow key. Pass an object to `submenu` to set a title, search field, maximum height, or position. Existing `submenu: true` with `children` remains supported.
 
 ### Moving into a submenu
 
