@@ -2703,6 +2703,10 @@ class TestMigrations(TransactionTestCase):
 
         # Reuse the states `migrate` returns rather than rebuilding them from the whole
         # migration history with `loader.project_state()`, which takes several seconds.
+        # These reflect what's applied in the database, so they also include migrations in
+        # other apps that stay applied, even if the target doesn't depend on them. The graph
+        # state only follows the target's dependencies. See
+        # `ExecutorStateTest` in tests/sentry/new_migrations/test_migrations.py.
         self.setup_before_migration(self._project_state_cache.apps)
 
         # Run the migration to test
