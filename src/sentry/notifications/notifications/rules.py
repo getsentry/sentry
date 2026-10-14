@@ -113,7 +113,7 @@ class AlertRuleNotification(ProjectNotification):
             elif group.issue_category in PERFORMANCE_ISSUE_CATEGORIES:
                 email_template_name = "performance"
             else:
-                email_template_name = group.issue_category.name.lower()
+                email_template_name = GENERIC_TEMPLATE_NAME
         else:
             email_template_name = GENERIC_TEMPLATE_NAME
 
