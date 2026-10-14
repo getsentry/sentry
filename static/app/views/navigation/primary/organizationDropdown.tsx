@@ -27,7 +27,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
-import {darkTheme} from 'sentry/utils/theme/theme';
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -264,7 +264,7 @@ function OrganizationMenuHeader({
       css={theme => css`
         /* Extend the header background through the menu title's padding. */
         margin: -${theme.space.sm} -${theme.space.lg};
-        background: linear-gradient(110deg, #2c155c, #4e168c);
+        background: linear-gradient(90deg, #2c155c, #4e168c);
       `}
     >
       <Stack gap="md" padding="md lg">
@@ -288,8 +288,8 @@ function OrganizationMenuHeader({
             height="32px"
             radius="md"
             overflow="hidden"
-            background="primary"
             css={css`
+              background-color: ${lightTheme.tokens.background.primary};
               border: 1px solid ${darkTheme.tokens.border.transparent.neutral.muted};
             `}
           >
