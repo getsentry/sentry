@@ -758,7 +758,6 @@ module = [
     "sentry.integrations.api.endpoints",
     "sentry.integrations.api.endpoints.data_forwarding_details",
     "sentry.integrations.api.endpoints.data_forwarding_index",
-    "sentry.integrations.api.endpoints.doc_integration_avatar",
     "sentry.integrations.api.endpoints.doc_integration_details",
     "sentry.integrations.api.endpoints.doc_integrations_index",
     "sentry.integrations.api.endpoints.external_team_details",

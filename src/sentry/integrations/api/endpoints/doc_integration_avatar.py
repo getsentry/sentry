@@ -6,6 +6,7 @@ from sentry.integrations.api.bases.doc_integrations import DocIntegrationBaseEnd
 from sentry.integrations.api.serializers.rest_framework.doc_integration import (
     DocIntegrationAvatarSerializer,
 )
+from sentry.integrations.models.doc_integration import DocIntegration
 from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
 
 
@@ -20,5 +21,5 @@ class DocIntegrationAvatarEndpoint(AvatarMixin[DocIntegrationAvatar], DocIntegra
     model = DocIntegrationAvatar
     serializer_cls = DocIntegrationAvatarSerializer
 
-    def get_avatar_filename(self, obj) -> str:
+    def get_avatar_filename(self, obj: DocIntegration) -> str:  # type: ignore[override]  # convert_args only ever supplies DocIntegration
         return f"{obj.slug}.png"
