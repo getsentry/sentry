@@ -561,7 +561,6 @@ module = [
     "sentry.api.endpoints.project_overview",
     "sentry.api.endpoints.project_performance_general_settings",
     "sentry.api.endpoints.project_profiling_profile",
-    "sentry.api.endpoints.project_reprocessing",
     "sentry.api.endpoints.project_servicehook_details",
     "sentry.api.endpoints.project_servicehooks",
     "sentry.api.endpoints.project_statistical_detectors",
