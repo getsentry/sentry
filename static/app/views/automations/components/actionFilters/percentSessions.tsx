@@ -14,6 +14,7 @@ import {
   COMPARISON_INTERVAL_CHOICES,
   PERCENT_INTERVAL_CHOICES,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import {defaultComparisonMap} from 'sentry/views/automations/components/actionFilters/dataConditionDefaultComparisons';
 import {
   SubfilterDetailsList,
   SubfiltersList,
@@ -22,7 +23,6 @@ import {
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
-import {defaultComparisonMap} from 'sentry/views/automations/components/actionFilters/dataConditionDefaultComparisons';
 
 export function PercentSessionsCountDetails({condition}: {condition: DataCondition}) {
   const hasSubfilters = condition.comparison.filters?.length > 0;

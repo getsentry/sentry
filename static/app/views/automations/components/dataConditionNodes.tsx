@@ -25,12 +25,12 @@ import {
   TargetType,
   TimeUnit,
 } from 'sentry/views/automations/components/actionFilters/constants';
+import {defaultComparisonMap} from 'sentry/views/automations/components/actionFilters/dataConditionDefaultComparisons';
 import {
   EventAttributeDetails,
   EventAttributeNode,
   validateEventAttributeCondition,
 } from 'sentry/views/automations/components/actionFilters/eventAttribute';
-import {defaultComparisonMap} from 'sentry/views/automations/components/actionFilters/dataConditionDefaultComparisons';
 import {
   EventFrequencyCountDetails,
   EventFrequencyNode,
@@ -310,7 +310,9 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of events'),
       dataCondition: EventFrequencyNode,
       details: EventFrequencyCountDetails,
-      defaultComparison: defaultComparisonMap.get(DataConditionType.EVENT_FREQUENCY_COUNT),
+      defaultComparison: defaultComparisonMap.get(
+        DataConditionType.EVENT_FREQUENCY_COUNT
+      ),
       validate: validateEventFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
