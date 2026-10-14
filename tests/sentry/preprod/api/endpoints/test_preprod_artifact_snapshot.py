@@ -26,6 +26,7 @@ from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSn
 from sentry.preprod.snapshots.precompute import build_head_images_payload
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.outcomes import Outcome
 
 
@@ -99,6 +100,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         )
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.track_outcome")
+    @with_feature("organizations:preprod-snapshot-billing-outcomes")
     def test_successful_snapshot_upload(self, mock_track_outcome: MagicMock) -> None:
         url = self._get_create_url()
         data = {
@@ -122,8 +124,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-snapshot-billing-outcomes"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
         assert "artifactId" in response.data
@@ -148,6 +149,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         )
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.track_outcome")
+    @with_feature({"organizations:preprod-snapshot-billing-outcomes": False})
     def test_successful_snapshot_upload_does_not_track_outcome_without_flag(
         self, mock_track_outcome: MagicMock
     ) -> None:
@@ -168,6 +170,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         mock_track_outcome.assert_not_called()
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.track_outcome")
+    @with_feature("organizations:preprod-snapshot-billing-outcomes")
     def test_outcome_failure_does_not_fail_snapshot_upload(
         self, mock_track_outcome: MagicMock
     ) -> None:
@@ -183,8 +186,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-snapshot-billing-outcomes"):
-            response = self.client.post(self._get_create_url(), data, format="json")
+        response = self.client.post(self._get_create_url(), data, format="json")
 
         assert response.status_code == 200
         artifact = PreprodArtifact.objects.get(id=response.data["artifactId"])
@@ -330,6 +332,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.track_outcome")
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
+    @with_feature("organizations:preprod-snapshot-billing-outcomes")
     def test_manifest_write_failure_does_not_track_outcome(
         self, mock_get_snapshot_storage: MagicMock, mock_track_outcome: MagicMock
     ) -> None:
@@ -345,8 +348,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             },
         }
 
-        with self.feature("organizations:preprod-snapshot-billing-outcomes"):
-            response = self.client.post(self._get_create_url(), data, format="json")
+        response = self.client.post(self._get_create_url(), data, format="json")
 
         assert response.status_code == 500
         mock_track_outcome.assert_not_called()
@@ -381,6 +383,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert snapshot_metrics.extras["head_images_key"] == expected_key
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.track_outcome")
+    @with_feature("organizations:preprod-snapshot-billing-outcomes")
     def test_snapshot_with_empty_images(self, mock_track_outcome: MagicMock) -> None:
         url = self._get_create_url()
         data = {
@@ -388,8 +391,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             "images": {},
         }
 
-        with self.feature("organizations:preprod-snapshot-billing-outcomes"):
-            response = self.client.post(url, data, format="json")
+        response = self.client.post(url, data, format="json")
 
         assert response.status_code == 200
         assert response.data["imageCount"] == 0
@@ -423,6 +425,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert response.status_code != 400
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.track_outcome")
+    @with_feature("organizations:preprod-snapshot-billing-outcomes")
     def test_snapshot_invalid_image_schema(self, mock_track_outcome: MagicMock) -> None:
         url = self._get_create_url()
         data = {
@@ -592,11 +595,11 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert response.status_code == 200
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.track_outcome")
+    @with_feature("organizations:preprod-snapshot-billing-outcomes")
     def test_selective_with_all_image_file_names_accepted(
         self, mock_track_outcome: MagicMock
     ) -> None:
-        with self.feature("organizations:preprod-snapshot-billing-outcomes"):
-            response = self._post_selective()
+        response = self._post_selective()
         assert response.status_code == 200
         mock_track_outcome.assert_called_once_with(
             org_id=self.project.organization_id,
