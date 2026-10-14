@@ -168,18 +168,15 @@ export function useChatSuggestions({
   });
   const hasTimedOut = timeoutReason !== null;
 
-  // Once timed out, what's shown is fixed; a late response is ignored.
-  const onTimeSuggestions = hasTimedOut ? undefined : query.data?.suggestions;
-  const isWaitingOnTime = !hasTimedOut && query.isPending;
-
   const state = useMemo((): ChatSuggestionsState => {
     if (!hasLlmChatSuggestions) {
       return {isLoading: false, source: 'legacy', suggestions: LEGACY_SUGGESTIONS};
     }
-    if (onTimeSuggestions?.length) {
-      return {isLoading: false, source: 'generated', suggestions: onTimeSuggestions};
+    // Once timed out, what's shown is fixed; a late response is ignored.
+    if (!hasTimedOut && query.data?.suggestions.length) {
+      return {isLoading: false, source: 'generated', suggestions: query.data.suggestions};
     }
-    if (isWaitingOnTime) {
+    if (!hasTimedOut && query.isPending) {
       return {isLoading: true};
     }
     return {
@@ -187,7 +184,7 @@ export function useChatSuggestions({
       source: 'fallback',
       suggestions: getFallbackChatSuggestions(route, hasDbData),
     };
-  }, [hasLlmChatSuggestions, onTimeSuggestions, isWaitingOnTime, route, hasDbData]);
+  }, [hasLlmChatSuggestions, hasTimedOut, query.data, query.isPending, route, hasDbData]);
 
   const fallbackReason = timeoutReason ?? (query.isError ? 'error' : 'empty');
 
