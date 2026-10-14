@@ -206,8 +206,6 @@ export function useMetricQueriesController({
   }, [queries, setQueries, labels]);
 
   const latestValue = useRef(value);
-  // Insertion effects run before every layout effect in the commit, so descendants that call a
-  // mutator from their own layout effect (e.g. group by cleanup) see the latest rows.
   useInsertionEffect(() => {
     latestValue.current = value;
   });
