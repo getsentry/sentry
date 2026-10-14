@@ -50,6 +50,10 @@ jobs:
           SENTRY_NO_CREATE_DEFAULT_PROJECT: 1
         run: make apply-migrations
 
+      # The squashed state has no tables or columns that are pending deletion.
+      - name: drop pending deletions
+        run: python3 -um tools.migrations.drop_pending_deletions
+
       - name: capture database schema before
         run: docker exec postgres-postgres-1 bash -c 'pg_dumpall -U postgres -s --restrict-key=driftcheck' > schema-before
 
