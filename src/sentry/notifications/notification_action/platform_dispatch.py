@@ -72,6 +72,15 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
         notification_context.integration_id is None
         or notification_context.target_identifier is None
     ):
+        logger.warning(
+            "notification_action.platform_dispatch.missing_target",
+            extra={
+                "action_id": notification_context.id,
+                "integration_id": notification_context.integration_id,
+                "target_identifier": notification_context.target_identifier,
+                "provider": provider,
+            },
+        )
         return
     integration_context = integration_service.organization_context(
         organization_id=organization.id, integration_id=notification_context.integration_id
@@ -81,6 +90,20 @@ def send_metric_alert(context: IssueNotificationContext, provider: NotificationP
         or integration_context.integration is None
         or integration_context.integration.status != ObjectStatus.ACTIVE
     ):
+        logger.warning(
+            "notification_action.platform_dispatch.integration_inactive",
+            extra={
+                "action_id": notification_context.id,
+                "integration_id": notification_context.integration_id,
+                "organization_id": organization.id,
+                "provider": provider,
+                "has_integration": integration_context.integration is not None,
+                "has_org_integration": integration_context.organization_integration is not None,
+                "integration_status": integration_context.integration.status
+                if integration_context.integration
+                else None,
+            },
+        )
         return
 
     target = IntegrationNotificationTarget(
