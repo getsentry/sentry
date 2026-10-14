@@ -30,7 +30,12 @@ class TestGetQueryBuilderForGroup(TestCase):
             )
 
         by_short_id.assert_not_called()
-        assert Condition(Column("group_id"), Op.EQ, group.id) in builder.where
+        group_conditions = [
+            c for c in builder.where if isinstance(c, Condition) and c.lhs == Column("group_id")
+        ]
+        assert group_conditions == [Condition(Column("group_id"), Op.EQ, group.id)]
+        # Snuba only scopes replacements to integer group ids, so 1.0 isn't good enough.
+        assert isinstance(group_conditions[0].rhs, int)
 
 
 class TestEAPRunGroupEventsQuery(TestCase, SnubaTestCase):

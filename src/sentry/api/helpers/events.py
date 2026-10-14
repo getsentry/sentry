@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
+from snuba_sdk import Condition, Op
 
 from sentry.api.serializers import serialize
 from sentry.issues.grouptype import GroupCategory
@@ -88,9 +89,9 @@ def get_query_builder_for_group(
 
     column_resolver = functools.partial(get_snuba_column_name, dataset=dataset)
 
-    return DiscoverQueryBuilder(
+    builder = DiscoverQueryBuilder(
         dataset=dataset,
-        query=f"issue.id:{group.id} {query}",
+        query=query,
         params={},
         snuba_params=snuba_params,
         selected_columns=selected_columns,
@@ -102,6 +103,11 @@ def get_query_builder_for_group(
             column_resolver=column_resolver,
         ),
     )
+    # Filter on the group directly rather than through an `issue:` or `issue.id:` search
+    # term: `issue:` resolves the short id back to this group with a query, and
+    # `issue.id:` parses the id as a float, which Snuba can't use to scope replacements.
+    builder.add_conditions([Condition(builder.column("issue.id"), Op.EQ, group.id)])
+    return builder
 
 
 def get_events_for_group_eap(
