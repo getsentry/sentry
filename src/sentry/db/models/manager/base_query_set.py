@@ -38,6 +38,11 @@ class BaseQuerySet(QuerySet[M, R]):
         """
         Copied and modified from `Queryset.update()` to support `RETURNING <returned_fields>`
         """
+        pk = self.model._meta.pk.name
+
+        if self._with_post_update_signal and pk not in returned_fields:
+            raise ValueError(f"Must return `{pk}` to send the post_update signal")
+
         self._not_support_combined_queries("update")  # type: ignore[attr-defined]
         if self.query.is_sliced:
             raise TypeError("Cannot update a query once a slice has been taken.")
@@ -76,18 +81,28 @@ class BaseQuerySet(QuerySet[M, R]):
                 result_ids = []
 
         self._result_cache = None
+
+        if self._with_post_update_signal:
+            pk_index = returned_fields.index(pk)
+
+            model_ids = [row[pk_index] for row in result_ids]
+
+            self._send_post_update_signal(updated_fields=list(kwargs.keys()), model_ids=model_ids)
+
         return result_ids
 
     update_with_returning.alters_data = True  # type: ignore[attr-defined]
 
+    def _send_post_update_signal(self, updated_fields: list[str], model_ids: list[Any]) -> None:
+        if not model_ids:
+            return
+
+        post_update.send(sender=self.model, updated_fields=updated_fields, model_ids=model_ids)
+
     def update(self, **kwargs: Any) -> int:
         if self._with_post_update_signal:
             pk = self.model._meta.pk.name
-            ids = [result[0] for result in self.update_with_returning([pk], **kwargs)]
-            if ids:
-                updated_fields = list(kwargs.keys())
-                post_update.send(sender=self.model, updated_fields=updated_fields, model_ids=ids)
-            return len(ids)
+            return len(self.update_with_returning([pk], **kwargs))
         else:
             return super().update(**kwargs)
 
