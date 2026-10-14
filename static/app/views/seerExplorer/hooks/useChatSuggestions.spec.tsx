@@ -279,6 +279,46 @@ describe('useChatSuggestions', () => {
         suggestions: DEFAULT_FALLBACK_SUGGESTIONS,
       });
     });
+
+    it('returns generated suggestions when navigating to another page after a timeout', async () => {
+      MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {suggestions: [{text: 'Too late'}]},
+        asyncDelay: new Promise(() => {}),
+      });
+
+      const {result, router} = renderHookWithProviders(
+        () => useChatSuggestions({enabled: true, allowStructuredContext: true}),
+        {
+          organization,
+          additionalWrapper: IssueDetailPage,
+          initialRouterConfig: issuePageRouterConfig,
+        }
+      );
+
+      await act(() => jest.advanceTimersByTimeAsync(5000));
+      expect(result.current).toEqual({
+        isLoading: false,
+        source: 'fallback',
+        suggestions: ISSUE_FALLBACK_SUGGESTIONS,
+      });
+
+      MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {suggestions: [{text: 'Issue 2'}]},
+      });
+      router.navigate(`/organizations/${organization.slug}/issues/2/`);
+
+      await waitFor(() =>
+        expect(result.current).toEqual({
+          isLoading: false,
+          source: 'generated',
+          suggestions: [{text: 'Issue 2'}],
+        })
+      );
+    });
   });
 
   it('returns issue fallback suggestions when on an issue page', async () => {

@@ -50,19 +50,26 @@ type TimeoutReason = 'timeout' | 'incomplete_context';
 
 /**
  * Resolves to a reason once `isWaiting` has held for SUGGESTIONS_TIMEOUT_MS.
- * Keyed by route so navigating with the panel open starts a fresh wait, and
- * latched so a late response doesn't swap out suggestions the user is reading.
+ * Reset when `queryKey` changes so navigating with the panel open starts a fresh
+ * wait, and latched so a late response doesn't swap out suggestions the user is reading.
  */
 function useSuggestionsTimeout({
-  route,
+  queryKey,
   isWaiting,
   isPageReady,
 }: {
   isPageReady: boolean;
   isWaiting: boolean;
-  route: string;
+  queryKey: string;
 }): TimeoutReason | null {
-  const [timedOut, setTimedOut] = useState<{reason: TimeoutReason; route: string}>();
+  const [timeoutReason, setTimeoutReason] = useState<TimeoutReason | null>(null);
+
+  // Start over when the query changes, e.g. navigating with the panel open.
+  const [prevQueryKey, setPrevQueryKey] = useState(queryKey);
+  if (queryKey !== prevQueryKey) {
+    setPrevQueryKey(queryKey);
+    setTimeoutReason(null);
+  }
 
   // Read when the timer fires, without restarting it when the page becomes ready.
   const isPageReadyRef = useRef(isPageReady);
@@ -75,15 +82,13 @@ function useSuggestionsTimeout({
       return;
     }
     const timeoutId = window.setTimeout(() => {
-      setTimedOut({
-        route,
-        reason: isPageReadyRef.current ? 'timeout' : 'incomplete_context',
-      });
+      setTimeoutReason(isPageReadyRef.current ? 'timeout' : 'incomplete_context');
     }, SUGGESTIONS_TIMEOUT_MS);
     return () => window.clearTimeout(timeoutId);
-  }, [route, isWaiting]);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- queryKey restarts the timer for a new query.
+  }, [queryKey, isWaiting]);
 
-  return timedOut?.route === route ? timedOut.reason : null;
+  return timeoutReason;
 }
 
 export type ChatSuggestionsState =
@@ -127,15 +132,16 @@ export function useChatSuggestions({
         : project.isMember)
   );
 
+  const queryKey = [
+    'seer-chat-suggestions',
+    organization?.slug,
+    route,
+    params,
+    selection.projects,
+    allowStructuredContext,
+  ];
   const query = useQuery({
-    queryKey: [
-      'seer-chat-suggestions',
-      organization?.slug,
-      route,
-      params,
-      selection.projects,
-      allowStructuredContext,
-    ],
+    queryKey,
     queryFn: () => {
       const {screenshot: pageContext} = capturePageContext({
         route,
@@ -162,7 +168,7 @@ export function useChatSuggestions({
   });
 
   const timeoutReason = useSuggestionsTimeout({
-    route,
+    queryKey: JSON.stringify(queryKey),
     isWaiting: enabled && hasLlmChatSuggestions && query.isPending,
     isPageReady,
   });
