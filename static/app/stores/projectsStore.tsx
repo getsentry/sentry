@@ -83,13 +83,13 @@ const storeConfig: ProjectsStoreDefinition = {
     clearQueryCache();
   },
 
-  onCreateSuccess(project: Project, orgSlug: string) {
   onCreateSuccess(project: Project) {
+    const newProjects = this.state.projects
       .concat([project])
       .sort((a, b) => a.slug.localeCompare(b.slug));
     this.state = {...this.state, projects: newProjects};
 
-    // Reload organization details since we've created a new project
+    clearQueryCache();
 
     this.trigger(new Set([project.id]));
   },
