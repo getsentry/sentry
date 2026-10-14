@@ -1,12 +1,14 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconBuilding} from '@sentry/icons/building';
 import {IconSettings} from '@sentry/icons/settings';
+import {IconStar} from '@sentry/icons/star';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
+import sortBy from 'lodash/sortBy';
 
-import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {
   DropdownMenu,
@@ -19,6 +21,7 @@ import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -28,6 +31,7 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {darkTheme} from 'sentry/utils/theme/theme';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -46,6 +50,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
   const config = useLegacyStore(ConfigStore);
   const theme = useTheme();
+  const [projectSearch, setProjectSearch] = useState('');
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -62,6 +67,15 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 
   const {projects} = useProjects();
+  const canCreateProject = useCanCreateProject();
+  const {selection} = usePageFilters();
+  const sortedProjects = sortBy(projects, project => [
+    !selection.projects.includes(Number(project.id)),
+    !project.isBookmarked,
+    !project.isMember,
+    project.slug,
+  ]);
+  const visibleProjects = sortedProjects.slice(0, 5);
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
   const letterAvatarProps = {
@@ -96,6 +110,48 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const createOrganizationItem = makeCreateOrganizationMenuItem();
 
   if (settingsV3) {
+    const matchingProjects = sortedProjects.filter(project =>
+      project.slug.toLocaleLowerCase().includes(projectSearch.toLocaleLowerCase())
+    );
+    const allProjectItems: MenuItemProps[] = [
+      {
+        key: 'my-projects',
+        label: t('My Projects'),
+        children: matchingProjects
+          .filter(project => project.isMember)
+          .map(project => ({
+            key: `all-project-${project.id}`,
+            label: project.slug,
+            leadingItems: <ProjectAvatar project={project} size={16} />,
+            trailingItems: project.isBookmarked ? (
+              <IconStar variant="warning" isSolid />
+            ) : undefined,
+            to: `/settings/${organization.slug}/projects/${project.slug}/`,
+          })),
+      },
+      {
+        key: 'other-projects',
+        label: t('Other Projects'),
+        children: matchingProjects
+          .filter(project => !project.isMember)
+          .map(project => ({
+            key: `all-project-${project.id}`,
+            label: project.slug,
+            leadingItems: <ProjectAvatar project={project} size={16} />,
+            trailingItems: project.isBookmarked ? (
+              <IconStar variant="warning" isSolid />
+            ) : undefined,
+            to: `/settings/${organization.slug}/projects/${project.slug}/`,
+          })),
+      },
+    ].filter(section => section.children?.length);
+    if (allProjectItems.length === 0) {
+      allProjectItems.push({
+        key: 'no-projects',
+        label: t('No projects found'),
+        disabled: true,
+      });
+    }
     return (
       <DropdownMenu
         usePortal
@@ -103,6 +159,11 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         zIndex={theme.zIndex.modal}
         trigger={trigger}
         minMenuWidth={258}
+        onOpenChange={isOpen => {
+          if (!isOpen) {
+            setProjectSearch('');
+          }
+        }}
         menuTitle={
           <OrganizationMenuHeader
             organization={organization}
@@ -145,6 +206,44 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 ],
               },
               createOrganizationItem,
+            ],
+          },
+          {
+            key: 'project-settings',
+            label: t('Project Settings'),
+            hidden: props.hideCurrentOrganizationLinks,
+            children: [
+              ...visibleProjects.map(project => ({
+                key: `project-${project.id}`,
+                label: project.slug,
+                leadingItems: <ProjectAvatar project={project} size={16} />,
+                to: `/settings/${organization.slug}/projects/${project.slug}/`,
+                trailingItems: project.isBookmarked ? (
+                  <IconStar variant="warning" isSolid />
+                ) : undefined,
+              })),
+              {
+                key: 'view-all-projects',
+                label: t('View All Projects'),
+                leadingItems: <Container width="16px" height="16px" />,
+                submenu: {
+                  title: t('All Projects'),
+                  maxHeight: 400,
+                  items: allProjectItems,
+                  search: {
+                    value: projectSearch,
+                    onChange: setProjectSearch,
+                    placeholder: t('Search'),
+                  },
+                },
+              },
+              {
+                key: 'create-project',
+                label: t('Create Project'),
+                leadingItems: <IconAdd />,
+                to: makeProjectsPathname({path: '/new/', organization}),
+                hidden: !canCreateProject,
+              },
             ],
           },
         ]}
