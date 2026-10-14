@@ -1351,7 +1351,6 @@ module = [
     "sentry.testutils.helpers",
     "sentry.testutils.helpers.analytics",
     "sentry.testutils.helpers.apigateway",
-    "sentry.testutils.helpers.auth_header",
     "sentry.testutils.helpers.backups",
     "sentry.testutils.helpers.data_blobs",
     "sentry.testutils.helpers.datetime",
