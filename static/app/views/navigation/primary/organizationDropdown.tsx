@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css, ThemeProvider, useTheme} from '@emotion/react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconBuilding} from '@sentry/icons/building';
 import {IconSettings} from '@sentry/icons/settings';
@@ -27,7 +27,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
-import {DarkThemeProvider} from 'sentry/utils/theme/darkThemeProvider';
+import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -46,6 +46,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
   const config = useLegacyStore(ConfigStore);
   const theme = useTheme();
+  const invertedTheme = useInvertedTheme();
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -105,12 +106,12 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         position="right-start"
         minMenuWidth={258}
         menuTitle={
-          <DarkThemeProvider>
+          <ThemeProvider theme={theme.type === 'dark' ? theme : invertedTheme}>
             <OrganizationMenuHeader
               organization={organization}
               projectCount={projects.length}
             />
-          </DarkThemeProvider>
+          </ThemeProvider>
         }
         items={[
           {
@@ -274,16 +275,7 @@ function OrganizationMenuHeader({
       `}
     >
       <Stack gap="md" padding="md lg">
-        <Text
-          size="sm"
-          density="fixed"
-          variant="inherit"
-          tabular
-          css={theme => css`
-            color: ${theme.tokens.interactive.transparent.neutral.content.headings};
-            font-weight: ${theme.font.weight.sans.medium};
-          `}
-        >
+        <Text size="sm" density="fixed" variant="primary" bold tabular>
           {t('Organization')}
         </Text>
         <Flex align="center" gap="md">
@@ -302,26 +294,10 @@ function OrganizationMenuHeader({
             <OrganizationAvatar organization={organization} size={30} />
           </Flex>
           <Stack gap="0">
-            <Text
-              size="md"
-              density="comfortable"
-              variant="inherit"
-              css={theme => css`
-                color: ${theme.tokens.content.headings};
-                font-weight: ${theme.font.weight.sans.medium};
-              `}
-            >
+            <Text size="md" density="comfortable" variant="primary" bold>
               {organization.name || organization.slug}
             </Text>
-            <Text
-              size="sm"
-              density="comfortable"
-              variant="inherit"
-              tabular
-              css={theme => css`
-                color: ${theme.tokens.content.secondary};
-              `}
-            >
+            <Text size="sm" density="comfortable" variant="muted" tabular>
               {tn('%s Project', '%s Projects', projectCount)}
             </Text>
           </Stack>
