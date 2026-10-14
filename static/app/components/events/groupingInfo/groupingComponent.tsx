@@ -11,7 +11,11 @@ import {
   GroupingComponentFrames,
   GroupingComponentListItem,
 } from './groupingComponentFrames';
-import {getFrameGroups, groupingComponentFilter, shouldInlineComponentValue} from './utils';
+import {
+  getFrameGroups,
+  groupingComponentFilter,
+  shouldInlineComponentValue,
+} from './utils';
 
 type Props = {
   component: EventGroupComponent;
