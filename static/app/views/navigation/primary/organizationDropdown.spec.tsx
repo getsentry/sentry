@@ -39,6 +39,24 @@ describe('OrganizationDropdown', () => {
     );
   });
 
+  it('shows the shared header in the settings v3 menu', async () => {
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: ['settings-v3'],
+      }),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+
+    expect(screen.getByText('Organization')).toBeInTheDocument();
+    expect(screen.getAllByText('Organization Name')).toHaveLength(1);
+    expect(screen.getByText('0 Projects')).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Organization Settings'})
+    ).toBeInTheDocument();
+  });
+
   it('can switch orgs', async () => {
     OrganizationsStore.addOrReplace(
       OrganizationFixture({id: '1', name: 'Org 1', slug: 'org-1'})

@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSliders} from '@sentry/icons/sliders';
@@ -20,6 +20,8 @@ import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {NavigationMenuHeader} from './navigationMenuHeader';
 
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
 function PassthroughWrapper({children}: {children: React.ReactNode}) {
@@ -125,37 +127,51 @@ export function UserDropdown() {
         {
           key: 'theme',
           label: t('Theme'),
-          children: (
-            [
-              ['system', t('Default to system')],
-              ['light', t('Light')],
-              ['dark', t('Dark')],
-            ] as const
-          ).map(([value, label]) => ({
-            key: `theme-${value}`,
-            label,
-            leadingItems:
-              user.options.theme === value ? <IconCheckmark size="sm" /> : undefined,
-            onAction: () => updateOptions({theme: value}),
-          })),
+          children: [
+            {
+              key: 'theme-system',
+              label: t('Default to system'),
+              leadingItems:
+                user.options.theme === 'system' ? <IconCheckmark size="sm" /> : undefined,
+              onAction: () => updateOptions({theme: 'system'}),
+            },
+            {
+              key: 'theme-light',
+              label: t('Light'),
+              leadingItems:
+                user.options.theme === 'light' ? <IconCheckmark size="sm" /> : undefined,
+              onAction: () => updateOptions({theme: 'light'}),
+            },
+            {
+              key: 'theme-dark',
+              label: t('Dark'),
+              leadingItems:
+                user.options.theme === 'dark' ? <IconCheckmark size="sm" /> : undefined,
+              onAction: () => updateOptions({theme: 'dark'}),
+            },
+          ],
         },
         {
           key: 'time-format',
           label: t('Time Format'),
-          children: (
-            [
-              [false, t('12 hour')],
-              [true, t('24 hour')],
-            ] as const
-          ).map(([value, label]) => ({
-            key: `time-format-${value}`,
-            label,
-            leadingItems:
-              user.options.clock24Hours === value ? (
+          children: [
+            {
+              key: 'time-format-false',
+              label: t('12 hour'),
+              leadingItems: user.options.clock24Hours ? undefined : (
+                <IconCheckmark size="sm" />
+              ),
+              onAction: () => updateOptions({clock24Hours: false}),
+            },
+            {
+              key: 'time-format-true',
+              label: t('24 hour'),
+              leadingItems: user.options.clock24Hours ? (
                 <IconCheckmark size="sm" />
               ) : undefined,
-            onAction: () => updateOptions({clock24Hours: value}),
-          })),
+              onAction: () => updateOptions({clock24Hours: true}),
+            },
+          ],
         },
       ],
     },
@@ -181,7 +197,7 @@ export function UserDropdown() {
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
-      minMenuWidth={settingsV3 ? 240 : 200}
+      minMenuWidth={settingsV3 ? 224 : 200}
       trigger={triggerProps => (
         <AvatarButton
           {...triggerProps}
@@ -195,44 +211,12 @@ export function UserDropdown() {
       )}
       menuTitle={
         settingsV3 ? (
-          <Stack
-            gap="sm"
-            css={css`
-              margin: -${theme.space.sm} -${theme.space.lg};
-              padding: ${theme.space.md} ${theme.space.lg};
-              background: linear-gradient(110deg, #2f1757, #55148b);
-              color: white;
-            `}
-          >
-            <Text
-              bold
-              css={css`
-                color: inherit;
-              `}
-            >
-              {t('User')}
-            </Text>
-            <Flex align="center" gap="md">
-              <UserAvatar user={user} size={32} />
-              <Stack gap="xs">
-                <Text
-                  bold
-                  css={css`
-                    color: inherit;
-                  `}
-                >
-                  {user.name || user.username || user.email}
-                </Text>
-                <Text
-                  css={css`
-                    color: #cbb5dc;
-                  `}
-                >
-                  {user.email}
-                </Text>
-              </Stack>
-            </Flex>
-          </Stack>
+          <NavigationMenuHeader
+            title={t('User')}
+            avatar={<UserAvatar user={user} size={32} />}
+            name={user.name || user.username || user.email}
+            detail={user.email}
+          />
         ) : undefined
       }
       items={settingsV3 ? settingsV3Items : legacyItems}
