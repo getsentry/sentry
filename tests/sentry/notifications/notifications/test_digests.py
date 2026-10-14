@@ -14,6 +14,7 @@ from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.projectownership import ProjectOwnership
+from sentry.notifications.types import NotificationOrigin
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
@@ -31,6 +32,12 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 USER_COUNT = 2
+
+
+def as_group_event(event: Event | GroupEvent) -> GroupEvent:
+    if isinstance(event, GroupEvent):
+        return event
+    return event.for_group(event.groups[0])
 
 
 class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTestCase):
@@ -61,8 +68,12 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             )
 
         assert event is not None
+        origin = NotificationOrigin.from_legacy_rule(self.rule)
         backend.add(
-            self.key, event_to_record(event, [self.rule]), increment_delay=0, maximum_delay=0
+            self.key,
+            event_to_record(as_group_event(event), [origin]),
+            increment_delay=0,
+            maximum_delay=0,
         )
 
     def run_test(
@@ -291,15 +302,16 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             project_id=self.project.id,
         )
         notification_uuid = str(uuid.uuid4())
+        origin = NotificationOrigin.from_legacy_rule(rule)
         backend.add(
             key,
-            event_to_record(event1, [rule], notification_uuid),
+            event_to_record(as_group_event(event1), [origin], notification_uuid),
             increment_delay=0,
             maximum_delay=0,
         )
         backend.add(
             key,
-            event_to_record(event2, [rule], notification_uuid),
+            event_to_record(as_group_event(event2), [origin], notification_uuid),
             increment_delay=0,
             maximum_delay=0,
         )
@@ -352,6 +364,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         timestamp = before_now(days=1).isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
         rule = self.create_project_rule(project=self.project)
+        origin = NotificationOrigin.from_legacy_rule(rule)
         notification_uuid = str(uuid.uuid4())
 
         # Create 17 events to exceed 48 blocks (each event generates ~3 blocks)
@@ -367,7 +380,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             )
             backend.add(
                 key,
-                event_to_record(event, [rule], notification_uuid),
+                event_to_record(as_group_event(event), [origin], notification_uuid),
                 increment_delay=0,
                 maximum_delay=0,
             )

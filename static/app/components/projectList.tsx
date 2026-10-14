@@ -118,7 +118,7 @@ const ProjectListWrapper = styled('div')`
 `;
 
 const AvatarStyle = (p: {theme: Theme; $clickable?: boolean}) => css`
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   border: 2px solid ${p.theme.tokens.background.primary};
   margin-right: -8px;
   cursor: ${p.$clickable ? 'pointer' : 'default'};

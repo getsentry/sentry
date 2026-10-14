@@ -161,6 +161,8 @@ export const LogTableBodyCell = styled(SimpleTable.RowCell)<{
   justify-content: center;
   /* The issue details logs section's first column is narrower than its icons. */
   overflow: visible;
+  /* With visible overflow, the grid would otherwise widen columns to fit long log lines. */
+  min-width: 0;
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${p => p.theme.space.xl};

@@ -72,6 +72,8 @@ jobs:
     name: oxlint
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    outputs:
+      budgets: ${{ steps.ratchet.outputs.budgets }}
     permissions:
       contents: read
       actions: read
@@ -92,6 +94,7 @@ jobs:
             core.setOutput('base', await findVerifiedLintBase({github, context, core}));
 
       - name: Verify lint ratchet
+        id: ratchet
         env:
           EVENT_NAME: ${{ github.event_name }}
           SENTRY_OXLINT_VERIFIED_BASE: ${{ steps.lint-baseline.outputs.base }}
@@ -101,6 +104,13 @@ jobs:
           else
             pnpm run lint:js --ci
           fi
+
+      # The ratchet passes with stale budgets inherited from earlier merges, but only
+      # exact budgets equal live debt. find-verified-lint-base.js reuses master budgets
+      # only after this step succeeds.
+      - name: Verify exact lint budgets
+        if: steps.ratchet.outputs.budgets == 'exact'
+        run: echo 'Committed oxlint budgets match live debt.'
 
       # Decide whether to lint just the PR's impacted files or everything (see
       # frontend-changed-scope.sh): we scope to impacted files only when a merge base
@@ -127,6 +137,15 @@ jobs:
         env:
           MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
+
+  prune-oxlint-suppressions:
+    needs: oxlint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.oxlint.outputs.budgets == 'stale'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/prune-oxlint-suppressions.yml
+    secrets:
+      SENTRY_INTERNAL_APP_PRIVATE_KEY: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'

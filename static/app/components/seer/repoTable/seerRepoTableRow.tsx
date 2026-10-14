@@ -1,7 +1,6 @@
-import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
@@ -16,7 +15,6 @@ import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLa
 import {useBulkUpdateRepositorySettings} from 'sentry/components/repositories/useBulkUpdateRepositorySettings';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
 import {
   DEFAULT_CODE_REVIEW_TRIGGERS,
@@ -24,7 +22,7 @@ import {
   type RepositoryWithSettings,
 } from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
-import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -47,7 +45,6 @@ export function SeerRepoTableRow({
   const organization = useOrganization();
   const location = useLocation();
   const canWrite = useCanWriteSettings();
-  const {isSelected, toggleSelected} = useListItemCheckboxContext();
 
   return (
     <Grid
@@ -62,16 +59,10 @@ export function SeerRepoTableRow({
       borderBottom="muted"
     >
       <SimpleTable.RowCell>
-        <CheckboxClickTarget htmlFor={`replay-table-select-${repository.id}`}>
-          <Checkbox
-            id={`replay-table-select-${repository.id}`}
-            disabled={isSelected(repository.id) === 'all-selected'}
-            checked={isSelected(repository.id) !== false}
-            onChange={() => {
-              toggleSelected(repository.id);
-            }}
-          />
-        </CheckboxClickTarget>
+        <ListItemSelectCheckbox
+          htmlPrefix="seer-repo-table-select"
+          value={repository.id}
+        />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Stack gap="xs">
@@ -181,12 +172,3 @@ function triggerToLabel(trigger: CodeReviewTrigger) {
       return trigger;
   }
 }
-
-const CheckboxClickTarget = styled('label')`
-  cursor: pointer;
-  display: block;
-  margin: -${p => p.theme.space.md};
-  padding: ${p => p.theme.space.md};
-  max-width: unset;
-  line-height: 0;
-`;

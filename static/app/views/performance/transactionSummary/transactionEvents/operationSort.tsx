@@ -186,13 +186,13 @@ const DropdownWrapper = styled('div')`
     margin-top: 9px;
 
     &:before {
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       border-bottom: 9px solid ${p => p.theme.tokens.background.primary};
       top: -9px;
     }
 
     &:after {
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       border-bottom: 8px solid ${p => p.theme.tokens.background.primary};
       top: -8px;
     }
@@ -202,13 +202,13 @@ const DropdownWrapper = styled('div')`
     margin-bottom: 9px;
 
     &:before {
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       border-top: 9px solid ${p => p.theme.tokens.background.primary};
       bottom: -9px;
     }
 
     &:after {
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       border-top: 8px solid ${p => p.theme.tokens.background.primary};
       bottom: -8px;
     }

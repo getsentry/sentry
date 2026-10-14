@@ -1,13 +1,14 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconStack} from '@sentry/icons/stack';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
-import {IconEdit, IconStack} from 'sentry/icons';
 
 import {EditAdminOptionModal} from 'admin/components/editAdminOptionModal';
 import {PageHeader} from 'admin/components/pageHeader';

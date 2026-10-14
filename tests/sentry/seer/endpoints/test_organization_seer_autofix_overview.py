@@ -368,6 +368,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
                 ],
             ),
             diff="@@ -1 +1 @@\n-old\n+new",
+            code_url="https://github.com/getsentry/sentry/blob/abc123/src/foo.py",
         )
         return SeerRunState(
             run_id=1,
@@ -402,6 +403,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         files = runs[0]["codeChanges"]
         assert len(files) == 1
         assert files[0]["repoName"] == "getsentry/sentry"
+        assert files[0]["codeUrl"] == "https://github.com/getsentry/sentry/blob/abc123/src/foo.py"
         patch = files[0]["patch"]
         assert patch["path"] == "src/foo.py"
         assert patch["type"] == "M"

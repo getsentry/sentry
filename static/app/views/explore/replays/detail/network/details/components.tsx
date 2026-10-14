@@ -1,12 +1,12 @@
 import type {ReactNode} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, type ContainerProps} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 export const Indent = styled('div')`

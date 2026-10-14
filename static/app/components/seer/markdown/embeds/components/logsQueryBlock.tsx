@@ -1,3 +1,5 @@
+import {IconList} from '@sentry/icons/list';
+
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {
   chartUnitFromTimeSeries,
@@ -13,7 +15,6 @@ import {
   type QueryEmbedColumn,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
-import {IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';

@@ -490,8 +490,6 @@ describe('SelectField auto-save', () => {
     await userEvent.click(screen.getByRole('textbox'));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Apple'}));
 
-    // Wait a bit to ensure no mutation is triggered
-    await new Promise(resolve => setTimeout(resolve, 100));
     expect(mutationFn).not.toHaveBeenCalled();
   });
 });

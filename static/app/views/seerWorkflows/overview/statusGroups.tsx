@@ -1,12 +1,16 @@
 import styled from '@emotion/styled';
+import {IconCode} from '@sentry/icons/code';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconMerge} from '@sentry/icons/merge';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconSearch} from '@sentry/icons/search';
+import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Sticky} from 'sentry/components/sticky';
-import {IconCode, IconCommit, IconMerge, IconPullRequest, IconSearch} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 
 import {type AutofixStateKey, PIPELINE} from './types';

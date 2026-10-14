@@ -1,13 +1,13 @@
 import {Fragment, useEffect, useRef, useState} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCopy} from '@sentry/icons/copy';
 import Prism from 'prismjs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconCopy} from 'sentry/icons';
 import {darkTheme} from 'sentry/utils/theme/theme';
 
 import {getPrismLanguage, loadPrismLanguage} from './prism';

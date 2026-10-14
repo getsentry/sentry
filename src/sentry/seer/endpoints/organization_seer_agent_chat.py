@@ -340,11 +340,15 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             resolved = result
 
         try:
-            enable_coding = organization.get_option(
-                "sentry:enable_seer_coding", False
-            ) and features.has(
-                "organizations:seer-explorer-chat-coding", organization, actor=request.user
-            )
+            # ask-seer-create-pr turns off chat-coding's coding until agent-created PRs ship.
+            if features.has("organizations:ask-seer-create-pr", organization, actor=request.user):
+                enable_coding = False
+            else:
+                enable_coding = organization.get_option(
+                    "sentry:enable_seer_coding", False
+                ) and features.has(
+                    "organizations:seer-explorer-chat-coding", organization, actor=request.user
+                )
 
             has_code_mode_feature = features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user

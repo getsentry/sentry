@@ -22,6 +22,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
+from sentry.notifications.types import NotificationActionContext
 from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppWebhookHaltReason
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -195,7 +196,9 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group_event = GroupEvent.from_event(event, event.group)
-        rule_future = RuleFuture(rule=self.rule, kwargs={})
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.rule), kwargs={}
+        )
 
         with self.tasks():
             notify_sentry_app(group_event, [rule_future])
@@ -209,7 +212,10 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
         group_event = GroupEvent.from_event(event, event.group)
-        rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": sentry_app})
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.rule),
+            kwargs={"sentry_app": sentry_app},
+        )
 
         with self.tasks():
             notify_sentry_app(group_event, [rule_future])
@@ -236,7 +242,10 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert event.group is not None
         group = event.group
         group_event = GroupEvent.from_event(event, group)
-        rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.rule),
+            kwargs={"sentry_app": self.sentry_app},
+        )
 
         with self.tasks():
             notify_sentry_app(group_event, [rule_future])
@@ -314,7 +323,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         ]
 
         rule_future = RuleFuture(
-            rule=self.rule,
+            context=NotificationActionContext.from_legacy_rule(self.rule),
             kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
         )
 
@@ -375,7 +384,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         ]
 
         rule_future = RuleFuture(
-            rule=rule,
+            context=NotificationActionContext.from_legacy_rule(rule),
             kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
         )
 
@@ -426,7 +435,10 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
-        rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.rule),
+            kwargs={"sentry_app": self.sentry_app},
+        )
 
         with self.tasks():
             notify_sentry_app(group_event, [rule_future])
@@ -515,7 +527,10 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
-        rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
+        rule_future = RuleFuture(
+            context=NotificationActionContext.from_legacy_rule(self.rule),
+            kwargs={"sentry_app": self.sentry_app},
+        )
 
         with self.tasks():
             notify_sentry_app(group_event, [rule_future])
@@ -554,7 +569,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         ]
 
         rule_future = RuleFuture(
-            rule=self.rule,
+            context=NotificationActionContext.from_legacy_rule(self.rule),
             kwargs={"sentry_app": self.sentry_app, "schema_defined_settings": settings},
         )
 

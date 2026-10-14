@@ -1,5 +1,7 @@
+import {Fragment} from 'react';
 import Cookies from 'js-cookie';
 import {GroupFixture} from 'sentry-fixture/group';
+import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -12,21 +14,33 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {TagStore} from 'sentry/stores/tagStore';
 import {PriorityLevel} from 'sentry/types/group';
 import IssueListOverview from 'sentry/views/issueList/overview';
+import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
+
+function OverviewInContainer() {
+  return (
+    <Container containerType="inline-size">
+      <IssueListOverview />
+    </Container>
+  );
+}
 
 describe('IssueListOverview (actions)', () => {
   const groupStats = GroupStatsFixture();
   const organization = OrganizationFixture();
 
   beforeEach(() => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1200);
     MockApiClient.clearMockResponses();
     GroupStore.reset();
     IssueListCacheStore.reset();
@@ -84,6 +98,10 @@ describe('IssueListOverview (actions)', () => {
     TagStore.init?.();
   });
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   describe('status', () => {
     const group1 = GroupFixture({
       id: '1',
@@ -121,7 +139,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {organization});
+      render(<OverviewInContainer />, {organization});
 
       expect(await screen.findByText('Group 1')).toBeInTheDocument();
       const groups = screen.getAllByTestId('group');
@@ -160,7 +178,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
 
         initialRouterConfig: {
@@ -215,13 +233,35 @@ describe('IssueListOverview (actions)', () => {
       expect(screen.queryByText('Group 2')).not.toBeInTheDocument();
     });
 
-    it('can undo resolve action', async () => {
+    it('updates saved view counts after resolving and undoing', async () => {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {organization});
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-count/',
+        body: {'is:unresolved': 2},
+      });
+      const view = {
+        ...GroupSearchViewFixture({query: 'is:unresolved'}),
+        label: 'Unresolved',
+      };
+
+      render(
+        <Fragment>
+          <OverviewInContainer />
+          <Container role="status" aria-label="Saved view count">
+            <IssueViewQueryCount view={view} isActive />
+          </Container>
+        </Fragment>,
+        {organization}
+      );
+
+      const savedViewCount = within(
+        screen.getByRole('status', {name: 'Saved view count'})
+      );
+      expect(await savedViewCount.findByText('2')).toBeInTheDocument();
 
       expect(await screen.findByText('Group 1')).toBeInTheDocument();
       const groups = screen.getAllByTestId('group');
@@ -239,8 +279,14 @@ describe('IssueListOverview (actions)', () => {
         body: [group2],
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-count/',
+        body: {'is:unresolved': 1},
+      });
 
       await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+
+      expect(await savedViewCount.findByText('1')).toBeInTheDocument();
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
@@ -262,6 +308,10 @@ describe('IssueListOverview (actions)', () => {
         body: [group1, group2],
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-count/',
+        body: {'is:unresolved': 2},
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Undo'}));
       expect(updateIssueMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/issues/',
@@ -271,6 +321,7 @@ describe('IssueListOverview (actions)', () => {
         })
       );
       expect(await screen.findByText('Group 1')).toBeInTheDocument();
+      expect(await savedViewCount.findByText('2')).toBeInTheDocument();
     });
   });
 
@@ -306,7 +357,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
 
         initialRouterConfig: {
@@ -383,7 +434,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
       });
 
@@ -427,7 +478,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
 
         initialRouterConfig: {
@@ -470,7 +521,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
 
         initialRouterConfig: {
@@ -549,7 +600,7 @@ describe('IssueListOverview (actions)', () => {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
         initialRouterConfig: {
           route: '/organizations/:orgId/issues/',
@@ -601,7 +652,7 @@ describe('IssueListOverview (actions)', () => {
         headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      render(<IssueListOverview />, {
+      render(<OverviewInContainer />, {
         organization,
         initialRouterConfig: {
           route: '/organizations/:orgId/issues/',
