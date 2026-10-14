@@ -9,16 +9,12 @@ function makeFeature(id: string): Feature {
 
 const features = [makeFeature('a'), makeFeature('b'), makeFeature('c')];
 
-function renderRotation(initialFeatureId: string | null = null) {
-  return renderHook(() =>
-    useFeatureRotation({
-      features,
-      initialFeatureId,
-      firstDelayMs: 10_000,
-      intervalMs: 6_000,
-    })
-  );
-}
+const options = {
+  features,
+  initialFeatureId: null,
+  firstDelayMs: 10_000,
+  intervalMs: 6_000,
+};
 
 describe('useFeatureRotation', () => {
   beforeEach(() => {
@@ -31,7 +27,7 @@ describe('useFeatureRotation', () => {
   });
 
   it('waits for the first delay, then rotates on the interval and wraps around', () => {
-    const {result} = renderRotation();
+    const {result} = renderHook(useFeatureRotation, {initialProps: options});
     expect(result.current.highlightedFeatureId).toBeNull();
 
     act(() => jest.advanceTimersByTime(9_999));
@@ -51,7 +47,9 @@ describe('useFeatureRotation', () => {
   });
 
   it('continues from the initial feature', () => {
-    const {result} = renderRotation('b');
+    const {result} = renderHook(useFeatureRotation, {
+      initialProps: {...options, initialFeatureId: 'b'},
+    });
     expect(result.current.highlightedFeatureId).toBe('b');
 
     act(() => jest.advanceTimersByTime(10_000));
@@ -59,7 +57,7 @@ describe('useFeatureRotation', () => {
   });
 
   it('stops rotating once a feature is selected', () => {
-    const {result} = renderRotation();
+    const {result} = renderHook(useFeatureRotation, {initialProps: options});
     expect(result.current.hasClickedFeature).toBe(false);
 
     act(() => result.current.selectFeature(features[1]!));
@@ -71,7 +69,7 @@ describe('useFeatureRotation', () => {
   });
 
   it('stops rotating when selected after rotation has started', () => {
-    const {result} = renderRotation();
+    const {result} = renderHook(useFeatureRotation, {initialProps: options});
 
     act(() => jest.advanceTimersByTime(10_000));
     expect(result.current.highlightedFeatureId).toBe('a');
@@ -82,14 +80,16 @@ describe('useFeatureRotation', () => {
   });
 
   it('deselects when the highlighted feature is selected again', () => {
-    const {result} = renderRotation('a');
+    const {result} = renderHook(useFeatureRotation, {
+      initialProps: {...options, initialFeatureId: 'a'},
+    });
 
     act(() => result.current.selectFeature(features[0]!));
     expect(result.current.highlightedFeatureId).toBeNull();
   });
 
   it('clears its timers on unmount', () => {
-    const {unmount} = renderRotation();
+    const {unmount} = renderHook(useFeatureRotation, {initialProps: options});
     unmount();
     expect(jest.getTimerCount()).toBe(0);
   });

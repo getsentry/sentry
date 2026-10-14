@@ -217,43 +217,38 @@ describe('useUpsellLandingAnalytics', () => {
   const organization = OrganizationFixture({access: ['org:billing']});
   const subscription = SubscriptionFixture({organization});
 
+  const options: Parameters<typeof useUpsellLandingAnalytics>[0] = {
+    highlightedFeatureId: null,
+    organization,
+    source: 'test',
+    subscription,
+  };
+
   beforeEach(() => {
     jest.mocked(trackGetsentryAnalytics).mockClear();
   });
 
   it('tracks viewed on mount with the initial feature', () => {
-    renderHook(() =>
-      useUpsellLandingAnalytics({
-        highlightedFeatureId: 'sso',
-        organization,
-        source: 'sso',
-        subscription,
-      })
-    );
+    renderHook(useUpsellLandingAnalytics, {
+      initialProps: {...options, highlightedFeatureId: 'sso'},
+    });
 
     expect(trackGetsentryAnalytics).toHaveBeenCalledTimes(1);
     expect(trackGetsentryAnalytics).toHaveBeenCalledWith('business_landing.viewed', {
       organization,
       subscription,
-      source: 'sso',
+      source: 'test',
       initial_feature: 'sso',
       has_permissions: true,
     });
   });
 
   it('tracks closed on unmount with the feature highlighted at that time', () => {
-    const {rerender, unmount} = renderHook(
-      (highlightedFeatureId: string | null) =>
-        useUpsellLandingAnalytics({
-          highlightedFeatureId,
-          organization,
-          source: 'test',
-          subscription,
-        }),
-      {initialProps: null as string | null}
-    );
+    const {rerender, unmount} = renderHook(useUpsellLandingAnalytics, {
+      initialProps: options,
+    });
 
-    rerender('event-volume');
+    rerender({...options, highlightedFeatureId: 'event-volume'});
     expect(trackGetsentryAnalytics).toHaveBeenCalledTimes(1);
 
     unmount();
