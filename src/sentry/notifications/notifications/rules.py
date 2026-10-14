@@ -20,6 +20,7 @@ from sentry.integrations.types import (
 from sentry.issues.grouptype import (
     GROUP_CATEGORIES_CUSTOM_EMAIL,
     PERFORMANCE_ISSUE_CATEGORIES,
+    GroupCategory,
     PerformanceP95EndpointRegressionGroupType,
     ProfileFunctionRegressionType,
 )
@@ -112,8 +113,10 @@ class AlertRuleNotification(ProjectNotification):
                 email_template_name = GENERIC_TEMPLATE_NAME
             elif group.issue_category in PERFORMANCE_ISSUE_CATEGORIES:
                 email_template_name = "performance"
-            else:
+            elif group.issue_category == GroupCategory.METRIC:
                 email_template_name = GENERIC_TEMPLATE_NAME
+            else:
+                email_template_name = group.issue_category.name.lower()
         else:
             email_template_name = GENERIC_TEMPLATE_NAME
 
