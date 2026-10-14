@@ -813,9 +813,9 @@ function getSpanEvidenceValue(span: Span | null) {
     return (
       <Container padding="2xs 0">
         <NoPaddingClippedBox clipHeight={200}>
-          <StyledCodeSnippet language="sql">
+          <InlineCodeSnippet language="sql" data-render-inline>
             {formatter.toString(span.description)}
-          </StyledCodeSnippet>
+          </InlineCodeSnippet>
         </NoPaddingClippedBox>
       </Container>
     );
@@ -828,11 +828,17 @@ const StyledCodeSnippet = styled(CodeBlock)`
   pre[class*='language-'] {
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;
-    /* Keeps the code flush with the plain values in the card's value column */
-    padding-inline: 0;
   }
 
   z-index: 0;
+`;
+
+/**
+ * SQL rendered as a value in the key/value card. Without its own background and padding, it lines
+ * up with plain-text values and blends into both striped and unstriped rows.
+ */
+const InlineCodeSnippet = styled(StyledCodeSnippet)`
+  --prism-block-background: transparent;
 `;
 
 function dedupeSpansByHash(spans: Span[]): Span[] {
