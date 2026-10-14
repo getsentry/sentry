@@ -26,6 +26,7 @@ from typing import Callable
 from tools.mypy_helpers.config_sections import (
     InvalidMarkedSection,
     clear_marked_section,
+    marked_section,
 )
 from tools.mypy_helpers.mypy_config import InvalidMypyConfig, relocate_path_options
 from tools.mypy_helpers.mypy_output import (
@@ -581,10 +582,7 @@ def module_identity(path: str) -> str | None:
 
 
 def classify_source(path: str, header: str = "") -> SourceFile:
-    parts = PurePosixPath(path).parts
-    if any(part in {"vendor", "vendored", "third_party", "node_modules", "site-packages"} for part in parts):
-        kind = SourceKind.VENDORED
-    elif path.endswith(".pyi"):
+    if path.endswith(".pyi"):
         kind = SourceKind.OWNED_STUB
     elif path.startswith("bin/") or path.startswith("self-hosted/") or header.startswith("#!"):
         kind = SourceKind.NON_IMPORTABLE
@@ -1132,13 +1130,22 @@ def _profile_report(result: ProfileMeasurement) -> dict[str, object]:
 
 def _typing_names(
     tree: ast.Module,
-) -> tuple[set[str], set[str], set[str], set[str], set[str], set[str]]:
+) -> tuple[
+    set[str],
+    set[str],
+    set[str],
+    set[str],
+    set[str],
+    set[str],
+    tuple[ast.ImportFrom, ...],
+]:
     any_names: set[str] = set()
     cast_names: set[str] = set()
     callable_names: set[str] = set()
     no_type_check_names: set[str] = set()
     module_aliases: set[str] = set()
     dict_names: set[str] = set()
+    wildcard_imports: list[ast.ImportFrom] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
@@ -1146,6 +1153,9 @@ def _typing_names(
                     module_aliases.add(alias.asname or alias.name)
         elif isinstance(node, ast.ImportFrom) and node.module in {"typing", "typing_extensions", "collections.abc"}:
             for alias in node.names:
+                if alias.name == "*" and node.module in {"typing", "typing_extensions"}:
+                    wildcard_imports.append(node)
+                    continue
                 local_name = alias.asname or alias.name
                 if alias.name == "Any" and node.module in {"typing", "typing_extensions"}:
                     any_names.add(local_name)
@@ -1157,7 +1167,15 @@ def _typing_names(
                     no_type_check_names.add(local_name)
                 elif alias.name == "Dict" and node.module in {"typing", "typing_extensions"}:
                     dict_names.add(local_name)
-    return any_names, cast_names, callable_names, no_type_check_names, module_aliases, dict_names
+    return (
+        any_names,
+        cast_names,
+        callable_names,
+        no_type_check_names,
+        module_aliases,
+        dict_names,
+        tuple(wildcard_imports),
+    )
 
 
 def _is_any(node: ast.AST | None, names: set[str], modules: set[str]) -> bool:
@@ -1226,12 +1244,25 @@ def _source_contracts(
         no_type_check_names,
         module_aliases,
         dict_names,
+        wildcard_imports,
     ) = _typing_names(tree)
     bypasses: set[tuple[str, str]] = set()
     signatures: dict[tuple[str, str, str], str] = {}
     omissions: set[tuple[str, str, str]] = set()
     any_obligations: set[AnyObligation] = set()
     occurrence_counts: Counter[tuple[str, str]] = Counter()
+
+    for index, wildcard_import in enumerate(wildcard_imports, start=1):
+        anchor = f"typing-wildcard-import:{wildcard_import.module}#{index}"
+        bypasses.add((source_path, anchor))
+        any_obligations.add(
+            AnyObligation(
+                source_path,
+                anchor,
+                "unresolved-imported-typing-names",
+                "unknown-typing-wildcard",
+            )
+        )
 
     for token in tokenize.generate_tokens(io.StringIO(source).readline):
         if token.type != tokenize.COMMENT:
@@ -1457,7 +1488,7 @@ def _coverage_gaps(inventory: Sequence[SourceFile], graph: Sequence[ModuleState]
             gaps.add(f"{record.path}: source was not type-checked")
     for state in graph:
         if state.path not in owned and state.module.split(".", 1)[0] in FIRST_PARTY_ROOTS:
-            if not state.path.startswith(".work/"):
+            if state.path.endswith((".py", ".pyi")) and not state.path.startswith(".work/"):
                 gaps.add(f"{state.module}: first-party build graph path is not in the source inventory: {state.path}")
     return tuple(sorted(gaps))
 
@@ -1586,8 +1617,8 @@ def _effective_pairs(
         if module is None:
             continue
         weak.update((module, option) for option in state.weak_options)
-        if state.follow_imports == "skip":
-            weak.add((module, "follow_imports=skip"))
+        if state.follow_imports in {"silent", "skip"}:
+            weak.add((module, f"follow_imports={state.follow_imports}"))
         if (
             state.is_stub
             and state.follow_imports == "skip"
@@ -1662,7 +1693,11 @@ _WEAK_WHEN_TRUE = frozenset(
 
 def _effective_option_changes(
     parent: TreeMeasurement, candidate: TreeMeasurement
-) -> tuple[frozenset[tuple[str, str]], frozenset[tuple[str, str]]]:
+) -> tuple[
+    frozenset[tuple[str, str]],
+    frozenset[tuple[str, str]],
+    frozenset[tuple[str, str]],
+]:
     parent_owned = {
         record.path for record in parent.inventory if record.kind != SourceKind.VENDORED
     }
@@ -1681,6 +1716,7 @@ def _effective_option_changes(
     }
     additions: set[tuple[str, str]] = set()
     removals: set[tuple[str, str]] = set()
+    import_policy_changes: set[tuple[str, str]] = set()
     modules_by_path = {
         record.path: record.module or record.path
         for record in (*parent.inventory, *candidate.inventory)
@@ -1693,6 +1729,9 @@ def _effective_option_changes(
         for name in previous.keys() & current.keys():
             old = previous[name]
             new = current[name]
+            if name in {"follow_imports", "follow_imports_for_stubs"} and old != new:
+                import_policy_changes.add((module, f"{name}={old}->{new}"))
+                continue
             weakened = (
                 (name in _WEAK_WHEN_FALSE and old == "True" and new == "False")
                 or (name in _WEAK_WHEN_TRUE and old == "False" and new == "True")
@@ -1719,7 +1758,7 @@ def _effective_option_changes(
                 additions.add((module, f"{name}={new.lower()}"))
             if strengthened:
                 removals.add((module, f"{name}={old.lower()}"))
-    return frozenset(additions), frozenset(removals)
+    return frozenset(additions), frozenset(removals), frozenset(import_policy_changes)
 
 
 def _annotation_name(node: ast.AST) -> str | None:
@@ -1865,7 +1904,9 @@ def decide_candidate(
 
     weak_additions = candidate.weak_pairs - parent.weak_pairs
     suppression_additions = candidate.suppressed_pairs - parent.suppressed_pairs
-    option_weak_additions, option_weak_removals = _effective_option_changes(parent, candidate)
+    option_weak_additions, option_weak_removals, import_policy_changes = _effective_option_changes(
+        parent, candidate
+    )
     if weak_additions:
         reasons.extend(
             f"new weak setting {module}: {setting}"
@@ -1880,6 +1921,11 @@ def decide_candidate(
         reasons.extend(
             f"new effective weakening {module}: {setting}"
             for module, setting in sorted(option_weak_additions)
+        )
+    if import_policy_changes:
+        reasons.extend(
+            f"changed effective import policy {module}: {setting}"
+            for module, setting in sorted(import_policy_changes)
         )
 
     source_removals = set(parent.source_digests) - set(candidate.source_digests)
@@ -2056,6 +2102,7 @@ def decide_candidate(
         "suppression_removals": sorted(removed_suppressions),
         "effective_weakening_additions": sorted(option_weak_additions),
         "effective_weakening_removals": sorted(option_weak_removals),
+        "effective_import_policy_changes": sorted(import_policy_changes),
         "all_strong_error_additions": [asdict(item) for item in allstrong_additions],
         "all_strong_error_removals": [asdict(item) for item in allstrong_removals],
         "unsuppressed_error_additions": [asdict(item) for item in unsuppressed_additions],
@@ -2203,10 +2250,6 @@ def _measure_tree(
                 precision_gaps.extend(profile_gaps)
             else:
                 gaps.extend(profile_gaps)
-            if profile == Profile.ALL_STRONG:
-                residual_weak, residual_suppressed = _effective_pairs(inventory, result.graph)
-                gaps.extend(f"{module}: residual all-strong setting {setting}" for module, setting in residual_weak)
-                gaps.extend(f"{module}: residual all-strong suppression {code}" for module, code in residual_suppressed)
         measured[profile] = result
 
     weak_pairs, suppressed_pairs = _effective_pairs(
@@ -2236,7 +2279,6 @@ def _measure_tree(
             for item in measured[Profile.PRECISION].any_obligations
             if item.path in owned_paths
         )
-    gaps.extend(f"{path}: {symbol} {position} has no annotation" for path, symbol, position in omissions)
     (output / "inventory.json").write_text(
         json.dumps([asdict(item) for item in inventory], indent=2, sort_keys=True)
     )
@@ -2298,6 +2340,70 @@ def _assert_trusted_policy(repo: Path, parent: str) -> None:
             )
 
 
+def _validate_generated_mypy_section(source: str, section_name: str) -> None:
+    try:
+        section = marked_section(source, section_name)
+        if section is None:
+            return
+        parsed = tomllib.loads(source[section.content_start : section.content_end])
+    except (InvalidMarkedSection, tomllib.TOMLDecodeError) as exc:
+        raise InvalidMeasurement(
+            f"generated mypy section {section_name!r} is invalid: {exc}"
+        ) from exc
+    if not parsed:
+        return
+    if set(parsed) != {"tool"}:
+        raise InvalidMeasurement(
+            f"generated mypy section {section_name!r} contains unsupported settings"
+        )
+    tool = parsed.get("tool")
+    mypy = tool.get("mypy") if isinstance(tool, dict) else None
+    overrides = mypy.get("overrides") if isinstance(mypy, dict) else None
+    if not isinstance(overrides, list):
+        raise InvalidMeasurement(
+            f"generated mypy section {section_name!r} must contain only overrides"
+        )
+    expected_keys = (
+        {"module", "disable_error_code"}
+        if section_name == ERROR_SECTION
+        else {"module", *WEAK_OPTIONS}
+    )
+    for override in overrides:
+        if not isinstance(override, dict) or set(override) != expected_keys:
+            raise InvalidMeasurement(
+                f"generated mypy section {section_name!r} contains unsupported override fields"
+            )
+        modules = override.get("module")
+        if not isinstance(modules, list) or any(
+            not isinstance(module, str) or not module for module in modules
+        ):
+            raise InvalidMeasurement(
+                f"generated mypy section {section_name!r} has an invalid module list"
+            )
+        if section_name == ERROR_SECTION:
+            error_codes = override.get("disable_error_code")
+            if not isinstance(error_codes, list) or any(
+                not isinstance(code, str) for code in error_codes
+            ):
+                raise InvalidMeasurement(
+                    f"generated mypy section {section_name!r} has invalid error codes"
+                )
+        elif any(type(override[option]) is not bool or override[option] for option in WEAK_OPTIONS):
+            raise InvalidMeasurement(
+                f"generated mypy section {section_name!r} has invalid weak options"
+            )
+
+
+def _mypy_config_policy(source: str) -> dict[str, object]:
+    try:
+        for section_name in (ERROR_SECTION, WEAK_SECTION):
+            _validate_generated_mypy_section(source, section_name)
+            source = clear_marked_section(source, section_name)
+        return tomllib.loads(source)
+    except (InvalidMarkedSection, tomllib.TOMLDecodeError) as exc:
+        raise InvalidMeasurement(f"mypy configuration is invalid: {exc}") from exc
+
+
 def _policy_changes(repo: Path, parent_tree: str, candidate_tree: str) -> tuple[str, ...]:
     changed = []
     for relative_path in _POLICY_PATHS:
@@ -2305,6 +2411,17 @@ def _policy_changes(repo: Path, parent_tree: str, candidate_tree: str) -> tuple[
             repo, candidate_tree, relative_path
         ):
             changed.append(relative_path)
+    parent_config = _tree_file(repo, parent_tree, "pyproject.toml")
+    candidate_config = _tree_file(repo, candidate_tree, "pyproject.toml")
+    if parent_config is None or candidate_config is None:
+        raise InvalidMeasurement("accepted and candidate trees must contain pyproject.toml")
+    try:
+        parent_policy = _mypy_config_policy(parent_config.decode("utf-8"))
+        candidate_policy = _mypy_config_policy(candidate_config.decode("utf-8"))
+    except UnicodeDecodeError as exc:
+        raise InvalidMeasurement("pyproject.toml is not UTF-8") from exc
+    if parent_policy != candidate_policy:
+        changed.append("pyproject.toml")
     return tuple(changed)
 
 
@@ -2561,23 +2678,6 @@ def _measure_profiles(source_changes: Sequence[str]) -> tuple[Profile, ...]:
     return (*_CORE_PROFILES, *((Profile.PRECISION,) if source_changes else ()))
 
 
-def _with_policy_rejection(decision: Decision, changed_policy: Sequence[str]) -> Decision:
-    if not changed_policy:
-        return decision
-    reasons = (
-        *decision.reasons,
-        "candidate changes evaluator policy: " + ", ".join(changed_policy),
-    )
-    return Decision(
-        Outcome.REJECTED,
-        reasons,
-        decision.adoption_credit,
-        decision.core_complete,
-        decision.precision_complete,
-        {**decision.details, "changed_evaluator_policy": list(changed_policy)},
-    )
-
-
 def _command_baseline(repo: Path, output: Path) -> tuple[ExitCode, dict[str, object]]:
     revision, tree = resolve_tree(repo, "HEAD")
     precision_calibration = _run_precision_canaries(output)
@@ -2609,6 +2709,20 @@ def _command_compare(
     parent_revision, parent_tree = resolve_tree(repo, parent_reference)
     candidate_revision, candidate_tree = _resolve_candidate_tree(repo, candidate_reference)
     _assert_trusted_policy(repo, parent_revision)
+    changed_policy = _policy_changes(repo, parent_tree, candidate_tree)
+    if changed_policy:
+        reasons = ("candidate changes evaluator policy: " + ", ".join(changed_policy),)
+        return ExitCode.REJECTED, {
+            "command": command,
+            "outcome": Outcome.REJECTED.value,
+            "reasons": list(reasons),
+            "adoption_credit": False,
+            "core_complete": False,
+            "precision_complete": False,
+            "details": {"changed_evaluator_policy": list(changed_policy)},
+            "parent_revision": parent_revision,
+            "candidate_tree": candidate_tree,
+        }
     source_changes = _changed_source_paths(repo, parent_tree, candidate_tree)
     precision_calibration = (
         _run_precision_canaries(output) if source_changes else None
@@ -2627,8 +2741,6 @@ def _command_compare(
         require_adoption_credit=command == "evaluate",
         precision_calibrated=precision_calibration is not None,
     )
-    changed_policy = _policy_changes(repo, parent_tree, candidate_tree)
-    decision = _with_policy_rejection(decision, changed_policy)
     report: dict[str, object] = {
         "command": command,
         "outcome": decision.outcome.value,

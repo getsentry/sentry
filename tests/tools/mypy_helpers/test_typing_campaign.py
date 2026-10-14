@@ -19,10 +19,13 @@ from tools.mypy_helpers.typing_campaign import (
     SourceFile,
     SourceKind,
     TreeMeasurement,
+    _command_compare,
     _coverage_audits,
+    _coverage_gaps,
     _diagnostic_record,
     _effective_pairs,
     _known_environment_warnings,
+    _mypy_config_policy,
     _run_precision_canaries,
     _source_contracts,
     _validate_targets,
@@ -135,6 +138,198 @@ def test_default_source_classification_keeps_unrecognized_paths_owned() -> None:
 
     assert record.kind == SourceKind.OWNED_IMPLEMENTATION
     assert record.module is None
+
+
+@pytest.mark.parametrize(
+    ("path", "kind"),
+    (
+        ("src/sentry/vendor/new_logic.py", SourceKind.OWNED_IMPLEMENTATION),
+        ("src/sentry/third_party/new_logic.py", SourceKind.OWNED_IMPLEMENTATION),
+        ("tools/vendor/new_stub.pyi", SourceKind.OWNED_STUB),
+    ),
+)
+def test_vendor_named_paths_default_to_owned(path: str, kind: SourceKind) -> None:
+    assert classify_source(path).kind == kind
+
+
+def test_coverage_ignores_namespace_package_graph_nodes_but_rejects_unknown_sources() -> None:
+    source = classify_source("src/sentry/example.py")
+    checked_source = ModuleState(
+        "sentry.example",
+        source.path,
+        True,
+        True,
+        False,
+        (),
+        (),
+        "normal",
+        "False",
+        (),
+    )
+    namespace_package = ModuleState(
+        "sentry.namespace",
+        "src/sentry/namespace",
+        True,
+        True,
+        False,
+        (),
+        (),
+        "normal",
+        "False",
+        (),
+    )
+    unknown_source = ModuleState(
+        "sentry.unknown",
+        "src/sentry/unknown.py",
+        True,
+        True,
+        False,
+        (),
+        (),
+        "normal",
+        "False",
+        (),
+    )
+
+    assert _coverage_gaps((source,), (checked_source, namespace_package)) == ()
+    assert any(
+        "src/sentry/unknown.py" in gap
+        for gap in _coverage_gaps((source,), (checked_source, unknown_source))
+    )
+
+
+@pytest.mark.parametrize("typing_module", ("typing", "typing_extensions"))
+def test_typing_wildcard_import_fails_closed(
+    tmp_path: Path, typing_module: str
+) -> None:
+    source_path = "src/sentry/example.py"
+    source_file = tmp_path / source_path
+    source_file.parent.mkdir(parents=True)
+    source_file.write_text(f"from {typing_module} import *\n")
+
+    bypasses, _, _, any_obligations = _source_contracts(source_path, tmp_path)
+
+    anchor = f"typing-wildcard-import:{typing_module}#1"
+    assert (source_path, anchor) in bypasses
+    assert AnyObligation(
+        source_path,
+        anchor,
+        "unresolved-imported-typing-names",
+        "unknown-typing-wildcard",
+    ) in any_obligations
+
+
+def test_generated_mypy_sections_do_not_change_trusted_policy() -> None:
+    parent = """\
+[tool.mypy]
+python_version = "3.13"
+plugins = ["tools.mypy_helpers.plugin"]
+mypy_path = ["fixtures/stubs-for-mypy"]
+[[tool.mypy.overrides]]
+module = ["external_package.*"]
+follow_imports = "normal"
+# begin: sentry modules with typing issues
+[[tool.mypy.overrides]]
+module = ["sentry.example"]
+disable_error_code = ["misc"]
+# end: sentry modules with typing issues
+# begin: not yet strongly typed
+[[tool.mypy.overrides]]
+module = ["sentry.example"]
+disallow_any_generics = false
+disallow_untyped_defs = false
+strict_equality = false
+# end: not yet strongly typed
+"""
+    candidate = parent.replace('"sentry.example"', '"sentry.updated"')
+
+    assert _mypy_config_policy(parent) == _mypy_config_policy(candidate)
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    (
+        ('python_version = "3.13"', 'python_version = "3.12"'),
+        ('plugins = ["tools.mypy_helpers.plugin"]', 'plugins = []'),
+        (
+            'mypy_path = ["fixtures/stubs-for-mypy"]',
+            'mypy_path = ["fixtures/other-stubs"]',
+        ),
+        ('follow_imports = "normal"', 'follow_imports = "silent"'),
+    ),
+)
+def test_non_debt_mypy_settings_change_trusted_policy(old: str, new: str) -> None:
+    source = (
+        "[tool.mypy]\n"
+        'python_version = "3.13"\n'
+        'plugins = ["tools.mypy_helpers.plugin"]\n'
+        'mypy_path = ["fixtures/stubs-for-mypy"]\n'
+        '[[tool.mypy.overrides]]\n'
+        'module = ["external_package.*"]\n'
+        'follow_imports = "normal"\n'
+    )
+
+    assert _mypy_config_policy(source.replace(old, new)) != _mypy_config_policy(source)
+
+
+def test_generated_mypy_section_rejects_unapproved_override_fields() -> None:
+    source = """\
+[tool.mypy]
+# begin: sentry modules with typing issues
+[[tool.mypy.overrides]]
+module = ["sentry.example"]
+disable_error_code = ["misc"]
+ignore_missing_imports = true
+# end: sentry modules with typing issues
+"""
+
+    with pytest.raises(InvalidMeasurement, match="unsupported override fields"):
+        _mypy_config_policy(source)
+
+
+def test_candidate_policy_rejection_precedes_measurement(tmp_path: Path) -> None:
+    with (
+        patch(
+            "tools.mypy_helpers.typing_campaign.resolve_tree",
+            return_value=("parent-revision", "parent-tree"),
+        ),
+        patch(
+            "tools.mypy_helpers.typing_campaign._resolve_candidate_tree",
+            return_value=("candidate-revision", "candidate-tree"),
+        ),
+        patch("tools.mypy_helpers.typing_campaign._assert_trusted_policy"),
+        patch(
+            "tools.mypy_helpers.typing_campaign._policy_changes",
+            return_value=("pyproject.toml",),
+        ),
+        patch("tools.mypy_helpers.typing_campaign._changed_source_paths") as changed_sources,
+        patch("tools.mypy_helpers.typing_campaign._measure_tree") as measure_tree,
+    ):
+        exit_code, report = _command_compare(
+            Path("."),
+            tmp_path,
+            command="guard",
+            parent_reference="parent",
+            candidate_reference="candidate",
+        )
+
+    assert exit_code == ExitCode.REJECTED
+    assert report["outcome"] == Outcome.REJECTED.value
+    assert report["reasons"] == ["candidate changes evaluator policy: pyproject.toml"]
+    changed_sources.assert_not_called()
+    measure_tree.assert_not_called()
+
+
+def test_preexisting_typing_debt_does_not_invalidate_candidate_comparison() -> None:
+    omissions = frozenset({("src/sentry/example.py", "sentry.example.run#1", "return")})
+    suppressed = frozenset({("sentry.example", "type-arg")})
+    parent = _tree(omissions=omissions, suppressed=suppressed)
+    candidate = _tree(omissions=omissions, suppressed=suppressed)
+
+    decision = decide_candidate(parent, candidate, require_adoption_credit=False)
+
+    assert decision.outcome == Outcome.COMPLETE
+    assert decision.core_complete
 
 
 def test_tree_inventory_reads_supported_git_tree_modes(tmp_path: Path) -> None:
@@ -477,6 +672,42 @@ def test_guard_rejects_weaker_effective_global_option() -> None:
 
     assert decision.outcome == Outcome.REJECTED
     assert any("new effective weakening" in reason for reason in decision.reasons)
+
+
+def test_guard_rejects_changed_effective_import_policy() -> None:
+    parent_state = ModuleState(
+        "sentry.example",
+        "src/sentry/example.py",
+        True,
+        True,
+        False,
+        (),
+        (),
+        "normal",
+        "False",
+        (("follow_imports", "normal"), ("follow_imports_for_stubs", "False")),
+    )
+    candidate_state = ModuleState(
+        "sentry.example",
+        "src/sentry/example.py",
+        True,
+        True,
+        False,
+        (),
+        (),
+        "silent",
+        "False",
+        (("follow_imports", "silent"), ("follow_imports_for_stubs", "False")),
+    )
+
+    decision = decide_candidate(
+        _tree(graph=(parent_state,)),
+        _tree(graph=(candidate_state,)),
+        require_adoption_credit=False,
+    )
+
+    assert decision.outcome == Outcome.REJECTED
+    assert any("changed effective import policy" in reason for reason in decision.reasons)
 
 
 def test_effective_pairs_captures_stub_import_skips() -> None:
