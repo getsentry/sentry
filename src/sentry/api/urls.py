@@ -217,7 +217,7 @@ from sentry.flags.endpoints.secrets import (
     OrganizationFlagsWebHookSigningSecretEndpoint,
     OrganizationFlagsWebHookSigningSecretsEndpoint,
 )
-from sentry.insights.endpoints.starred_segments import InsightsStarredSegmentsEndpoint
+from sentry.insights.endpoints.starred_segments import OrganizationStarredServiceSpansEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_details import DataForwardingDetailsEndpoint
 from sentry.integrations.api.endpoints.data_forwarding_index import DataForwardingIndexEndpoint
 from sentry.integrations.api.endpoints.doc_integration_avatar import DocIntegrationAvatarEndpoint
@@ -360,6 +360,7 @@ from sentry.issues.endpoints import (
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
     GroupTombstoneEndpoint,
+    OrganizationCodeMappingRepoPrefixesEndpoint,
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
@@ -371,6 +372,7 @@ from sentry.issues.endpoints import (
     OrganizationIssuesCountEndpoint,
     OrganizationIssuesWithSupergroupsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
+    ProjectCodeMappingStackPrefixesEndpoint,
     ProjectEventDetailsEndpoint,
     ProjectEventsEndpoint,
     ProjectGroupIndexEndpoint,
@@ -580,6 +582,9 @@ from sentry.seer.endpoints.organization_seer_agent_update import (
 from sentry.seer.endpoints.organization_seer_autofix_overview import (
     OrganizationSeerAutofixOverviewEndpoint,
     OrganizationSeerAutofixScmInfoEndpoint,
+)
+from sentry.seer.endpoints.organization_seer_chat_suggestions import (
+    OrganizationSeerChatSuggestionsEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
@@ -892,7 +897,6 @@ from .endpoints.project_repo import ProjectRepoEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
-from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
 from .endpoints.project_symbol_sources import ProjectSymbolSourcesEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
@@ -1458,6 +1462,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-derive-code-mappings",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/code-mapping-prefixes/repo/$",
+        OrganizationCodeMappingRepoPrefixesEndpoint.as_view(),
+        name="sentry-api-0-organization-code-mapping-repo-prefixes",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/code-mappings/(?P<config_id>[^/]+)/$",
         OrganizationCodeMappingDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-code-mapping-details",
@@ -1530,13 +1539,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         ProjectTransactionThresholdOverrideEndpoint.as_view(),
         name="sentry-api-0-organization-project-transaction-threshold-override",
     ),
-    # Insights
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/insights/starred-segments/$",
-        InsightsStarredSegmentsEndpoint.as_view(),
-        name="sentry-api-0-insights-starred-segments",
-    ),
     # Explore
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/starred-service-spans/$",
+        OrganizationStarredServiceSpansEndpoint.as_view(),
+        name="sentry-api-0-organization-starred-service-spans",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/$",
         ExploreSavedQueriesEndpoint.as_view(),
@@ -2542,6 +2550,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-explorer-chat-run-id",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/chat-suggestions/$",
+        OrganizationSeerChatSuggestionsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-chat-suggestions",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-overview/$",
         OrganizationSeerAutofixOverviewEndpoint.as_view(),
         name="sentry-api-0-organization-seer-autofix-overview",
@@ -3075,11 +3088,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-service-hook-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/hooks/(?P<hook_id>[^/]+)/stats/$",
-        ProjectServiceHookStatsEndpoint.as_view(),
-        name="sentry-api-0-project-service-hook-stats",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/(?:issues|groups)/$",
         ProjectGroupIndexEndpoint.as_view(),
         name="sentry-api-0-project-group-index",
@@ -3354,6 +3362,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-link/$",
         ProjectStacktraceLinkEndpoint.as_view(),
         name="sentry-api-0-project-stacktrace-link",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/code-mapping-prefixes/stack/$",
+        ProjectCodeMappingStackPrefixesEndpoint.as_view(),
+        name="sentry-api-0-project-code-mapping-stack-prefixes",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stacktrace-source-context/$",

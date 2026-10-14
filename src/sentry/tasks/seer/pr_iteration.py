@@ -15,8 +15,10 @@ from scm.types import (
     Author,
     CreatePullRequestCommentProtocol,
     CreatePullRequestCommentReactionProtocol,
+    CreatePullRequestReviewReactionProtocol,
     CreateReviewCommentReactionProtocol,
     DeletePullRequestCommentReactionProtocol,
+    DeletePullRequestReviewReactionProtocol,
     DeleteReviewCommentReactionProtocol,
     DiffLine,
     GetAuthenticatedActorProtocol,
@@ -47,10 +49,7 @@ from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_from_pr_id
-from sentry.seer.autofix.autofix_agent import (
-    PrIterationNoPullRequestException,
-    trigger_autofix_agent,
-)
+from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
@@ -82,6 +81,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     MissingCheckSuiteAutofixRun,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubIssueComment,
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
     GithubPrCommentUser,
@@ -89,6 +89,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
+from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     block_iteration_for_missing_permissions,
@@ -1021,6 +1022,41 @@ def _delete_own_comment_eyes_reaction(
         logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
 
 
+def _add_review_reaction(
+    scm: SourceCodeManager,
+    *,
+    pr_number: int,
+    review_id: int,
+    reaction: Reaction,
+) -> None:
+    """React to a submitted PR review's body via the SCM platform."""
+    if not isinstance(scm, CreatePullRequestReviewReactionProtocol):
+        logger.warning("autofix.pr_iteration.review_trigger.unsupported_provider")
+        return
+    try:
+        scm_actions.create_pull_request_review_reaction(
+            scm, str(pr_number), str(review_id), reaction
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
+
+
+def _delete_own_review_eyes_reaction(
+    scm: SourceCodeManager,
+    *,
+    pr_number: int,
+    review_id: int,
+) -> None:
+    """Remove the :eyes: we added to a review body at trigger time."""
+    if not isinstance(scm, DeletePullRequestReviewReactionProtocol):
+        logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+        return
+    try:
+        scm_actions.delete_pull_request_review_reaction(scm, str(pr_number), str(review_id), "eyes")
+    except Exception:
+        logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
+
+
 def _comment_pr_iteration_ineligible(
     scm: SourceCodeManager,
     *,
@@ -1946,26 +1982,32 @@ def _trigger_pr_iteration_from_review(
         run_state=agent_state,
     )
 
-    # Ack each inline comment with :eyes:, mirroring the single-comment path (the
-    # review body has no reaction target). Skip the ack when no consume was
-    # scheduled (a bot review past the cap, a paused run), and gate each comment
-    # on should_consume so we don't ack one consume will drop as stale.
+    # Ack each inline comment and the review body with :eyes:, mirroring the
+    # single-comment path. Skip the ack when no consume was scheduled (a bot review
+    # past the cap, a paused run), and gate each item on should_consume so we don't
+    # ack one consume will drop as stale.
     # TODO: doesn't cover consume's other drop paths (group missing, processing,
     # cap hit mid-drain) — reconcile with consume's outcome later.
     if decision.task is not None:
         for feedback_obj in feedback_items:
             source = feedback_obj.source
-            if not isinstance(source, GithubPrReviewCommentFeedbackSource):
+            if not source.should_consume(agent_state).ok:
                 continue
-            if source.comment.id is None or not source.should_consume(agent_state).ok:
-                continue
-            _add_comment_reaction(
-                scm,
-                source_type="github-pr-review-comment",
-                pr_number=pr_number,
-                comment_id=int(source.comment.id),
-                reaction="eyes",
-            )
+            match source:
+                case GithubPrReviewBodyFeedbackSource():
+                    _add_review_reaction(
+                        scm, pr_number=pr_number, review_id=review_id, reaction="eyes"
+                    )
+                case GithubPrReviewCommentFeedbackSource(
+                    comment=GithubIssueComment(id=int() as comment_id)
+                ):
+                    _add_comment_reaction(
+                        scm,
+                        source_type=source.type,
+                        pr_number=pr_number,
+                        comment_id=comment_id,
+                        reaction="eyes",
+                    )
 
     metrics.incr("autofix.pr_iteration.review_trigger.success")
     logger.info("autofix.pr_iteration.review_trigger.success", extra=log_extra)

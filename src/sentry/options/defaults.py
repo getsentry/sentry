@@ -713,9 +713,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Desired chunk size for TUS uploads.
+# Desired chunk max size for TUS uploads.
 register(
-    "relay.upload-chunk.size",
+    "relay.upload-max-chunk.size",
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1170,6 +1170,17 @@ register(
     "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate",
     type=Float,
     default=0.01,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Number of debug-ID rows the artifact-lookup endpoint reads for a debug ID, before it checks
+# which of their bundles belong to the project, instead of joining the bundle, project and
+# debug-ID tables in one query. Debug IDs with more rows than this, such as those of files that
+# many uploads share, still use that query. 0 always uses it. Capped at 10,000.
+register(
+    "sourcemaps.artifact-bundles.debug-id-lookup.max-rows",
+    type=Int,
+    default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4608,6 +4619,18 @@ register(
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Number of `ArtifactBundleIndex` rows the source map debugger reads at most to match the frames
+# of an event to the files of its release by URL. When set, it reads once per request the URLs of
+# the release's newest bundles, as many bundles as fit in this many rows and always the newest
+# one, up to this many rows, instead of looking up each URL in the `(url, artifact_bundle_id)`
+# index. Files only found in older bundles, or beyond the rows read, are then reported as not
+# found. 0 keeps the index lookups.
+register(
+    "sourcemaps.source-map-debug.url-match-max-index-rows",
+    default=0,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Killswitch for token-level remapping of compound Dart exception types.
 register(
@@ -4640,5 +4663,12 @@ register(
     "ingestion-delay.measurement-cache-seconds",
     type=Int,
     default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "integrations.client.disable_retries",
+    default=False,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

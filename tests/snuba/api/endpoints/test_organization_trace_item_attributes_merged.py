@@ -5,6 +5,7 @@ from django.urls import reverse
 from sentry.api.endpoints.organization_trace_item_attributes_merged import (
     MergedTraceItemAttribute,
     merge_attributes_across_datasets,
+    search_merged_attributes,
     sort_merged_attributes,
 )
 from sentry.search.eap.types import ColumnType
@@ -176,6 +177,29 @@ class TestSortMergedAttributes:
             "gamma",
             "alpha",
         ]
+
+
+class TestSearchMergedAttributes:
+    attributes = [
+        _merged_attribute("cart.id", "string", ["spans"], brief="The shopping cart"),
+        _merged_attribute("http.route", "string", ["spans"], brief="The matched route"),
+        _merged_attribute("region", "string", ["tracemetrics"]),
+    ]
+
+    def test_matches_names_case_insensitively_when_searching(self) -> None:
+        results = search_merged_attributes(self.attributes, "CART")
+
+        assert [attribute["name"] for attribute in results] == ["cart.id"]
+
+    def test_matches_descriptions_when_searching(self) -> None:
+        results = search_merged_attributes(self.attributes, "matched")
+
+        assert [attribute["name"] for attribute in results] == ["http.route"]
+
+    def test_matches_descriptions_case_insensitively_when_searching(self) -> None:
+        results = search_merged_attributes(self.attributes, "MATCHED")
+
+        assert [attribute["name"] for attribute in results] == ["http.route"]
 
 
 class OrganizationTraceItemAttributesMergedEndpointTest(
@@ -373,3 +397,15 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
         response = self.do_request(query={"sort": "unknown"})
 
         assert response.status_code == 400, response.content
+
+    def test_matches_names_and_descriptions_when_search_is_provided(self) -> None:
+        self._store_span_and_log()
+
+        name_response = self.do_request(query={"search": "SHARED"})
+        description_response = self.do_request(query={"search": "filter on project"})
+
+        assert name_response.status_code == 200, name_response.content
+        assert [attribute["name"] for attribute in name_response.data] == ["shared.attribute"]
+        assert "context" not in name_response.data[0]
+        assert description_response.status_code == 200, description_response.content
+        assert [attribute["name"] for attribute in description_response.data] == ["project"]

@@ -1,12 +1,12 @@
 import {useCallback, useRef} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
 import {Button} from '@sentry/scraps/button';
 
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getOffsetRect} from 'sentry/utils/getOffsetRect';
 import type {SpaceSize} from 'sentry/utils/theme';

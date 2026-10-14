@@ -30,6 +30,7 @@ export function TraceLinksNavigation({
         <TraceLinkNavigationButton
           direction="previous"
           attributes={rootEventResults.data.attributes}
+          links={rootEventResults.data.links}
           currentTraceStartTimestamp={
             new Date(rootEventResults.data.timestamp).getTime() / 1000
           }
@@ -37,6 +38,7 @@ export function TraceLinksNavigation({
         <TraceLinkNavigationButton
           direction="next"
           attributes={rootEventResults.data.attributes}
+          links={rootEventResults.data.links}
           currentTraceStartTimestamp={
             new Date(rootEventResults.data.timestamp).getTime() / 1000
           }

@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import type {YAXisComponentOption} from 'echarts';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -14,7 +15,6 @@ import {defaultFormatAxisLabel} from 'sentry/components/charts/components/toolti
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconWarning} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {
   MetricCondition,

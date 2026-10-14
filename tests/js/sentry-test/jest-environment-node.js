@@ -1,6 +1,3 @@
-const withTagsAsSpanAttributes = require('./withTagsAsSpanAttributes');
 const wrapWithStructuredClone = require('./wrapWithStructuredClone');
 
-module.exports = withTagsAsSpanAttributes(
-  wrapWithStructuredClone(require('@sentry/jest-environment/node'))
-);
+module.exports = wrapWithStructuredClone(require('@sentry/jest-environment/node'));

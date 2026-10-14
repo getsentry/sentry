@@ -1,4 +1,4 @@
-import {useTheme} from '@emotion/react';
+import {useResponsivePropValue} from '@sentry/scraps/layout';
 
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -7,7 +7,6 @@ import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
@@ -126,9 +125,8 @@ function GroupList({
   groupStatsPeriod,
   onActionTaken,
 }: GroupListProps) {
-  const theme = useTheme();
   const topIssue = groupIds[0];
-  const selectDisabled = useMedia(`(width < ${theme.breakpoints.sm})`);
+  const selectDisabled = useResponsivePropValue({zero: true, xl: false});
 
   return (
     <PanelBody>

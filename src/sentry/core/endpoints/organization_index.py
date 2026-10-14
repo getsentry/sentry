@@ -51,6 +51,7 @@ from sentry.services.organization.provisioning import (
 from sentry.silo.base import SiloMode
 from sentry.types.cell import (
     CellResolutionError,
+    find_all_cell_names,
     get_locality_by_name,
 )
 from sentry.users.services.user.serial import serialize_generic_user
@@ -294,7 +295,12 @@ class OrganizationIndexEndpoint(Endpoint):
                 organization_id=agent_organization_id,
             )
 
-        queryset = OrganizationMapping.objects.distinct()
+        # Only include organizations from cells that we've marked as active.
+        # This prevents an issue where these organizations in limbo would be
+        # serialized as `null`.
+        queryset = OrganizationMapping.objects.filter(
+            cell_name__in=list(find_all_cell_names())
+        ).distinct()
 
         if agent_organization_id is not None:
             queryset = queryset.filter(organization_id=agent_organization_id)
@@ -410,6 +416,7 @@ class OrganizationIndexEndpoint(Endpoint):
         org_mappings_query = OrganizationMapping.objects.filter(
             organization_id__in=owner_org_ids,
             status=OrganizationStatus.ACTIVE,
+            cell_name__in=list(find_all_cell_names()),
         )
         if organization_id is not None:
             org_mappings_query = org_mappings_query.filter(organization_id=organization_id)
