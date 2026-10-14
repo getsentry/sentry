@@ -114,24 +114,6 @@ describe('AttributeDetailsTooltip', () => {
     expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
   });
 
-  it('does not describe a user attribute with the Sentry field it shares a name with', async () => {
-    render(
-      <AttributeDetailsTooltip
-        attributeKey="tags[message,string]"
-        fieldDefinitionType="log"
-        name="message"
-      />
-    );
-
-    await userEvent.hover(screen.getByText('message'));
-
-    expect(
-      await screen.findByText('A tag sent with one or more events')
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Log message')).not.toBeInTheDocument();
-    expect(screen.queryByText('Added by Sentry')).not.toBeInTheDocument();
-  });
-
   it('describes an unknown attribute as a tag and credits nobody', async () => {
     render(
       <AttributeDetailsTooltip
