@@ -33,4 +33,15 @@ describe('EventMessage', () => {
     );
     expect(screen.getByText('Unhandled')).toBeInTheDocument();
   });
+
+  it('renders colored text without escape codes when given an ANSI message', () => {
+    const message = '\x1B[31mfailed\x1B[0m to connect';
+
+    render(<EventMessage message={message} type={EventOrGroupType.ERROR} />);
+
+    expect(screen.getByText('failed').style.color).toContain('color-mix(in srgb,');
+    expect(screen.getByText('failed').parentElement).toHaveTextContent(
+      /^failed to connect$/
+    );
+  });
 });

@@ -11,7 +11,6 @@ import {
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
 import type {ApiResult, ResponseMeta} from 'sentry/types/api';
-import {metric} from 'sentry/utils/analytics';
 import {isSimilarOrigin} from 'sentry/utils/api/isSimilarOrigin';
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -55,9 +54,13 @@ export class Request {
   }
 
   cancel() {
+    // Cancelled requests stay in `activeRequests`, so `Client.clear()` can
+    // cancel the same request more than once. Only count the first abort.
+    if (this.alive) {
+      Sentry.metrics.count('ui.api-request.abort', 1);
+    }
     this.alive = false;
     this.aborter?.abort();
-    metric('app.api.request-abort', 1);
   }
 }
 
@@ -213,7 +216,7 @@ export function hasProjectBeenRenamed(response: ResponseMeta) {
 
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
-export type RequestCallbacks = {
+type RequestCallbacks = {
   /**
    * Callback for the request completing (success or error)
    */
@@ -428,9 +431,20 @@ export class Client {
     }
 
     const id = uniqueId();
-    const startMarker = `api-request-start-${id}`;
+    const startTime = performance.now();
+    const url = sanitizePath(path);
 
-    metric.mark({name: startMarker});
+    const recordRequestMetric = (outcome: 'success' | 'error', status?: number) => {
+      // Skip requests cancelled while in flight (e.g. with `skipAbort`), which
+      // are already counted as aborts
+      if (!this.activeRequests[id]?.alive) {
+        return;
+      }
+      Sentry.metrics.distribution('ui.api-request', performance.now() - startTime, {
+        unit: 'millisecond',
+        attributes: {status, outcome, url, method},
+      });
+    };
 
     /**
      * Called when the request completes with a 2xx status
@@ -440,11 +454,7 @@ export class Client {
       textStatus: string,
       responseData: any
     ) => {
-      metric.measure({
-        name: 'app.api.request-success',
-        start: startMarker,
-        data: {status: resp?.status},
-      });
+      recordRequestMetric('success', resp?.status);
       if (options.success !== undefined) {
         this.wrapCallback<[any, string, ResponseMeta]>(id, options.success)(
           responseData,
@@ -462,12 +472,6 @@ export class Client {
       textStatus: string,
       errorThrown: string
     ) => {
-      metric.measure({
-        name: 'app.api.request-error',
-        start: startMarker,
-        data: {status: resp?.status},
-      });
-
       this.handleRequestError(
         {id, path, requestOptions: options},
         resp,
@@ -617,6 +621,10 @@ export class Client {
               });
             }
 
+            // Record before the global handlers, which may skip `errorHandler`
+            // (e.g. 401 redirects)
+            recordRequestMetric('error', status);
+
             const shouldSkipErrorHandler = Array.from(globalErrorHandlers, handler =>
               handler(responseMeta, options)
             ).some(Boolean);
@@ -669,8 +677,8 @@ export class Client {
     // or handle with a user friendly error message
     const preservedError = new Error('API Request Error');
 
-    return new Promise((resolve, reject) =>
-      this.request(path, {
+    return new Promise((resolve, reject) => {
+      const request = this.request(path, {
         ...options,
         preservedError,
         success: (data, textStatus, resp) => {
@@ -692,7 +700,17 @@ export class Client {
           // potentially be logged by Sentry's unhandled rejection handler
           reject(errorObjectToUse);
         },
-      })
-    );
+      });
+
+      // `request` runs neither callback when the fetch itself rejects (a blocked
+      // request, a network failure), which would leave this promise pending
+      // forever. A cancelled request rejects the same way, but it was abandoned
+      // on purpose, so it stays unsettled rather than surfacing as an error.
+      request.requestPromise.catch(() => {
+        if (request.alive) {
+          reject(new RequestError(options.method, path, preservedError));
+        }
+      });
+    });
   }
 }

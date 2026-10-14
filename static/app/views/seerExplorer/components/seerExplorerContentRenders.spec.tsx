@@ -140,12 +140,14 @@ describe('SeerExplorerContent re-renders', () => {
     });
 
     renderContent();
-    const textarea = await screen.findByTestId('seer-explorer-input');
+    const editor = await screen.findByRole('combobox');
+    // user-event does not yet recognize contenteditable="plaintext-only".
+    editor.setAttribute('contenteditable', 'true');
     expect(screen.getByText(`Answer ${TURNS - 1}`)).toBeInTheDocument();
 
     mockMarkdownRender.mockClear();
-    await userEvent.type(textarea, 'hello');
-    expect(textarea).toHaveValue('hello');
+    await userEvent.type(editor, 'hello');
+    expect(editor).toHaveTextContent('hello');
 
     expect(mockMarkdownRender).not.toHaveBeenCalled();
   });

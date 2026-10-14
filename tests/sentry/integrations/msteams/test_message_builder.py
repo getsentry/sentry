@@ -25,6 +25,7 @@ from sentry.integrations.msteams.card_builder.block import (
 from sentry.integrations.msteams.card_builder.help import (
     build_help_command_card,
     build_mentioned_card,
+    build_missing_installation_card,
     build_unrecognized_command_card,
 )
 from sentry.integrations.msteams.card_builder.identity import (
@@ -44,9 +45,11 @@ from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageB
 from sentry.integrations.msteams.card_builder.notifications import (
     MSTeamsNotificationsMessageBuilder,
 )
+from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
+from sentry.notifications.types import NotificationOrigin
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
@@ -119,6 +122,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             self.create_project_rule(name="rule1"),
             self.create_project_rule(name="rule2"),
         ]
+        self.origins = [NotificationOrigin.from_legacy_rule(rule) for rule in self.rules]
 
     def test_simple(self) -> None:
         card = MSTeamsMessageBuilder().build(
@@ -188,12 +192,41 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert invalid_command in unrecognized_command_card["body"][0]["text"]
 
     def test_mentioned_message(self) -> None:
-        mentioned_card = build_mentioned_card()
+        mentioned_card = build_mentioned_card("Example Team")
 
         assert 2 == len(mentioned_card["body"])
-        assert 1 == len(mentioned_card["actions"])
+        assert 2 == len(mentioned_card["actions"])
+        assert _is_text_block(mentioned_card["body"][0])
+        assert _is_text_block(mentioned_card["body"][1])
+        assert "already installed" in mentioned_card["body"][0]["text"]
+        assert "Example Team" in mentioned_card["body"][1]["text"]
+        assert "To unlink your Microsoft Teams identity" in mentioned_card["body"][1]["text"]
+        installation_action = mentioned_card["actions"][0]
+        assert _is_open_url_action(installation_action)
+        assert installation_action["title"] == "Installation"
+        assert installation_action["url"].endswith("/settings/integrations/msteams/")
+        alerts_action = mentioned_card["actions"][1]
+        assert _is_open_url_action(alerts_action)
+        assert alerts_action["title"] == "Alerts"
+        assert alerts_action["url"].endswith("/alerts/")
 
-        assert "Docs" in mentioned_card["actions"][0]["title"]
+    def test_missing_installation_message(self) -> None:
+        missing_installation_card = build_missing_installation_card()
+
+        assert 2 == len(missing_installation_card["body"])
+        assert 1 == len(missing_installation_card["actions"])
+        assert _is_text_block(missing_installation_card["body"][0])
+        assert (
+            missing_installation_card["body"][0]["text"]
+            == "Sentry installation is incomplete for this team."
+        )
+        guide_action = missing_installation_card["actions"][0]
+        assert _is_open_url_action(guide_action)
+        assert guide_action["title"] == "View Guide"
+        assert (
+            guide_action["url"]
+            == "https://docs.sentry.io/integrations/notification-incidents/msteams/"
+        )
 
     def test_insallation_confirmation_message(self) -> None:
         organization = Organization(name="test-org", slug="test-org")
@@ -302,7 +335,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.event1.data["type"] = self.group1.data["type"] = "error"
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         body = issue_card["body"]
@@ -390,15 +423,55 @@ class MSTeamsMessageBuilderTest(TestCase):
         card_json = orjson.dumps(issue_card).decode()
         assert card_json[0] == "{" and card_json[-1] == "}"
 
+    def test_issue_action_payload_includes_rule_and_workflow_ids(self) -> None:
+        self.rules[0].data["actions"][0].update(
+            {"legacy_rule_id": self.rules[0].id, "workflow_id": 123}
+        )
+
+        payload = MSTeamsIssueMessageBuilder(
+            group=self.group1,
+            event=self.event1,
+            rules=[NotificationOrigin.from_legacy_rule(self.rules[0])],
+            integration=self.integration,
+        ).generate_action_payload(ACTION_TYPE.RESOLVE)["payload"]
+
+        assert payload["rules"] == [self.rules[0].id]
+        assert payload["workflows"] == [123]
+
+    def test_issue_description_uses_event(self) -> None:
+        self.event1.data["metadata"].update({"value": "event error"})
+        self.group1.data["metadata"].update({"value": "group error"})
+        self.event1.data["type"] = self.group1.data["type"] = "error"
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
+        ).build_group_card()
+
+        description = issue_card["body"][1]
+        assert _is_text_block(description)
+        assert "event error" == description["text"]
+
+    def test_issue_description_falls_back_to_group(self) -> None:
+        self.group1.data["metadata"].update({"value": "group error"})
+        self.group1.data["type"] = "error"
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
+        ).build_group_card()
+
+        description = issue_card["body"][1]
+        assert _is_text_block(description)
+        assert "group error" == description["text"]
+
     def test_issue_without_description(self) -> None:
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         assert 3 == len(issue_card["body"])
 
     def test_issue_with_only_one_rule(self) -> None:
-        one_rule = self.rules[:1]
+        one_rule = self.origins[:1]
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=one_rule, integration=self.integration
         ).build_group_card()
@@ -416,7 +489,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.save()
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         assert _is_container_block(issue_card["body"][2])
@@ -432,7 +505,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.substatus = None
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         assert _is_container_block(issue_card["body"][2])
@@ -447,7 +520,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         GroupAssignee.objects.assign(self.group1, self.user)
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         body = issue_card["body"]

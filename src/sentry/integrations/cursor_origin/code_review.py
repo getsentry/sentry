@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from sentry import features
 from sentry.integrations.cursor_origin.webhook_types import PullRequestEvent
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -8,6 +10,8 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.contributor_seats import record_contributor_action
 from sentry.seer.code_review.webhooks.review_request import PullRequestReviewEvent, request_review
+
+logger = logging.getLogger(__name__)
 
 EVENT_TYPE = "cursor_origin.pull_request"
 REVIEW_TRIGGERS = {
@@ -57,6 +61,10 @@ def handle_code_review(
     except Organization.DoesNotExist:
         return
     if not features.has("organizations:seer-cursor-origin-support", organization):
+        logger.info(
+            "cursor_origin.code_review.feature_disabled",
+            extra={"organization_id": organization.id, "repository_id": repo.id},
+        )
         return
 
     contributor = event.pull_request.author.contributor()

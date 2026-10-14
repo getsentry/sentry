@@ -242,7 +242,7 @@ describe('AggregatesTable', () => {
       {initialRouterConfig, organization}
     );
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    await userEvent.click(screen.getByRole('button', {name: 'View Samples'}));
 
     const viewSamplesItem = await screen.findByRole('menuitemradio', {
       name: 'View Samples',

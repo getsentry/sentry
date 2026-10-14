@@ -616,6 +616,36 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         # Verify the detector is linked to the workflow
         assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()
 
+    @patch("sentry.monitors.validators.logger")
+    def test_alert_rule_disabled(self, mock_logger: MagicMock) -> None:
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "alertRule": {
+                "environment": self.environment.name,
+                "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
+            },
+        }
+
+        with self.feature("organizations:crons-disable-alert-rule"):
+            response = self.get_error_response(self.organization.slug, status_code=400, **data)
+
+        assert response.data["alertRule"] == [
+            "Cron monitor alert rules are disabled for this organization."
+        ]
+        mock_logger.info.assert_called_once_with(
+            "monitors.validator.alert_rule_rejected",
+            extra={
+                "organization_id": self.organization.id,
+                "operation": "create",
+                "endpoint": self.endpoint,
+                "ui_request": True,
+            },
+        )
+        assert not Monitor.objects.filter(name="My Monitor").exists()
+
     def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin
         #

@@ -102,11 +102,15 @@ class ProjectRepoGetTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="github", name="GitHub", external_id="gh-1"
+        )
         self.repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/sentry",
             provider="integrations:github",
             external_id="123",
+            integration_id=self.integration.id,
         )
 
     def test_empty(self) -> None:
@@ -127,6 +131,8 @@ class ProjectRepoGetTest(APITestCase):
         assert row["repoName"] == "getsentry/sentry"
         assert row["providerKey"] == "github"
         assert row["source"] == "manual"
+        assert row["externalId"] == "123"
+        assert row["integrationId"] == str(self.integration.id)
         assert "mappingCount" not in row
 
     def test_include_mapping_count_zero(self) -> None:
@@ -147,7 +153,7 @@ class ProjectRepoGetTest(APITestCase):
 
     def test_include_mapping_count_with_mappings(self) -> None:
         integration, org_integration = self.create_provider_integration_for(
-            self.organization, self.user, provider="github", name="GitHub", external_id="gh-1"
+            self.organization, self.user, provider="github", name="GitHub", external_id="gh-2"
         )
         repo_b = Repository.objects.create(
             organization_id=self.organization.id,

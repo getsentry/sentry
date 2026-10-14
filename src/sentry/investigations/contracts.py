@@ -495,7 +495,7 @@ class VerificationStepSerializer(RelaxedContractSerializer):
     title = StrictCharField(max_length=500)
     objective = StrictCharField(max_length=5_000)
     method = StrictCharField(max_length=5_000)
-    status = serializers.ChoiceField(choices=sorted(WORK_STATUSES))
+    status = serializers.ChoiceField(choices=sorted(WORK_STATUSES | {"skipped"}))
     result = OptionalStrictCharField(20_000)
     evidence = serializers.ListField(
         child=EvidenceSerializer(), required=False, max_length=MAX_EVIDENCE_ITEMS

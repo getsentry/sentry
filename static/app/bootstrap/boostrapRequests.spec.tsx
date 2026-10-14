@@ -84,6 +84,62 @@ describe('useBootstrapOrganizationQuery', () => {
     expect(window.__sentry_preload?.organization).toBeUndefined();
   });
 
+  it('records when the preloaded response is used', async () => {
+    jest.mocked(Sentry.metrics.count).mockClear();
+    window.__sentry_preload = {
+      orgSlug,
+      organization: Promise.resolve<ApiResult<Organization>>([org, undefined, undefined]),
+    };
+    const {result} = renderHookWithProviders(() =>
+      useBootstrapOrganizationQuery(orgSlug)
+    );
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(Sentry.metrics.count).toHaveBeenCalledWith('ui.bootstrap-request', 1, {
+      attributes: {request: 'organization', preload: 'used'},
+    });
+  });
+
+  it('falls back to the api when the preload request fails', async () => {
+    jest.mocked(Sentry.metrics.count).mockClear();
+    const preloadError = new Error('Preload request failed with status 401');
+    window.__sentry_preload = {
+      orgSlug,
+      organization: Promise.reject(preloadError),
+    };
+    const orgRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/`,
+      body: org,
+      query: {detailed: 0, include_feature_flags: 1},
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useBootstrapOrganizationQuery(orgSlug)
+    );
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(orgRequest).toHaveBeenCalled();
+    expect(Sentry.metrics.count).toHaveBeenCalledWith('ui.bootstrap-request', 1, {
+      attributes: {request: 'organization', preload: 'failed'},
+    });
+  });
+
+  it('records when there is no preloaded response', async () => {
+    jest.mocked(Sentry.metrics.count).mockClear();
+    window.__sentry_preload = undefined;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/`,
+      body: org,
+      query: {detailed: 0, include_feature_flags: 1},
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useBootstrapOrganizationQuery(orgSlug)
+    );
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    expect(Sentry.metrics.count).toHaveBeenCalledWith('ui.bootstrap-request', 1, {
+      attributes: {request: 'organization', preload: 'missing'},
+    });
+  });
+
   it('sets feature flags, activates organization, and sets sentry tags', async () => {
     // Feature flag overrides are loaded from localstorage
     localStorageWrapper.setItem('feature-flag-overrides', '{"enable-issues":true}');

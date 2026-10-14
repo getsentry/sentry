@@ -3,7 +3,12 @@ from django.db.models import F, Value
 from django.db.models.functions import Coalesce
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    DefaultFieldsModel,
+    FlexibleForeignKey,
+    cell_silo_model,
+)
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
@@ -29,6 +34,10 @@ class DetectorState(DefaultFieldsModel):
 
     # The detectors priority level from the last detector evaluation
     state = models.CharField(max_length=200, default=DetectorPriorityLevel.OK)
+
+    # A unix epoch timestamp in milliseconds that rotates on each OK --> non-OK transition
+    # This is used for creating unique fingerprints
+    activation_id = BoundedBigIntegerField(null=True)
 
     @property
     def priority_level(self) -> DetectorPriorityLevel:

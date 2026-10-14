@@ -278,9 +278,6 @@ export function useGetSavedQueries({
   query,
 }: Props) {
   const organization = useOrganization();
-  const migrateDiscoverQueries = organization.features.includes(
-    'discover-queries-in-all-queries'
-  );
 
   const requestQuery = {
     sortBy,
@@ -291,9 +288,7 @@ export function useGetSavedQueries({
     query,
   };
 
-  const queryOptions = migrateDiscoverQueries
-    ? combinedSavedQueriesApiOptions(organization, requestQuery)
-    : savedQueriesApiOptions<CombinedSavedQueryResponse[]>(organization, requestQuery);
+  const queryOptions = combinedSavedQueriesApiOptions(organization, requestQuery);
 
   const {data, isLoading, isFetched, isError} = useQuery({
     ...queryOptions,
@@ -307,7 +302,7 @@ export function useGetSavedQueries({
       data?.json
         ?.filter(savedQuery =>
           savedQuery.queryType === SavedQueryType.DISCOVER
-            ? migrateDiscoverQueries
+            ? true
             : Array.isArray(savedQuery.query) && savedQuery.query.length > 0
         )
         .map(savedQuery =>
@@ -315,7 +310,7 @@ export function useGetSavedQueries({
             ? savedQuery
             : new SavedQuery(savedQuery)
         ),
-    [data?.json, migrateDiscoverQueries]
+    [data?.json]
   );
 
   return {

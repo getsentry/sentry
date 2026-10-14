@@ -1,8 +1,21 @@
 from datetime import datetime
 from typing import TypedDict
 
-from sentry.api.serializers.models.incidentactivity import IncidentActivitySerializerResponse
 from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
+from sentry.interfaces.user import EventUserApiContext
+
+
+class IncidentActivitySerializerResponse(TypedDict):
+    """Legacy activity response shape, independent of the retired activity model."""
+
+    id: str
+    incidentIdentifier: str
+    user: EventUserApiContext
+    type: int
+    value: str
+    previousValue: str | None
+    comment: str
+    dateCreated: datetime
 
 
 class IncidentSerializerResponse(TypedDict):

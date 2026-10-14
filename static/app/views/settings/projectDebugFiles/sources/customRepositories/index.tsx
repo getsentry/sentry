@@ -2,6 +2,7 @@ import {useCallback, useEffect} from 'react';
 import type {Location} from 'history';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openDebugFileSourceModal} from 'sentry/actionCreators/modal';
@@ -150,8 +151,11 @@ export function CustomRepositories({
                   >
                     <DropdownMenu
                       usePortal
-                      triggerLabel={t('Add Repository')}
-                      triggerProps={{size: 'xs'}}
+                      trigger={triggerProps => (
+                        <OverlayTrigger.Button {...triggerProps} size="xs">
+                          {t('Add Repository')}
+                        </OverlayTrigger.Button>
+                      )}
                       items={dropDownItems
                         .filter(
                           item =>

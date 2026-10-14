@@ -1609,7 +1609,7 @@ def test_rejects_an_invalid_regex_pattern(query, expected_message) -> None:
 
 
 def test_parses_a_regex_value_on_an_array_includes_key_as_its_array_attribute() -> None:
-    filters = parse_search_query("tags[foo,array][*]://^a//", config=regex_config)
+    filters = parse_search_query("tags[foo[*],array]://^a//", config=regex_config)
 
     assert filters == [
         SearchFilter(
@@ -1689,6 +1689,29 @@ def test_parses_a_regex_pattern_at_the_length_limit() -> None:
     ]
 
 
+def test_parses_a_regex_pattern_under_the_limit_when_escapes_count_as_one() -> None:
+    pattern = r"^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+)(\.[a-zA-Z]{2,})(\/[^\s]*)?$"
+
+    filters = parse_search_query(f"message://{pattern}//", config=regex_config)
+
+    assert filters == [
+        SearchFilter(
+            key=SearchKey(name="message"),
+            operator="=",
+            value=SearchValue(pattern, use_raw_value=True, is_regex=True),
+        )
+    ]
+
+
+def test_rejects_a_regex_pattern_over_the_limit_when_escapes_count_as_one() -> None:
+    pattern = r"\." * (MAX_REGEX_PATTERN_LENGTH + 1)
+
+    with pytest.raises(InvalidSearchQuery) as err:
+        parse_search_query(f"message://{pattern}//", config=regex_config)
+
+    assert str(err.value).startswith("message: Regex patterns are limited to")
+
+
 @pytest.mark.parametrize(
     ["query", "key", "length"],
     [
@@ -1700,7 +1723,7 @@ def test_parses_a_regex_pattern_at_the_length_limit() -> None:
             id="negated then another filter",
         ),
         pytest.param(
-            "tags[foo,array][*]://{pattern}//",
+            "tags[foo[*],array]://{pattern}//",
             "tags[foo,array]",
             MAX_REGEX_PATTERN_LENGTH + 1,
             id="array key",
@@ -1716,7 +1739,7 @@ def test_parses_a_regex_pattern_at_the_length_limit() -> None:
             "message://{pattern} {pattern}//", "message", 2000, id="too long to scan with spaces"
         ),
         pytest.param(
-            "tags[foo,array][*]://{pattern}//",
+            "tags[foo[*],array]://{pattern}//",
             "tags[foo,array]",
             2000,
             id="too long to scan on an array key",
@@ -1855,7 +1878,7 @@ def test_handles_ends_with_wildcard_op_translations(query, expected) -> None:
             id="quoted_first_class_key_normalizes",
         ),
         pytest.param(
-            "tags[my_tag, array][*]:foo",
+            "tags[my_tag[*], array]:foo",
             [
                 SearchFilter(
                     key=SearchKey(name="tags[my_tag,array]"),

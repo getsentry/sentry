@@ -1,11 +1,11 @@
 import type {ReactElement} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconOpen} from '@sentry/icons/open';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {IconOpen} from 'sentry/icons';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 
 interface RenderLinksInTextProps {

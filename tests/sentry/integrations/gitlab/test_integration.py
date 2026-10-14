@@ -1242,21 +1242,49 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         ).exists()
 
     @responses.activate
-    def test_full_pipeline_flow_no_group(self) -> None:
+    def test_config_step_rejects_blank_group(self) -> None:
+        self._initialize_pipeline()
+        resp = self._submit_config(group="")
+        assert resp.status_code == 400
+        assert resp.data["group"] == ["This field may not be blank."]
+        assert not Integration.objects.filter(provider="gitlab").exists()
+
+    @responses.activate
+    def test_config_step_rejects_missing_group(self) -> None:
+        self._initialize_pipeline()
+        data = {
+            "url": self.gitlab_url,
+            "clientId": self.client_id,
+            "clientSecret": self.client_secret,
+        }
+        resp = self._advance_step(data)
+        assert resp.status_code == 400
+        assert resp.data["group"] == ["This field is required."]
+        assert not Integration.objects.filter(provider="gitlab").exists()
+
+    @responses.activate
+    def test_build_integration_without_group_in_state_does_not_install(self) -> None:
         self._stub_gitlab_oauth()
         self._stub_gitlab_user()
 
         self._initialize_pipeline()
-        resp = self._submit_config(group="")
+        resp = self._submit_config()
         pipeline_signature = self._get_pipeline_signature(resp)
 
-        resp = self._advance_step({"code": "gitlab-auth-code", "state": pipeline_signature})
-        assert resp.status_code == 200
-        assert resp.data["status"] == "complete"
+        # Simulate state that bypassed the config step's validation.
+        original_build = GitlabIntegrationProvider.build_integration
 
-        integration = Integration.objects.get(provider="gitlab")
-        assert integration.metadata["group_id"] is None
-        assert integration.metadata["include_subgroups"] is False
+        def build_without_group(provider: Any, state: Any) -> Any:
+            installation_data = {**state["installation_data"], "group": ""}
+            return original_build(provider, {**state, "installation_data": installation_data})
+
+        with patch.object(GitlabIntegrationProvider, "build_integration", build_without_group):
+            resp = self._advance_step({"code": "gitlab-auth-code", "state": pipeline_signature})
+
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert "group is required" in resp.data["data"]["detail"]
+        assert not Integration.objects.filter(provider="gitlab").exists()
 
     @responses.activate
     def test_config_strips_trailing_slash(self) -> None:

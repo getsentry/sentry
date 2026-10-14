@@ -90,6 +90,14 @@ class ReviewEventTest(TestCase):
         assert review.author_external_id == USER_ID
         assert review.trigger_user == "jane"
 
+    def test_an_empty_handle_is_no_trigger_user(self) -> None:
+        review = _review(
+            "pull_request.created",
+            author={"user": {"id": USER_ID, "email": "jane@example.com", "handle": ""}},
+        )
+
+        assert review.trigger_user is None
+
     def test_an_app_author_is_its_own_contributor(self) -> None:
         review = _review("pull_request.created", author={"app": {"id": "app_01example"}})
 
@@ -211,7 +219,12 @@ class CodeReviewFromWebhookTest(TestCase):
 
     @with_feature(FEATURES - {"organizations:seer-cursor-origin-support"})
     def test_nothing_happens_without_the_origin_flag(self) -> None:
-        self._handle("pull_request.created")
+        with patch("sentry.integrations.cursor_origin.code_review.logger") as logger:
+            self._handle("pull_request.created")
 
         self.mock_seer.assert_not_called()
         assert not OrganizationContributors.objects.exists()
+        logger.info.assert_called_once_with(
+            "cursor_origin.code_review.feature_disabled",
+            extra={"organization_id": self.organization.id, "repository_id": self.repo.id},
+        )

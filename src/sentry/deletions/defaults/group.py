@@ -72,7 +72,6 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupRelease,
     models.GroupRedirect,
     models.GroupResolution,
-    models.GroupRuleStatus,
     models.GroupSeen,
     models.GroupShare,
     models.GroupSnooze,

@@ -12,6 +12,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
@@ -1267,13 +1268,16 @@ describe('Modals -> DataWidgetViewerModal', () => {
         widget: mockSpanWidget,
       });
 
-      const transactionCell = await screen.findByText('test-transaction');
-      expect(transactionCell).toBeInTheDocument();
+      const transactionCell = await screen.findByRole('cell', {
+        name: /test-transaction/,
+      });
+      await userEvent.click(
+        within(transactionCell).getByRole('button', {name: 'Actions'})
+      );
 
-      await userEvent.click(transactionCell);
-
-      const menuOption = await screen.findByText('View span samples');
-      expect(menuOption).toBeInTheDocument();
+      const menuOption = await screen.findByRole('menuitemradio', {
+        name: 'View span samples',
+      });
 
       await userEvent.click(menuOption);
 
@@ -1312,10 +1316,17 @@ describe('Modals -> DataWidgetViewerModal', () => {
 
       await renderModal({initialData, widget: mockSpanWidget});
 
-      const transactionCell = await screen.findByText('test-transaction');
-      await userEvent.click(transactionCell);
+      const transactionCell = await screen.findByRole('cell', {
+        name: /test-transaction/,
+      });
+      await userEvent.click(
+        within(transactionCell).getByRole('button', {name: 'Actions'})
+      );
 
-      expect(screen.queryByText('View span samples')).not.toBeInTheDocument();
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'View span samples'})
+      ).not.toBeInTheDocument();
     });
   });
 });

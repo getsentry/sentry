@@ -85,7 +85,9 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
       async ({surface, parent, to}) => {
         renderBreadcrumbs(surface);
 
-        const trail = await screen.findByRole('list');
+        await screen.findByRole('button', {name: 'More saved query options'});
+
+        const trail = screen.getByRole('list');
         expect(within(trail).getByRole('link', {name: parent})).toHaveAttribute(
           'href',
           expect.stringContaining(to)
@@ -93,7 +95,7 @@ describe('ExploreSavedQueryBreadcrumbs', () => {
 
         // The query name is the page heading, and must not be repeated in the trail.
         expect(
-          await screen.findByRole('heading', {name: /p95 checkout latency/, level: 1})
+          screen.getByRole('heading', {name: 'p95 checkout latency', level: 1})
         ).toBeInTheDocument();
         expect(within(trail).queryByText('p95 checkout latency')).not.toBeInTheDocument();
         // A parent crumb is a link, never a second heading.

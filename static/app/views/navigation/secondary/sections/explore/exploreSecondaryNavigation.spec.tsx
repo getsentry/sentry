@@ -23,7 +23,8 @@ describe('ExploreSecondaryNavigation', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/explore/saved/',
+      url: '/organizations/org-slug/explore/all-queries/',
+      body: [],
     });
 
     MockApiClient.addMockResponse({
@@ -211,17 +212,7 @@ describe('ExploreSecondaryNavigation', () => {
     );
   });
 
-  it('fetches the combined endpoint and lists both products when discover-queries-in-all-queries is on', async () => {
-    const {organization: combinedOrganization} = initializeOrg({
-      organization: {
-        features: [
-          'performance-view',
-          'visibility-explore-view',
-          'discover-queries-in-all-queries',
-        ],
-      },
-    });
-
+  it('fetches the combined endpoint and lists both products', async () => {
     const getQueriesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/explore/all-queries/',
       body: [
@@ -259,7 +250,7 @@ describe('ExploreSecondaryNavigation', () => {
         </SecondaryNavigationContextProvider>
       </PrimaryNavigationContextProvider>,
       {
-        organization: combinedOrganization,
+        organization,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/explore/traces/'},
         },

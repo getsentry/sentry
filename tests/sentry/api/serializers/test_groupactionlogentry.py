@@ -12,6 +12,8 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.activity import ActivityType
+from sentry.utils.action_log.activity_translator import activity_to_action
 
 
 class GroupActionLogEntrySerializerTestCase(TestCase):
@@ -94,18 +96,27 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             organization_id=self.org.id, repository_id=repo.id, key="11111111", message="gemuse"
         )
 
-        entry = self.create_group_action_log_entry(
-            group=group,
-            type=GroupActionType.SET_RESOLVED_IN_COMMIT,
-            actor_type=GroupActorType.USER,
-            actor_id=user.id,
-            data={"commit": commit.id},
-        )
+        for activity_type in (
+            ActivityType.SET_RESOLVED_IN_COMMIT,
+            ActivityType.SET_RESOLVED_IN_RELEASE,
+        ):
+            activity = self.create_group_activity(
+                group=group, type=activity_type.value, data={"commit": commit.id}
+            )
+            action = activity_to_action(activity)
+            assert action is not None
+            entry = self.create_group_action_log_entry(
+                group=group,
+                type=action.get_type(),
+                actor_type=GroupActorType.USER,
+                actor_id=user.id,
+                data=action.dict(),
+            )
 
-        result = serialize([entry], user)[0]["data"]
-        commit_data = result["commit"]
-        assert commit_data["repository"]["name"] == "organization-bar"
-        assert commit_data["message"] == "gemuse"
+            result = serialize([entry], user)[0]["data"]
+            commit_data = result["commit"]
+            assert commit_data["repository"]["name"] == "organization-bar"
+            assert commit_data["message"] == "gemuse"
 
     def test_referenced_in_commit_entry(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")

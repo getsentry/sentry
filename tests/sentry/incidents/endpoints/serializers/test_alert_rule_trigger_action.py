@@ -1,19 +1,6 @@
-from unittest.mock import MagicMock, patch
-
-import pytest
-import responses
-
 from sentry.api.serializers import serialize
-from sentry.incidents.logic import (
-    AlertTarget,
-    InvalidTriggerActionError,
-    create_alert_rule_trigger,
-    create_alert_rule_trigger_action,
-)
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
-from sentry.integrations.discord.client import DISCORD_BASE_URL
-from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.testutils.cases import TestCase
 
 
@@ -41,25 +28,20 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
 
     def test_simple(self) -> None:
         alert_rule = self.create_alert_rule()
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        action = create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.EMAIL,
-            AlertRuleTriggerAction.TargetType.SPECIFIC,
-            "hello",
+        trigger = self.create_alert_rule_trigger(
+            alert_rule=alert_rule, label="hi", alert_threshold=1000
+        )
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger,
+            type=AlertRuleTriggerAction.Type.EMAIL,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
+            target_identifier="hello",
         )
         result = serialize(action)
         self.assert_action_serialized(action, result)
         assert result["desc"] == "Send an email to [removed]"
 
-    @responses.activate
     def test_discord(self) -> None:
-        responses.add(
-            method=responses.GET,
-            url=f"{DISCORD_BASE_URL}/channels/channel-id",
-            json={"guild_id": "guild_id", "name": "guild_id", "type": ChannelType.GUILD_TEXT.value},
-        )
-
         alert_rule = self.create_alert_rule()
         integration = self.create_provider_integration(
             provider="discord",
@@ -70,12 +52,15 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
                 "name": "guild_name",
             },
         )
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        action = create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.DISCORD,
-            AlertRuleTriggerAction.TargetType.SPECIFIC,
+        trigger = self.create_alert_rule_trigger(
+            alert_rule=alert_rule, label="hi", alert_threshold=1000
+        )
+        action = self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        action.update(
+            type=AlertRuleTriggerAction.Type.DISCORD.value,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
             target_identifier="channel-id",
+            target_display="guild_id",
             integration_id=integration.id,
         )
 
@@ -83,71 +68,36 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         self.assert_action_serialized(action, result)
         assert str(action.target_display) in result["desc"]
 
-    @responses.activate
-    def test_discord_channel_id_none(self) -> None:
-        responses.add(
-            method=responses.GET,
-            url=f"{DISCORD_BASE_URL}/channels/None",
-            json={
-                "guild_id": "guild_id",
-                "name": "guild_id",
-                "type": ChannelType.GUILD_TEXT.value,
-            },
-        )
-
+    def test_pagerduty_priority(self) -> None:
         alert_rule = self.create_alert_rule()
-        integration = self.create_provider_integration(
-            provider="discord",
-            name="Example Discord",
-            external_id="guild_id",
-            metadata={
-                "guild_id": "guild_id",
-                "name": "guild_name",
-            },
+        trigger = self.create_alert_rule_trigger(
+            alert_rule=alert_rule, label="hi", alert_threshold=1000
         )
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        with pytest.raises(InvalidTriggerActionError):
-            create_alert_rule_trigger_action(
-                trigger,
-                AlertRuleTriggerAction.Type.DISCORD,
-                AlertRuleTriggerAction.TargetType.SPECIFIC,
-                target_identifier=None,
-                integration_id=integration.id,
-            )
-
-    @patch(
-        "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=AlertTarget("123", "test"),
-    )
-    def test_pagerduty_priority(self, mock_get: MagicMock) -> None:
-        alert_rule = self.create_alert_rule()
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
         priority = "critical"
 
-        # pagerduty
-        action = create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.PAGERDUTY,
-            AlertRuleTriggerAction.TargetType.SPECIFIC,
-            priority=priority,
+        action = self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        action.update(
+            type=AlertRuleTriggerAction.Type.PAGERDUTY.value,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
             target_identifier="123",
+            target_display="test",
+            sentry_app_config={"priority": priority},
         )
         result = serialize(action)
         self.assert_action_serialized(action, result)
         assert result["priority"] == priority
 
-    @patch(
-        "sentry.incidents.logic.get_target_identifier_display_for_integration",
-        return_value=AlertTarget("123", "test"),
-    )
-    def test_pagerduty_no_priority(self, mock_get: MagicMock) -> None:
+    def test_pagerduty_no_priority(self) -> None:
         alert_rule = self.create_alert_rule()
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        action = create_alert_rule_trigger_action(
-            trigger,
-            AlertRuleTriggerAction.Type.PAGERDUTY,
-            AlertRuleTriggerAction.TargetType.SPECIFIC,
+        trigger = self.create_alert_rule_trigger(
+            alert_rule=alert_rule, label="hi", alert_threshold=1000
+        )
+        action = self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        action.update(
+            type=AlertRuleTriggerAction.Type.PAGERDUTY.value,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
             target_identifier="123",
+            target_display="test",
         )
         result = serialize(action)
         self.assert_action_serialized(action, result)
@@ -155,34 +105,19 @@ class AlertRuleTriggerActionSerializerTest(TestCase):
         assert "None" not in result["desc"]
         assert result["desc"] == "Send a PagerDuty notification to test"
 
-    @responses.activate
-    @patch(
-        "sentry.incidents.logic.get_alert_rule_trigger_action_opsgenie_team",
-        return_value=AlertTarget("123", "test"),
-    )
-    def test_opsgenie_priority(self, mock_get: MagicMock) -> None:
+    def test_opsgenie_priority(self) -> None:
         alert_rule = self.create_alert_rule()
-        trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
-        priority = "critical"
-
-        # opsgenie
-        resp_data = {
-            "result": "Integration [sentry] is valid",
-            "took": 1,
-            "requestId": "hello-world",
-        }
-        responses.add(
-            responses.POST,
-            url="https://api.opsgenie.com/v2/integrations/authenticate",
-            json=resp_data,
+        trigger = self.create_alert_rule_trigger(
+            alert_rule=alert_rule, label="hi", alert_threshold=1000
         )
         priority = "P1"
-        action = create_alert_rule_trigger_action(
-            trigger,
-            type=AlertRuleTriggerAction.Type.OPSGENIE,
-            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
-            priority=priority,
+        action = self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        action.update(
+            type=AlertRuleTriggerAction.Type.OPSGENIE.value,
+            target_type=AlertRuleTriggerAction.TargetType.SPECIFIC.value,
             target_identifier="123",
+            target_display="test",
+            sentry_app_config={"priority": priority},
         )
         result = serialize(action)
         self.assert_action_serialized(action, result)

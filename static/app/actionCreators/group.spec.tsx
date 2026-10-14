@@ -78,23 +78,19 @@ describe('group', () => {
       jest.spyOn(GroupStore, 'onUpdate'); // stub GroupStore.onUpdate call from update
     });
 
-    it('should use itemIds as query if provided', () => {
+    it('should use itemIds as query if provided', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1', '2', '3'],
-          data: {status: 'unresolved'},
-          query: 'is:resolved',
-        },
-        {}
-      );
+      await bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: ['1', '2', '3'],
+        data: {status: 'unresolved'},
+        query: 'is:resolved',
+      });
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
@@ -103,23 +99,19 @@ describe('group', () => {
       );
     });
 
-    it('should use query as query if itemIds are absent', () => {
+    it('should use query as query if itemIds are absent', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: undefined,
-          data: {status: 'unresolved'},
-          query: 'is:resolved',
-        },
-        {}
-      );
+      await bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: undefined,
+        data: {status: 'unresolved'},
+        query: 'is:resolved',
+      });
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
@@ -128,22 +120,18 @@ describe('group', () => {
       );
     });
 
-    it('should apply project option', () => {
+    it('should apply project option', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          project: [99],
-          itemIds: ['1', '2', '3'],
-          data: {status: 'unresolved'},
-        },
-        {}
-      );
+      await bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        project: [99],
+        itemIds: ['1', '2', '3'],
+        data: {status: 'unresolved'},
+      });
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
@@ -152,88 +140,72 @@ describe('group', () => {
       );
     });
 
-    it('should normalize string assignedTo to Actor object for optimistic update', () => {
+    it('should normalize string assignedTo to Actor object for optimistic update', async () => {
       MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1'],
-          data: {assignedTo: 'user:123'},
-        },
-        {}
-      );
+      await bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: ['1'],
+        data: {assignedTo: 'user:123'},
+      });
 
       expect(GroupStore.onUpdate).toHaveBeenCalledWith(expect.any(String), ['1'], {
         assignedTo: {type: 'user', id: '123', name: ''},
       });
     });
 
-    it('should normalize empty assignedTo string to null for optimistic update', () => {
+    it('should normalize empty assignedTo string to null for optimistic update', async () => {
       MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1'],
-          data: {assignedTo: ''},
-        },
-        {}
-      );
+      await bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: ['1'],
+        data: {assignedTo: ''},
+      });
 
       expect(GroupStore.onUpdate).toHaveBeenCalledWith(expect.any(String), ['1'], {
         assignedTo: null,
       });
     });
 
-    it('should normalize team assignedTo string for optimistic update', () => {
+    it('should normalize team assignedTo string for optimistic update', async () => {
       MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1'],
-          data: {assignedTo: 'team:456'},
-        },
-        {}
-      );
+      await bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: ['1'],
+        data: {assignedTo: 'team:456'},
+      });
 
       expect(GroupStore.onUpdate).toHaveBeenCalledWith(expect.any(String), ['1'], {
         assignedTo: {type: 'team', id: '456', name: ''},
       });
     });
 
-    it('should send raw string assignedTo to the API', () => {
+    it('should send raw string assignedTo to the API', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1'],
-          data: {assignedTo: 'user:123'},
-        },
-        {}
-      );
+      await bulkUpdate(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: ['1'],
+        data: {assignedTo: 'user:123'},
+      });
 
       expect(request).toHaveBeenCalledWith(
         '/projects/1337/1337/issues/',
@@ -249,22 +221,18 @@ describe('group', () => {
       jest.spyOn(GroupStore, 'onMerge'); // stub GroupStore.onMerge call from mergeGroups
     });
 
-    it('should use itemIds as query if provided', () => {
+    it('should use itemIds as query if provided', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      mergeGroups(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: ['1', '2', '3'],
-          query: 'is:resolved',
-        },
-        {}
-      );
+      await mergeGroups(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: ['1', '2', '3'],
+        query: 'is:resolved',
+      });
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(
@@ -273,22 +241,18 @@ describe('group', () => {
       );
     });
 
-    it('should use query as query if itemIds are absent', () => {
+    it('should use query as query if itemIds are absent', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      mergeGroups(
-        new MockApiClient(),
-        {
-          orgId: '1337',
-          projectId: '1337',
-          itemIds: undefined,
-          query: 'is:resolved',
-        },
-        {}
-      );
+      await mergeGroups(new MockApiClient(), {
+        orgId: '1337',
+        projectId: '1337',
+        itemIds: undefined,
+        query: 'is:resolved',
+      });
 
       expect(request).toHaveBeenCalledTimes(1);
       expect(request).toHaveBeenCalledWith(

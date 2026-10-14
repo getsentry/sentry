@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingDetailsFixture} from 'getsentry-test/fixtures/billingDetails';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {BillingDetailsForm} from './form';
 
@@ -18,6 +18,10 @@ describe('BillingDetailsForm', () => {
     jest.clearAllMocks();
     jest.restoreAllMocks();
     MockApiClient.clearMockResponses();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('returns null for users without org:billing access', () => {
@@ -45,25 +49,26 @@ describe('BillingDetailsForm', () => {
   });
 
   it('shows warning when Stripe hooks return null', async () => {
+    jest.useFakeTimers();
+
     const stripeImport = await import('@stripe/react-stripe-js');
     jest.spyOn(stripeImport, 'useStripe').mockReturnValue(null);
     jest.spyOn(stripeImport, 'useElements').mockReturnValue(null);
 
     render(<BillingDetailsForm {...defaultProps} />);
 
-    await waitFor(
-      () => {
-        expect(
-          screen.getByText(
-            /To add or update your business address, you may need to disable any ad or tracker blocking extensions/
-          )
-        ).toBeInTheDocument();
-      },
-      {timeout: 11000} // the timeout in the code is 10 seconds so we need to wait longer
-    );
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(10000);
+    });
+
+    expect(
+      screen.getByText(
+        /To add or update your business address, you may need to disable any ad or tracker blocking extensions/
+      )
+    ).toBeInTheDocument();
 
     jest.restoreAllMocks();
-  }, 15000);
+  });
 
   it('disables submit button during loading', async () => {
     render(<BillingDetailsForm {...defaultProps} />);
@@ -88,11 +93,15 @@ describe('BillingDetailsForm', () => {
     await screen.findByRole('textbox', {name: /VAT Number/i});
   });
 
-  it('renders extra button when provided', async () => {
-    const extraButton = <button type="button">Extra Action</button>;
-    render(<BillingDetailsForm {...defaultProps} extraButton={extraButton} />);
+  it('renders and handles cancel when provided', async () => {
+    const onCancel = jest.fn();
+    render(<BillingDetailsForm {...defaultProps} onCancel={onCancel} />);
 
-    await screen.findByRole('button', {name: 'Extra Action'});
+    const cancelButton = screen.getByRole('button', {name: 'Cancel'});
+    expect(screen.getByRole('button', {name: 'Save Changes'})).toBeInTheDocument();
+
+    await userEvent.click(cancelButton);
+    expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
   it('clears a stale region on save for countries without region choices', async () => {

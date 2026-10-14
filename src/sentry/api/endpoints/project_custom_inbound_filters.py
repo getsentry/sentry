@@ -31,6 +31,7 @@ from sentry.ingest.inbound_filters import (
     parse_release_comparison,
 )
 from sentry.models.custominboundfilter import (
+    MAX_FILTERS_PER_PROJECT,
     ConditionType,
     CustomInboundFilter,
     DataType,
@@ -39,7 +40,6 @@ from sentry.models.project import Project
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_CONDITIONS_PER_FILTER = 10
-MAX_FILTERS_PER_PROJECT = 50
 # Relay matches every condition value as a glob against each item, so the size of a
 # filter bounds how much matching work a single filter can cause. A filter stored
 # before this cap keeps its size but cannot grow.
@@ -109,9 +109,9 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         choices=[condition_type.value for condition_type in ConditionType],
         help_text=(
             "The field the condition matches against. Every `dataType` accepts `release` and "
-            "`ip_address`. In addition, `error` accepts `error_type` and `error_message`, "
-            "`log` accepts `log_message`, and `metric` accepts `metric_name`. `span` and "
-            "`all` accept no other types."
+            "`ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
+            "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
+            "`metric_name`. `span` and `all` accept no other types."
         ),
     )
     value = serializers.ListField(
@@ -275,13 +275,26 @@ class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (ProjectSettingPermission,)
 
-    def has_feature(self, request: Request, project: Project) -> bool:
+    def require_inbound_filters_v2(self, request: Request, project: Project) -> None:
         if not features.has(
             "organizations:inbound-filters-v2", project.organization, actor=request.user
         ):
             raise ResourceDoesNotExist
 
+    def has_feature(self, request: Request, project: Project) -> bool:
+        """
+        Whether the project may change its filters. Reads do not need the plan feature:
+        Relay stops applying the filters without it, but an organization that left the
+        plan still sees what it has, and gets it back on upgrade.
+        """
+        self.require_inbound_filters_v2(request, project)
         return features.has("projects:custom-inbound-filters", project, actor=request.user)
+
+    def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
+        try:
+            return _user_filters(project).get(id=filter_id)
+        except (CustomInboundFilter.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
 
     @staticmethod
     def get_audit_log_data(
@@ -334,8 +347,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         """
         List the custom inbound filters configured for a project.
         """
-        if not self.has_feature(request, project):
-            return Response({"detail": "You do not have that feature enabled"}, status=400)
+        self.require_inbound_filters_v2(request, project)
 
         filters = _user_filters(project)
         return self.paginate(
@@ -415,12 +427,6 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
 
-    def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
-        try:
-            return _user_filters(project).get(id=filter_id)
-        except (CustomInboundFilter.DoesNotExist, ValueError):
-            raise ResourceDoesNotExist
-
     @extend_schema(
         operation_id="Retrieve a Custom Inbound Filter",
         parameters=[
@@ -442,8 +448,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         """
         Retrieve a single custom inbound filter.
         """
-        if not self.has_feature(request, project):
-            return Response({"detail": "You do not have that feature enabled"}, status=400)
+        self.require_inbound_filters_v2(request, project)
 
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
         return Response(serialize_custom_inbound_filter(custom_filter))

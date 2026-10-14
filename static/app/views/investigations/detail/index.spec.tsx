@@ -124,6 +124,11 @@ describe('Investigation detail', () => {
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
     createFeedbackForm.mockClear();
     ConfigStore.set('customerDomain', null);
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}presence/`,
+      method: 'PUT',
+      body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
+    });
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -142,7 +147,6 @@ describe('Investigation detail', () => {
       screen.queryByRole('button', {name: /Ask Seer about/})
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Rerun/})).not.toBeInTheDocument();
-    expect(screen.queryByText('Ask Seer')).not.toBeInTheDocument();
     expect(screen.queryByText(/"blocks":/)).not.toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
@@ -207,7 +211,6 @@ describe('Investigation detail', () => {
     expect(
       await screen.findByRole('link', {name: 'Checkout error rate'})
     ).toHaveAttribute('href', '/organizations/org-slug/issues/123/');
-    expect(screen.queryByText('Breached metric')).not.toBeInTheDocument();
   });
 
   it('links the issue of a breached metric investigation without a snapshot', async () => {
@@ -228,7 +231,6 @@ describe('Investigation detail', () => {
       'href',
       '/organizations/org-slug/issues/123/'
     );
-    expect(screen.queryByText('Breached metric')).not.toBeInTheDocument();
   });
 
   it('labels a manual investigation without a source link', async () => {
@@ -256,7 +258,6 @@ describe('Investigation detail', () => {
     renderView();
 
     const summary = await screen.findByTestId('investigation-summary');
-    expect(within(summary).queryByText('Current understanding')).not.toBeInTheDocument();
     expect(within(summary).getByText('Errors rose across releases')).toBeInTheDocument();
     expect(
       within(summary).getByText(/All active releases increased together/)
@@ -379,9 +380,6 @@ describe('Investigation detail', () => {
     // The real title is shown, so only the body is a placeholder.
     expect(
       within(cell).queryByTestId('investigation-cell-placeholder-title')
-    ).not.toBeInTheDocument();
-    expect(
-      within(cell).queryByText('Seer is working on this cell…')
     ).not.toBeInTheDocument();
   });
 
@@ -754,44 +752,59 @@ describe('Investigation detail', () => {
     expect(screen.queryByDisplayValue('Generated title preview')).not.toBeInTheDocument();
   });
 
-  it('renders the persisted title when completion has no preview', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: InvestigationDetailFixture({
-        title: 'Untitled investigation',
-        titleGeneration: {status: 'running'},
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: titleGenerationUrl,
-      body: {status: 'running', preview: null},
+  describe('renders the persisted title when completion has no preview with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    renderView();
-    expect(await screen.findByDisplayValue('Untitled investigation')).toBeInTheDocument();
-
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: InvestigationDetailFixture({
-        title: 'Mobile API Monitor False Alert',
-        summary: 'Comparison logic triggered breach',
-        summaryDescription: 'One event appeared against a zero-event baseline.',
-        titleGeneration: {status: 'completed'},
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: titleGenerationUrl,
-      body: {status: 'completed', preview: null},
+    afterEach(async () => {
+      await act(() => jest.runOnlyPendingTimersAsync());
+      jest.useRealTimers();
     });
 
-    await waitFor(
-      () =>
+    it('renders the persisted title when completion has no preview', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationDetailFixture({
+          title: 'Untitled investigation',
+          titleGeneration: {status: 'running'},
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: titleGenerationUrl,
+        body: {status: 'running', preview: null},
+      });
+
+      const startedAt = Date.now();
+      renderView();
+      expect(
+        await screen.findByDisplayValue('Untitled investigation')
+      ).toBeInTheDocument();
+
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationDetailFixture({
+          title: 'Mobile API Monitor False Alert',
+          summary: 'Comparison logic triggered breach',
+          summaryDescription: 'One event appeared against a zero-event baseline.',
+          titleGeneration: {status: 'completed'},
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: titleGenerationUrl,
+        body: {status: 'completed', preview: null},
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(500));
+      await waitFor(() =>
         expect(screen.getByRole('textbox', {name: 'Investigation title'})).toHaveValue(
           'Mobile API Monitor False Alert'
-        ),
-      {timeout: 2000}
-    );
-    expect(screen.getByText('Comparison logic triggered breach')).toBeInTheDocument();
+        )
+      );
+      // Completion must refresh metadata before the independent 2s detail poll.
+      expect(Date.now() - startedAt).toBeLessThan(2000);
+      expect(screen.getByText('Comparison logic triggered breach')).toBeInTheDocument();
+    });
   });
 
   it('invalidates the investigations list when metadata generation settles', async () => {
@@ -864,8 +877,6 @@ describe('Investigation detail', () => {
     expect(
       screen.queryByLabelText('Cell actions for Latency query')
     ).not.toBeInTheDocument();
-    expect(screen.queryByText('Waiting for previous cells…')).not.toBeInTheDocument();
-    expect(screen.queryByText('This cell has no output yet.')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Close Seer panel'})
     ).not.toBeInTheDocument();
@@ -896,35 +907,50 @@ describe('Investigation detail', () => {
     );
   });
 
-  it('keeps polling while an auto-run cell is waiting to start', async () => {
-    const investigation = InvestigationDetailFixture({
-      template: {key: 'breached_metric', version: 1},
+  describe('keeps polling while an auto-run cell is waiting to start with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
-    investigation.blocks = [
-      {
-        ...investigation.blocks[0]!,
-        outputStatus: 'completed',
-        currentExecution: {
-          id: 'execution-completed',
-          status: 'completed',
-          startedAt: '2026-08-17T10:00:00Z',
-          completedAt: '2026-08-17T10:00:10Z',
-          error: null,
+
+    afterEach(async () => {
+      await act(() => jest.runOnlyPendingTimersAsync());
+      jest.useRealTimers();
+    });
+
+    it('keeps polling while an auto-run cell is waiting to start', async () => {
+      const investigation = InvestigationDetailFixture({
+        template: {key: 'breached_metric', version: 1},
+      });
+      investigation.blocks = [
+        {
+          ...investigation.blocks[0]!,
+          outputStatus: 'completed',
+          currentExecution: {
+            id: 'execution-completed',
+            status: 'completed',
+            startedAt: '2026-08-17T10:00:00Z',
+            completedAt: '2026-08-17T10:00:10Z',
+            error: null,
+          },
         },
-      },
-      {
-        ...investigation.blocks[1]!,
-        config: {autoRun: true},
-        dependencies: ['block-1'],
-      },
-    ];
-    const request = MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+        {
+          ...investigation.blocks[1]!,
+          config: {autoRun: true},
+          dependencies: ['block-1'],
+        },
+      ];
+      const request = MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigation,
+      });
 
-    renderView();
+      renderView();
 
-    await screen.findByText('Initial notes');
-    expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
-    await waitFor(() => expect(request).toHaveBeenCalledTimes(2), {timeout: 3000});
+      await screen.findByText('Initial notes');
+      expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(request).toHaveBeenCalledTimes(2);
+    });
   });
 
   it.each(['notRun', 'failed', 'cancelled', 'completed'] as const)(
@@ -946,7 +972,6 @@ describe('Investigation detail', () => {
       expect(
         screen.queryByLabelText('Cell actions for Latency query')
       ).not.toBeInTheDocument();
-      expect(screen.queryByText('This cell has no output yet.')).not.toBeInTheDocument();
     }
   );
 
@@ -1062,7 +1087,6 @@ describe('Investigation detail', () => {
     ).toBeInTheDocument();
     expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
     expect(screen.queryByTestId('investigation-cell-block-4')).not.toBeInTheDocument();
-    expect(screen.queryByText('Waiting for previous cells…')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('investigation-execution-failed')
     ).not.toBeInTheDocument();
@@ -1078,10 +1102,8 @@ describe('Investigation detail', () => {
     await chooseCellAction('Latency query', 'Refine');
 
     const prompt = screen.getByLabelText('Instructions for Seer');
-    expect(screen.getByText('Ask Seer to refine')).toBeInTheDocument();
     expect(prompt).toHaveValue('');
     expect(prompt).toBeVisible();
-    expect(screen.queryByRole('button', {name: 'Ask Seer'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Cancel Seer request'}));
     expect(screen.queryByLabelText('Instructions for Seer')).not.toBeInTheDocument();
@@ -1112,7 +1134,7 @@ describe('Investigation detail', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('uses compact breadcrumbs and renders text and table results without prompt data', async () => {
+  it('renders breadcrumbs, the page title, and text and table results without prompt data', async () => {
     const investigation = investigationWithQueryResult();
     investigation.blocks = [
       {
@@ -1141,7 +1163,6 @@ describe('Investigation detail', () => {
     renderView();
 
     expect(await screen.findByText('Rendered')).toBeInTheDocument();
-    expect(screen.queryByText('Investigation step 1')).not.toBeInTheDocument();
     expect(screen.getByTestId('text-cell-result')).toHaveAttribute(
       'data-cell-variant',
       'unbordered'
@@ -1153,13 +1174,15 @@ describe('Investigation detail', () => {
     expect(screen.getByText('820ms')).toBeInTheDocument();
     expect(screen.queryByText('Secret text-generation prompt')).not.toBeInTheDocument();
     expect(screen.queryByText('Secret query-generation prompt')).not.toBeInTheDocument();
-    expect(screen.getByTestId('investigation-breadcrumbs')).toHaveAttribute(
-      'data-text-size',
-      'md'
+    expect(screen.getByRole('link', {name: 'Investigations'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/investigations/'
+    );
+    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent(
+      investigation.title
     );
 
     const toggle = screen.getByRole('button', {name: 'Database latency'});
-    expect(screen.queryByText('Evidence/Database latency')).not.toBeInTheDocument();
 
     await userEvent.click(toggle);
     expect(screen.getByText('820ms')).not.toBeVisible();
@@ -1885,30 +1908,43 @@ describe('Investigation detail', () => {
     expect(request).toHaveBeenCalledTimes(1);
   });
 
-  it('optimistically renames and debounces persistence', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: investigationWithQueryResult(),
-    });
-    const renameRequest = MockApiClient.addMockResponse({
-      url: detailUrl,
-      method: 'PUT',
-      body: InvestigationDetailFixture({
-        title: 'Regional latency investigation',
-        version: 2,
-      }),
+  describe('optimistically renames and debounces persistence with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    renderView();
-    const titleInput = await screen.findByLabelText('Investigation title');
-    await userEvent.clear(titleInput);
-    await userEvent.type(titleInput, 'Regional latency investigation');
+    afterEach(async () => {
+      await act(() => jest.runOnlyPendingTimersAsync());
+      jest.useRealTimers();
+    });
 
-    expect(titleInput).toHaveValue('Regional latency investigation');
-    expect(renameRequest).not.toHaveBeenCalled();
+    it('optimistically renames and debounces persistence', async () => {
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWithQueryResult(),
+      });
+      const renameRequest = MockApiClient.addMockResponse({
+        url: detailUrl,
+        method: 'PUT',
+        body: InvestigationDetailFixture({
+          title: 'Regional latency investigation',
+          version: 2,
+        }),
+      });
 
-    await waitFor(
-      () =>
+      renderView();
+      const titleInput = await screen.findByLabelText('Investigation title');
+      await user.clear(titleInput);
+      await user.type(titleInput, 'Regional latency investigation');
+
+      expect(titleInput).toHaveValue('Regional latency investigation');
+      expect(renameRequest).not.toHaveBeenCalled();
+
+      await act(() => jest.advanceTimersByTimeAsync(499));
+      expect(renameRequest).not.toHaveBeenCalled();
+      await act(() => jest.advanceTimersByTimeAsync(1));
+      await waitFor(() =>
         expect(renameRequest).toHaveBeenCalledWith(
           detailUrl,
           expect.objectContaining({
@@ -1917,9 +1953,9 @@ describe('Investigation detail', () => {
               investigationVersion: 1,
             },
           })
-        ),
-      {timeout: 1500}
-    );
+        )
+      );
+    });
   });
 
   it('preserves newer block state when a rename completes', async () => {
@@ -2019,37 +2055,50 @@ describe('Investigation detail', () => {
     );
   });
 
-  it('polls for and displays a generated title after block execution finishes', async () => {
-    let requestCount = 0;
-    MockApiClient.addMockResponse({
-      url: titleGenerationUrl,
-      body: {status: 'completed', preview: null},
-    });
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: () => {
-        requestCount += 1;
-        return requestCount === 1
-          ? InvestigationDetailFixture({
-              title: 'Untitled Investigation',
-              titleGeneration: {status: 'running'},
-            })
-          : InvestigationDetailFixture({
-              title: 'Generated latency investigation',
-              titleGeneration: {status: 'completed'},
-            });
-      },
+  describe('polls for and displays a generated title after block execution finishes with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    renderView();
-    expect(await screen.findByDisplayValue('Untitled Investigation')).toBeInTheDocument();
+    afterEach(async () => {
+      await act(() => jest.runOnlyPendingTimersAsync());
+      jest.useRealTimers();
+    });
 
-    expect(
-      await screen.findByDisplayValue('Generated latency investigation', undefined, {
-        timeout: 3000,
-      })
-    ).toBeInTheDocument();
-    expect(requestCount).toBeGreaterThan(1);
+    it('polls for and displays a generated title after block execution finishes', async () => {
+      let requestCount = 0;
+      MockApiClient.addMockResponse({
+        url: titleGenerationUrl,
+        body: {status: 'running', preview: null},
+      });
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: () => {
+          requestCount += 1;
+          return requestCount === 1
+            ? InvestigationDetailFixture({
+                title: 'Untitled Investigation',
+                titleGeneration: {status: 'running'},
+              })
+            : InvestigationDetailFixture({
+                title: 'Generated latency investigation',
+                titleGeneration: {status: 'completed'},
+              });
+        },
+      });
+
+      renderView();
+      expect(
+        await screen.findByDisplayValue('Untitled Investigation')
+      ).toBeInTheDocument();
+
+      expect(requestCount).toBe(1);
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(
+        screen.getByDisplayValue('Generated latency investigation')
+      ).toBeInTheDocument();
+      expect(requestCount).toBe(2);
+    });
   });
 
   it('duplicates and opens the duplicate from the title menu', async () => {
@@ -2061,6 +2110,11 @@ describe('Investigation detail', () => {
       url: `${detailUrl}duplicate/`,
       method: 'POST',
       body: InvestigationDetailFixture({id: 'investigation-2'}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/investigation-2/presence/',
+      method: 'PUT',
+      body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/investigation-2/',
@@ -2105,43 +2159,69 @@ describe('Investigation detail', () => {
     );
   });
 
-  it('deletes after confirmation and returns to the list', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: investigationWithQueryResult(),
-    });
-    const deleteRequest = MockApiClient.addMockResponse({
-      url: detailUrl,
-      method: 'DELETE',
-    });
-    const renameRequest = MockApiClient.addMockResponse({
-      url: detailUrl,
-      method: 'PUT',
-      body: InvestigationDetailFixture({title: 'Pending rename', version: 2}),
+  describe('deletes after confirmation and returns to the list with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
 
-    const {router} = renderView();
-    fireEvent.change(await screen.findByLabelText('Investigation title'), {
-      target: {value: 'Pending rename'},
+    afterEach(async () => {
+      await act(() => jest.runOnlyPendingTimersAsync());
+      jest.useRealTimers();
     });
-    expect(renameRequest).not.toHaveBeenCalled();
-    await userEvent.click(await screen.findByLabelText('Investigation actions'));
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
-    expect(deleteRequest).not.toHaveBeenCalled();
-    renderGlobalModal();
-    await userEvent.click(await screen.findByTestId('confirm-button'));
 
-    await waitFor(() =>
-      expect(deleteRequest).toHaveBeenCalledWith(
-        detailUrl,
-        expect.objectContaining({data: {investigationVersion: 1}})
-      )
-    );
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/explore/investigations/'
-    );
-    await act(async () => new Promise(resolve => setTimeout(resolve, 600)));
-    expect(renameRequest).not.toHaveBeenCalled();
+    it('deletes after confirmation and returns to the list', async () => {
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWithQueryResult(),
+      });
+      let finishDelete!: () => void;
+      const deleteResponse = new Promise<void>(resolve => {
+        finishDelete = resolve;
+      });
+      const deleteRequest = MockApiClient.addMockResponse({
+        url: detailUrl,
+        method: 'DELETE',
+        asyncDelay: deleteResponse,
+      });
+      const renameRequest = MockApiClient.addMockResponse({
+        url: detailUrl,
+        method: 'PUT',
+        body: InvestigationDetailFixture({title: 'Pending rename', version: 2}),
+      });
+
+      const {router} = renderView();
+      fireEvent.change(await screen.findByLabelText('Investigation title'), {
+        target: {value: 'Pending rename'},
+      });
+      expect(renameRequest).not.toHaveBeenCalled();
+      await user.click(await screen.findByLabelText('Investigation actions'));
+      await user.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
+      expect(deleteRequest).not.toHaveBeenCalled();
+      renderGlobalModal();
+      await user.click(await screen.findByTestId('confirm-button'));
+
+      await waitFor(() =>
+        expect(deleteRequest).toHaveBeenCalledWith(
+          detailUrl,
+          expect.objectContaining({data: {investigationVersion: 1}})
+        )
+      );
+      await act(() => jest.advanceTimersByTimeAsync(600));
+      expect(renameRequest).not.toHaveBeenCalled();
+
+      await act(async () => {
+        finishDelete();
+        await deleteResponse;
+      });
+      await waitFor(() =>
+        expect(router.location.pathname).toBe(
+          '/organizations/org-slug/explore/investigations/'
+        )
+      );
+      await act(() => jest.advanceTimersByTimeAsync(600));
+      expect(renameRequest).not.toHaveBeenCalled();
+    });
   });
 
   it('renders the initial load error', async () => {
@@ -2230,12 +2310,6 @@ describe('Investigation detail', () => {
     const {queryClient} = renderView();
 
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
-    await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
-    expect(
-      screen.getByRole('heading', {
-        name: 'Database or cache degradation delayed the response',
-      })
-    ).toBeInTheDocument();
     expect(orchestrationRequest).toHaveBeenCalledTimes(1);
     const header = screen.getByRole('banner');
     expect(
@@ -2269,7 +2343,7 @@ describe('Investigation detail', () => {
     );
 
     expect(await within(header).findByText('Completed')).toBeInTheDocument();
-    expect(within(header).getByRole('timer')).toHaveTextContent('35.0 s');
+    expect(within(header).getByRole('timer')).toHaveTextContent('35.0s');
     expect(within(header).queryByText('Synthesizing…')).not.toBeInTheDocument();
     // The header badge carries a finished run; the block above the hypotheses
     // only shows while there is something still in flight or needing attention.

@@ -182,6 +182,16 @@ class IntegrationRepositoryTestCase(TestCase):
         repo.refresh_from_db()
         assert repo.name == self.repo_name
 
+    def test_create_repository__repo_exists_preserves_config(self, get_jwt: MagicMock) -> None:
+        repo = self._create_repo(external_id=self.config["external_id"])
+        repo.update(config={**repo.config, "webhook_id": "hook-1"})
+
+        with pytest.raises(RepoExistsError):
+            self.provider.create_repository(self.config, self.organization)
+
+        repo.refresh_from_db()
+        assert repo.config["webhook_id"] == "hook-1"
+
     @patch("sentry.models.Repository.objects.create")
     @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
     def test_create_repository__delete_webhook(
@@ -401,6 +411,74 @@ class IntegrationRepositoryTestCase(TestCase):
         assert exc_info.value.existing_repo is None
         repo.refresh_from_db()
         assert repo.status == ObjectStatus.PENDING_DELETION
+
+    def test_create_repositories__adopts_unlinked_active_repo(self, get_jwt: MagicMock) -> None:
+        # ACTIVE unlinked rows are adopted, not reported as already-active/not-created
+        repo = self._create_repo(external_id=self.config["external_id"])
+        Repository.objects.filter(id=repo.id).update(integration_id=None)
+
+        created, updated, not_created = self.provider.create_repositories(
+            [self.config], self.organization
+        )
+
+        assert created == []
+        assert [r.id for r in updated] == [repo.id]
+        assert not_created == []
+        repo.refresh_from_db()
+        assert repo.integration_id == self.integration.id
+        assert repo.status == ObjectStatus.ACTIVE
+
+    def test_create_repositories__adopts_legacy_plugin_repo(self, get_jwt: MagicMock) -> None:
+        # legacy plugin repos use the bare provider slug and no integration_id
+        repo = self.create_repo(
+            project=self.project,
+            name=self.repo_name,
+            provider="github",
+            integration_id=None,
+            external_id=self.config["external_id"],
+            url="https://github.com/" + self.repo_name,
+        )
+
+        created, updated, not_created = self.provider.create_repositories(
+            [self.config], self.organization
+        )
+
+        assert created == []
+        assert [r.id for r in updated] == [repo.id]
+        assert not_created == []
+        repo.refresh_from_db()
+        assert repo.provider == "integrations:github"
+        assert repo.integration_id == self.integration.id
+        assert repo.status == ObjectStatus.ACTIVE
+
+    def test_create_repositories__already_active_on_integration_is_not_created(
+        self, get_jwt: MagicMock
+    ) -> None:
+        self._create_repo(external_id=self.config["external_id"])
+
+        created, updated, not_created = self.provider.create_repositories(
+            [self.config], self.organization
+        )
+
+        assert created == []
+        assert updated == []
+        assert len(not_created) == 1
+        assert not_created[0]["external_id"] == self.config["external_id"]
+
+    def test_create_repositories__reactivating_hidden_is_not_already_active(
+        self, get_jwt: MagicMock
+    ) -> None:
+        repo = self._create_repo(external_id=self.config["external_id"], status=ObjectStatus.HIDDEN)
+
+        created, updated, not_created = self.provider.create_repositories(
+            [self.config], self.organization
+        )
+
+        assert created == []
+        assert [r.id for r in updated] == [repo.id]
+        assert not_created == []
+        repo.refresh_from_db()
+        assert repo.status == ObjectStatus.ACTIVE
 
 
 class CreateRepositoriesTest(TestCase):

@@ -97,6 +97,15 @@ def get_integration_repository_provider(integration: Any) -> Any:
     return provider_cls(id=provider_key)
 
 
+def _update_repo_fields(repo: RpcRepository, update_params: Mapping[str, Any]) -> None:
+    """Sets ``update_params`` on ``repo`` in place, merging ``config`` into the existing one.
+    No persistence."""
+    repo.config = {**repo.config, **(update_params.get("config") or {})}
+    for field_name, field_value in update_params.items():
+        if field_name != "config":
+            setattr(repo, field_name, field_value)
+
+
 class IntegrationRepositoryProvider(Generic[InstT]):
     """
     Repository Provider for Integrations in the Sentry Repository.
@@ -189,7 +198,6 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         integration_id = result["integration_id"]
         external_id = result["external_id"]
         name = result["name"]
-        url = result["url"]
 
         # first check if there is an existing hidden repository on this integration.
         # a repo on another integration is moved by _transfer_repository further down
@@ -204,10 +212,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         existing_repo = repositories[0] if repositories else None
         if existing_repo:
             existing_repo.status = ObjectStatus.ACTIVE
-            existing_repo.name = name
-            existing_repo.integration_id = integration_id
-            existing_repo.url = url
-            existing_repo.config = {**existing_repo.config, **(result.get("config") or {})}
+            _update_repo_fields(existing_repo, result)
             repository_service.update_repository(
                 organization_id=organization.id, update=existing_repo
             )
@@ -240,11 +245,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                     "old_provider": repo.provider,
                 },
             )
-            # update from params, merging config to preserve keys like webhook_id
-            repo.config = {**repo.config, **config_updates}
-            for field_name, field_value in repo_update_params.items():
-                if field_name != "config":
-                    setattr(repo, field_name, field_value)
+            _update_repo_fields(repo, repo_update_params)
             # also update the status if it was in a bad state
             repo.status = ObjectStatus.ACTIVE
             repository_service.update_repository(organization_id=organization.id, update=repo)
@@ -270,8 +271,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             if repositories:
                 # We anticipate to only update one repository, but we update any duplicates as well.
                 for repo in repositories:
-                    for field_name, field_value in repo_update_params.items():
-                        setattr(repo, field_name, field_value)
+                    _update_repo_fields(repo, repo_update_params)
                     repository_service.update_repository(
                         organization_id=organization.id,
                         update=repo,
@@ -296,36 +296,12 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         return result, repo
 
     def _apply_repo_config(self, repo: RpcRepository, config: RepositoryConfig) -> RpcRepository:
-        """Reactivates ``repo`` and overlays ``config`` onto it in memory. The caller persists it."""
+        """Reactivates ``repo`` and overlays ``config`` onto it, mutating it in place and
+        returning it. The caller persists it."""
         repo.status = ObjectStatus.ACTIVE
         repo.provider = self.id  # a plugin-era or provider-less row is ours now
-
-        new_config = config.get("config") or {}
-        repo.config = {**repo.config, **new_config}
-        for field_name, field_value in config.items():
-            if field_name != "config":
-                setattr(repo, field_name, field_value)
+        _update_repo_fields(repo, config)
         return repo
-
-    def _apply_configs_to_existing_repos(
-        self,
-        repositories: list[RpcRepository],
-        external_id_to_repo_config: dict[str, RepositoryConfig],
-    ) -> dict[str, RpcRepository]:
-        """
-        Applies each config to the first of ``repositories`` with its external_id, in memory.
-        Returns the updated repos keyed by external_id. The caller persists them.
-        """
-        updated_repos: dict[str, RpcRepository] = {}
-        for repo in repositories:
-            external_id = repo.external_id
-            if (
-                external_id
-                and external_id not in updated_repos
-                and (repo_config := external_id_to_repo_config.get(external_id))
-            ):
-                updated_repos[external_id] = self._apply_repo_config(repo, repo_config)
-        return updated_repos
 
     def create_repositories(
         self,
@@ -333,122 +309,165 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         organization: RpcOrganization,
     ) -> tuple[list[RpcRepository], list[RpcRepository], list[RepositoryConfig]]:
         """
-        Create or update repositories from configs.
-        Returns (created, reactivated, missing) — newly created repos, repos that
-        were reactivated or updated from a hidden/unlinked state, and repo configs
-        that could not be created because a repository with that configuration
-        already exists. A repo that was already active has its config refreshed but
-        is not reported as reactivated.
+        Make every repo in ``configs`` exist on its integration: update the ones we already
+        have, create the rest. Returns (created, updated, not_created) — newly created repos,
+        existing repos that were updated (reactivated, relinked or transferred), and configs
+        that weren't created because a repo already existed for them. A repo that was already
+        active on its integration has its config refreshed but is not reported as updated.
         """
-        external_id_to_repo_config: dict[str, RepositoryConfig] = {}
+        configs_by_external_id: dict[str, RepositoryConfig] = {}
         for config in configs:
             result = self.build_repository_config(organization=organization, data=config)
-            external_id_to_repo_config[result["external_id"]] = result
+            configs_by_external_id[result["external_id"]] = result
 
-        repos_to_update: list[RpcRepository] = []
-        refreshed_repos: list[RpcRepository] = []
-        created_repos: list[RpcRepository] = []
-        transferred_repos: list[RpcRepository] = []
+        existing_repos = self._find_repositories(organization, set(configs_by_external_id))
 
-        # only reuse hidden repos on the integration being synced. a hidden repo on another
-        # integration is moved by _transfer_repository below, which also moves its code mappings.
-        integration_ids = {
-            config["integration_id"] for config in external_id_to_repo_config.values()
-        }
-        hidden_repos = [
-            repo
-            for integration_id in integration_ids
-            for repo in repository_service.get_repositories(
-                organization_id=organization.id,
-                integration_id=integration_id,
-                providers=[self.id],
-                status=ObjectStatus.HIDDEN,
+        configs_to_create: list[RepositoryConfig] = []
+        repos_to_update: list[tuple[RpcRepository, RepositoryConfig]] = []
+        repos_to_transfer: list[tuple[RpcRepository, RepositoryConfig]] = []
+
+        for external_id, repo_config in configs_by_external_id.items():
+            repo = existing_repos.get(external_id)
+            if repo is None:
+                configs_to_create.append(repo_config)
+            elif (
+                repo.integration_id == repo_config["integration_id"] or repo.integration_id is None
+            ):
+                repos_to_update.append((repo, repo_config))
+            else:
+                repos_to_transfer.append((repo, repo_config))
+
+        created_repos, already_created = self._create_missing_repositories(
+            organization, configs_to_create
+        )
+
+        # callers (link_all_repos) treat the third return value as "configs I asked for that
+        # weren't created". only a repo that was already active on this integration counts —
+        # capture status and integration_id before _update_existing_repositories, which
+        # mutates both in place via _apply_repo_config. unlinked/legacy rows (integration_id
+        # is None) are adopted here and must not be reported as not-created.
+        already_active = [
+            (repo, config)
+            for repo, config in repos_to_update
+            if (
+                repo.status == ObjectStatus.ACTIVE
+                and repo.integration_id == config["integration_id"]
             )
         ]
+        already_active_ids = {repo.id for repo, _ in already_active}
 
-        # reuse hidden repos first, then repos without an integration
-        unlinked_repos = self._adoptable_repositories(organization.id, has_integration=False)
+        updated_repos = [
+            repo
+            for repo in self._update_existing_repositories(organization, repos_to_update)
+            if repo.id not in already_active_ids
+        ]
 
-        for existing_repos in (hidden_repos, unlinked_repos):
-            updated_repos = self._apply_configs_to_existing_repos(
-                existing_repos, external_id_to_repo_config
-            )
-            repos_to_update.extend(updated_repos.values())
-            # these configs are satisfied by an existing repo, so don't create them
-            for external_id in updated_repos:
-                del external_id_to_repo_config[external_id]
+        transferred_repos, untransferable = self._transfer_repositories(
+            organization, repos_to_transfer
+        )
 
-        # create remaining repositories
-        missing_repos: list[RepositoryConfig] = []
-        for external_id, repo_config in external_id_to_repo_config.items():
-            integration_id = repo_config["integration_id"]
+        not_created = already_created + [config for _, config in already_active] + untransferable
+
+        return created_repos, updated_repos + transferred_repos, not_created
+
+    def _find_repositories(
+        self, organization: RpcOrganization, external_ids: set[str]
+    ) -> dict[str, RpcRepository]:
+        """
+        The org's repo for each external_id, on any integration of this provider or on none.
+        Includes unlinked rows this provider may adopt: plugin-era ones and ones with no
+        provider (see ``_adoptable_repositories``).
+        """
+        provider_repos = repository_service.get_repositories(
+            organization_id=organization.id,
+            providers=[self.id],
+        )
+        legacy_repos = self._adoptable_repositories(organization.id, has_integration=False)
+
+        found: dict[str, RpcRepository] = {}
+        for repo in provider_repos + legacy_repos:
+            external_id = repo.external_id
+            if external_id is None or external_id not in external_ids or external_id in found:
+                continue
+            if repo.status in (ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS):
+                continue
+            found[external_id] = repo
+        return found
+
+    def _create_missing_repositories(
+        self, organization: RpcOrganization, configs: list[RepositoryConfig]
+    ) -> tuple[list[RpcRepository], list[RepositoryConfig]]:
+        """
+        Inserts each config. Returns (created, lost_race): a config lands in lost_race when
+        a concurrent writer inserted its repo between our lookup and the insert.
+        """
+        created: list[RpcRepository] = []
+        lost_race: list[RepositoryConfig] = []
+        for repo_config in configs:
             if "name" in repo_config:
                 repo_config["name"] = repo_config["name"][:REPOSITORY_NAME_LENGTH]
             if "url" in repo_config:
                 repo_config["url"] = repo_config["url"][:REPOSITORY_URL_LENGTH]
-
             create_repository = RpcCreateRepository.parse_obj(
                 {**repo_config, "provider": self.id, "status": ObjectStatus.ACTIVE}
             )
-            new_repository = repository_service.create_repository(
+            repo = repository_service.create_repository(
                 organization_id=organization.id, create=create_repository
             )
-            if new_repository is not None:
-                self.on_create_repository(new_repository, organization)
-                created_repos.append(new_repository)
-                continue
+            if repo is None:
+                lost_race.append(repo_config)
+            else:
+                self.on_create_repository(repo, organization)
+                created.append(repo)
+        return created, lost_race
 
-            # we failed to create the repo due to an integrity error
-            # as of writing this comment the only constraint is unique_together
-            # which means this repo already exists in the database
-            # if possible update the repo with matching integration
-            repositories = repository_service.get_repositories(
-                organization_id=organization.id,
-                integration_id=integration_id,
-                external_id=external_id,
-            )
-            if repositories:
-                missing_repos.append(repo_config)
-                # We anticipate to only update one repository, but we update any duplicates as well.
-                for repo in repositories:
-                    if repo.status == ObjectStatus.ACTIVE:
-                        refreshed_repos.append(self._apply_repo_config(repo, repo_config))
-                    else:
-                        repos_to_update.append(self._apply_repo_config(repo, repo_config))
-                continue
+    def _update_existing_repositories(
+        self,
+        organization: RpcOrganization,
+        repos_and_configs: list[tuple[RpcRepository, RepositoryConfig]],
+    ) -> list[RpcRepository]:
+        """Applies each config to its repo, which also links and reactivates it, and persists them."""
+        repos = [self._apply_repo_config(repo, config) for repo, config in repos_and_configs]
+        if repos:
+            repository_service.update_repositories(organization_id=organization.id, updates=repos)
+            for repo in repos:
+                self.on_create_repository(repo, organization)
+        return repos
 
-            # if we don't find the repo on this integration, the unique constraint was hit by a
-            # repo with this external_id on another integration of this org. move it over if the
-            # provider allows it
+    def _transfer_repositories(
+        self,
+        organization: RpcOrganization,
+        repos_and_configs: list[tuple[RpcRepository, RepositoryConfig]],
+    ) -> tuple[list[RpcRepository], list[RepositoryConfig]]:
+        """
+        Moves each repo from its current integration onto the config's, if the provider allows
+        it. Returns (transferred, untransferable).
+        """
+        transferred: list[RpcRepository] = []
+        untransferable: list[RepositoryConfig] = []
+        for repo, repo_config in repos_and_configs:
+            moved = None
             if self.can_transfer_repositories:
-                transferred_repo = self._transfer_repository(organization, repo_config)
-                if transferred_repo is not None:
-                    transferred_repos.append(transferred_repo)
-                    continue
-            # the repo stays on the other integration and can't be linked to this one. this is
+                moved = self._transfer_repository(organization, repo_config)
+            if moved is not None:
+                transferred.append(moved)
+                continue
+
             # expected for providers that can't transfer (e.g. GitHub Enterprise hosts reusing
-            # numeric IDs) but is otherwise invisible, so log it. IDs only: no names or URLs
-            self.logger.info(
+            # numeric IDs) but otherwise invisible, so log it. IDs only: no names or URLs
+            self.logger.warning(
                 "repository.create.conflict",
                 extra={
                     "organization_id": organization.id,
-                    "integration_id": integration_id,
-                    "external_id": external_id,
+                    "integration_id": repo_config["integration_id"],
+                    "other_integration_id": repo.integration_id,
+                    "external_id": repo_config["external_id"],
                     "provider": self.id,
                     "can_transfer_repositories": self.can_transfer_repositories,
                 },
             )
-            missing_repos.append(repo_config)
-
-        if repos_to_update or refreshed_repos:
-            repository_service.update_repositories(
-                organization_id=organization.id,
-                updates=repos_to_update + refreshed_repos,
-            )
-            for repo in repos_to_update + refreshed_repos:
-                self.on_create_repository(repo, organization)
-
-        return created_repos, repos_to_update + transferred_repos, missing_repos
+            untransferable.append(repo_config)
+        return transferred, untransferable
 
     def _transfer_repository(
         self, organization: RpcOrganization, repo_config: RepositoryConfig

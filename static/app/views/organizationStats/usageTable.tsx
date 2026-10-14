@@ -1,7 +1,8 @@
-import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -14,12 +15,10 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {Panel} from 'sentry/components/panels/panel';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
@@ -29,8 +28,6 @@ const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restrictin
 type Props = {
   dataCategory: DataCategoryInfo;
   headers: React.ReactNode[];
-  location: Location;
-  navigate: ReactRouter3Navigate;
   usageStats: TableStat[];
   errors?: Record<string, Error>;
   isEmpty?: boolean;
@@ -51,159 +48,174 @@ export type TableStat = {
   total: number;
 };
 
-class UsageTable extends Component<Props> {
-  getErrorMessage = (errorMessage: any) => {
-    if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
-      return (
-        <EmptyMessage
-          icon={<IconWarning />}
-          title={t(
-            "You don't have access to any projects, or your organization has no projects."
-          )}
-        >
-          {tct('Learn more about [link:Project Access]', {
-            link: <ExternalLink href={DOCS_URL} />,
-          })}
-        </EmptyMessage>
-      );
-    }
-    return <IconWarning variant="muted" legacySize="48px" />;
-  };
-
-  loadProject(projectId: number) {
-    updateProjects([projectId], this.props.location, this.props.navigate, {
-      save: true,
-      environments: [], // Clear environments when switching projects
-    });
-    window.scrollTo({top: 0, left: 0, behavior: 'smooth'});
-  }
-
-  renderTableRow(stat: TableStat & {project: Project}) {
-    const {dataCategory, showStoredOutcome} = this.props;
-    const {project, total, accepted, accepted_stored, filtered, invalid, rate_limited} =
-      stat;
-
+function getErrorMessage(errorMessage: any) {
+  if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
     return (
-      <SimpleTable.Row key={project.id}>
-        <RowCellProject>
-          <Link to={stat.projectLink}>
-            <StyledIdBadge
-              avatarSize={16}
-              disableLink
-              hideOverflow
-              project={project}
-              displayName={project.slug}
-            />
-          </Link>
-        </RowCellProject>
-        <RowCellStat>
-          {formatUsageWithUnits(
-            total,
-            dataCategory.plural,
-            getFormatUsageOptions(dataCategory.plural)
-          )}
-        </RowCellStat>
-        <RowCellStat>
-          {formatUsageWithUnits(
-            accepted,
-            dataCategory.plural,
-            getFormatUsageOptions(dataCategory.plural)
-          )}
-          {showStoredOutcome && (
-            <SubText>
-              {`(${formatUsageWithUnits(
-                accepted_stored,
-                dataCategory.plural,
-                getFormatUsageOptions(dataCategory.plural)
-              )})`}
-            </SubText>
-          )}
-        </RowCellStat>
-        <RowCellStat>
-          {formatUsageWithUnits(
-            filtered,
-            dataCategory.plural,
-            getFormatUsageOptions(dataCategory.plural)
-          )}
-        </RowCellStat>
-        <RowCellStat>
-          {formatUsageWithUnits(
-            rate_limited,
-            dataCategory.plural,
-            getFormatUsageOptions(dataCategory.plural)
-          )}
-        </RowCellStat>
-        <RowCellStat>
-          {formatUsageWithUnits(
-            invalid,
-            dataCategory.plural,
-            getFormatUsageOptions(dataCategory.plural)
-          )}
-        </RowCellStat>
-        <RowCellStat>
-          <Grid flow="column" align="center" gap="md">
-            <Button
-              icon={<IconGraph type="bar" />}
-              data-test-id={project.slug}
-              size="xs"
-              onClick={() => {
-                this.loadProject(parseInt(stat.project.id, 10));
-              }}
-            >
-              {t('View Project Stats')}
-            </Button>
-            <LinkButton icon={<IconSettings />} size="xs" to={stat.projectSettingsLink}>
-              {t('Project Settings')}
-            </LinkButton>
-          </Grid>
-        </RowCellStat>
-      </SimpleTable.Row>
-    );
-  }
-
-  render() {
-    const {isEmpty, isLoading, isError, errors, headers, usageStats} = this.props;
-
-    if (isError) {
-      return (
-        <Panel>
-          <ErrorPanel height="256px">{this.getErrorMessage(errors)}</ErrorPanel>
-        </Panel>
-      );
-    }
-
-    return (
-      <SimpleTable
-        columns={USAGE_COLUMNS}
-        header={
-          <SimpleTable.HeaderRow>
-            {headers.map((header, i) => (
-              <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
-            ))}
-          </SimpleTable.HeaderRow>
-        }
-      >
-        {isLoading && <SimpleTable.Loading />}
-        {!isLoading && isEmpty && (
-          <SimpleTable.Empty>{t('No data available')}</SimpleTable.Empty>
+      <EmptyMessage
+        icon={<IconWarning />}
+        title={t(
+          "You don't have access to any projects, or your organization has no projects."
         )}
-        {!isLoading && usageStats.map(s => this.renderTableRow(s))}
-      </SimpleTable>
+      >
+        {tct('Learn more about [link:Project Access]', {
+          link: <ExternalLink href={DOCS_URL} />,
+        })}
+      </EmptyMessage>
     );
   }
+  return <IconWarning variant="muted" legacySize="48px" />;
 }
 
-/**
- * Wrapper that injects `navigate` and `location` hooks into UsageTable.
- */
-function UsageTableWithHooks(props: Omit<Props, 'navigate' | 'location'>) {
+function UsageTableRow({
+  dataCategory,
+  showStoredOutcome,
+  stat,
+}: {
+  dataCategory: DataCategoryInfo;
+  stat: TableStat;
+  showStoredOutcome?: boolean;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
-  return <UsageTable {...props} navigate={navigate} location={location} />;
+  const {
+    project,
+    projectLink,
+    projectSettingsLink,
+    total,
+    accepted,
+    accepted_stored,
+    filtered,
+    invalid,
+    rate_limited,
+  } = stat;
+
+  return (
+    <SimpleTable.Row>
+      <RowCellProject>
+        <Link to={projectLink}>
+          <StyledIdBadge
+            avatarSize={16}
+            disableLink
+            hideOverflow
+            project={project}
+            displayName={project.slug}
+          />
+        </Link>
+      </RowCellProject>
+      <RowCellStat>
+        {formatUsageWithUnits(
+          total,
+          dataCategory.plural,
+          getFormatUsageOptions(dataCategory.plural)
+        )}
+      </RowCellStat>
+      <RowCellStat>
+        {formatUsageWithUnits(
+          accepted,
+          dataCategory.plural,
+          getFormatUsageOptions(dataCategory.plural)
+        )}
+        {showStoredOutcome && (
+          <SubText>
+            {`(${formatUsageWithUnits(
+              accepted_stored,
+              dataCategory.plural,
+              getFormatUsageOptions(dataCategory.plural)
+            )})`}
+          </SubText>
+        )}
+      </RowCellStat>
+      <RowCellStat>
+        {formatUsageWithUnits(
+          filtered,
+          dataCategory.plural,
+          getFormatUsageOptions(dataCategory.plural)
+        )}
+      </RowCellStat>
+      <RowCellStat>
+        {formatUsageWithUnits(
+          rate_limited,
+          dataCategory.plural,
+          getFormatUsageOptions(dataCategory.plural)
+        )}
+      </RowCellStat>
+      <RowCellStat>
+        {formatUsageWithUnits(
+          invalid,
+          dataCategory.plural,
+          getFormatUsageOptions(dataCategory.plural)
+        )}
+      </RowCellStat>
+      <RowCellStat>
+        <Grid flow="column" align="center" gap="md">
+          <Button
+            icon={<IconGraph type="bar" />}
+            data-test-id={project.slug}
+            size="xs"
+            onClick={() => {
+              updateProjects([parseInt(project.id, 10)], location, navigate, {
+                save: true,
+                environments: [], // Clear environments when switching projects
+              });
+              window.scrollTo({top: 0, left: 0, behavior: 'smooth'});
+            }}
+          >
+            {t('View Project Stats')}
+          </Button>
+          <LinkButton icon={<IconSettings />} size="xs" to={projectSettingsLink}>
+            {t('Project Settings')}
+          </LinkButton>
+        </Grid>
+      </RowCellStat>
+    </SimpleTable.Row>
+  );
 }
 
-// eslint-disable-next-line @sentry/no-default-exports
-export default UsageTableWithHooks;
+export function UsageTable({
+  dataCategory,
+  headers,
+  usageStats,
+  errors,
+  isEmpty,
+  isError,
+  isLoading,
+  showStoredOutcome,
+}: Props) {
+  if (isError) {
+    return (
+      <Panel>
+        <ErrorPanel height="256px">{getErrorMessage(errors)}</ErrorPanel>
+      </Panel>
+    );
+  }
+
+  return (
+    <SimpleTable
+      columns={USAGE_COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          {headers.map((header, i) => (
+            <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
+          ))}
+        </SimpleTable.HeaderRow>
+      }
+    >
+      {isLoading && <SimpleTable.Loading />}
+      {!isLoading && isEmpty && (
+        <SimpleTable.Empty>{t('No data available')}</SimpleTable.Empty>
+      )}
+      {!isLoading &&
+        usageStats.map(stat => (
+          <UsageTableRow
+            key={stat.project.id}
+            dataCategory={dataCategory}
+            showStoredOutcome={showStoredOutcome}
+            stat={stat}
+          />
+        ))}
+    </SimpleTable>
+  );
+}
 
 const STAT_COLUMN_WIDTH = {zero: 'auto', xl: 'minmax(0, auto)'};
 

@@ -248,7 +248,22 @@ class _SiloModeTestModification:
             with create_context(obj):
                 return TestCase._callTestMethod(obj, method)  # type: ignore[attr-defined]
 
-        new_methods = {"_callSetUp": _callSetUp, "_callTestMethod": _callTestMethod}
+        def _callTearDown(obj: TestCase) -> Any:
+            with create_context(obj):
+                return TestCase._callTearDown(obj)  # type: ignore[attr-defined]
+
+        def doCleanups(obj: TestCase) -> Any:
+            # enterContext() cleanups can restore a settings wrapper captured during
+            # setUp. Restore the ambient settings after those cleanups have run.
+            with create_context(obj):
+                return test_class.doCleanups(obj)
+
+        new_methods = {
+            "_callSetUp": _callSetUp,
+            "_callTestMethod": _callTestMethod,
+            "_callTearDown": _callTearDown,
+            "doCleanups": doCleanups,
+        }
         name = test_class.__name__ + name_suffix
         new_class = type(name, (test_class,), new_methods)
         setattr(new_class, silo_mode_attr, (new_class, silo_mode))

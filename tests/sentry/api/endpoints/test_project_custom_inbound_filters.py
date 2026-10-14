@@ -175,13 +175,13 @@ class CustomInboundFiltersTest(APITestCase):
         with self.feature(["projects:custom-inbound-filters"]):
             self.get_error_response(self.organization.slug, self.project.slug, status_code=404)
 
-    def test_without_custom_inbound_filters_plan_feature(self) -> None:
-        with self.feature(["organizations:inbound-filters-v2"]):
-            response = self.get_error_response(
-                self.organization.slug, self.project.slug, status_code=400
-            )
+    def test_lists_without_custom_inbound_filters_plan_feature(self) -> None:
+        custom_filter = self.create_project_custom_inbound_filter(project=self.project)
 
-        assert response.data["detail"] == "You do not have that feature enabled"
+        with self.feature(["organizations:inbound-filters-v2"]):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+
+        assert [f["id"] for f in response.data] == [str(custom_filter.id)]
 
     def test_rejects_condition_the_data_type_does_not_carry(self) -> None:
         cases = [
@@ -192,7 +192,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "value": ["Rate limit*"]},
                 ],
                 "A filter on error data cannot use the log_message condition. "
-                "It accepts error_type, error_message, release, ip_address.",
+                "It accepts error_type, error_message, release, ip_address, geo_country_code.",
             ),
             (
                 "log",
@@ -219,6 +219,12 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "error_message", "value": ["TypeError*"]},
                 ],
                 "A filter on all data cannot use the error_message condition. "
+                "It accepts release, ip_address.",
+            ),
+            (
+                "all",
+                [{"type": "geo_country_code", "value": ["US"]}],
+                "A filter on all data cannot use the geo_country_code condition. "
                 "It accepts release, ip_address.",
             ),
         ]
@@ -282,6 +288,25 @@ class CustomInboundFiltersTest(APITestCase):
                 method="post",
                 name="Block the office",
                 dataType="all",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_post_geo_country_code(self) -> None:
+        """A country code is a free glob: Relay matches it case-insensitively."""
+        conditions = [{"type": "geo_country_code", "value": ["US", "c?"]}]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Drop North America",
+                dataType="error",
                 conditions=conditions,
                 status_code=201,
             )
@@ -725,7 +750,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on error data cannot use the log_message condition. "
-            "It accepts error_type, error_message, release, ip_address."
+            "It accepts error_type, error_message, release, ip_address, geo_country_code."
         )
 
     def test_put_to_catch_all(self) -> None:
@@ -897,13 +922,22 @@ class CustomInboundFilterDetailsTest(APITestCase):
                 status_code=404,
             )
 
-    def test_without_custom_inbound_filters_plan_feature(self) -> None:
+    def test_reads_without_custom_inbound_filters_plan_feature(self) -> None:
+        with self.feature(["organizations:inbound-filters-v2"]):
+            response = self.get_success_response(
+                self.organization.slug, self.project.slug, self.custom_filter.id, method="get"
+            )
+
+        assert response.data["id"] == str(self.custom_filter.id)
+
+    def test_refuses_writes_without_custom_inbound_filters_plan_feature(self) -> None:
         with self.feature(["organizations:inbound-filters-v2"]):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 self.custom_filter.id,
-                method="get",
+                method="put",
+                active=False,
                 status_code=400,
             )
 

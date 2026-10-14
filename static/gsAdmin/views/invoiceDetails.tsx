@@ -1,6 +1,7 @@
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -17,7 +18,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {isBillingAdmin, prettyDate} from 'admin/utils';
@@ -145,7 +145,7 @@ export function InvoiceDetails() {
 
   const overviewPanel = (
     <DetailsContainer>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Customer">
           {customer.isDeleted ? (
             <span>
@@ -172,13 +172,13 @@ export function InvoiceDetails() {
             </div>
           )}
         </DetailLabel>
-      </DetailList>
-      <DetailList>
+      </DescriptionList>
+      <DescriptionList gap="md">
         <DetailLabel title="ID">{invoice.id}</DetailLabel>
         <DetailLabel title="Effective At">
           {invoice.effectiveAt ? prettyDate(invoice.effectiveAt) : 'n/a'}
         </DetailLabel>
-      </DetailList>
+      </DescriptionList>
     </DetailsContainer>
   );
 

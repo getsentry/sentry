@@ -1,6 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconGithub} from '@sentry/icons/github';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -17,7 +21,6 @@ import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomi
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TeamSelector} from 'sentry/components/teamSelector';
-import {IconCheckmark, IconCommit, IconGithub, IconInfo} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -229,10 +232,9 @@ export function InviteMissingMembersModal({
     <Fragment>
       <h4>{t('Invite Your Dev Team')}</h4>
       {headerInfo}
-      <StyledSimpleTable
-        columns={INVITE_COLUMNS}
-        header={
-          <SimpleTable.HeaderRow sticky>
+      <StyledSimpleTable columns={INVITE_COLUMNS} customSections>
+        <SimpleTable.Head sticky>
+          <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>
               <Checkbox
                 aria-label={selectedAll ? t('Deselect All') : t('Select All')}
@@ -252,68 +254,69 @@ export function InviteMissingMembersModal({
             <SimpleTable.HeaderCell>{t('Role')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('Team')}</SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
-        }
-      >
-        {memberInvites?.map((member, i) => {
-          const checked = memberInvites[i]!.selected;
-          const username = member.externalId.split(':').pop();
-          const isTeamRolesAllowed =
-            allowedRolesMap[member.role]?.isTeamRolesAllowed ?? true;
-          return (
-            <SimpleTable.Row key={i}>
-              <SimpleTable.RowCell>
-                <Checkbox
-                  aria-label={t('Select %s', member.email)}
-                  checked={checked}
-                  onChange={() => toggleCheckbox(!checked, i)}
-                />
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell align="start" direction="column" justify="center">
-                <InlineContentRow>
-                  <IconGithub size="sm" />
-                  <StyledExternalLink href={`https://github.com/${username}`}>
-                    @{username}
-                  </StyledExternalLink>
-                </InlineContentRow>
-                <MemberEmail>{member.email}</MemberEmail>
-              </SimpleTable.RowCell>
-              <ContentRow>
-                <IconCommit size="sm" />
-                {member.commitCount}
-              </ContentRow>
-              <SimpleTable.RowCell>
-                <RoleSelectControl
-                  aria-label={t('Role')}
-                  data-test-id="select-role"
-                  disabled={false}
-                  value={member.role}
-                  roles={allowedRoles}
-                  disableUnallowed
-                  onChange={value => setRole(value?.value, i)}
-                  menuPortalTarget={modalContainerRef?.current}
-                  isInsideModal
-                />
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell>
-                <TeamSelector
-                  aria-label={t('Add to Team')}
-                  data-test-id="select-teams"
-                  disabled={!isTeamRolesAllowed}
-                  placeholder={
-                    isTeamRolesAllowed ? t('None') : t('Role cannot join teams')
-                  }
-                  onChange={(opts: any) =>
-                    setTeams(opts ? opts.map((v: any) => v.value) : [], i)
-                  }
-                  multiple
-                  clearable
-                  menuPortalTarget={modalContainerRef?.current}
-                  isInsideModal
-                />
-              </SimpleTable.RowCell>
-            </SimpleTable.Row>
-          );
-        })}
+        </SimpleTable.Head>
+        <SimpleTable.Body>
+          {memberInvites?.map((member, i) => {
+            const checked = memberInvites[i]!.selected;
+            const username = member.externalId.split(':').pop();
+            const isTeamRolesAllowed =
+              allowedRolesMap[member.role]?.isTeamRolesAllowed ?? true;
+            return (
+              <SimpleTable.Row key={i}>
+                <SimpleTable.RowCell>
+                  <Checkbox
+                    aria-label={t('Select %s', member.email)}
+                    checked={checked}
+                    onChange={() => toggleCheckbox(!checked, i)}
+                  />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell align="start" direction="column" justify="center">
+                  <InlineContentRow>
+                    <IconGithub size="sm" />
+                    <StyledExternalLink href={`https://github.com/${username}`}>
+                      @{username}
+                    </StyledExternalLink>
+                  </InlineContentRow>
+                  <MemberEmail>{member.email}</MemberEmail>
+                </SimpleTable.RowCell>
+                <ContentRow>
+                  <IconCommit size="sm" />
+                  {member.commitCount}
+                </ContentRow>
+                <SimpleTable.RowCell>
+                  <RoleSelectControl
+                    aria-label={t('Role')}
+                    data-test-id="select-role"
+                    disabled={false}
+                    value={member.role}
+                    roles={allowedRoles}
+                    disableUnallowed
+                    onChange={value => setRole(value?.value, i)}
+                    menuPortalTarget={modalContainerRef?.current}
+                    isInsideModal
+                  />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell>
+                  <TeamSelector
+                    aria-label={t('Add to Team')}
+                    data-test-id="select-teams"
+                    disabled={!isTeamRolesAllowed}
+                    placeholder={
+                      isTeamRolesAllowed ? t('None') : t('Role cannot join teams')
+                    }
+                    onChange={(opts: any) =>
+                      setTeams(opts ? opts.map((v: any) => v.value) : [], i)
+                    }
+                    multiple
+                    clearable
+                    menuPortalTarget={modalContainerRef?.current}
+                    isInsideModal
+                  />
+                </SimpleTable.RowCell>
+              </SimpleTable.Row>
+            );
+          })}
+        </SimpleTable.Body>
       </StyledSimpleTable>
       <Flex justify="between">
         <div>

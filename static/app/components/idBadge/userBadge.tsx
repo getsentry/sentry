@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
+import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import type {AvatarUser} from 'sentry/types/user';
@@ -36,6 +38,7 @@ export function UserBadge({
         user.ip ||
         user.id));
 
+  const email = displayEmail || user?.email;
   const name = <Name hideEmail={!!hideEmail}>{title}</Name>;
 
   return (
@@ -43,7 +46,22 @@ export function UserBadge({
       displayName={
         <BadgeDisplayName>
           {to ? <Link to={to}>{name}</Link> : name}
-          {!hideEmail && <Email>{displayEmail || user?.email}</Email>}
+          {!hideEmail && (
+            <Container paddingTop="2xs" width="100%">
+              {containerProps => (
+                <InfoText
+                  {...containerProps}
+                  as="div"
+                  title={email}
+                  mode="overflowOnly"
+                  size="sm"
+                  variant="muted"
+                >
+                  {email}
+                </InfoText>
+              )}
+            </Container>
+          )}
         </BadgeDisplayName>
       }
       user={user}
@@ -55,17 +73,6 @@ export function UserBadge({
 const Name = styled('span')<{hideEmail: boolean}>`
   font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const Email = styled('div')`
-  font-size: 0.875em;
-  margin-top: ${p => p.theme.space['2xs']};
-  color: ${p => p.theme.tokens.content.secondary};
   display: block;
   width: 100%;
   white-space: nowrap;

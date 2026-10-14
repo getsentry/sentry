@@ -1,10 +1,9 @@
 __all__ = (
     "AlertRule",
-    "AlertRuleActivity",
     "AlertRuleTrigger",
     "AlertRuleTriggerAction",
     "Incident",
 )
 
-from .alert_rule import AlertRule, AlertRuleActivity, AlertRuleTrigger, AlertRuleTriggerAction
+from .alert_rule import AlertRule, AlertRuleTrigger, AlertRuleTriggerAction
 from .incident import Incident

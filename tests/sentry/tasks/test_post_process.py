@@ -13,8 +13,9 @@ import pytest
 from django.db import router
 from django.test import override_settings
 from django.utils import timezone
+from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import buffer, killswitches
+from sentry import buffer, killswitches, nodestore
 from sentry.analytics.events.first_flag_sent import FirstFlagSentEvent
 from sentry.constants import ObjectStatus
 from sentry.eventstream.types import EventStreamEventType
@@ -30,6 +31,7 @@ from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
 )
 from sentry.issues.ingest import save_issue_occurrence
+from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.commit import Commit
@@ -50,6 +52,7 @@ from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
+from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
@@ -72,7 +75,6 @@ from sentry.testutils.cases import BaseTestCase, PerformanceIssueTestCase, Snuba
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.silo import assume_test_silo_mode
@@ -200,9 +202,7 @@ class BasePostProcessGroupMixin(BaseTestCase, metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
         pass
 
 
@@ -228,13 +228,11 @@ class CorePostProcessGroupTestMixin(BasePostProcessGroupMixin):
             },
             project_id=self.project.id,
         )
-        cache_key = write_event_to_cache(event)
         self.call_post_process_group(
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
             event=event,
-            cache_key=cache_key,
         )
 
         assert mock_process_workflows_event.apply_async.call_count == 0
@@ -243,45 +241,6 @@ class CorePostProcessGroupTestMixin(BasePostProcessGroupMixin):
 
         # transaction events do not call event.processed
         assert mock_signal.call_count == 0
-
-    @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
-    def test_no_cache_abort(self, mock_process_workflows_event: MagicMock) -> None:
-        event = self.create_event(data={}, project_id=self.project.id)
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-            cache_key="total-rubbish",
-        )
-
-        assert mock_process_workflows_event.apply_async.call_count == 0
-
-    def test_processing_cache_cleared(self) -> None:
-        event = self.create_event(data={}, project_id=self.project.id)
-
-        cache_key = self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-        assert event_processing_store.get(cache_key) is None
-
-    def test_processing_cache_cleared_with_commits(self) -> None:
-        # Regression test to guard against suspect commit calculations breaking the
-        # cache
-        event = self.create_event(data={}, project_id=self.project.id)
-
-        self.create_commit(repo=self.create_repo())
-        cache_key = self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-        assert event_processing_store.get(cache_key) is None
 
 
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProcessGroupMixin):
@@ -1145,11 +1104,27 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         self.prj_ownership.schema = dump_schema(rules)
         self.prj_ownership.save()
 
+        event = self.create_event(
+            data={
+                "logentry": event.data["logentry"],
+                "platform": event.platform,
+                "stacktrace": event.data["stacktrace"],
+            },
+            project_id=self.project.id,
+        )
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
             event=event,
+        )
+        event_2 = self.create_event(
+            data={
+                "logentry": event_2.data["logentry"],
+                "platform": event_2.platform,
+                "stacktrace": event_2.data["stacktrace"],
+            },
+            project_id=self.project.id,
         )
         self.call_post_process_group(
             is_new=False,
@@ -1183,11 +1158,27 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
             schema=dump_schema([code_owners_rule]),
         )
 
+        event = self.create_event(
+            data={
+                "logentry": event.data["logentry"],
+                "platform": event.platform,
+                "stacktrace": event.data["stacktrace"],
+            },
+            project_id=self.project.id,
+        )
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
             is_new_group_environment=False,
             event=event,
+        )
+        event_2 = self.create_event(
+            data={
+                "logentry": event_2.data["logentry"],
+                "platform": event_2.platform,
+                "stacktrace": event_2.data["stacktrace"],
+            },
+            project_id=self.project.id,
         )
         self.call_post_process_group(
             is_new=False,
@@ -1250,6 +1241,14 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         self.prj_ownership.schema = dump_schema(rules)
         self.prj_ownership.save()
 
+        event = self.create_event(
+            data={
+                "logentry": event.data["logentry"],
+                "platform": event.platform,
+                "stacktrace": event.data["stacktrace"],
+            },
+            project_id=self.project.id,
+        )
         self.call_post_process_group(
             is_new=False,
             is_regression=False,
@@ -1646,7 +1645,6 @@ class ProcessCommitsTestMixin(BasePostProcessGroupMixin):
             },
             project_id=self.project.id,
         )
-        self.cache_key = write_event_to_cache(self.created_event)
         self.repo = self.create_repo(
             name="org/example", integration_id=self.integration.id, provider="integrations:github"
         )
@@ -2249,6 +2247,7 @@ class ProcessingErrorsEAPTestMixin(BasePostProcessGroupMixin):
         )
         # Ensure the event has processing errors
         event.data["errors"] = [{"type": "js_no_source", "symbolicator_type": "missing_sourcemap"}]
+        event.data.save()
 
         self.call_post_process_group(
             is_new=True,
@@ -3502,16 +3501,9 @@ class PostProcessGroupErrorTest(
     PipelineKillswitchTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
-    @override_options(
-        {
-            "post_process.read-from-nodestore-sample-rate": 0.5,
-            "post_process.delete-processing-store-in-save-event": True,
-        }
-    )
-    @patch("sentry.options.rollout.random.random", return_value=0.25)
     @patch("sentry.tasks.post_process.run_post_process_job")
     def test_reads_processed_event_from_nodestore_once(
-        self, mock_run_post_process_job: MagicMock, mock_random: MagicMock
+        self, mock_run_post_process_job: MagicMock
     ) -> None:
         event = self.create_event(
             data={"message": "from nodestore", "tags": [["source", "nodestore"]]},
@@ -3522,6 +3514,11 @@ class PostProcessGroupErrorTest(
         with (
             patch.object(event_processing_store, "get") as mock_processing_store_get,
             patch.object(event_processing_store, "delete_by_key") as mock_processing_store_delete,
+            patch.object(
+                nodestore.backend,
+                "get",
+                wraps=nodestore.backend.get,
+            ) as mock_get_event,
         ):
             for _ in range(2):
                 post_process_group(
@@ -3536,60 +3533,97 @@ class PostProcessGroupErrorTest(
 
         mock_processing_store_get.assert_not_called()
         mock_processing_store_delete.assert_not_called()
-        assert mock_random.call_count == 2
+        mock_get_event.assert_called_once_with(event.data.id)
         mock_run_post_process_job.assert_called_once()
+        assert mock_run_post_process_job.call_args.args[0]["event"].group_id == event.group_id
         assert ["source", "nodestore"] in mock_run_post_process_job.call_args.args[0]["event"].data[
             "tags"
         ]
 
-    @override_options({"post_process.read-from-nodestore-sample-rate": 0.5})
-    @patch("sentry.options.rollout.random.random", return_value=0.75)
     @patch("sentry.tasks.post_process.run_post_process_job")
-    def test_unsampled_event_reads_processing_store(
-        self, mock_run_post_process_job: MagicMock, mock_random: MagicMock
+    def test_reprocessed_event_has_independent_lock(self, mock_run_job: MagicMock) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        original_group_id = event.group_id
+        self.call_post_process_group(True, False, True, event)
+        self.call_post_process_group(True, False, True, event)
+        mock_run_job.assert_called_once()
+
+        event.data["contexts"]["reprocessing"] = {"original_issue_id": original_group_id}
+        new_group = self.create_group(project=self.project)
+        event.group = new_group
+        self.call_post_process_group(True, False, True, event)
+        self.call_post_process_group(True, False, True, event)
+
+        assert mock_run_job.call_count == 2
+        original_job, reprocessed_job = [call.args[0] for call in mock_run_job.call_args_list]
+        assert original_job["event"].group_id == original_group_id
+        assert original_job["is_reprocessed"] is False
+        assert reprocessed_job["event"].group_id == new_group.id
+        assert reprocessed_job["is_reprocessed"] is True
+
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    @patch("sentry.utils.retries.time.sleep")
+    def test_retries_missing_event(self, mock_sleep: MagicMock, mock_run_job: MagicMock) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        with patch.object(nodestore.backend, "get", side_effect=[None, dict(event.data)]) as fetch:
+            self.call_post_process_group(True, False, True, event)
+
+        assert fetch.call_count == 2
+        mock_sleep.assert_called_once_with(1.0)
+        mock_run_job.assert_called_once()
+
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    @patch("sentry.utils.retries.time.sleep")
+    def test_retries_unavailable_nodestore(
+        self, mock_sleep: MagicMock, mock_run_job: MagicMock
     ) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
-
         with patch.object(
-            event_processing_store, "get", wraps=event_processing_store.get
-        ) as mock_processing_store_get:
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                cache_key=cache_key,
-                group_id=event.group_id,
-                project_id=event.project_id,
-                event_id=event.event_id,
-            )
+            nodestore.backend,
+            "get",
+            side_effect=[ServiceUnavailable("retry"), dict(event.data)],
+        ) as fetch:
+            self.call_post_process_group(True, False, True, event)
 
-        mock_random.assert_called_once()
-        mock_processing_store_get.assert_called_once_with(cache_key)
-        mock_run_post_process_job.assert_called_once()
+        assert fetch.call_count == 2
+        mock_sleep.assert_called_once_with(1.0)
+        mock_run_job.assert_called_once()
 
-    @override_options({"post_process.read-from-nodestore-sample-rate": 1.0})
     @patch("sentry.tasks.post_process.run_post_process_job")
-    def test_missing_event_id_uses_processing_store(
-        self, mock_run_post_process_job: MagicMock
+    @patch("sentry.utils.retries.time.sleep")
+    def test_missing_event_fails_after_retries(
+        self, mock_sleep: MagicMock, mock_run_job: MagicMock
     ) -> None:
         event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
-        cache_key = write_event_to_cache(event)
+        with (
+            patch.object(nodestore.backend, "get", return_value=None) as fetch,
+            pytest.raises(EventLookupError),
+        ):
+            self.call_post_process_group(True, False, True, event)
 
-        with patch.object(
-            event_processing_store, "get", wraps=event_processing_store.get
-        ) as mock_processing_store_get:
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=True,
-                cache_key=cache_key,
-                group_id=event.group_id,
-                project_id=event.project_id,
-            )
+        assert fetch.call_count == 4
+        assert mock_sleep.call_args_list == [mock.call(1.0), mock.call(2.0), mock.call(4.0)]
+        mock_run_job.assert_not_called()
 
-        mock_processing_store_get.assert_called_once_with(cache_key)
-        mock_run_post_process_job.assert_called_once()
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    @patch("sentry.utils.retries.time.sleep")
+    def test_unavailable_nodestore_fails_after_retries(
+        self, mock_sleep: MagicMock, mock_run_job: MagicMock
+    ) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        with (
+            patch.object(
+                nodestore.backend,
+                "get",
+                side_effect=ServiceUnavailable("unavailable"),
+            ) as fetch,
+            pytest.raises(ServiceUnavailable),
+        ):
+            self.call_post_process_group(True, False, True, event)
+
+        assert fetch.call_count == 4
+        assert mock_sleep.call_args_list == [mock.call(1.0), mock.call(2.0), mock.call(4.0)]
+        mock_run_job.assert_not_called()
 
     @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
     @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
@@ -3609,21 +3643,17 @@ class PostProcessGroupErrorTest(
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
-        if cache_key is None:
-            cache_key = write_event_to_cache(event)
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
+        event.data.save()
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
-            cache_key=cache_key,
             group_id=event.group_id,
+            event_id=event.event_id,
             project_id=event.project_id,
             eventstream_type=EventStreamEventType.Error.value,
         )
-        return cache_key
 
 
 class PostProcessGroupPerformanceTest(
@@ -3643,22 +3673,18 @@ class PostProcessGroupPerformanceTest(
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
         return self.create_performance_issue(fingerprint=fingerprint)
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
-        if cache_key is None:
-            cache_key = write_event_to_cache(event)
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
+        event.data.save()
         with self.feature(PerformanceNPlusOneGroupType.build_post_process_group_feature_name()):
             post_process_group(
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
-                cache_key=cache_key,
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=event.project_id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
-        return cache_key
 
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
@@ -3731,11 +3757,8 @@ class PostProcessGroupAggregateEventTest(
 
         return event
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
-        if cache_key is None:
-            cache_key = write_event_to_cache(event)
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
+        event.data.save()
         with self.feature(
             PerformanceP95EndpointRegressionGroupType.build_post_process_group_feature_name()
         ):
@@ -3743,12 +3766,11 @@ class PostProcessGroupAggregateEventTest(
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
-                cache_key=cache_key,
                 group_id=event.group_id,
+                event_id=event.event_id,
                 project_id=event.project_id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
-        return cache_key
 
 
 class PostProcessGroupGenericTest(
@@ -3776,27 +3798,19 @@ class PostProcessGroupGenericTest(
         group_event.occurrence = occurrence
         return group_event
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
-            cache_key=None,
             group_id=event.group_id,
             occurrence_id=event.occurrence.id,
             project_id=event.group.project_id,
             eventstream_type=EventStreamEventType.Generic.value,
         )
-        return cache_key
 
     def test_issueless(self) -> None:
         # Skip this test since there's no way to have issueless events in the issue platform
-        pass
-
-    def test_no_cache_abort(self) -> None:
-        # We don't use the cache for generic issues, so skip this test
         pass
 
     @patch("sentry.workflow_engine.tasks.workflows.process_workflows_event")
@@ -3811,16 +3825,67 @@ class PostProcessGroupGenericTest(
         )
         assert mock_process_workflows_event.apply_async.call_count == 1
 
-        # Calling this again should do nothing, since we've already processed this occurrence.
+        # Replaying the same occurrence must not run post-processing again.
         self.call_post_process_group(
             is_new=False,
             is_regression=True,
             is_new_group_environment=False,
             event=event,
         )
-
-        # Make sure we haven't called this again, since we should exit early.
         assert mock_process_workflows_event.apply_async.call_count == 1
+
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    def test_occurrences_for_same_event_have_independent_locks(
+        self, mock_run_job: MagicMock
+    ) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        occurrence_data = self.build_occurrence_data(
+            event_id=event.event_id,
+            project_id=event.project_id,
+            fingerprint=["second-occurrence"],
+        )
+        stored_event = Event(project_id=event.project_id, event_id=event.event_id)
+        second_occurrence, group_info = save_issue_occurrence(occurrence_data, stored_event)
+        assert group_info is not None
+
+        self.call_post_process_group(True, False, True, event)
+        post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            group_id=group_info.group.id,
+            occurrence_id=second_occurrence.id,
+            project_id=event.project_id,
+        )
+
+        assert mock_run_job.call_count == 2
+        assert mock_run_job.call_args_list[0].args[0]["event"].occurrence.id == event.occurrence.id
+        assert mock_run_job.call_args_list[1].args[0]["event"].occurrence.id == second_occurrence.id
+
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    @patch("sentry.utils.retries.time.sleep")
+    def test_occurrence_fetch_retries_missing_event(
+        self, mock_sleep: MagicMock, mock_run_job: MagicMock
+    ) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        retrieved = Event(
+            project_id=event.project_id, event_id=event.event_id, group_id=event.group_id
+        )
+        with patch.object(
+            eventstore.backend, "get_event_by_id", side_effect=[None, retrieved]
+        ) as fetch:
+            self.call_post_process_group(True, False, True, event)
+
+        assert fetch.call_count == 2
+        fetch.assert_called_with(
+            event.project_id,
+            event.event_id,
+            group_id=event.group_id,
+            skip_transaction_groupevent=True,
+            occurrence_id=event.occurrence.id,
+        )
+        mock_sleep.assert_called_once_with(1.0)
+        assert mock_run_job.call_args.args[0]["event"].occurrence.id == event.occurrence.id
 
     @patch("sentry.tasks.post_process.handle_owner_assignment")
     @patch("sentry.tasks.post_process.handle_auto_assignment")
@@ -3863,14 +3928,6 @@ class PostProcessGroupGenericTest(
             mock_process_workflow_engine,
         ]
         assert snuba_raw_query_mock.call_count == 0
-
-    @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
-    def test_processing_cache_cleared(self) -> None:
-        pass
-
-    @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
-    def test_processing_cache_cleared_with_commits(self) -> None:
-        pass
 
 
 class PostProcessGroupFeedbackTest(
@@ -3975,21 +4032,17 @@ class PostProcessGroupFeedbackTest(
         group_event.occurrence = occurrence
         return group_event
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
         with self.feature(FeedbackGroup.build_post_process_group_feature_name()):
             post_process_group(
                 is_new=is_new,
                 is_regression=is_regression,
                 is_new_group_environment=is_new_group_environment,
-                cache_key=None,
                 group_id=event.group_id,
                 occurrence_id=event.occurrence.id,
                 project_id=event.group.project_id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
-        return cache_key
 
     def run_decorated_step(self, killswitch_conditions):
         # The step is wrapped by feedback_filter_decorator, so this only works if the
@@ -4012,7 +4065,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         return calls
 
@@ -4045,7 +4097,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 0
 
@@ -4070,7 +4121,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 0
 
@@ -4096,7 +4146,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
 
@@ -4121,7 +4170,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 0
 
@@ -4145,7 +4193,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
 
@@ -4169,7 +4216,6 @@ class PostProcessGroupFeedbackTest(
                 is_regression=False,
                 is_new_group_environment=True,
                 event=event,
-                cache_key="total_rubbish",
             )
         assert mock_process_func.call_count == 1
 
@@ -4195,7 +4241,6 @@ class PostProcessGroupFeedbackTest(
                     is_regression=False,
                     is_new_group_environment=True,
                     event=event,
-                    cache_key="total_rubbish",
                 )
 
         assert mock_process_func.call_count == 0
@@ -4205,18 +4250,6 @@ class PostProcessGroupFeedbackTest(
         reason="Skip this test since there's no way to have issueless events in the issue platform"
     )
     def test_issueless(self) -> None: ...
-
-    def test_no_cache_abort(self) -> None:
-        # We don't use the cache for generic issues, so skip this test
-        pass
-
-    @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
-    def test_processing_cache_cleared(self) -> None:
-        pass
-
-    @pytest.mark.skip(reason="those tests do not work with the given call_post_process_group impl")
-    def test_processing_cache_cleared_with_commits(self) -> None:
-        pass
 
     @pytest.mark.skip(reason="escalation detection is disabled for feedback issues")
     def test_invalidates_snooze(self) -> None:
@@ -4284,20 +4317,16 @@ class ProcessDataForwardingTest(BasePostProcessGroupMixin, SnubaTestCase):
     def create_event(self, data, project_id, assert_no_errors=True):
         return self.store_event(data=data, project_id=project_id, assert_no_errors=assert_no_errors)
 
-    def call_post_process_group(
-        self, is_new, is_regression, is_new_group_environment, event, cache_key=None
-    ):
-        if cache_key is None:
-            cache_key = write_event_to_cache(event)
+    def call_post_process_group(self, is_new, is_regression, is_new_group_environment, event):
+        event.data.save()
         post_process_group(
             is_new=is_new,
             is_regression=is_regression,
             is_new_group_environment=is_new_group_environment,
-            cache_key=cache_key,
             group_id=event.group_id,
+            event_id=event.event_id,
             project_id=event.project_id,
         )
-        return cache_key
 
     def setup_forwarder(self, provider, is_enabled=True, **config_overrides):
         config = self.DEFAULT_FORWARDER_CONFIGS[provider].copy()

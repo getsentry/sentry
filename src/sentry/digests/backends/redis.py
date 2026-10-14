@@ -2,19 +2,29 @@ from __future__ import annotations
 
 import logging
 import time
+import zlib
 from collections.abc import Generator, Iterable
 from contextlib import contextmanager
 from typing import Any
 
+import rb
 from rb.clients import LocalClient
+from redis.client import StrictRedis
 from redis.exceptions import ResponseError
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.digests.backends.base import Backend, InvalidState, ScheduleEntry
 from sentry.digests.types import Record
-from sentry.utils.locking.backends.redis import RedisLockBackend
+from sentry.utils.locking.backends.redis import RedisBlasterLockBackend, RedisClusterLockBackend
 from sentry.utils.locking.lock import Lock
 from sentry.utils.locking.manager import LockManager
-from sentry.utils.redis import check_cluster_versions, get_cluster_from_options, load_redis_script
+from sentry.utils.redis import (
+    check_cluster_versions,
+    get_dynamic_cluster_from_options,
+    load_redis_script,
+    redis_clusters,
+    validate_dynamic_cluster,
+)
 from sentry.utils.versioning import Version
 
 logger = logging.getLogger("sentry.digests")
@@ -70,14 +80,51 @@ class RedisBackend(Backend):
         1) "mail:p:1"
         2) "1444847638"
 
+    On redis-blaster, the keys above are used as shown, and each blaster host
+    holds one schedule partition.
+
+    On redis-cluster, one script call must only touch keys in one hash slot.
+    Each timeline is put in one of a fixed number of schedule partitions (see
+    the ``schedule_partitions`` option), and the namespace gets a hash tag for
+    that partition. For example, if ``mail:p:1`` is in partition 3, its keys
+    are ``{d:3}:t:mail:p:1``, ``{d:3}:t:mail:p:1:r:<record>``, and so on, and
+    it is scheduled in ``{d:3}:s:w`` and ``{d:3}:s:r``. All of these keys are
+    in the same hash slot.
     """
 
+    cluster: rb.Cluster | RedisCluster[bytes] | StrictRedis[bytes]
+
     def __init__(self, **options: Any) -> None:
-        cluster, options = get_cluster_from_options("SENTRY_DIGESTS_OPTIONS", options)
-        self.cluster = cluster
-        self.locks = LockManager(RedisLockBackend(self.cluster))
+        self.is_redis_cluster, cluster, options = get_dynamic_cluster_from_options(
+            "SENTRY_DIGESTS_OPTIONS", options
+        )
+        if isinstance(cluster, rb.Cluster):
+            self.cluster = cluster
+            self.locks = LockManager(RedisBlasterLockBackend(cluster))
+        else:
+            cluster_name = options.pop("cluster", "default")
+            self.cluster = redis_clusters.get_binary(cluster_name)
+            self.locks = LockManager(RedisClusterLockBackend(cluster_name))
 
         self.namespace = options.pop("namespace", "d")
+
+        # The number of schedule partitions on redis-cluster.
+        # Each partition is one hash slot, so a higher value spreads the data over
+        # more nodes, the tradeoff is that the scheduler must run one script call
+        # for each partition.
+        #
+        # To change this value, also change ``namespace``. If only this value
+        # changes, a timeline can move to a different partition, but its entry
+        # stays in the old schedule partition. The scheduler still reads that
+        # partition, so each run sends the timeline for delivery again, and
+        # the delivery fails. With a new namespace, all keys are new, and the
+        # keys in the old namespace expire because nothing reads them.
+        #
+        # Note: this does NOT fix the issue where digests that are pending
+        # at the time of the change are not sent.
+        self.schedule_partitions = options.pop("schedule_partitions", 64)
+        if self.schedule_partitions < 1:
+            raise ValueError("The number of schedule partitions must be at least 1.")
 
         # Sets the time-to-live (in seconds) for records, timelines, and
         # digests. This can (and should) be a relatively high value, since
@@ -91,17 +138,53 @@ class RedisBackend(Backend):
         super().__init__(**options)
 
     def validate(self) -> None:
+        if not isinstance(self.cluster, rb.Cluster):
+            validate_dynamic_cluster(True, self.cluster)
+            return
+
         logger.debug("Validating Redis version...")
         check_cluster_versions(self.cluster, Version((2, 8, 9)), label="Digests")
 
-    def _get_connection(self, key: str) -> LocalClient:
-        return self.cluster.get_local_client_for_key(f"{self.namespace}:t:{key}")
+    def _get_partition_namespace(self, partition: int) -> str:
+        return f"{{{self.namespace}:{partition}}}"
+
+    def _get_timeline_namespace(self, key: str) -> str:
+        if not self.is_redis_cluster:
+            return self.namespace
+
+        # Use a stable hash. The built-in ``hash`` is different in each process.
+        partition = zlib.crc32(key.encode("utf-8")) % self.schedule_partitions
+        return self._get_partition_namespace(partition)
+
+    def _get_timeline_key(self, key: str) -> str:
+        return f"{self._get_timeline_namespace(key)}:t:{key}"
+
+    def _get_connection(self, key: str) -> LocalClient | RedisCluster[bytes] | StrictRedis[bytes]:
+        if isinstance(self.cluster, rb.Cluster):
+            return self.cluster.get_local_client_for_key(self._get_timeline_key(key))
+
+        return self.cluster
 
     def _get_timeline_lock(self, key: str, duration: int) -> Lock:
-        lock_key = f"{self.namespace}:t:{key}"
+        lock_key = self._get_timeline_key(key)
         return self.locks.get(
             lock_key, duration=duration, routing_key=lock_key, name="digest_timeline_lock"
         )
+
+    def _get_schedule_partitions(
+        self,
+    ) -> Iterable[tuple[int, str, LocalClient | RedisCluster[bytes] | StrictRedis[bytes]]]:
+        """
+        Returns the partition id, the namespace, and the client for each
+        schedule partition.
+        """
+        cluster = self.cluster
+        if isinstance(cluster, rb.Cluster):
+            for host in cluster.hosts:
+                yield host, self.namespace, cluster.get_local_client(host)
+        else:
+            for partition in range(self.schedule_partitions):
+                yield partition, self._get_partition_namespace(partition), cluster
 
     def add(
         self,
@@ -124,10 +207,10 @@ class RedisBackend(Backend):
         # them back to the appropriate boolean here.
         return bool(
             script(
-                [key],
+                [self._get_timeline_key(key)],
                 [
                     "ADD",
-                    self.namespace,
+                    self._get_timeline_namespace(key),
                     self.ttl,
                     timestamp,
                     key,
@@ -144,47 +227,59 @@ class RedisBackend(Backend):
         )
 
     def __schedule_partition(
-        self, host: int, deadline: float, timestamp: float
+        self,
+        namespace: str,
+        client: LocalClient | RedisCluster[bytes] | StrictRedis[bytes],
+        deadline: float,
+        timestamp: float,
     ) -> Iterable[tuple[bytes, float]]:
         return script(
-            ["-"],
-            ["SCHEDULE", self.namespace, self.ttl, timestamp, deadline],
-            self.cluster.get_local_client(host),
+            [f"{namespace}:s:w"],
+            ["SCHEDULE", namespace, self.ttl, timestamp, deadline],
+            client,
         )
 
     def schedule(self, deadline: float, timestamp: float | None = None) -> Iterable[ScheduleEntry]:
         if timestamp is None:
             timestamp = time.time()
 
-        for host in self.cluster.hosts:
+        for partition, namespace, client in self._get_schedule_partitions():
             try:
-                for key, timestamp in self.__schedule_partition(host, deadline, timestamp):
+                for key, timestamp in self.__schedule_partition(
+                    namespace, client, deadline, timestamp
+                ):
                     yield ScheduleEntry(key.decode("utf-8"), float(timestamp))
             except Exception as error:
                 logger.exception(
                     "Failed to perform scheduling for partition %s due to error: %s",
-                    host,
+                    partition,
                     error,
                 )
 
-    def __maintenance_partition(self, host: int, deadline: float, timestamp: float) -> None:
+    def __maintenance_partition(
+        self,
+        namespace: str,
+        client: LocalClient | RedisCluster[bytes] | StrictRedis[bytes],
+        deadline: float,
+        timestamp: float,
+    ) -> None:
         script(
-            ["-"],
-            ["MAINTENANCE", self.namespace, self.ttl, timestamp, deadline],
-            self.cluster.get_local_client(host),
+            [f"{namespace}:s:w"],
+            ["MAINTENANCE", namespace, self.ttl, timestamp, deadline],
+            client,
         )
 
     def maintenance(self, deadline: float, timestamp: float | None = None) -> None:
         if timestamp is None:
             timestamp = time.time()
 
-        for host in self.cluster.hosts:
+        for partition, namespace, client in self._get_schedule_partitions():
             try:
-                self.__maintenance_partition(host, deadline, timestamp)
+                self.__maintenance_partition(namespace, client, deadline, timestamp)
             except Exception as error:
                 logger.exception(
                     "Failed to perform maintenance on digest partition %s due to error: %s",
-                    host,
+                    partition,
                     error,
                 )
 
@@ -199,13 +294,15 @@ class RedisBackend(Backend):
             timestamp = time.time()
 
         connection = self._get_connection(key)
+        timeline_key = self._get_timeline_key(key)
+        namespace = self._get_timeline_namespace(key)
         with self._get_timeline_lock(key, duration=30).acquire():
             try:
                 response = script(
-                    [key],
+                    [timeline_key],
                     [
                         "DIGEST_OPEN",
-                        self.namespace,
+                        namespace,
                         self.ttl,
                         timestamp,
                         key,
@@ -241,8 +338,8 @@ class RedisBackend(Backend):
             yield filtered_records
 
             script(
-                [key],
-                ["DIGEST_CLOSE", self.namespace, self.ttl, timestamp, key, minimum_delay]
+                [timeline_key],
+                ["DIGEST_CLOSE", namespace, self.ttl, timestamp, key, minimum_delay]
                 + [record.key for record in records],
                 connection,
             )
@@ -253,4 +350,8 @@ class RedisBackend(Backend):
 
         connection = self._get_connection(key)
         with self._get_timeline_lock(key, duration=30).acquire():
-            script([key], ["DELETE", self.namespace, self.ttl, timestamp, key], connection)
+            script(
+                [self._get_timeline_key(key)],
+                ["DELETE", self._get_timeline_namespace(key), self.ttl, timestamp, key],
+                connection,
+            )

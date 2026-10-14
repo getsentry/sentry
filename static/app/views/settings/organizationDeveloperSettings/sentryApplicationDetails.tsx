@@ -1,5 +1,6 @@
 import {createElement, Fragment, useEffect, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -38,7 +39,6 @@ import {
   CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
   SENTRY_APP_PERMISSIONS,
 } from 'sentry/constants';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Avatar, Scope} from 'sentry/types/core';
 import type {
@@ -592,9 +592,7 @@ export default function SentryApplicationDetails() {
   const templateSlug = isInternalRoute
     ? decodeScalar(location.query.template)
     : undefined;
-  const template = getSentryAppTemplates(organization).find(
-    entry => entry.slug === templateSlug
-  );
+  const template = getSentryAppTemplates().find(entry => entry.slug === templateSlug);
   const templateFormSlug = template?.slug;
   const referrer = decodeScalar(location.query.referrer);
 
@@ -1090,25 +1088,23 @@ function SentryAppEditForm({
               <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Created On')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Scopes')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>
-                <AddTokenHeader>
-                  <Tooltip
-                    disabled={hasTokenAccess()}
-                    title={t(
-                      'You must be a Manager or Owner to create authentication tokens.'
-                    )}
+              <SimpleTable.HeaderCell align="right">
+                <Tooltip
+                  disabled={hasTokenAccess()}
+                  title={t(
+                    'You must be a Manager or Owner to create authentication tokens.'
+                  )}
+                >
+                  <Button
+                    size="xs"
+                    icon={<IconAdd />}
+                    onClick={onAddToken}
+                    disabled={!hasTokenAccess()}
+                    data-test-id="token-add"
                   >
-                    <Button
-                      size="xs"
-                      icon={<IconAdd />}
-                      onClick={onAddToken}
-                      disabled={!hasTokenAccess()}
-                      data-test-id="token-add"
-                    >
-                      {t('New Token')}
-                    </Button>
-                  </Tooltip>
-                </AddTokenHeader>
+                    {t('New Token')}
+                  </Button>
+                </Tooltip>
               </SimpleTable.HeaderCell>
             </SimpleTable.HeaderRow>
           }
@@ -1187,10 +1183,4 @@ const ClientSecret = styled('div')`
   justify-content: right;
   align-items: center;
   margin-right: 0;
-`;
-
-const AddTokenHeader = styled('div')`
-  margin: -${p => p.theme.space.md} 0;
-  display: flex;
-  justify-content: flex-end;
 `;

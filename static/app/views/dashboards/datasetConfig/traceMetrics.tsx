@@ -35,7 +35,6 @@ import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceMetricMultiMetricSelection} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricMultiMetricSelection';
 import {
   extractTraceMetricFromColumn,
   getTraceMetricDisplayFields,
@@ -219,7 +218,6 @@ function useTraceMetricsSearchBarDataProvider(
 
 function useTraceMetricsSearchScope() {
   const {state: widgetBuilderState} = useWidgetBuilderContext();
-  const hasMultiMetricSelection = useTraceMetricMultiMetricSelection();
 
   const displayFields = getTraceMetricDisplayFields(
     widgetBuilderState.displayType,
@@ -228,10 +226,7 @@ function useTraceMetricsSearchScope() {
   );
   const traceMetrics =
     displayFields?.map(extractTraceMetricFromColumn).filter(defined) ?? [];
-  const hasMultipleMetrics = hasMultipleMetricsSelected(
-    traceMetrics,
-    hasMultiMetricSelection
-  );
+  const hasMultipleMetrics = hasMultipleMetricsSelected(traceMetrics);
   const attributeQuery =
     !hasMultipleMetrics && traceMetrics[0]
       ? createTraceMetricFilter(traceMetrics[0])
@@ -378,6 +373,7 @@ export const TraceMetricsConfig: DatasetConfig<
           widgetQuery,
           timeSeries,
         }),
+        timeSeries,
       };
     });
   },

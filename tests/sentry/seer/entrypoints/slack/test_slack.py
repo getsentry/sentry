@@ -1,6 +1,7 @@
 from unittest.mock import ANY, Mock, patch
 
 import pytest
+from slack_sdk.models.blocks import LinkButtonElement, SectionBlock
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.message_builder.types import SlackAction
@@ -12,9 +13,17 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixUpdate,
 )
+from sentry.notifications.platform.tracking import NotificationLink, NotificationTrackingContext
+from sentry.notifications.platform.types import (
+    NotificationCategory,
+    NotificationProviderKey,
+    NotificationSource,
+)
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.seer.agent.client_models import PendingUserInput
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
+from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
+from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
@@ -31,9 +40,12 @@ from sentry.seer.entrypoints.slack.messaging import (
     send_thread_update,
     update_existing_message,
 )
+from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class SlackAutofixEntrypointTest(TestCase):
@@ -179,6 +191,40 @@ class SlackAutofixEntrypointTest(TestCase):
                 organization_id=cache_payload["organization_id"],
                 data=ANY,
             )
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_pr_created_and_ready_for_review_post_one_slack_message(
+        self, mock_send_threaded_message, _mock_has_access
+    ):
+        SeerOperatorAutofixCache.populate_post_autofix_cache(
+            entrypoint_key=SeerEntrypointKey.SLACK,
+            run_id=MOCK_RUN_ID,
+            cache_payload=self._get_entrypoint().create_autofix_cache_payload(),
+        )
+
+        # Non-draft PRs emit both signals back to back from the completion hook
+        with self.tasks():
+            for event_type in (
+                SentryAppEventType.SEER_PR_CREATED,
+                SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
+            ):
+                process_autofix_updates(
+                    event_type=event_type,
+                    event_payload={**MOCK_SEER_WEBHOOKS[event_type], "group_id": self.group.id},
+                    organization_id=self.organization.id,
+                )
+
+        mock_send_threaded_message.assert_called_once_with(
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+            renderable=ANY,
+        )
+        renderable = mock_send_threaded_message.call_args.kwargs["renderable"]
+        assert "https://github.com/owner/repo/pull/123" in str(renderable["blocks"])
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
     @patch(
@@ -510,6 +556,68 @@ class SlackAutofixEntrypointTest(TestCase):
         )
 
         mock_update_message.assert_called_once()
+
+    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AUTOFIX_UPDATE]})
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    def test_update_existing_message_records_sent(self, mock_update_message, mock_record_sent):
+        self.slack_request.data = {
+            "message": {"ts": self.thread_ts, "text": "Issue notification", "blocks": []}
+        }
+
+        data = self._create_update(AutofixStoppingPoint.SOLUTION)
+        install = self.integration.get_installation(organization_id=self.organization.id)
+        update_existing_message(
+            request=self.slack_request,
+            install=install,
+            channel_id=self.channel_id,
+            message_ts=self.thread_ts,
+            data=data,
+            has_complete_stage=False,
+            slack_user_id=None,
+        )
+
+        renderable: SlackRenderable = mock_update_message.call_args.kwargs["renderable"]
+        footer = renderable["blocks"][-1]
+        assert isinstance(footer, SectionBlock)
+        assert isinstance(footer.accessory, LinkButtonElement)
+        assert f"notification_uuid={data.notification_uuid}" in (footer.accessory.url or "")
+        mock_record_sent.assert_called_once_with(
+            NotificationTrackingContext(
+                source=NotificationSource.SEER_AUTOFIX_UPDATE,
+                provider=NotificationProviderKey.SLACK,
+                category=NotificationCategory.SEER,
+                notification_uuid=data.notification_uuid,
+                organization_id=self.organization.id,
+            ),
+            links={NotificationLink.ISSUE},
+        )
+
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.update_message",
+        side_effect=IntegrationError("update failed"),
+    )
+    def test_update_existing_message_failure_does_not_record_sent(
+        self, mock_update_message, mock_record_sent
+    ):
+        self.slack_request.data = {
+            "message": {"ts": self.thread_ts, "text": "Issue notification", "blocks": []}
+        }
+
+        install = self.integration.get_installation(organization_id=self.organization.id)
+        update_existing_message(
+            request=self.slack_request,
+            install=install,
+            channel_id=self.channel_id,
+            message_ts=self.thread_ts,
+            data=self._create_update(AutofixStoppingPoint.SOLUTION),
+            has_complete_stage=False,
+            slack_user_id=None,
+        )
+
+        mock_update_message.assert_called_once()
+        mock_record_sent.assert_not_called()
 
     def _assert_stopping_point_from_action(self, value, expected):
         action = BlockKitMessageAction(
