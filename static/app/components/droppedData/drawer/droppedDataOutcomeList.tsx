@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {useDrawerContentContext} from '@sentry/scraps/drawer';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
@@ -77,9 +78,15 @@ function FixThisMenu({row, onInvestigate}: {row: ReasonRow; onInvestigate?: () =
       items={items}
       position="bottom-end"
       trigger={(triggerProps, isOpen) => (
-        <Button {...triggerProps} variant="primary" size="sm" aria-expanded={isOpen}>
+        <OverlayTrigger.Button
+          {...triggerProps}
+          showChevron={false}
+          variant="primary"
+          size="sm"
+          aria-expanded={isOpen}
+        >
           {t('Fix this')}
-        </Button>
+        </OverlayTrigger.Button>
       )}
     />
   );
