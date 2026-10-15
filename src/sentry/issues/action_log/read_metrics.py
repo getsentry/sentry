@@ -10,7 +10,7 @@ ACTIVITY_READ_METRIC = "issues.action_log.activity_read"
 class ActivityReadResult(StrEnum):
     #: Activity is the authoritative read source, independent of the GAL gate.
     ACTIVITY = "activity"
-    #: The log backed the response.
+    #: Served through the GAL-enabled path; feed comments still come from Activity.
     GAL = "group_action_log"
     #: The gate was open, or the flag was on, but we served Activity anyway.
     FELL_BACK = "fell_back"
