@@ -1,11 +1,14 @@
 import zlib
 from typing import Any
+from unittest import mock
 
 import msgpack
 import pytest
+from google.api_core.exceptions import BadGateway
 
 from sentry.replays.consumers.recording import (
     DropSilently,
+    commit_message,
     decompress_segment,
     parse_headers,
     parse_recording_event,
@@ -520,6 +523,33 @@ def test_process_message_no_headers() -> None:
 
     kafka_message = make_kafka_message(message)
     assert process_message(kafka_message) is None
+
+
+def test_commit_message_reraises_bad_gateway() -> None:
+    """A 502 that outlasts the upload retries fails the task so it can be retried."""
+    with (
+        mock.patch(
+            "sentry.replays.consumers.recording.commit_recording_message",
+            side_effect=BadGateway("502"),
+        ),
+        mock.patch("sentry.replays.consumers.recording.track_recording_metadata") as track,
+    ):
+        with pytest.raises(BadGateway):
+            commit_message(mock.Mock(), {"has_sent_replays_cache": None, "options_cache": None})
+
+    assert track.call_count == 0
+
+
+def test_commit_message_drops_non_retryable_errors() -> None:
+    """Errors outside the retryable set are logged and the message is dropped."""
+    with mock.patch(
+        "sentry.replays.consumers.recording.commit_recording_message",
+        side_effect=ValueError("boom"),
+    ):
+        assert (
+            commit_message(mock.Mock(), {"has_sent_replays_cache": None, "options_cache": None})
+            is None
+        )
 
 
 def make_kafka_message(message: bytes | dict[str, Any]) -> bytes:
