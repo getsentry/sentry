@@ -27,21 +27,6 @@ import {
   providerDetails,
 } from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
-export type {
-  ChannelIdentityField,
-  IntegrationChannel,
-  IssueAlertNotificationProps,
-  NotificationSelection,
-} from 'sentry/views/projectInstall/messagingIntegrationTypes';
-export {
-  buildIntegrationAction,
-  buildNotificationSelection,
-  getChannelSelectedBy,
-  getChannelTarget,
-  MultipleCheckboxOptions,
-  providerDetails,
-} from 'sentry/views/projectInstall/messagingIntegrationTypes';
-
 /**
  * Result of resolving the initial notification-picker selection, computed
  * from whatever restore source a caller-specific hook uses (a persisted
