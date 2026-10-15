@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
+from requests.exceptions import RequestException
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
 
@@ -499,7 +500,9 @@ def _merge_flamegraph_frames(
             continue
         chain = []
         for position, frame in enumerate(resolved):
-            merged = dict(original)
+            merged = dict(original) if position == 0 else {}
+            if "platform" in original:
+                merged["platform"] = original["platform"]
             if "data" in merged:
                 merged["data"] = dict(merged["data"])
             _merge_frame(merged, frame, original.get("platform", payload["platform"]))
@@ -529,13 +532,17 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         modules, frame_ids, stacktraces = _get_flamegraph_stacktraces(payload)
         if not stacktraces:
             continue
-        response = symbolicator.process_payload(
-            platform=payload["platform"],
-            stacktraces=stacktraces,
-            modules=modules,
-            frame_order=FrameOrder.caller_first,
-            apply_source_context=False,
-        )
+        try:
+            response = symbolicator.process_payload(
+                platform=payload["platform"],
+                stacktraces=stacktraces,
+                modules=modules,
+                frame_order=FrameOrder.caller_first,
+                apply_source_context=False,
+            )
+        except (OSError, RequestException) as error:
+            sentry_sdk.capture_exception(error)
+            continue
         if not response or response.get("status") != "completed":
             continue
         resolved_stacktraces = response.get("stacktraces", [])

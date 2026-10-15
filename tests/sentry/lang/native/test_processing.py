@@ -13,6 +13,7 @@ from unittest import mock
 import orjson
 import pytest
 import rapidjson
+from requests.exceptions import ConnectionError, Timeout
 
 from sentry.attachments import (
     CachedAttachment,
@@ -312,6 +313,61 @@ def test_flamegraph_rejects_invalid_image_identifiers(flamegraph_payload, field)
     assert not _is_valid_flamegraph(flamegraph_payload)
 
 
+def test_flamegraph_inline_frames_do_not_inherit_captured_metadata(flamegraph_payload) -> None:
+    original = flamegraph_payload["frames"][0]
+    original.update(
+        filename="captured.cpp",
+        lineno=42,
+        function="captured",
+        addr_mode="rel:0",
+        platform="native",
+    )
+    before = deepcopy(flamegraph_payload)
+    output = _merge_flamegraph_frames(
+        flamegraph_payload,
+        [0],
+        [{"frames": [{"status": "symbolicated"}, {"status": "symbolicated"}]}],
+    )
+    assert output["frames"][0]["filename"] == "captured.cpp"
+    assert output["frames"][0]["data"]["custom"] == "retained"
+    inline = output["frames"][1]
+    assert inline["instruction_addr"] == original["instruction_addr"]
+    assert inline["addr_mode"] == "rel:0"
+    assert inline["platform"] == "native"
+    assert "filename" not in inline
+    assert "lineno" not in inline
+    assert "function" not in inline
+    assert "custom" not in inline["data"]
+    assert flamegraph_payload == before
+
+
+@django_db_all
+@pytest.mark.parametrize("error", [TimeoutError(), Timeout(), ConnectionError()])
+def test_flamegraph_transport_error_does_not_block_event_symbolication(
+    cached_flamegraph, error
+) -> None:
+    data, payload, symbolicator = cached_flamegraph
+    data["platform"] = "native"
+    data["exception"] = {"values": [deepcopy(NATIVE_EXCEPTION)]}
+    symbolicator.process_payload.side_effect = [
+        error,
+        {
+            "status": "completed",
+            "modules": [],
+            "stacktraces": [
+                {"frames": [{"original_index": 0, "function": "main", "status": "symbolicated"}]}
+            ],
+        },
+    ]
+    with Feature({"organizations:flamegraph-attachments": True}):
+        assert process_native_stacktraces(symbolicator, data) is data
+    assert symbolicator.process_payload.call_count == 2
+    assert data["exception"]["values"][0]["stacktrace"]["frames"][0]["function"] == "main"
+    assert next(get_attachments_for_event(data)).load_data(symbolicator.project) == orjson.dumps(
+        payload
+    )
+
+
 @django_db_all
 @pytest.mark.parametrize("error", [MissingAttachmentChunks(), FileNotFoundError()])
 def test_flamegraph_unavailable_data_does_not_block_event_symbolication(
@@ -412,7 +468,7 @@ def test_flamegraph_deep_inline_expansion(cached_flamegraph, depth) -> None:
 
 
 @django_db_all
-def test_flamegraph_oversized_rewrite_preserves_original(cached_flamegraph) -> None:
+def test_flamegraph_large_frame_metadata_is_not_duplicated(cached_flamegraph) -> None:
     data, payload, symbolicator = cached_flamegraph
     payload["frames"][0]["custom"] = "x" * (6 * 1024 * 1024)
     raw = orjson.dumps(payload)
@@ -423,7 +479,23 @@ def test_flamegraph_oversized_rewrite_preserves_original(cached_flamegraph) -> N
         timeout=60,
     )
     with Feature({"organizations:flamegraph-attachments": True}):
+        assert process_native_stacktraces(symbolicator, data) is data
+    processed = orjson.loads(next(get_attachments_for_event(data)).load_data(symbolicator.project))
+    assert processed["frames"][0]["custom"] == payload["frames"][0]["custom"]
+    assert "custom" not in processed["frames"][1]
+    assert processed["_symbolication"]["status"] == "completed"
+
+
+@django_db_all
+def test_flamegraph_oversized_rewrite_preserves_original(cached_flamegraph) -> None:
+    data, payload, symbolicator = cached_flamegraph
+    raw = orjson.dumps(payload)
+    with (
+        Feature({"organizations:flamegraph-attachments": True}),
+        mock.patch("sentry.lang.native.flamegraphs.MAX_FLAMEGRAPH_SIZE", len(raw)),
+    ):
         assert process_native_stacktraces(symbolicator, data) is None
+    symbolicator.process_payload.assert_called_once()
     assert next(get_attachments_for_event(data)).load_data(symbolicator.project) == raw
 
 
@@ -709,8 +781,7 @@ def test_flamegraph_checkpoint_survives_later_timeout(multiple_flamegraphs) -> N
         TimeoutError(),
     ]
     with Feature({"organizations:flamegraph-attachments": True}):
-        with pytest.raises(TimeoutError):
-            process_native_stacktraces(symbolicator, data)
+        assert process_native_stacktraces(symbolicator, data) is data
     assert symbolicator.process_payload.call_count == 2
     first_attachment, other_attachment, second_attachment = get_attachments_for_event(data)
     first_processed = orjson.loads(first_attachment.load_data(symbolicator.project))
