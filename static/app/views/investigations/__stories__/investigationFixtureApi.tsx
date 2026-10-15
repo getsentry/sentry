@@ -159,7 +159,8 @@ export function InvestigationFixtureApi({
 
 /**
  * Stories view investigations as Ada Lovelace, with the signed-in user's id, so
- * they look the same for everyone who opens them.
+ * they look the same for everyone who opens them. Ada's fixture comments are
+ * yours, so they get the author-only actions.
  */
 export function useStoryViewer(): AvatarUser {
   const {id} = useUser();
@@ -279,7 +280,11 @@ function createFixtureState(config: FixtureApiConfig): FixtureState {
     comments: new Map(
       Object.entries(config.comments ?? {}).map(([key, comments]) => [
         key,
-        cloneFixture(comments),
+        cloneFixture(comments).map(comment =>
+          comment.author?.id === commentStoryAuthors.ADA.id
+            ? {...comment, author: config.viewer}
+            : comment
+        ),
       ])
     ),
     details,
@@ -474,6 +479,36 @@ function handleFixtureRequest(
     });
     state.comments.set(investigationId, [...comments, comment]);
     return {body: cloneFixture(comment)};
+  }
+
+  const commentId = parts[2];
+  if (parts[1] === 'comments' && commentId && parts.length === 3) {
+    const comments = state.comments.get(investigationId) ?? [];
+    const comment = comments.find(candidate => candidate.id === commentId);
+    if (!comment) {
+      throw new Error(`Unknown fixture investigation comment: ${commentId}`);
+    }
+
+    if (method === 'PUT') {
+      const updated = {
+        ...comment,
+        body: getDataString(data, 'body') ?? comment.body,
+        dateUpdated: new Date().toISOString(),
+      };
+      state.comments.set(
+        investigationId,
+        comments.map(candidate => (candidate.id === commentId ? updated : candidate))
+      );
+      return {body: cloneFixture(updated)};
+    }
+
+    if (method === 'DELETE') {
+      state.comments.set(
+        investigationId,
+        comments.filter(candidate => candidate.id !== commentId)
+      );
+      return {body: undefined};
+    }
   }
 
   if (parts[1] === 'blocks' && parts.length === 2 && method === 'POST') {

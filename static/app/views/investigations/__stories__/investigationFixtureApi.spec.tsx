@@ -5,6 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
 import {InvestigationsPage} from 'sentry/views/investigations';
 import {
+  commentStoryAuthors,
   commentedInvestigation,
   commentedInvestigationComments,
 } from 'sentry/views/investigations/__stories__/commentStoryFixtures';
@@ -13,6 +14,7 @@ import {InvestigationActivity} from 'sentry/views/investigations/activity/invest
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
   InvestigationBlockFixture,
+  InvestigationCommentFixture,
   InvestigationDetailFixture,
   InvestigationListItemFixture,
   InvestigationOrchestrationFixture,
@@ -331,6 +333,49 @@ describe('InvestigationFixtureApi', () => {
       expect(
         screen.getByText('Rolling back the autoscaling change.')
       ).toBeInTheDocument();
+    });
+
+    it('edits and deletes comments, with actions only for the story viewer', async () => {
+      const investigation = InvestigationDetailFixture({id: 'editing', blocks: []});
+      const commentsUrl = `/organizations/storybook-comments-edit-test/investigations/${investigation.id}/comments/`;
+
+      render(
+        <InvestigationFixtureApi
+          organizationSlug="storybook-comments-edit-test"
+          details={[investigation]}
+          comments={{
+            [investigation.id]: [
+              InvestigationCommentFixture({
+                id: 'mine',
+                author: commentStoryAuthors.ADA,
+                body: 'First draft',
+              }),
+              InvestigationCommentFixture({
+                id: 'theirs',
+                author: commentStoryAuthors.GRACE,
+                body: 'Not mine',
+              }),
+            ],
+          }}
+        >
+          <InvestigationActivity investigation={investigation} />
+        </InvestigationFixtureApi>,
+        {organization}
+      );
+
+      expect(
+        await screen.findAllByRole('button', {name: 'Comment actions'})
+      ).toHaveLength(1);
+
+      await QUERY_API_CLIENT.requestPromise(`${commentsUrl}mine/`, {
+        method: 'PUT',
+        data: {body: 'Second draft'},
+      });
+      await QUERY_API_CLIENT.requestPromise(`${commentsUrl}theirs/`, {method: 'DELETE'});
+
+      expect(await QUERY_API_CLIENT.requestPromise(commentsUrl)).toEqual([
+        expect.objectContaining({id: 'mine', body: 'Second draft'}),
+      ]);
     });
   });
 });

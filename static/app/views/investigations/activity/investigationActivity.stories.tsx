@@ -2,12 +2,16 @@ import {Container} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 import {
+  commentStoryAuthors,
   commentedInvestigation,
   commentedInvestigationComments,
 } from 'sentry/views/investigations/__stories__/commentStoryFixtures';
 import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
 import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
-import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
+import {
+  InvestigationCommentFixture,
+  InvestigationDetailFixture,
+} from 'sentry/views/investigations/fixtures';
 
 const uncommentedInvestigation = InvestigationDetailFixture({
   id: 'uncommented-investigation',
@@ -15,6 +19,30 @@ const uncommentedInvestigation = InvestigationDetailFixture({
   blocks: [],
 });
 const archivedInvestigation = {...commentedInvestigation, status: 'archived' as const};
+const ownComments = [
+  InvestigationCommentFixture({
+    id: 'own-edited',
+    author: commentStoryAuthors.ADA,
+    body: 'Rolling back the autoscaling change. Billing on-call confirmed the timing.',
+    dateCreated: '2026-08-27T15:30:00Z',
+    dateUpdated: '2026-08-27T15:36:00Z',
+  }),
+  InvestigationCommentFixture({
+    id: 'own-block',
+    blockId: 'commented-query',
+    author: commentStoryAuthors.ADA,
+    body: 'p95 jumps right at 13:40, which lines up with the worker autoscaling change.',
+    dateCreated: '2026-08-27T15:05:00Z',
+    dateUpdated: '2026-08-27T15:05:00Z',
+  }),
+  InvestigationCommentFixture({
+    id: 'someone-elses',
+    author: commentStoryAuthors.GRACE,
+    body: 'Pulled in the billing on-call.',
+    dateCreated: '2026-08-27T14:50:00Z',
+    dateUpdated: '2026-08-27T14:50:00Z',
+  }),
+];
 
 export default Storybook.story('Investigations — Activity', story => {
   story('Page and block comments', () => (
@@ -36,6 +64,18 @@ export default Storybook.story('Investigations — Activity', story => {
     >
       <Container maxWidth="960px">
         <InvestigationActivity investigation={uncommentedInvestigation} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Your comments (as Ada Lovelace)', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-activity-own"
+      details={[commentedInvestigation]}
+      comments={{[commentedInvestigation.id]: ownComments}}
+    >
+      <Container maxWidth="960px">
+        <InvestigationActivity investigation={commentedInvestigation} />
       </Container>
     </InvestigationFixtureApi>
   ));
