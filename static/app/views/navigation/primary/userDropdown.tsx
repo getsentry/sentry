@@ -1,9 +1,9 @@
 import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {IconCheckmark} from '@sentry/icons/checkmark';
-import {IconLogOut} from '@sentry/icons/logOut';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSliders} from '@sentry/icons/sliders';
+import {IconUpload} from '@sentry/icons/upload';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
@@ -183,7 +183,7 @@ export function UserDropdown() {
           {
             key: 'signout',
             label: t('Sign Out'),
-            leadingItems: <IconLogOut />,
+            leadingItems: <IconUpload style={{transform: 'rotate(-90deg)'}} />,
             priority: 'danger' as const,
             onAction: handleLogout,
           },
