@@ -908,7 +908,13 @@ def process_investigation_updates(*, investigation_id: int) -> None:
             lifecycle.record_failure(failure_reason="run_not_found")
             return
 
-        organization = Organization.objects.get_from_cache(id=run.investigation.organization_id)
+        try:
+            organization = Organization.objects.get_from_cache(id=run.investigation.organization_id)
+        except Organization.DoesNotExist:
+            lifecycle.add_extra("investigation_id", investigation_id)
+            lifecycle.record_failure(failure_reason="organization_not_found")
+            return
+
         lifecycle.add_extras(
             {"investigation_id": investigation_id, "organization_id": organization.id}
         )

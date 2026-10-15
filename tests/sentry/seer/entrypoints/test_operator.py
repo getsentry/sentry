@@ -1457,6 +1457,22 @@ class TestProcessInvestigationUpdates(TestCase):
         assert_failure_metric(mock_record, "run_not_found")
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch(
+        "sentry.seer.entrypoints.operator.Organization.objects.get_from_cache",
+        side_effect=Organization.DoesNotExist,
+    )
+    def test_records_failure_when_organization_is_missing(
+        self, mock_get_from_cache: Mock, mock_record: Mock
+    ) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self._set_cache("slack", self.cache_payload)
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_failure_metric(mock_record, "organization_not_found")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_entrypoint_failure_does_not_stop_others(self, mock_record: Mock) -> None:
         failing_cls = self._make_entrypoint()
         failing_cls.on_investigation_update.side_effect = Exception("boom")
