@@ -39,9 +39,12 @@ function approverName(approver: SnapshotApprover) {
 
 function toAvatarUser(approver: SnapshotApprover, index: number): AvatarUser {
   return {
+    // The backend dedupes approvers on a namespaced key but serialises the bare
+    // id, so a Sentry user and a GitHub user can arrive sharing one. AvatarList
+    // keys on this, and two people under one key render as one.
+    id: approver.id ? `${approver.source}:${approver.id}` : `approver-${index}`,
     // `userDisplayName` reads `name` alone, so the fallbacks have to land there
     // or a GitHub approver carrying only a login reads as an unknown author.
-    id: approver.id ?? `approver-${index}`,
     name: approverName(approver),
     email: approver.email ?? '',
     username: approver.username ?? '',

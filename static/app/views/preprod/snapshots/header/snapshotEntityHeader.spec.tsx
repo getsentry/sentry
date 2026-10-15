@@ -1,31 +1,29 @@
+import {
+  PreprodVcsInfoFullFixture,
+  SnapshotApproverFixture,
+  SnapshotDetailsFixture,
+} from 'sentry-fixture/preprod';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {SnapshotEntityHeader} from './snapshotEntityHeader';
 
-const data = {
-  head_artifact_id: '123',
-  project_id: '456',
-  app_id: 'sentry-frontend',
-  comparison_type: 'diff',
-  comparison_state: 'success',
-  approval_status: 'requires_approval',
-  approvers: [],
-  base_artifact_id: null,
-  image_count: 0,
-  state: 'processed',
-  vcs_info: {
-    provider: 'github',
-    head_repo_name: 'getsentry/sentry',
-    head_ref: 'seer/spans-table',
-    head_sha: '169d99deadbeef',
-    pr_number: 125782,
-  },
-} as unknown as SnapshotDetailsApiResponse;
+const vcsInfo = PreprodVcsInfoFullFixture({
+  provider: 'github',
+  head_repo_name: 'getsentry/sentry',
+  head_ref: 'seer/spans-table',
+  head_sha: '169d99deadbeef',
+  pr_number: 125782,
+});
 
 function renderHeader(overrides: Partial<SnapshotDetailsApiResponse> = {}) {
-  return render(<SnapshotEntityHeader data={{...data, ...overrides}} />);
+  return render(
+    <SnapshotEntityHeader
+      data={SnapshotDetailsFixture({vcs_info: vcsInfo, ...overrides})}
+    />
+  );
 }
 
 describe('SnapshotEntityHeader title', () => {
@@ -118,8 +116,8 @@ describe('SnapshotEntityHeader approvers', () => {
     renderHeader({
       approval_status: 'approved',
       approvers: [
-        {source: 'sentry', name: 'Alice Chen'},
-        {source: 'github', username: 'bob-lee'},
+        SnapshotApproverFixture({name: 'Alice Chen'}),
+        SnapshotApproverFixture({source: 'github', name: null, username: 'bob-lee'}),
       ],
     });
 
@@ -139,7 +137,7 @@ describe('SnapshotEntityHeader approvers', () => {
     renderHeader({
       comparison_state: 'failed',
       approval_status: 'approved',
-      approvers: [{source: 'sentry', name: 'Alice Chen'}],
+      approvers: [SnapshotApproverFixture({name: 'Alice Chen'})],
     });
 
     expect(screen.getByText('Approved')).toBeInTheDocument();

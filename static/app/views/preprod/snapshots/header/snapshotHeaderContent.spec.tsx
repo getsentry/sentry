@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {SnapshotDetailsFixture} from 'sentry-fixture/preprod';
 
 import {
   render,
@@ -25,34 +26,17 @@ const API_URL = getApiUrl(
 const ARCHIVE_URL = `/organizations/${ORG_SLUG}/preprodartifacts/snapshots/${ARTIFACT_ID}/archive/`;
 const APPROVE_URL = `/organizations/${ORG_SLUG}/preprodartifacts/${ARTIFACT_ID}/approve/`;
 
-const data = {
-  head_artifact_id: ARTIFACT_ID,
-  project_id: '456',
-  comparison_type: 'solo',
-  comparison_state: 'success',
-  approval_status: 'approved',
-  approvers: [],
-  base_artifact_id: null,
-  image_count: 0,
-  images: [],
-  state: 'processed',
-  vcs_info: {},
-  added: [],
-  added_count: 0,
-  changed: [],
-  changed_count: 0,
-  removed: [],
-  removed_count: 0,
-  unchanged: [],
-  unchanged_count: 0,
-} as unknown as SnapshotDetailsApiResponse;
-
 function renderActions(overrides: Partial<SnapshotDetailsApiResponse> = {}) {
   const organization = OrganizationFixture({slug: ORG_SLUG});
   return render(
     <SnapshotHeaderContent
       snapshotId={ARTIFACT_ID}
-      data={{...data, ...overrides}}
+      data={SnapshotDetailsFixture({
+        head_artifact_id: ARTIFACT_ID,
+        comparison_type: 'solo',
+        approval_status: 'approved',
+        ...overrides,
+      })}
       organizationSlug={ORG_SLUG}
       apiUrl={API_URL}
     />,
