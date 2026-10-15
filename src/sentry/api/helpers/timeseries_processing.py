@@ -215,6 +215,18 @@ def smooth_timeseries(
 
 
 def _smooth_asap(values: Sequence[float]) -> list[float]:
+    """Smooth one observed run using Stanford's ASAP simple window search.
+
+    Reference implementation and its Apache-2.0 license at the revision used:
+        https://github.com/stanford-futuredata/ASAP/blob/bdd467b53c2af05fb5d67b28a79ed40584ee4355/ASAP-simple.js
+        https://github.com/stanford-futuredata/ASAP/blob/bdd467b53c2af05fb5d67b28a79ed40584ee4355/LICENSE
+    Paper:
+        https://arxiv.org/abs/1703.00983
+
+    Score complete windows. Retain partial startup averages to preserve bucket
+    alignment, excluding them from selection metrics. The caller handles missing
+    buckets by smoothing each observed run independently.
+    """
     max_window = (len(values) + 5) // 10
     if max_window < 2 or min(values) == max(values):
         return list(values)
