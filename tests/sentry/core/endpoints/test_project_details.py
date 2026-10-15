@@ -16,7 +16,6 @@ from sentry.db.pending_deletion import build_pending_deletion_key
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
-from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.ingest.legacy_filter_lists import STAGE_OPTION
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
@@ -209,51 +208,6 @@ class ProjectDetailsTest(APITestCase):
             ):
                 resp = self.get_success_response(self.project.organization.slug, self.project.slug)
                 assert not resp.data["isDynamicallySampled"]
-
-    def test_is_dynamically_sampled(self) -> None:
-        # test with feature flags disabled
-        with self.feature(
-            {
-                "organizations:dynamic-sampling": False,
-                "organizations:dynamic-sampling-custom": False,
-            }
-        ):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert not resp.data["isDynamicallySampled"]
-
-        # test with sampling_mode = organization
-        self.project.organization.update_option(
-            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
-        )
-
-        # test not sampled organization
-        self.project.organization.update_option("sentry:target_sample_rate", 1.0)
-        with self.feature("organizations:dynamic-sampling-custom"):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert not resp.data["isDynamicallySampled"]
-
-        # test dynamically sampled organization
-        self.project.organization.update_option("sentry:target_sample_rate", 0.1)
-        with self.feature("organizations:dynamic-sampling-custom"):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert resp.data["isDynamicallySampled"]
-
-        # test with sampling_mode = project
-        self.project.organization.update_option(
-            "sentry:sampling_mode", DynamicSamplingMode.PROJECT.value
-        )
-
-        # test with not sampled project
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        with self.feature("organizations:dynamic-sampling-custom"):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert not resp.data["isDynamicallySampled"]
-
-        # test with sampled project
-        self.project.update_option("sentry:target_sample_rate", 0.1)
-        with self.feature("organizations:dynamic-sampling-custom"):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert resp.data["isDynamicallySampled"]
 
     def test_filter_options(self) -> None:
         self.project.update_option("sentry:releases", ["1.*", "2.1.*"])
@@ -1410,42 +1364,6 @@ class ProjectUpdateTest(APITestCase):
 
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", orjson.dumps([source1]).decode())
-
-    @with_feature({"organizations:dynamic-sampling-custom": False})
-    def test_target_sample_rate_without_feature(self) -> None:
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        self.get_error_response(
-            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
-        )
-        assert self.project.get_option("sentry:target_sample_rate") == 1.0
-
-    @with_feature({"organizations:dynamic-sampling-custom": True})
-    def test_target_sample_rate_automatic_mode(self) -> None:
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        # automatic mode is called "organization" in code
-        self.organization.update_option(
-            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
-        )
-        self.get_error_response(
-            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
-        )
-        assert self.project.get_option("sentry:target_sample_rate") == 1.0
-
-    @with_feature({"organizations:dynamic-sampling-custom": True})
-    def test_target_sample_rate_invalid(self) -> None:
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
-        self.get_error_response(
-            self.org_slug, self.proj_slug, targetSampleRate=2.0, status_code=400
-        )
-        assert self.project.get_option("sentry:target_sample_rate") == 1.0
-
-    @with_feature({"organizations:dynamic-sampling-custom": True})
-    def test_target_sample_rate(self) -> None:
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
-        self.get_success_response(self.org_slug, self.proj_slug, targetSampleRate=0.1)
-        assert self.project.get_option("sentry:target_sample_rate") == 0.1
 
     def test_no_setting_grouping_configs(self) -> None:
         response = self.get_error_response(
