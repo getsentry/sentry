@@ -6,7 +6,7 @@ from datetime import timedelta
 from django.core.exceptions import ObjectDoesNotExist
 
 from sentry import quotas
-from sentry.constants import SAMPLING_MODE_DEFAULT, TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus
+from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.calculations import (
     calculate_recalibration_factor,
@@ -23,9 +23,6 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingStatus,
 )
 from sentry.dynamic_sampling.rules.utils import ProjectId
-from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
@@ -42,24 +39,14 @@ def get_configuration(organization_id: int) -> BaseDynamicSamplingConfiguration:
     except Organization.DoesNotExist:
         return NoDynamicSamplingConfiguration()
 
-    if not has_custom_dynamic_sampling(organization):
-        configuration = AutomaticDynamicSamplingConfiguration(organization)
-        if not configuration.is_enabled:
-            return NoDynamicSamplingConfiguration()
-        return configuration
-
-    if (
-        organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-        == DynamicSamplingMode.PROJECT
-    ):
-        return CustomDynamicSamplingProjectConfiguration(organization)
-
-    return CustomDynamicSamplingOrganizationConfiguration(organization)
+    configuration = AutomaticDynamicSamplingConfiguration(organization)
+    if not configuration.is_enabled:
+        return NoDynamicSamplingConfiguration()
+    return configuration
 
 
 class BaseDynamicSamplingConfiguration(ABC):
     sample_rate: TargetSampleRate = None
-    should_balance_projects: bool = True
     projects: list[Project]
 
     def __init__(self, organization: Organization) -> None:
@@ -78,8 +65,6 @@ class BaseDynamicSamplingConfiguration(ABC):
         raise NotImplementedError
 
     def get_serving_sample_rate(self) -> TargetSampleRate:
-        # For custom dynamic sampling the target rate is served as-is; only the automatic
-        # configuration applies a serving-time gate on top of it.
         return self.get_sample_rate()
 
     def get_project_sample_rates(self) -> ProjectSampleRates:
@@ -192,65 +177,3 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
             total_root_count=org_volume.total,
             window_size=SLIDING_WINDOW_HOURS,
         )
-
-
-class CustomDynamicSamplingOrganizationConfiguration(BaseDynamicSamplingConfiguration):
-    """
-    This configuration is used for organizations for which sample rates are computed based on the target sample rate option.
-    It currently applies to AM3 organizations with custom dynamic sampling enabled and sampling mode set to organization.
-    It consists of the following components:
-    - The sample rate is based on the target sample rate option that can be set by the user at the organzation level. There is no volume-based sample rate computation.
-    - Projects are rebalanced
-    """
-
-    sample_rate: TargetSampleRate
-
-    def __init__(self, organization: Organization) -> None:
-        super().__init__(organization)
-        self.projects = self._get_projects()
-
-        self.sample_rate = float(
-            self.organization.get_option("sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT)
-        )
-        self.project_sample_rates = {}
-
-    @property
-    def is_enabled(self) -> bool:
-        return True
-
-    def get_sample_rate(self) -> TargetSampleRate:
-        return self.sample_rate
-
-
-class CustomDynamicSamplingProjectConfiguration(BaseDynamicSamplingConfiguration):
-    """
-    This configuration is used for organizations for which sample rates are computed based on the target sample rate option.
-    It currently applies to AM3 organizations with custom dynamic sampling enabled and sampling mode set to project.
-    It consists of the following components:
-    - The sample rate is based on the target sample rate option that can be set by the user at the project level. There is no volume-based sample rate computation.
-    - Projects are not rebalanced
-    """
-
-    should_balance_projects: bool = False
-
-    def __init__(self, organization: Organization) -> None:
-        super().__init__(organization)
-        self.projects = self._get_projects()
-        self.project_sample_rates = self._get_project_target_sample_rates()
-
-    @property
-    def is_enabled(self) -> bool:
-        return any(sample_rate is not None for sample_rate in self.project_sample_rates.values())
-
-    def get_sample_rate(self) -> TargetSampleRate:
-        return None
-
-    def _get_project_target_sample_rates(self) -> ProjectSampleRates:
-        project_sample_rates = ProjectOption.objects.get_value_bulk(
-            self.projects, "sentry:target_sample_rate"
-        )
-
-        return {
-            project.id: float(sample_rate) if sample_rate is not None else None
-            for project, sample_rate in project_sample_rates.items()
-        }
