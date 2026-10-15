@@ -10,13 +10,12 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import {GroupActivityType, type GroupActivity} from 'sentry/types/group';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivityInputFrame} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 
 import {getActivityNoteAuthor} from './activityItem';
 import {ActivityLineContent, ActivityLineRow, type ActivityLineVariant} from './layout';
-import {ActivityLineMarker} from './progressMarker';
+import {ActivityLineMarker} from './marker';
 
 type GroupActivityNote = Extract<GroupActivity, {type: GroupActivityType.NOTE}>;
 
@@ -40,14 +39,12 @@ export function ActivityLineNote({
   timestampUnitStyle,
 }: ActivityLineNoteProps) {
   const [editing, setEditing] = useState(false);
-  const organization = useOrganization();
-  const showProgress = organization.features.includes('issue-activity-progress');
   const timestamp = (
     <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
   );
   return (
     <ActivityLineRow>
-      <ActivityLineMarker item={activity} showProgress={showProgress} />
+      <ActivityLineMarker item={activity} />
       <ActivityLineNoteHeadline
         title={t('%s commented', getActivityNoteAuthor(activity))}
         timestamp={timestamp}
