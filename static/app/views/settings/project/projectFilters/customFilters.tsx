@@ -1054,6 +1054,11 @@ const STATS_CATEGORIES = [
 // The backend builds the same string when it sends the filter to Relay.
 const OUTCOMES_REASON_PREFIX = 'custom-inbound-filter:';
 
+// A row that holds a legacy list reports under the id of that list instead.
+function getOutcomesReason(filter: CustomInboundFilter): string {
+  return filter.legacyFilter ?? `${OUTCOMES_REASON_PREFIX}${filter.id}`;
+}
+
 // What one filter dropped, per data category. A filter drops errors, logs, or trace
 // metrics, and each of those counts under its own category in ingest outcomes.
 type SeriesByCategory = Map<string, number[]>;
@@ -1551,7 +1556,7 @@ export function CustomFilters({project}: {project: Project}) {
                   <FilteredVolumeCells
                     intervals={stats?.intervals ?? []}
                     seriesByCategory={stats?.seriesByReason.get(
-                      `${OUTCOMES_REASON_PREFIX}${filter.id}`
+                      getOutcomesReason(filter)
                     )}
                     isPending={isStatsPending}
                     isError={isStatsError}

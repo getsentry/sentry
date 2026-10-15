@@ -627,6 +627,11 @@ describe('ProjectFilters', () => {
             by: {reason: 'react-hydration-errors', category: 'error'},
             series: {'sum(quantity)': [99, 99]},
           },
+          // A row that holds a legacy list reports under the id of that list.
+          {
+            by: {reason: 'error-message', category: 'error'},
+            series: {'sum(quantity)': [5, 7]},
+          },
         ],
       },
     });
@@ -634,10 +639,16 @@ describe('ProjectFilters', () => {
     renderInboundFilters([
       CustomInboundFilterFixture({id: '1', name: 'Has outcomes'}),
       CustomInboundFilterFixture({id: '2', name: 'Never matched'}),
+      CustomInboundFilterFixture({
+        id: '3',
+        name: 'Error Messages',
+        legacyFilter: 'error-message',
+      }),
     ]);
 
     expect(await screen.findByText('17')).toBeInTheDocument();
     expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.getByText('12')).toBeInTheDocument();
     expect(screen.queryByText('99')).not.toBeInTheDocument();
 
     // The chart is a canvas, so the cell describes the trend for assistive technology.
