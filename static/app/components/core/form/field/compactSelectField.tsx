@@ -72,7 +72,7 @@ export function CompactSelectField<TValue extends SelectKey>({
         };
 
   return (
-    <BaseField disabled={disabled} ref={ref}>
+    <BaseField disabled={disabled ?? props.options.length === 0} ref={ref}>
       {(fieldProps, {indicator}) => (
         <Fragment>
           <Container flex={1} minWidth={0}>
@@ -80,7 +80,7 @@ export function CompactSelectField<TValue extends SelectKey>({
               {...selectProps}
               style={{width: '100%', ...props.style}}
               triggerId={fieldProps.id}
-              disabled={fieldProps.disabled || props.options.length === 0}
+              disabled={fieldProps.disabled}
               onClose={() => {
                 props.onClose?.();
                 if (props.multiple && autoSaveContext) {
@@ -91,10 +91,7 @@ export function CompactSelectField<TValue extends SelectKey>({
                 const mergedProps = mergeProps(
                   {style: {width: '100%'}},
                   triggerProps,
-                  {
-                    ...fieldProps,
-                    disabled: fieldProps.disabled || props.options.length === 0,
-                  },
+                  fieldProps,
                   {ref: mergeRefs(triggerProps.ref, fieldProps.ref)}
                 );
                 return trigger ? (

@@ -3,6 +3,7 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -14,9 +15,15 @@ const OPTIONS = [
 function TestForm({
   customTrigger = false,
   buttonRef,
+  disabled,
+  options = OPTIONS,
+  menuFooter,
 }: {
   buttonRef?: React.Ref<HTMLButtonElement>;
   customTrigger?: boolean;
+  disabled?: boolean;
+  menuFooter?: React.ReactNode;
+  options?: typeof OPTIONS;
 }) {
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -33,7 +40,9 @@ function TestForm({
               ref={buttonRef}
               value={field.state.value}
               onChange={field.handleChange}
-              options={OPTIONS}
+              options={options}
+              disabled={disabled}
+              menuFooter={menuFooter}
               trigger={
                 customTrigger
                   ? props => (
@@ -73,6 +82,25 @@ it.each([false, true])(
     }
   }
 );
+
+it('keeps an empty menu openable when disabled is explicitly false', async () => {
+  const onCreate = jest.fn();
+  const {rerender} = render(<TestForm options={[]} />);
+  const button = screen.getByRole('button', {name: 'Fruit'});
+  expect(button).toBeDisabled();
+
+  rerender(
+    <TestForm
+      options={[]}
+      disabled={false}
+      menuFooter={<Button onClick={onCreate}>Create fruit</Button>}
+    />
+  );
+  expect(button).toBeEnabled();
+  await userEvent.click(button);
+  await userEvent.click(await screen.findByRole('button', {name: 'Create fruit'}));
+  expect(onCreate).toHaveBeenCalledTimes(1);
+});
 
 function ClearableTestForm() {
   const form = useScrapsForm({
