@@ -17,7 +17,6 @@ from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
-from sentry.digests.types import IdentifierKey
 from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.ownership import grammar
@@ -1636,7 +1635,6 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         record = digests.backend.add.call_args.args[1]
         workflow_id = futures[0].context.origin.workflow_id
         assert workflow_id is not None
-        assert record.value.identifier_key == IdentifierKey.WORKFLOW
         assert record.value.rules == [workflow_id]
         assert event.group
         mock_logger.info.assert_called_with(

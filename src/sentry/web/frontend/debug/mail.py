@@ -558,15 +558,13 @@ def digest(request: HttpRequest) -> HttpResponse:
 
             event = Event(event_id=uuid.uuid4().hex, project_id=project.id, data=data)
             event.group = group
-            workflow_ids = random.sample(list(rules.keys()), random.randint(1, len(rules)))
             records.append(
                 Record(
                     event.event_id,
                     Notification(
                         event,
-                        workflow_ids,
+                        random.sample(list(rules.keys()), random.randint(1, len(rules))),
                         notification_uuid,
-                        workflow_ids=workflow_ids,
                     ),
                     event.datetime.timestamp(),
                 )
@@ -583,15 +581,13 @@ def digest(request: HttpRequest) -> HttpResponse:
         perf_group = perf_event.group
         perf_group.project = project
 
-        workflow_ids = random.sample(list(rules.keys()), random.randint(1, len(rules)))
         records.append(
             Record(
                 perf_event.event_id,
                 Notification(
                     perf_event,
-                    workflow_ids,
+                    random.sample(list(rules.keys()), random.randint(1, len(rules))),
                     notification_uuid,
-                    workflow_ids=workflow_ids,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
                 datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc).timestamp(),
@@ -608,15 +604,13 @@ def digest(request: HttpRequest) -> HttpResponse:
         generic_group.id = i + 200  # don't clobber other issue ids
         generic_group.project = project
 
-        workflow_ids = random.sample(list(rules.keys()), random.randint(1, len(rules)))
         records.append(
             Record(
                 generic_event.event_id,
                 Notification(
                     generic_event,
-                    workflow_ids,
+                    random.sample(list(rules.keys()), random.randint(1, len(rules))),
                     notification_uuid,
-                    workflow_ids=workflow_ids,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
                 datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc).timestamp(),

@@ -68,7 +68,6 @@ class BindRecordsTestCase(TestCase):
 
     def test_record_uses_workflow_ids(self) -> None:
         assert self.record.value.rules == [self.workflow_id]
-        assert self.record.value.workflow_ids == self.record.value.rules
 
     def test_without_group(self) -> None:
         # If the record can't be associated with a group, it should be dropped

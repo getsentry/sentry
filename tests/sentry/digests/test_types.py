@@ -9,9 +9,9 @@ class TestNotificationTuple:
         notification = Notification(mock.sentinel.event)
         assert notification.identifier_key == IdentifierKey.WORKFLOW
 
-    def test_workflow_ids_are_optional_for_compatibility(self) -> None:
+    def test_pickle_shape_remains_compatible(self) -> None:
         notification = Notification(mock.sentinel.event, [mock.sentinel.workflow_id])
-        assert notification.workflow_ids is None
+        assert len(notification) == 4
 
     def test_missing_notification_uuid(self) -> None:
         notification = Notification(mock.sentinel.rule, mock.sentinel.group)

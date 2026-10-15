@@ -19,13 +19,12 @@ class IdentifierKey(StrEnum):
 
 class Notification(NamedTuple):
     event: Event | GroupEvent
-    # Compatibility field: despite its name, this contains workflow IDs.
+    # Despite its legacy name, this contains workflow IDs.
     rules: Sequence[int] = ()
     notification_uuid: str | None = None
+    # Retain this unused field while old and new workers exchange pickled records. Changing the
+    # tuple length is not safe during a rolling deploy; a follow-up can reuse this slot.
     identifier_key: IdentifierKey = IdentifierKey.WORKFLOW
-    # New records mirror `rules` here. Once all live data has both fields, readers should switch
-    # to this field. When present, both fields must contain the same values.
-    workflow_ids: Sequence[int] | None = None
 
     def with_rules(self, rules: list[NotificationOrigin]) -> NotificationWithRuleObjects:
         return NotificationWithRuleObjects(

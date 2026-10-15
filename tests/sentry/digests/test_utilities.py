@@ -100,7 +100,6 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         assert len(records) == 1
         record = records[0]
         assert record.value.rules == [workflow_id]
-        assert record.value.workflow_ids == record.value.rules
 
     def test_get_rules_from_workflows_uses_workflow_environment_for_linked_rule(self) -> None:
         project = self.create_project(fire_project_created=True)

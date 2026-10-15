@@ -87,7 +87,7 @@ def event_to_record(
         workflow_ids.append(origin.workflow_id)
     return Record(
         event.event_id,
-        Notification(event, workflow_ids, notification_uuid, workflow_ids=workflow_ids),
+        Notification(event, workflow_ids, notification_uuid),
         event.datetime.timestamp(),
     )
 
