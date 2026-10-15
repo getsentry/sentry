@@ -34,6 +34,7 @@ from sentry.discover.arithmetic import (
     parse_arithmetic,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.explore.endpoints.bases import ExploreSavedFormulaPermission
 from sentry.explore.models import (
     ExploreSavedFormula,
     ExploreSavedQueryDataset,
@@ -369,6 +370,7 @@ class FormulaSerializer(RequestSerializer):
 
 class OrganizationExploreFormulaBase(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
+    permission_classes = (ExploreSavedFormulaPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(

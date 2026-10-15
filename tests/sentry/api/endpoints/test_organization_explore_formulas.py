@@ -137,6 +137,34 @@ class TestFormulas(BaseFormulaTest):
         super().setUp()
         self.url = reverse("sentry-api-0-explore-formulas", args=[self.org.slug])
 
+    def test_member_can_create_and_edit_any_formula(self) -> None:
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        existing = self.create_formula()
+        member = self.create_user()
+        self.create_member(user=member, organization=self.org, role="member")
+        self.login_as(member)
+
+        created = self.formula_object.copy()
+        created["name"] = "formula.member_created"
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=created,
+            )
+            assert response.status_code == 201, response.content
+
+        updated = self.formula_object.copy()
+        updated["name"] = "formula.member_edit"
+        updated["formula"] = "count() + count()"
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, existing.id]),
+                data=updated,
+            )
+            assert response.status_code == 200, response.content
+        assert response.data["name"] == "formula.member_edit"
+
     def test_no_feature_flags(self) -> None:
         response = self.client.post(
             self.url,
