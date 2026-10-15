@@ -77,7 +77,6 @@ class GroupNotesEndpoint(GroupEndpoint):
             sources = dict(
                 GroupActionLogEntry.objects.filter(
                     group_id=group.id,
-                    project_id=group.project_id,
                     type=GroupActionType.COMMENT.value,
                     idempotency_key__in=[activity_action_idempotency_key(note) for note in page],
                 ).values_list("idempotency_key", "source")

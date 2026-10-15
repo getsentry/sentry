@@ -93,6 +93,13 @@ class GroupNoteTest(APITestCase):
             data={"text": "Yeah we should probably look into this"},
             datetime=now - datetime.timedelta(days=66),
         )
+        self.create_group_action_log_entry(
+            group=group1,
+            type=GroupActionType.COMMENT,
+            data={"comment_id": note1.id, "text": note1.data["text"]},
+            idempotency_key=activity_action_idempotency_key(note1),
+            source="api",
+        )
 
         project2 = self.create_project()
         group2 = self.create_group(project2)
@@ -130,6 +137,7 @@ class GroupNoteTest(APITestCase):
         assert response.data[0]["data"]["text"] == note2.data["text"]
         assert response.data[1]["id"] == str(note1.id)
         assert response.data[1]["data"]["text"] == note1.data["text"]
+        assert response.data[1]["source"] == "api"
         assert response.data[2]["id"] == str(note4.id)
         assert response.data[2]["data"]["text"] == note4.data["text"]
         assert response.data[3]["id"] == str(note3.id)
