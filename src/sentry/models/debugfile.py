@@ -108,7 +108,10 @@ def wasm_legacy_code_id(code_id: str) -> str | None:
     """
     if len(code_id) != 32:
         return None
-    return normalize_code_id(f"10{code_id}")
+    try:
+        return normalize_code_id(f"10{code_id}")
+    except SymbolicError:
+        return None
 
 
 def wasm_legacy_debug_id(debug_id: str) -> str | None:
@@ -122,7 +125,10 @@ def wasm_legacy_debug_id(debug_id: str) -> str | None:
     """
     if len(debug_id) != 36:
         return None
-    return normalize_debug_id(f"10{normalize_code_id(debug_id)[:-2]}")
+    try:
+        return normalize_debug_id(f"10{normalize_code_id(debug_id)[:-2]}")
+    except SymbolicError:
+        return None
 
 
 class BadDif(Exception):
