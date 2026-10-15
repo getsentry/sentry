@@ -20,7 +20,7 @@ import {usePrevious} from 'sentry/utils/usePrevious';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT, OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
