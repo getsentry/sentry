@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Composer, type ComposerPlugin, type ComposerValue} from '@sentry/scraps/composer';
+import {Composer, type ComposerValue} from '@sentry/scraps/composer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useCreateInvestigationCommentMutation} from 'sentry/views/investigations/api';
 
-const NO_PLUGINS: ComposerPlugin[] = [];
 const EMPTY_VALUE: ComposerValue = {text: '', mentions: []};
 
 function isSubmitKey(event: React.KeyboardEvent) {
@@ -51,7 +50,7 @@ export function CommentComposer({
         placeholder={t('Add a comment…')}
         value={value}
         onChange={setValue}
-        plugins={NO_PLUGINS}
+        plugins={[]}
         minHeight={56}
         onKeyDown={event => {
           if (isSubmitKey(event)) {
