@@ -2,6 +2,9 @@
   "name": "@sentry-internal/gs-app",
   "private": true,
   "type": "module",
+  "scripts": {
+    "test": "sentry-test --watch --config jest.config.mjs"
+  },
   "dependencies": {
     "@amplitude/analytics-browser": "^1.5.3",
     "@emotion/react": "^11.14.0",

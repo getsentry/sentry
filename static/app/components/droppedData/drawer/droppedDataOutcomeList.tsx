@@ -2,9 +2,10 @@ import {Fragment, useId, useState} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
-import {useDrawerContentContext} from '@sentry/scraps/drawer';
+import {useDrawer, useDrawerContentContext} from '@sentry/scraps/drawer';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
@@ -17,6 +18,7 @@ import {
   dataCategoryInfo,
   formatDroppedShare,
   reasonDescription,
+  reasonLongDescription,
   reasonTitle,
   type OutcomeColors,
 } from 'sentry/components/droppedData/outcomes';
@@ -31,9 +33,16 @@ const TABLE_COLUMNS: TableColumnConfig[] = Object.entries(COLUMN_WIDTHS).map(
 );
 const HEADER_COLUMNS = Object.values(COLUMN_WIDTHS).join(' ');
 
-function FixThisMenu({row, onInvestigate}: {row: ReasonRow; onInvestigate?: () => void}) {
+function FixThisMenu({
+  row,
+  onInvestigate,
+}: {
+  row: ReasonRow;
+  onInvestigate?: (row: ReasonRow) => void;
+}) {
   const organization = useOrganization();
   const {onClose: closeDroppedDataDrawer} = useDrawerContentContext();
+  const {panelRef} = useDrawer();
 
   const info = dataCategoryInfo(row.category);
 
@@ -51,11 +60,9 @@ function FixThisMenu({row, onInvestigate}: {row: ReasonRow; onInvestigate?: () =
           {
             key: 'investigate',
             label: t('Investigate'),
-            // TODO: A follow-up PR will seed Seer with per-reason context via
-            // `openChatPrompt`.
             onAction: () => {
               closeDroppedDataDrawer?.();
-              onInvestigate();
+              onInvestigate(row);
             },
           },
         ]
@@ -76,10 +83,18 @@ function FixThisMenu({row, onInvestigate}: {row: ReasonRow; onInvestigate?: () =
     <DropdownMenu
       items={items}
       position="bottom-end"
+      usePortal
+      portalContainerRef={panelRef}
       trigger={(triggerProps, isOpen) => (
-        <Button {...triggerProps} variant="primary" size="sm" aria-expanded={isOpen}>
-          {t('Fix this')}
-        </Button>
+        <OverlayTrigger.Button
+          {...triggerProps}
+          showChevron={false}
+          variant="primary"
+          size="sm"
+          aria-expanded={isOpen}
+        >
+          {t('Learn more')}
+        </OverlayTrigger.Button>
       )}
     />
   );
@@ -90,21 +105,20 @@ function ReasonExpansion({
   onInvestigate,
 }: {
   row: ReasonRow;
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }) {
+  const longDescription = reasonLongDescription(row.reason);
+
   return (
     <SimpleTable.FullWidthRow>
       <Flex
         align="center"
-        justify="between"
+        justify={longDescription ? 'between' : 'end'}
         gap="md"
         padding="lg xl"
         background="secondary"
       >
-        {/* TODO: full description of the reason will be wired in separately. */}
-        <Text size="md">
-          {t('A short description of this drop reason will go here.')}
-        </Text>
+        {longDescription && <Text size="md">{longDescription}</Text>}
         <FixThisMenu row={row} onInvestigate={onInvestigate} />
       </Flex>
     </SimpleTable.FullWidthRow>
@@ -116,7 +130,7 @@ function ReasonTableRow({
   onInvestigate,
 }: {
   row: ReasonRow;
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const description = reasonDescription(row.reason, row.category);
@@ -173,7 +187,7 @@ function ReasonTable({
 }: {
   id: string;
   reasons: ReasonRow[];
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }) {
   return (
     <SimpleTable
@@ -212,7 +226,7 @@ function OutcomeSectionRow({
 }: {
   color: string | undefined;
   section: OutcomeSection;
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const reasonTableId = useId();
@@ -266,7 +280,7 @@ function OutcomeSectionRow({
 interface DroppedDataOutcomeListProps {
   colors: OutcomeColors;
   sections: OutcomeSection[];
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }
 
 export function DroppedDataOutcomeList({

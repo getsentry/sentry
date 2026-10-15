@@ -58,12 +58,6 @@ interface DetectorSeriesQueryOptions {
    */
   query: string;
   end?: string | null;
-  /**
-   * Extra query parameters to pass
-   */
-  extra?: {
-    useOnDemandMetrics: 'true';
-  };
   extrapolationMode?: ExtrapolationMode;
   start?: string | null;
   /**

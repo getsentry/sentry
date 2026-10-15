@@ -21,6 +21,13 @@ export const ComposerEditor = styled(InputDiv)`
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 
+  /* iOS Safari zooms the page when focusing an editable element with text
+     smaller than 16px, which can push adjacent controls such as a send button
+     off-screen. */
+  @media (hover: none) and (pointer: coarse) {
+    font-size: ${p => p.theme.font.size.lg};
+  }
+
   & [data-mention] {
     font-weight: ${p => p.theme.font.weight.sans.medium};
   }

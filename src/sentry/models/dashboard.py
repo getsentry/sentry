@@ -241,6 +241,20 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             position: int
             if next_prebuilt is None or next_prebuilt.position is None:
                 position = self.get_last_position(organization, user_id) + 1
+                # get_last_position ignores unfavorited rows. One of those can still
+                # hold this slot, so append after the highest stored position instead.
+                highest_stored = (
+                    self.filter(
+                        organization=organization,
+                        user_id=user_id,
+                        position__isnull=False,
+                    )
+                    .order_by("-position")
+                    .values_list("position", flat=True)
+                    .first()
+                )
+                if highest_stored is not None and highest_stored >= position:
+                    position = highest_stored + 1
             else:
                 position = next_prebuilt.position
                 self.filter(

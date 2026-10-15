@@ -2527,6 +2527,7 @@ class UserReportEventLinkTestMixin(BasePostProcessGroupMixin):
         # since the environment already exists on this user report, we know that
         # the report and the event have already been linked, so no feedback shim should be produced
         report1 = UserReport.objects.get(project_id=project.id, event_id=event.event_id)
+        assert report1.group_id == event.group_id
         assert report1.environment_id == event.get_environment().id
         assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 

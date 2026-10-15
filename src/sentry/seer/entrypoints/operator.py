@@ -3,6 +3,8 @@ from typing import Any, NotRequired, TypedDict
 
 from sentry import features, options
 from sentry.constants import DataCategory
+from sentry.investigations.models import Investigation
+from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
 from sentry.models.activity import Activity
@@ -29,6 +31,7 @@ from sentry.seer.entrypoints.types import (
     SeerAgentEntrypoint,
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
+    SeerInvestigationEntrypoint,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
@@ -594,6 +597,28 @@ class SeerAgentOperator[CachePayloadT]:
             )
 
             return run_id
+
+
+class SeerInvestigationOperator[CachePayloadT]:
+    """
+    Connects entrypoint implementations to investigations, so all entrypoints behave the same.
+    """
+
+    def __init__(self, entrypoint: SeerInvestigationEntrypoint[CachePayloadT]):
+        self.entrypoint = entrypoint
+
+    @classmethod
+    def has_access(cls, *, organization: Organization, entrypoint_key: SeerEntrypointKey) -> bool:
+        return False
+
+    def trigger_investigation(
+        self,
+        *,
+        organization: Organization,
+        user_id: int,
+        resolved_source: BreachedMetricSource,
+    ) -> tuple[Investigation, bool] | None:
+        return None
 
 
 def _create_seer_activity(

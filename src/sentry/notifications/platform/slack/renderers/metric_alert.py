@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import orjson
+
 from sentry.incidents.models.incident import IncidentStatus
+from sentry.models.group import Group
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
@@ -12,6 +15,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
 )
+from sentry.notifications.utils.actions import MessageAction
 
 
 @renderer_registry.register(
@@ -49,6 +53,12 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
                 BlockSlackMessageBuilder.get_image_block(data.chart_url, alt="Metric Alert Chart")
             )
 
+        if data.show_investigation_button and (
+            investigation_action := cls._get_investigation_action(data)
+        ):
+            button = BlockSlackMessageBuilder.get_button_action(investigation_action)
+            blocks.append({"type": "actions", "elements": [button]})
+
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(status, ""))
         title_link = link_decorator.decorate_url(data.title_link)
         fallback_text = f"<{title_link}|*{escape_slack_text(data.title)}*>"
@@ -68,3 +78,26 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
         )
 
         return renderable
+
+    @staticmethod
+    def _get_investigation_action(data: MetricAlertNotificationData) -> MessageAction | None:
+        from sentry.integrations.slack.message_builder.routing import encode_action_id
+        from sentry.integrations.slack.message_builder.types import SlackAction
+
+        try:
+            group = Group.objects.get_from_cache(id=data.group_id)
+        except Group.DoesNotExist:
+            return None
+
+        return MessageAction(
+            name="investigate_with_seer",
+            label="Investigate with Seer",
+            value=orjson.dumps(
+                {"groupId": data.group_id, "openPeriodId": data.open_period_context.id}
+            ).decode(),
+            action_id=encode_action_id(
+                action=SlackAction.SEER_INVESTIGATION_START,
+                organization_id=data.organization_id,
+                project_id=group.project_id,
+            ),
+        )
