@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
-import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 
 // These labels need to be exported so that they can be used in audit logs
 export const retentionPrioritiesLabels = {
@@ -48,8 +47,7 @@ export function getRetentionPriorityFields(
       label: retentionPrioritiesLabels.ignoreHealthChecks,
       hintText: t('Captures fewer of your health checks transactions'),
     },
-    ...(hasDynamicSamplingCustomFeature(organization) &&
-    organization.features.includes('dynamic-sampling-minimum-sample-rate')
+    ...(organization.features.includes('dynamic-sampling-minimum-sample-rate')
       ? [
           {
             name: DynamicSamplingBiasType.MINIMUM_SAMPLE_RATE,
