@@ -8,7 +8,6 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import * as analytics from 'sentry/utils/analytics';
 import {
   LLMContextProvider,
   useLLMContext,

@@ -162,7 +162,7 @@ export function useChatSuggestions({
 
   useSuggestionsTimeout({
     queryKey: serializedQueryKey,
-    isWaiting: enabled && hasLlmChatSuggestions && query.isPending,
+    isWaiting: enabled && hasLlmChatSuggestions && query.isPending && !hasTimedOut,
     isPageReady,
     onTimeout: setTimeoutReason,
   });
