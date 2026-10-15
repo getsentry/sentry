@@ -15,7 +15,7 @@
     "@tanstack/react-query": "5.101.4",
     "admin": "workspace:@sentry-internal/gs-admin@*",
     "classnames": "2.3.1",
-    "core-js": "3.45.0",
+    "core-js": "3.50.0",
     "getsentry": "workspace:@sentry-internal/gs-app@*",
     "lodash": "^4.18.1",
     "moment-timezone": "0.6.2",
