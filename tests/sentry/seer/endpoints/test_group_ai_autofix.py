@@ -489,6 +489,25 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
     @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
     @with_feature(AGENT_TOKEN_FLAG)
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_agent_token_runs_analysis_without_approval(self, mock_trigger_explorer):
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
+        token = self._mint_agent_token()
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_trigger_explorer.assert_called_once()
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    @with_feature(AGENT_TOKEN_FLAG)
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_push_changes")
     def test_post_agent_token_open_pr_requires_approval(self, mock_push_changes):
         group = self.create_group()
