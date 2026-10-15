@@ -257,14 +257,13 @@ class BaseIssueAlertHandler(ABC):
                 rule_id__isnull=False,
             ).first()
             if alert_rule_workflow:
-                try:
-                    Rule.objects.get(
-                        id=alert_rule_workflow.rule_id,
-                        project__organization_id=detector.linked_project.organization_id,
-                    )
+                if Rule.objects.filter(
+                    id=alert_rule_workflow.rule_id,
+                    project__organization_id=detector.linked_project.organization_id,
+                ).exists():
                     legacy_rule_id = alert_rule_workflow.rule_id
-                except Rule.DoesNotExist:
-                    logger.exception(
+                else:
+                    logger.error(
                         "Rule not found when querying for AlertRuleWorkflow",
                         extra={"rule_id": alert_rule_workflow.rule_id},
                     )

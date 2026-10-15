@@ -272,6 +272,13 @@ class TestBuildQuery:
             Outcome.RATE_LIMITED,
         }
 
+        outcome_conditions = [
+            c for c in snuba_request.query.where if hasattr(c, "lhs") and c.lhs.name == "outcome"
+        ]
+        assert len(outcome_conditions) == 1
+        assert outcome_conditions[0].op == Op.IN
+        assert set(outcome_conditions[0].rhs) == set(_BILLABLE_OUTCOMES)
+
     def test_build_query_total_all_outcomes_when_none(self):
         start = datetime(2025, 3, 1, tzinfo=timezone.utc)
         end = datetime(2025, 3, 31, tzinfo=timezone.utc)
@@ -284,6 +291,9 @@ class TestBuildQuery:
         total_fn = next(f for f in select if isinstance(f, Function) and f.alias == "total")
         # No outcome filter — bare sum(quantity) for all outcomes
         assert total_fn.function == "sum"
+        assert not [
+            c for c in snuba_request.query.where if hasattr(c, "lhs") and c.lhs.name == "outcome"
+        ]
 
     def test_total_function_with_outcomes(self):
         fn = _total_function(_BILLABLE_OUTCOMES)

@@ -373,7 +373,7 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Fix this'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Learn more'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigate'}));
 
     expect(

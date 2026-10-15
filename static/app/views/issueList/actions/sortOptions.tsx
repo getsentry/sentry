@@ -1,8 +1,10 @@
 import {IconSort} from '@sentry/icons/sort';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import type {DropdownButtonProps} from '@sentry/scraps/dropdownMenu';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {
+  OverlayTrigger,
+  type OverlayTriggerButtonProps,
+} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
 import {
@@ -17,7 +19,7 @@ type Props = {
   sort: string;
   className?: string;
   showIcon?: boolean;
-  triggerSize?: DropdownButtonProps['size'];
+  triggerSize?: OverlayTriggerButtonProps['size'];
 };
 
 function getSortTooltip(key: IssueSortOptions) {

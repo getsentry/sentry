@@ -4,7 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {updateMonitor} from 'sentry/actionCreators/monitors';
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -172,8 +172,12 @@ export default function MonitorDetails() {
             )}
             {hasLastCheckIn(monitor) ? (
               <Fragment>
-                <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
-                <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
+                <Stack gap="xl">
+                  <DetailsTimeline monitor={monitor} onStatsLoaded={checkHasUnknown} />
+                  <Container>
+                    <MonitorIssues monitor={monitor} monitorEnvs={monitor.environments} />
+                  </Container>
+                </Stack>
                 <SectionHeading>{t('Recent Check-Ins')}</SectionHeading>
                 <MonitorCheckIns
                   monitorSlug={monitor.slug}

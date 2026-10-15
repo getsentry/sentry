@@ -25,6 +25,11 @@ export function JiraServerNode() {
   return tct('Create a [logo] Jira Server issue in {integration} with these [settings]', {
     logo: ActionMetadata[ActionType.JIRA_SERVER]?.icon,
     integration: <IntegrationField />,
-    settings: <TicketActionSettingsButton />,
+    settings: (
+      <TicketActionSettingsButton
+        ticketType={t('a Jira Server issue')}
+        link="https://docs.sentry.io/product/integrations/issue-tracking/jira/#issue-sync"
+      />
+    ),
   });
 }

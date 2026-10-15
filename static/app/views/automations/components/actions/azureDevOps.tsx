@@ -27,7 +27,12 @@ export function AzureDevOpsNode() {
     {
       logo: ActionMetadata[ActionType.AZURE_DEVOPS]?.icon,
       integration: <IntegrationField />,
-      settings: <TicketActionSettingsButton />,
+      settings: (
+        <TicketActionSettingsButton
+          ticketType={t('an Azure DevOps work item')}
+          link="https://docs.sentry.io/product/integrations/source-code-mgmt/azure-devops/#issue-sync"
+        />
+      ),
     }
   );
 }

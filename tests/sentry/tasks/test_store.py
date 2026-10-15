@@ -145,6 +145,7 @@ def test_move_to_process_event_inline_save_event_still_submits_process_event(
         from_symbolicate=False,
         has_attachments=False,
         data=None,
+        unprocessed=None,
     )
     assert mock_save_event.call_count == 0
     assert mock_save_event.delay.call_count == 0
@@ -191,6 +192,7 @@ def test_move_to_save_event_inline(
         start_time=None,
         event_id=EVENT_ID,
         project_id=default_project.id,
+        unprocessed=None,
     )
     assert mock_save_event.delay.call_count == 0
 
@@ -234,6 +236,7 @@ def test_process_event_mutate_and_save(
         start_time=1,
         event_id=EVENT_ID,
         project_id=default_project.id,
+        unprocessed=None,
     )
 
 
@@ -264,7 +267,12 @@ def test_process_event_no_mutate_and_save(
     mock_event_processing_store.store.assert_called_once_with(data)
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id
+        cache_key="e:1",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+        unprocessed=None,
     )
 
 
@@ -326,7 +334,12 @@ def test_process_event_unprocessed(
     assert event["unprocessed"] is True
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id
+        cache_key="e:1",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+        unprocessed=None,
     )
 
 
@@ -598,7 +611,12 @@ def test_scrubbing_after_processing(
     assert event["extra"] == {"ooo": "[Filtered]", "ooo2": "event preprocessor"}
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id
+        cache_key="e:1",
+        data=None,
+        start_time=1,
+        event_id=EVENT_ID,
+        project_id=default_project.id,
+        unprocessed=None,
     )
 
 
@@ -711,6 +729,7 @@ def test_store_consumer_type(
         start_time=1,
         event_id=EVENT_ID,
         project_id=default_project.id,
+        unprocessed=None,
     )
 
     transaction_data = {

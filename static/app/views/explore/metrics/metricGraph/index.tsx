@@ -16,6 +16,7 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {
   doesMetricSupportHeatMapVisualization,
@@ -48,6 +49,7 @@ import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
+  getFirstSamplingWarning,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
 import {
@@ -232,6 +234,13 @@ function Graph({
   const showEmptyState = isMetricOptionsEmpty && visualize.visible;
   const showEquationPrompt = isEmptyEquation && visualize.visible;
   const showChart = visualize.visible && !isMetricOptionsEmpty && !isEmptyEquation;
+  const samplingWarning = showChart
+    ? getFirstSamplingWarning(
+        visualizes.map(v => v.yAxis),
+        timeseriesResult.data,
+        chartInfo.dataScanned
+      )
+    : null;
   const canShowDroppedData = showChart && hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
@@ -240,6 +249,14 @@ function Graph({
     <WidgetWrapper hideFooterBorder>
       <Widget
         Title={<Widget.WidgetTitle title={chartTitle} />}
+        TitleBadges={
+          samplingWarning ? (
+            <SamplingWarning
+              yAxis={samplingWarning.yAxis}
+              reason={samplingWarning.reason}
+            />
+          ) : null
+        }
         Actions={
           <Fragment>
             {canShowDroppedData ? (

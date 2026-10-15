@@ -3,8 +3,13 @@ import type {Theme} from '@emotion/react';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {PlatformKey} from 'sentry/types/platform';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+import {
+  getNodeDepth,
+  getNodeConnectors,
+  isLastVisibleChild,
+} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTraversal';
 import type {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
 
 export const TRACE_COUNT_FORMATTER = Intl.NumberFormat(undefined, {notation: 'compact'});
@@ -68,12 +73,11 @@ export function TraceRowConnectors(props: {
   node: BaseNode;
 }) {
   const hasChildren = props.node.hasDirectVisibleChildren();
-  const nodeDepth = TraceTree.depth(props.node);
+  const nodeDepth = getNodeDepth(props.node);
 
   return (
     <Fragment>
-      {/* oxlint-disable-next-line react/capitalized-calls -- Static method on TraceTree, not a component. */}
-      {TraceTree.ConnectorsTo(props.node).map((c, i) => {
+      {getNodeConnectors(props.node).map((c, i) => {
         return (
           <span
             key={i}
@@ -87,8 +91,7 @@ export function TraceRowConnectors(props: {
         );
       })}
       {hasChildren ? <span className="TraceExpandedVerticalConnector" /> : null}
-      {/* oxlint-disable-next-line react/capitalized-calls -- Static method on TraceTree, not a component. */}
-      {TraceTree.IsLastVisibleChild(props.node) ? (
+      {isLastVisibleChild(props.node) ? (
         <span className="TraceVerticalLastChildConnector" />
       ) : null}
     </Fragment>
