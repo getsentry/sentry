@@ -196,3 +196,8 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
         assert len(dropped) == 1
         assert dropped[0]["reason"] == "spike_protection"
         assert dropped[0]["count"] == 150
+
+    def test_invalid_user_param(self) -> None:
+        response = self._do_request(interval="1s")
+        assert response.status_code == 400, response.content
+        assert str(response.data["detail"]).startswith("The interval has to be a multiple")

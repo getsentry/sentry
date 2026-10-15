@@ -63,9 +63,9 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
-  parseConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 interface AggregateColumnEditorModalProps extends ModalRenderProps {
@@ -168,13 +168,14 @@ export function AggregateColumnEditorModal({
                   },
                 ]}
                 trigger={triggerProps => (
-                  <Button
+                  <OverlayTrigger.Button
+                    showChevron={false}
                     {...triggerProps}
                     aria-label={t('Add a Column')}
                     icon={<IconAdd />}
                   >
                     {t('Add a Column')}
-                  </Button>
+                  </OverlayTrigger.Button>
                 )}
               />
             </RowContainer>
@@ -758,7 +759,6 @@ const RowContainer = styled('div')`
    * icons to the top of the row. */
   &:has([data-test-id='editor-visualize-filter']) {
     align-items: flex-start;
-
     > button {
       height: ${p => p.theme.form.md.height};
     }

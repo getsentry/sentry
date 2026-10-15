@@ -26,10 +26,13 @@ class IssueDetailsPage(BasePage):
 
     def visit_performance_issue(self, org, groupid):
         """
-        Trace view can take a long time to load, just wait until the trace evidence is loaded
+        Wait for the span evidence and the rest of the page to finish loading so
+        no requests are still hitting the database when the test tears down.
         """
         self.browser.get(f"/organizations/{org}/issues/{groupid}/")
         self.browser.wait_until("#span-evidence")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+        self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
     def visit_issue_activity(self, org, groupid):
         self.browser.get(f"/organizations/{org}/issues/{groupid}/activity/")

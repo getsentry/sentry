@@ -1,12 +1,18 @@
 import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {IconAdd} from '@sentry/icons/add';
+import {IconBuilding} from '@sentry/icons/building';
+import {IconSettings} from '@sentry/icons/settings';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
-import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {getOrganizationAvatarProps, OrganizationAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
-import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {
+  DropdownMenu,
+  type DropdownMenuProps,
+  type MenuItemProps,
+} from '@sentry/scraps/dropdownMenu';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
@@ -26,6 +32,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {NavigationMenuHeader} from './navigationMenuHeader';
 
 interface OrganizationDropdownProps {
   /**
@@ -45,6 +54,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   }, []);
 
   const organization = useOrganization();
+  const settingsV3 = useSettingsV3();
   const {organizations} = useLegacyStore(OrganizationsStore);
 
   const [activeOrgs, inactiveOrgs] = partition(
@@ -55,44 +65,86 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const {projects} = useProjects();
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
-  const letterAvatarProps = {
-    identifier: organization.slug,
-    name: organization.name || organization.slug,
-  };
+  const avatarProps = getOrganizationAvatarProps(organization);
 
   const size = useSizeContext();
+
+  const trigger: DropdownMenuProps['trigger'] = triggerProps => (
+    <AvatarButton
+      avatar={avatarProps}
+      size={size}
+      aria-label={t('Toggle organization menu')}
+      {...triggerProps}
+    />
+  );
+  const createOrganizationItem = makeCreateOrganizationMenuItem();
+
+  if (settingsV3) {
+    return (
+      <DropdownMenu
+        usePortal
+        portalContainerRef={portalContainerRef}
+        zIndex={theme.zIndex.modal}
+        trigger={trigger}
+        minMenuWidth={258}
+        menuTitle={
+          <NavigationMenuHeader
+            organization={organization}
+            projectCount={projects.length}
+          />
+        }
+        items={[
+          {
+            key: 'organization',
+            textValue: organization.name,
+            children: [
+              {
+                key: 'settings',
+                label: t('Settings'),
+                leadingItems: <IconSettings />,
+                to: `/settings/${organization.slug}/`,
+                hidden:
+                  props.hideCurrentOrganizationLinks ||
+                  !organization.access?.includes('org:read'),
+              },
+              {
+                key: 'switch-organization',
+                label: t('Switch'),
+                leadingItems: <IconBuilding />,
+                submenu: true,
+                hidden:
+                  config.singleOrganization ||
+                  isDemoModeActive() ||
+                  (activeOrgs.length === 0 && inactiveOrgs.length === 0),
+                children: [
+                  {
+                    key: 'active-orgs',
+                    children: orderBy(activeOrgs, ['name']).map(makeOrganizationMenuItem),
+                    hidden: activeOrgs.length === 0,
+                  },
+                  {
+                    key: 'inactive-orgs',
+                    children: orderBy(inactiveOrgs, ['name']).map(
+                      makeInactiveOrganizationMenuItem
+                    ),
+                    hidden: inactiveOrgs.length === 0,
+                  },
+                ],
+              },
+              createOrganizationItem,
+            ],
+          },
+        ]}
+      />
+    );
+  }
 
   return (
     <DropdownMenu
       usePortal
       portalContainerRef={portalContainerRef}
       zIndex={theme.zIndex.modal}
-      trigger={triggerProps => (
-        <AvatarButton
-          avatar={
-            organization.avatar.avatarType === 'upload' && organization.avatar.avatarUrl
-              ? {
-                  type: 'upload',
-                  uploadUrl: organization.avatar.avatarUrl,
-                  ...letterAvatarProps,
-                }
-              : organization.avatar.avatarType === 'gravatar' &&
-                  organization.avatar.avatarUrl
-                ? {
-                    type: 'gravatar',
-                    gravatarId: organization.avatar.avatarUrl,
-                    ...letterAvatarProps,
-                  }
-                : {
-                    type: 'letter_avatar',
-                    ...letterAvatarProps,
-                  }
-          }
-          size={size}
-          aria-label={t('Toggle organization menu')}
-          {...triggerProps}
-        />
-      )}
+      trigger={trigger}
       position="right-start"
       minMenuWidth={200}
       items={[
@@ -169,7 +221,13 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                   // Hide entire submenu if there are no inactive organizations
                   hidden: inactiveOrgs.length === 0,
                 },
-                makeCreateOrganizationMenuItem(),
+                {
+                  key: 'create-organization-section',
+                  children: [
+                    {...createOrganizationItem, label: t('Create a new organization')},
+                  ],
+                  hidden: createOrganizationItem.hidden,
+                },
               ],
             },
           ],
@@ -201,7 +259,8 @@ function makeCreateOrganizationMenuItem(): MenuItemProps {
   const menuItemProps: MenuItemProps = {
     key: 'create-organization',
     leadingItems: <IconAdd />,
-    label: t('Create a new organization'),
+    label: t('Create Organization'),
+    hidden: !configFeatures.has('organizations:create'),
   };
 
   if (configFeatures.has('system:multi-region')) {
@@ -211,9 +270,5 @@ function makeCreateOrganizationMenuItem(): MenuItemProps {
     menuItemProps.to = '/organizations/new/';
   }
 
-  return {
-    key: 'create-organization-section',
-    children: [menuItemProps],
-    hidden: !ConfigStore.get('features').has('organizations:create'),
-  };
+  return menuItemProps;
 }

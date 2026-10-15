@@ -603,12 +603,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             payload_actions = []
             has_action = False
 
-        rule_id = None
         workflow_id = self.workflow_id
         environment_id = None
         origin = self.rules[0] if self.rules else None
         if origin is not None:
-            rule_id = origin.legacy_rule_id
             workflow_id = origin.workflow_id if origin.workflow_id is not None else workflow_id
             environment_id = origin.environment_id
 
@@ -653,8 +651,6 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         # set up block id
         block_id = {"issue": self.group.id}
-        if rule_id:
-            block_id["rule"] = rule_id
         if workflow_id:
             block_id["workflow"] = workflow_id
 
