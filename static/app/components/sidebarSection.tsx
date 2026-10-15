@@ -11,6 +11,7 @@ interface TitleProps {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
+  variant?: React.ComponentProps<typeof Heading>['variant'];
 }
 
 export function Title(props: TitleProps) {

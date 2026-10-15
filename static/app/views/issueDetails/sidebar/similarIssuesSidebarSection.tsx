@@ -1,8 +1,8 @@
 import {Flex} from '@sentry/scraps/layout';
 
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebarSectionTitle';
 import {ViewButton} from 'sentry/views/issueDetails/sidebar/viewButton';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
@@ -13,7 +13,9 @@ export function SimilarIssuesSidebarSection() {
 
   return (
     <Flex justify="between" align="center">
-      <SidebarSectionTitle style={{margin: 0}}>{t('Similar Issues')}</SidebarSectionTitle>
+      <SidebarSection.Title variant="primary" style={{margin: 0}}>
+        {t('Similar Issues')}
+      </SidebarSection.Title>
       <ViewButton
         aria-label={t('View Similar Issues')}
         to={{

@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
+import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -11,7 +12,6 @@ import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import type {DetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorDetails';
-import {SidebarSectionTitle} from 'sentry/views/issueDetails/sidebar/sidebarSectionTitle';
 
 export function getDetectorDetails({
   event,
@@ -124,7 +124,7 @@ function DetectorSectionContent({
 
   return (
     <div>
-      <SidebarSectionTitle>{title}</SidebarSectionTitle>
+      <SidebarSectionTitle variant="primary">{title}</SidebarSectionTitle>
       {description && <DetectorDescription>{description}</DetectorDescription>}
       <LinkButton
         aria-label={ctaText}
@@ -139,6 +139,10 @@ function DetectorSectionContent({
     </div>
   );
 }
+
+const SidebarSectionTitle = styled(SidebarSection.Title)`
+  margin-bottom: ${p => p.theme.space.md};
+`;
 
 const DetectorDescription = styled('p')`
   margin: ${p => p.theme.space.md} 0;
