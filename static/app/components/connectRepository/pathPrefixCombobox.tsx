@@ -121,10 +121,9 @@ export function PathPrefixCombobox({
 
   const visibleOptions = useMemo<Array<SelectValue<string>>>(() => {
     const filtered = filterPrefixOptions(mappedOptions, debouncedInput);
-    // Keep the catch-all when selected so its label still resolves.
-    const showCatchAll = !debouncedInput || value === CATCH_ALL_VALUE;
-    return showCatchAll ? [CATCH_ALL_OPTION, ...filtered] : filtered;
-  }, [mappedOptions, debouncedInput, value]);
+    // Hidden while typing so Enter creates the typed prefix instead of matching all.
+    return inputValue ? filtered : [CATCH_ALL_OPTION, ...filtered];
+  }, [mappedOptions, debouncedInput, inputValue]);
 
   function handleInputChange(newInput: string, {action}: {action: string}) {
     if (action === 'input-change') {
