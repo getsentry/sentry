@@ -55,14 +55,15 @@ function OrganizationMenuHeader({
         ? {type: 'gravatar', gravatarId: avatar.avatarUrl, ...avatarIdentity}
         : undefined
   );
-  const accentColor = avatarColors.type === 'image' ? avatarColors.chonk : undefined;
+  const avatarAccentColor =
+    avatarColors.type === 'image' ? avatarColors.chonk : undefined;
 
   return (
     <MenuHeader
       title={t('Organization')}
       name={organization.name || organization.slug}
       subtitle={tn('%s Project', '%s Projects', projectCount)}
-      accentColor={accentColor}
+      avatarAccentColor={avatarAccentColor}
       avatar={<OrganizationHeaderAvatar organization={organization} />}
     />
   );
@@ -94,13 +95,13 @@ function MenuHeader({
   name,
   subtitle,
   avatar,
-  accentColor,
+  avatarAccentColor,
 }: {
   avatar: ReactNode;
   name: string;
   subtitle: string;
   title: string;
-  accentColor?: string;
+  avatarAccentColor?: string;
 }) {
   const currentTheme = useTheme();
   const invertedTheme = useInvertedTheme();
@@ -114,12 +115,12 @@ function MenuHeader({
           margin: -${theme.space.sm} -${theme.space.lg};
           background: linear-gradient(90deg, #2c155c, #4e168c);
           ${
-            accentColor &&
+            avatarAccentColor &&
             css`
               background: linear-gradient(
                 90deg,
-                color-mix(in srgb, ${accentColor} 30%, #2c155c),
-                color-mix(in srgb, ${accentColor} 30%, #4e168c)
+                color-mix(in srgb, ${avatarAccentColor} 30%, #2c155c),
+                color-mix(in srgb, ${avatarAccentColor} 30%, #4e168c)
               );
             `
           }
