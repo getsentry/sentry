@@ -39,6 +39,21 @@ export interface AttributeDetailsTooltipProps {
 }
 
 /**
+ * Typed tag keys (`tags[<key>,<type>]`) are looked up exactly as they are, never by
+ * their unwrapped name, matching the search bar's filter
+ *
+ * Unwrapping user attributes could cause collisions with Sentry aliases. E.g.
+ * `tags[message,string]` could be unwrapped as `message`, and then the tooltip
+ * would wrongly apply the Sentry definition for `message` or `payload_size`.
+ *
+ */
+const TYPED_TAG_KEY_RE = /^tags\[\S*,\S*\]$/;
+
+function isTypedTagKey(key: string): boolean {
+  return TYPED_TAG_KEY_RE.test(key);
+}
+
+/**
  * Renders an attribute's name as the hover target for its details, so the
  * underline marks the name as something to hover rather than just text.
  */
@@ -53,7 +68,9 @@ export function AttributeDetailsTooltip({
   const user = useUser();
   const fieldDefinition =
     getFieldDefinition(attributeKey, fieldDefinitionType) ??
-    (name === undefined ? null : getFieldDefinition(name, fieldDefinitionType));
+    (name === undefined || isTypedTagKey(attributeKey)
+      ? null
+      : getFieldDefinition(name, fieldDefinitionType));
   const attributeName = name ?? attributeKey;
 
   return (

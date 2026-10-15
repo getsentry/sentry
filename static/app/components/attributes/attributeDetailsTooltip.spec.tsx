@@ -114,6 +114,43 @@ describe('AttributeDetailsTooltip', () => {
     expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
   });
 
+  it.each([
+    {attributeKey: 'tags[message,string]', name: 'message'},
+    {attributeKey: 'tags[payload_size,number]', name: 'payload_size'},
+  ])(
+    'does not credit Sentry for $attributeKey, a user attribute that shadows a known one',
+    async ({attributeKey, name}) => {
+      render(
+        <AttributeDetailsTooltip
+          attributeKey={attributeKey}
+          fieldDefinitionType="log"
+          name={name}
+        />
+      );
+
+      await userEvent.hover(screen.getByText(name));
+
+      expect(
+        await screen.findByText('A tag sent with one or more events')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Added by Sentry')).not.toBeInTheDocument();
+    }
+  );
+
+  it('credits Sentry for known attributes that are registered by a typed key', async () => {
+    render(
+      <AttributeDetailsTooltip
+        attributeKey="tags[code.line.number,number]"
+        fieldDefinitionType="log"
+        name="code.line.number"
+      />
+    );
+
+    await userEvent.hover(screen.getByText('code.line.number'));
+
+    expect(await screen.findByText('Added by Sentry')).toBeInTheDocument();
+  });
+
   it('describes an unknown attribute as a tag and credits nobody', async () => {
     render(
       <AttributeDetailsTooltip
