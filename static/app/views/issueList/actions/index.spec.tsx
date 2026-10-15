@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect} from 'react';
+import {Fragment, useLayoutEffect, type ComponentProps} from 'react';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -14,10 +14,15 @@ import {
 import {Container} from '@sentry/scraps/layout';
 import {GlobalModal} from '@sentry/scraps/modal';
 
+import {
+  StreamGroupTable,
+  useStreamGroupColumns,
+} from 'sentry/components/stream/groupColumns';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
+import {ISSUE_LIST_COLUMNS} from 'sentry/views/issueList/groupListBody';
 import {
   IssueSelectionProvider,
   useIssueSelectionActions,
@@ -66,6 +71,27 @@ function SelectionInitializer({
   return null;
 }
 
+function IssueListActionsTable(
+  props: Omit<ComponentProps<typeof IssueListActions>, 'columns' | 'selectionEnabled'>
+) {
+  const {columns, selectionEnabled} = useStreamGroupColumns({
+    canSelect: true,
+    displayReprocessingLayout: props.displayReprocessingActions,
+    withChart: true,
+    withColumns: ISSUE_LIST_COLUMNS,
+  });
+
+  return (
+    <StreamGroupTable columns={columns}>
+      <IssueListActions
+        {...props}
+        columns={columns}
+        selectionEnabled={selectionEnabled}
+      />
+    </StreamGroupTable>
+  );
+}
+
 function WrappedComponent({
   selectedIds,
   allSelected,
@@ -83,7 +109,7 @@ function WrappedComponent({
       <Container containerType="inline-size">
         <IssueSelectionProvider visibleGroupIds={groupIds}>
           <SelectionInitializer selectedIds={selectedIds} allSelected={allSelected} />
-          <IssueListActions {...defaultProps} {...props} groupIds={groupIds} />
+          <IssueListActionsTable {...defaultProps} {...props} groupIds={groupIds} />
         </IssueSelectionProvider>
       </Container>
     </Fragment>

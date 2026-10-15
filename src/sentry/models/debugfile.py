@@ -172,6 +172,11 @@ class ProjectDebugFile(Model):
     data = LegacyTextJSONField(default=dict, null=True)
     date_accessed = models.DateTimeField(default=timezone.now, db_default=Now())
 
+    # (INGEST-1282) These columns exists to store the "legacy" (incorrect)
+    # code ID and debug ID for WASM files. We need to store them for lookup purposes.
+    wasm_legacy_code_id = models.CharField(max_length=64, null=True)
+    wasm_legacy_debug_id = models.CharField(max_length=64, null=True)
+
     # The following fields are present if and only if the file is stored in Objectstore.
     # Key of the file in Objectstore.
     storage_path = models.TextField(null=True)
@@ -190,6 +195,8 @@ class ProjectDebugFile(Model):
         indexes = (
             models.Index(fields=("project_id", "debug_id")),
             models.Index(fields=("project_id", "code_id")),
+            models.Index(fields=("project_id", "wasm_legacy_debug_id")),
+            models.Index(fields=("project_id", "wasm_legacy_code_id")),
         )
         db_table = "sentry_projectdsymfile"
         app_label = "sentry"

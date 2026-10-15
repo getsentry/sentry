@@ -5,6 +5,33 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 describe('DropdownMenu', () => {
+  it.each(['click', '{Enter}', ' '])(
+    'opens the menu with %s without activating the row',
+    async activation => {
+      const onRowClick = jest.fn();
+
+      render(
+        <div onClick={onRowClick}>
+          <DropdownMenu
+            items={[{key: 'duplicate', label: 'Duplicate query'}]}
+            triggerLabel="Query actions"
+          />
+        </div>
+      );
+
+      const trigger = screen.getByRole('button', {name: 'Query actions'});
+      if (activation === 'click') {
+        await userEvent.click(trigger);
+      } else {
+        trigger.focus();
+        await userEvent.keyboard(activation);
+      }
+
+      expect(await screen.findByRole('menu')).toBeInTheDocument();
+      expect(onRowClick).not.toHaveBeenCalled();
+    }
+  );
+
   it('renders a basic menu', async () => {
     const onAction = jest.fn();
 
