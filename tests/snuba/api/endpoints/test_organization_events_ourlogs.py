@@ -674,10 +674,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             }
         assert meta["dataset"] == self.dataset
 
-    @pytest.mark.xfail(
-        reason="Snuba serves int attributes from the float column, so full nanosecond "
-        "precision is lost until the EAP read path reads attributes_int directly."
-    )
     def test_timestamp_precise_preserves_full_nanosecond_value(self) -> None:
         base = before_now(minutes=10).replace(microsecond=0)
         precise_nanos = int(base.timestamp()) * 1_000_000_000 + 123_456_789
