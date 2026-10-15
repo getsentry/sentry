@@ -79,19 +79,6 @@ function EventFlamegraphContent({event, project}: Props) {
     }
   }, [attachmentQuery.data, attachmentQuery.isPending, attachmentQuery.isError]);
 
-  if (attachmentsQuery.isError) {
-    return (
-      <FoldSection sectionKey={SectionKey.FLAMEGRAPH_ATTACHMENT} title={t('Flamegraph')}>
-        <LoadingError
-          message={getRequestErrorUserMessage(
-            attachmentsQuery.error,
-            t('Failed to load flamegraph attachments.')
-          )}
-          onRetry={attachmentsQuery.refetch}
-        />
-      </FoldSection>
-    );
-  }
   if (!attachment) {
     return null;
   }

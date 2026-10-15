@@ -3,7 +3,7 @@ import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EventFlamegraph} from './eventFlamegraph';
 
@@ -73,6 +73,20 @@ describe('Event flamegraph', () => {
     render(<EventFlamegraph event={event} project={project} />, {organization});
     await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
     expect(screen.queryByRole('region', {name: 'Flamegraph'})).not.toBeInTheDocument();
+  });
+
+  it('renders nothing when the attachments list fails', async () => {
+    const list = MockApiClient.addMockResponse({
+      url: listUrl,
+      statusCode: 500,
+      body: {detail: 'Attachments unavailable.'},
+    });
+    await act(async () => {
+      render(<EventFlamegraph event={event} project={project} />, {organization});
+    });
+    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
+    expect(screen.queryByRole('region', {name: 'Flamegraph'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
   });
 
   it('does not fetch attachments when the feature is disabled', () => {
