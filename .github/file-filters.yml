@@ -44,7 +44,7 @@ frontend_all: &frontend_all
   - *typecheckable_rules_changed
   - added|deleted|modified: 'pnpm-lock.yaml'
   - added|deleted|modified: 'pnpm-workspace.yaml'
-  - added|modified: 'oxlint.config.ts'
+  - added|modified: 'oxlint.*.ts'
   - added|modified: '**/*.{ts,tsx,js,jsx,mjs,pegjs}'
   - added|modified: 'static/**/*.{less,yml,md,mdx}'
   - added|modified: 'static/**/!(oxlint-suppressions).json'
