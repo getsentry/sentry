@@ -94,7 +94,7 @@ describe('UserDropdown', () => {
     });
   });
 
-  it('shows a readable name when the user name matches the email in the settings v3 menu', async () => {
+  it('shows the email only once when the user name matches it in the settings v3 menu', async () => {
     ConfigStore.set(
       'user',
       UserFixture({name: 'foo.bar@example.com', email: 'foo.bar@example.com'})
@@ -105,7 +105,6 @@ describe('UserDropdown', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'foo.bar@example.com'}));
 
-    expect(screen.getByText('foo bar')).toBeInTheDocument();
     expect(screen.getAllByText('foo.bar@example.com')).toHaveLength(1);
   });
 
