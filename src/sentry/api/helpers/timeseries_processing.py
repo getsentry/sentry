@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import groupby
 from math import fsum, isfinite
+from statistics import pvariance
 from typing import Final, Literal, overload
 
 FILL_MODE_LOCF: Final = "locf"
@@ -265,7 +266,5 @@ def _asap_metrics(values: Sequence[float]) -> tuple[float, float]:
         second_moment = fsum(value**2 for value in centered)
         kurtosis = len(values) * fsum(value**4 for value in centered) / second_moment**2
 
-    differences = [right - left for left, right in zip(values, values[1:])]
-    mean_difference = fsum(differences) / len(differences)
-    roughness = fsum((value - mean_difference) ** 2 for value in differences) / len(differences)
+    roughness = pvariance(right - left for left, right in zip(values, values[1:]))
     return roughness, kurtosis
