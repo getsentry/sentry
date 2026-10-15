@@ -1,37 +1,53 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
+import {userEvent} from '@testing-library/user-event';
 
 import {Chip} from '@sentry/scraps/chip';
+import {lightTheme} from '@sentry/scraps/theme';
+import {TranslationContextProvider} from '@sentry/scraps/translation';
+
+const translate = jest.fn((template: string, ...args: unknown[]) =>
+  template.replace('%s', String(args[0]))
+);
 
 describe('Chip', () => {
   describe('flat API', () => {
     it('renders property, operator, and value', () => {
-      render(<Chip property="browser" operator="is" value="Chrome" />);
+      render(<Chip property="browser" operator="is" value="Chrome" />, {
+        wrapper: ThemeWrapper,
+      });
       expect(screen.getByText('browser')).toBeInTheDocument();
       expect(screen.getByText('is')).toBeInTheDocument();
       expect(screen.getByText('Chrome')).toBeInTheDocument();
     });
 
     it('omits the operator when not provided', () => {
-      render(<Chip property="browser" value="Chrome" />);
+      render(<Chip property="browser" value="Chrome" />, {wrapper: ThemeWrapper});
       expect(screen.getByText('browser')).toBeInTheDocument();
       expect(screen.getByText('Chrome')).toBeInTheDocument();
       expect(screen.queryByText('is')).not.toBeInTheDocument();
     });
 
     it('renders only the value when property is omitted', () => {
-      render(<Chip value="Chrome" />);
+      render(<Chip value="Chrome" />, {wrapper: ThemeWrapper});
       expect(screen.getByText('Chrome')).toBeInTheDocument();
       expect(screen.queryByText('browser')).not.toBeInTheDocument();
     });
 
     it('is not interactive by default', () => {
-      render(<Chip property="browser" operator="is" value="Chrome" />);
+      render(<Chip property="browser" operator="is" value="Chrome" />, {
+        wrapper: ThemeWrapper,
+      });
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
 
     it('renders a dismiss button and fires onDismiss', async () => {
       const onDismiss = jest.fn();
-      render(<Chip property="browser" value="Chrome" onDismiss={onDismiss} />);
+      render(<Chip property="browser" value="Chrome" onDismiss={onDismiss} />, {
+        wrapper: ThemeWrapper,
+      });
+      expect(translate).toHaveBeenCalledWith('Remove %s', 'browser Chrome');
       await userEvent.click(screen.getByRole('button', {name: 'Remove browser Chrome'}));
       expect(onDismiss).toHaveBeenCalledTimes(1);
     });
@@ -41,7 +57,8 @@ describe('Chip', () => {
         // readonly chips cannot be dismissed — the union rejects onDismiss at
         // compile time; assert the runtime guard suppresses it as well.
         // @ts-expect-error onDismiss is not allowed alongside readonly
-        <Chip readonly property="browser" value="Chrome" onDismiss={() => {}} />
+        <Chip readonly property="browser" value="Chrome" onDismiss={() => {}} />,
+        {wrapper: ThemeWrapper}
       );
       expect(
         screen.queryByRole('button', {name: 'Remove browser Chrome'})
@@ -56,7 +73,8 @@ describe('Chip', () => {
           <Chip.Property>browser</Chip.Property>
           <Chip.Operator>is</Chip.Operator>
           <Chip.Value>Chrome</Chip.Value>
-        </Chip.Root>
+        </Chip.Root>,
+        {wrapper: ThemeWrapper}
       );
       expect(screen.getByText('browser')).toBeInTheDocument();
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
@@ -68,7 +86,8 @@ describe('Chip', () => {
         <Chip.Root>
           <Chip.Property>browser</Chip.Property>
           <Chip.Value onClick={editValue}>Chrome</Chip.Value>
-        </Chip.Root>
+        </Chip.Root>,
+        {wrapper: ThemeWrapper}
       );
 
       // Property stays inert, value becomes a button.
@@ -84,7 +103,8 @@ describe('Chip', () => {
         <Chip.Root onClick={onChipClick}>
           <Chip.Value>Chrome</Chip.Value>
           <Chip.Dismiss onClick={onDismiss} />
-        </Chip.Root>
+        </Chip.Root>,
+        {wrapper: ThemeWrapper}
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
@@ -97,7 +117,8 @@ describe('Chip', () => {
         <Chip.Root readonly>
           <Chip.Value onClick={() => {}}>Chrome</Chip.Value>
           <Chip.Dismiss onClick={() => {}} />
-        </Chip.Root>
+        </Chip.Root>,
+        {wrapper: ThemeWrapper}
       );
       expect(screen.getByText('Chrome')).toBeInTheDocument();
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
@@ -117,7 +138,7 @@ describe('Chip', () => {
     }
 
     it('exposes a single tab stop', () => {
-      render(<InteractiveChip />);
+      render(<InteractiveChip />, {wrapper: ThemeWrapper});
       expect(screen.getByRole('button', {name: 'browser'})).toHaveAttribute(
         'tabindex',
         '0'
@@ -134,7 +155,7 @@ describe('Chip', () => {
     });
 
     it('moves focus between sections with the arrow keys', async () => {
-      render(<InteractiveChip />);
+      render(<InteractiveChip />, {wrapper: ThemeWrapper});
 
       await userEvent.tab();
       expect(screen.getByRole('button', {name: 'browser'})).toHaveFocus();
@@ -153,7 +174,7 @@ describe('Chip', () => {
     });
 
     it('moves the tab stop to follow the focused section', async () => {
-      render(<InteractiveChip />);
+      render(<InteractiveChip />, {wrapper: ThemeWrapper});
 
       await userEvent.tab();
       await userEvent.keyboard('{ArrowRight}');
@@ -174,7 +195,8 @@ describe('Chip', () => {
             browser
           </Chip.Property>
           <Chip.Value onClick={() => {}}>Chrome</Chip.Value>
-        </Chip.Root>
+        </Chip.Root>,
+        {wrapper: ThemeWrapper}
       );
       // A caller tabIndex must not override roving management in auto mode.
       expect(screen.getByRole('button', {name: 'browser'})).toHaveAttribute(
@@ -188,3 +210,18 @@ describe('Chip', () => {
     });
   });
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return (
+    <ThemeProvider theme={lightTheme}>
+      <TranslationContextProvider
+        value={{
+          t: translate,
+          tct: template => template,
+        }}
+      >
+        {children}
+      </TranslationContextProvider>
+    </ThemeProvider>
+  );
+}
