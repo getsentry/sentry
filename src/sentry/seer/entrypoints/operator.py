@@ -924,14 +924,17 @@ def process_investigation_updates(*, investigation_id: int) -> None:
             if not entrypoint_cls.has_access(organization):
                 continue
 
-            cache_payload = SeerOperatorInvestigationCache[dict[str, Any]].get(
+            # TODO: Use a provider-agnostic payload type once there are more investigation entrypoints.
+            from sentry.seer.entrypoints.slack.entrypoint import SlackInvestigationCachePayload
+
+            cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
                 entrypoint_key=str(entrypoint_key),
                 investigation_id=investigation_id,
             )
             if not cache_payload:
                 continue
 
-            if cache_payload.get("organization_id") != organization.id:
+            if cache_payload["organization_id"] != organization.id:
                 lifecycle.record_failure(failure_reason="org_mismatch")
                 return
 
