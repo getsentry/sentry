@@ -8,13 +8,16 @@ import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExp
 import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {EntryType} from 'sentry/types/event';
+import {EntryType, type Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
-import {issueAndEventToMarkdown} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
+import {
+  issueAndEventToMarkdown,
+  useActiveThreadId,
+} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   PullRequestButtons,
@@ -22,11 +25,14 @@ import {
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewPullRequests';
 import {useInvalidateInboxQueries} from 'sentry/views/issueList/pages/inbox/useInvalidateInboxQueries';
 
+import {getIssueSummaryText, type IssueSummary} from './issuePreviewSummary';
+
 interface CopyAsMarkdownButtonProps {
   disabled: boolean;
   group: Group;
   autofixData?: ExplorerAutofixState | null;
   autofixFormatted?: string | null;
+  summary?: IssueSummary;
 }
 
 interface IssuePreviewActionsProps {
@@ -35,6 +41,7 @@ interface IssuePreviewActionsProps {
   project: Project;
   autofixData?: ExplorerAutofixState | null;
   autofixFormatted?: string | null;
+  summary?: IssueSummary;
 }
 
 function CopyAsMarkdownButton({
@@ -42,9 +49,11 @@ function CopyAsMarkdownButton({
   disabled,
   autofixData,
   autofixFormatted,
+  summary,
 }: CopyAsMarkdownButtonProps) {
   const organization = useOrganization();
   const {copy} = useCopyToClipboard();
+  const activeThreadId = useActiveThreadId();
   const {data: event, isPending} = useGroupEvent({
     groupId: group.id,
     eventId: 'recommended',
@@ -52,19 +61,26 @@ function CopyAsMarkdownButton({
   });
 
   function handleCopy() {
-    const threads =
+    const threads: Thread[] =
       event?.entries.find(entry => entry.type === EntryType.THREADS)?.data.values ?? [];
-    void copy(
-      issueAndEventToMarkdown({
-        group,
-        event,
-        organization,
-        autofixData,
-        autofixFormatted,
-        activeThreadId: findBestThread(threads)?.id,
-      }),
-      {successMessage: t('Copied issue to clipboard as Markdown')}
-    );
+    let markdown = issueAndEventToMarkdown({
+      group,
+      event,
+      organization,
+      autofixData,
+      autofixFormatted,
+      activeThreadId: (
+        threads.find(thread => thread.id === activeThreadId) ?? findBestThread(threads)
+      )?.id,
+    });
+    const {description, trace} = getIssueSummaryText(summary);
+    if (description) {
+      markdown += `\n\n## Summary\n\n${description}`;
+    }
+    if (trace) {
+      markdown += `\n\n## In the trace\n\n${trace}`;
+    }
+    void copy(markdown, {successMessage: t('Copied issue to clipboard as Markdown')});
   }
 
   return (
@@ -94,6 +110,7 @@ export function IssuePreviewActions({
   project,
   autofixData,
   autofixFormatted,
+  summary,
 }: IssuePreviewActionsProps) {
   const {pullRequests, isPending} = useIssuePreviewPullRequests(group);
   const invalidateInboxQueries = useInvalidateInboxQueries(group.id);
@@ -111,6 +128,7 @@ export function IssuePreviewActions({
         disabled={disabled}
         autofixData={autofixData}
         autofixFormatted={autofixFormatted}
+        summary={summary}
       />
     );
   }

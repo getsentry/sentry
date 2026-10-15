@@ -8,11 +8,9 @@ import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import {
-  SeerExplorerContextProvider,
-  useSeerExplorerContext,
-} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 async function getSeerExplorerInput() {
   const editor = await screen.findByRole('combobox', {name: 'Ask Seer a question'});

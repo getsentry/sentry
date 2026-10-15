@@ -22,6 +22,7 @@ import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback.ts';
 import {noUselessCssInterpolationSemicolon} from './noUselessCssInterpolationSemicolon.ts';
 import {preferFakeTimers} from './preferFakeTimers.ts';
 import {preferReactComponent} from './preferReactComponent.ts';
+import {requireFakeTimerCleanup} from './requireFakeTimerCleanup.ts';
 import {sortInterfaceKeys} from './sortInterfaceKeys.ts';
 
 export const rules = {
@@ -45,6 +46,7 @@ export const rules = {
   'no-vanilla-emotion': noVanillaEmotion,
   'prefer-fake-timers': preferFakeTimers,
   'prefer-react-component': preferReactComponent,
+  'require-fake-timer-cleanup': requireFakeTimerCleanup,
   'sort-interface-keys': sortInterfaceKeys,
 };
 

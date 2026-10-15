@@ -9,8 +9,9 @@ import {
 } from '@tanstack/react-query';
 import sortBy from 'lodash/sortBy';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {ExternalLink} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -133,6 +134,26 @@ function useDeletePathConfig({
       });
     },
   });
+}
+
+function CodeMappingsMovingAlert() {
+  const organization = useOrganization();
+  if (!organization.features.includes('code-mappings-refactor')) {
+    return null;
+  }
+  return (
+    <Alert.Container>
+      <Alert variant="info">
+        {tct(
+          "Code mappings are moving to the [reposLink:Repositories] page and to Connected Repositories in [projectsLink:each project's settings]. Your existing mappings are already there. This page will be removed soon.",
+          {
+            projectsLink: <Link to={`/settings/${organization.slug}/projects/`} />,
+            reposLink: <Link to={`/settings/${organization.slug}/repos/`} />,
+          }
+        )}
+      </Alert>
+    </Alert.Container>
+  );
 }
 
 export function IntegrationCodeMappings({integration}: {integration: Integration}) {
@@ -264,6 +285,7 @@ export function IntegrationCodeMappings({integration}: {integration: Integration
 
   return (
     <Fragment>
+      <CodeMappingsMovingAlert />
       <TextBlock>
         {tct(
           'Code Mappings are used to map stack trace file paths to source code file paths. These mappings are the basis for features like Stack Trace Linking. To learn more, [link: read the docs].',

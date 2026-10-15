@@ -6,7 +6,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
-import {useAutoSaveIndicator, useLabelId} from './baseField';
+import {useAutoSaveIndicator} from './baseField';
+import {useLabelId} from './fieldIds';
 import {GroupProvider} from './groupContext';
 import {FieldMeta} from './meta';
 

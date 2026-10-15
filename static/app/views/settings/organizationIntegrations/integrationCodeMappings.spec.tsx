@@ -244,4 +244,34 @@ describe('IntegrationCodeMappings', () => {
     expect(screen.queryByText(pathConfig1.repoName)).not.toBeInTheDocument();
     expect(screen.getByText(pathConfig2.repoName)).toBeInTheDocument();
   });
+
+  it('shows the moving banner when code-mappings-refactor flag is on', async () => {
+    const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
+    render(<IntegrationCodeMappings integration={integration} />, {
+      organization: orgWithFlag,
+    });
+
+    expect(
+      await screen.findByText(/Code mappings are moving to the/)
+    ).toBeInTheDocument();
+
+    const projectSettingsLink = screen.getByRole('link', {
+      name: "each project's settings",
+    });
+    expect(projectSettingsLink).toHaveAttribute(
+      'href',
+      `/settings/${orgWithFlag.slug}/projects/`
+    );
+
+    const reposLink = screen.getByRole('link', {name: 'Repositories'});
+    expect(reposLink).toHaveAttribute('href', `/settings/${orgWithFlag.slug}/repos/`);
+  });
+
+  it('does not show the moving banner when code-mappings-refactor flag is off', async () => {
+    render(<IntegrationCodeMappings integration={integration} />, {organization: org});
+
+    // Wait for the page to finish loading before asserting absence
+    expect(await screen.findByText(repos[0]!.name)).toBeInTheDocument();
+    expect(screen.queryByText(/Code mappings are moving to the/)).not.toBeInTheDocument();
+  });
 });

@@ -34,7 +34,9 @@ function ReplayDetailsInner() {
       <ReplayAccess
         fallback={
           <Fragment>
-            <EntityHeader title={{label: t('Page'), value: t('Replay Details')}} />
+            <EntityHeader
+              title={{type: 'text', label: t('Page'), value: t('Replay Details')}}
+            />
             <Layout.Body>
               <ReplayAccessFallbackAlert />
             </Layout.Body>

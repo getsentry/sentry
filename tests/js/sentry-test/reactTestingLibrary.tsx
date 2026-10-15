@@ -32,7 +32,7 @@ import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
-import {TopBar} from 'sentry/views/navigation/topBar';
+import {TopBarSlots} from 'sentry/views/navigation/topBarSlot';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 import {initializeOrg} from './initializeOrg';
@@ -124,11 +124,11 @@ interface InitialRouterOptions {
 function TopBarTestSlotOutlets() {
   return createPortal(
     <Fragment>
-      <TopBar.Slot.Outlet name="breadcrumbs">{p => <div {...p} />}</TopBar.Slot.Outlet>
-      <TopBar.Slot.Outlet name="title">{p => <div {...p} />}</TopBar.Slot.Outlet>
-      <TopBar.Slot.Outlet name="search">{p => <div {...p} />}</TopBar.Slot.Outlet>
-      <TopBar.Slot.Outlet name="actions">{p => <div {...p} />}</TopBar.Slot.Outlet>
-      <TopBar.Slot.Outlet name="feedback">{p => <div {...p} />}</TopBar.Slot.Outlet>
+      <TopBarSlots.Outlet name="breadcrumbs">{p => <div {...p} />}</TopBarSlots.Outlet>
+      <TopBarSlots.Outlet name="title">{p => <div {...p} />}</TopBarSlots.Outlet>
+      <TopBarSlots.Outlet name="search">{p => <div {...p} />}</TopBarSlots.Outlet>
+      <TopBarSlots.Outlet name="actions">{p => <div {...p} />}</TopBarSlots.Outlet>
+      <TopBarSlots.Outlet name="feedback">{p => <div {...p} />}</TopBarSlots.Outlet>
     </Fragment>,
     document.body
   );
@@ -146,7 +146,7 @@ function makeAllTheProviders(options: ProviderOptions) {
 
   return function ({children}: {children?: React.ReactNode}) {
     const content = (
-      <TopBar.Slot.Provider>
+      <TopBarSlots.Provider>
         <TopBarTestSlotOutlets />
         <LLMContextProvider>
           <OrganizationContext value={optionalOrganization}>
@@ -157,7 +157,7 @@ function makeAllTheProviders(options: ProviderOptions) {
             </GlobalAlertProvider>
           </OrganizationContext>
         </LLMContextProvider>
-      </TopBar.Slot.Provider>
+      </TopBarSlots.Provider>
     );
 
     const wrappedContent = <ProvideAriaRouter>{content}</ProvideAriaRouter>;

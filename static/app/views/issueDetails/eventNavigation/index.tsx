@@ -6,8 +6,9 @@ import {keepPreviousData} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
@@ -15,6 +16,7 @@ import Feature from 'sentry/components/acl/feature';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {Count} from 'sentry/components/count';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {AutofixReferrerInfoTip} from 'sentry/components/events/autofix/v3/autofixReferrerInfoTip';
 import {SeerPanelActions} from 'sentry/components/events/autofix/v3/seerPanelActions';
 import {TourElement} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
@@ -302,7 +304,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   </Text>
                 </Flex>
               ) : (
-                <DropdownButton
+                <OverlayTrigger.Button
                   {...triggerProps}
                   isOpen={isOpen}
                   variant="transparent"
@@ -316,7 +318,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   <Text size="lg" bold variant="inherit">
                     {TabName[currentTab] ?? TabName[Tab.DETAILS]}
                   </Text>
-                </DropdownButton>
+                </OverlayTrigger.Button>
               )
             }
           />
@@ -337,14 +339,17 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           <Container {...tourProps} width={{zero: '100%', lg: 'auto'}} maxWidth="100%">
             <Flex wrap="wrap" gap={{zero: 'sm', sm: 'xs'}}>
               {currentTab === Tab.AUTOFIX && autofixPanel && (
-                <SeerPanelActions
-                  autofixState={autofixPanel.runState}
-                  enableBashMode={autofixPanel.enableBashMode}
-                  onCopyMarkdown={autofixPanel.handleCopyMarkdown}
-                  onEnableBashModeChange={autofixPanel.setEnableBashMode}
-                  onOpenSeerAgent={autofixPanel.handleOpenSeerAgent}
-                  onReset={autofixPanel.handleRestart}
-                />
+                <Flex align="center" gap="xs">
+                  <AutofixReferrerInfoTip referrer={autofixPanel.referrer} />
+                  <SeerPanelActions
+                    autofixState={autofixPanel.runState}
+                    enableBashMode={autofixPanel.enableBashMode}
+                    onCopyMarkdown={autofixPanel.handleCopyMarkdown}
+                    onEnableBashModeChange={autofixPanel.setEnableBashMode}
+                    onOpenSeerAgent={autofixPanel.handleOpenSeerAgent}
+                    onReset={autofixPanel.handleRestart}
+                  />
+                </Flex>
               )}
               {currentTab === Tab.DETAILS && (
                 <Fragment>

@@ -167,10 +167,18 @@ class ReferenceSerializer(RequestSerializer):
     name = CharField(max_length=200)
     value = CharField(max_length=200, allow_blank=True)
 
+    def validate_value(self, value: str) -> str:
+        if len(value) == 0:
+            raise ValidationError("References must have a value")
+        return value
+
 
 class ParamSerializer(ReferenceSerializer):
     type = CharField(source="param_type")
     order = IntegerField(min_value=0, max_value=3)
+
+    def validate_value(self, value: str) -> str:
+        return value
 
     def validate_type(self, parameter_type: str) -> int:
         param_type = ParamItemTypes.get_id_for_type_name(parameter_type)

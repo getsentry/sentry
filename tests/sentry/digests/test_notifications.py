@@ -12,37 +12,48 @@ from sentry.digests.notifications import (
     split_key,
     unsplit_key,
 )
-from sentry.digests.types import NotificationWithRuleObjects, Record, RecordWithRuleObjects
+from sentry.digests.types import (
+    IdentifierKey,
+    NotificationWithRuleObjects,
+    Record,
+    RecordWithRuleObjects,
+)
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
 
+def as_group_event(event: Event) -> GroupEvent:
+    return event.for_group(event.groups[0])
+
+
 class BindRecordsTestCase(TestCase):
     notification_uuid = str(uuid.uuid4())
+    workflow_id = 123
 
     @cached_property
     def project(self) -> Project:
         return self.create_project(fire_project_created=True)
 
     @cached_property
-    def rule(self) -> Rule:
-        rule = self.create_project_rule(project=self.project)
-        rule.save()
-        return rule
-
-    @cached_property
     def record(self) -> Record:
-        return event_to_record(self.event, (self.origin,), self.notification_uuid)
+        return event_to_record(as_group_event(self.event), (self.origin,), self.notification_uuid)
 
     @cached_property
     def origin(self) -> NotificationOrigin:
-        return NotificationOrigin.from_legacy_rule(self.rule)
+        return NotificationOrigin(
+            label="Workflow",
+            environment_id=None,
+            workflow_id=self.workflow_id,
+            legacy_rule_id=None,
+        )
 
     @property
     def group_mapping(self) -> dict[int, Group]:
@@ -50,11 +61,15 @@ class BindRecordsTestCase(TestCase):
 
     @property
     def rule_mapping(self) -> dict[int, NotificationOrigin]:
-        return {self.rule.id: self.origin}
+        return {self.workflow_id: self.origin}
 
     def test_success(self) -> None:
         (record,) = _bind_records([self.record], self.group_mapping, self.rule_mapping)
         assert record == self.record.with_rules([self.origin])
+
+    def test_record_uses_workflow_identifier(self) -> None:
+        assert self.record.value.rules == [self.workflow_id]
+        assert self.record.value.identifier_key == IdentifierKey.WORKFLOW
 
     def test_without_group(self) -> None:
         # If the record can't be associated with a group, it should be dropped
@@ -79,7 +94,7 @@ class GroupRecordsTestCase(TestCase):
 
     @cached_property
     def origin(self) -> NotificationOrigin:
-        return NotificationOrigin.from_legacy_rule(self.rule)
+        return create_notification_origin(self.rule)
 
     def test_success(self) -> None:
         events = [
@@ -148,8 +163,8 @@ class SortDigestTestCase(TestCase):
         )
 
         origins = [
-            NotificationOrigin.from_legacy_rule(first_rule),
-            NotificationOrigin.from_legacy_rule(second_rule),
+            create_notification_origin(first_rule),
+            create_notification_origin(second_rule),
         ]
         groups = [self.create_group() for _ in range(3)]
 

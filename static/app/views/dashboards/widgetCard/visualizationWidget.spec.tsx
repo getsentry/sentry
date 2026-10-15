@@ -124,6 +124,70 @@ describe('VisualizationWidget breakdown series labels', () => {
 
     expect(screen.getByRole('link', {name: 'my_transaction'})).toBeInTheDocument();
   });
+
+  it('keeps the other group by values next to the model name', () => {
+    const modelWidget = {
+      ...spansBreakdownWidget,
+      queries: [
+        {
+          ...spansBreakdownWidget.queries[0]!,
+          fields: [SpanFields.GEN_AI_REQUEST_MODEL, 'gen_ai.generation.error', 'count()'],
+          columns: [SpanFields.GEN_AI_REQUEST_MODEL, 'gen_ai.generation.error'],
+        },
+      ],
+    };
+    jest.mocked(WidgetCardDataLoader).mockImplementation(({children}: any) =>
+      children({
+        timeseriesResults: [
+          {
+            seriesName: 'gemini-3.7-flash,timed out : count()',
+            data: [{name: 1_000_000, value: 4}],
+            color: '#000',
+          },
+          {
+            seriesName: 'gemini-3.7-flash,connection refused : count()',
+            data: [{name: 1_000_000, value: 1}],
+            color: '#000',
+          },
+        ],
+        tableResults: [
+          {
+            title: '',
+            data: [
+              {
+                [SpanFields.GEN_AI_REQUEST_MODEL]: 'gemini-3.7-flash',
+                'gen_ai.generation.error': 'timed out',
+                'count()': 4,
+              },
+              {
+                [SpanFields.GEN_AI_REQUEST_MODEL]: 'gemini-3.7-flash',
+                'gen_ai.generation.error': 'connection refused',
+                'count()': 1,
+              },
+            ],
+            meta: {fields: {}, units: {}},
+          },
+        ],
+        loading: false,
+      })
+    );
+
+    render(<VisualizationWidget widget={modelWidget} selection={selection} />, {
+      organization: OrganizationFixture({features: ['visibility-explore-view']}),
+    });
+
+    expect(screen.getAllByText('gemini-3.7-flash')).toHaveLength(2);
+    expect(screen.getByText(',timed out')).toBeInTheDocument();
+    expect(screen.getByText(',connection refused')).toBeInTheDocument();
+
+    // Explore links filter on every group by value, not just the model
+    const link = screen.getByRole('link', {name: /timed out/});
+    const query = new URLSearchParams(link.getAttribute('href')!.split('?')[1]).get(
+      'query'
+    );
+    expect(query).toContain('gen_ai.request.model:gemini-3.7-flash');
+    expect(query).toContain('gen_ai.generation.error:"timed out"');
+  });
 });
 
 describe('VisualizationWidget memoization', () => {

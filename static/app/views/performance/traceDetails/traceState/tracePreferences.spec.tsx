@@ -9,8 +9,14 @@ describe('tracePreferences', () => {
     localStorage.clear();
   });
 
-  it('defaults compressed timeline on', () => {
-    expect(DEFAULT_TRACE_VIEW_PREFERENCES.compressed_timeline).toBe(true);
+  it('defaults compressed timeline on for a new trace view', () => {
+    expect(
+      getInitialTracePreferences(
+        'trace-waterfall-preferences',
+        DEFAULT_TRACE_VIEW_PREFERENCES,
+        'trace_view'
+      ).compressed_timeline
+    ).toBe(true);
   });
 
   it('uses the main trace compressed timeline default when stored preferences omit it', () => {
@@ -99,42 +105,6 @@ describe('tracePreferences', () => {
         'trace_view'
       ).compressed_timeline
     ).toBe(true);
-  });
-
-  it('keeps compressed timeline disabled when the feature is not enabled', () => {
-    localStorage.setItem(
-      'trace-waterfall-preferences',
-      JSON.stringify({
-        drawer_layout: DEFAULT_TRACE_VIEW_PREFERENCES.layout,
-        missing_instrumentation: false,
-        autogroup: {parent: true, sibling: true},
-        compressed_timeline: true,
-      })
-    );
-
-    expect(
-      getInitialTracePreferences(
-        'trace-waterfall-preferences',
-        {
-          ...DEFAULT_TRACE_VIEW_PREFERENCES,
-        },
-        'trace_view',
-        {enableCompressedTimeline: false}
-      ).compressed_timeline
-    ).toBe(false);
-  });
-
-  it('defaults compressed timeline off when the feature is not enabled', () => {
-    expect(
-      getInitialTracePreferences(
-        'trace-waterfall-preferences',
-        {
-          ...DEFAULT_TRACE_VIEW_PREFERENCES,
-        },
-        'trace_view',
-        {enableCompressedTimeline: false}
-      ).compressed_timeline
-    ).toBe(false);
   });
 
   it('uses the provided compressed timeline default when the stored value is invalid', () => {

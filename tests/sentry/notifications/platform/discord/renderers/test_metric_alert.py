@@ -10,13 +10,17 @@ from sentry.incidents.typings.metric_detector import OpenPeriodContext
 from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, LEVEL_TO_COLOR
 from sentry.notifications.platform.discord.provider import (
     DiscordNotificationProvider,
+    DiscordRenderable,
 )
 from sentry.notifications.platform.discord.renderers.metric_alert import (
     DiscordMetricAlertRenderer,
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.templates.seer import SeerAutofixError
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
 )
 from sentry.testutils.cases import TestCase
@@ -47,13 +51,25 @@ def _make_notification_data(**overrides: Any) -> MetricAlertNotificationData:
     return MetricAlertNotificationData(**defaults)
 
 
+def _render(
+    data: NotificationData, rendered_template: NotificationRenderedTemplate
+) -> DiscordRenderable:
+    return DiscordMetricAlertRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            data=data, provider=NotificationProviderKey.DISCORD
+        ),
+    )
+
+
 class DiscordMetricAlertRendererInvalidDataTest(TestCase):
     def test_render_raises_on_invalid_data_type(self) -> None:
         invalid_data = SeerAutofixError(organization_id=1, error_message="not a metric alert")
         rendered_template = NotificationRenderedTemplate(subject="Metric Alert", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
-            DiscordMetricAlertRenderer.render(
+            _render(
                 data=invalid_data,
                 rendered_template=rendered_template,
             )
@@ -89,7 +105,7 @@ class DiscordMetricAlertRendererTest(MetricAlertHandlerBase):
         self.rendered_template = NotificationRenderedTemplate(subject="Metric Alert", body=[])
 
     def test_render_produces_embed(self) -> None:
-        result = DiscordMetricAlertRenderer.render(
+        result = _render(
             data=self.notification_data,
             rendered_template=self.rendered_template,
         )
@@ -117,7 +133,7 @@ class DiscordMetricAlertRendererTest(MetricAlertHandlerBase):
             chart_url=MOCK_CHART_URL,
         )
 
-        result = DiscordMetricAlertRenderer.render(
+        result = _render(
             data=data_with_chart,
             rendered_template=self.rendered_template,
         )
@@ -129,7 +145,7 @@ class DiscordMetricAlertRendererTest(MetricAlertHandlerBase):
         assert embed["image"]["url"] == MOCK_CHART_URL
 
     def test_render_without_chart_url(self) -> None:
-        result = DiscordMetricAlertRenderer.render(
+        result = _render(
             data=self.notification_data,
             rendered_template=self.rendered_template,
         )
@@ -151,7 +167,7 @@ class DiscordMetricAlertRendererTest(MetricAlertHandlerBase):
             new_status=IncidentStatus.CLOSED.value,
         )
 
-        result = DiscordMetricAlertRenderer.render(
+        result = _render(
             data=resolved_data,
             rendered_template=self.rendered_template,
         )

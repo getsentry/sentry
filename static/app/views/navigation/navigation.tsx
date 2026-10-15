@@ -44,6 +44,7 @@ import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigatio
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
@@ -151,6 +152,7 @@ interface PrimaryNavigationItemsProps {
 
 export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization({allowNull: true});
+  const settingsV3 = useSettingsV3();
 
   const fallbackRef = useRef<HTMLUListElement>(null);
 
@@ -302,7 +304,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </PrimaryNavigation.Link>
       </PrimaryNavigation.ListItem>
 
-      {settingsItem}
+      {settingsV3 ? null : settingsItem}
     </Fragment>
   );
 }
