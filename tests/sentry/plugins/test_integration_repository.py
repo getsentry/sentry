@@ -182,6 +182,16 @@ class IntegrationRepositoryTestCase(TestCase):
         repo.refresh_from_db()
         assert repo.name == self.repo_name
 
+    def test_create_repository__repo_exists_preserves_config(self, get_jwt: MagicMock) -> None:
+        repo = self._create_repo(external_id=self.config["external_id"])
+        repo.update(config={**repo.config, "webhook_id": "hook-1"})
+
+        with pytest.raises(RepoExistsError):
+            self.provider.create_repository(self.config, self.organization)
+
+        repo.refresh_from_db()
+        assert repo.config["webhook_id"] == "hook-1"
+
     @patch("sentry.models.Repository.objects.create")
     @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
     def test_create_repository__delete_webhook(

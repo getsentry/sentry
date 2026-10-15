@@ -7,6 +7,7 @@ from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers.notifications import create_notification_action_context
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -47,11 +48,12 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     def trigger(self, event: GroupEvent, rule_object: Rule) -> object:
         action = rule_object.data.get("actions", ())[0]
-        action_inst = self.get_rule(data=action, rule=rule_object)
+        context = create_notification_action_context(rule_object)
+        action_inst = self.get_rule(data=action, context=context)
         results = list(action_inst.after(event=event))
         assert len(results) == 1
 
-        rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(context=context, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
     def get_key(self, event: GroupEvent) -> str:

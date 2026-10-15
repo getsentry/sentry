@@ -1,4 +1,9 @@
 import {Fragment, useMemo} from 'react';
+import {IconBookmark} from '@sentry/icons/bookmark';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconGroup} from '@sentry/icons/group';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconSort} from '@sentry/icons/sort';
 import orderBy from 'lodash/orderBy';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -14,7 +19,6 @@ import {
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
-import {IconBookmark, IconFilter, IconGroup, IconIssues, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Tag} from 'sentry/types/group';
@@ -277,16 +281,8 @@ function SortActions({
   query,
   onSortChange,
 }: Pick<IssueListCommandPaletteActionsProps, 'sort' | 'query' | 'onSortChange'>) {
-  const organization = useOrganization();
-  // Mirror the sort dropdown (sortOptions.tsx): Recommended is selectable when
-  // the org has the option flag, when it's the default sort, or when it's the
-  // active sort — otherwise a user defaulted to Recommended couldn't switch back.
-  const hasRecommendedSort =
-    organization.features.includes('issue-stream-recommended-sort') ||
-    organization.features.includes('issue-stream-recommended-sort-default') ||
-    sort === IssueSortOptions.RECOMMENDED;
   const sortKeys = [
-    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
+    IssueSortOptions.RECOMMENDED,
     ...(FOR_REVIEW_QUERIES.includes(query) ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,

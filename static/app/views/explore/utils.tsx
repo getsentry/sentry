@@ -14,7 +14,7 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort, EventView} from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   isEquation,
@@ -23,7 +23,7 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {FieldValueType} from 'sentry/utils/fields';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -64,10 +64,8 @@ import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {
-  parseConditionalAggregate,
-  withReadableConditionalFilter,
-} from 'sentry/views/explore/utils/conditionalAggregate';
+import {withReadableConditionalFilter} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
@@ -793,11 +791,7 @@ export function hasScrubbedValue(
   return meta === undefined ? false : new TraceItemMetaInfo(meta).hasRemarks(attribute);
 }
 
-const SAMPLING_SENSITIVE_AGGREGATES = new Set([
-  'count_unique',
-  'failure_count',
-  'failure_rate',
-]);
+const SAMPLING_SENSITIVE_AGGREGATES = new Set(['count_unique', 'max', 'min']);
 const LOW_SAMPLE_RATE_THRESHOLD = 0.1;
 
 export type SamplingWarningReason = 'partialData' | 'lowSampleRate';
@@ -818,6 +812,24 @@ export function getSamplingWarningReason(
   }
   if (shouldWarnSamplingSensitive(yAxis, series)) {
     return 'lowSampleRate';
+  }
+  return null;
+}
+
+export function getFirstSamplingWarning(
+  yAxes: string[],
+  seriesByYAxis: Record<string, TimeSeries[]>,
+  dataScanned: 'full' | 'partial' | undefined
+): {reason: SamplingWarningReason; yAxis: string} | null {
+  for (const yAxis of yAxes) {
+    const reason = getSamplingWarningReason(
+      yAxis,
+      seriesByYAxis[yAxis] ?? [],
+      dataScanned
+    );
+    if (reason) {
+      return {reason, yAxis};
+    }
   }
   return null;
 }

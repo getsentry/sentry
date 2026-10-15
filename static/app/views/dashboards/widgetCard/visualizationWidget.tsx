@@ -1,8 +1,10 @@
-import {Fragment} from 'react';
+import {Fragment, memo} from 'react';
 import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
+import isEqual from 'lodash/isEqual';
+import omit from 'lodash/omit';
 
-import {Container, Stack, type ContainerProps} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -29,6 +31,7 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getIngestionCompleteThrough} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
@@ -38,15 +41,16 @@ import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLege
 import type {
   LegendSelection,
   TimeSeries,
-  TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatBreakdownLegendValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatBreakdownLegendValue';
+import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {createPlottableFromTimeSeriesAndWidget} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/createPlottableFromTimeSeries';
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
@@ -84,7 +88,7 @@ interface VisualizationWidgetProps {
   widgetInterval?: string;
 }
 
-export function VisualizationWidget({
+function VisualizationWidgetComponent({
   widget,
   selection,
   dashboardFilters,
@@ -178,6 +182,24 @@ export function VisualizationWidget({
   );
 }
 
+function shouldMemoizeVisualizationWidget(
+  prevProps: VisualizationWidgetProps,
+  props: VisualizationWidgetProps
+) {
+  // Title and description are rendered by the surrounding frame, so editing them
+  // (e.g. typing a name in the widget builder) shouldn't re-run the series
+  // transforms and redraw the chart
+  return isEqual(
+    {...prevProps, widget: omit(prevProps.widget, ['title', 'description'])},
+    {...props, widget: omit(props.widget, ['title', 'description'])}
+  );
+}
+
+export const VisualizationWidget = memo(
+  VisualizationWidgetComponent,
+  shouldMemoizeVisualizationWidget
+);
+
 interface VisualizationWidgetContentProps {
   loading: boolean;
   releases: Array<{timestamp: string; version: string}>;
@@ -268,6 +290,11 @@ function VisualizationWidgetContent({
     })
     .filter(defined);
 
+  const renderTooltipSeriesDetails = useIncompleteBucketTooltipDetails(
+    timeSeriesWithPlottable.map(([timeSeries]) => timeSeries),
+    getIngestionCompleteThrough(timeseriesResults)
+  );
+
   const plottableWithNeedsColor = timeSeriesWithPlottable.filter(
     ([_, plottable]) => plottable.needsColor
   ).length;
@@ -310,11 +337,7 @@ function VisualizationWidgetContent({
         const dataUnit = timeSeries.meta.valueUnit ?? undefined;
         const label = plottable?.label ?? timeSeries.yAxis;
 
-        const labelDisplay = renderBreakdownLabel(
-          firstColumn,
-          firstColumnGroupByValue,
-          label
-        );
+        const labelDisplay = renderBreakdownLabel(timeSeries, firstColumn, label);
 
         let labelContent = <Text>{labelDisplay}</Text>;
 
@@ -328,7 +351,15 @@ function VisualizationWidgetContent({
           widget.widgetType === WidgetType.SPANS
         ) {
           const exploreQuery = new MutableSearch(widget.queries[0]?.conditions ?? '');
-          exploreQuery.addFilterValue(firstColumn, firstColumnGroupByValue);
+          for (const {key, value: groupByValue} of timeSeries.groupBy ?? []) {
+            if (groupByValue === null) {
+              exploreQuery.addFilterValue('!has', key);
+            } else if (Array.isArray(groupByValue)) {
+              exploreQuery.addFilterValues(key, groupByValue.map(String));
+            } else {
+              exploreQuery.addFilterValue(key, String(groupByValue));
+            }
+          }
           const exploreUrl = getExploreUrl({
             organization,
             selection,
@@ -461,6 +492,7 @@ function VisualizationWidgetContent({
             onZoom={onZoom}
             legendSelection={legendSelection}
             onLegendSelectionChange={onLegendSelectionChange}
+            renderTooltipSeriesDetails={renderTooltipSeriesDetails}
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
@@ -484,6 +516,7 @@ function VisualizationWidgetContent({
           onZoom={onZoom}
           legendSelection={legendSelection}
           onLegendSelectionChange={onLegendSelectionChange}
+          renderTooltipSeriesDetails={renderTooltipSeriesDetails}
         />
       </Container>
       <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
@@ -494,21 +527,37 @@ function VisualizationWidgetContent({
 /**
  * Returns a custom label element for breakdown legend rows that need special rendering
  * (e.g., model icons for AI model fields), or falls back to the plain text label.
+ * Any group by values other than the model are appended so rows stay distinguishable
+ * when the widget groups by more than one column.
  */
 function renderBreakdownLabel(
-  column?: string,
-  groupByValue?: TimeSeriesGroupBy['value'],
+  timeSeries: TimeSeries,
+  firstColumn?: string,
   fallbackLabel?: string
 ): React.ReactNode {
+  const groupBy = timeSeries.groupBy ?? [];
+  const modelGroupBy = groupBy.find(group => group.key === firstColumn);
+
   if (
-    typeof groupByValue === 'string' &&
-    (column === SpanFields.GEN_AI_REQUEST_MODEL ||
-      column === SpanFields.GEN_AI_RESPONSE_MODEL)
+    typeof modelGroupBy?.value !== 'string' ||
+    (firstColumn !== SpanFields.GEN_AI_REQUEST_MODEL &&
+      firstColumn !== SpanFields.GEN_AI_RESPONSE_MODEL)
   ) {
-    return <ModelName modelId={groupByValue} size={14} />;
+    return fallbackLabel;
   }
 
-  return fallbackLabel;
+  const otherGroupBy = groupBy.filter(group => group !== modelGroupBy);
+  const otherGroupByLabel =
+    otherGroupBy.length > 0
+      ? formatTimeSeriesLabel({...timeSeries, groupBy: otherGroupBy})
+      : '';
+
+  return (
+    <Flex align="center">
+      <ModelName modelId={modelGroupBy.value} size={14} />
+      {otherGroupByLabel && <Text variant="inherit">{`,${otherGroupByLabel}`}</Text>}
+    </Flex>
+  );
 }
 
 /**

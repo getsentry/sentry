@@ -163,6 +163,26 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     suppressErrorMessage: true,
   });
 
+  const errorContextValue = useMemo(
+    () => ({
+      errors: automationBuilderErrors,
+      setErrors: setAutomationBuilderErrors,
+      removeError,
+      mutationErrors: error?.responseJSON,
+    }),
+    [automationBuilderErrors, setAutomationBuilderErrors, removeError, error]
+  );
+
+  const builderContextValue = useMemo(
+    () => ({
+      state,
+      actions,
+      showTriggerLogicTypeSelector:
+        state.triggers.logicType === DataConditionGroupLogicType.ALL,
+    }),
+    [state, actions]
+  );
+
   const handleFormSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
       const automationFormData = data as AutomationFormData;
@@ -263,22 +283,8 @@ function AutomationEditForm({automation}: {automation: Automation}) {
           <AutomationFeedbackButton />
           <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">
-              <AutomationBuilderErrorContext.Provider
-                value={{
-                  errors: automationBuilderErrors,
-                  setErrors: setAutomationBuilderErrors,
-                  removeError,
-                  mutationErrors: error?.responseJSON,
-                }}
-              >
-                <AutomationBuilderContext.Provider
-                  value={{
-                    state,
-                    actions,
-                    showTriggerLogicTypeSelector:
-                      state.triggers.logicType === DataConditionGroupLogicType.ALL,
-                  }}
-                >
+              <AutomationBuilderErrorContext.Provider value={errorContextValue}>
+                <AutomationBuilderContext.Provider value={builderContextValue}>
                   <AutomationForm model={model} />
                 </AutomationBuilderContext.Provider>
               </AutomationBuilderErrorContext.Provider>

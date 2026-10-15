@@ -1,3 +1,4 @@
+import {IconClose} from '@sentry/icons/close';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -10,7 +11,6 @@ import {
   DEBUG_SOURCE_LAYOUTS,
   DEBUG_SOURCE_TYPES,
 } from 'sentry/data/debugFileSources';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import type {CustomRepoFormData, CustomRepoHttp} from 'sentry/types/debugFiles';
 import {CustomRepoType} from 'sentry/types/debugFiles';

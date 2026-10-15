@@ -36,6 +36,7 @@ jobs:
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
+      migration_tests: ${{ steps.changes.outputs.migration_tests }}
       # When true, skip selective testing and run the full backend suite
       skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
@@ -226,11 +227,19 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      # Overlaps the per-worker ClickHouse bootstrap with devservices up.
+      - name: Start per-worker Snuba bootstrap in the background
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        env:
+          DEVSERVICES_STATUS_FILE: ${{ runner.temp }}/devservices-ci/up.exit
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --start
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: backend-ci
+          early-devservices: 'true'
 
       # Restart postgres with a Unix socket mount. Django's postgres driver uses TCP by
       # default, and each ORM call is multiple round-trips — switching to a Unix socket
@@ -271,7 +280,7 @@ jobs:
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
-        run: python3 .github/workflows/scripts/bootstrap-snuba.py
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
 
       - name: Download selected tests artifact
         if: needs.select-tests.outputs.has-selected-tests == 'true'
@@ -336,7 +345,13 @@ jobs:
           matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
   backend-migration-tests:
-    if: needs.files-changed.outputs.backend == 'true'
+    if: >-
+      needs.files-changed.outputs.backend == 'true' &&
+      (
+        github.event_name != 'pull_request' ||
+        needs.files-changed.outputs.migration_tests == 'true' ||
+        needs.files-changed.outputs.skip_selective_testing == 'true'
+      )
     needs: files-changed
     name: backend migration tests
     runs-on: ubuntu-24.04
@@ -357,7 +372,7 @@ jobs:
 
       - name: run tests
         run: |
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS -m migrations --migrations --reruns 0 --fail-slow=150s" make test-python-ci
+          make test-migrations-ci
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}

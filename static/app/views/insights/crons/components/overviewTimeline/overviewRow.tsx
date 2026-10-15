@@ -1,6 +1,9 @@
 import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconUser} from '@sentry/icons/user';
 import pick from 'lodash/pick';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -15,7 +18,6 @@ import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {ActorBadge} from 'sentry/components/idBadge/actorBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {IconEllipsis, IconTimer, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {useLocation} from 'sentry/utils/useLocation';

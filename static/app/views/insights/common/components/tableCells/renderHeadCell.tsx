@@ -1,18 +1,18 @@
 import type {Location} from 'history';
 
-import {getNextSort} from 'sentry/components/tables/getNextSort';
 import type {
   ColumnAlign,
   GridColumnHeader,
   GridColumnSort,
-} from 'sentry/components/tables/gridEditable';
-import {encodeSort} from 'sentry/utils/discover/eventView';
+} from 'sentry/components/tables/dataGrid';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   aggregateFunctionOutputType,
   fieldAlignment,
   parseFunction,
 } from 'sentry/utils/discover/fields';
+import {encodeSort} from 'sentry/utils/queryString';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanFields} from 'sentry/views/insights/types';
 

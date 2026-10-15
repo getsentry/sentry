@@ -8,7 +8,7 @@ from sentry.hybridcloud.rpc import ValueEqualityEnum
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.models.rule import Rule
+    from sentry.models.project import Project
 
 
 @dataclass(eq=False, frozen=True)
@@ -20,13 +20,9 @@ class NotificationOrigin:
     workflow_id: int | None
     legacy_rule_id: int | None
 
-    @classmethod
-    def from_legacy_rule(cls, rule: Rule) -> NotificationOrigin:
-        return cls.from_legacy_data(
-            label=rule.label,
-            environment_id=rule.environment_id,
-            data=rule.data,
-            fallback_legacy_rule_id=rule.id,
+    def is_test_notification(self) -> bool:
+        return (
+            self.workflow_id == TEST_NOTIFICATION_ID or self.legacy_rule_id == TEST_NOTIFICATION_ID
         )
 
     @classmethod
@@ -48,7 +44,11 @@ class NotificationOrigin:
         workflow_id = int(workflow_id) if workflow_id is not None else None
         legacy_rule_id = int(legacy_rule_id) if legacy_rule_id is not None else None
 
-        if workflow_id == TEST_NOTIFICATION_ID or legacy_rule_id == TEST_NOTIFICATION_ID:
+        if (
+            fallback_legacy_rule_id == TEST_NOTIFICATION_ID
+            or workflow_id == TEST_NOTIFICATION_ID
+            or legacy_rule_id == TEST_NOTIFICATION_ID
+        ):
             workflow_id = None
             legacy_rule_id = TEST_NOTIFICATION_ID
         elif workflow_id is None and legacy_rule_id is None:
@@ -86,8 +86,17 @@ class NotificationOrigin:
         return hash(self.identifier)
 
 
+@dataclass(frozen=True)
+class NotificationActionContext:
+    """Identity for action execution; executable configuration is passed separately."""
+
+    origin: NotificationOrigin
+    action_id: int
+    project: Project
+
+
 class RuleFuture(NamedTuple):
-    rule: Rule
+    context: NotificationActionContext
     kwargs: dict[str, Any]
 
 

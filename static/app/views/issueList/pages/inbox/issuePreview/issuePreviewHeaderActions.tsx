@@ -29,6 +29,7 @@ import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {IssuePreviewActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
 import {useIssuePreviewSeer} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
 import {IssuePreviewSeerActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeerActions';
+import type {IssueSummary} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSummary';
 import {useInvalidateInboxQueries} from 'sentry/views/issueList/pages/inbox/useInvalidateInboxQueries';
 
 interface IssuePreviewHeaderActionsProps {
@@ -37,6 +38,7 @@ interface IssuePreviewHeaderActionsProps {
   onRetryCodeChanges: () => void;
   project: Project;
   disabled?: boolean;
+  summary?: IssueSummary;
 }
 
 export function OpenIssueButton({
@@ -141,6 +143,7 @@ export function IssuePreviewHeaderActions({
   onContinueInSeer,
   onRetryCodeChanges,
   project,
+  summary,
 }: IssuePreviewHeaderActionsProps) {
   const {autofix, state} = useIssuePreviewSeer();
   const shouldShowSeerActions = state === 'start' || state === 'summary';
@@ -166,6 +169,7 @@ export function IssuePreviewHeaderActions({
     return (
       <IssuePreviewActions
         group={group}
+        summary={summary}
         project={project}
         disabled={disabled}
         autofixData={autofix.runState}

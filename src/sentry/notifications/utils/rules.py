@@ -1,13 +1,13 @@
-from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
-from typing import Literal
+import logging
+from collections.abc import Iterable
 
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.notifications.types import NotificationOrigin
+from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
 
-RuleIdType = Literal["workflow_id", "legacy_rule_id"]
+logger = logging.getLogger(__name__)
 
 
 def get_notification_origins(
@@ -80,58 +80,12 @@ def get_notification_origins(
     return origins
 
 
-def get_key_from_rule_data(rule: Rule | NotificationOrigin, key: str) -> str:
-    if isinstance(rule, NotificationOrigin):
-        if key == "legacy_rule_id":
-            value = rule.legacy_rule_id
-        elif key == "workflow_id":
-            value = rule.workflow_id
-        else:
-            raise KeyError(key)
-        assert value is not None
-        return str(value)
+def get_workflow_url(origin: NotificationOrigin, organization_slug: str) -> str | None:
+    if origin.workflow_id is not None:
+        return absolute_uri(create_link_to_workflow(organization_slug, str(origin.workflow_id)))
 
-    value = rule.data.get("actions", [{}])[0].get(key)
-    assert value is not None
-    return value
-
-
-@dataclass
-class RulesAndWorkflows:
-    rules: list[Rule]
-    workflow_rules: list[Rule]  # workflows as fake Rules
-
-
-def split_rules_by_rule_workflow_id(rules: Sequence[Rule]) -> RulesAndWorkflows:
-    parsed_rules = []
-    workflow_rules = []
-    for rule in rules:
-        key, _ = get_rule_or_workflow_id(rule)
-        match key:
-            case "workflow_id":
-                workflow_rules.append(rule)
-            case "legacy_rule_id":
-                parsed_rules.append(rule)
-    return RulesAndWorkflows(rules=parsed_rules, workflow_rules=workflow_rules)
-
-
-def get_rule_or_workflow_id(
-    rule: Rule | NotificationOrigin, *, prefer: RuleIdType = "legacy_rule_id"
-) -> tuple[RuleIdType, str]:
-    """
-    Returns which id the rule data carries, and its value. When both a legacy
-    rule id and a workflow id are present, `prefer` decides which one wins.
-    """
-    keys: tuple[RuleIdType, RuleIdType] = (
-        ("workflow_id", "legacy_rule_id")
-        if prefer == "workflow_id"
-        else ("legacy_rule_id", "workflow_id")
+    logger.warning(
+        "notifications.workflow_url.missing_workflow_id",
+        extra={"legacy_rule_id": origin.legacy_rule_id},
     )
-    for key in keys:
-        try:
-            return (key, get_key_from_rule_data(rule, key))
-        except AssertionError:
-            pass
-    if isinstance(rule, Rule):
-        return ("legacy_rule_id", str(rule.id))
-    raise AssertionError("Notification origin requires a workflow or legacy rule ID")
+    return None

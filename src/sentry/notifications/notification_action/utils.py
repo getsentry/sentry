@@ -1,6 +1,8 @@
 import logging
 
+from sentry import features
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -140,15 +142,13 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
     event_data = invocation.event_data
 
     handler = issue_alert_handler_registry.get(action.type)
-    origin = handler.create_notification_origin(
-        detector, event_data, workflow_id=invocation.workflow_id
+    context = handler.create_action_context(
+        action, detector, event_data, workflow_id=invocation.workflow_id
     )
-    rule_data = handler.build_rule_data_from_action(action, detector, origin)
-    rule = SerializableRuleProxy.from_origin(
-        origin,
-        action_id=action.id,
+    rule_data = handler.build_rule_data_from_action(action, detector, context.origin)
+    rule = SerializableRuleProxy.from_action_context(
+        context,
         data=dict(rule_data),
-        project_id=detector.linked_project.id,
     )
     tags = action.data.get("tags", None)
     tag_list = [tag.strip() for tag in tags.split(",")] if tags else None
@@ -198,6 +198,13 @@ def metric_alert_notification_data_factory(
         notification_uuid=notification_uuid,
         referrer=f"metric_alert_{action_type}",
     )
+    show_investigation_button = (
+        action_type == Action.Type.SLACK
+        and metric_issue_context.group is not None
+        and metric_issue_context.new_status != IncidentStatus.CLOSED
+        and features.has("organizations:investigations", organization)
+        and features.has("organizations:investigations-slack", organization)
+    )
 
     return MetricAlertNotificationData(
         group_id=metric_issue_context.id,
@@ -211,6 +218,7 @@ def metric_alert_notification_data_factory(
         text=attachment_info["text"],
         chart_url=chart_url,
         notes=notification_context.notes,
+        show_investigation_button=show_investigation_button,
     )
 
 

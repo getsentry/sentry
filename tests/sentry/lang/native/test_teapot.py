@@ -248,6 +248,253 @@ def test_apply_marker_without_data_omits_none_from_message() -> None:
     assert bc["data"] is None
 
 
+_UE_XML = (
+    '<?xml version="1.0"?><FGenericCrashContext><RuntimeProperties>'
+    "<CrashType>GPUCrash</CrashType><EngineVersion>5.5.4</EngineVersion>"
+    "<BuildConfiguration>Shipping</BuildConfiguration><GameName>UE-Example</GameName>"
+    "<Misc.PrimaryGPUBrand>NVIDIA GeForce RTX 4090</Misc.PrimaryGPUBrand>"
+    "<IsEnsure>false</IsEnsure><MemoryStats.TotalPhysicalGB>64</MemoryStats.TotalPhysicalGB>"
+    "<MachineId>SECRET</MachineId><UserName>alice</UserName>"
+    "<CommandLine>D:\\proj\\game.uproject</CommandLine>"
+    "</RuntimeProperties></FGenericCrashContext>"
+)
+
+
+def test_apply_enriches_from_raw_sections_and_unreal() -> None:
+    data = _relay_gpu_event()
+    apply_gpu_crash_symbolication(
+        data,
+        _completed_response(
+            title="GPU page_fault: read",
+            fault_category="page_fault",
+            fault={
+                "type": "PageFault",
+                "virtual_address": "0x2144",
+                "access_type": "read",
+                "engine": "Graphics",
+                "client": "GraphicsProcessingCluster",
+            },
+            gpu_state={
+                "device_name": "AD102-A",
+                "driver_version": "617.14",
+                "api": "D3D12",
+                "gpus": [{"adapter_name": "AD102-A", "generation_name": "Ada"}],
+            },
+            markers=[
+                {
+                    "kind": "aftermath",
+                    "label": "CommandQueue",
+                    "data": {
+                        "Event": {
+                            "Library": {
+                                "Data": {
+                                    "Data chunk": [
+                                        68,
+                                        114,
+                                        97,
+                                        119,
+                                        32,
+                                        84,
+                                        114,
+                                        105,
+                                        97,
+                                        110,
+                                        103,
+                                        108,
+                                        101,
+                                        0,
+                                    ]
+                                }
+                            },
+                            "Pipe": "Bottom",
+                            "Status": "Executing",
+                        }
+                    },
+                },
+                {"kind": "user_defined", "label": "UserDefined+0", "data": _UE_XML},
+            ],
+            shader_context={
+                "active_shaders": [{"shader_hash": "abc", "shader_type": "Compute"}],
+                "raw": [
+                    {"Device info": {"Device state": "Error_DMA_PageFault"}},
+                    {"Active Warps": [{"GPU PC Address": "compute_01 @ 0x1ab0", "Warp count": 2}]},
+                    {
+                        "Faulted Warps": [
+                            {
+                                "Fault Name": "MMU Fault Error",
+                                "Fault Description": "A shader instruction caused an MMU fault.",
+                                "Shader GPU PC Address": "compute_01 @ 0x18c0",
+                                "Shader mapping": None,
+                            }
+                        ]
+                    },
+                    {"Shader infos": {"Info": {"Shader size": 4864}}},
+                    {"UserDefined+0": _UE_XML},
+                ],
+            },
+        ),
+    )
+
+    gc = data["contexts"]["gpu_crash"]
+    assert gc["fault_name"] == "MMU Fault Error"
+    assert gc["fault_detail"].startswith("A shader instruction")
+    assert gc["device_state"] == "Error_DMA_PageFault"
+    assert gc["active_warps"] == 2
+    assert gc["shader_size"] == 4864
+    assert gc["faulted_warps"][0]["pc"] == "compute_01 @ 0x18c0"
+
+    unreal = data["contexts"]["unreal"]
+    assert unreal["crash_type"] == "GPUCrash"
+    assert unreal["game"] == "UE-Example"
+    assert unreal["is_ensure"] is False and unreal["total_ram_gb"] == 64
+    assert "SECRET" not in str(unreal)
+    assert "user_name" not in unreal and "command_line" not in unreal
+
+    gpu = data["contexts"]["gpu"]
+    assert gpu["generation"] == "Ada"
+    assert gpu["brand"] == "NVIDIA GeForce RTX 4090"
+
+    tags = dict(data["tags"])
+    assert tags["gpu.generation"] == "Ada"
+    assert tags["gpu.brand"] == "NVIDIA GeForce RTX 4090"
+    assert tags["unreal.game"] == "UE-Example"
+    assert tags["unreal.crash_type"] == "GPUCrash"
+
+    value = data["exception"]["values"][0]["value"]
+    assert "read @ 0x2144" in value and "during Draw Triangle" in value
+
+    crumbs = data["breadcrumbs"]["values"]
+    marker = next(c for c in crumbs if c["category"] == "gpu.marker")
+    assert marker["message"] == "Draw Triangle"
+    assert marker["data"] == {"Pipe": "Bottom", "Status": "Executing"}
+    assert not any("FGenericCrashContext" in str(c.get("message")) for c in crumbs)
+
+
+def test_apply_marker_with_non_dict_event_still_decodes() -> None:
+    data = _relay_gpu_event()
+    out = apply_gpu_crash_symbolication(
+        data,
+        _completed_response(
+            markers=[
+                {
+                    "kind": "aftermath",
+                    "label": "CommandQueue",
+                    "data": {
+                        "Event": ["unexpected"],
+                        "Library": {"Data": {"Data chunk": [68, 114, 97, 119, 0]}},
+                    },
+                }
+            ],
+        ),
+    )
+    assert out is data
+    marker = data["breadcrumbs"]["values"][0]
+    assert marker["message"] == "Draw"
+    assert marker["data"] is None
+
+
+def _aftermath_marker(text: str, status: str | None) -> dict[str, Any]:
+    event: dict[str, Any] = {"Library": {"Data": {"Data chunk": [*text.encode(), 0]}}}
+    if status is not None:
+        event["Status"] = status
+    return {"kind": "aftermath", "label": "CommandQueue", "data": {"Event": event}}
+
+
+def test_apply_last_gpu_operation_prefers_executing_marker() -> None:
+    data = _relay_gpu_event()
+    apply_gpu_crash_symbolication(
+        data,
+        _completed_response(
+            markers=[
+                _aftermath_marker("Setup", "Finished"),
+                _aftermath_marker("Untagged", None),
+                _aftermath_marker("Draw Triangle", "Executing"),
+                _aftermath_marker("Present", "Not Started"),
+            ]
+        ),
+    )
+    assert data["contexts"]["gpu_crash"]["last_gpu_operation"] == "Draw Triangle"
+    assert "during Draw Triangle" in data["exception"]["values"][0]["value"]
+
+
+def test_apply_last_gpu_operation_picks_innermost_executing_marker() -> None:
+    data = _relay_gpu_event()
+    apply_gpu_crash_symbolication(
+        data,
+        _completed_response(
+            markers=[
+                _aftermath_marker("Frame 2841", "Executing"),
+                _aftermath_marker("BasePass", "Executing"),
+                _aftermath_marker("DrawIndexed Rock_LOD0", "Executing"),
+                _aftermath_marker("Present", "Not Started"),
+            ]
+        ),
+    )
+    assert data["contexts"]["gpu_crash"]["last_gpu_operation"] == "DrawIndexed Rock_LOD0"
+    assert "during DrawIndexed Rock_LOD0" in data["exception"]["values"][0]["value"]
+
+
+def test_apply_last_gpu_operation_ignores_finished_and_pending_markers() -> None:
+    data = _relay_gpu_event()
+    apply_gpu_crash_symbolication(
+        data,
+        _completed_response(
+            markers=[
+                _aftermath_marker("Setup", "Finished"),
+                _aftermath_marker("Present", "Not Started"),
+            ]
+        ),
+    )
+    assert "last_gpu_operation" not in data["contexts"]["gpu_crash"]
+    assert "during" not in data["exception"]["values"][0]["value"]
+
+
+def test_apply_unreal_numeric_fields_accept_fractions() -> None:
+    xml = (
+        "<FGenericCrashContext><RuntimeProperties>"
+        "<SecondsSinceStart>39.5</SecondsSinceStart>"
+        "<MemoryStats.TotalPhysicalGB>64</MemoryStats.TotalPhysicalGB>"
+        "</RuntimeProperties></FGenericCrashContext>"
+    )
+    data = _relay_gpu_event()
+    apply_gpu_crash_symbolication(
+        data,
+        _completed_response(shader_context={"active_shaders": [], "raw": [{"UserDefined+0": xml}]}),
+    )
+    unreal = data["contexts"]["unreal"]
+    assert unreal["seconds_since_start"] == 39.5
+    assert unreal["total_ram_gb"] == 64
+
+
+def test_apply_marker_callstack_is_flattened() -> None:
+    data = _relay_gpu_event()
+    apply_gpu_crash_symbolication(
+        data,
+        _completed_response(
+            markers=[
+                {
+                    "kind": "aftermath",
+                    "label": "CommandQueue",
+                    "data": {
+                        "Event": {
+                            "Callstack": {
+                                "Stack": [
+                                    {"Entry": {"Module name": "nvwgf2umx.dll", "Pointer": 0x1234}},
+                                    {"Entry": {"Module name": "game.exe", "Pointer": 0x5678}},
+                                ]
+                            }
+                        }
+                    },
+                }
+            ],
+        ),
+    )
+    stack = next(
+        c for c in data["breadcrumbs"]["values"] if c["category"] == "gpu.marker.callstack"
+    )
+    assert stack["data"]["frames"] == ["nvwgf2umx.dll @ 0x1234", "game.exe @ 0x5678"]
+
+
 # ---------------------------------------------------------------------------
 # TeapotClient — request wire format
 # ---------------------------------------------------------------------------

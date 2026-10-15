@@ -1,12 +1,11 @@
 import {Fragment, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -20,8 +19,8 @@ import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useApi} from 'sentry/utils/useApi';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
@@ -30,13 +29,7 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import {ActionSet} from './actionSet';
 import {Headers} from './headers';
-import {
-  BULK_LIMIT,
-  BULK_LIMIT_STR,
-  ConfirmAction,
-  invalidateIssueQueries,
-  performBulkUpdate,
-} from './utils';
+import {ConfirmAction, invalidateIssueQueries, performBulkUpdate} from './utils';
 
 type IssueListActionsProps = {
   allResultsVisible: boolean;
@@ -181,8 +174,7 @@ export function IssueListActions({
     const uniqProjects = uniq(projects);
     return uniqProjects.length === 1 ? uniqProjects[0] : undefined;
   }, [selectedIdsSet]);
-  const theme = useTheme();
-  const disableActions = useMedia(`(width < ${theme.breakpoints.sm})`);
+  const disableActions = useResponsivePropValue({zero: true, xl: false});
   const area = useAnalyticsArea();
   const numIssues = selectedIdsSet.size;
 

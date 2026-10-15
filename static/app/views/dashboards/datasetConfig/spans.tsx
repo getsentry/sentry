@@ -87,7 +87,7 @@ import {
   withBaseConditionalAggregateField,
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -164,7 +164,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
 );
 
 const INTERNAL_ERROR_COUNT_FIELD =
-  'count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)';
+  'count_if(`span.status:internal_error`) + count_if(`span.status:error`)';
 
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
   const {filterKeySearch, pageFilters, widgetQuery} = props;
@@ -565,6 +565,10 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
       dashboardFilters
     );
     const target = getRowExploreUrl(data);
+
+    if (!target) {
+      return <NumberContainer>{count}</NumberContainer>;
+    }
 
     return (
       <NumberContainer>

@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import startCase from 'lodash/startCase';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -7,7 +8,6 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconWarning} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct, tn} from 'sentry/locale';
 import type {

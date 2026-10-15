@@ -1,6 +1,8 @@
 import {useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconRewind10} from '@sentry/icons/rewind10';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -10,7 +12,6 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {ReplayFullscreenButton} from 'sentry/components/replays/replayFullscreenButton';
 import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
 import {TimeAndScrubberGrid} from 'sentry/components/replays/timeAndScrubberGrid';
-import {IconChevron, IconRewind10} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getNextReplayFrame} from 'sentry/utils/replays/getReplayEvent';
 import {TimelineScaleContextProvider} from 'sentry/utils/replays/hooks/useTimelineScale';

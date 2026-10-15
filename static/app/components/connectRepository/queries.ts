@@ -20,11 +20,11 @@ import type {
   RepositoryProjectPathConfig,
 } from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {QUERY_API_CLIENT, useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import {fetchMutation, QUERY_API_CLIENT} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';

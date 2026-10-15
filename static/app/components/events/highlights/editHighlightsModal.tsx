@@ -1,6 +1,10 @@
 import {Fragment, useState} from 'react';
 import {css, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconInfo} from '@sentry/icons/info';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSubtract} from '@sentry/icons/subtract';
 import type {DistributedOmit} from 'type-fest';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
@@ -10,9 +14,9 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import {ContextCardContent} from 'sentry/components/events/contexts/contextCard';
-import {getContextMeta} from 'sentry/components/events/contexts/utils';
+import {getOrderedContextItems} from 'sentry/components/events/contexts/contextItems';
+import {getContextMeta} from 'sentry/components/events/contexts/dataUtils';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import type {
   HighlightContext,
@@ -22,7 +26,6 @@ import {
   getHighlightContextData,
   getHighlightTagData,
 } from 'sentry/components/events/highlights/util';
-import {IconAdd, IconInfo, IconSearch, IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {DetailedProject} from 'sentry/types/project';

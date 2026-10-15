@@ -1,5 +1,7 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconStack} from '@sentry/icons/stack';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
@@ -20,8 +22,6 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconStack} from 'sentry/icons';
-import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t, tct} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -421,7 +421,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             </Flex>
           </Stack>
         </Container>
-        <Layout.Body padding={{'screen:sm': '0 lg lg', 'screen:md': '0 xl lg'}}>
+        <Layout.Body padding={{xl: '0 lg lg', '3xl': '0 xl lg'}}>
           <Layout.Main width="full">
             <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto" gap="3xl">
               {/*

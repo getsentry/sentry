@@ -660,6 +660,32 @@ class AssembleArtifactsTest(BaseAssembleTest):
             datetime.fromisoformat("2023-05-31T10:00:00+00:00")
         }
 
+    @patch("sentry.tasks.assemble.metrics.incr")
+    def test_upload_metric_tags_whether_bundle_was_created(self, mock_incr: MagicMock) -> None:
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        for time in ("2023-05-31T10:00:00", "2023-05-31T11:00:00"):
+            with freeze_time(time):
+                assemble_artifacts(
+                    org_id=self.organization.id,
+                    project_ids=[self.project.id],
+                    version="1.0",
+                    dist="android",
+                    checksum=total_checksum,
+                    chunks=[blob1.checksum],
+                )
+
+        # The first upload creates the bundle, and the second one re-uploads it.
+        assert [
+            call.kwargs["tags"]
+            for call in mock_incr.call_args_list
+            if call.args == ("sourcemaps.upload.artifact_bundle",)
+        ] == [{"created": "true"}, {"created": "false"}]
+
     def test_upload_multiple_artifacts_with_same_bundle_id_and_no_release_dist_pair(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
@@ -1160,6 +1186,7 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
             {
                 "organization_id": self.organization.id,
                 "project_ids": [self.project.id],
+                "release": "undefined",
                 "kind": "undefined",
                 "outcome": "kept_files_without_debug_ids",
                 "artifact_count": 4,
@@ -1194,6 +1221,17 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
         )
 
         assert self.release_names() == [("VERCEL_GIT_COMMIT_SHA", "")]
+
+    def test_env_var_release_logged_with_its_name(self) -> None:
+        with patch("sentry.tasks.assemble.logger") as logger:
+            self.assemble(
+                make_artifact_bundle(make_debug_id_files(self.debug_id)),
+                version="VERCEL_GIT_COMMIT_SHA",
+            )
+
+        (log,) = self.placeholder_release_logs(logger)
+        assert log["release"] == "VERCEL_GIT_COMMIT_SHA"
+        assert log["kind"] == "env_var"
 
     @override_options(
         {

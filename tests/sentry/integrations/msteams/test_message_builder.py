@@ -49,10 +49,12 @@ from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
+from sentry.notifications.types import NotificationOrigin
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
     DummyNotificationWithMoreFields,
+    create_notification_origin,
 )
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -121,6 +123,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             self.create_project_rule(name="rule1"),
             self.create_project_rule(name="rule2"),
         ]
+        self.origins = [create_notification_origin(rule) for rule in self.rules]
 
     def test_simple(self) -> None:
         card = MSTeamsMessageBuilder().build(
@@ -333,7 +336,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.event1.data["type"] = self.group1.data["type"] = "error"
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         body = issue_card["body"]
@@ -421,30 +424,59 @@ class MSTeamsMessageBuilderTest(TestCase):
         card_json = orjson.dumps(issue_card).decode()
         assert card_json[0] == "{" and card_json[-1] == "}"
 
-    def test_issue_action_payload_includes_rule_and_workflow_ids(self) -> None:
-        self.rules[0].data["actions"][0].update(
-            {"legacy_rule_id": self.rules[0].id, "workflow_id": 123}
+    def test_issue_action_payload_includes_workflow_ids_only(self) -> None:
+        origin = self.origins[0]
+        rule = NotificationOrigin(
+            label=origin.label,
+            environment_id=origin.environment_id,
+            legacy_rule_id=origin.legacy_rule_id,
+            workflow_id=123,
         )
 
         payload = MSTeamsIssueMessageBuilder(
             group=self.group1,
             event=self.event1,
-            rules=[self.rules[0]],
+            rules=[rule],
             integration=self.integration,
         ).generate_action_payload(ACTION_TYPE.RESOLVE)["payload"]
 
-        assert payload["rules"] == [self.rules[0].id]
+        assert "rules" not in payload
         assert payload["workflows"] == [123]
+
+    def test_issue_description_uses_event(self) -> None:
+        self.event1.data["metadata"].update({"value": "event error"})
+        self.group1.data["metadata"].update({"value": "group error"})
+        self.event1.data["type"] = self.group1.data["type"] = "error"
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
+        ).build_group_card()
+
+        description = issue_card["body"][1]
+        assert _is_text_block(description)
+        assert "event error" == description["text"]
+
+    def test_issue_description_falls_back_to_group(self) -> None:
+        self.group1.data["metadata"].update({"value": "group error"})
+        self.group1.data["type"] = "error"
+
+        issue_card = MSTeamsIssueMessageBuilder(
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
+        ).build_group_card()
+
+        description = issue_card["body"][1]
+        assert _is_text_block(description)
+        assert "group error" == description["text"]
 
     def test_issue_without_description(self) -> None:
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         assert 3 == len(issue_card["body"])
 
     def test_issue_with_only_one_rule(self) -> None:
-        one_rule = self.rules[:1]
+        one_rule = self.origins[:1]
         issue_card = MSTeamsIssueMessageBuilder(
             group=self.group1, event=self.event1, rules=one_rule, integration=self.integration
         ).build_group_card()
@@ -462,7 +494,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.save()
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         assert _is_container_block(issue_card["body"][2])
@@ -478,7 +510,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.substatus = None
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         assert _is_container_block(issue_card["body"][2])
@@ -493,7 +525,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         GroupAssignee.objects.assign(self.group1, self.user)
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.rules, integration=self.integration
+            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
         ).build_group_card()
 
         body = issue_card["body"]
