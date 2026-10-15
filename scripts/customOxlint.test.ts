@@ -40,6 +40,40 @@ test('boundary resolver resolves app aliases with workspace project references',
   }
 });
 
+test('domain badges are app dependencies and stay outside the scraps boundary', t => {
+  const directories = ['static/app', 'static/packages/scraps/src'].map(directory =>
+    mkdtempSync(path.join(root, directory, 'boundary-probe-'))
+  );
+  t.after(() =>
+    directories.forEach(directory => rmSync(directory, {recursive: true, force: true}))
+  );
+  const files = directories.map(directory => {
+    const file = path.join(directory, 'probe.ts');
+    writeFileSync(
+      file,
+      "import {DeployBadge} from 'sentry/components/core/badge/deployBadge';\nexport const badge = DeployBadge;\n"
+    );
+    return file;
+  });
+  const result = spawnSync(
+    process.execPath,
+    [
+      fileURLToPath(new URL('cli.js', import.meta.resolve('oxlint'))),
+      '--format',
+      'json',
+      ...files,
+    ],
+    {cwd: root, encoding: 'utf8'}
+  );
+  const diagnostics = JSON.parse(result.stdout).diagnostics.filter(
+    (diagnostic: {filename: string}) => diagnostic.filename
+  );
+  assert.equal(diagnostics.length, 1, result.stdout);
+  assert.equal(path.resolve(root, diagnostics[0].filename), files[1]);
+  assert.equal(diagnostics[0].code, 'import-js(no-extraneous-dependencies)');
+  assert.match(diagnostics[0].message, /@sentry-internal\/app/);
+});
+
 function fixture(t: {after: (cleanup: () => void) => void}) {
   const directory = mkdtempSync(path.join(tmpdir(), 'oxlint-correctness-'));
   t.after(() => rmSync(directory, {recursive: true, force: true}));

@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import styled from '@emotion/styled';
 import {IconLock} from '@sentry/icons/lock';
 import {IconQuestion} from '@sentry/icons/question';

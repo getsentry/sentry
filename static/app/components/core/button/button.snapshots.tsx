@@ -1,8 +1,6 @@
 import {IconEdit} from '@sentry/icons/edit';
 
-import {Button, type ButtonProps} from '@sentry/scraps/button';
-
-import type {ButtonSize} from './types';
+import {Button, type ButtonProps, type ButtonSize} from '@sentry/scraps/button';
 
 const allVariants: Array<ButtonProps['variant']> = [
   'secondary',

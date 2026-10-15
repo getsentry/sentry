@@ -1,18 +1,17 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen, waitForElementToBeRemoved} from '@testing-library/react';
+import {userEvent} from '@testing-library/user-event';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {lightTheme} from '@sentry/scraps/theme';
 
 const NEW_FEATURE_TOOLTIP =
   'This feature is new! Try it out and let us know what you think';
 
 describe('FeatureBadge', () => {
   it('shows its tooltip when focused as a standalone badge', async () => {
-    render(<FeatureBadge type="new" />);
+    render(<FeatureBadge type="new" />, {wrapper: ThemeWrapper});
 
     await userEvent.tab();
 
@@ -25,7 +24,8 @@ describe('FeatureBadge', () => {
       <button type="button">
         Parent button
         <FeatureBadge type="new" />
-      </button>
+      </button>,
+      {wrapper: ThemeWrapper}
     );
 
     const badge = screen.getByLabelText('new');
@@ -45,9 +45,14 @@ describe('FeatureBadge', () => {
     render(
       <div role="tab" tabIndex={-1}>
         <FeatureBadge type="new" />
-      </div>
+      </div>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByLabelText('new')).not.toHaveAttribute('tabindex');
   });
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}

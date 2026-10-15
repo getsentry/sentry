@@ -1,6 +1,10 @@
+import type * as React from 'react';
 import {useState} from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
+import {userEvent} from '@testing-library/user-event';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {lightTheme} from '@sentry/scraps/theme';
 
 import {SegmentedControl} from './';
 
@@ -12,7 +16,8 @@ describe('SegmentedControl', () => {
         <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>
         <SegmentedControl.Item key="2">Option 2</SegmentedControl.Item>
         <SegmentedControl.Item key="3">Option 3</SegmentedControl.Item>
-      </SegmentedControl>
+      </SegmentedControl>,
+      {wrapper: ThemeWrapper}
     );
 
     // Radio group (wrapper) has the correct aria-label and aria-orientation
@@ -43,7 +48,8 @@ describe('SegmentedControl', () => {
         <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>
         <SegmentedControl.Item key="2">Option 2</SegmentedControl.Item>
         <SegmentedControl.Item key="3">Option 3</SegmentedControl.Item>
-      </SegmentedControl>
+      </SegmentedControl>,
+      {wrapper: ThemeWrapper}
     );
     // Second option is selected
     expect(screen.getByRole('radio', {name: 'Option 2'})).toBeChecked();
@@ -81,7 +87,7 @@ describe('SegmentedControl', () => {
       );
     }
 
-    render(<Component />);
+    render(<Component />, {wrapper: ThemeWrapper});
 
     // Clicking on Option 2 selects it
     await userEvent.click(screen.getByRole('radio', {name: 'Option 2'}));
@@ -123,7 +129,7 @@ describe('SegmentedControl', () => {
       );
     }
 
-    render(<Component />);
+    render(<Component />, {wrapper: ThemeWrapper});
 
     expect(screen.getByRole('radio', {name: 'Option 2'})).toBeDisabled();
 
@@ -138,3 +144,7 @@ describe('SegmentedControl', () => {
     expect(screen.getByRole('radio', {name: 'Option 3'})).toBeChecked();
   });
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}

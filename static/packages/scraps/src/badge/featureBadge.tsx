@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import styled from '@emotion/styled';
 import {IconBroadcast} from '@sentry/icons/broadcast';
 import {IconBug} from '@sentry/icons/bug';

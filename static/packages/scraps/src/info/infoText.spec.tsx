@@ -1,7 +1,12 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
+import {userEvent} from '@testing-library/user-event';
 
 import {InfoText} from '@sentry/scraps/info';
+import {lightTheme} from '@sentry/scraps/theme';
+
+import {getEmotionRules} from '../../test/getEmotionRules';
 
 describe('InfoText', () => {
   function mockOverflow(width: number, containerWidth: number) {
@@ -28,7 +33,8 @@ describe('InfoText', () => {
     render(
       <InfoText title="Tooltip content" mode="overflowOnly">
         Text content
-      </InfoText>
+      </InfoText>,
+      {wrapper: ThemeWrapper}
     );
 
     const text = screen.getByText('Text content');
@@ -52,7 +58,8 @@ describe('InfoText', () => {
     render(
       <InfoText title="Tooltip content" mode="overflowOnly">
         Text content
-      </InfoText>
+      </InfoText>,
+      {wrapper: ThemeWrapper}
     );
 
     const text = screen.getByText('Text content');
@@ -64,7 +71,9 @@ describe('InfoText', () => {
   });
 
   it('keeps regular InfoText keyboard interactive', () => {
-    render(<InfoText title="Tooltip content">Text content</InfoText>);
+    render(<InfoText title="Tooltip content">Text content</InfoText>, {
+      wrapper: ThemeWrapper,
+    });
 
     expect(screen.getByText('Text content')).toHaveAttribute('tabindex', '0');
   });
@@ -73,7 +82,8 @@ describe('InfoText', () => {
     render(
       <InfoText title="Tooltip content" ellipsis>
         Text content
-      </InfoText>
+      </InfoText>,
+      {wrapper: ThemeWrapper}
     );
 
     const text = screen.getByText('Text content');
@@ -86,3 +96,7 @@ describe('InfoText', () => {
     ).toBe(true);
   });
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
