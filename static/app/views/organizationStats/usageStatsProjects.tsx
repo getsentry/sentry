@@ -18,10 +18,9 @@ import {
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
-import {DataCategoryExact, Outcome} from 'sentry/types/core';
+import {Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -56,7 +55,6 @@ enum SortBy {
   PROJECT = 'project',
   TOTAL = 'total',
   ACCEPTED = 'accepted',
-  ACCEPTED_STORED = 'accepted_stored',
   FILTERED = 'filtered',
   INVALID = 'invalid',
   RATE_LIMITED = 'rate_limited',
@@ -88,28 +86,17 @@ export function UsageStatsProjects({
             statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD,
           };
 
-    const groupBy = ['outcome', 'project'];
-    const category: string[] = [dataCategory.name];
-
-    if (
-      hasDynamicSamplingCustomFeature(organization) &&
-      dataCategory.name === DataCategoryExact.SPAN
-    ) {
-      groupBy.push('category');
-      category.push(DataCategoryExact.SPAN_INDEXED);
-    }
-
     // We do not need more granularity in the data so interval is '1d'
     return {
       ...queryDatetime,
       interval: getSeriesApiInterval(dataDatetime),
-      groupBy,
+      groupBy: ['outcome', 'project'],
       field: ['sum(quantity)'],
       // If only one project is in selected, display the entire project list
       project: isSingleProject ? [ALL_ACCESS_PROJECTS] : projectIds,
-      category,
+      category: [dataCategory.name],
     };
-  }, [organization, dataDatetime, dataCategory, isSingleProject, projectIds]);
+  }, [dataDatetime, dataCategory, isSingleProject, projectIds]);
 
   const {
     data: projectStats,
@@ -251,7 +238,7 @@ export function UsageStatsProjects({
 
   const seriesData = useMemo(() => {
     if (!projectStats) {
-      return {tableStats: [], hasStoredOutcome: false};
+      return {tableStats: []};
     }
 
     const stats: Record<string | number, any> = {};
@@ -260,7 +247,6 @@ export function UsageStatsProjects({
       const baseStat: Partial<TableStat> = {
         [SortBy.TOTAL]: 0,
         [SortBy.ACCEPTED]: 0,
-        [SortBy.ACCEPTED_STORED]: 0,
         [SortBy.FILTERED]: 0,
         [SortBy.INVALID]: 0,
         [SortBy.RATE_LIMITED]: 0,
@@ -270,13 +256,8 @@ export function UsageStatsProjects({
       const projectSet = new Set(projectList.map(p => p.id));
 
       projectStats.groups.forEach(group => {
-        const {outcome, category, project: projectId} = group.by;
+        const {outcome, project: projectId} = group.by;
         // Backend enum is singlar. Frontend enum is plural.
-
-        if (category === 'span_indexed' && outcome !== Outcome.ACCEPTED) {
-          // we need `span_indexed` data for `accepted_stored` only
-          return;
-        }
 
         if (!projectSet.has(projectId!.toString())) {
           return;
@@ -286,13 +267,8 @@ export function UsageStatsProjects({
           stats[projectId!] = {...baseStat};
         }
 
-        if (outcome !== Outcome.CLIENT_DISCARD && category !== 'span_indexed') {
+        if (outcome !== Outcome.CLIENT_DISCARD) {
           stats[projectId!]!.total += group.totals['sum(quantity)']!;
-        }
-
-        if (category === 'span_indexed' && outcome === Outcome.ACCEPTED) {
-          stats[projectId!]!.accepted_stored += group.totals['sum(quantity)']!;
-          return;
         }
 
         if (
@@ -313,15 +289,8 @@ export function UsageStatsProjects({
       });
 
       // For projects without stats, fill in with zero
-      let hasStoredOutcome = false;
       const tableStats: TableStat[] = projectList.map(proj => {
         const stat = stats[proj.id] ?? {...baseStat};
-        if (
-          stat[SortBy.ACCEPTED_STORED] > 0 &&
-          stat[SortBy.ACCEPTED_STORED] !== stat[SortBy.ACCEPTED]
-        ) {
-          hasStoredOutcome = true;
-        }
         return {
           project: {...proj},
           ...getProjectLink(proj),
@@ -344,7 +313,6 @@ export function UsageStatsProjects({
 
       return {
         tableStats: tableStats.slice(offset, offset + MAX_ROWS_USAGE_TABLE),
-        hasStoredOutcome,
       };
     } catch (err) {
       Sentry.withScope(scope => {
@@ -355,7 +323,6 @@ export function UsageStatsProjects({
 
       return {
         tableStats: [],
-        hasStoredOutcome: false,
         error: err,
       };
     }
@@ -368,94 +335,85 @@ export function UsageStatsProjects({
     getProjectLink,
   ]);
 
-  const getTableHeader = useCallback(
-    ({showStoredOutcome}: {showStoredOutcome: boolean}) => {
-      const {key, direction} = tableSort;
+  const getTableHeader = useCallback(() => {
+    const {key, direction} = tableSort;
 
-      const getArrowDirection = (linkKey: SortBy): SortDirection | undefined => {
-        if (linkKey !== key) {
-          return undefined;
-        }
+    const getArrowDirection = (linkKey: SortBy): SortDirection | undefined => {
+      if (linkKey !== key) {
+        return undefined;
+      }
 
-        return direction > 0 ? 'desc' : 'asc';
-      };
+      return direction > 0 ? 'desc' : 'asc';
+    };
 
-      return [
-        {
-          key: SortBy.PROJECT,
-          title: t('Project'),
-          align: 'left',
-          direction: getArrowDirection(SortBy.PROJECT),
-          onClick: () => handleChangeSort(SortBy.PROJECT),
-        },
-        {
-          key: SortBy.TOTAL,
-          title: t('Total'),
-          align: 'right',
-          direction: getArrowDirection(SortBy.TOTAL),
-          onClick: () => handleChangeSort(SortBy.TOTAL),
-        },
-        {
-          key: SortBy.ACCEPTED,
-          title: showStoredOutcome ? t('Accepted (Stored)') : t('Accepted'),
-          align: 'right',
-          direction: getArrowDirection(SortBy.ACCEPTED),
-          onClick: () => handleChangeSort(SortBy.ACCEPTED),
-        },
-        {
-          key: SortBy.FILTERED,
-          title: t('Filtered'),
-          align: 'right',
-          direction: getArrowDirection(SortBy.FILTERED),
-          onClick: () => handleChangeSort(SortBy.FILTERED),
-        },
-        {
-          key: SortBy.RATE_LIMITED,
-          title: t('Rate Limited'),
-          align: 'right',
-          direction: getArrowDirection(SortBy.RATE_LIMITED),
-          onClick: () => handleChangeSort(SortBy.RATE_LIMITED),
-        },
-        {
-          key: SortBy.INVALID,
-          title: t('Invalid'),
-          align: 'right',
-          direction: getArrowDirection(SortBy.INVALID),
-          onClick: () => handleChangeSort(SortBy.INVALID),
-        },
-      ]
-        .map(h => {
-          const Cell = h.key === SortBy.PROJECT ? CellProject : CellStat;
+    return [
+      {
+        key: SortBy.PROJECT,
+        title: t('Project'),
+        align: 'left',
+        direction: getArrowDirection(SortBy.PROJECT),
+        onClick: () => handleChangeSort(SortBy.PROJECT),
+      },
+      {
+        key: SortBy.TOTAL,
+        title: t('Total'),
+        align: 'right',
+        direction: getArrowDirection(SortBy.TOTAL),
+        onClick: () => handleChangeSort(SortBy.TOTAL),
+      },
+      {
+        key: SortBy.ACCEPTED,
+        title: t('Accepted'),
+        align: 'right',
+        direction: getArrowDirection(SortBy.ACCEPTED),
+        onClick: () => handleChangeSort(SortBy.ACCEPTED),
+      },
+      {
+        key: SortBy.FILTERED,
+        title: t('Filtered'),
+        align: 'right',
+        direction: getArrowDirection(SortBy.FILTERED),
+        onClick: () => handleChangeSort(SortBy.FILTERED),
+      },
+      {
+        key: SortBy.RATE_LIMITED,
+        title: t('Rate Limited'),
+        align: 'right',
+        direction: getArrowDirection(SortBy.RATE_LIMITED),
+        onClick: () => handleChangeSort(SortBy.RATE_LIMITED),
+      },
+      {
+        key: SortBy.INVALID,
+        title: t('Invalid'),
+        align: 'right',
+        direction: getArrowDirection(SortBy.INVALID),
+        onClick: () => handleChangeSort(SortBy.INVALID),
+      },
+    ]
+      .map(h => {
+        const Cell = h.key === SortBy.PROJECT ? CellProject : CellStat;
 
-          return (
-            <Cell key={h.key}>
-              <SortableHeaderCell
-                align={h.align as ColumnAlign}
-                direction={h.direction}
-                to={h.onClick()}
-              >
-                {h.title}
-              </SortableHeaderCell>
-            </Cell>
-          );
-        })
-        .concat([<CellStat key="empty" />]); // Extra column for displaying buttons etc.
-    },
-    [handleChangeSort, tableSort]
-  );
+        return (
+          <Cell key={h.key}>
+            <SortableHeaderCell
+              align={h.align as ColumnAlign}
+              direction={h.direction}
+              to={h.onClick()}
+            >
+              {h.title}
+            </SortableHeaderCell>
+          </Cell>
+        );
+      })
+      .concat([<CellStat key="empty" />]); // Extra column for displaying buttons etc.
+  }, [handleChangeSort, tableSort]);
 
   const tableData = useMemo(() => {
-    const showStoredOutcome =
-      hasDynamicSamplingCustomFeature(organization) &&
-      dataCategory.name === DataCategoryExact.SPAN &&
-      seriesData.hasStoredOutcome;
-
     return {
-      headers: getTableHeader({showStoredOutcome}),
-      showStoredOutcome,
+      headers: getTableHeader(),
       ...seriesData,
     };
-  }, [organization, dataCategory, seriesData, getTableHeader]);
+  }, [seriesData, getTableHeader]);
 
   /**
    * OrganizationStatsEndpointV2 does not have any performance issues. We use
@@ -472,7 +430,7 @@ export function UsageStatsProjects({
     });
   }, [tableOffset, filteredProjects]);
 
-  const {headers, tableStats, showStoredOutcome} = tableData;
+  const {headers, tableStats} = tableData;
 
   return (
     <Fragment>
@@ -500,7 +458,6 @@ export function UsageStatsProjects({
           headers={headers}
           dataCategory={dataCategory}
           usageStats={tableStats}
-          showStoredOutcome={showStoredOutcome}
         />
         <Pagination pageLinks={pageLink} />
       </Container>

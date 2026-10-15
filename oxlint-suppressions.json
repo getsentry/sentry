@@ -3372,46 +3372,6 @@
       "count": 1
     }
   },
-  "static/app/views/settings/dynamicSampling/organizationSampleRateInput.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 7
-    }
-  },
-  "static/app/views/settings/dynamicSampling/organizationSampling.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
-  "static/app/views/settings/dynamicSampling/projectSampling.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/settings/dynamicSampling/projectsEditTable.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/settings/dynamicSampling/projectsPreviewTable.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/settings/dynamicSampling/projectsTable.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
-  "static/app/views/settings/dynamicSampling/samplingBreakdown.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 6
-    }
-  },
-  "static/app/views/settings/dynamicSampling/samplingModeSwitchModal.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/featureFlags/changeTracking/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1

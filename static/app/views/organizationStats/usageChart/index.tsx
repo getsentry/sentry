@@ -167,7 +167,6 @@ const getUnitYaxisFormatter =
 export type ChartStats = {
   accepted: NonNullable<BarSeriesOption['data']>;
   projected: NonNullable<BarSeriesOption['data']>;
-  accepted_stored?: NonNullable<BarSeriesOption['data']>;
   clientDiscard?: NonNullable<BarSeriesOption['data']>;
   dropped?: NonNullable<BarSeriesOption['data']>;
   filtered?: NonNullable<BarSeriesOption['data']>;
@@ -377,27 +376,6 @@ function UsageChartBody({
       stack: 'usage',
       legendHoverLink: false,
     }),
-    ...(chartData.accepted_stored
-      ? [
-          createBarSeries({
-            name: SeriesTypes.ACCEPTED,
-            data: chartData.accepted_stored,
-            barGap: '-100%',
-            z: 3,
-            silent: true,
-            tooltip: {show: false},
-            itemStyle: {
-              decal: {
-                color: theme.tokens.content.secondary,
-                dashArrayX: [1, 0],
-                dashArrayY: [3, 5],
-                rotation: -Math.PI / 4,
-              },
-            },
-            legendHoverLink: false,
-          }),
-        ]
-      : []),
     createBarSeries({
       name: SeriesTypes.FILTERED,
       data: chartData.filtered,

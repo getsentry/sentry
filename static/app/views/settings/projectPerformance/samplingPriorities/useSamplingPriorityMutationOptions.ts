@@ -11,7 +11,7 @@ import {getRetentionPriorityFields} from './retentionPrioritySettings';
 export function useSamplingPriorityMutationOptions(project: DetailedProject) {
   const organization = useOrganization();
   const {mutateAsync: updateProject} = useUpdateProject(project);
-  const priorityFields = getRetentionPriorityFields(organization);
+  const priorityFields = getRetentionPriorityFields();
   const mutationKey = ['project-sampling-priorities', project.id];
   const isUpdatingSamplingPriority = useIsMutating({mutationKey}) > 0;
 

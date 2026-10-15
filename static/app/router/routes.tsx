@@ -1455,11 +1455,6 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/earlyFeatures')),
     },
     {
-      path: 'dynamic-sampling/',
-      name: t('Dynamic Sampling'),
-      component: make(() => import('sentry/views/settings/dynamicSampling')),
-    },
-    {
       path: 'mcp-cli/',
       name: t('MCP & CLI'),
       component: make(() => import('sentry/views/settings/organizationMcpCli')),

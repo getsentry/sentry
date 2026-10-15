@@ -33,12 +33,10 @@ type Props = {
   isEmpty?: boolean;
   isError?: boolean;
   isLoading?: boolean;
-  showStoredOutcome?: boolean;
 };
 
 export type TableStat = {
   accepted: number;
-  accepted_stored: number;
   filtered: number;
   invalid: number;
   project: Project;
@@ -68,12 +66,10 @@ function getErrorMessage(errorMessage: any) {
 
 function UsageTableRow({
   dataCategory,
-  showStoredOutcome,
   stat,
 }: {
   dataCategory: DataCategoryInfo;
   stat: TableStat;
-  showStoredOutcome?: boolean;
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -83,7 +79,6 @@ function UsageTableRow({
     projectSettingsLink,
     total,
     accepted,
-    accepted_stored,
     filtered,
     invalid,
     rate_limited,
@@ -114,15 +109,6 @@ function UsageTableRow({
           accepted,
           dataCategory.plural,
           getFormatUsageOptions(dataCategory.plural)
-        )}
-        {showStoredOutcome && (
-          <SubText>
-            {`(${formatUsageWithUnits(
-              accepted_stored,
-              dataCategory.plural,
-              getFormatUsageOptions(dataCategory.plural)
-            )})`}
-          </SubText>
         )}
       </RowCellStat>
       <RowCellStat>
@@ -179,7 +165,6 @@ export function UsageTable({
   isEmpty,
   isError,
   isLoading,
-  showStoredOutcome,
 }: Props) {
   if (isError) {
     return (
@@ -206,12 +191,7 @@ export function UsageTable({
       )}
       {!isLoading &&
         usageStats.map(stat => (
-          <UsageTableRow
-            key={stat.project.id}
-            dataCategory={dataCategory}
-            showStoredOutcome={showStoredOutcome}
-            stat={stat}
-          />
+          <UsageTableRow key={stat.project.id} dataCategory={dataCategory} stat={stat} />
         ))}
     </SimpleTable>
   );
@@ -260,9 +240,4 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
-`;
-
-const SubText = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  margin-left: ${p => p.theme.space.xs};
 `;
