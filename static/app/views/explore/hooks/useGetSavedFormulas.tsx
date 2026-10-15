@@ -9,7 +9,7 @@ const FORMULAS_PER_PAGE = 25;
 
 export type FormulaDataset = 'spans' | 'logs' | 'metrics';
 
-type FormulaParamType = 'column' | 'number' | 'calculation';
+export type FormulaParamType = 'column' | 'number' | 'calculation';
 
 type FormulaType = 'duration' | 'size' | 'number';
 
