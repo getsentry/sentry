@@ -24,8 +24,15 @@ function normalizeReason(reason: string): string {
   if (reason === 'ignored') {
     return 'ignore_spans';
   }
-  if (reason.startsWith('custom-inbound-filter:')) {
-    return 'custom-inbound-filter';
+  if (REASON_INFO[reason]) {
+    return reason;
+  }
+  // Reasons like `Sampled:0` or `custom-inbound-filter:foo` carry a dynamic
+  // suffix; the registry keys on the bare prefix. Exact keys (`too_large:span`)
+  // are matched above, so this only strips genuinely dynamic suffixes.
+  const prefix = reason.slice(0, reason.indexOf(':'));
+  if (reason.includes(':') && REASON_INFO[prefix]) {
+    return prefix;
   }
   return reason.endsWith('_usage_exceeded') ? 'usage_exceeded' : reason;
 }
@@ -40,13 +47,11 @@ export function dataCategoryInfo(category: string) {
 
 export function reasonDescription(reason: string, category: string): string | undefined {
   const short = REASON_INFO[normalizeReason(reason)]?.short;
-  return typeof short === 'function'
-    ? short(dataCategoryInfo(category)?.displayName)
-    : short;
-}
-
-export function reasonLongDescription(reason: string): string | undefined {
-  return REASON_INFO[normalizeReason(reason)]?.long;
+  if (typeof short !== 'function') {
+    return short;
+  }
+  const dataType = dataCategoryInfo(category)?.displayName;
+  return dataType ? short(dataType) : undefined;
 }
 
 export function buildInvestigatePrompt(args: {
