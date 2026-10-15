@@ -27,6 +27,106 @@ CUSTOM_PATTERNS: list[tuple[str | None, str | None]] = [
 ]
 
 
+CHUNK_LOAD_ERROR_CONDITION = {
+    "op": "any",
+    "name": "event.exception.values",
+    "inner": {
+        "op": "or",
+        "inner": [
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "ty", "value": ["ChunkLoadError"]},
+                    {"op": "glob", "name": "value", "value": ["Loading chunk *"]},
+                ],
+            },
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "ty", "value": ["*Uncaught *"]},
+                    {"op": "glob", "name": "value", "value": ["ChunkLoadError: Loading chunk *"]},
+                ],
+            },
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "ty", "value": ["ChunkLoadError"]},
+                    {"op": "glob", "name": "value", "value": ["Failed to load chunk *"]},
+                ],
+            },
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "ty", "value": ["*Uncaught *"]},
+                    {
+                        "op": "glob",
+                        "name": "value",
+                        "value": ["ChunkLoadError: Failed to load chunk *"],
+                    },
+                ],
+            },
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "ty", "value": ["Error"]},
+                    {
+                        "op": "glob",
+                        "name": "value",
+                        "value": ["Uncaught (in promise): ChunkLoadError*"],
+                    },
+                ],
+            },
+        ],
+    },
+}
+
+HYDRATION_ERROR_CONDITION = {
+    "op": "any",
+    "name": "event.exception.values",
+    "inner": {
+        "op": "or",
+        "inner": [
+            {
+                "op": "glob",
+                "name": "value",
+                "value": [
+                    "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,421,422,423,425}*"
+                ],
+            },
+            {
+                "op": "glob",
+                "name": "value",
+                "value": ["*https://react.dev/errors/{418,419,421,422,423,425}*"],
+            },
+        ],
+    },
+}
+
+CUSTOM_ERROR_CONDITION = {
+    "op": "or",
+    "inner": [
+        {
+            "op": "any",
+            "name": "event.exception.values",
+            "inner": {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "and",
+                        "inner": [
+                            {"op": "glob", "name": "ty", "value": ["MyError"]},
+                            {"op": "glob", "name": "value", "value": ["Something went wrong *"]},
+                        ],
+                    },
+                    {"op": "glob", "name": "value", "value": ["*known flaky test*"]},
+                ],
+            },
+        },
+        {"op": "glob", "name": "event.logentry.formatted", "value": ["*known flaky test*"]},
+    ],
+}
+
+
 def exception_matches_filters(
     exc_type: str,
     exc_message: str,
@@ -56,8 +156,7 @@ def message_matches_filters(
 
 
 def test_custom_error_filter_empty() -> None:
-    # With no custom values configured, the filter is a no-op and must be omitted from
-    # the Relay config entirely rather than emitting an empty condition.
+    # No custom values means there is no shared condition to emit.
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
         condition = _custom_error_filter()
 
@@ -71,37 +170,7 @@ def test_custom_error_filter_builds_one_rule_per_pattern() -> None:
 
     # The custom filter matches exceptions AND messages: the exception branch iterates
     # over event.exception.values, while type-less patterns also glob the logentry message.
-    assert condition == {
-        "op": "or",
-        "inner": [
-            {
-                "op": "any",
-                "name": "event.exception.values",
-                "inner": {
-                    "op": "or",
-                    "inner": [
-                        {
-                            "op": "and",
-                            "inner": [
-                                {"op": "glob", "name": "ty", "value": ["MyError"]},
-                                {
-                                    "op": "glob",
-                                    "name": "value",
-                                    "value": ["Something went wrong *"],
-                                },
-                            ],
-                        },
-                        {"op": "glob", "name": "value", "value": ["*known flaky test*"]},
-                    ],
-                },
-            },
-            {
-                "op": "glob",
-                "name": "event.logentry.formatted",
-                "value": ["*known flaky test*"],
-            },
-        ],
-    }
+    assert condition == CUSTOM_ERROR_CONDITION
 
 
 def test_custom_error_filter_exception_only_patterns_omit_logentry_branch() -> None:
@@ -131,12 +200,9 @@ def test_custom_error_filter_exception_only_patterns_omit_logentry_branch() -> N
 
 
 def test_chunk_load_filter_unchanged_by_logentry_matching() -> None:
-    # Built-in filters must not gain message matching: they keep the exception-only shape.
     condition = _chunk_load_error_filter()
 
-    # An "any" top level (rather than the "or" wrapper) means there is no logentry branch.
-    assert condition["op"] == "any"
-    assert "event.logentry.formatted" not in repr(condition)
+    assert condition == CHUNK_LOAD_ERROR_CONDITION
 
 
 def test_error_message_condition_logentry_disabled_by_default() -> None:
@@ -157,55 +223,96 @@ def test_global_generic_filters_have_disabled_definitions() -> None:
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
         generic_filters = get_global_generic_filters()
 
-    assert generic_filters["version"] == 1
-    assert [filter["id"] for filter in generic_filters["filters"]] == [
-        "chunk-load-error",
-        "react-hydration-errors",
-        "custom-error",
-    ]
-    assert all(filter["isEnabled"] is False for filter in generic_filters["filters"])
-    assert all("condition" in filter for filter in generic_filters["filters"])
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "chunk-load-error",
+                "isEnabled": False,
+                "condition": CHUNK_LOAD_ERROR_CONDITION,
+            },
+            {
+                "id": "react-hydration-errors",
+                "isEnabled": False,
+                "condition": HYDRATION_ERROR_CONDITION,
+            },
+            {
+                "id": "custom-error",
+                "isEnabled": False,
+                "condition": CUSTOM_ERROR_CONDITION,
+            },
+        ],
+    }
 
 
 def test_global_generic_filters_omit_custom_error_without_values() -> None:
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
         generic_filters = get_global_generic_filters()
 
-    assert [filter["id"] for filter in generic_filters["filters"]] == [
-        "chunk-load-error",
-        "react-hydration-errors",
-    ]
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "chunk-load-error",
+                "isEnabled": False,
+                "condition": CHUNK_LOAD_ERROR_CONDITION,
+            },
+            {
+                "id": "react-hydration-errors",
+                "isEnabled": False,
+                "condition": HYDRATION_ERROR_CONDITION,
+            },
+        ],
+    }
 
 
 @django_db_all
 def test_custom_error_filter_omitted_without_custom_values(default_project: Project) -> None:
-    # The option is enabled by default for all projects, but with no configured custom
-    # values the filter must not appear in the Relay config (no empty no-op condition).
-    assert default_project.get_option("filters:custom-error") == "1"
-
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
         generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
 
-    # Other default filters keep the config non-empty; only custom-error is omitted.
-    assert generic_filters is not None
-    filter_ids = {f["id"] for f in generic_filters["filters"]}
-    assert "custom-error" not in filter_ids
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "chunk-load-error",
+                "isEnabled": True,
+                "condition": CHUNK_LOAD_ERROR_CONDITION,
+            },
+            {
+                "id": "react-hydration-errors",
+                "isEnabled": True,
+                "condition": HYDRATION_ERROR_CONDITION,
+            },
+        ],
+    }
 
 
 @django_db_all
 def test_custom_error_filter_emitted_with_custom_values(default_project: Project) -> None:
-    assert default_project.get_option("filters:custom-error") == "1"
-
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
         generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
-        expected_condition = _custom_error_filter()
 
-    assert generic_filters is not None
-    assert {
-        "id": "custom-error",
-        "isEnabled": True,
-        "condition": expected_condition,
-    } in generic_filters["filters"]
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "chunk-load-error",
+                "isEnabled": True,
+                "condition": CHUNK_LOAD_ERROR_CONDITION,
+            },
+            {
+                "id": "react-hydration-errors",
+                "isEnabled": True,
+                "condition": HYDRATION_ERROR_CONDITION,
+            },
+            {
+                "id": "custom-error",
+                "isEnabled": True,
+                "condition": CUSTOM_ERROR_CONDITION,
+            },
+        ],
+    }
 
 
 @pytest.mark.parametrize(

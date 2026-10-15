@@ -33,7 +33,9 @@ def call_endpoint(client, relay, private_key):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("custom_values", [[], [("MyError", "Mixed CASE message *")]])
+@pytest.mark.parametrize(
+    "inbound_filters_custom_error_values", [[], [("MyError", "Mixed CASE message *")]]
+)
 @override_options(
     {
         # Set options to Relay's non-default values to avoid Relay skipping deserialization
@@ -58,8 +60,8 @@ def call_endpoint(client, relay, private_key):
         "relay.upload-max-chunk.size": 123,
     }
 )
-def test_global_config(settings, custom_values) -> None:
-    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = custom_values
+def test_global_config(settings, inbound_filters_custom_error_values) -> None:
+    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = inbound_filters_custom_error_values
     config = get_global_config()
 
     normalized = normalize_global_config(config)
