@@ -11,6 +11,8 @@ from sentry.analytics.events.notification_tracking import (
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.tracking import (
+    _LEGACY_ALERT_REFERRERS,
+    _LEGACY_METRICS_KEY_SOURCES,
     NotificationEngagementMechanism,
     NotificationLink,
     NotificationLinkDecorator,
@@ -357,6 +359,13 @@ def test_parse_referrer(referrer: str, expected: NotificationReferrer) -> None:
 )
 def test_parse_referrer_unrecognized(referrer: str) -> None:
     assert parse_referrer(referrer) is None
+
+
+def test_parse_referrer_recognizes_every_legacy_referrer() -> None:
+    for metrics_key in _LEGACY_METRICS_KEY_SOURCES:
+        assert parse_referrer(f"{metrics_key}-email") is not None, metrics_key
+    for referrer in _LEGACY_ALERT_REFERRERS:
+        assert parse_referrer(referrer) is not None, referrer
 
 
 class RegisteredTemplateLinksTest(TestCase):
