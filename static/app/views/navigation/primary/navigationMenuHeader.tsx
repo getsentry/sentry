@@ -41,7 +41,11 @@ export function NavigationMenuHeader({
   return (
     <MenuHeader
       label={t('User')}
-      title={user.name || user.username || user.email}
+      title={
+        user.name === user.email
+          ? user.email.split('@')[0]?.split('.').join(' ')
+          : user.name || user.username || user.email
+      }
       subtitle={user.email}
       avatarProps={getUserAvatarProps(user)}
       avatar={
