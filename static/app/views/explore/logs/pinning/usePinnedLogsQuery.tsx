@@ -56,7 +56,7 @@ interface PinnedLogResult {
 }
 
 const pinnedLogBatcher = createBatcher<PinnedLogResult, PinnedLogsQueryContext>(
-  async (_client, {organizationSlug, baseQuery}, ids: string[]) => {
+  async (client, {organizationSlug, baseQuery}, ids: string[]) => {
     const url = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
       path: {organizationIdOrSlug: organizationSlug},
     });
@@ -64,6 +64,7 @@ const pinnedLogBatcher = createBatcher<PinnedLogResult, PinnedLogsQueryContext>(
     const rowsById = new Map<string, PinnedLogResult | Error>();
     try {
       const {json} = await apiFetch<EventsLogsResult>({
+        client,
         queryKey: [
           url,
           {
@@ -76,6 +77,8 @@ const pinnedLogBatcher = createBatcher<PinnedLogResult, PinnedLogsQueryContext>(
           },
           {infinite: false},
         ],
+        signal: new AbortController().signal,
+        meta: undefined,
       });
       for (const row of json.data) {
         rowsById.set(row[OurLogKnownFieldKey.ID], {
