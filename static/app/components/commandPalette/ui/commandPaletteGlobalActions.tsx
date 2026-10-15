@@ -809,7 +809,7 @@ export function GlobalCommandPaletteActions() {
             <CMDKAction
               display={{label: t('Open Superuser Modal'), icon: <IconLock locked />}}
               keywords={[t('superuser')]}
-              onAction={() => openSudo({isSuperuser: true, needsReload: true})}
+              onAction={() => openSudo({accessMode: 'superuser'})}
             />
           )}
           {isActiveSuperuser() && (

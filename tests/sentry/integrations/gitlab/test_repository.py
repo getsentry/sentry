@@ -471,6 +471,8 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         repo = self.get_repository(pk=response.data["id"])
         commits = self.provider.compare_commits(repo, "abc", "xyz")
         assert 2 == len(commits)
+        assert commits[0]["message"] == "JS fix\n\nFixes PROJ-1"
+        assert commits[1]["message"] == "Fix dmitriy mistake"
         for commit in commits:
             assert_commit_shape(commit)
 

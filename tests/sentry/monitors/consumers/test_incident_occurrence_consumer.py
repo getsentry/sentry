@@ -58,7 +58,6 @@ class MonitorsIncidentOccurrenceConsumerTestCase(TestCase):
         self.failed_checkin = MonitorCheckIn.objects.create(
             monitor=self.monitor,
             monitor_environment=self.monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.MISSED,
             date_added=timezone.now(),
         )

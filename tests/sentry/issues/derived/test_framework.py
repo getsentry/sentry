@@ -1,14 +1,26 @@
 from datetime import datetime, timezone
 from enum import IntEnum
+from typing import Any, Literal, assert_type
 
 import pytest
 
-from sentry.issues.derived.features import IssueStatus
+from sentry.issues.derived.features import (
+    HAS_OPEN_FIX_PR,
+    LAST_PROGRESSED_AT,
+    NO_CHANGE_RECONCILE_IDS,
+    PROGRESS,
+    STATUS,
+    VIEW_COUNT,
+    IssueStatus,
+)
 from sentry.issues.derived.framework import (
     AggregatorResult,
+    Codec,
     DateTimeCodec,
+    DerivedDataError,
     EnumCodec,
     Feature,
+    IntListCodec,
     OptionalCodec,
     Pipeline,
     Scope,
@@ -26,6 +38,28 @@ class EntryType(IntEnum):
     THIRD = 3
 
 
+def test_feature_types_are_inferred_from_codecs() -> None:
+    assert_type(HAS_OPEN_FIX_PR, Feature[bool])
+    assert_type(VIEW_COUNT, Feature[int])
+    assert_type(NO_CHANGE_RECONCILE_IDS, Feature[list[int]])
+    assert_type(STATUS, Feature[IssueStatus])
+    assert_type(PROGRESS, Feature[IssueProgressState | None])
+    assert_type(LAST_PROGRESSED_AT, Feature[datetime | None])
+
+    assert HAS_OPEN_FIX_PR.initial_value() is False
+    assert PROGRESS.initial_value() is IssueProgressState.IDENTIFIED
+    assert LAST_PROGRESSED_AT.initial_value() is None
+
+
+def test_inferred_feature_default_factory_creates_independent_values() -> None:
+    feature = Feature("items", default_factory=list, codec=IntListCodec())
+    assert_type(feature, Feature[list[int]])
+
+    first = feature.initial_value()
+    first.append(1)
+    assert feature.initial_value() == []
+
+
 def test_mutation_checking_catches_in_place_mutation() -> None:
     ITEMS = Feature[list[str]]("items", default_factory=list)
 
@@ -40,8 +74,12 @@ def test_mutation_checking_catches_in_place_mutation() -> None:
     class FakeEntry:
         type = 0
 
-    with pytest.raises(RuntimeError, match="mutated feature 'items' in place"):
+    with pytest.raises(DerivedDataError) as exc:
         p.step(state, FakeEntry())
+    assert exc.value.stage == "aggregate"
+    assert exc.value.aggregator_name == "bad_mutator"
+    assert isinstance(exc.value.__cause__, RuntimeError)
+    assert "mutated feature 'items' in place" in str(exc.value.__cause__)
 
 
 def test_state_updated_tracks_merged_features() -> None:
@@ -287,3 +325,78 @@ class TestEnumCodecCoverage:
         if raw is not None:
             assert isinstance(loaded, IssueProgressState)
         assert codec.to_column(loaded) == raw
+
+
+@pytest.mark.parametrize(
+    "method,stage",
+    [
+        ("to_json", "encode"),
+        ("from_json", "decode"),
+        ("to_column", "encode"),
+        ("from_column", "decode"),
+    ],
+)
+def test_codec_error_context(method: str, stage: Literal["decode", "encode"]) -> None:
+    cause = RuntimeError("codec failed")
+
+    class BrokenCodec(Codec[Any]):
+        def _validate(self, value: Any) -> Any:
+            raise cause
+
+    feature = Feature("broken", default=0, codec=BrokenCodec())
+    with pytest.raises(DerivedDataError) as exc:
+        getattr(feature, method)("sensitive value")
+    assert exc.value.stage == stage
+    assert exc.value.feature_name == "broken"
+    assert exc.value.__cause__ is cause
+    assert "sensitive value" not in str(exc.value)
+
+
+def test_aggregator_error_context() -> None:
+    feature = Feature[int]("count", default=0)
+    cause = KeyError("missing field")
+
+    @aggregator((feature,))
+    def broken(state: StateView, entry: object) -> AggregatorResult:
+        raise cause
+
+    class Entry:
+        type = 0
+        id = 123
+
+    with pytest.raises(DerivedDataError) as exc:
+        Pipeline([broken]).run([Entry()])
+    assert exc.value.stage == "aggregate"
+    assert exc.value.aggregator_name == "broken"
+    assert exc.value.entry_id == 123
+    assert exc.value.__cause__ is cause
+
+
+def test_codec_does_not_wrap_process_interrupt() -> None:
+    class InterruptCodec(Codec[Any]):
+        def _validate(self, value: Any) -> Any:
+            raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        Feature("interrupt", default=None, codec=InterruptCodec()).from_json(None)
+
+
+def test_undeclared_output_has_aggregator_context() -> None:
+    declared = Feature("declared", default=0)
+    undeclared = Feature("undeclared", default=0)
+
+    @aggregator((declared,))
+    def bad_output(state: StateView, entry: object) -> AggregatorResult:
+        return StateUpdate({undeclared: 1})
+
+    class Entry:
+        type = 0
+        id = 42
+
+    with pytest.raises(DerivedDataError) as exc:
+        Pipeline([bad_output]).run([Entry()])
+    assert exc.value.stage == "aggregate"
+    assert exc.value.aggregator_name == "bad_output"
+    assert exc.value.entry_id == 42
+    assert isinstance(exc.value.__cause__, ValueError)
+    assert "undeclared outputs" in str(exc.value.__cause__)
