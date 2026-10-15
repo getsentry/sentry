@@ -265,9 +265,8 @@ class BitbucketServerWebhookEndpoint(Endpoint):
             tags={"result": signature_result},
             sample_rate=1.0,
         )
-        if signature_result in (SignatureResult.INVALID, SignatureResult.MISSING) or (
-            signature_result != SignatureResult.VALID
-            and options.get("bitbucket_server.webhook.signature-enforcement.enabled")
+        if signature_result != SignatureResult.VALID and options.get(
+            "bitbucket_server.webhook.signature-enforcement.enabled"
         ):
             logger.warning(
                 "%s.webhook.rejected-signature",

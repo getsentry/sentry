@@ -359,28 +359,46 @@ class WebhookSignatureTest(WebhookTestBase):
     def test_invalid_signature(self, mock_metrics: MagicMock) -> None:
         self.create_repository(config={"webhook_secret": self.secret})
 
-        self.post_webhook(401, signature=self.sign(secret="wrong-secret"))
+        self.post_webhook(204, signature=self.sign(secret="wrong-secret"))
 
         self.assert_signature_result(mock_metrics, "invalid")
 
-    def test_unsupported_signature_method(self, mock_metrics: MagicMock) -> None:
+    def test_invalid_signature_with_enforcement(self, mock_metrics: MagicMock) -> None:
         self.create_repository(config={"webhook_secret": self.secret})
 
-        self.post_webhook(401, signature=self.sign(method="sha1"))
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401, signature=self.sign(secret="wrong-secret"))
 
         self.assert_signature_result(mock_metrics, "invalid")
 
-    def test_non_ascii_signature(self, mock_metrics: MagicMock) -> None:
+    def test_unsupported_signature_method_with_enforcement(self, mock_metrics: MagicMock) -> None:
         self.create_repository(config={"webhook_secret": self.secret})
 
-        self.post_webhook(401, signature="sha256=é")
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401, signature=self.sign(method="sha1"))
+
+        self.assert_signature_result(mock_metrics, "invalid")
+
+    def test_non_ascii_signature_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401, signature="sha256=é")
 
         self.assert_signature_result(mock_metrics, "invalid")
 
     def test_missing_signature(self, mock_metrics: MagicMock) -> None:
         self.create_repository(config={"webhook_secret": self.secret})
 
-        self.post_webhook(401)
+        self.post_webhook(204)
+
+        self.assert_signature_result(mock_metrics, "missing")
+
+    def test_missing_signature_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401)
 
         self.assert_signature_result(mock_metrics, "missing")
 

@@ -729,8 +729,8 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Reject Bitbucket Server webhooks for repositories without a webhook secret. Deliveries for
-# repositories with a secret must always carry a matching signature, regardless of this option.
+# Reject Bitbucket Server webhooks without a valid signature. While off, signatures are still
+# checked and reported in the `bitbucket_server.webhook.signature` metric, but never rejected.
 register(
     "bitbucket_server.webhook.signature-enforcement.enabled",
     default=False,
