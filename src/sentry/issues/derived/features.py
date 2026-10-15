@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import StrEnum
 
 from sentry.issues.derived.framework import (
@@ -19,19 +20,21 @@ class IssueStatus(StrEnum):
 
 
 # Number of times this issue has been viewed. Not important, mostly here for demonstration purposes.
-VIEW_COUNT = Feature("view_count", default=0, codec=IntCodec())
+VIEW_COUNT = Feature[int]("view_count", default=0, codec=IntCodec())
 
 # Status of the issue based on the log.
-STATUS = Feature("status", default=IssueStatus.OPEN, codec=EnumCodec(IssueStatus), version=2)
+STATUS = Feature[IssueStatus](
+    "status", default=IssueStatus.OPEN, codec=EnumCodec(IssueStatus), version=2
+)
 
 # IDs of the first 20 ReconcileStatusActions whose target equaled the current status.
 # Never cleared. Used to find reconciles that can be deleted while keeping storage bounded.
-NO_CHANGE_RECONCILE_IDS = Feature(
+NO_CHANGE_RECONCILE_IDS = Feature[list[int]](
     "no_change_reconcile_ids", default_factory=list, codec=IntListCodec()
 )
 
 # The current Progress of the issue.
-PROGRESS = Feature(
+PROGRESS = Feature[IssueProgressState | None](
     "progress",
     default=IssueProgressState.IDENTIFIED,
     codec=OptionalCodec(EnumCodec(IssueProgressState)),
@@ -39,26 +42,26 @@ PROGRESS = Feature(
 )
 
 # The last time the progress was advanced.
-LAST_PROGRESSED_AT = Feature(
+LAST_PROGRESSED_AT = Feature[datetime | None](
     "last_progressed_at", default=None, codec=OptionalCodec(DateTimeCodec())
 )
 
 # Whether the issue currently has an open PR linked to the issue.
-HAS_OPEN_FIX_PR = Feature("has_open_fix_pr", default=False, codec=BoolCodec())
+HAS_OPEN_FIX_PR = Feature[bool]("has_open_fix_pr", default=False, codec=BoolCodec())
 
 # Whether the issue currently has an assignee.
-IS_ASSIGNED = Feature("is_assigned", default=False, codec=BoolCodec())
+IS_ASSIGNED = Feature[bool]("is_assigned", default=False, codec=BoolCodec())
 
 # The action-log entry which first assigned this issue.
 FIRST_ASSIGNMENT_ACTION_ID = Feature[int | None]("first_assignment_action_id", default=None)
 
 # Whether the issue has a root cause identified.
-HAS_ROOT_CAUSE = Feature("has_root_cause", default=False, codec=BoolCodec())
+HAS_ROOT_CAUSE = Feature[bool]("has_root_cause", default=False, codec=BoolCodec())
 
 # The furthest autofix step the issue has reached, from the latest completed
-LAST_COMPLETED_AUTOFIX_STEP = Feature(
+LAST_COMPLETED_AUTOFIX_STEP = Feature[IssueAutofixStep](
     "last_completed_autofix_step", default=IssueAutofixStep.NONE, codec=EnumCodec(IssueAutofixStep)
 )
 
 # The current action blocking the issue's progress toward resolution.
-BLOCKER = Feature("blocker", default=IssueBlocker.NONE, codec=EnumCodec(IssueBlocker))
+BLOCKER = Feature[IssueBlocker]("blocker", default=IssueBlocker.NONE, codec=EnumCodec(IssueBlocker))
