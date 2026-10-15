@@ -10,10 +10,14 @@ import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
 import type {TicketCreationAction} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
-import {ticketActionMetadataMap} from 'sentry/views/automations/components/actions/ticketActionMetadata';
 import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';
 
-export function TicketActionSettingsButton() {
+interface Props {
+  ticketType: string;
+  link?: string;
+}
+
+export function TicketActionSettingsButton({ticketType, link}: Props) {
   const {openModal} = useModal();
 
   const {action, onUpdate} = useActionNodeContext();
@@ -88,11 +92,8 @@ export function TicketActionSettingsButton() {
             {...deps}
             instance={instance}
             onSubmitAction={updateParentFromTicketRule}
-            link={ticketActionMetadataMap.get(action.type)?.link || null}
-            ticketType={
-              ticketActionMetadataMap.get(action.type)?.ticketType ||
-              t('an external issue')
-            }
+            link={link ?? null}
+            ticketType={ticketType}
           />
         ))
       }

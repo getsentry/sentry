@@ -55,7 +55,6 @@ import {
   SlackNode,
   validateSlackAction,
 } from 'sentry/views/automations/components/actions/slack';
-import {ticketActionMetadataMap} from 'sentry/views/automations/components/actions/ticketActionMetadata';
 import {
   validateWebhookAction,
   WebhookDetails,
@@ -68,8 +67,6 @@ type ActionNode = {
   defaultData?: Record<string, any>;
   details?: React.ComponentType<any>;
   label?: string;
-  link?: string;
-  ticketType?: string;
 };
 
 export const actionNodesMap = new Map<ActionType, ActionNode>([
@@ -79,7 +76,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Azure DevOps'),
       action: AzureDevOpsNode,
       details: AzureDevOpsDetails,
-      ...ticketActionMetadataMap.get(ActionType.AZURE_DEVOPS),
       validate: validateIntegrationId,
     },
   ],
@@ -108,7 +104,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('GitHub'),
       action: GithubNode,
       details: GithubDetails,
-      ...ticketActionMetadataMap.get(ActionType.GITHUB),
       validate: validateIntegrationId,
     },
   ],
@@ -118,7 +113,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('GitHub Enterprise'),
       action: GithubEnterpriseNode,
       details: GithubEnterpriseDetails,
-      ...ticketActionMetadataMap.get(ActionType.GITHUB_ENTERPRISE),
       validate: validateIntegrationId,
     },
   ],
@@ -128,7 +122,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Jira'),
       action: JiraNode,
       details: JiraDetails,
-      ...ticketActionMetadataMap.get(ActionType.JIRA),
       validate: validateIntegrationId,
     },
   ],
@@ -138,7 +131,6 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Jira Server'),
       action: JiraServerNode,
       details: JiraServerDetails,
-      ...ticketActionMetadataMap.get(ActionType.JIRA_SERVER),
       validate: validateIntegrationId,
     },
   ],
