@@ -26,7 +26,7 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_org_audit_log_exists
-from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
+from sentry.testutils.cases import APITestCase, OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -3150,3 +3150,404 @@ class OrganizationDashboardsScopeTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         self.dashboard.refresh_from_db()
         assert self.dashboard.title == "Old Title"
+
+
+@with_feature(
+    [
+        "organizations:dashboards-basic",
+        "organizations:dashboards-edit",
+        "organizations:explore-interpolation-and-smoothing",
+    ]
+)
+class OrganizationDashboardTransformationsTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.project = self.create_project()
+        self.url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.data: dict[str, Any] = {
+            "title": "Transformed dashboard",
+            "widgets": [
+                {
+                    "title": "Transformed widget",
+                    "displayType": "line",
+                    "widgetType": "spans",
+                    "queries": [
+                        {
+                            "fields": ["count()", "count()"],
+                            "aggregates": ["count()", "count()"],
+                            "columns": [],
+                            "conditions": "",
+                            "transformations": {
+                                "0": ["fill(locf)", "smooth(sma,3)"],
+                                "1": ["fill(zero)"],
+                            },
+                        }
+                    ],
+                }
+            ],
+        }
+
+    def details_url(self, dashboard_id: str) -> str:
+        return reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
+        )
+
+    def test_create_and_read_transformations(self) -> None:
+        self.data["widgets"][0]["queries"].append(
+            {
+                "fields": ["count()", "count()"],
+                "aggregates": ["count()", "count()"],
+                "conditions": "",
+                "transformations": {"1": ["smooth(sma,5)", "fill(linear)"]},
+            }
+        )
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        queries = response.data["widgets"][0]["queries"]
+        assert queries[0]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+        assert queries[1]["transformations"] == {"1": ["smooth(sma,5)", "fill(linear)"]}
+
+        response = self.client.get(self.details_url(response.data["id"]))
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+        assert response.data["widgets"][0]["queries"][1]["transformations"] == {
+            "1": ["smooth(sma,5)", "fill(linear)"]
+        }
+
+        queries = response.data["widgets"][0]["queries"]
+        response = self.client.put(
+            self.details_url(response.data["id"]),
+            {
+                "widgets": [
+                    {
+                        "id": response.data["widgets"][0]["id"],
+                        "queries": [{"id": queries[1]["id"]}, {"id": queries[0]["id"]}],
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {
+            "1": ["smooth(sma,5)", "fill(linear)"]
+        }
+        assert response.data["widgets"][0]["queries"][1]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+
+    def test_rejects_invalid_transformations(self) -> None:
+        for transformations in [
+            None,
+            [],
+            {"0": "fill(locf)"},
+            {"0": [None]},
+            {"0": [5]},
+            {"0": [True]},
+            {"-1": ["fill(locf)"]},
+            {"01": ["fill(locf)"]},
+            {"٠": ["fill(locf)"]},
+            {"2": ["fill(locf)"]},
+            {"9" * 5000: ["fill(locf)"]},
+            {"0": ["unknown(locf)"]},
+            {"0": ["fill(sma)"]},
+            {"0": ["smooth(sma)"]},
+            {"0": ["smooth(sma,0)"]},
+            {"0": ["smooth(sma,-3)"]},
+            {"0": ["smooth(sma,1.5)"]},
+            {"0": ["fill(locf) AS alias"]},
+        ]:
+            self.data["widgets"][0]["queries"][0]["transformations"] = transformations
+            response = self.client.post(self.url, self.data)
+            assert response.status_code == 400, response.data
+            assert "transformations" in response.data["widgets"][0]["queries"][0]
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Transformed dashboard"
+        ).exists()
+
+    def test_partial_update_preserves_replaces_and_clears(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget = response.data["widgets"][0]
+        query_id = widget["queries"][0]["id"]
+
+        response = self.client.put(
+            url,
+            {"widgets": [{"id": widget["id"], "queries": [{"id": query_id, "name": "Renamed"}]}]},
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+
+        response = self.client.put(
+            url,
+            {
+                "widgets": [
+                    {
+                        "id": widget["id"],
+                        "queries": [{"id": query_id, "transformations": {"1": []}}],
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {"1": []}
+
+        response = self.client.put(
+            url,
+            {
+                "widgets": [
+                    {"id": widget["id"], "queries": [{"id": query_id, "transformations": {}}]}
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {}
+
+    def test_partial_update_validates_effective_aggregate_positions(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget = response.data["widgets"][0]
+        query_id = widget["queries"][0]["id"]
+        for update in [
+            {"aggregates": ["count()"]},
+            {"transformations": {"2": ["fill(zero)"]}},
+        ]:
+            response = self.client.put(
+                url,
+                {"widgets": [{"id": widget["id"], "queries": [{"id": query_id, **update}]}]},
+            )
+            assert response.status_code == 400, response.data
+            assert response.data["widgets"][0]["queries"][0]["transformations"] == [
+                "Transformations index must match an aggregate position."
+            ]
+        query = DashboardWidgetQuery.objects.get(id=query_id)
+        assert query.aggregates == ["count()", "count()"]
+        assert query.transformations == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+        response = self.client.put(
+            url,
+            {
+                "widgets": [
+                    {
+                        "id": widget["id"],
+                        "queries": [
+                            {
+                                "id": query_id,
+                                "aggregates": ["count()"],
+                                "transformations": {},
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["aggregates"] == ["count()"]
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {}
+
+    def test_add_query_to_existing_widget_and_restore_revision(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        dashboard_id = response.data["id"]
+        widget = response.data["widgets"][0]
+        old_query_id = widget["queries"][0]["id"]
+        response = self.client.put(
+            self.details_url(dashboard_id),
+            {
+                "widgets": [
+                    {
+                        "id": widget["id"],
+                        "queries": [
+                            {"id": old_query_id},
+                            {
+                                "fields": ["count()"],
+                                "aggregates": ["count()"],
+                                "conditions": "",
+                                "transformations": {"0": ["smooth(sma,7)"]},
+                            },
+                        ],
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][1]["transformations"] == {
+            "0": ["smooth(sma,7)"]
+        }
+        revision = DashboardRevision.objects.get(dashboard_id=dashboard_id)
+        assert revision.snapshot["widgets"][0]["queries"][0]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+
+        url = reverse(
+            "sentry-api-0-organization-dashboard-revision-restore",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+                "revision_id": revision.id,
+            },
+        )
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            response = self.client.post(url)
+        assert response.status_code == 400, response.data
+        assert DashboardRevision.objects.filter(dashboard_id=dashboard_id).count() == 1
+        assert DashboardWidgetQuery.objects.filter(widget_id=widget["id"]).count() == 2
+
+        response = self.client.post(url)
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["id"] != old_query_id
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+
+    def test_validate_widget_and_dashboard_without_saving(self) -> None:
+        self.data["widgets"][0]["queries"][0]["transformations"] = {"2": ["fill(locf)"]}
+        url = reverse(
+            "sentry-api-0-organization-dashboard-widget-details",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        response = self.client.post(url, self.data["widgets"][0])
+        assert response.status_code == 400, response.data
+        assert response.data["queries"][0]["transformations"] == [
+            "Transformations index must match an aggregate position."
+        ]
+        response = self.client.post(f"{self.url}?validateOnly=true", self.data)
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == [
+            "Transformations index must match an aggregate position."
+        ]
+
+    def test_supplied_query_id_cannot_bypass_aggregate_bounds_on_create(self) -> None:
+        other_dashboard = self.create_dashboard(organization=self.organization)
+        other_widget = self.create_dashboard_widget(dashboard=other_dashboard)
+        other_query = self.create_dashboard_widget_query(
+            widget=other_widget, order=0, aggregates=["count()", "count()"]
+        )
+        query = self.data["widgets"][0]["queries"][0]
+        query["id"] = str(other_query.id)
+        del query["aggregates"]
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == [
+            "Transformations index must match an aggregate position."
+        ]
+
+    def test_duplicate_query_ids_cannot_bypass_transformation_bounds(self) -> None:
+        self.data["widgets"][0]["queries"][0]["transformations"] = {}
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget_id = response.data["widgets"][0]["id"]
+        query_id = response.data["widgets"][0]["queries"][0]["id"]
+        updates = [
+            {"id": query_id, "transformations": {"1": ["fill(zero)"]}},
+            {"id": query_id, "aggregates": ["count()"]},
+        ]
+        for widgets in [
+            [{"id": widget_id, "queries": updates}],
+            [
+                {"id": widget_id, "queries": [updates[0]]},
+                {"id": widget_id, "queries": [updates[1]]},
+            ],
+        ]:
+            response = self.client.put(url, {"widgets": widgets})
+            assert response.status_code == 400, response.data
+            assert response.data["widgets"] == ["Query IDs must be unique."]
+        query = DashboardWidgetQuery.objects.get(id=query_id)
+        assert query.aggregates == ["count()", "count()"]
+        assert query.transformations == {}
+
+    def test_query_from_another_dashboard_cannot_supply_aggregate_bounds(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget = response.data["widgets"][0]
+        other_dashboard = self.create_dashboard(organization=self.organization)
+        other_widget = self.create_dashboard_widget(dashboard=other_dashboard)
+        other_query = self.create_dashboard_widget_query(
+            widget=other_widget, order=0, aggregates=["count()", "count()"]
+        )
+        response = self.client.put(
+            url,
+            {
+                "widgets": [
+                    {
+                        "id": widget["id"],
+                        "queries": [
+                            {"id": str(other_query.id), "transformations": {"1": ["fill(zero)"]}}
+                        ],
+                    }
+                ]
+            },
+        )
+        assert response.status_code == 400, response.data
+        other_query.refresh_from_db()
+        assert other_query.transformations is None
+        response = self.client.get(url)
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {
+            "0": ["fill(locf)", "smooth(sma,3)"],
+            "1": ["fill(zero)"],
+        }
+
+    def test_legacy_query_serializes_empty_transformations(self) -> None:
+        del self.data["widgets"][0]["queries"][0]["transformations"]
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {}
+        query = DashboardWidgetQuery.objects.get(id=response.data["widgets"][0]["queries"][0]["id"])
+        assert query.transformations is None
+
+    def test_feature_disabled_rejects_new_transformations(self) -> None:
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            response = self.client.post(self.url, self.data)
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == [
+            "Transformations are not enabled for this organization."
+        ]
+
+    def test_feature_disabled_preserves_and_clears_saved_transformations(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget = response.data["widgets"][0]
+        query_id = widget["queries"][0]["id"]
+        with self.feature({"organizations:explore-interpolation-and-smoothing": False}):
+            response = self.client.put(url, {"title": "Renamed dashboard"})
+            assert response.status_code == 200, response.data
+            assert response.data["widgets"][0]["queries"][0]["transformations"] == {
+                "0": ["fill(locf)", "smooth(sma,3)"],
+                "1": ["fill(zero)"],
+            }
+            response = self.client.put(
+                url,
+                {
+                    "widgets": [
+                        {"id": widget["id"], "queries": [{"id": query_id, "transformations": {}}]}
+                    ]
+                },
+            )
+        assert response.status_code == 200, response.data
+        assert response.data["widgets"][0]["queries"][0]["transformations"] == {}
