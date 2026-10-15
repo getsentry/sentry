@@ -1,9 +1,20 @@
 import type * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {growIn} from '@sentry/scraps/animations';
 import type {StrictCSSObject, Theme} from '@sentry/scraps/theme';
+
+const growIn = keyframes`
+  0% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+`;
 
 interface RadioProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
