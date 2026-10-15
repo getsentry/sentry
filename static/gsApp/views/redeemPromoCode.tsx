@@ -9,8 +9,8 @@ import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -41,15 +41,17 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
 
   const mutation = useMutation({
     mutationFn: (data: {code: string}) =>
-      fetchMutation<{details?: string}>({
-        url: getApiUrl('/customers/$organizationIdOrSlug/redeem-promo/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'PUT',
-        data,
+      apiFetch<{details?: string}>({
+        queryKey: [
+          getApiUrl('/customers/$organizationIdOrSlug/redeem-promo/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {method: 'PUT', data},
+        ],
       }),
-    onSuccess: resp => {
-      const msg = resp?.details || t('Successfully applied credit to your organization');
+    onSuccess: response => {
+      const msg =
+        response.json?.details || t('Successfully applied credit to your organization');
 
       SubscriptionStore.loadData(organization.slug, null, {
         markStartedTrial: true,

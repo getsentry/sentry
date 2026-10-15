@@ -12,8 +12,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -108,12 +108,13 @@ export function SpendLimitsEditModal({
 
   const {mutate: saveOnDemandBudget} = useMutation({
     mutationFn: (data: OnDemandBudgets) =>
-      fetchMutation({
-        url: getApiUrl('/customers/$organizationIdOrSlug/ondemand-budgets/', {
-          path: {organizationIdOrSlug: subscription.slug},
-        }),
-        method: 'POST',
-        data,
+      apiFetch({
+        queryKey: [
+          getApiUrl('/customers/$organizationIdOrSlug/ondemand-budgets/', {
+            path: {organizationIdOrSlug: subscription.slug},
+          }),
+          {method: 'POST', data},
+        ],
       }),
     onSuccess: (_resp, newOnDemandBudget) => {
       SubscriptionStore.loadData(subscription.slug);

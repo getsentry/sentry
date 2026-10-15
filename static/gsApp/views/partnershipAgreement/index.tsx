@@ -10,8 +10,8 @@ import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {PartnershipAgreementProps} from 'sentry/types/overrides';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 
 export default function PartnershipAgreement({
@@ -22,11 +22,13 @@ export default function PartnershipAgreement({
 }: PartnershipAgreementProps) {
   const mutation = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/partnership-agreements/', {
-          path: {organizationIdOrSlug: String(organizationSlug)},
-        }),
-        method: 'POST',
+      apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/partnership-agreements/', {
+            path: {organizationIdOrSlug: String(organizationSlug)},
+          }),
+          {method: 'POST'},
+        ],
       }),
     onSuccess: onSubmitSuccess,
     onError: error => {
