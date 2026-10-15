@@ -3250,7 +3250,7 @@ class OrganizationDashboardTransformationsTest(APITestCase):
         }
 
     def test_rejects_invalid_transformations(self) -> None:
-        for transformations in [
+        invalid_transformations: list[object] = [
             None,
             [],
             {"0": "fill(locf)"},
@@ -3269,7 +3269,8 @@ class OrganizationDashboardTransformationsTest(APITestCase):
             {"0": ["smooth(sma,-3)"]},
             {"0": ["smooth(sma,1.5)"]},
             {"0": ["fill(locf) AS alias"]},
-        ]:
+        ]
+        for transformations in invalid_transformations:
             self.data["widgets"][0]["queries"][0]["transformations"] = transformations
             response = self.client.post(self.url, self.data)
             assert response.status_code == 400, response.data
@@ -3326,10 +3327,11 @@ class OrganizationDashboardTransformationsTest(APITestCase):
         url = self.details_url(response.data["id"])
         widget = response.data["widgets"][0]
         query_id = widget["queries"][0]["id"]
-        for update in [
+        updates: list[dict[str, Any]] = [
             {"aggregates": ["count()"]},
             {"transformations": {"2": ["fill(zero)"]}},
-        ]:
+        ]
+        for update in updates:
             response = self.client.put(
                 url,
                 {"widgets": [{"id": widget["id"], "queries": [{"id": query_id, **update}]}]},
