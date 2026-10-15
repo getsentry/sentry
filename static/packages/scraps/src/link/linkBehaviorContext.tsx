@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {createContext, useContext, type FunctionComponent} from 'react';
 import * as queryString from 'query-string';
 

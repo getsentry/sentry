@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -67,8 +68,7 @@ const getLinkStyles = ({
 
   &:focus-visible {
     text-decoration: none;
-    outline: none;
-    box-shadow: 0 0 0 2px ${theme.tokens.focus.default};
+    ${theme.focusRing()}
   }
 `;
 
