@@ -789,7 +789,8 @@ def do_process_flamegraph(default_project, task_runner, live_server, use_objects
     }
     if use_objectstore:
         session = get_session(UsecaseId.ATTACHMENTS, default_project)
-        attachment_metadata["stored_id"] = session.put(raw)
+        stored_id = session.put(raw)
+        attachment_metadata["stored_id"] = stored_id
     else:
         process_attachment_chunk(
             {
@@ -832,8 +833,8 @@ def do_process_flamegraph(default_project, task_runner, live_server, use_objects
     assert processed["_symbolication"]["status"] == "completed"
     assert attachment.size == len(orjson.dumps(processed))
     if use_objectstore:
-        assert attachment.blob_path == V2_PREFIX + attachment_metadata["stored_id"]
-        stored = session.get(attachment_metadata["stored_id"])
+        assert attachment.blob_path == V2_PREFIX + stored_id
+        stored = session.get(stored_id)
         assert stored is not None
         assert orjson.loads(stored.payload.read()) == processed
 
