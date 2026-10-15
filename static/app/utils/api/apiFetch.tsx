@@ -41,11 +41,12 @@ function extractHeaders(response: ResponseMeta | undefined): ApiResponse['header
 }
 
 /**
- * Works as a `queryFn` and as a `mutationFn`. Mutations call it with only a
- * `queryKey`, so it must not read anything else from the query context.
+ * Mutations have no QueryFunctionContext, so only `queryKey` is required. They
+ * can still pass any other context field, such as their own `signal`.
  */
 export async function apiFetch<TQueryFnData = unknown>(
-  context: Pick<QueryFunctionContext<ApiQueryKey>, 'queryKey'>
+  context: Pick<QueryFunctionContext<ApiQueryKey>, 'queryKey'> &
+    Partial<QueryFunctionContext<ApiQueryKey>>
 ): Promise<ApiResponse<TQueryFnData>> {
   const [url, options] = context.queryKey;
 
