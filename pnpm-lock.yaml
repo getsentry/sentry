@@ -296,9 +296,6 @@ importers:
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
-      '@types/react-dom':
-        specifier: 19.3.0
-        version: 19.3.0(@types/react@19.3.0)
       '@types/trusted-types':
         specifier: ^2.0.7
         version: 2.0.7
@@ -872,12 +869,6 @@ importers:
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
-      marked:
-        specifier: 18.0.2
-        version: 18.0.2
-      marked-highlight:
-        specifier: 2.2.4
-        version: 2.2.4(marked@18.0.2)
       mobx:
         specifier: 6.13.7
         version: 6.13.7

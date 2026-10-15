@@ -98,8 +98,6 @@
     "js-cookie": "3.0.7",
     "jsonrepair": "^3.14.0",
     "lodash": "^4.18.1",
-    "marked": "18.0.2",
-    "marked-highlight": "2.2.4",
     "mobx": "6.13.7",
     "mobx-react-lite": "4.1.0",
     "moment": "2.31.0",
