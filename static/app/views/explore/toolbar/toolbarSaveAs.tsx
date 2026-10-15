@@ -1,10 +1,11 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
@@ -293,14 +294,18 @@ export function ToolbarSaveAs() {
         <DropdownMenu
           items={items}
           trigger={triggerProps => (
-            <SaveAsButton
-              showChevron={false}
-              {...triggerProps}
-              variant="primary"
-              aria-label={t('Save as')}
-            >
-              {shouldHighlightSaveButton ? t('Save') : t('Save as')}
-            </SaveAsButton>
+            <Container width="100%">
+              {containerProps => (
+                <OverlayTrigger.Button
+                  {...mergeProps(triggerProps, containerProps)}
+                  showChevron={false}
+                  variant="primary"
+                  aria-label={t('Save as')}
+                >
+                  {shouldHighlightSaveButton ? t('Save') : t('Save as')}
+                </OverlayTrigger.Button>
+              )}
+            </Container>
           )}
         />
 
@@ -351,8 +356,4 @@ const DisabledText = styled('span')`
 export const SaveStyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding-top: ${p => p.theme.space['2xl']};
-`;
-
-const SaveAsButton = styled(OverlayTrigger.Button)`
-  width: 100%;
 `;
