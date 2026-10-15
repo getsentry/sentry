@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -7,6 +8,7 @@ from rest_framework.test import APIClient
 
 from sentry.seer.signed_seer_api import _resolve_viewer_context
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.superuser import SuperuserAccess
 from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
 
@@ -66,6 +68,28 @@ class SuperuserViewerContextTest(APITestCase):
 
     def test_read_write_mode_is_propagated(self) -> None:
         self._assert_approved_chat(["superuser.write"], False)
+
+    def test_member_keeps_normal_callback_access(self) -> None:
+        self._assert_member_callback_access("member", 403)
+
+    def test_owner_keeps_normal_callback_access(self) -> None:
+        self._assert_member_callback_access("owner", 200)
+
+    def _assert_member_callback_access(self, role: str, write_status: int) -> None:
+        self.create_member(user=self.employee, organization=self.organization, role=role)
+        resolved = self._approved_chat_context()
+        assert resolved.superuser is None
+
+        client = APIClient()
+        client.credentials(HTTP_X_VIEWER_CONTEXT=encode_viewer_context(resolved, key=SECRET))
+        with freeze_time(timezone.now() + timedelta(minutes=6)):
+            assert client.get(self.path).status_code == 200
+            response = client.put(self.path, {}, format="json")
+        assert response.status_code == write_status, response.content
+        request = response.renderer_context["request"]
+        assert request.auth is None
+        assert request.user.is_superuser
+        assert request.user.is_staff
 
     def _assert_approved_chat(self, permissions, read_only) -> None:
         for permission in permissions:

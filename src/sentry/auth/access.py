@@ -1069,7 +1069,13 @@ def from_request_org_and_scopes(
         if member and member.scopes:
             superuser_scopes = superuser_scopes.union(set(member.scopes))
 
-        if request.auth is None and su is not None and su.is_active and not requires_org_auth:
+        if (
+            member is None
+            and request.auth is None
+            and su is not None
+            and su.is_active
+            and not requires_org_auth
+        ):
             expires_at = get_superuser_access_expiry(su, rpc_user_org_context.organization.id)
             if expires_at is not None:
                 set_viewer_context_superuser(
