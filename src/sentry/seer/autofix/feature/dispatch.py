@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q, QuerySet
 
 from sentry import quotas
 from sentry.constants import DataCategory
@@ -20,6 +21,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
+    LEGACY_FEATURE_ID,
     AutofixFeaturePayload,
     CodeChangesStepArgs,
     PrIterationStepArgs,
@@ -29,6 +31,7 @@ from sentry.seer.autofix.feature.models import (
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
 from sentry.seer.models.run import SeerAgentRun, SeerRun
+from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
@@ -49,6 +52,45 @@ class AutofixFeatureArgs:
     user: User | RpcUser | AnonymousUser | None = None
     enable_bash_mode: bool = False
     flush: bool = True
+
+
+def _run_mirrors(group: Group, run_id: int) -> QuerySet[SeerAgentRun]:
+    return SeerAgentRun.objects.filter(
+        run__organization_id=group.organization.id,
+        run__seer_run_state_id=run_id,
+    )
+
+
+def _mirror_matches_issue(group: Group) -> Q:
+    return Q(group_id=group.id, project_id=group.project_id)
+
+
+def autofix_run_targets_other_issue(group: Group, run_id: int) -> bool:
+    """True unless ``run_id`` is mirrored to this issue's group and project.
+
+    Autofix runs are stored with both when they start, so a missing row is not
+    this issue's run.
+    """
+    return not _run_mirrors(group, run_id).filter(_mirror_matches_issue(group)).exists()
+
+
+def require_autofix_run_for_group(group: Group, run_id: int) -> SeerAgentRun:
+    """The autofix run mirror for this issue, or a permission error.
+
+    ``run_id`` comes from the request body. Org membership is not enough: the
+    mirror must be this issue's group and project, or a member can continue a
+    run on a project they cannot access by keeping their own issue in the URL.
+    """
+    agent_run = (
+        _run_mirrors(group, run_id)
+        .filter(source__in=(FEATURE_ID, LEGACY_FEATURE_ID))
+        .select_related("run")
+        .filter(_mirror_matches_issue(group))
+        .first()
+    )
+    if agent_run is None:
+        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+    return agent_run
 
 
 def trigger_autofix_feature(
@@ -131,17 +173,7 @@ def trigger_autofix_feature(
             extras=extras,
         )
     elif args.existing_run_id is not None:
-        existing_agent_run = (
-            SeerAgentRun.objects.select_related("run")
-            .filter(
-                run__organization_id=group.organization.id,
-                run__seer_run_state_id=args.existing_run_id,
-            )
-            .first()
-        )
-
-        if existing_agent_run is None or existing_agent_run.run is None:
-            raise Exception(f"Run with ID {args.existing_run_id} not found")
+        existing_agent_run = require_autofix_run_for_group(group, args.existing_run_id)
 
         run = client.continue_feature_run(
             existing_agent_run=existing_agent_run,

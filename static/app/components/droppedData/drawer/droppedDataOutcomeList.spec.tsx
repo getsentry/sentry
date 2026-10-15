@@ -210,20 +210,45 @@ describe('DroppedDataOutcomeList', () => {
     );
 
     // The fix-this affordance is hidden until the reason chevron is clicked.
-    expect(screen.queryByRole('button', {name: 'Fix this'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Learn more'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
 
-    expect(screen.getByRole('button', {name: 'Fix this'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Learn more'})).toBeInTheDocument();
 
     // Collapsing hides it again.
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    expect(screen.queryByRole('button', {name: 'Fix this'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Learn more'})).not.toBeInTheDocument();
 
     // The toggle is reachable from the keyboard.
     act(() => screen.getByRole('button', {name: 'Toggle fix options'}).focus());
     await userEvent.keyboard('{Enter}');
-    expect(screen.getByRole('button', {name: 'Fix this'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Learn more'})).toBeInTheDocument();
+  });
+
+  it('shows the long description when a reason row is expanded', async () => {
+    render(
+      <OutcomeList
+        droppedEvents={[
+          DroppedEventFixture({
+            outcome: 'client_discard',
+            reason: 'send_error',
+            start: 0,
+            end: 60_000,
+            count: 10,
+          }),
+        ]}
+        acceptedEvents={[]}
+      />
+    );
+
+    const longDescription =
+      'The event reached Sentry but was rejected with an error code.';
+    expect(screen.queryByText(longDescription)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
+
+    expect(screen.getByText(longDescription)).toBeInTheDocument();
   });
 
   it('opens the fix-this menu with investigate, settings, and docs entries', async () => {
@@ -246,7 +271,7 @@ describe('DroppedDataOutcomeList', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Fix this'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Learn more'}));
 
     // Project settings deep-links to the usage stats page scoped to the
     // reason's data category.
@@ -284,7 +309,7 @@ describe('DroppedDataOutcomeList', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Fix this'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Learn more'}));
 
     expect(
       screen.getByRole('menuitemradio', {name: 'Project Settings'})

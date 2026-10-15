@@ -17,7 +17,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.auth.email import emails_match
+from sentry.auth.email import filter_matching_emails
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
@@ -329,11 +329,7 @@ def find_users(
         # If not, we can take a stab at guessing it's an email address
         if "@" in username:
             # email isn't guaranteed unique
-            return [
-                u
-                for u in queryset.filter(email__iexact=username)
-                if emails_match(u.email, username)
-            ]
+            return filter_matching_emails(queryset, username)
         return []
 
 

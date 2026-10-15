@@ -107,14 +107,7 @@ export function InvestigationCell({
       isExecutionActive(query.state.data?.json.status) ? 500 : false,
   });
 
-  const chartTitle =
-    block.kind === 'query'
-      ? getRenderableChart(getQueryOutput(block.output)?.chart ?? null)?.title
-      : null;
-  const displayTitle =
-    block.title ||
-    chartTitle ||
-    (block.kind === 'query' ? t('Untitled query') : t('Untitled cell'));
+  const displayTitle = getBlockDisplayTitle(block);
   const deleteMutation = useDeleteInvestigationBlockMutation(
     organizationSlug,
     investigation.id,
@@ -1169,6 +1162,18 @@ type RenderableQueryOutput = Pick<
   InvestigationQueryOutput,
   'chart' | 'preferredView' | 'tableMarkdown' | 'isEmpty'
 >;
+
+export function getBlockDisplayTitle(block: InvestigationBlock) {
+  const chartTitle =
+    block.kind === 'query'
+      ? getRenderableChart(getQueryOutput(block.output)?.chart ?? null)?.title
+      : null;
+  return (
+    block.title ||
+    chartTitle ||
+    (block.kind === 'query' ? t('Untitled query') : t('Untitled cell'))
+  );
+}
 
 function getQueryOutput(output: unknown): RenderableQueryOutput | null {
   if (

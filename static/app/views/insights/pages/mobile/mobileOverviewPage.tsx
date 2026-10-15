@@ -16,12 +16,12 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {
   canUseMetricsData,
   useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

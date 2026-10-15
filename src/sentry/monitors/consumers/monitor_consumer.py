@@ -37,6 +37,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.monitors.clock_dispatch import record_pulse_partitions, try_monitor_clock_tick
 from sentry.monitors.constants import MAX_MARGIN, MAX_TIMEOUT, PermitCheckInStatus
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.logic.monitor_environment import (
@@ -413,8 +414,7 @@ def update_existing_check_in(
     processing_errors: list[ProcessingError] = []
 
     if (
-        existing_check_in.project_id != project_id
-        or existing_check_in.monitor_id != monitor.id
+        existing_check_in.monitor_id != monitor.id
         or existing_check_in.monitor_environment_id != monitor_environment.id
     ):
         mismatch_error: CheckinGuidProjectMismatch = {
@@ -963,6 +963,9 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     # 03
     # Create or update check-in
 
+    # Outside the transaction, so a rolled back config row is never cached
+    checkin_config_id = get_checkin_config_id(monitor.get_validated_config())
+
     try:
         with transaction.atomic(router.db_for_write(Monitor)):
             status: int = getattr(CheckInStatus, validated_params["status"].upper())
@@ -1063,7 +1066,6 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
 
                 lookup = {
                     "guid": guid,
-                    "project_id": project_id,
                     "monitor": monitor,
                     "monitor_environment": monitor_environment,
                 }
@@ -1081,7 +1083,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                             date_in_progress=date_in_progress,
                             expected_time=expected_time,
                             timeout_at=timeout_at,
-                            monitor_config=checkin_monitor_config,
+                            checkin_config_id=checkin_config_id,
                             trace_id=trace_id,
                         )
                     created = True

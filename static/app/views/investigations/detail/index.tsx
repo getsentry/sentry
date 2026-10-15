@@ -28,6 +28,7 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
 import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
@@ -462,6 +463,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               {isAwaitingReportCell(investigation) ? (
                 <InvestigationCellPlaceholder />
               ) : null}
+              <InvestigationActivity investigation={investigation} />
               <Container height="128px" flexShrink={0} aria-hidden />
             </Stack>
           </Layout.Main>
