@@ -1,5 +1,5 @@
 import {Container, Flex} from '@sentry/scraps/layout';
-import type {LinkProps} from '@sentry/scraps/link';
+import type {LinkDestination} from '@sentry/scraps/link';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -12,7 +12,7 @@ export type BreadcrumbItemLinkProps = {
    * Rendered aria-hidden inside a fixed-size slot; the label carries the meaning.
    */
   leadingGraphic?: React.ReactNode;
-} & ({to: LinkProps['to']; externalHref?: never} | {externalHref: string; to?: never});
+} & LinkDestination;
 
 export function BreadcrumbItemLink({
   label,

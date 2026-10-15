@@ -1796,7 +1796,7 @@ register(
 )
 # Suppresses working-cache keys only for events entering in the inline cohort.
 # Keyless events remain inline after rollout changes; keyed events keep writing.
-# Unprocessed backups and cleanup remain in Redis.
+# Unprocessed backups are also passed inline instead of being written to Redis.
 register(
     "store.disable-processing-store",
     type=Bool,

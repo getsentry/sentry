@@ -7,6 +7,14 @@ const ruleTester = new RuleTester();
 ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
   valid: [
     {
+      name: 'pending timers flushed in an initializer before finally restoration',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {const flushed = jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+    },
+    {
+      name: 'uncalled function declarations do not restore timers',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {function restore() {jest.useRealTimers();} const deferred = () => jest.useRealTimers(); jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+    },
+    {
       name: 'finally restores timers after synchronous cleanup',
       code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {cleanup(); jest.runOnlyPendingTimers();} finally {jest.useRealTimers(); jest.restoreAllMocks();}});`,
     },
@@ -42,6 +50,16 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
     {
       name: 'restore before flush in try does not count',
       code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {jest.useRealTimers(); jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+      errors: [{messageId: 'missingRunOnlyPendingTimers'}],
+    },
+    {
+      name: 'restore in a variable initializer before flush does not count',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {const restored = jest.useRealTimers(); jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+      errors: [{messageId: 'missingRunOnlyPendingTimers'}],
+    },
+    {
+      name: 'restore in an awaited initializer before flush does not count',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(async () => {try {const restored = await jest.useRealTimers(); await jest.runOnlyPendingTimersAsync();} finally {jest.useRealTimers();}});`,
       errors: [{messageId: 'missingRunOnlyPendingTimers'}],
     },
     {

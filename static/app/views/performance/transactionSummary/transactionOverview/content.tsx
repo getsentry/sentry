@@ -31,6 +31,7 @@ import {
   SpanOperationBreakdownFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
 import {SpanCategoryFilter} from 'sentry/views/performance/transactionSummary/spanCategoryFilter';
+import {SEGMENT_SPANS_CURSOR_NAME} from 'sentry/views/performance/transactionSummary/transactionOverview/constants';
 import {EAPChartsWidget} from 'sentry/views/performance/transactionSummary/transactionOverview/eapChartsWidget';
 import {EAPSidebarCharts} from 'sentry/views/performance/transactionSummary/transactionOverview/eapSidebarCharts';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
@@ -53,8 +54,6 @@ type Props = {
   totalValues: Record<string, number> | null;
   transactionName: string;
 };
-
-export const SEGMENT_SPANS_CURSOR_NAME = 'segmentSpansCursor';
 
 function EAPSummaryContentInner({
   eventView,

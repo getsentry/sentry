@@ -758,8 +758,11 @@ describe('Investigation detail', () => {
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('renders the persisted title when completion has no preview', async () => {
@@ -913,8 +916,11 @@ describe('Investigation detail', () => {
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('keeps polling while an auto-run cell is waiting to start', async () => {
@@ -1914,8 +1920,11 @@ describe('Investigation detail', () => {
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('optimistically renames and debounces persistence', async () => {
@@ -2061,8 +2070,11 @@ describe('Investigation detail', () => {
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('polls for and displays a generated title after block execution finishes', async () => {
@@ -2165,8 +2177,11 @@ describe('Investigation detail', () => {
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('deletes after confirmation and returns to the list', async () => {

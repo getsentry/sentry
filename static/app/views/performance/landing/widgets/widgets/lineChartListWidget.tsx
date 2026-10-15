@@ -17,11 +17,11 @@ import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {
   canUseMetricsData,
   useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';

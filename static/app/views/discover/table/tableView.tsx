@@ -48,7 +48,7 @@ import {
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
