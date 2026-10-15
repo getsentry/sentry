@@ -59,8 +59,10 @@ export function ActivityLineImpact({
         trailingItems={<FeatureBadge type="alpha" />}
       />
       <ActivityLineContent>
-        <Container width="100%" padding="sm md" border="muted" radius="md">
-          <ImpactActivityDetails activity={activity} group={group} />
+        <Container paddingTop="sm">
+          <Container width="100%" padding="sm md" border="muted" radius="md">
+            <ImpactActivityDetails activity={activity} group={group} />
+          </Container>
         </Container>
       </ActivityLineContent>
     </ActivityLineRow>
