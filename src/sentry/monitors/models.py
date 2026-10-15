@@ -455,7 +455,17 @@ class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
-    monitor = FlexibleForeignKey("monitors.Monitor", db_index=False)
+    monitor = FlexibleForeignKey(
+        "monitors.Monitor",
+        db_index=False,
+        null=True,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING,
+    )
+    """
+    No longer read or written. The monitor environment already holds the monitor;
+    this column is being removed.
+    """
     monitor_environment = FlexibleForeignKey("monitors.MonitorEnvironment", db_index=False)
     """
     XXX(epurkhiser): Currently unused
@@ -583,7 +593,7 @@ class MonitorCheckIn(Model):
             ),
         ]
 
-    __repr__ = sane_repr("guid", "monitor_id", "status")
+    __repr__ = sane_repr("guid", "monitor_environment_id", "status")
 
     def save(self, *args, **kwargs):
         if not self.date_added:
