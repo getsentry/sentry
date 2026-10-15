@@ -54,7 +54,7 @@ export function SvgIcon(props: SVGIconProps) {
             : 'currentColor'
       }
       height={size}
-      width={size}
+      width={iconProps.viewBox ? undefined : size}
     />
   );
 }
