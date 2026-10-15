@@ -54,14 +54,11 @@ export function SeerDrawerContent({
     [autofix.runState]
   );
 
-  if (
-    // Same as the sidebar: a pending start keeps the start card on screen.
-    !autofix.isWaitingForRun &&
-    // autofix results are loading
-    (autofix.isLoading ||
-      // we're polling and no blocks have been added yet
-      (autofix.isPolling && !autofix.runState?.blocks?.length))
-  ) {
+  const isLoadingRun =
+    autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
+
+  // While a start request is in flight, keep the start card on screen.
+  if (isLoadingRun && !autofix.isWaitingForRun) {
     return (
       <Stack gap="xl">
         <Placeholder height="15rem" />
