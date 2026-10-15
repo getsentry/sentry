@@ -1,26 +1,25 @@
-import {useCallback} from 'react';
-import {keepPreviousData, useQuery, useQueryClient} from '@tanstack/react-query';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export const FORMULAS_PER_PAGE = 25;
+const FORMULAS_PER_PAGE = 25;
 
 export type FormulaDataset = 'spans' | 'logs' | 'metrics';
 
-export type FormulaParamType = 'column' | 'number' | 'calculation';
+type FormulaParamType = 'column' | 'number' | 'calculation';
 
-export type FormulaType = 'duration' | 'size' | 'number';
+type FormulaType = 'duration' | 'size' | 'number';
 
-export type FormulaParam = {
+type FormulaParam = {
   name: string;
   order: number;
   type: FormulaParamType;
   value: string;
 };
 
-export type FormulaReference = {
+type FormulaReference = {
   name: string;
   value: string;
 };
@@ -69,15 +68,4 @@ export function useGetSavedFormulas({cursor}: {cursor?: string}) {
     isError,
     refetch,
   };
-}
-
-export function useInvalidateSavedFormulas() {
-  const organization = useOrganization();
-  const queryClient = useQueryClient();
-
-  return useCallback(() => {
-    queryClient.invalidateQueries({
-      queryKey: savedFormulasApiOptions(organization).queryKey,
-    });
-  }, [queryClient, organization]);
 }
