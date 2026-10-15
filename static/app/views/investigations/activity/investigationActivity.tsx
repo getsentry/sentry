@@ -16,6 +16,7 @@ import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {investigationCommentsQueryOptions} from 'sentry/views/investigations/api';
+import {CommentComposer} from 'sentry/views/investigations/comments/commentComposer';
 import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/cell';
 import type {
   InvestigationComment,
@@ -29,7 +30,7 @@ import {
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {ActivityProgressMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker/progressMarker';
 
-function useInvestigationComments(investigationId: string) {
+export function useInvestigationComments(investigationId: string) {
   const organization = useOrganization();
   return useQuery({
     ...investigationCommentsQueryOptions({
@@ -43,8 +44,10 @@ function useInvestigationComments(investigationId: string) {
 
 export function InvestigationActivity({
   investigation,
+  composerRef,
 }: {
   investigation: InvestigationDetail;
+  composerRef?: React.Ref<HTMLDivElement>;
 }) {
   const {data, isPending, refetch} = useInvestigationComments(investigation.id);
   const blockTitles = useMemo(
@@ -62,6 +65,9 @@ export function InvestigationActivity({
       <Heading as="h2" size="lg">
         {t('Activity')}
       </Heading>
+      {investigation.status === 'archived' ? null : (
+        <CommentComposer investigationId={investigation.id} inputRef={composerRef} />
+      )}
       {isPending ? (
         <LoadingIndicator mini />
       ) : data === undefined ? (

@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconStack} from '@sentry/icons/stack';
 import {useDebouncer} from '@tanstack/react-pacer';
@@ -7,6 +8,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -22,13 +24,16 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
+import {
+  InvestigationActivity,
+  useInvestigationComments,
+} from 'sentry/views/investigations/activity/investigationActivity';
 import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
@@ -142,6 +147,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
+  const composerRef = useRef<HTMLDivElement>(null);
+  const {data: comments} = useInvestigationComments(investigation.id);
+  const commentCount = comments?.json.length ?? 0;
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
   const titleGenerationSettledFor = useRef<string | null>(null);
@@ -350,6 +358,22 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             },
           ]}
         />
+        <TopBar.Slot name="actions">
+          <Button
+            icon={<IconChat />}
+            onClick={() => {
+              composerRef.current?.scrollIntoView?.({
+                block: 'center',
+                behavior: 'smooth',
+              });
+              composerRef.current?.focus({preventScroll: true});
+            }}
+          >
+            {commentCount > 0
+              ? tn('%s comment', '%s comments', commentCount)
+              : t('Comment')}
+          </Button>
+        </TopBar.Slot>
         <Container as="header" width="100%" padding="xl xl 3xl">
           <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
             <Grid
@@ -463,7 +487,10 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               {isAwaitingReportCell(investigation) ? (
                 <InvestigationCellPlaceholder />
               ) : null}
-              <InvestigationActivity investigation={investigation} />
+              <InvestigationActivity
+                investigation={investigation}
+                composerRef={composerRef}
+              />
               <Container height="128px" flexShrink={0} aria-hidden />
             </Stack>
           </Layout.Main>
