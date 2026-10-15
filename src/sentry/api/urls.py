@@ -46,10 +46,12 @@ from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
+from sentry.api.endpoints.organization_service_account_viewer_context import (
+    OrganizationServiceAccountViewerContextEndpoint,
+)
 from sentry.api.endpoints.organization_service_accounts import (
     OrganizationServiceAccountDetailsEndpoint,
     OrganizationServiceAccountIndexEndpoint,
-    OrganizationServiceAccountViewerContextEndpoint,
 )
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attribute_context import (

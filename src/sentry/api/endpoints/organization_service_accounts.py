@@ -7,22 +7,23 @@ integrate against the contract while the real implementation is built behind it.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any, NotRequired, TypedDict, cast
 
 from django.conf import settings
-from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.base import control_silo_endpoint
+from sentry.api.bases.organization import (
+    ControlSiloOrganizationEndpoint,
+    OrganizationPermission,
+)
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.apidocs.constants import (
@@ -34,16 +35,20 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models.organization import Organization
-from sentry.seer.auth import SeerRpcViewerContextAuthentication
-from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
+from sentry.organizations.services.organization import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 
 FEATURE_FLAG = "organizations:service-accounts"
 
 _MOCK_DATE_CREATED = datetime(2025, 1, 1, tzinfo=UTC)
 _MOCK_SERVICE_ACCOUNT_ID = "1"
 _MOCK_SERVICE_ACCOUNT_NAME = "seer-autofix"
-_MOCK_SERVICE_ACCOUNT_SCOPES = ["event:read", "org:read", "project:read"]
+MOCK_SERVICE_ACCOUNT_SCOPES = ["event:read", "org:read", "project:read"]
+
+# OIDC scopes describe a human login, so a service account can't hold them.
+GRANTABLE_SCOPES = sorted(settings.SENTRY_SCOPES - {"openid", "profile", "email"})
 
 SERVICE_ACCOUNT_ID = OpenApiParameter(
     name="service_account_id",
@@ -60,11 +65,6 @@ class ServiceAccountResponse(TypedDict):
     scopes: list[str]
     isActive: bool
     dateCreated: datetime
-
-
-class ServiceAccountViewerContextResponse(TypedDict):
-    viewerContext: str
-    expiresAt: datetime
 
 
 class ServiceAccountCreateRequestData(TypedDict):
@@ -88,7 +88,7 @@ def _mock_service_account(
     return {
         "id": service_account_id,
         "name": name,
-        "scopes": scopes if scopes is not None else _MOCK_SERVICE_ACCOUNT_SCOPES,
+        "scopes": scopes if scopes is not None else MOCK_SERVICE_ACCOUNT_SCOPES,
         "isActive": is_active,
         "dateCreated": _MOCK_DATE_CREATED,
     }
@@ -97,7 +97,7 @@ def _mock_service_account(
 class ServiceAccountCreateSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, help_text="The name of the service account.")
     scopes = serializers.ListField(
-        child=serializers.ChoiceField(choices=sorted(settings.SENTRY_SCOPES)),
+        child=serializers.ChoiceField(choices=GRANTABLE_SCOPES),
         allow_empty=False,
         help_text="Scopes granted to the service account. You can only grant scopes you have.",
     )
@@ -119,7 +119,7 @@ class ServiceAccountUpdateSerializer(ServiceAccountCreateSerializer):
         max_length=64, required=False, help_text="The name of the service account."
     )
     scopes = serializers.ListField(
-        child=serializers.ChoiceField(choices=sorted(settings.SENTRY_SCOPES)),
+        child=serializers.ChoiceField(choices=GRANTABLE_SCOPES),
         allow_empty=False,
         required=False,
         help_text="Scopes granted to the service account. You can only grant scopes you have.",
@@ -135,9 +135,9 @@ class ServiceAccountPermission(OrganizationPermission):
     }
 
 
-class OrganizationServiceAccountEndpointBase(OrganizationEndpoint):
+class OrganizationServiceAccountEndpointBase(ControlSiloOrganizationEndpoint):
     owner = ApiOwner.ML_AI
-    permission_classes: tuple[type[BasePermission], ...] = (ServiceAccountPermission,)
+    permission_classes = (ServiceAccountPermission,)
 
     def convert_args(
         self, request: Request, *args: Any, **kwargs: Any
@@ -148,7 +148,7 @@ class OrganizationServiceAccountEndpointBase(OrganizationEndpoint):
         return args, kwargs
 
 
-@cell_silo_endpoint
+@control_silo_endpoint
 class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -167,7 +167,12 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         service_accounts = [_mock_service_account()]
         return self.paginate(
             request=request,
@@ -190,7 +195,12 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, organization: Organization) -> Response:
+    def post(
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+    ) -> Response:
         serializer = ServiceAccountCreateSerializer(
             data=request.data, context={"access": request.access}
         )
@@ -207,7 +217,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         )
 
 
-@cell_silo_endpoint
+@control_silo_endpoint
 class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -228,7 +238,11 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         },
     )
     def get(
-        self, request: Request, organization: Organization, service_account_id: str
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+        service_account_id: str,
     ) -> Response:
         return Response(_mock_service_account(service_account_id=service_account_id))
 
@@ -247,7 +261,11 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         },
     )
     def put(
-        self, request: Request, organization: Organization, service_account_id: str
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+        service_account_id: str,
     ) -> Response:
         serializer = ServiceAccountUpdateSerializer(
             data=request.data, context={"access": request.access}
@@ -275,57 +293,10 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         },
     )
     def delete(
-        self, request: Request, organization: Organization, service_account_id: str
+        self,
+        request: Request,
+        organization_context: RpcUserOrganizationContext,
+        organization: RpcOrganization,
+        service_account_id: str,
     ) -> Response:
         return Response(status=204)
-
-
-class SeerSystemViewerContextPermission(BasePermission):
-    """Only Seer, calling with an org-only viewer context for this organization."""
-
-    def has_permission(self, request: Request, view: object) -> bool:
-        return isinstance(request.successful_authenticator, SeerRpcViewerContextAuthentication)
-
-    def has_object_permission(self, request: Request, view: object, obj: Organization) -> bool:
-        vc = getattr(request, "_seer_rpc_viewer_context", None)
-        return vc is not None and vc.user_id is None and vc.organization_id == obj.id
-
-
-@cell_silo_endpoint
-class OrganizationServiceAccountViewerContextEndpoint(OrganizationServiceAccountEndpointBase):
-    publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
-    }
-    authentication_classes = (SeerRpcViewerContextAuthentication,)
-    permission_classes = (SeerSystemViewerContextPermission,)
-
-    @extend_schema(
-        operation_id="Get a Service Account Viewer Context",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, SERVICE_ACCOUNT_ID],
-        request=None,
-        responses={
-            200: inline_sentry_response_serializer(
-                "ServiceAccountViewerContextResponse", ServiceAccountViewerContextResponse
-            ),
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
-        },
-    )
-    def post(
-        self, request: Request, organization: Organization, service_account_id: str
-    ) -> Response:
-        """Return a signed viewer context for the service account.
-
-        Mocked: the viewer context is the same org-only system context Seer already
-        uses, so swapping it in changes nothing until the service-account actor exists.
-        """
-        ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 900)
-        viewer_context = encode_viewer_context(
-            ViewerContext(organization_id=organization.id, actor_type=ActorType.SYSTEM),
-            ttl=ttl,
-        )
-        response: ServiceAccountViewerContextResponse = {
-            "viewerContext": viewer_context,
-            "expiresAt": timezone.now() + timedelta(seconds=ttl),
-        }
-        return Response(response)
