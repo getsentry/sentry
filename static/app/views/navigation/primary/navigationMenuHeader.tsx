@@ -44,7 +44,19 @@ export function NavigationMenuHeader({
       title={user.name || user.username || user.email}
       subtitle={user.email}
       avatarProps={getUserAvatarProps(user)}
-      avatar={<UserAvatar user={user} size={32} />}
+      avatar={
+        <Container
+          width="32px"
+          height="32px"
+          radius="full"
+          overflow="hidden"
+          css={theme => css`
+            border: 1px solid ${theme.tokens.border.transparent.neutral.muted};
+          `}
+        >
+          <UserAvatar user={user} size={30} />
+        </Container>
+      }
     />
   );
 }
@@ -53,20 +65,19 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
   const lightTheme = useInvertedTheme();
 
   return (
-    <ThemeProvider theme={lightTheme}>
-      <Flex
-        align="center"
-        justify="center"
-        width="32px"
-        height="32px"
-        radius="md"
-        overflow="hidden"
-        background="primary"
-        border="muted"
-      >
+    <Container
+      width="32px"
+      height="32px"
+      radius="md"
+      overflow="hidden"
+      css={theme => css`
+        border: 1px solid ${theme.tokens.border.transparent.neutral.muted};
+      `}
+    >
+      <ThemeProvider theme={lightTheme}>
         <OrganizationAvatar organization={organization} size={30} />
-      </Flex>
-    </ThemeProvider>
+      </ThemeProvider>
+    </Container>
   );
 }
 
@@ -91,7 +102,7 @@ function MenuHeader({
   return (
     <ThemeProvider theme={currentTheme.type === 'dark' ? currentTheme : invertedTheme}>
       <Container
-        radius="md md 0 0"
+        radius="sm sm 0 0"
         padding="xs"
         css={theme => css`
           margin: -${theme.space.sm} -${theme.space.lg};
