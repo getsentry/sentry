@@ -157,6 +157,24 @@ class SuperuserAgentTokenTest(APITestCase):
             assert minted.status_code == 200, minted.content
             assert self._read(minted.data["token"]).status_code == 200
 
+    def test_elevated_member_keeps_approved_agent_writes(self):
+        self.create_member(user=self.employee, organization=self.org, role="owner")
+        self.create_seer_agent_write_grant(
+            organization=self.org, user=self.employee, session_id="123", scope_list=["org:write"]
+        )
+        self.login_as(self.employee, superuser=True)
+        with self.feature(FLAG):
+            minted = self.client.post(
+                f"{self.path}agent/token/", {"sessionId": "123"}, format="json"
+            )
+            assert minted.status_code == 200, minted.content
+            claims = agent_token.decode_agent_token(minted.data["token"])
+            assert "superuser" not in claims
+            assert "org:write" in claims["scopes"]
+            client = APIClient()
+            client.credentials(HTTP_AUTHORIZATION=f"Bearer {minted.data['token']}")
+            assert client.put(self.path, {}, format="json").status_code == 200
+
     def test_invalid_expiry_cannot_mint(self):
         self._chat_authorization()
         with self.feature(FLAG):
