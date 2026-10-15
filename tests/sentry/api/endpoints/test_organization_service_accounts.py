@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import Any
 
 from django.test import override_settings
@@ -37,7 +38,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
                 "name": "seer-autofix",
                 "scopes": ["event:read", "org:read", "project:read"],
                 "isActive": True,
-                "dateCreated": "2026-10-14T00:00:00Z",
+                "dateCreated": datetime(2025, 1, 1, tzinfo=UTC),
             }
         ]
 

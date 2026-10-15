@@ -7,8 +7,8 @@ integrate against the contract while the real implementation is built behind it.
 
 from __future__ import annotations
 
-from datetime import timedelta
-from typing import Any, TypedDict
+from datetime import UTC, datetime, timedelta
+from typing import Any, NotRequired, TypedDict, cast
 
 from django.conf import settings
 from django.utils import timezone
@@ -40,7 +40,7 @@ from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_contex
 
 FEATURE_FLAG = "organizations:service-accounts"
 
-_MOCK_DATE_CREATED = "2026-10-14T00:00:00Z"
+_MOCK_DATE_CREATED = datetime(2025, 1, 1, tzinfo=UTC)
 _MOCK_SERVICE_ACCOUNT_ID = "1"
 _MOCK_SERVICE_ACCOUNT_NAME = "seer-autofix"
 _MOCK_SERVICE_ACCOUNT_SCOPES = ["event:read", "org:read", "project:read"]
@@ -59,12 +59,24 @@ class ServiceAccountResponse(TypedDict):
     name: str
     scopes: list[str]
     isActive: bool
-    dateCreated: str
+    dateCreated: datetime
 
 
 class ServiceAccountViewerContextResponse(TypedDict):
     viewerContext: str
-    expiresAt: str
+    expiresAt: datetime
+
+
+class ServiceAccountCreateRequestData(TypedDict):
+    name: str
+    scopes: list[str]
+    isActive: NotRequired[bool]
+
+
+class ServiceAccountUpdateRequestData(TypedDict, total=False):
+    name: str
+    scopes: list[str]
+    isActive: bool
 
 
 def _mock_service_account(
@@ -82,7 +94,7 @@ def _mock_service_account(
     }
 
 
-class ServiceAccountSerializer(serializers.Serializer):
+class ServiceAccountCreateSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, help_text="The name of the service account.")
     scopes = serializers.ListField(
         child=serializers.ChoiceField(choices=sorted(settings.SENTRY_SCOPES)),
@@ -100,6 +112,18 @@ class ServiceAccountSerializer(serializers.Serializer):
                 f"You can't grant scopes you don't have: {', '.join(sorted(ungrantable))}"
             )
         return sorted(set(scopes))
+
+
+class ServiceAccountUpdateSerializer(ServiceAccountCreateSerializer):
+    name = serializers.CharField(
+        max_length=64, required=False, help_text="The name of the service account."
+    )
+    scopes = serializers.ListField(
+        child=serializers.ChoiceField(choices=sorted(settings.SENTRY_SCOPES)),
+        allow_empty=False,
+        required=False,
+        help_text="Scopes granted to the service account. You can only grant scopes you have.",
+    )
 
 
 class ServiceAccountPermission(OrganizationPermission):
@@ -155,7 +179,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
     @extend_schema(
         operation_id="Create a Service Account",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        request=ServiceAccountSerializer,
+        request=ServiceAccountCreateSerializer,
         responses={
             201: inline_sentry_response_serializer(
                 "CreateServiceAccountResponse", ServiceAccountResponse
@@ -167,10 +191,12 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         },
     )
     def post(self, request: Request, organization: Organization) -> Response:
-        serializer = ServiceAccountSerializer(data=request.data, context={"access": request.access})
+        serializer = ServiceAccountCreateSerializer(
+            data=request.data, context={"access": request.access}
+        )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        data = serializer.validated_data
+        data = cast(ServiceAccountCreateRequestData, serializer.validated_data)
         return Response(
             _mock_service_account(
                 name=data["name"],
@@ -209,7 +235,7 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
     @extend_schema(
         operation_id="Update a Service Account",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, SERVICE_ACCOUNT_ID],
-        request=ServiceAccountSerializer,
+        request=ServiceAccountUpdateSerializer,
         responses={
             200: inline_sentry_response_serializer(
                 "UpdateServiceAccountResponse", ServiceAccountResponse
@@ -223,12 +249,12 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
     def put(
         self, request: Request, organization: Organization, service_account_id: str
     ) -> Response:
-        serializer = ServiceAccountSerializer(
-            data=request.data, partial=True, context={"access": request.access}
+        serializer = ServiceAccountUpdateSerializer(
+            data=request.data, context={"access": request.access}
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        data = serializer.validated_data
+        data = cast(ServiceAccountUpdateRequestData, serializer.validated_data)
         return Response(
             _mock_service_account(
                 service_account_id=service_account_id,
@@ -298,9 +324,8 @@ class OrganizationServiceAccountViewerContextEndpoint(OrganizationServiceAccount
             ViewerContext(organization_id=organization.id, actor_type=ActorType.SYSTEM),
             ttl=ttl,
         )
-        return Response(
-            {
-                "viewerContext": viewer_context,
-                "expiresAt": (timezone.now() + timedelta(seconds=ttl)).isoformat(),
-            }
-        )
+        response: ServiceAccountViewerContextResponse = {
+            "viewerContext": viewer_context,
+            "expiresAt": timezone.now() + timedelta(seconds=ttl),
+        }
+        return Response(response)
