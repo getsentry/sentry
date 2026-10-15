@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChat} from '@sentry/icons/chat';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
@@ -147,6 +147,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
   const composerRef = useRef<HTMLDivElement>(null);
+  const activityRef = useRef<HTMLElement>(null);
   const {data: comments} = useInvestigationComments(investigation.id);
   const commentCount = comments?.json.length ?? 0;
   const hasMoreComments =
@@ -359,31 +360,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             },
           ]}
         />
-        <TopBar.Slot name="actions">
-          <Button
-            icon={<IconChat />}
-            disabled={investigation.status === 'archived'}
-            tooltipProps={{
-              title:
-                investigation.status === 'archived'
-                  ? t("Archived investigations can't be commented on")
-                  : undefined,
-            }}
-            onClick={() => {
-              composerRef.current?.scrollIntoView?.({
-                block: 'center',
-                behavior: 'smooth',
-              });
-              composerRef.current?.focus({preventScroll: true});
-            }}
-          >
-            {hasMoreComments
-              ? t('%s+ comments', commentCount)
-              : commentCount > 0
-                ? tn('%s comment', '%s comments', commentCount)
-                : t('Comment')}
-          </Button>
-        </TopBar.Slot>
         <Container as="header" width="100%" padding="xl xl 3xl">
           <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
             <Grid
@@ -431,6 +407,33 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                     date: <DateTime date={investigation.dateUpdated} year />,
                   })}
                 </Text>
+                {investigation.status === 'archived' && commentCount === 0 ? null : (
+                  <Fragment>
+                    <MetaDivider />
+                    <Button
+                      size="zero"
+                      variant="link"
+                      icon={<IconChat size="xs" />}
+                      onClick={() => {
+                        if (investigation.status === 'archived') {
+                          activityRef.current?.scrollIntoView?.({behavior: 'smooth'});
+                          return;
+                        }
+                        composerRef.current?.scrollIntoView?.({
+                          block: 'center',
+                          behavior: 'smooth',
+                        });
+                        composerRef.current?.focus({preventScroll: true});
+                      }}
+                    >
+                      {hasMoreComments
+                        ? t('%s+ comments', commentCount)
+                        : commentCount > 0
+                          ? tn('%s comment', '%s comments', commentCount)
+                          : t('Comment')}
+                    </Button>
+                  </Fragment>
+                )}
                 <InvestigationViewers
                   investigationId={investigation.id}
                   separator={<MetaDivider />}
@@ -500,6 +503,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               <InvestigationActivity
                 investigation={investigation}
                 composerRef={composerRef}
+                ref={activityRef}
               />
               <Container height="128px" flexShrink={0} aria-hidden />
             </Stack>

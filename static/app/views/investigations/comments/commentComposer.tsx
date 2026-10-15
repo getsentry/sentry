@@ -31,7 +31,7 @@ export function CommentComposer({
     {
       onSuccess: (_comment, {body: submitted}) =>
         setValue(current => (current.text.trim() === submitted ? EMPTY_VALUE : current)),
-      onError: () => addErrorMessage(t('Unable to post comment')),
+      onError: () => addErrorMessage(t('Unable to post comment.')),
     }
   );
   const body = value.text.trim();

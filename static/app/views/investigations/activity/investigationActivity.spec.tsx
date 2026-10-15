@@ -124,9 +124,24 @@ describe('InvestigationActivity', () => {
     expect(
       screen.queryByRole('combobox', {name: 'Add a comment'})
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Comment'})).not.toBeInTheDocument();
   });
 
-  it('jumps to the composer from the header', async () => {
+  it('keeps the comment count on an archived investigation', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({status: 'archived'}),
+    });
+    MockApiClient.addMockResponse({
+      url: commentsUrl,
+      body: [InvestigationCommentFixture()],
+    });
+    renderPage();
+
+    expect(await screen.findByRole('button', {name: '1 comment'})).toBeEnabled();
+  });
+
+  it('jumps to the composer from the comment count', async () => {
     MockApiClient.addMockResponse({
       url: commentsUrl,
       body: [InvestigationCommentFixture({id: '2'}), InvestigationCommentFixture()],
