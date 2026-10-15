@@ -53,7 +53,6 @@ bin/split-silo-database
 bin/update-migration
 config/build-chartcuterie.ts
 config/commit-template
-jest.config.snapshots.ts
 migrations_lockfile.txt
 rspack.config.ts
 src/AGENTS.md

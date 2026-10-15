@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -15,22 +16,16 @@ from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.client_kind import get_client_kind
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
     INGESTION_DELAY,
-    Annotation,
     BucketBoundaries,
     Row,
     SeriesMeta,
     StatsMeta,
     StatsResponse,
     TimeSeries,
-)
-from sentry.api.helpers.data_annotations import (
-    get_dropped_data_annotations,
-    record_dropped_events_telemetry,
 )
 from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
@@ -159,6 +154,25 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         else:
             return None
 
+    def get_transformations(self, request: Request) -> dict[int, list[str]]:
+        """Decode ordered transformation strings by zero-based request yAxis position."""
+        transformations: dict[int, list[str]] = {}
+        axis_count = len(request.GET.getlist("yAxis", ["count()"]))
+        for key, values in request.GET.lists():
+            if key != "transformations" and not key.startswith("transformations["):
+                continue
+            match = re.fullmatch(r"transformations\[(0|[1-9][0-9]*)\]", key)
+            if match is None:
+                raise ParseError(detail="Invalid transformations index")
+            try:
+                index = int(match.group(1))
+            except ValueError:
+                raise ParseError(detail="Invalid transformations index")
+            if index >= axis_count:
+                raise ParseError(detail="transformations index must match a yAxis position")
+            transformations[index] = values
+        return transformations
+
     @extend_schema(
         operation_id="listOrganizationEventsTimeseries",
         summary="Query Explore Events in Timeseries Format",
@@ -211,6 +225,12 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         ):
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
+            if features.has(
+                "organizations:explore-interpolation-and-smoothing",
+                organization,
+                actor=request.user,
+            ):
+                self.get_transformations(request)
 
             dataset = self.get_dataset(request, organization)
             # Add more here until top events is supported on all the datasets
@@ -278,13 +298,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         logger.warning("Failed to fetch ingestion delay status", exc_info=True)
             finally:
                 pool.shutdown(wait=False)
-            include_annotations = request.GET.get(
-                "includeAnnotations"
-            ) is not None and features.has(
-                "organizations:explore-data-fidelity-annotations",
-                organization,
-                actor=request.user,
-            )
             return Response(
                 self.serialize_stats_data(
                     events_stats,
@@ -293,9 +306,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     rollup,
                     dataset,
                     organization,
-                    include_annotations,
                     ingestion_delay_status,
-                    request=request,
                 ),
                 status=200,
             )
@@ -341,6 +352,14 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
                 disable_array_attributes=disable_array_attributes,
+                disable_deprecated_functions=(
+                    dataset == Spans
+                    and features.has(
+                        "organizations:explore-disable-deprecated-if-functions",
+                        organization,
+                        actor=request.user,
+                    )
+                ),
             )
 
     def get_event_stats(
@@ -478,9 +497,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         rollup: int,
         dataset,
         organization: Organization,
-        include_annotations: bool = False,
         ingestion_delay_status: IngestionDelayStatus | None = None,
-        request: Request | None = None,
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
         now = datetime.now().timestamp()
@@ -501,26 +518,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         debug_info[key] = keyed_result.data["meta"]["debug_info"]
             # ignore typing here cause we don't want the openapi docs to include debug_info
             stats_meta["debug_info"] = debug_info  #  type: ignore[typeddict-unknown-key]
-        if include_annotations:
-            dropped_annotations: list[Annotation] = []
-            accepted_annotations: list[Annotation] = []
-            try:
-                dropped_annotations, accepted_annotations = get_dropped_data_annotations(
-                    dataset, snuba_params, rollup
-                )
-            except Exception:
-                sentry_sdk.capture_exception()
-            stats_meta["droppedAnnotations"] = dropped_annotations
-            stats_meta["acceptedAnnotations"] = accepted_annotations
-
-            record_dropped_events_telemetry(
-                endpoint="events-timeseries",
-                client_kind=get_client_kind(request).value if request is not None else "unknown",
-                dataset_label=DATASET_LABELS[dataset],
-                dropped_count=len(dropped_annotations),
-                accepted_count=len(accepted_annotations),
-            )
-
         if ingestion_delay_status is not None:
             stats_meta["ingestion"] = serialize_ingestion_status(ingestion_delay_status)
             if ingestion_delay_status.complete_through is not None:

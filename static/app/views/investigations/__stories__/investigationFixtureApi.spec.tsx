@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
+import {QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
 import {InvestigationsPage} from 'sentry/views/investigations';
 import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';

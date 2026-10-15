@@ -360,7 +360,7 @@ describe('SimpleTable component', () => {
     );
   });
 
-  it('passes the row element to a callback ref', () => {
+  it('passes the row element to a ref when given a callback ref', () => {
     const ref = jest.fn();
 
     render(

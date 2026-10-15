@@ -119,6 +119,7 @@ function ConversationsOverviewPage() {
     hasConversations,
     showOnboarding,
     isLoading: isOnboardingLoading,
+    isError: isOnboardingError,
     refetch: refetchOnboarding,
   } = useShowConversationOnboarding();
   const [selectedTab, setSelectedTab] = useQueryState(
@@ -153,9 +154,8 @@ function ConversationsOverviewPage() {
       : activeTab === 'traces'
         ? t('Search by trace ID, operation, service, or user')
         : t('Search by model, provider, tokens, or operation');
-  const selectedTabShowsOnboarding = isConversationsTab
-    ? !hasConversations
-    : !hasAgenticSpans;
+  const selectedTabShowsOnboarding =
+    !isOnboardingError && (isConversationsTab ? !hasConversations : !hasAgenticSpans);
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
@@ -216,9 +216,6 @@ function ConversationsOverviewPage() {
       disableRecentSearches: isConversationsTab,
       ...(isConversationsTab
         ? {
-            // The conversations API cannot express negation, so hide negation
-            // operators and add direct-ID matching for conversation searches.
-            disallowNegation: true,
             replaceRawSearchKeys: ['gen_ai.conversation.id', 'gen_ai.input.messages'],
             matchKeySuggestions: [
               {
@@ -299,8 +296,8 @@ function ConversationsOverviewPage() {
         <AgentsTable
           activeTab={activeTab}
           conversations={conversationsResult}
-          hasAgenticSpans={hasAgenticSpans}
-          hasConversations={hasConversations}
+          hasAgenticSpans={hasAgenticSpans || isOnboardingError}
+          hasConversations={hasConversations || isOnboardingError}
           onConversationOnboardingDismiss={refetchOnboarding}
           onTabChange={handleTabChange}
           searchBar={tableSearchBar}

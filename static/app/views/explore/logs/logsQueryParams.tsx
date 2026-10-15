@@ -5,12 +5,12 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
+import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
   LOGS_AGGREGATE_FN_KEY,
   LOGS_AGGREGATE_PARAM_KEY,
-  LOGS_CURSOR_KEY,
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,

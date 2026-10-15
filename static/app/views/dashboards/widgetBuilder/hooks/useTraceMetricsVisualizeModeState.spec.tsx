@@ -11,10 +11,8 @@ import {
   type EquationModeSnapshot,
   useTraceMetricsVisualizeModeState,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
-import {
-  BuilderStateAction,
-  serializeFields,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/utils/serialization.ts';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';

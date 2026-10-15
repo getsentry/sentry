@@ -1,343 +1,233 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 
 import {useShowConversationOnboarding} from './useShowConversationOnboarding';
 
-jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
-  useSpans: jest.fn(),
-}));
+const organization = OrganizationFixture();
+const storageKey = `conversations:projects-with-data:${organization.slug}`;
+const eventsUrl = `/organizations/${organization.slug}/events/`;
 
-jest.mock('sentry/views/insights/common/queries/useHasFirstSpan');
+function mockConversations(data: Array<{id: string}>) {
+  return MockApiClient.addMockResponse({
+    url: eventsUrl,
+    match: [MockApiClient.matchQuery({query: 'has:gen_ai.conversation.id'})],
+    body: {data},
+  });
+}
 
-jest.mock('sentry/utils/useLocalStorageState', () => ({
-  useLocalStorageState: jest.fn(),
-}));
+function mockAgentSpans(data: Array<{id: string}>) {
+  return MockApiClient.addMockResponse({
+    url: eventsUrl,
+    match: [
+      MockApiClient.matchQuery({
+        query: '(has:gen_ai.operation.type OR has:gen_ai.conversation.id)',
+      }),
+    ],
+    body: {data},
+  });
+}
 
-const mockUseSpans = jest.mocked(useSpans);
-const mockUseHasFirstSpan = jest.mocked(useHasFirstSpan);
-const mockUseLocalStorageState = jest.mocked(useLocalStorageState);
+function selectProjects(projects: number[]) {
+  PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects}));
+}
+
+function knownConversations(projects: number[]) {
+  localStorage.setItem(storageKey, JSON.stringify(projects));
+}
 
 describe('useShowConversationOnboarding', () => {
-  const organization = OrganizationFixture();
-  let mockSetProjectsWithConversations: jest.Mock;
-
   beforeEach(() => {
-    mockSetProjectsWithConversations = jest.fn();
-    mockUseHasFirstSpan.mockReturnValue(false);
-
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [1],
-        environments: [],
-        datetime: {period: '24h', start: null, end: null, utc: false},
-      })
-    );
+    localStorage.clear();
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', hasInsightsAgentMonitoring: false}),
+      ProjectFixture({id: '2', hasInsightsAgentMonitoring: false}),
+    ]);
+    selectProjects([1]);
+    mockConversations([]);
+    mockAgentSpans([]);
   });
 
   afterEach(() => {
+    localStorage.clear();
     PageFiltersStore.reset();
-    jest.clearAllMocks();
+    ProjectsStore.reset();
+    MockApiClient.clearMockResponses();
   });
 
-  it('shows onboarding when no data and no localStorage entry', () => {
-    mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
-    mockUseSpans.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
-      organization,
-    });
-
-    expect(result.current.showOnboarding).toBe(true);
-    expect(result.current.hasConversations).toBe(false);
-    expect(result.current.isLoading).toBe(false);
-  });
-
-  it('reports agentic spans without conversations', () => {
-    mockUseHasFirstSpan.mockReturnValue(true);
-    mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
-    mockUseSpans.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
-      organization,
-    });
-
-    expect(result.current.hasAgenticSpans).toBe(true);
-    expect(result.current.hasConversations).toBe(false);
-  });
-
-  it('does not show onboarding when query returns data', () => {
-    mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
-    mockUseSpans.mockReturnValue({
-      data: [{id: 'span-1'}],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
-      organization,
-    });
-
-    expect(result.current.showOnboarding).toBe(false);
-    expect(result.current.hasConversations).toBe(true);
-    expect(result.current.hasAgenticSpans).toBe(true);
-    expect(result.current.isLoading).toBe(false);
-  });
-
-  it('stores project IDs in localStorage when data is found', () => {
-    mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
-    mockUseSpans.mockReturnValue({
-      data: [{id: 'span-1'}],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    renderHookWithProviders(useShowConversationOnboarding, {organization});
-
-    expect(mockSetProjectsWithConversations).toHaveBeenCalled();
-    const updater = mockSetProjectsWithConversations.mock.calls[0][0];
-    const result = updater([]);
-    expect(result).toEqual([1]);
-  });
-
-  it('does not show onboarding when localStorage knows projects have data even if query returns empty', () => {
-    mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
-    mockUseSpans.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
-      organization,
-    });
-
-    expect(result.current.showOnboarding).toBe(false);
-    expect(result.current.isLoading).toBe(false);
-  });
-
-  it('shows onboarding for a project not in localStorage even if other projects are', () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [2],
-        environments: [],
-        datetime: {period: '1h', start: null, end: null, utc: false},
-      })
-    );
-
-    mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
-    mockUseSpans.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
-      organization,
-    });
-
-    expect(result.current.showOnboarding).toBe(true);
-  });
-
-  it('skips loading state when localStorage already knows projects have data', () => {
-    mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
-    mockUseSpans.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
-      organization,
-    });
-
-    expect(result.current.isLoading).toBe(false);
-    expect(result.current.showOnboarding).toBe(false);
-  });
-
-  it('merges new project IDs with existing localStorage entries', () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [2],
-        environments: [],
-        datetime: {period: '24h', start: null, end: null, utc: false},
-      })
-    );
-
-    mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
-    mockUseSpans.mockReturnValue({
-      data: [{id: 'span-1'}],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    renderHookWithProviders(useShowConversationOnboarding, {organization});
-
-    expect(mockSetProjectsWithConversations).toHaveBeenCalled();
-    const updater = mockSetProjectsWithConversations.mock.calls[0][0];
-    const result = updater([1]);
-    expect(result).toEqual([1, 2]);
-  });
-
-  it('does not update localStorage when all project IDs are already stored', () => {
-    mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
-    mockUseSpans.mockReturnValue({
-      data: [{id: 'span-1'}],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    renderHookWithProviders(useShowConversationOnboarding, {organization});
-
-    expect(mockSetProjectsWithConversations).toHaveBeenCalled();
-    const updater = mockSetProjectsWithConversations.mock.calls[0][0];
-    const prevArray = [1];
-    const result = updater(prevArray);
-    // Returns the same array reference when no change is needed
-    expect(result).toBe(prevArray);
-  });
-
-  it('shows loading when query is loading and localStorage has no data', () => {
-    mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
-    mockUseSpans.mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
+  it('shows onboarding only after both empty checks complete', async () => {
     const {result} = renderHookWithProviders(useShowConversationOnboarding, {
       organization,
     });
 
     expect(result.current.isLoading).toBe(true);
     expect(result.current.showOnboarding).toBe(false);
-  });
-
-  it('stores -1 sentinel for all-projects selection instead of individual IDs', () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [],
-        environments: [],
-        datetime: {period: '24h', start: null, end: null, utc: false},
-      })
-    );
-
-    mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
-    mockUseSpans.mockReturnValue({
-      data: [{id: 'span-1'}],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    renderHookWithProviders(useShowConversationOnboarding, {organization});
-
-    expect(mockSetProjectsWithConversations).toHaveBeenCalled();
-    const updater = mockSetProjectsWithConversations.mock.calls[0][0];
-    const result = updater([]);
-    expect(result).toEqual([ALL_ACCESS_PROJECTS]);
-  });
-
-  it('does not show onboarding for all-projects when -1 is in localStorage', () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [],
-        environments: [],
-        datetime: {period: '1h', start: null, end: null, utc: false},
-      })
-    );
-
-    mockUseLocalStorageState.mockReturnValue([
-      [ALL_ACCESS_PROJECTS],
-      mockSetProjectsWithConversations,
-    ]);
-    mockUseSpans.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
-      organization,
-    });
-
-    expect(result.current.showOnboarding).toBe(false);
-  });
-
-  it('does not show onboarding for all-projects when specific projects have data in localStorage', () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [],
-        environments: [],
-        datetime: {period: '1h', start: null, end: null, utc: false},
-      })
-    );
-
-    mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
-    mockUseSpans.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
-      organization,
-    });
-
-    expect(result.current.showOnboarding).toBe(false);
-  });
-
-  it('does not let all-projects sentinel suppress onboarding for a specific project', () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [2],
-        environments: [],
-        datetime: {period: '1h', start: null, end: null, utc: false},
-      })
-    );
-
-    mockUseLocalStorageState.mockReturnValue([
-      [ALL_ACCESS_PROJECTS],
-      mockSetProjectsWithConversations,
-    ]);
-    mockUseSpans.mockReturnValue({
-      data: [],
-      isLoading: false,
-      isError: false,
-      refetch: jest.fn(),
-    } as any);
-
-    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
-      organization,
-    });
-
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.showOnboarding).toBe(true);
+    expect(result.current.hasConversations).toBe(false);
+    expect(result.current.hasAgenticSpans).toBe(false);
+  });
+
+  it('reports agentic spans without conversations from the project flag', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', hasInsightsAgentMonitoring: true}),
+    ]);
+    const agentSpansRequest = mockAgentSpans([]);
+    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.hasAgenticSpans).toBe(true);
+    expect(result.current.hasConversations).toBe(false);
+    expect(agentSpansRequest).not.toHaveBeenCalled();
+  });
+
+  it('reports AI spans without a project flag or conversation ID', async () => {
+    mockAgentSpans([{id: 'llm-span'}]);
+    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.hasAgenticSpans).toBe(true);
+    expect(result.current.hasConversations).toBe(false);
+    expect(localStorage.getItem(storageKey)).toBeNull();
+  });
+
+  it('detects conversations without a project flag and stores the selection', async () => {
+    const request = mockConversations([{id: 'conversation-span'}]);
+    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.hasConversations).toBe(true));
+    expect(result.current.hasAgenticSpans).toBe(true);
+    expect(result.current.showOnboarding).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+    expect(JSON.parse(localStorage.getItem(storageKey)!)).toEqual([1]);
+    expect(request).toHaveBeenCalledWith(
+      eventsUrl,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spans',
+          field: ['id'],
+          per_page: 1,
+          project: [1],
+          referrer: Referrer.ONBOARDING,
+        }),
+      })
+    );
+  });
+
+  it('keeps known conversations visible even when the current window is empty', async () => {
+    knownConversations([1]);
+    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+      organization,
+    });
+
+    expect(result.current.hasConversations).toBe(true);
+    expect(result.current.showOnboarding).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+    await waitFor(() => expect(result.current.hasAgenticSpans).toBe(true));
+  });
+
+  it('does not use another project’s conversation history', async () => {
+    knownConversations([1]);
+    selectProjects([2]);
+    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.showOnboarding).toBe(true));
+    expect(result.current.hasConversations).toBe(false);
+  });
+
+  it('merges newly detected projects with conversation history', async () => {
+    knownConversations([1]);
+    selectProjects([2]);
+    mockConversations([{id: 'conversation-span'}]);
+    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.hasConversations).toBe(true));
+    expect(JSON.parse(localStorage.getItem(storageKey)!)).toEqual([1, 2]);
+  });
+
+  it.each([{projects: []}, {projects: [ALL_ACCESS_PROJECTS]}])(
+    'stores the all-projects sentinel for selection $projects',
+    async ({projects}) => {
+      selectProjects(projects);
+      mockConversations([{id: 'conversation-span'}]);
+      const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+        organization,
+      });
+
+      await waitFor(() => expect(result.current.hasConversations).toBe(true));
+      expect(JSON.parse(localStorage.getItem(storageKey)!)).toEqual([
+        ALL_ACCESS_PROJECTS,
+      ]);
+    }
+  );
+
+  it.each([{projects: [ALL_ACCESS_PROJECTS]}, {projects: [1]}])(
+    'uses known conversation history $projects for all projects',
+    async ({projects}) => {
+      selectProjects([]);
+      knownConversations(projects);
+      const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+        organization,
+      });
+
+      expect(result.current.hasConversations).toBe(true);
+      expect(result.current.isLoading).toBe(false);
+      await waitFor(() => expect(result.current.showOnboarding).toBe(false));
+    }
+  );
+
+  it('does not let the all-projects sentinel suppress a specific project’s onboarding', async () => {
+    knownConversations([ALL_ACCESS_PROJECTS]);
+    selectProjects([2]);
+    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.showOnboarding).toBe(true));
+  });
+
+  it('does not treat a failed availability check as missing instrumentation', async () => {
+    MockApiClient.addMockResponse({
+      url: eventsUrl,
+      statusCode: 500,
+      body: {detail: 'Unavailable'},
+    });
+    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+      organization,
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.isError).toBe(true);
+    expect(result.current.showOnboarding).toBe(false);
+  });
+
+  it('refetches both availability checks after onboarding', async () => {
+    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+      organization,
+    });
+    await waitFor(() => expect(result.current.showOnboarding).toBe(true));
+    mockAgentSpans([{id: 'new-llm-span'}]);
+
+    act(() => result.current.refetch());
+
+    await waitFor(() => expect(result.current.hasAgenticSpans).toBe(true));
+    expect(result.current.hasConversations).toBe(false);
   });
 });

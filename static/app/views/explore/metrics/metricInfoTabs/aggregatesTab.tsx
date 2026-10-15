@@ -11,12 +11,12 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
 import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
@@ -175,7 +175,8 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
 
   const topResultsCount = topEvents ? Math.min(result.data?.length ?? 0, topEvents) : 0;
 
-  const isPending = result.isPending && !isMetricOptionsEmpty;
+  const isEmptyEquation = isVisualizeEquation(visualize) && !visualize.expression.text;
+  const isPending = result.isPending && !isMetricOptionsEmpty && !isEmptyEquation;
 
   return (
     <AggregatesSimpleTable style={tableStyle}>
@@ -280,7 +281,14 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
         </SimpleTable.Empty>
       ) : (
         <SimpleTable.Empty>
-          <GenericWidgetEmptyStateWarning title={t('No aggregates found')} message="" />
+          <GenericWidgetEmptyStateWarning
+            title={
+              isEmptyEquation
+                ? t('Enter an equation to see aggregates')
+                : t('No aggregates found')
+            }
+            message=""
+          />
         </SimpleTable.Empty>
       )}
     </AggregatesSimpleTable>
