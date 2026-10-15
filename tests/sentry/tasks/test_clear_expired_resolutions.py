@@ -1,4 +1,5 @@
 from datetime import timedelta
+from itertools import chain, repeat
 from unittest.mock import Mock, patch
 
 import pytest
@@ -7,6 +8,7 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from psycopg2.errors import LockNotAvailable, QueryCanceled
 from taskbroker_client.retry import RetryTaskError
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.models.activity import Activity
@@ -148,6 +150,13 @@ def test_archived_release_does_not_expire_resolution(
 class ClearExpiredResolutionsTest(TestCase):
     def test_task_persistent_name(self) -> None:
         assert clear_expired_resolutions.name == "sentry.tasks.clear_expired_resolutions"
+        retry = clear_expired_resolutions.retry
+        assert retry is not None
+        state = retry.initial_state()
+        assert retry.should_retry(state, ProcessingDeadlineExceeded())
+        assert retry.should_retry(state, RetryTaskError())
+        state.attempts = state.max_attempts - 1
+        assert not retry.should_retry(state, ProcessingDeadlineExceeded())
 
     def test_simple(self) -> None:
         project = self.create_project()
@@ -396,7 +405,10 @@ class FinalizedResolutionTaskTest(TestCase):
             group=other_group, release=self.anchor, type=GroupResolution.Type.in_next_release
         )
         with (
-            patch("sentry.tasks.clear_expired_resolutions.monotonic", side_effect=[0, 4, 4]),
+            patch(
+                "sentry.tasks.clear_expired_resolutions.monotonic",
+                side_effect=chain([0], repeat(4)),
+            ),
             patch.object(clear_expired_resolutions, "apply_async_with_future") as publish,
         ):
             clear_expired_resolutions(successor.id)
@@ -434,11 +446,24 @@ class FinalizedResolutionTaskTest(TestCase):
         with (
             connection.execute_wrapper(slow_activity_write),
             patch.object(clear_expired_resolutions, "apply_async_with_future") as publish,
+            patch("sentry.tasks.clear_expired_resolutions.logger") as logger,
+            patch("sentry.tasks.clear_expired_resolutions.metrics.incr") as incr,
+            patch(
+                "sentry.tasks.clear_expired_resolutions.current_task",
+                return_value=Mock(retries_remaining=False),
+            ),
             pytest.raises(RetryTaskError) as error,
         ):
             clear_expired_resolutions(successor.id)
         assert isinstance(error.value.__cause__, OperationalError)
         assert isinstance(error.value.__cause__.__cause__, QueryCanceled)
+        logger.exception.assert_not_called()
+        assert logger.warning.call_args.kwargs["extra"]["phase"] == "write"
+        incr.assert_any_call(
+            "releases.resolution_batch.exhausted",
+            tags={"phase": "write", "error": "statement_timeout"},
+            sample_rate=1.0,
+        )
         publish.assert_not_called()
         self.resolution.refresh_from_db()
         activity.refresh_from_db()
@@ -464,8 +489,14 @@ class FinalizedResolutionTaskTest(TestCase):
             patch.object(clear_expired_resolutions, "apply_async_with_future") as publish,
         ):
             publish.return_value.result.side_effect = TimeoutError("delivery failed")
-            with pytest.raises(RetryTaskError):
+            with (
+                patch("sentry.tasks.clear_expired_resolutions.logger") as logger,
+                pytest.raises(RetryTaskError),
+            ):
                 clear_expired_resolutions(successor.id)
+            logger.exception.assert_called_once()
+            assert logger.exception.call_args.kwargs["extra"]["phase"] == "publish"
+            assert logger.exception.call_args.kwargs["extra"]["error"] == "other"
             self.resolution.refresh_from_db()
             other_resolution.refresh_from_db()
             assert self.resolution.status == GroupResolution.Status.resolved
@@ -540,11 +571,14 @@ def test_lock_contention_retries_and_preserves_manual_resolution(
             )
             with (
                 Feature({"organizations:release-resolution-finalized-order": True}),
+                patch("sentry.tasks.clear_expired_resolutions.logger") as logger,
                 pytest.raises(RetryTaskError) as error,
             ):
                 clear_expired_resolutions(successor.id)
             assert isinstance(error.value.__cause__, OperationalError)
             assert isinstance(error.value.__cause__.__cause__, LockNotAvailable)
+            logger.exception.assert_not_called()
+            assert logger.warning.call_args.kwargs["extra"]["error"] == "lock_timeout"
             other_resolution.refresh_from_db()
             assert other_resolution.status == GroupResolution.Status.pending
             cursor.execute(
@@ -629,10 +663,11 @@ def test_batch_query_cost_and_activity_matching(
         patch("sentry.tasks.clear_expired_resolutions.monotonic", return_value=0),
     ):
         cursor = _clear_finalized_resolutions(successor)
-    assert cursor == resolutions[-1].id
+    assert cursor.next_cursor == resolutions[-1].id
+    assert cursor.retry_ids == []
     data_queries = [q["sql"] for q in queries if q["sql"].startswith(("SELECT", "UPDATE"))]
-    # One candidate read, one lookup per distinct anchor, and three bulk operations.
-    assert len(data_queries) == anchor_count + 4
+    # Candidate read and recheck, one lookup per anchor, and three bulk operations.
+    assert len(data_queries) == anchor_count + 5
     assert len([sql for sql in data_queries if sql.startswith('UPDATE "sentry_activity"')]) == 1
     assert (
         len([sql for sql in data_queries if sql.startswith('UPDATE "sentry_groupresolution"')]) == 1
@@ -662,3 +697,221 @@ def test_batch_query_cost_and_activity_matching(
     }
     assert duplicate.data == {"version": expected_activity_versions[1], "preserve": True}
     assert unrelated.data == {"version": "unchanged"}
+
+
+@django_db_all(transaction=True)
+def test_slow_successor_retries_do_not_strand_later_pages(
+    factories: Factories, default_group: Group
+) -> None:
+    project = default_group.project
+    slow_anchor = factories.create_release(project=project, version="slow-anchor")
+    healthy_anchor = factories.create_release(project=project, version="healthy-anchor")
+    successor = factories.create_release(project=project, version="next")
+    slow = factories.create_group_resolution(
+        group=default_group, release=slow_anchor, type=GroupResolution.Type.in_next_release
+    )
+    healthy = [
+        factories.create_group_resolution(
+            group=factories.create_group(project=project),
+            release=healthy_anchor,
+            type=GroupResolution.Type.in_next_release,
+        )
+        for _ in range(11)
+    ]
+    connection = connections[router.db_for_write(GroupResolution)]
+    competing = connection.copy()
+
+    def slow_successor(execute, sql, params, many, context):
+        if sql.startswith('SELECT "sentry_release"."id"') and slow_anchor.id in params:
+            # A second connection can lock the resolution while the lookup runs.
+            # This would fail if successor selection still held resolution locks.
+            with competing.cursor() as cursor:
+                cursor.execute(
+                    "SELECT id FROM sentry_groupresolution WHERE id = %s FOR UPDATE NOWAIT",
+                    [slow.id],
+                )
+            return execute("SELECT pg_sleep(2)", None, False, context)
+        return execute(sql, params, many, context)
+
+    try:
+        with (
+            Feature({"organizations:release-resolution-finalized-order": True}),
+            connection.execute_wrapper(slow_successor),
+            patch("sentry.tasks.clear_expired_resolutions.RESOLUTION_BATCH_SIZE", 2),
+            patch("sentry.tasks.clear_expired_resolutions.monotonic", return_value=0),
+            patch.object(clear_expired_resolutions, "apply_async_with_future") as publish,
+            patch("sentry.tasks.clear_expired_resolutions.logger") as logger,
+            patch("sentry.tasks.clear_expired_resolutions.metrics.incr") as incr,
+        ):
+            clear_expired_resolutions(successor.id)
+            retry_kwargs = publish.call_args_list[0].kwargs["kwargs"]
+            assert retry_kwargs == {
+                "release_id": successor.id,
+                "after_id": 0,
+                "resolution_ids": [slow.id],
+            }
+            next_kwargs = publish.call_args_list[1].kwargs["kwargs"]
+            healthy[0].refresh_from_db()
+            assert healthy[0].release_id == successor.id
+
+            # More pages than retry attempts: the failing row cannot block them.
+            for _ in range(5):
+                clear_expired_resolutions(**next_kwargs)
+                next_kwargs = publish.call_args.kwargs["kwargs"]
+            clear_expired_resolutions(**next_kwargs)
+            assert GroupResolution.objects.filter(
+                id__in=[r.id for r in healthy], status=GroupResolution.Status.resolved
+            ).count() == len(healthy)
+
+            publish.reset_mock()
+            for attempt in range(5):
+                with (
+                    patch(
+                        "sentry.tasks.clear_expired_resolutions.current_task",
+                        return_value=Mock(retries_remaining=attempt < 4),
+                    ),
+                    pytest.raises(RetryTaskError),
+                ):
+                    clear_expired_resolutions(**retry_kwargs)
+            publish.assert_not_called()  # Retries never spawn more retries or pages.
+            logger.exception.assert_not_called()
+            incr.assert_any_call(
+                "releases.resolution_batch.failed",
+                tags={"phase": "successor", "error": "statement_timeout"},
+                sample_rate=1.0,
+            )
+            incr.assert_any_call(
+                "releases.resolution_batch.exhausted",
+                tags={"phase": "successor", "error": "statement_timeout"},
+                sample_rate=1.0,
+            )
+            assert logger.warning.call_args.kwargs["extra"]["resolution_ids"] == [slow.id]
+            assert logger.warning.call_args.args[0] == "releases.resolution_batch.exhausted"
+            slow.refresh_from_db()
+            assert slow.status == GroupResolution.Status.pending
+
+        with Feature({"organizations:release-resolution-finalized-order": False}):
+            clear_expired_resolutions(**retry_kwargs)
+        slow.refresh_from_db()
+        assert slow.status == GroupResolution.Status.pending
+        # The recorded arguments support recovery once the slow lookup is fixed.
+        with Feature({"organizations:release-resolution-finalized-order": True}):
+            clear_expired_resolutions(**retry_kwargs)
+        slow.refresh_from_db()
+        assert slow.release_id == healthy_anchor.id
+    finally:
+        competing.close()
+
+
+@django_db_all(transaction=True)
+def test_revalidation_preserves_concurrent_resolution_changes(
+    factories: Factories, default_group: Group
+) -> None:
+    now = timezone.now()
+    projects = [
+        factories.create_project(organization=default_group.project.organization) for _ in range(5)
+    ]
+    anchors = [
+        factories.create_release(
+            project=p, version=f"anchor-{i}", date_added=now - timedelta(days=2)
+        )
+        for i, p in enumerate(projects)
+    ]
+    groups = [factories.create_group(project=p) for p in projects]
+    resolutions = [
+        factories.create_group_resolution(
+            group=g, release=a, type=GroupResolution.Type.in_next_release
+        )
+        for g, a in zip(groups, anchors)
+    ]
+    successor = factories.create_release(project=projects[0], version="next", date_added=now)
+    for project in projects[1:]:
+        successor.add_project(project)
+    replacement = factories.create_release(
+        project=projects[0], version="replacement", date_added=now - timedelta(days=1)
+    )
+    connection = connections[router.db_for_write(GroupResolution)]
+    new_activities = []
+
+    def change_before_lock(execute, sql, params, many, context):
+        result = execute(sql, params, many, context)
+        if sql.startswith('SELECT "sentry_release"."id"') and anchors[-1].id in params:
+            resolutions[0].update(release=replacement, datetime=timezone.now())
+            anchors[1].update(date_released=now + timedelta(days=1))
+            resolutions[2].update(datetime=timezone.now())
+            with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+                new_activities.append(
+                    Activity.objects.create_group_activity(
+                        groups[2],
+                        ActivityType.SET_RESOLVED_IN_RELEASE,
+                        ident=resolutions[2].id,
+                        data={"version": "", "preserve": True},
+                    )
+                )
+            GroupResolution.objects.filter(id=resolutions[3].id).delete()
+            resolutions[4].update(
+                status=GroupResolution.Status.resolved, type=GroupResolution.Type.in_release
+            )
+        return result
+
+    with (
+        Feature({"organizations:release-resolution-finalized-order": True}),
+        connection.execute_wrapper(change_before_lock),
+        patch.object(clear_expired_resolutions, "apply_async_with_future") as publish,
+    ):
+        clear_expired_resolutions(successor.id)
+    publish.assert_called_once_with(
+        kwargs={
+            "release_id": successor.id,
+            "after_id": 0,
+            "resolution_ids": [resolutions[0].id, resolutions[1].id],
+        }
+    )
+    for resolution in resolutions[:3] + resolutions[4:]:
+        resolution.refresh_from_db()
+    assert resolutions[0].release_id == replacement.id
+    assert resolutions[0].status == GroupResolution.Status.pending
+    assert resolutions[1].status == GroupResolution.Status.pending
+    assert resolutions[2].release_id == successor.id
+    assert not GroupResolution.objects.filter(id=resolutions[3].id).exists()
+    assert resolutions[4].release_id == anchors[4].id
+    assert resolutions[4].status == GroupResolution.Status.resolved
+    new_activities[0].refresh_from_db()
+    assert new_activities[0].data == {"version": successor.version, "preserve": True}
+    with Feature({"organizations:release-resolution-finalized-order": True}):
+        clear_expired_resolutions(**publish.call_args.kwargs["kwargs"])
+    resolutions[0].refresh_from_db()
+    resolutions[1].refresh_from_db()
+    assert resolutions[0].release_id == successor.id
+    assert resolutions[1].status == GroupResolution.Status.pending
+
+
+@django_db_all
+def test_unexpected_successor_failure_retries_without_advancing(
+    factories: Factories, default_group: Group
+) -> None:
+    anchor = factories.create_release(project=default_group.project, version="anchor")
+    successor = factories.create_release(project=default_group.project, version="next")
+    resolution = factories.create_group_resolution(
+        group=default_group, release=anchor, type=GroupResolution.Type.in_next_release
+    )
+    with (
+        Feature({"organizations:release-resolution-finalized-order": True}),
+        patch.object(
+            Release.objects,
+            "get_next_release_queryset",
+            side_effect=OperationalError("connection failed"),
+        ),
+        patch.object(clear_expired_resolutions, "apply_async_with_future") as publish,
+        patch("sentry.tasks.clear_expired_resolutions.logger") as logger,
+        pytest.raises(RetryTaskError),
+    ):
+        clear_expired_resolutions(successor.id)
+    publish.assert_not_called()
+    logger.exception.assert_called_once()
+    assert logger.exception.call_args.kwargs["extra"]["phase"] == "successor"
+    assert logger.exception.call_args.kwargs["extra"]["error"] == "other"
+    assert logger.exception.call_args.kwargs["extra"]["project_id"] == default_group.project_id
+    assert logger.exception.call_args.kwargs["extra"]["anchor_id"] == anchor.id
+    resolution.refresh_from_db()
+    assert resolution.status == GroupResolution.Status.pending
