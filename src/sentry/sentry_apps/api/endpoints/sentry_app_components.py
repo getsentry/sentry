@@ -89,9 +89,18 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         organization_context: RpcUserOrganizationContext,
         organization: RpcOrganization,
     ) -> Response[list[SentryAppComponentSerializerResponse]]:
-        """Retrieve prepared UI components for installed custom integrations, including issue-link forms."""
+        """
+        Retrieve prepared UI components for installed custom integrations, including issue-link forms.
+
+        To create or link an external issue through an app such as Linear, request
+        `filter=issue-link`. Submit the fields from `schema.create` or `schema.link`, with
+        that section's `uri`, to the external issue actions endpoint of the component's
+        `installationUuid`. Select fields with a `uri` load their choices from that
+        installation's select options endpoint.
+        """
         components = []
         errors = {}
+        installation_uuids: dict[int, str] = {}
 
         traces.new_trace()
         with traces.start_span(name="sentry.api.sentry_app_components.get", parent_span=None):
@@ -104,6 +113,7 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
                 ).order_by("pk")
 
             for install in installs:
+                installation_uuids[install.sentry_app_id] = str(install.uuid)
                 with traces.start_span(
                     name="sentry-app-components.filter_components",
                     attributes={"sentry.op": "sentry-app-components.filter_components"},
@@ -147,6 +157,10 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
             queryset=components,
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
-                x, request.user, serializer=SentryAppComponentSerializer(), errors=errors
+                x,
+                request.user,
+                serializer=SentryAppComponentSerializer(),
+                errors=errors,
+                installation_uuids=installation_uuids,
             ),
         )
