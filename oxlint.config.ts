@@ -1692,7 +1692,7 @@ const config = defineConfig({
       files: ['static/packages/scraps/src/**/*.{ts,tsx}'],
       // Re-enable these rules when Scraps has its own stricter lint config.
       rules: {
-        '@sentry/scraps/no-global-react': 'error',
+        '@sentry/no-global-react': 'error',
         'boundaries/no-unknown-files': 'off',
         'no-shadow': 'off',
       },
