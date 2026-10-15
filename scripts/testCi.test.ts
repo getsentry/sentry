@@ -95,6 +95,93 @@ test('CI runner discovers workspace scripts, forwards arguments, and returns fai
   );
 });
 
+test('CI runner executes repository-relative file selections in workspace directories', async t => {
+  const {directory, write, env} = fixture(t);
+  const jest = fileURLToPath(import.meta.resolve('jest/bin/jest'));
+  write('jest.cjs', `require(${JSON.stringify(jest)});`);
+  write('pnpm-workspace.yaml', 'packages:\n  - packages/*\nverifyDepsBeforeRun: false\n');
+  for (const workspace of ['selected', 'other']) {
+    write(
+      `packages/${workspace}/package.json`,
+      JSON.stringify({
+        name: workspace,
+        private: true,
+        scripts: {test: 'node ../../jest.cjs'},
+        jest: {testEnvironment: 'node', transform: {}},
+      })
+    );
+    write(
+      `packages/${workspace}/unrelated.test.cjs`,
+      "test('unrelated', () => { throw new Error('unselected test ran'); });"
+    );
+  }
+  const source = 'packages/selected/source file.cjs';
+  const selected = 'packages/selected/selected.test.cjs';
+  const marker = path.join(directory, 'ran');
+  const processorMarker = path.join(directory, 'processed');
+  write(
+    'processor.cjs',
+    `module.exports = results => {
+      if (results.numPassedTests) {
+        require('node:fs').writeFileSync(${JSON.stringify(processorMarker)}, 'processed');
+      }
+      return results;
+    };`
+  );
+  write(source, 'module.exports = 42;');
+  write(
+    selected,
+    `const {writeFileSync} = require('node:fs');
+     const value = require('./source file.cjs');
+     test(${JSON.stringify(source)}, () => {
+       expect(value).toBe(42);
+       expect(process.cwd()).toBe(${JSON.stringify(path.join(directory, 'packages/selected'))});
+       writeFileSync(${JSON.stringify(marker)}, 'executed');
+     });`
+  );
+  const cases = [
+    ['--findRelatedTests', source, '--testNamePattern', source],
+    [source, '--findRelatedTests', '-t', source],
+    ['--findRelatedTests', '--testNamePattern=' + source, '--', source],
+    ['--find-related-tests', source, '--test-results-processor', './processor.cjs'],
+    [
+      '--findRelatedTests',
+      '--testNamePattern',
+      source,
+      '--testPathIgnorePatterns',
+      'unrelated',
+      'ignored',
+      '--',
+      source,
+    ],
+    ['--runTestsByPath', selected, '--testNamePattern', source],
+    [selected, '--runTestsByPath', '-t', source],
+    ['--runTestsByPath', '--testNamePattern=' + source, '--', selected],
+    ['--run-tests-by-path', selected, '--test-results-processor=./processor.cjs'],
+    ['selected\\.test\\.cjs$', '--testNamePattern', source],
+    ['--findRelatedTests=false', 'selected\\.test\\.cjs$', '--testNamePattern', source],
+    ['--runTestsByPath=false', 'selected\\.test\\.cjs$', '--testNamePattern', source],
+  ];
+  for (const args of cases) {
+    await t.test(args.join(' '), async () => {
+      const result = await exec(
+        process.execPath,
+        [path.join(root, 'scripts/testCi.js'), ...args],
+        {
+          cwd: directory,
+          env,
+        }
+      );
+      assert.equal(readFileSync(marker, 'utf8'), 'executed', result.stdout);
+      rmSync(marker);
+      if (args.some(arg => arg.startsWith('--test-results-processor'))) {
+        assert.equal(readFileSync(processorMarker, 'utf8'), 'processed');
+        rmSync(processorMarker);
+      }
+    });
+  }
+});
+
 test('standalone package configs discover tests only on shard zero', async t => {
   const {directory, copy, env} = fixture(t);
   copy('scripts/jestSingleShard.js');

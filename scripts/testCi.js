@@ -1,9 +1,10 @@
 import {spawnSync} from 'node:child_process';
+import {createRequire} from 'node:module';
 import {resolve} from 'node:path';
 
 // pnpm runs scripts from each workspace directory. Resolve the processor before
 // changing directories so every workspace can use the same CLI argument.
-const args = process.argv.slice(2);
+let args = process.argv.slice(2);
 for (const [index, arg] of args.entries()) {
   const next = args[index + 1];
   if (arg === '--testResultsProcessor' && next) {
@@ -11,6 +12,32 @@ for (const [index, arg] of args.entries()) {
   } else if (arg.startsWith('--testResultsProcessor=')) {
     args[index] =
       '--testResultsProcessor=' + resolve(arg.slice('--testResultsProcessor='.length));
+  }
+}
+
+if (
+  args.some(arg =>
+    /^--(?:findRelatedTests|find-related-tests|runTestsByPath|run-tests-by-path)(?:=|$)/.test(
+      arg
+    )
+  )
+) {
+  const require = createRequire(new URL('../tests/js/package.json', import.meta.url));
+  const {buildArgv, yargsOptions} = createRequire(require.resolve('jest/package.json'))(
+    'jest-cli'
+  );
+  const parsed = await buildArgv(args);
+  if (parsed.findRelatedTests || parsed.runTestsByPath) {
+    if (parsed.testResultsProcessor) {
+      parsed.testResultsProcessor = resolve(parsed.testResultsProcessor);
+    }
+    // Jest owns option parsing; only positional arguments are file paths.
+    args = Object.entries(parsed).flatMap(([name, value]) =>
+      Object.hasOwn(yargsOptions, name)
+        ? (Array.isArray(value) ? value : [value]).map(item => `--${name}=${item}`)
+        : []
+    );
+    args.push('--', ...parsed._.map(file => resolve(String(file))));
   }
 }
 
