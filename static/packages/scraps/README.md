@@ -40,9 +40,7 @@ package manifest, README, and license ship.
 
 The `exports` field in [package.json](./package.json) defines the published API.
 Only the root, theme, tokens, and component barrels are public. Individual
-module paths remain private. Shared variant unions are available through type-only
-imports from `@sentry/scraps/variants`; existing variant imports from
-`@sentry/scraps/theme` remain valid.
+module paths remain private.
 Add an entry only when its runtime and type dependencies belong to the package
 or are declared dependencies. App stories cover more components than this API;
 for example, the hotkey story uses both `Hotkey` and `Kbd`, but only `Kbd` is

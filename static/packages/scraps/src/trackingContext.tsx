@@ -1,7 +1,7 @@
 import type * as React from 'react';
 import {createContext, useContext} from 'react';
 
-import type {ButtonVariant} from '@sentry/scraps/variants';
+import type {ButtonVariant} from '@sentry/scraps/theme';
 
 export interface AnalyticsProps {
   /**

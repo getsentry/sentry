@@ -1,7 +1,5 @@
 import {expectTypeOf} from 'expect-type';
 
-import type {ContentVariant as ThemeContentVariant} from '@sentry/scraps/theme';
-import type {useClickTracking} from '@sentry/scraps/trackingContext';
 import type {
   AlertVariant,
   BorderVariant,
@@ -10,7 +8,8 @@ import type {
   GraphicsVariant,
   SurfaceVariant,
   TagVariant,
-} from '@sentry/scraps/variants';
+} from '@sentry/scraps/theme';
+import type {useClickTracking} from '@sentry/scraps/trackingContext';
 
 it('preserves the variant unions and constrains tracked button variants', () => {
   expectTypeOf<ButtonVariant>().toEqualTypeOf<
@@ -23,7 +22,6 @@ it('preserves the variant unions and constrains tracked button variants', () => 
   expectTypeOf<ContentVariant>().toEqualTypeOf<
     'accent' | 'danger' | 'promotion' | 'success' | 'warning' | 'primary' | 'secondary'
   >();
-  expectTypeOf<ThemeContentVariant>().toEqualTypeOf<ContentVariant>();
   expectTypeOf<GraphicsVariant>().toEqualTypeOf<
     'accent' | 'danger' | 'neutral' | 'promotion' | 'success' | 'warning'
   >();
