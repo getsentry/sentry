@@ -26,12 +26,12 @@ import {
 } from 'getsentry/types';
 import {
   displayBudgetName,
+  displayPrice,
   formatReservedWithUnits,
   isNewPayingCustomer,
 } from 'getsentry/utils/billing';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
 import type {CheckoutFormData} from 'getsentry/views/amCheckout/types';
-import * as utils from 'getsentry/views/amCheckout/utils';
 import {
   getTotalBudget,
   parseOnDemandBudgetsFromSubscription,
@@ -233,13 +233,9 @@ function OnDemandDiff({
                   key={key}
                   leftComponent={leftComponent}
                   currentValue={
-                    currentValue === null
-                      ? null
-                      : utils.displayPrice({cents: currentValue})
+                    currentValue === null ? null : displayPrice({cents: currentValue})
                   }
-                  newValue={
-                    newValue === null ? null : utils.displayPrice({cents: newValue})
-                  }
+                  newValue={newValue === null ? null : displayPrice({cents: newValue})}
                 />
               );
             })}
@@ -265,13 +261,9 @@ function OnDemandDiff({
                     </ChangedCategory>
                   }
                   currentValue={
-                    currentValue === null
-                      ? null
-                      : utils.displayPrice({cents: currentValue})
+                    currentValue === null ? null : displayPrice({cents: currentValue})
                   }
-                  newValue={
-                    newValue === null ? null : utils.displayPrice({cents: newValue})
-                  }
+                  newValue={newValue === null ? null : displayPrice({cents: newValue})}
                 />
               );
             })}

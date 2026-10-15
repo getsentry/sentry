@@ -12,7 +12,7 @@ import {CustomerName} from 'admin/components/customerName';
 import {CustomerStatus} from 'admin/components/customerStatus';
 import {PercentChange} from 'admin/components/percentChange';
 import type {Subscription} from 'getsentry/types';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
+import {displayPrice} from 'getsentry/utils/billing';
 
 type ResultGridProps = React.ComponentProps<typeof ResultGrid>;
 

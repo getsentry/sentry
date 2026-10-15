@@ -84,7 +84,11 @@ const config: KnipConfig = {
     'static/app': {
       ...frontendWorkspace,
       // Locale modules are loaded with a template-string import.
-      ignoreDependencies: [...frontendWorkspace.ignoreDependencies, 'moment'],
+      ignoreDependencies: [
+        ...frontendWorkspace.ignoreDependencies,
+        'moment',
+        '@figma/code-connect', // Figma mappings are parsed by the CLI via pnpm dlx.
+      ],
       entry: [
         ...productionEntryPoints.map(entry => `${entry}!`),
         ...frontendWorkspace.entry,

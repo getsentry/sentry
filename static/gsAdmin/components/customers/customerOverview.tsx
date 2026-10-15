@@ -44,6 +44,7 @@ import {
 } from 'getsentry/types';
 import {
   displayBudgetName,
+  displayPriceWithCents,
   formatBalance,
   formatReservedWithUnits,
   getActiveProductTrial,
@@ -61,7 +62,6 @@ import {
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
 import {titleCase} from 'getsentry/utils/titleCase';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 type CustomerUpdateAction = (data: Record<string, unknown>) => Promise<unknown>;
 

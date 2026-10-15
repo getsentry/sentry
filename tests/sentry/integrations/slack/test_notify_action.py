@@ -23,6 +23,7 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.notifications import create_notification_action_context
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -104,7 +105,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel"},
-            context=NotificationActionContext.from_legacy_rule(fake_rule),
+            context=create_notification_action_context(fake_rule),
         )
 
         results = list(rule.after(event=event))
@@ -429,7 +430,7 @@ class SlackNotifyActionTest(RuleTestCase):
                     "channel": "#my-channel",
                     "channel_id": "123",
                 },
-                context=NotificationActionContext.from_legacy_rule(fake_rule),
+                context=create_notification_action_context(fake_rule),
             )
 
             notification_uuid = "123e4567-e89b-12d3-a456-426614174000"

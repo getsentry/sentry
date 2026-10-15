@@ -22,7 +22,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     BoundedBigIntegerField,
-    BoundedIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -49,7 +48,6 @@ from sentry.models.releases.util import (
     SemverFilter,
     SemverVersion,
     release_order_date,
-    reserve_ids,
 )
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -249,8 +247,6 @@ class Release(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    # Narrow leftover of the id widening, still written on every insert until it is dropped.
-    new_id = BoundedIntegerField()
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
@@ -383,17 +379,6 @@ class Release(Model):
     def __hash__(self):
         # https://code.djangoproject.com/ticket/30333
         return super().__hash__()
-
-    def save(self, **kwds: Any) -> None:
-        if self.id is None:
-            using = kwds.get("using")
-            if using is None:
-                using = router.db_for_write(type(self), instance=self)
-            self.id = reserve_ids(type(self), 1, using)[0]
-            self.new_id = self.id
-            # A freshly claimed pk cannot exist yet, so skip Django's UPDATE probe.
-            kwds["force_insert"] = True
-        super().save(**kwds)
 
     @staticmethod
     def is_valid_version(value):
