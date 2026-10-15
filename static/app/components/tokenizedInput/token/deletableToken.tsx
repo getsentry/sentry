@@ -3,13 +3,13 @@ import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
+import {IconClose} from '@sentry/icons/close';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {useGridListItem} from 'sentry/components/tokenizedInput/grid/useGridListItem';
 import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {shiftFocusToChild} from 'sentry/components/tokenizedInput/token/utils';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 
 interface DeletableTokenProps<T> {
@@ -100,7 +100,7 @@ const FloatingCloseButton = styled('button')`
   border: none;
   color: ${p => p.theme.tokens.content.secondary};
   border-radius: 2px 2px 0 0;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   display: flex;
   align-items: center;

@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSeer} from '@sentry/icons/seer';
 
 import autofixSetupImg from 'sentry-images/features/autofix-setup.svg';
 
@@ -15,7 +17,6 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import {useSeerAcknowledgeMutation} from 'sentry/components/events/autofix/useSeerAcknowledgeMutation';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {IconRefresh, IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';

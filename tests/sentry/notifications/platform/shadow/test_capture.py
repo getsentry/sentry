@@ -8,6 +8,7 @@ from unittest import mock
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import GroupStatus
+from sentry.models.groupassignee import GroupAssignee
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import issue_notification_data_factory
 from sentry.notifications.platform.shadow.capture import (
@@ -240,20 +241,21 @@ class IssueVariantTest(ShadowInvocationTestCase, OccurrenceTestMixin):
     def test_error_issue(self) -> None:
         assert (
             self.variant(self.create_invocation())
-            == "issue:slack:error:event:no_tags:no_notes:unresolved:new:no_env"
+            == "issue:slack:error:event:no_tags:no_notes:unresolved:new:no_env:workflow:unassigned"
         )
 
     def test_action_config(self) -> None:
         invocation = self.create_invocation(data={"tags": "level,foo", "notes": "@on-call"})
         assert (
-            self.variant(invocation) == "issue:slack:error:event:tags:notes:unresolved:new:no_env"
+            self.variant(invocation)
+            == "issue:slack:error:event:tags:notes:unresolved:new:no_env:workflow:unassigned"
         )
 
     def test_blank_action_config(self) -> None:
         invocation = self.create_invocation(data={"tags": "", "notes": ""})
         assert (
             self.variant(invocation)
-            == "issue:slack:error:event:no_tags:no_notes:unresolved:new:no_env"
+            == "issue:slack:error:event:no_tags:no_notes:unresolved:new:no_env:workflow:unassigned"
         )
 
     def test_group_status(self) -> None:
@@ -272,7 +274,15 @@ class IssueVariantTest(ShadowInvocationTestCase, OccurrenceTestMixin):
             invocation,
             event_data=replace(invocation.event_data, workflow_env=self.environment),
         )
-        assert self.variant(invocation).endswith(":unresolved:not_new:env")
+        assert self.variant(invocation).endswith(":unresolved:not_new:env:workflow:unassigned")
+
+    def test_legacy_rule_and_assignee(self) -> None:
+        self.create_alert_rule_workflow(
+            rule_id=self.create_project_rule().id, workflow=self.workflow
+        )
+        GroupAssignee.objects.assign(self.issue_group, self.user)
+
+        assert self.variant(self.create_invocation()).endswith(":no_env:rule:assigned")
 
     def test_occurrence_issue(self) -> None:
         self.issue_group.type = FeedbackGroup.type_id
@@ -283,5 +293,5 @@ class IssueVariantTest(ShadowInvocationTestCase, OccurrenceTestMixin):
 
         assert (
             self.variant(invocation)
-            == "issue:msteams:feedback:occurrence:no_tags:no_notes:unresolved:new:no_env"
+            == "issue:msteams:feedback:occurrence:no_tags:no_notes:unresolved:new:no_env:workflow:unassigned"
         )

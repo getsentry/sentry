@@ -170,54 +170,6 @@ def generate_tombstones(project, user):
         prev_group_id += 1
 
 
-def create_system_time_series():
-    now = datetime.now(timezone.utc)
-
-    for _ in range(60):
-        count = randint(1, 10)
-        tsdb.backend.incr_multi(
-            (
-                (TSDBModel.internal, "client-api.all-versions.responses.2xx"),
-                (TSDBModel.internal, "client-api.all-versions.requests"),
-            ),
-            now,
-            int(count * 0.9),
-        )
-        tsdb.backend.incr_multi(
-            ((TSDBModel.internal, "client-api.all-versions.responses.4xx"),),
-            now,
-            int(count * 0.05),
-        )
-        tsdb.backend.incr_multi(
-            ((TSDBModel.internal, "client-api.all-versions.responses.5xx"),),
-            now,
-            int(count * 0.1),
-        )
-        now = now - timedelta(seconds=1)
-
-    for _ in range(24 * 30):
-        count = randint(100, 1000)
-        tsdb.backend.incr_multi(
-            (
-                (TSDBModel.internal, "client-api.all-versions.responses.2xx"),
-                (TSDBModel.internal, "client-api.all-versions.requests"),
-            ),
-            now,
-            int(count * 4.9),
-        )
-        tsdb.backend.incr_multi(
-            ((TSDBModel.internal, "client-api.all-versions.responses.4xx"),),
-            now,
-            int(count * 0.05),
-        )
-        tsdb.backend.incr_multi(
-            ((TSDBModel.internal, "client-api.all-versions.responses.5xx"),),
-            now,
-            int(count * 0.1),
-        )
-        now = now - timedelta(hours=1)
-
-
 def create_sample_time_series(event, release=None):
     if event is None:
         return
@@ -255,12 +207,6 @@ def create_sample_time_series(event, release=None):
                 (TSDBModel.project_total_received, project.id),
                 (TSDBModel.key_total_received, key.id),
             ),
-            now,
-            int(count * 1.1),
-        )
-        tsdb.backend.incr(
-            TSDBModel.project_total_forwarded,
-            project.id,
             now,
             int(count * 1.1),
         )
@@ -1325,4 +1271,3 @@ def main(
 
     create_mock_user_feedback(project_map["Wind"])
     create_mock_transactions(project_map, load_trends, load_performance_issues, slow)
-    create_system_time_series()

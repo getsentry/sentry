@@ -1,13 +1,16 @@
 import {Fragment} from 'react';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconTelescope} from '@sentry/icons/telescope';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {
-  DropdownButton,
-  DropdownMenu,
-  type MenuItemProps,
-} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
@@ -15,16 +18,6 @@ import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Placeholder} from 'sentry/components/placeholder';
-import {Version} from 'sentry/components/version';
-import {
-  IconDelete,
-  IconDownload,
-  IconEllipsis,
-  IconRefresh,
-  IconSettings,
-  IconTelescope,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -81,16 +74,15 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     isError: isBuildDetailsError,
   } = buildDetailsQuery;
 
-  // TODO(preprod): for now show nothing for loading/error states, but in the future we
-  // might be able to show the release breadcrumb
-  if (isBuildDetailsPending) {
+  if (isBuildDetailsPending || isBuildDetailsError || !buildDetailsData) {
     return (
-      <Stack padding="0 0 xl 0">{/* Empty header space - no skeleton content */}</Stack>
+      <Stack padding="0 0 xl 0">
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: t('Releases')}}
+        />
+      </Stack>
     );
-  }
-
-  if (isBuildDetailsError || !buildDetailsData) {
-    return <Stack padding="0 0 xl 0">{/* Empty header space during error */}</Stack>;
   }
 
   const project = ProjectsStore.getBySlug(projectSlug);
@@ -167,13 +159,27 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           <Breadcrumbs crumbs={breadcrumbs} />
           <FeatureBadge type="new" />
         </Flex>
-        <Layout.Title>
-          <Flex align="center" gap="sm" minHeight="1lh">
-            {project && <IdBadge project={project} avatarSize={28} hideName />}
-            {versionTitle && <Version version={versionTitle} anchor={false} truncate />}
-            {!versionTitle && <Placeholder width="30ch" height="1em" />}
-          </Flex>
-        </Layout.Title>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: versionTitle || t('Releases'),
+            leadingGraphic: versionTitle && project && (
+              <IdBadge project={project} avatarSize={16} hideName />
+            ),
+          }}
+          items={
+            versionTitle
+              ? [
+                  {
+                    type: 'link',
+                    label: t('Releases'),
+                    to: makeReleasesUrl(organization.slug, projectSlug, {}),
+                  },
+                ]
+              : undefined
+          }
+        />
       </Layout.HeaderContent>
 
       <Fragment>
@@ -270,18 +276,16 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               return (
                 <DropdownMenu
                   items={menuItems}
-                  trigger={(triggerProps, _isOpen) => (
-                    <DropdownButton
+                  trigger={triggerProps => (
+                    <OverlayTrigger.IconButton
+                      icon={<IconEllipsis />}
                       {...triggerProps}
                       size="sm"
                       aria-label="More actions"
-                      showChevron={false}
                       disabled={
                         isDeletingArtifact || isRerunningStatusChecks || !artifactId
                       }
-                    >
-                      <IconEllipsis />
-                    </DropdownButton>
+                    />
                   )}
                 />
               );

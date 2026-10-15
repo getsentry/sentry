@@ -68,9 +68,13 @@ export type TimeSeriesItem = {
 };
 
 /**
- * Right now the only kind of incompleteness reason from the backend is ingestion delay, but others are planned or possible (e.g., falling out of retention)
+ * Why a bucket holds less data than its width suggests. Mirrors `IncompleteReason` in `src/sentry/api/endpoints/timeseries.py`.
+ *
+ * - `NOT_ELAPSED`: the bucket's time window hasn't finished yet
+ * - `INGESTION_PENDING`: the window has elapsed, but events for it may still be arriving
+ * - `OUTSIDE_RETENTION`: the bucket starts before the project's retention window
  */
-type IncompleteReason = 'INCOMPLETE_BUCKET';
+type IncompleteReason = 'NOT_ELAPSED' | 'INGESTION_PENDING' | 'OUTSIDE_RETENTION';
 
 /**
  * Shared base type for grouping information.

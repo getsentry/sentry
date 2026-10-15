@@ -7527,16 +7527,12 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
 
 
 class OrganizationEventsIngestionDelayTest(OrganizationEventsEndpointTestBase):
-    def _do_request(
-        self, flagged: bool = True, ingestion_delay: bool = True, dataset: str = "spans"
-    ):
+    def _do_request(self, flagged: bool = True, dataset: str = "spans"):
         query: dict[str, Any] = {
             "field": ["count()"],
             "project": [self.project.id],
             "dataset": dataset,
         }
-        if ingestion_delay:
-            query["includeMeasuredIngestionDelayMetadata"] = "1"
         features = {
             "organizations:discover-basic": True,
             "organizations:measured-ingestion-delay-metadata": flagged,

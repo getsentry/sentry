@@ -1,5 +1,8 @@
 import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconDelete} from '@sentry/icons/delete';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -19,9 +22,6 @@ import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon'
 import {overrideHasAllValues} from 'sentry/components/seer/projectDetails/overrideHasAllValues';
 import {overrideHasAnyValue} from 'sentry/components/seer/projectDetails/overrideHasAnyValue';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {t, tct, tn} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {getIntegrationDisplayName} from 'sentry/utils/integrationUtil';

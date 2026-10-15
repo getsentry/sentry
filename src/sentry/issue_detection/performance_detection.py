@@ -9,8 +9,8 @@ from typing import Any
 
 import sentry_sdk
 from django.db import router, transaction
+from sentry_sdk import traces
 from sentry_sdk.traces import StreamedSpan
-from sentry_sdk.tracing import Span
 
 from sentry import features, options, projectoptions
 from sentry.models.options.project_option import ProjectOption
@@ -20,7 +20,6 @@ from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
-from sentry.utils.tracing import set_span_tag, start_span
 from sentry.workflow_engine.models import Detector
 
 from .base import DetectorType, PerformanceDetector
@@ -142,7 +141,9 @@ def detect_performance_problems(
             sentry_sdk.set_attribute("_did_analyze_performance_issue", "true")
             with (
                 metrics.timer("performance.detect_performance_issue", sample_rate=0.01),
-                start_span(op="py.detect_performance_issue", name="none") as sdk_span,
+                traces.start_span(
+                    name="none", attributes={"sentry.op": "py.detect_performance_issue"}
+                ) as sdk_span,
             ):
                 return _detect_performance_problems(
                     data,
@@ -696,7 +697,7 @@ DETECTOR_TYPE_TO_CLASS_MAP = {
 
 def _detect_performance_problems(
     data: dict[str, Any],
-    sdk_span: Span | StreamedSpan,
+    sdk_span: StreamedSpan,
     project: Project,
     *,
     detector_classes: list[type[PerformanceDetector]] | None = None,
@@ -708,7 +709,7 @@ def _detect_performance_problems(
     detector_classes = detector_classes if detector_classes is not None else DETECTOR_CLASSES
 
     if detection_settings is None:
-        with start_span(op="function", name="get_detection_settings"):
+        with traces.start_span(name="get_detection_settings", attributes={"sentry.op": "function"}):
             detection_settings = get_detection_settings(project)
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
@@ -716,11 +717,11 @@ def _detect_performance_problems(
     # So we build a tree and flatten it depth first.
     # TODO: See if we can update the detectors to work without this assumption so we can
     # just pass it a list of spans.
-    with start_span(op="performance_detection", name="sort_spans"):
+    with traces.start_span(name="sort_spans", attributes={"sentry.op": "performance_detection"}):
         tree, segment_id = build_tree(data.get("spans", []))
         data = {**data, "spans": flatten_tree(tree, segment_id)}
 
-    with start_span(op="initialize", name="PerformanceDetector"):
+    with traces.start_span(name="PerformanceDetector", attributes={"sentry.op": "initialize"}):
         detectors: list[PerformanceDetector] = [
             detector_class(detection_settings[detector_class.settings_key], data)
             for detector_class in detector_classes
@@ -728,7 +729,9 @@ def _detect_performance_problems(
         ]
 
     for detector in detectors:
-        with start_span(op="function", name=f"run_detector_on_data.{detector.type.value}"):
+        with traces.start_span(
+            name=f"run_detector_on_data.{detector.type.value}", attributes={"sentry.op": "function"}
+        ):
             try:
                 run_detector_on_data(detector, data)
             except Exception:
@@ -742,7 +745,9 @@ def _detect_performance_problems(
                     },
                 )
 
-    with start_span(op="function", name="report_metrics_for_detectors"):
+    with traces.start_span(
+        name="report_metrics_for_detectors", attributes={"sentry.op": "function"}
+    ):
         # Metrics reporting only for detection, not created issues.
         report_metrics_for_detectors(
             data,
@@ -755,7 +760,9 @@ def _detect_performance_problems(
         )
 
     problems: list[PerformanceProblem] = []
-    with start_span(op="performance_detection", name="is_creation_allowed"):
+    with traces.start_span(
+        name="is_creation_allowed", attributes={"sentry.op": "performance_detection"}
+    ):
         for detector in detectors:
             if detector.is_creation_allowed():
                 problems.extend(detector.stored_problems.values())
@@ -848,7 +855,7 @@ def report_metrics_for_detectors(
     event: dict[str, Any],
     event_id: str | None,
     detectors: Sequence[PerformanceDetector],
-    sdk_span: Span | StreamedSpan,
+    sdk_span: StreamedSpan,
     organization: Organization,
     project: Project,
     standalone: bool = False,
@@ -858,16 +865,16 @@ def report_metrics_for_detectors(
     sdk_name = get_sdk_name(event)
 
     if has_detected_problems:
-        set_span_tag(sdk_span, "_pi_all_issue_count", len(all_detected_problems))
-        set_span_tag(sdk_span, "_pi_sdk_name", sdk_name or "")
-        set_span_tag(sdk_span, "is_standalone_spans", standalone)
+        sdk_span.set_attribute("_pi_all_issue_count", len(all_detected_problems))
+        sdk_span.set_attribute("_pi_sdk_name", sdk_name or "")
+        sdk_span.set_attribute("is_standalone_spans", standalone)
         metrics.incr(
             "performance.performance_issue.aggregate",
             len(all_detected_problems),
             tags={"sdk_name": sdk_name, "is_standalone_spans": standalone},
         )
         if event_id:
-            set_span_tag(sdk_span, "_pi_transaction", event_id)
+            sdk_span.set_attribute("_pi_transaction", event_id)
 
     browser_name = get_browser_name(event)
     allowed_browser_name = "Other"
@@ -922,11 +929,11 @@ def report_metrics_for_detectors(
 
         first_problem = detected_problems[detected_problem_keys[0]]
         if first_problem.fingerprint:
-            set_span_tag(sdk_span, f"_pi_{detector_key}_fp", first_problem.fingerprint)
+            sdk_span.set_attribute(f"_pi_{detector_key}_fp", first_problem.fingerprint)
 
         span_id = first_problem.offender_span_ids[0]
 
-        set_span_tag(sdk_span, f"_pi_{detector_key}", span_id)
+        sdk_span.set_attribute(f"_pi_{detector_key}", span_id)
 
         op_tags = {
             "is_standalone_spans": standalone,

@@ -4,7 +4,7 @@ import {
   matchRoutes,
   useLocation,
   useNavigationType,
-} from 'react-router-dom';
+} from 'react-router';
 import {type Event, type Log} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
@@ -20,6 +20,9 @@ import {
 import type {Config} from 'sentry/types/system';
 import {addUIElementTagToSegmentSpan} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+
+// Server-rendered templates use the SDK to report errors.
+window.Sentry = Sentry;
 
 let lastEventId: string | undefined;
 

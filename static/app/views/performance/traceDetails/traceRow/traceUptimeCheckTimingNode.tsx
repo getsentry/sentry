@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
+import {IconTimer} from '@sentry/icons/timer';
 
-import {IconTimer} from 'sentry/icons';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {UptimeCheckTimingNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/uptimeCheckTimingNode';

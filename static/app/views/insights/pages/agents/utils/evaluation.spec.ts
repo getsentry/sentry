@@ -119,6 +119,7 @@ describe('parseEvaluationOutput', () => {
         type: 'evaluation',
         answers: {
           authIssue: {type: 'boolean', probability: 0.97},
+          isRed: {type: 'predicate', probability: 0.7},
           wantsRefund: {type: 'noul', noul: 0.99},
           urgency: {
             type: 'score',
@@ -139,6 +140,7 @@ describe('parseEvaluationOutput', () => {
 
     expect(parseEvaluationOutput(raw)).toEqual([
       {kind: 'boolean', key: 'authIssue', probability: 0.97},
+      {kind: 'boolean', key: 'isRed', probability: 0.7},
       {kind: 'boolean', key: 'wantsRefund', probability: 0.99},
       {
         kind: 'score',
@@ -192,6 +194,36 @@ describe('getNodeEvaluation', () => {
       rawOutput: RAW_OUTPUT,
     });
   });
+
+  it.each(['decide', 'evaluate'])(
+    'recognizes a span with the %s operation name',
+    operationName => {
+      const evaluation = getNodeEvaluation(
+        makeNode({
+          'gen_ai.operation.name': operationName,
+          'gen_ai.input.messages': RAW_INPUT,
+          'gen_ai.output.messages': RAW_OUTPUT,
+        })
+      );
+
+      expect(evaluation).toEqual({
+        input: {
+          state: 'I cannot log in.',
+          questions: [
+            {
+              key: 'urgency',
+              kind: 'question',
+              type: 'score',
+              criteria: ['low', 'medium', 'high'],
+            },
+          ],
+        },
+        answers: [{kind: 'score', key: 'urgency', score: 1.6}],
+        rawInput: RAW_INPUT,
+        rawOutput: RAW_OUTPUT,
+      });
+    }
+  );
 
   it('returns null for other spans, even with an evaluation message', () => {
     expect(

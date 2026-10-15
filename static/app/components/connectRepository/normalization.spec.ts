@@ -17,6 +17,18 @@ describe('normalizeRoot', () => {
   it('leaves an existing trailing slash in place', () => {
     expect(normalizeRoot('src/')).toBe('src/');
   });
+
+  it('appends a backslash for Windows-style roots', () => {
+    expect(normalizeRoot('src\\foo')).toBe('src\\foo\\');
+  });
+
+  it('leaves an existing trailing backslash in place', () => {
+    expect(normalizeRoot('src\\foo\\')).toBe('src\\foo\\');
+  });
+
+  it('leaves URI schemes with a trailing slash in place', () => {
+    expect(normalizeRoot('app:///')).toBe('app:///');
+  });
 });
 
 describe('resolveBranch', () => {

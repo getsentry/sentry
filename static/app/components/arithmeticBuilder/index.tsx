@@ -34,7 +34,6 @@ interface ArithmeticBuilderProps {
   disabled?: boolean;
   /**
    * Fetches tag values for `_if` combinator filter arguments in equations.
-   * Only used when `hasConditionalAggregates` is on.
    */
   getFilterTagValues?: GetTagValues;
   /**
@@ -44,11 +43,6 @@ interface ArithmeticBuilderProps {
    * to a known column.
    */
   getSuggestedKey?: (key: string) => string | null;
-  /**
-   * Enables the EAP filter-first `_if` argument editor. Should follow
-   * `explore-conditional-aggregates`.
-   */
-  hasConditionalAggregates?: boolean;
   /**
    * Render the equation input and suggestions together in one panel,
    * matching SearchQueryBuilder's `menuPresentation="panel"`.
@@ -73,7 +67,6 @@ export function ArithmeticBuilder({
   getFieldDefinition,
   getFilterTagValues,
   getSuggestedKey,
-  hasConditionalAggregates = false,
   menuPresentation = 'floating',
   className,
   disabled,
@@ -105,9 +98,8 @@ export function ArithmeticBuilder({
       }),
       functionArguments,
       getFieldDefinition,
-      getFilterTagValues: hasConditionalAggregates ? getFilterTagValues : undefined,
+      getFilterTagValues,
       getSuggestedKey,
-      hasConditionalAggregates,
       references,
     };
   }, [
@@ -118,7 +110,6 @@ export function ArithmeticBuilder({
     getFieldDefinition,
     getFilterTagValues,
     getSuggestedKey,
-    hasConditionalAggregates,
     references,
   ]);
 

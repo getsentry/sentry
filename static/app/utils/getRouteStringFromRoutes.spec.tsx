@@ -1,4 +1,4 @@
-import type {UIMatch} from 'react-router-dom';
+import type {UIMatch} from 'react-router';
 
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 

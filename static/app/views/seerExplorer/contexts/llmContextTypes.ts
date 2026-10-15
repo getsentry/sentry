@@ -24,6 +24,7 @@ export type LLMContextNodeType =
   | 'autofix'
   | 'chart'
   | 'dashboard'
+  | 'dropped-data'
   | 'issue-detail'
   | 'issue-list'
   | 'logs-explorer'

@@ -1,5 +1,5 @@
 import {useRef} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {useSearchParams} from 'react-router';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 

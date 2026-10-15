@@ -30,7 +30,18 @@ export function StartTourModal({
   const invertedTheme = useInvertedTheme();
   return (
     <ThemeProvider theme={invertedTheme}>
-      <TourContainer>
+      <Container
+        radius="md"
+        background="primary"
+        overflow="hidden"
+        css={theme => css`
+          margin: -${theme.space['3xl']} -${theme.space['2xl']};
+
+          @container (min-width: ${theme.container['3xl']}) {
+            margin-inline: -${theme.space['3xl']};
+          }
+        `}
+      >
         <ModalImage {...img} />
         <Container padding="lg xl">
           <Header>{header}</Header>
@@ -55,7 +66,7 @@ export function StartTourModal({
             </TourAction>
           </Flex>
         </Container>
-      </TourContainer>
+      </Container>
     </ThemeProvider>
   );
 }
@@ -66,17 +77,6 @@ const ModalImage = styled('img')`
   background-size: cover;
   background-position: center;
   border-radius: ${p => p.theme.radius.md};
-  overflow: hidden;
-`;
-
-// XXX: The negative margin is to undo the global modal styling
-const TourContainer = styled('div')`
-  margin: -${p => p.theme.space['3xl']} -${p => p.theme.space['2xl']};
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${p => p.theme.space['3xl']};
-  }
-  border-radius: ${p => p.theme.radius.md};
-  background: ${p => p.theme.tokens.background.primary};
   overflow: hidden;
 `;
 

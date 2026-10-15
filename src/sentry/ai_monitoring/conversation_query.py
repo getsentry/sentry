@@ -33,6 +33,7 @@ from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
 from sentry.api.event_search import AggregateFilter, event_search_grammar
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.resolver import SearchResolver
+from sentry.search.utils import InvalidQuery, parse_duration
 
 
 def _nodes(node: Node, names: set[str], depth: int = 0) -> Iterator[Node]:
@@ -69,8 +70,17 @@ def _compile_alias_filter(condition: Node, key: Node, resolver: SearchResolver) 
     For example, `conversation.totalCost:>10` becomes
     `sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client):>10`.
     """
-    expression, _ = AI_CONVERSATIONS_FIELDS[key.text.strip('"')]
+    expression, alias = AI_CONVERSATIONS_FIELDS[key.text.strip('"')]
     query = condition.text.replace(key.text, expression, 1)
+    if alias == "time_span":
+        time_span_format = next(_nodes(condition, {"duration_format"}), None)
+        if time_span_format is not None:
+            time_span_value, unit = time_span_format.children[:2]
+            try:
+                milliseconds = parse_duration(time_span_value.text, unit.text)
+            except InvalidQuery as error:
+                raise InvalidSearchQuery(str(error)) from error
+            query = query.replace(time_span_format.text, str(milliseconds), 1)
     terms = resolver.parse_search_query(query)
     if len(terms) != 1 or not isinstance(terms[0], AggregateFilter):
         raise InvalidSearchQuery(f"Invalid conversation aggregate filter: {condition.text}")
@@ -78,6 +88,10 @@ def _compile_alias_filter(condition: Node, key: Node, resolver: SearchResolver) 
     value = term.value.raw_value
     if not isinstance(value, (int, float)) or not isfinite(value):
         raise InvalidSearchQuery(f"Expected a finite numeric aggregate value: {condition.text}")
+    # NOTE: Remove this conversion once EAP resolves aggregate filters in their result unit.
+    # Timespan filters parse as milliseconds; elapsed_if returns seconds.
+    if alias == "time_span":
+        return f"{expression}:{term.operator}{value / 1000}"
     return term.to_query_string()
 
 

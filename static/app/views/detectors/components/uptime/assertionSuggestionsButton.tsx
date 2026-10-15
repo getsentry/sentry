@@ -1,10 +1,10 @@
 import {useCallback} from 'react';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import {AssertionSuggestionsDrawerContent} from 'sentry/views/detectors/components/uptime/assertionSuggestionsDrawerContent';

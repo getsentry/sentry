@@ -8,6 +8,7 @@ from sentry.discover.arithmetic import (
     parse_arithmetic,
     resolve_arithmetic,
 )
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 
 
 def parse_arithmetic_must_be_operation(s: str) -> Operation:
@@ -347,3 +348,21 @@ def test_unparseable_arithmetic(equation) -> None:
 def test_invalid_arithmetic(equation) -> None:
     with pytest.raises(ArithmeticValidationError):
         parse_arithmetic(equation, validate_single_operator=True)
+
+
+@pytest.mark.parametrize(
+    "equation",
+    [
+        # Previously on the hardcoded allowlist; must stay allowed via SPAN_DEFINITIONS.
+        "tpm() + failure_rate_if(is_transaction,equals,true)",
+        "failure_count_if(is_transaction,equals,true) + 0",
+        "ttid_contribution_rate() + ttfd_contribution_rate()",
+        "100 * ttid_contribution_rate()",
+        "division_if(span.self_time,span.duration,is_transaction,equals,true) + 0",
+        "trace_status_rate(ok) + 0",
+    ],
+)
+def test_span_definition_allowlist_keeps_prebuilt_dashboard_formulas(equation) -> None:
+    result, _, functions = parse_arithmetic(equation, definitions=SPAN_DEFINITIONS)
+    assert isinstance(result, Operation)
+    assert len(functions) > 0

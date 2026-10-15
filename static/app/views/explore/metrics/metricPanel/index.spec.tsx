@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 import qs from 'query-string';
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   createTraceMetricFixtures,
@@ -205,14 +205,15 @@ describe('MetricPanel', () => {
   describe('dropped data layer', () => {
     function mockDroppedData() {
       return MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-timeseries/`,
+        url: `/organizations/${organization.slug}/events-dropped/`,
         method: 'GET',
         match: [
           MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
         ],
         body: {
-          timeSeries: [],
-          meta: {droppedAnnotations: [AnnotationFixture()], acceptedAnnotations: []},
+          meta: {dataset: 'tracemetrics', start: 0, end: 0, interval: 0},
+          droppedEvents: [DroppedEventFixture()],
+          acceptedEvents: [],
         },
       });
     }

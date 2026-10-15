@@ -1,6 +1,9 @@
 import styled from '@emotion/styled';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconTelescope} from '@sentry/icons/telescope';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -8,13 +11,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DiscoverButton} from 'sentry/components/discoverButton';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconSettings} from 'sentry/icons';
-import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
@@ -278,11 +279,16 @@ export function SpikeProtectionHistoryTable(props: Props) {
           <Text bold size="lg" variant="secondary">
             {t('Spike Protection')}
           </Text>
-          <PageHeadingQuestionTooltip
-            docsUrl={SPIKE_PROTECTION_DOCS_LINK}
-            title={t(
-              'Sentry applies a dynamic rate limit to your account designed to protect you from short-term spikes.'
-            )}
+          <InfoTip
+            title={
+              <DocumentationHint docsUrl={SPIKE_PROTECTION_DOCS_LINK}>
+                {t(
+                  'Sentry applies a dynamic rate limit to your account designed to protect you from short-term spikes.'
+                )}
+              </DocumentationHint>
+            }
+            size="sm"
+            position="right"
           />
         </Flex>
         <LinkButton

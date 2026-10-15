@@ -2,6 +2,7 @@ import type {RefObject} from 'react';
 import {createContext, useContext, useEffect, useMemo, useReducer, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import * as echarts from 'echarts/core';
 import type {
   TooltipFormatterCallback,
@@ -30,7 +31,6 @@ import {
   getIngestionDelayBucketCount,
 } from 'sentry/components/metrics/chart/chart';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconWarning} from 'sentry/icons';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
@@ -39,21 +39,13 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
+
+export {ChartType, isChartType} from 'sentry/views/insights/common/components/chartTypes';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
 type PairOfSeries = [Series[], Series[]];
-
-export enum ChartType {
-  BAR = 0,
-  LINE = 1,
-  AREA = 2,
-  HEATMAP = 3,
-}
-
-export function isChartType(value: any): value is ChartType {
-  return typeof value === 'number' && Object.values(ChartType).includes(value);
-}
 
 interface ChartRenderingProps {
   height: number;

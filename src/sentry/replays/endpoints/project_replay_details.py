@@ -8,6 +8,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.models.project import Project
@@ -47,14 +48,15 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
         except ValueError:
             return Response(status=404)
 
-        snuba_response = query_replay_instance(
-            project_id=project.id,
-            replay_id=replay_id,
-            start=filter_params["start"],
-            end=filter_params["end"],
-            organization=project.organization,
-            request_user_id=request.user.id,
-        )
+        with handle_query_errors():
+            snuba_response = query_replay_instance(
+                project_id=project.id,
+                replay_id=replay_id,
+                start=filter_params["start"],
+                end=filter_params["end"],
+                organization=project.organization,
+                request_user_id=request.user.id,
+            )
 
         replay_data = process_raw_response(
             snuba_response,
@@ -86,7 +88,9 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
         """
         self.check_replay_access(request, project)
 
-        if has_archived_segment(project.id, replay_id):
+        with handle_query_errors():
+            is_archived = has_archived_segment(project.id, replay_id)
+        if is_archived:
             return Response(status=404)
 
         # We don't check Seer features because an org may have previously had them on, then turned them off.

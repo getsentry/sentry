@@ -520,13 +520,8 @@ condition handler alone cannot add detector packet data or detector-specific API
 
 These are separate decisions, not part of backend registration.
 
-For legacy issue-alert compatibility, add forward and reverse translations in:
-
-- [`migration_helpers/issue_alert_conditions.py`](../migration_helpers/issue_alert_conditions.py)
-- [`migration_helpers/rule_conditions.py`](../migration_helpers/rule_conditions.py)
-
-A native-only condition without reverse translation can disappear from a legacy
-rule-shaped response.
+For legacy issue-alert compatibility, add a forward translation in
+[`migration_helpers/issue_alert_conditions.py`](../migration_helpers/issue_alert_conditions.py).
 
 For the automation builder, add the matching frontend enum and node implementation in a
 separate frontend PR:
@@ -551,7 +546,7 @@ have explicit frontend nodes, defaults, details, and validation.
 | Add slow condition                  | `SLOW_CONDITIONS`, `event_frequency_query_handlers.py`, delayed query/result code, delayed processor tests |
 | Change API validation               | `endpoints/validators/base/data_condition.py` and group/Detector/Workflow validators                       |
 | Change availability metadata        | `endpoints/organization_data_condition_index.py` and handler serializer                                    |
-| Add legacy compatibility            | `migration_helpers/issue_alert_conditions.py`, `migration_helpers/rule_conditions.py`                      |
+| Add legacy compatibility            | `migration_helpers/issue_alert_conditions.py`                                                              |
 | Add automation UI                   | Frontend condition enum, node registry, editor/details components, frontend tests                          |
 
 ## Conventions and Invariants

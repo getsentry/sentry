@@ -4,9 +4,10 @@
 
 - `components/core/breadcrumbList/` — authoritative for the item unions and every prop. The types win over the story.
 - `components/core/breadcrumbList/breadcrumbList.mdx` — authoritative for composition and editorial rules (copy-vs-menu, always-present pagination).
-- `views/navigation/topBar.tsx` — slot names, and the `<Heading as="h1">` that makes the title outlet the page heading.
+- `views/navigation/topBar.tsx` — slot names and title outlet layout; `components/core/breadcrumbList/` owns the heading markup.
 - Reference migrations: getsentry/sentry#120729 (conversations), #120794 (trace view), #123128 (transaction summary), #121282 (dashboards actions), #123569 (replay actions). #122697 removed the migration flag; the earlier PRs' flag forks are dead patterns.
-- Ten already-migrated call sites in `static/app/views/`, enumerated in `SKILL.md`.
+- Current examples in `static/app/views/` are listed in `SKILL.md`; re-read them before adapting them.
+- `tests/js/sentry-test/reactTestingLibrary.tsx` supplies TopBar slot outlets in the default test renderer.
 
 ## Decisions
 
@@ -14,7 +15,7 @@
 - **Page-filter policy is treated as settled.** Whether a given crumb _should_ carry filters is a product decision. The skill teaches how to replicate existing behaviour, not how to choose.
 - **`references/evidence/` was not created.** The two cold runs below are summarised here instead; their findings are already promoted into rules, and the skill has a defined end of life.
 
-## Iteration
+## Historical iteration
 
 Two cold runs, each a fresh agent given only the skill and one target file, in an isolated worktree.
 
@@ -29,14 +30,30 @@ Run 2 also found a regression introduced by run 1's fix — the step 6 "add as s
 
 ## Gaps
 
-- No cold run against Shape C, the hardest shape (`explore/components/breadcrumb.tsx`, four consumers with branch-dependent titles).
+- The historical cold runs below have not been repeated against the current single-slot API.
 - The overflow collapse cannot be tested in jsdom, so no run has exercised it.
 - Reachability, not file counts, determines whether a call-site inconsistency is user-visible; the inventory records shapes but not reachability.
-- Choosing the title on a Shape B or Shape C page is a judgement the skill can frame but not decide — it supplies a priority order and answer keys, not a rule.
-- `select-projects` has no production consumer, so its guidance is untested by use.
+- Choosing a title in mixed legacy or shared headers still requires inspecting the caller and its conditions.
+- JSX element prop annotations do not enforce component identity. The documented `badge`/`button` element API remains in the implementation; the proposed props-only replacement has not been implemented.
+
+## Current API correction
+
+- Retained the existing migration scope and reference-backed workflow. This is an update of the existing skill, not a new skill or provider-specific workflow.
+- Replaced public two-slot examples with one breadcrumbs slot and a required typed title. Removed the obsolete Layout.Title shim guidance.
+- Documented rich labelTooltip content, trailing feature badges, and standard EditableText behavior. Restricted select to parent breadcrumbs. Removed guidance for unsupported title props.
+- Corrected the claim that ReactElement<Props> restricts the JSX component. It does not.
+- Replaced the stale test setup instructions using the current shared renderer, and removed guidance that would preserve tests solely for deleted decorations.
+- Rebuilt the inventory from current imports. Removed already-migrated wrappers from the backlog and replaced fixed importer-count rules with inspection of remaining navigation needs.
+- Sources for these corrections: the current breadcrumb item implementations, TopBar, `views/settings/components/settingsBreadcrumb/settingsBreadcrumbSelector.tsx` and `views/settings/components/settingsBreadcrumb/settingsBreadcrumbsProvider.tsx`, EditableIssueViewHeader, secondary navigation badge definitions, and the default React Testing Library renderer.
+- Trigger checks: "migrate breadcrumbs", "replace sentry/components/breadcrumbs", and "preserve page filters during breadcrumb migration" should activate the skill. "Inspect event breadcrumbs", "add a CMDK group", and "redesign Settings routing" should not.
+- Other skill references to breadcrumbs were checked. Container-query guidance remains valid; CMDK breadcrumb terminology and backend telemetry breadcrumbs are unrelated to this API.
 
 ## Maintenance
 
-- Update `SKILL.md` when the item unions gain or lose a type, when a TopBar slot is added or renamed, or when a shape category stops matching what is left in the tree.
-- Delete the `preservePageFilters` section once no legacy importer still passes the prop: `grep -rln "preservePageFilters: true" static/app --include='*.tsx'`.
-- Prune `references/call-site-inventory.md` as rows land. **When it empties and the legacy-importer count reaches 4, delete this skill** — it exists to retire a migration, and outliving that migration is how it rots.
+- Update the API map and examples when the title/item unions, action shapes, or public TopBar props change.
+- Recheck the test renderer before prescribing providers or outlets.
+- Rebuild the importer inventory after migrations; do not use a hard-coded count as a completion or deletion condition.
+- Retire this migration skill only when the remaining references no longer include page-navigation work and required separate navigation landmarks are preserved.
+
+- Restricted the breadcrumbs slot to typed `items` and `title`; removed arbitrary children. Migrated Settings route links and menus to the shared list, and documented external links and parent selectors.
+- Settings parent ownership now follows the shared route layout: singular `handle.settingsBreadcrumb` entries from all matched routes compose in order and feed a downward-only context. Shared pathless routes avoid repeated parent entries. Pages retain their titles. Sources: `SettingsBreadcrumbsProvider`, `BreadcrumbTitle`, and the Settings route declarations and navigation tests. This replaces route-path reconstruction and the organization-prefix workaround.

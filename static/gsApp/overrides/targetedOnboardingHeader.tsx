@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/business';
+import {IconQuestion} from '@sentry/icons/question';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
-import {IconBusiness, IconQuestion} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';

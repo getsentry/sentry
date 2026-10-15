@@ -8,6 +8,12 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconInfo} from '@sentry/icons/info';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSliders} from '@sentry/icons/sliders';
 import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -15,6 +21,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -24,16 +31,9 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconChevron,
-  IconDelete,
-  IconEllipsis,
-  IconInfo,
-  IconOpen,
-  IconSliders,
-} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {IntegrationProvider, Repository} from 'sentry/types/integrations';
+import type {AvatarProject} from 'sentry/types/project';
 import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import type {
@@ -485,7 +485,7 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
               items={overflowMenuItems}
               position="bottom-end"
               trigger={triggerProps => (
-                <Button
+                <OverlayTrigger.IconButton
                   {...triggerProps}
                   size="xs"
                   variant="transparent"
@@ -505,14 +505,22 @@ function RepoMappings({
   slugs,
   mappingsLoading,
   action,
+  onProjectClick,
 }: {
   mappingsLoading: boolean | undefined;
   slugs: string[];
   action?: React.ReactNode;
+  onProjectClick?: (project: AvatarProject) => void;
 }) {
   return (
     <Flex align="center" gap="2xs">
-      {slugs.length > 0 && <ProjectList projectSlugs={slugs} maxVisibleProjects={3} />}
+      {slugs.length > 0 && (
+        <ProjectList
+          projectSlugs={slugs}
+          maxVisibleProjects={3}
+          onProjectClick={onProjectClick}
+        />
+      )}
       {mappingsLoading && slugs.length === 0 && (
         <Placeholder width="60px" height="16px" />
       )}
@@ -618,7 +626,7 @@ function VirtualizedRepoList({
                 align="center"
                 justify="between"
                 gap="sm"
-                padding={nested ? 'xs xl xs 0' : 'xs lg'}
+                padding={nested ? 'md xl md 0' : 'md lg'}
                 style={{transform: `translateY(${virtualItem.start}px)`}}
               >
                 <Flex align="center" gap="sm" minWidth="0">
@@ -645,6 +653,11 @@ function VirtualizedRepoList({
                     slugs={mappedProjectSlugsByRepoId[repo.id] ?? []}
                     mappingsLoading={mappingsLoading}
                     action={installation.repoActions?.(repo)}
+                    onProjectClick={
+                      installation.onMappedProjectClick
+                        ? project => installation.onMappedProjectClick!(repo, project)
+                        : undefined
+                    }
                   />
                 )}
               </RepoRow>

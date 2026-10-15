@@ -1,1 +1,1 @@
-export {slot, withSlots} from './slot';
+export {slot} from './slot';

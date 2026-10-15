@@ -9,7 +9,9 @@ from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_aut
 from sentry.seer.autofix.feature.models import (
     LEGACY_FEATURE_ID,
     CodeChangesStepArgs,
+    PrIterationStepArgs,
     RCAStepArgs,
+    SolutionStepArgs,
 )
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
@@ -27,7 +29,12 @@ class TestTriggerAutofixFeature(TestCase):
 
     def test_continues_feature_run(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
-        self.create_seer_agent_run(run=fake_run, source=LEGACY_FEATURE_ID)
+        self.create_seer_agent_run(
+            run=fake_run,
+            source=LEGACY_FEATURE_ID,
+            group=self.group,
+            project=self.group.project,
+        )
 
         with (
             patch(
@@ -118,6 +125,67 @@ class TestTriggerAutofixFeature(TestCase):
         client.start_feature_run.assert_not_called()
         mock_quotas.backend.check_seer_quota.assert_not_called()
         mock_quotas.backend.record_seer_run.assert_not_called()
+
+    def test_refuses_run_from_another_project(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        other_group = self.create_group(project=other_project)
+        foreign_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=foreign_run,
+            source=LEGACY_FEATURE_ID,
+            group=other_group,
+            project=other_project,
+        )
+
+        with (
+            patch(
+                "sentry.seer.autofix.feature.dispatch.SeerAgentClient", autospec=True
+            ) as MockClient,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+        ):
+            mock_quotas.backend.check_seer_quota.return_value = True
+
+            with pytest.raises(SeerPermissionError, match="Unknown run id for group"):
+                trigger_autofix_feature(
+                    self.group,
+                    AutofixFeatureArgs(
+                        referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                        step=AutofixStep.SOLUTION,
+                        existing_run_id=123,
+                        user_context="Find a solution",
+                        step_args=SolutionStepArgs(),
+                    ),
+                )
+
+        MockClient.return_value.continue_feature_run.assert_not_called()
+        MockClient.return_value.start_feature_run.assert_not_called()
+
+    def test_refuses_run_without_project(self) -> None:
+        unbound_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=unbound_run,
+            source=LEGACY_FEATURE_ID,
+            group=self.group,
+        )
+
+        with (
+            patch(
+                "sentry.seer.autofix.feature.dispatch.SeerAgentClient", autospec=True
+            ) as MockClient,
+            pytest.raises(SeerPermissionError, match="Unknown run id for group"),
+        ):
+            trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                    step=AutofixStep.SOLUTION,
+                    existing_run_id=123,
+                    user_context="Find a solution",
+                    step_args=SolutionStepArgs(),
+                ),
+            )
+
+        MockClient.return_value.continue_feature_run.assert_not_called()
 
     def test_starts_feature_run_and_records_quota(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
@@ -278,6 +346,49 @@ class TestTriggerAutofixFeature(TestCase):
             "agent_run_options"
         ]
         assert agent_run_options["enable_coding"] is True
+        assert agent_run_options["enable_pr_context_tools"] is False
+
+    def test_pr_iteration_enables_coding_and_sends_its_step_args(self) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=fake_run,
+            source=LEGACY_FEATURE_ID,
+            group=self.group,
+            project=self.group.project,
+        )
+
+        with (
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch("sentry.seer.autofix.feature.dispatch.quotas"),
+        ):
+            mock_client_cls.return_value.continue_feature_run.return_value = fake_run
+
+            trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.GITHUB_PR_COMMENT,
+                    step=AutofixStep.PR_ITERATION,
+                    existing_run_id=123,
+                    step_args=PrIterationStepArgs(
+                        iteration_index=2,
+                        iteration_id=41,
+                        feedback="[]",
+                        pr_urls={"owner/repo": "https://example.com/pull/7"},
+                    ),
+                ),
+            )
+
+        assert mock_client_cls.call_args.kwargs["enable_coding"] is True
+        continue_kwargs = mock_client_cls.return_value.continue_feature_run.call_args.kwargs
+        assert continue_kwargs["agent_run_options"]["enable_coding"] is True
+        assert continue_kwargs["agent_run_options"]["enable_pr_context_tools"] is True
+        assert continue_kwargs["payload"]["step_args"] == {
+            "iteration_index": 2,
+            "iteration_id": 41,
+            "feedback": "[]",
+            "commit_author": None,
+            "pr_urls": {"owner/repo": "https://example.com/pull/7"},
+        }
 
     def test_code_changes_rejected_when_coding_disabled(self) -> None:
         self.organization.update_option("sentry:enable_seer_coding", False)

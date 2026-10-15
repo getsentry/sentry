@@ -1,10 +1,17 @@
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {DISPLAY_MODE_OPTIONS, DisplayModes} from 'sentry/utils/discover/types';
+import {
+  DiscoverDatasets,
+  DISPLAY_MODE_OPTIONS,
+  DisplayModes,
+} from 'sentry/utils/discover/types';
 import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart';
 
 describe('Discover > ResultsChart', () => {
@@ -154,5 +161,91 @@ describe('Discover > ResultsChart', () => {
     );
 
     await waitFor(() => expect(dailyRequest).toHaveBeenCalled());
+  });
+
+  describe('dropped data layer', () => {
+    const droppedDataOrganization = OrganizationFixture({
+      features: [...features, 'explore-data-fidelity-annotations'],
+    });
+
+    beforeEach(() => {
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    });
+
+    afterEach(() => {
+      PageFiltersStore.reset();
+    });
+
+    function mockDroppedData() {
+      return MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-dropped/',
+        method: 'GET',
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
+        ],
+        body: {
+          meta: {dataset: 'errors', start: 0, end: 0, interval: 0},
+          droppedEvents: [DroppedEventFixture({category: 'error'})],
+          acceptedEvents: [],
+        },
+      });
+    }
+
+    function renderChart(dataset: DiscoverDatasets) {
+      const datasetLocation = LocationFixture({
+        pathname: '/',
+        query: {dataset, interval: '1h', statsPeriod: '14d', yAxis: 'count()'},
+      });
+      render(
+        <ResultsChartContainer
+          organization={droppedDataOrganization}
+          eventView={EventView.fromSavedQueryOrLocation(undefined, datasetLocation)}
+          location={datasetLocation}
+          onAxisChange={() => {}}
+          onDisplayChange={() => {}}
+          onIntervalChange={() => {}}
+          total={1}
+          confirmedQuery
+          yAxis={['count()']}
+          onTopEventsChange={() => {}}
+        />,
+        {organization: droppedDataOrganization}
+      );
+    }
+
+    it('shows the Layers control when errors were dropped', async () => {
+      const droppedDataMock = mockDroppedData();
+
+      renderChart(DiscoverDatasets.ERRORS);
+
+      expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
+      expect(droppedDataMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-dropped/',
+        expect.objectContaining({
+          query: expect.objectContaining({dataset: 'errors', interval: '1h'}),
+        })
+      );
+    });
+
+    it('does not request dropped data for other datasets', async () => {
+      const droppedDataMock = mockDroppedData();
+
+      renderChart(DiscoverDatasets.TRANSACTIONS);
+
+      expect(await screen.findByText(/Display/)).toBeInTheDocument();
+      expect(droppedDataMock).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
+
+    it('keeps the Layers control after hiding the dropped data layer', async () => {
+      mockDroppedData();
+
+      renderChart(DiscoverDatasets.ERRORS);
+
+      await userEvent.click(await screen.findByLabelText('Chart layers'));
+      await userEvent.click(screen.getByRole('option', {name: 'Dropped Data'}));
+
+      expect(screen.getByLabelText('Chart layers')).toBeInTheDocument();
+    });
   });
 });

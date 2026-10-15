@@ -29,7 +29,6 @@ from sentry.users.web.accounts_form import (
     RelocationForm,
 )
 from sentry.utils import auth
-from sentry.utils.auth import is_react_auth_enabled
 from sentry.utils.signing import unsign
 from sentry.web.decorators import login_required, set_referrer_policy
 from sentry.web.frontend.base import control_silo_view
@@ -198,7 +197,7 @@ def recover_confirm(
 ) -> HttpResponse:
     from sentry import ratelimits as ratelimiter
 
-    if request.method == "GET" and mode == "recover" and is_react_auth_enabled(request):
+    if request.method == "GET" and mode == "recover":
         return ReactMixin().handle_react(request)
 
     try:

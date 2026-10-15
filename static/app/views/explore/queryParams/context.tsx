@@ -7,7 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import type {NavigateOptions} from 'react-router-dom';
+import type {NavigateOptions} from 'react-router';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';

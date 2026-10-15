@@ -11,10 +11,10 @@ from typing import Any, TypeVar, overload
 
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message
+from sentry_sdk import traces
 
 from sentry.utils import metrics
 from sentry.utils.sdk import get_trace_id
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -166,23 +166,36 @@ def service_method(
                 start_time = time.time()
 
                 metrics.incr("billing.service.method.called", tags=metric_tags, sample_rate=1.0)
+                dict_message = MessageToDict(request)
                 extras = {
                     "service": service_name,
                     "method": method_name,
                     "request_type": type(request).__name__,
-                    "request": MessageToDict(request),
+                    "request": dict_message,
                 }
-                if organization_id := getattr(request, "organization_id", None):
+                organization_id = getattr(request, "organization_id", None)
+                if organization_id:
                     extras["organization_id"] = organization_id
-                if contract_id := getattr(request, "contract_id", None):
+
+                contract_id = getattr(request, "contract_id", None)
+                if contract_id:
                     extras["contract_id"] = contract_id
 
                 try:
-                    with start_span(
-                        op="function", name=f"{service_name}.{method_name}"
+                    with traces.start_span(
+                        name=f"{service_name}.{method_name}",
+                        attributes={
+                            "sentry.op": "function",
+                            "service": service_name,
+                            "method": method_name,
+                            "request_type": type(request).__name__,
+                            "request": repr(dict_message),
+                        },
                     ) as cur_span:
-                        for k, v in extras.items():
-                            set_span_data(cur_span, k, v)
+                        if organization_id is not None:
+                            cur_span.set_attribute("organization_id", organization_id)
+                        if contract_id is not None:
+                            cur_span.set_attribute("contract_id", contract_id)
                         result = func(self, request)
 
                     # Validate output is a protobuf message

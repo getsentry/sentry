@@ -289,15 +289,22 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
 
 
 class TeamKeyTransactionSerializer(serializers.Serializer):
-    transaction = serializers.CharField(required=True, max_length=200)
-    team = serializers.ListField(child=serializers.IntegerField())
+    transaction = serializers.CharField(
+        required=True, max_length=200, help_text="The name of the transaction."
+    )
+    team = serializers.ListField(
+        child=serializers.IntegerField(),
+        help_text="The IDs of the teams to mark or unmark the transaction as key for.",
+    )
 
     def validate_team(self, team_ids: Sequence[int]) -> QuerySet[Team]:
         request = self.context["request"]
         organization = self.context["organization"]
         verified_teams = {team.id for team in Team.objects.get_for_user(organization, request.user)}
 
-        teams = Team.objects.filter(id__in=team_ids)
+        teams = Team.objects.filter(id__in=team_ids, organization_id=organization.id)
+        if len(teams) != len(set(team_ids)):
+            raise serializers.ValidationError("One or more teams do not exist.")
 
         for team in teams:
             if team.id in verified_teams:

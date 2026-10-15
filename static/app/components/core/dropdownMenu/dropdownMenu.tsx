@@ -4,20 +4,21 @@ import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
 
-import {ControlContext} from '@sentry/scraps/compactSelect/control';
+import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
+import type {TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 import {DropdownMenuContent} from './content';
+import {DropdownMenuContext} from './context';
 import {DropdownButton} from './dropdownButton';
 import type {MenuItemProps} from './item';
 import type {DropdownMenuListProps} from './list';
-import {DropdownMenuContext} from './list';
 
 export type {MenuItemProps};
 
-export interface DropdownMenuProps
+interface BaseDropdownMenuProps
   extends
     Omit<
       DropdownMenuListProps,
@@ -74,23 +75,10 @@ export interface DropdownMenuProps
   renderWrapAs?: React.ElementType;
   /**
    * Affects the size of the trigger button and menu items.
+   * When omitted, custom triggers inherit their surrounding size, while the
+   * default trigger and menu items use md.
    */
   size?: DropdownMenuListProps['size'];
-  /**
-   * Optionally replace the trigger button with a different component. Note
-   * that the replacement must have the `props` and `ref` (supplied in
-   * TriggerProps) forwarded its outer wrap, otherwise the accessibility
-   * features won't work correctly.
-   */
-  trigger?: (
-    props: Omit<React.HTMLAttributes<HTMLElement>, 'children'>,
-    isOpen: boolean
-  ) => React.ReactNode;
-  /**
-   * By default, the menu trigger will be rendered as a button, with
-   * triggerLabel as the button label.
-   */
-  triggerLabel?: React.ReactNode;
   /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
@@ -101,6 +89,21 @@ export interface DropdownMenuProps
    */
   usePortal?: boolean;
 }
+
+type DropdownMenuTriggerProps =
+  | {
+      /**
+       * Label for the default trigger button.
+       */
+      triggerLabel: React.ReactNode;
+      trigger?: never;
+    }
+  | {
+      trigger: (props: TriggerProps, isOpen: boolean) => React.ReactNode;
+      triggerLabel?: never;
+    };
+
+export type DropdownMenuProps = BaseDropdownMenuProps & DropdownMenuTriggerProps;
 
 /**
  * A menu component that renders both the trigger button and the dropdown
@@ -114,7 +117,7 @@ function DropdownMenu({
   isDisabled: disabledProp,
   isOpen: isOpenProp,
   renderWrapAs = 'div',
-  size = 'md',
+  size: explicitSize,
   className,
 
   // Overlay props
@@ -136,6 +139,7 @@ function DropdownMenu({
   strategy,
   ...props
 }: DropdownMenuProps) {
+  const size = explicitSize ?? 'md';
   const isDisabled = disabledProp ?? (!items || items.length === 0);
 
   const {rootOverlayState} = useContext(DropdownMenuContext);
@@ -212,18 +216,18 @@ function DropdownMenu({
     () => ({
       overlayIsOpen: isOpen,
       disabled: isDisabled,
-      size,
+      size: explicitSize,
       search: '',
       searchable: false,
     }),
-    [isOpen, size, isDisabled]
+    [isOpen, explicitSize, isDisabled]
   );
 
   return (
     <DropdownMenuWrap className={className} as={renderWrapAs} role="presentation">
       <ControlContext value={controlContextValue}>
         {trigger ? (
-          trigger({...buttonProps, ...overlayTriggerProps}, isOpen)
+          trigger({...buttonProps, ...overlayTriggerProps} as TriggerProps, isOpen)
         ) : (
           <DropdownButton
             size={size}

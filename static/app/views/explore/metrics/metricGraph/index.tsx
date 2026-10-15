@@ -2,19 +2,21 @@ import {Fragment, useMemo, useState} from 'react';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
+import {hasDroppedData} from 'sentry/components/droppedData/buckets';
+import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
-import {hasDroppedData} from 'sentry/components/droppedData/utils';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import {ConfidenceFooter} from 'sentry/views/explore/metrics/confidenceFooter';
 import {
   doesMetricSupportHeatMapVisualization,
@@ -47,6 +49,7 @@ import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
+  getFirstSamplingWarning,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
 import {
@@ -162,11 +165,15 @@ function Graph({
       : createTraceMetricEventsFilter([traceMetric]),
     normalModeExtrapolated: true,
   });
-  const {droppedAnnotations, acceptedAnnotations} = useDroppedData({
+  const [interval] = useChartInterval();
+  const {droppedEvents, acceptedEvents} = useDroppedData({
     dataset: DiscoverDatasets.TRACEMETRICS,
+    interval,
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.TRACEMETRICS);
+  const openDroppedDataDrawer = useDroppedDataDrawer({
+    dataset: DiscoverDatasets.TRACEMETRICS,
+  });
 
   const chartInfo = useMemo(() => {
     const isTopEvents = defined(topEventsLimit);
@@ -223,10 +230,18 @@ function Graph({
     return title ?? metricLabel ?? prettifyAggregation(aggregate) ?? aggregate;
   }, [aggregate, metricLabel, metricName, visualizes.length, title]);
 
+  const isEmptyEquation = isVisualizeEquation(visualize) && !visualize.expression.text;
   const showEmptyState = isMetricOptionsEmpty && visualize.visible;
-  const showChart = visualize.visible && !isMetricOptionsEmpty;
-  const canShowDroppedData =
-    showChart && hasDroppedData(droppedAnnotations, acceptedAnnotations);
+  const showEquationPrompt = isEmptyEquation && visualize.visible;
+  const showChart = visualize.visible && !isMetricOptionsEmpty && !isEmptyEquation;
+  const samplingWarning = showChart
+    ? getFirstSamplingWarning(
+        visualizes.map(v => v.yAxis),
+        timeseriesResult.data,
+        chartInfo.dataScanned
+      )
+    : null;
+  const canShowDroppedData = showChart && hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
 
@@ -234,6 +249,14 @@ function Graph({
     <WidgetWrapper hideFooterBorder>
       <Widget
         Title={<Widget.WidgetTitle title={chartTitle} />}
+        TitleBadges={
+          samplingWarning ? (
+            <SamplingWarning
+              yAxis={samplingWarning.yAxis}
+              reason={samplingWarning.reason}
+            />
+          ) : null
+        }
         Actions={
           <Fragment>
             {canShowDroppedData ? (
@@ -259,14 +282,19 @@ function Graph({
                 }
               )}
             />
+          ) : showEquationPrompt ? (
+            <GenericWidgetEmptyStateWarning
+              title={t('Enter an equation to see results')}
+              message=""
+            />
           ) : showChart ? (
             <ChartVisualization
               chartInfo={chartInfo}
               droppedData={
                 showDroppedDataBand
                   ? {
-                      droppedAnnotations,
-                      acceptedAnnotations,
+                      droppedEvents,
+                      acceptedEvents,
                       onClick: openDroppedDataDrawer,
                     }
                   : undefined

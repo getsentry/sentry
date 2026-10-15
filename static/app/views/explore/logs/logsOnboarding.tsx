@@ -49,15 +49,19 @@ import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
 import {
   ExploreBodySearch,
   ExploreFilterSection,
 } from 'sentry/views/explore/components/styles';
 import {SetupLogsButton} from 'sentry/views/explore/logs/setupLogsButton';
 import {StyledPageFilterBar} from 'sentry/views/explore/logs/styles';
-
-// eslint-disable-next-line boundaries/dependencies
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 type OnboardingProps = {
   organization: Organization;
@@ -557,7 +561,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;
@@ -582,11 +586,24 @@ type LogsTabOnboardingProps = {
   project: Project;
 };
 
-export function LogsTabOnboarding({
+function LogsTabOnboardingInner({
   organization,
   project,
   datePageFilterProps,
 }: LogsTabOnboardingProps) {
+  const selectedProjects = useSelectedProjectsForLLMContext();
+
+  useLLMContext({
+    contextHint:
+      'Sentry logs explorer page. Shows setup instructions because the selected projects have not sent any logs yet. ' +
+      'onboardingProject is the project the setup instructions are for. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
+    onboarding: true,
+    onboardingProject: {slug: project.slug, platform: project.platform},
+    ...toLLMContextProjectFields(selectedProjects),
+  });
+
   return (
     <ExploreBodySearch>
       <Layout.Main width="full">
@@ -601,10 +618,15 @@ export function LogsTabOnboarding({
           </Flex>
         </ExploreFilterSection>
         <OnboardingContainer>
-          <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+          <ExploreQuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
           <Onboarding project={project} organization={organization} />
         </OnboardingContainer>
       </Layout.Main>
     </ExploreBodySearch>
   );
 }
+
+export const LogsTabOnboarding = registerLLMContext(
+  'logs-explorer',
+  LogsTabOnboardingInner
+);

@@ -1,9 +1,12 @@
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconBranch} from '@sentry/icons/branch';
+import {IconSentry} from '@sentry/icons/sentry';
+
 import {Tag} from '@sentry/scraps/badge';
 import {withFieldGroup} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconArrow, IconBranch, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
@@ -14,15 +17,30 @@ import {
   resolveBranch,
   sanitizeBranch,
 } from './normalization';
+import {PathMappingDeleteButton} from './pathMappingDeleteButton';
 import {PathMappingPreview} from './pathMappingPreview';
+import {PathMappingWarningAlert} from './pathMappingWarningAlert';
+import type {PathMappingWarning} from './warnings';
 
 export const PathMappingEdit = withFieldGroup({
   defaultValues: {stackRoot: '', sourceRoot: '', branch: ''},
   props: {} as {
     defaultBranch?: string;
+    hasCodeOwner?: boolean;
+    onDelete?: () => void;
+    projectSlug?: string;
     providerKey?: string;
+    warning?: PathMappingWarning;
   },
-  render: ({group, defaultBranch, providerKey}) => {
+  render: ({
+    group,
+    defaultBranch,
+    hasCodeOwner,
+    onDelete,
+    projectSlug,
+    providerKey,
+    warning,
+  }) => {
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
 
     return (
@@ -36,14 +54,25 @@ export const PathMappingEdit = withFieldGroup({
             }}
           >
             {field => (
-              <field.Layout.Stack label={t('Branch')}>
+              <Stack gap="md">
+                <Flex align="center" justify="between">
+                  <Text>{t('Branch')}</Text>
+                  {onDelete && (
+                    <PathMappingDeleteButton
+                      hasCodeOwner={hasCodeOwner}
+                      onDelete={onDelete}
+                      projectSlug={projectSlug}
+                    />
+                  )}
+                </Flex>
                 <field.Input
+                  aria-label={t('Branch')}
                   value={field.state.value}
                   onChange={(value: string) => field.handleChange(sanitizeBranch(value))}
                   placeholder={branchFallback}
                   leadingItems={<IconBranch />}
                 />
-              </field.Layout.Stack>
+              </Stack>
             )}
           </group.AppField>
 
@@ -70,6 +99,7 @@ export const PathMappingEdit = withFieldGroup({
                     value={field.state.value}
                     onChange={field.handleChange}
                     placeholder={STACK_ROOT_PLACEHOLDER}
+                    disabled={hasCodeOwner}
                   />
                 </field.Layout.Stack>
               )}
@@ -107,6 +137,7 @@ export const PathMappingEdit = withFieldGroup({
                     value={field.state.value}
                     onChange={field.handleChange}
                     placeholder={SOURCE_ROOT_PLACEHOLDER}
+                    disabled={hasCodeOwner}
                   />
                 </field.Layout.Stack>
               )}
@@ -114,7 +145,7 @@ export const PathMappingEdit = withFieldGroup({
           </Grid>
 
           <Stack gap="md" paddingTop="xl">
-            <Text bold>{t('Preview')}</Text>
+            <Text bold>{t('Example preview')}</Text>
             <group.Subscribe
               selector={state => ({
                 stackRoot: state.values?.stackRoot ?? '',
@@ -128,6 +159,7 @@ export const PathMappingEdit = withFieldGroup({
                 />
               )}
             </group.Subscribe>
+            <PathMappingWarningAlert warning={warning} projectSlug={projectSlug} />
           </Stack>
         </Stack>
       </Container>

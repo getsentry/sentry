@@ -1,4 +1,6 @@
 import {useEffect, useRef} from 'react';
+import {IconDownload} from '@sentry/icons/download';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -8,7 +10,6 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconDownload, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

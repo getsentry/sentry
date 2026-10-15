@@ -200,13 +200,12 @@ def _verify_compatibility(spans: Sequence[Mapping[str, Any]]) -> list[None | dic
             if "attributes" in span:
                 metrics.incr("spans.consumers.process_segments.span_v2")
 
-                attributes = span.get("attributes") or {}
                 data = span.get("data") or {}
                 # Verify that all data exist also in attributes.
                 mismatches = [
-                    (key, data_value, attribute_value)
+                    (key, data_value, value)
                     for (key, data_value) in data.items()
-                    if data_value != (attribute_value := (attributes.get(key) or {}).get("value"))
+                    if data_value != (value := attribute_value(span, key))
                 ]
                 if mismatches:
                     redacted = _redact(span)

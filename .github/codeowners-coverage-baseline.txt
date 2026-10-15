@@ -53,7 +53,6 @@ bin/split-silo-database
 bin/update-migration
 config/build-chartcuterie.ts
 config/commit-template
-jest.config.snapshots.ts
 migrations_lockfile.txt
 rspack.config.ts
 src/AGENTS.md
@@ -291,14 +290,12 @@ src/sentry/web_vitals/types.py
 src/sentry/wsgi.py
 src/sudo/LICENSE
 src/sudo/__init__.py
-src/sudo/forms.py
 src/sudo/middleware.py
 src/sudo/models.py
 src/sudo/py.typed
 src/sudo/settings.py
 src/sudo/signals.py
 src/sudo/utils.py
-src/sudo/views.py
 static/app/__mocks__/api.tsx
 static/app/__mocks__/prismjs.tsx
 static/app/__mocks__/react-date-range.tsx

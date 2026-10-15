@@ -9,7 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
-from sentry.api.utils import reformat_timestamp_ms_to_isoformat
+from sentry.api.utils import handle_query_errors, reformat_timestamp_ms_to_isoformat
 from sentry.models.organization import Organization
 from sentry.replays.permissions import has_replay_permission
 
@@ -80,17 +80,18 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
             return dataset.query(**query_details)
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
-            on_results=lambda results: self.handle_results_with_meta(
-                request,
-                organization,
-                snuba_params.project_ids,
-                results,
-                standard_meta=True,
-            ),
-        )
+        with handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=lambda results: self.handle_results_with_meta(
+                    request,
+                    organization,
+                    snuba_params.project_ids,
+                    results,
+                    standard_meta=True,
+                ),
+            )
 
     def handle_results_with_meta(
         self,

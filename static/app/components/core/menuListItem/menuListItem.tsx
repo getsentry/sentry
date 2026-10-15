@@ -132,7 +132,10 @@ const StyledLeadingItems = styled('div')<{
   gap: ${p => p.theme.space.md};
   margin-right: ${p => p.theme.space.md};
   flex-shrink: 0;
-  align-items: flex-start;
+  /* Match the label's first line without centering against any details below it. */
+  min-height: 1.4em;
+  align-self: flex-start;
+  align-items: center;
 
   ${p => p.disabled && 'opacity: 0.5;'}
 `;

@@ -22,6 +22,7 @@ from enum import StrEnum
 from typing import TypeVar
 
 from django.utils import timezone
+from sentry_sdk import traces
 
 from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
@@ -30,7 +31,6 @@ from sentry.analytics.events.pr_iteration_events import (
 )
 from sentry.models.group import Group
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.seer.autofix.autofix_agent import get_iterations, iteration_repos
 from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
 from sentry.seer.autofix.pr_iteration.details_store import (
     claim_iteration,
@@ -39,11 +39,14 @@ from sentry.seer.autofix.pr_iteration.details_store import (
     untriggered_iteration,
     update_iteration,
 )
+from sentry.seer.autofix.pr_iteration.iterations import (
+    get_iterations,
+    iteration_repos,
+)
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
-from sentry.utils.tracing import trace
 
 EventT = TypeVar("EventT", bound=analytics.Event)
 
@@ -82,6 +85,7 @@ class PrIterationOutcome(StrEnum):
     ERRORED = "errored"
     # The drain popped the batch but failed to hand it to the agent.
     DRAIN_FAILED = "drain_failed"
+    MISSING_GROUP_ID = "missing_group_id"
 
     # technically we can recover from this
     # but an iteration is stuck until then
@@ -445,7 +449,7 @@ def record_pr_iteration_failure_reason(
         log_ctx.error("autofix.pr_iteration.details.failure_reason_failed")
 
 
-@trace
+@traces.trace
 def complete_pr_iteration_details(
     *,
     log_ctx: PrIterationLogContext,

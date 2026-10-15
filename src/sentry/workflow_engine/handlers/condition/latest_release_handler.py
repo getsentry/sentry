@@ -1,4 +1,4 @@
-from typing import Any, Literal, NamedTuple
+from typing import Any, Literal
 
 from sentry import tagstore
 from sentry.models.environment import Environment
@@ -8,10 +8,10 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.workflow_engine.caches import CacheMapping
 from sentry.workflow_engine.handlers.condition.utils.releases import (
-    get_latest_adopted_release_cache_key as latest_adopted_release_cache_key,
-)
-from sentry.workflow_engine.handlers.condition.utils.releases import (
-    get_latest_release_cache_key as latest_release_cache_key,
+    LatestAdoptedReleaseCacheKey,
+    LatestReleaseCacheKey,
+    latest_adopted_release_cache,
+    latest_release_cache,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
@@ -22,32 +22,6 @@ from sentry.workflow_engine.types import (
     WorkflowEventData,
 )
 
-CACHE_TTL_SECONDS = 600
-
-
-class _LatestReleaseCacheKey(NamedTuple):
-    project_id: int
-    environment_id: int | None
-
-
-class _LatestAdoptedReleaseCacheKey(NamedTuple):
-    project_id: int
-    environment_id: int
-
-
-# Cache mappings for latest release lookups.
-# Values are Release objects, or False if no release exists (to cache negative lookups).
-_latest_release_cache = CacheMapping[_LatestReleaseCacheKey, Release | Literal[False]](
-    lambda key: latest_release_cache_key(key.project_id, key.environment_id),
-    ttl_seconds=CACHE_TTL_SECONDS,
-)
-_latest_adopted_release_cache = CacheMapping[
-    _LatestAdoptedReleaseCacheKey, Release | Literal[False]
-](
-    lambda key: latest_adopted_release_cache_key(key.project_id, key.environment_id),
-    ttl_seconds=CACHE_TTL_SECONDS,
-)
-
 
 def get_latest_adopted_release_for_env(
     environment: Environment, event: GroupEvent
@@ -55,12 +29,12 @@ def get_latest_adopted_release_for_env(
     """
     Get the latest adopted release for a project in an environment.
     """
-    cache_key = _LatestAdoptedReleaseCacheKey(event.group.project_id, environment.id)
+    cache_key = LatestAdoptedReleaseCacheKey(event.group.project_id, environment.id)
     return _get_latest_release_for_env_impl(
         environment,
         event,
         only_adopted=True,
-        mapping=_latest_adopted_release_cache,
+        mapping=latest_adopted_release_cache,
         cache_key=cache_key,
     )
 
@@ -73,14 +47,14 @@ def get_latest_release_for_env(
     Get the latest release for a project in an environment.
     NOTE: This is independent of whether it has been adopted or not.
     """
-    cache_key = _LatestReleaseCacheKey(
+    cache_key = LatestReleaseCacheKey(
         event.group.project_id, environment.id if environment else None
     )
     return _get_latest_release_for_env_impl(
         environment,
         event,
         only_adopted=False,
-        mapping=_latest_release_cache,
+        mapping=latest_release_cache,
         cache_key=cache_key,
     )
 

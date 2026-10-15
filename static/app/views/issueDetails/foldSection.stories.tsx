@@ -1,12 +1,15 @@
 import {Fragment} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
+import {Text} from '@sentry/scraps/text';
 
-import {IconAdd, IconCopy, IconSubtract} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {SectionKey} from 'sentry/views/issueDetails/context';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {FoldSection, StaticFoldSections} from 'sentry/views/issueDetails/foldSection';
 
 export default Storybook.story('FoldSection', story => {
   story('Usage', () => (
@@ -40,6 +43,35 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
       </Fragment>
     );
   });
+  story('Embedding sections without collapse controls', () => (
+    <Fragment>
+      <Text as="p">
+        StaticFoldSections keeps embedded content and actions visible without changing
+        saved collapse preferences.
+      </Text>
+      <StaticFoldSections>
+        <FoldSection
+          title="Embedded Section"
+          sectionKey={SectionKey.HIGHLIGHTS}
+          actions={
+            <Button size="xs" icon={<IconCopy />}>
+              Copy
+            </Button>
+          }
+        >
+          <Lorem />
+        </FoldSection>
+      </StaticFoldSections>
+      <CodeBlock language="jsx">
+        {`<StaticFoldSections>
+  <FoldSection title="Embedded Section" sectionKey={SectionKey.HIGHLIGHTS} actions={<CopyButton />}>
+    <MySectionComponent />
+  </FoldSection>
+</StaticFoldSections>`}
+      </CodeBlock>
+    </Fragment>
+  ));
+
   story('Default example with trailing items', () => {
     return (
       <FoldSection

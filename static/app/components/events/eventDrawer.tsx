@@ -98,7 +98,7 @@ export const EventNavigator = styled('div')`
   height: var(--event-drawer-header-height, auto);
   min-height: var(--event-drawer-header-height, ${MIN_NAV_HEIGHT}px);
   border-bottom: var(--event-navigator-border-bottom, 0);
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: var(
     --event-navigator-box-shadow,
     ${p => `${p.theme.tokens.border.primary} 0 1px`}

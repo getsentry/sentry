@@ -16,13 +16,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -215,7 +209,9 @@ describe('DetectorDetails', () => {
         level: 1,
       });
 
-      expect(within(heading).getByTestId('platform-icon-javascript')).toBeInTheDocument();
+      expect(heading.parentElement?.parentElement).toContainElement(
+        screen.getByTestId('platform-icon-javascript')
+      );
     });
 
     it('can edit the detector when the user has alerts:write access', async () => {

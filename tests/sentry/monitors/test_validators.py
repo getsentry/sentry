@@ -185,8 +185,9 @@ class MonitorValidatorCreateTest(MonitorTestCase):
             )
         ]
 
+    @patch("sentry.monitors.validators.logger")
     @patch("sentry.monitors.validators.metrics.incr")
-    def test_simple_with_alert_rule(self, mock_incr: MagicMock) -> None:
+    def test_simple_with_alert_rule(self, mock_incr: MagicMock, mock_logger: MagicMock) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -233,6 +234,15 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         }
         mock_incr.assert_any_call(
             "monitors.validator.alert_rule", tags={"operation": "create"}, sample_rate=1.0
+        )
+        mock_logger.info.assert_called_once_with(
+            "monitors.validator.alert_rule",
+            extra={
+                "organization_id": self.organization.id,
+                "operation": "create",
+                "endpoint": "unknown",
+                "ui_request": False,
+            },
         )
 
     def test_alert_rule_with_team_target(self) -> None:

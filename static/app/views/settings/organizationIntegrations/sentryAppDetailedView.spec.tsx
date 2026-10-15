@@ -117,7 +117,9 @@ describe('SentryAppDetailedView', () => {
       );
 
       // Shows the Integration name and install status
-      expect(await screen.findByText('ClickUp')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: 'ClickUp', level: 1})
+      ).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
       expect(screen.getByText(/Continuous Integration \(CI\)/)).toBeInTheDocument();
 
@@ -284,7 +286,9 @@ describe('SentryAppDetailedView', () => {
     });
     it('shows the Integration name and install status', async () => {
       renderSentryAppDetailedView({integrationSlug: 'la-croix-monitor'});
-      expect(await screen.findByText('La Croix Monitor')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: 'La Croix Monitor', level: 1})
+      ).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
     });
 
@@ -358,7 +362,9 @@ describe('SentryAppDetailedView', () => {
     });
     it('shows the Integration name and install status', async () => {
       renderSentryAppDetailedView({integrationSlug: 'go-to-google'});
-      expect(await screen.findByText('Go to Google')).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: 'Go to Google', level: 1})
+      ).toBeInTheDocument();
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
 
       // Shows the Accept & Install button

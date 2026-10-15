@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
 
-import {slot, withSlots} from './';
+import {slot} from './';
 
 describe('slot', () => {
   it('returns a module with Provider, Outlet, and Fallback sub-components', () => {
@@ -382,49 +382,6 @@ describe('slot', () => {
       );
 
       expect(screen.getByTestId('size-value')).toHaveTextContent('none');
-    });
-  });
-
-  describe('withSlots', () => {
-    it('attaches a Slot property to a component', () => {
-      const SlotModule = slot(['header'] as const);
-
-      function MyComponent() {
-        return <div data-test-id="my-component" />;
-      }
-
-      const WithSlots = withSlots(MyComponent, SlotModule);
-
-      expect(WithSlots.Slot).toBe(SlotModule);
-    });
-
-    it('renders the wrapped component and allows slot injection', () => {
-      const SlotModule = slot(['title'] as const);
-
-      function MyComponent() {
-        return (
-          <div data-test-id="my-component">
-            <SlotModule.Outlet name="title">
-              {props => <span {...props} data-test-id="title-outlet" />}
-            </SlotModule.Outlet>
-          </div>
-        );
-      }
-
-      const WithSlots = withSlots(MyComponent, SlotModule);
-
-      render(
-        <WithSlots.Slot.Provider>
-          <WithSlots />
-          <WithSlots.Slot name="title">
-            <span>injected title</span>
-          </WithSlots.Slot>
-        </WithSlots.Slot.Provider>
-      );
-
-      expect(screen.getByTestId('title-outlet')).toContainHTML(
-        '<span>injected title</span>'
-      );
     });
   });
 });

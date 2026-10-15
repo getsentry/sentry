@@ -11,6 +11,7 @@ import {noDefaultExports} from './noDefaultExports.ts';
 import {noDigitsInTn} from './noDigitsInTn.ts';
 import {noDynamicTranslations} from './noDynamicTranslations.ts';
 import {noFlagComments} from './noFlagComments.ts';
+import {noLegacyRouterImports} from './noLegacyRouterImports.ts';
 import {noQueryDataTypeParameters} from './noQueryDataTypeParameters.ts';
 import {noRawCssInStyled} from './noRawCssInStyled.ts';
 import {noRedundantDefaultArgument} from './noRedundantDefaultArgument.ts';
@@ -19,7 +20,9 @@ import {noStaticTranslations} from './noStaticTranslations.ts';
 import {noStyledShortcut} from './noStyledShortcut.ts';
 import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback.ts';
 import {noUselessCssInterpolationSemicolon} from './noUselessCssInterpolationSemicolon.ts';
+import {preferFakeTimers} from './preferFakeTimers.ts';
 import {preferReactComponent} from './preferReactComponent.ts';
+import {requireFakeTimerCleanup} from './requireFakeTimerCleanup.ts';
 import {sortInterfaceKeys} from './sortInterfaceKeys.ts';
 
 export const rules = {
@@ -31,6 +34,7 @@ export const rules = {
   'no-digits-in-tn': noDigitsInTn,
   'no-dynamic-translations': noDynamicTranslations,
   'no-flag-comments': noFlagComments,
+  'no-legacy-router-imports': noLegacyRouterImports,
   'no-query-data-type-parameters': noQueryDataTypeParameters,
   'no-raw-css-in-styled': noRawCssInStyled,
   'no-redundant-default-argument': noRedundantDefaultArgument,
@@ -40,7 +44,9 @@ export const rules = {
   'no-unnecessary-use-callback': noUnnecessaryUseCallback,
   'no-useless-css-interpolation-semicolon': noUselessCssInterpolationSemicolon,
   'no-vanilla-emotion': noVanillaEmotion,
+  'prefer-fake-timers': preferFakeTimers,
   'prefer-react-component': preferReactComponent,
+  'require-fake-timer-cleanup': requireFakeTimerCleanup,
   'sort-interface-keys': sortInterfaceKeys,
 };
 

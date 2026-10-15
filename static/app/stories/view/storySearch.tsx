@@ -5,6 +5,7 @@ import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
+import {IconSearch} from '@sentry/icons/search';
 
 import {HighlightText, ListBox} from '@sentry/scraps/compactSelect';
 import {useHotkeys, Hotkey} from '@sentry/scraps/hotkey';
@@ -14,12 +15,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
-  storyFrontmatterIndex,
-  storyHeadingIndex,
-} from 'sentry/stories/storyManifest.generated';
+import {storyFrontmatterIndex, storyHeadingIndex} from 'sentry/stories/storyManifest';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,

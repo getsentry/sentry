@@ -1,5 +1,4 @@
 {% load sentry_helpers %}
-{% load sentry_assets %}
 
 {% block css %}
 {% if login_banner_legacy_html or show_partner_login_banner %}
@@ -51,23 +50,6 @@
 </style>
 {% endif %}
 {% endblock %}
-
-<div id="blk_indicators"></div>
-
-{% script %}
-<script>
-  window.__onSentryInit = window.__onSentryInit || [];
-  window.__onSentryInit.push({
-    name: 'renderReact ',
-    component: 'Indicators',
-    container: '#blk_indicators',
-    props: {
-      className: 'indicators-container',
-    },
-  });
-</script>
-{% endscript %}
-
 
 {% if messages %}
   <div id="messages" class="messages-container">

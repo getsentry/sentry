@@ -81,14 +81,12 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
         assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
         assert dropped[0]["reason"] == "key_quota"
         assert dropped[0]["count"] == 400
-        assert "byteSize" not in dropped[0]
 
         accepted = response.data["acceptedEvents"]
         assert len(accepted) == 1
         assert accepted[0]["outcome"] == "accepted"
         assert accepted[0]["reason"] == "accepted"
         assert accepted[0]["count"] == 1000
-        assert "byteSize" not in accepted[0]
 
     def test_records_usage_metric(self) -> None:
         self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
@@ -198,3 +196,8 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
         assert len(dropped) == 1
         assert dropped[0]["reason"] == "spike_protection"
         assert dropped[0]["count"] == 150
+
+    def test_invalid_user_param(self) -> None:
+        response = self._do_request(interval="1s")
+        assert response.status_code == 400, response.content
+        assert str(response.data["detail"]).startswith("The interval has to be a multiple")

@@ -14,9 +14,9 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.issues.derived.features import FIRST_ASSIGNMENT_ACTION_ID
-from sentry.issues.derived.processing import DEFAULT_BATCH_SIZE, PIPELINE
+from sentry.issues.derived.processing import PIPELINE
+from sentry.issues.derived.replay import FeatureHistoryLimitExceeded, replay_feature_from_log
 from sentry.issues.derived.store import GroupDerivedDataStore
-from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
@@ -159,15 +159,16 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         ):
             derived = GroupDerivedData.objects.get_or_none(group_id=group.id)
             if derived is None or derived.pipeline_hash != PIPELINE.pipeline_hash:
-                entries = (
-                    GroupActionLogEntry.objects.filter(group_id=group.id)
-                    .order_by("date_added", "id")
-                    .iterator(chunk_size=DEFAULT_BATCH_SIZE)
-                )
-                state = PIPELINE.run(entries)
+                try:
+                    is_first_assignment = (
+                        replay_feature_from_log(group.id, PIPELINE, FIRST_ASSIGNMENT_ACTION_ID)
+                        is None
+                    )
+                except FeatureHistoryLimitExceeded:
+                    is_first_assignment = False
             else:
                 state = GroupDerivedDataStore.load(PIPELINE, derived)
-            is_first_assignment = state[FIRST_ASSIGNMENT_ACTION_ID] is None
+                is_first_assignment = state[FIRST_ASSIGNMENT_ACTION_ID] is None
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned

@@ -1,8 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconSiren} from '@sentry/icons/siren';
 import pick from 'lodash/pick';
 
 import {ProjectsBadge} from '@sentry/scraps/badge';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Stack, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -21,7 +24,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
-import {IconEllipsis, IconIssues, IconSettings, IconSiren} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -194,38 +196,33 @@ export function ProjectDetail() {
       >
         <Stack flex={1}>
           <NoProjectMessage organization={organization}>
-            <TopBar.Slot name="breadcrumbs">
-              <BreadcrumbList
-                items={[
-                  {
-                    type: 'link',
-                    label: t('Projects'),
-                    to: makeProjectsPathname({path: '/', organization}),
-                  },
-                ]}
-              />
-            </TopBar.Slot>
-            <TopBar.Slot name="title">
-              <BreadcrumbList.Title
-                item={{
-                  type: 'page-title',
-                  label: project?.slug ?? params.projectId,
-                  leadingGraphic: project ? (
-                    <ProjectsBadge
-                      projectPlatforms={project.platform ? [project.platform] : []}
-                    />
-                  ) : (
-                    <Placeholder width="16px" height="16px" />
-                  ),
-                  trailingActions: {
-                    type: 'menu',
-                    items: projectActions,
-                    triggerLabel: t('Project Actions'),
-                    triggerIcon: <IconEllipsis />,
-                  },
-                }}
-              />
-            </TopBar.Slot>
+            <TopBar.Slot
+              name="breadcrumbs"
+              title={{
+                type: 'page-title',
+                label: project?.slug ?? params.projectId,
+                leadingGraphic: project ? (
+                  <ProjectsBadge
+                    projectPlatforms={project.platform ? [project.platform] : []}
+                  />
+                ) : (
+                  <Placeholder width="16px" height="16px" />
+                ),
+                trailingActions: {
+                  type: 'menu',
+                  items: projectActions,
+                  triggerLabel: t('Project Actions'),
+                  triggerIcon: <IconEllipsis />,
+                },
+              }}
+              items={[
+                {
+                  type: 'link',
+                  label: t('Projects'),
+                  to: makeProjectsPathname({path: '/', organization}),
+                },
+              ]}
+            />
 
             <Layout.Body noRowGap>
               <Layout.Main>

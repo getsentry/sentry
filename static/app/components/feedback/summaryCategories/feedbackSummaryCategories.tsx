@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconThumb} from '@sentry/icons/thumb';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -8,7 +9,6 @@ import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrga
 import {FeedbackCategories} from 'sentry/components/feedback/summaryCategories/feedbackCategories';
 import {FeedbackSummary} from 'sentry/components/feedback/summaryCategories/feedbackSummary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 

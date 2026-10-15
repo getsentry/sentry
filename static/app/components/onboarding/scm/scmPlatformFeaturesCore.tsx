@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconBroadcast} from '@sentry/icons/broadcast';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
 
@@ -13,7 +14,6 @@ import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';

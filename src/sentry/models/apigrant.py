@@ -98,9 +98,7 @@ class ApiGrant(Model):
         )
 
     def get_scopes(self) -> list[str]:
-        if self.scope_list:
-            return self.scope_list
-        return [k for k, v in self.scopes.items() if v]
+        return self.scope_list
 
     def has_scope(self, scope: str) -> bool:
         return scope in self.get_scopes()
