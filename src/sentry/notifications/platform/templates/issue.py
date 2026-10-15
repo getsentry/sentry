@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, root_validator
 
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
@@ -20,15 +20,23 @@ class SerializableRuleProxy(BaseModel):
     A pydantic-serializable representation of a rule for notification render code.
     """
 
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
-    id: int
     label: str
-    data: dict[str, Any]
     environment_id: int | None = None
-    project_id: int
     workflow_id: int | None = None
     legacy_rule_id: int | None = None
+    # Unread; still populated because workers on the previous release require them.
+    id: int | None = None
+    data: dict[str, Any] = {}
+    project_id: int | None = None
+
+    @root_validator(skip_on_failure=True)
+    def _require_identity(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if values.get("workflow_id") is None and values.get("legacy_rule_id") is None:
+            raise ValueError("workflow_id or legacy_rule_id is required")
+        return values
 
     @classmethod
     def from_origin(
@@ -64,22 +72,11 @@ class SerializableRuleProxy(BaseModel):
         )
 
     def to_notification_origin(self) -> NotificationOrigin:
-        workflow_id = self.workflow_id
-        legacy_rule_id = self.legacy_rule_id
-        if workflow_id is None and legacy_rule_id is None:
-            # Compatibility for payloads serialized before identities became top-level fields.
-            return NotificationOrigin.from_legacy_data(
-                label=self.label,
-                environment_id=self.environment_id,
-                data=self.data,
-                fallback_legacy_rule_id=self.id,
-            )
-
         return NotificationOrigin(
             label=self.label,
             environment_id=self.environment_id,
-            workflow_id=workflow_id,
-            legacy_rule_id=legacy_rule_id,
+            workflow_id=self.workflow_id,
+            legacy_rule_id=self.legacy_rule_id,
         )
 
 
@@ -106,15 +103,7 @@ class IssueNotificationTemplate(NotificationTemplate[IssueNotificationData]):
         notification_uuid="test-uuid",
         tags=["environment", "level"],
         notes="example note",
-        rule=SerializableRuleProxy(
-            id=1,
-            project_id=2,
-            label="Example Rule",
-            data={
-                "actions": [{"workflow_id": 3}],
-            },
-            workflow_id=3,
-        ),
+        rule=SerializableRuleProxy(label="Example Rule", workflow_id=3),
     )
     hide_from_debugger = True
 
