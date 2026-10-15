@@ -8,11 +8,11 @@ import {
   SectionGroup,
   SectionHeader,
   SectionSeparator,
-  SectionTitle,
   SectionWrap,
 } from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
+import {MenuSectionLabel, MenuSectionSeparator} from '@sentry/scraps/menu';
 
 import {GridListOption, type GridListOptionProps} from './option';
 
@@ -20,6 +20,8 @@ interface GridListSectionProps<T extends ListItemBase> {
   listState: ListState<T>;
   node: Node<T>;
   size: GridListOptionProps<T>['size'];
+  showSeparator?: boolean;
+  useSharedSeparator?: boolean;
 }
 
 /**
@@ -30,6 +32,8 @@ export function GridListSection<T extends ListItemBase>({
   node,
   listState,
   size,
+  showSeparator = true,
+  useSharedSeparator = false,
 }: GridListSectionProps<T>) {
   const titleId = useId();
   const {separatorProps} = useSeparator({elementType: 'li'});
@@ -46,7 +50,12 @@ export function GridListSection<T extends ListItemBase>({
 
   return (
     <Fragment>
-      <SectionSeparator {...separatorProps} />
+      {showSeparator &&
+        (useSharedSeparator ? (
+          <MenuSectionSeparator />
+        ) : (
+          <SectionSeparator {...separatorProps} />
+        ))}
       <SectionWrap
         role="rowgroup"
         {...(node['aria-label']
@@ -56,9 +65,7 @@ export function GridListSection<T extends ListItemBase>({
         {(node.rendered || showToggleAllButton) && (
           <SectionHeader>
             {node.rendered && (
-              <SectionTitle id={titleId} aria-hidden>
-                {node.rendered}
-              </SectionTitle>
+              <MenuSectionLabel id={titleId}>{node.rendered}</MenuSectionLabel>
             )}
             {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
           </SectionHeader>

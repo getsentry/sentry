@@ -8,11 +8,11 @@ import {
   SectionGroup,
   SectionHeader,
   SectionSeparator,
-  SectionTitle,
   SectionWrap,
 } from '@sentry/scraps/compactSelect/styles';
 import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
+import {MenuSectionLabel, MenuSectionSeparator} from '@sentry/scraps/menu';
 
 import {ListBoxOption, type ListBoxOptionProps} from './option';
 
@@ -25,6 +25,8 @@ interface ListBoxSectionProps<T extends ListItemBase> {
   'data-index'?: number;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
+  showSeparator?: boolean;
+  useSharedSeparator?: boolean;
 }
 
 /**
@@ -37,6 +39,8 @@ export function ListBoxSection<T extends ListItemBase>({
   size,
   hiddenOptions,
   showSectionHeaders,
+  showSeparator = true,
+  useSharedSeparator = false,
   showDetails = true,
   ref,
   'data-index': dataIndex,
@@ -59,12 +63,18 @@ export function ListBoxSection<T extends ListItemBase>({
 
   return (
     <Fragment>
-      {showSectionHeaders && <SectionSeparator {...separatorProps} />}
+      {showSectionHeaders &&
+        showSeparator &&
+        (useSharedSeparator ? (
+          <MenuSectionSeparator />
+        ) : (
+          <SectionSeparator {...separatorProps} />
+        ))}
       <SectionWrap {...itemProps} data-index={dataIndex} ref={ref}>
         {(item.rendered || showToggleAllButton) && showSectionHeaders && (
           <SectionHeader>
             {item.rendered && (
-              <SectionTitle {...headingProps}>{item.rendered}</SectionTitle>
+              <MenuSectionLabel id={headingProps.id}>{item.rendered}</MenuSectionLabel>
             )}
             {showToggleAllButton && <SectionToggle item={item} listState={listState} />}
           </SectionHeader>

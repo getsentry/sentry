@@ -1,5 +1,6 @@
 export {
   CompactSelect,
+  type ComposedSelectProps,
   type SelectProps,
   type SingleSelectProps,
   type MultipleSelectProps,

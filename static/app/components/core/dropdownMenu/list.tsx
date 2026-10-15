@@ -14,6 +14,8 @@ import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
 import {Container} from '@sentry/scraps/layout';
+import {MenuHeader, MenuSectionSeparator} from '@sentry/scraps/menu';
+import {Text} from '@sentry/scraps/text';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -42,6 +44,7 @@ export interface DropdownMenuListProps
    * The open state of the current overlay that contains this menu
    */
   overlayState: OverlayState;
+  autoSectionSeparators?: boolean;
   /**
    * Whether the menu should close when an item has been clicked/selected
    */
@@ -54,10 +57,12 @@ export interface DropdownMenuListProps
    * To be displayed below the menu items
    */
   menuFooter?: React.ReactNode;
+  menuHeader?: React.ReactNode;
   /**
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
+  separatorBeforeKeys?: Set<string>;
   size?: MenuItemProps['size'];
   /**
    * Style overrides applied to the position wrapper. Useful for overriding
@@ -68,9 +73,11 @@ export interface DropdownMenuListProps
 }
 
 type DropdownMenuCollectionProps = {
+  autoSectionSeparators: boolean;
   closeOnSelect: boolean;
   collection: Array<Node<MenuItemProps>>;
   onClose: DropdownMenuListProps['onClose'];
+  separatorBeforeKeys: Set<string>;
   separatorProps: ReturnType<typeof useSeparator>['separatorProps'];
   state: TreeState<MenuItemProps>;
   disableTextSelection?: boolean;
@@ -92,6 +99,8 @@ function DropdownMenuCollectionItem({
   separatorProps,
   size,
   state,
+  autoSectionSeparators,
+  separatorBeforeKeys,
 }: DropdownMenuCollectionItemProps): React.ReactNode {
   if (node.type === 'section') {
     return (
@@ -104,6 +113,8 @@ function DropdownMenuCollectionItem({
           separatorProps={separatorProps}
           size={size}
           state={state}
+          autoSectionSeparators={autoSectionSeparators}
+          separatorBeforeKeys={separatorBeforeKeys}
         />
       </DropdownMenuSection>
     );
@@ -145,17 +156,21 @@ function DropdownMenuCollection({
   state,
   disableTextSelection,
   size,
+  autoSectionSeparators,
+  separatorBeforeKeys,
 }: DropdownMenuCollectionProps) {
   return (
     <Fragment>
       {collection.map((node, i) => {
         const isLastNode = collection.length - 1 === i;
-        const showSeparator =
-          !isLastNode &&
-          (node.type === 'section' || collection[i + 1]?.type === 'section');
+        const showSeparator = autoSectionSeparators
+          ? !isLastNode &&
+            (node.type === 'section' || collection[i + 1]?.type === 'section')
+          : separatorBeforeKeys.has(String(node.key));
 
         return (
           <Fragment key={node.key}>
+            {!autoSectionSeparators && showSeparator && <MenuSectionSeparator />}
             <DropdownMenuCollectionItem
               node={node}
               closeOnSelect={closeOnSelect}
@@ -164,8 +179,10 @@ function DropdownMenuCollection({
               separatorProps={separatorProps}
               size={size}
               state={state}
+              autoSectionSeparators={autoSectionSeparators}
+              separatorBeforeKeys={separatorBeforeKeys}
             />
-            {showSeparator && <Separator {...separatorProps} />}
+            {autoSectionSeparators && showSeparator && <Separator {...separatorProps} />}
           </Fragment>
         );
       })}
@@ -179,6 +196,9 @@ function DropdownMenuList({
   size,
   menuTitle,
   menuFooter,
+  menuHeader,
+  autoSectionSeparators = true,
+  separatorBeforeKeys = new Set(),
   disableTextSelection,
   overlayState,
   overlayPositionProps,
@@ -260,7 +280,14 @@ function DropdownMenuList({
       >
         <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
-            {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
+            {menuHeader ??
+              (menuTitle && (
+                <MenuHeader>
+                  <Text as="div" size="sm" bold>
+                    {menuTitle}
+                  </Text>
+                </MenuHeader>
+              ))}
             <DropdownMenuListWrap
               ref={menuRef}
               hasTitle={!!menuTitle}
@@ -278,6 +305,8 @@ function DropdownMenuList({
                 separatorProps={separatorProps}
                 size={size}
                 state={state}
+                autoSectionSeparators={autoSectionSeparators}
+                separatorBeforeKeys={separatorBeforeKeys}
               />
             </DropdownMenuListWrap>
             {menuFooter}
@@ -360,7 +389,12 @@ export function DropdownMenuContent({
 
         if (item.children && item.children.length > 0 && !item.submenu) {
           return (
-            <Section key={item.key} title={item.label} items={item.children}>
+            <Section
+              key={item.key}
+              title={item.label}
+              aria-label={item['aria-label']}
+              items={item.children}
+            >
               {sectionItem => {
                 const {onAction: _sectionOnAction, ...sectionItemProps} = sectionItem;
 
@@ -458,6 +492,10 @@ function DropdownSubmenu({
           closeOnSelect={closeOnSelect}
           disableTextSelection={disableTextSelection}
           menuTitle={options.title}
+          menuHeader={options.header}
+          menuFooter={options.footer}
+          separatorBeforeKeys={options.separatorBeforeKeys}
+          autoSectionSeparators={options.separatorBeforeKeys === undefined}
           size={size}
           {...menuProps}
           items={items}
@@ -504,18 +542,6 @@ const DropdownMenuListWrap = styled('ul')<{
   &:focus {
     outline: none;
   }
-`;
-
-const MenuTitle = styled('div')`
-  flex-shrink: 0;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.primary};
-  white-space: nowrap;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
-  box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
-  z-index: 2;
 `;
 
 const Separator = styled('li')`

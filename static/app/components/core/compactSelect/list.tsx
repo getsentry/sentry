@@ -56,6 +56,7 @@ interface BaseListProps<Value extends SelectKey>
       | 'isVirtualized'
     > {
   items: Array<SelectOptionOrSectionWithKey<Value>>;
+  autoSectionSeparators?: boolean;
   /**
    * Custom function to determine whether an option is disabled. By default, an option
    * is considered disabled when it has {disabled: true}.
@@ -74,6 +75,7 @@ interface BaseListProps<Value extends SelectKey>
    *   interactive child elements (buttons/links) that need to be keyboard-reachable.
    */
   mode?: 'list' | 'grid';
+  separatorBeforeKeys?: Set<string>;
   size?: FormSize;
   /**
    * Upper limit for the number of options to display in the menu at a time. Users can
@@ -166,6 +168,8 @@ export function List<Value extends SelectKey>({
   sizeLimit,
   sizeLimitMessage,
   closeOnSelect,
+  autoSectionSeparators = true,
+  separatorBeforeKeys,
   ...props
 }: SingleListProps<Value> | MultipleListProps<Value>) {
   const {overlayState, search, searchable, overlayIsOpen, searchMatcher} =
@@ -374,6 +378,8 @@ export function List<Value extends SelectKey>({
             listState={listState}
             sizeLimitMessage={sizeLimitMessage}
             keyDownHandler={keyDownHandler}
+            autoSectionSeparators={autoSectionSeparators}
+            separatorBeforeKeys={separatorBeforeKeys}
           />
         </SelectFilterContext>
       ) : (
@@ -388,6 +394,8 @@ export function List<Value extends SelectKey>({
           shouldFocusOnHover={shouldFocusOnHover}
           sizeLimitMessage={sizeLimitMessage}
           keyDownHandler={keyDownHandler}
+          autoSectionSeparators={autoSectionSeparators}
+          separatorBeforeKeys={separatorBeforeKeys}
         />
       )}
       {multiple &&

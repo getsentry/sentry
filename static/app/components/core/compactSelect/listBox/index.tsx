@@ -42,6 +42,7 @@ interface ListBoxProps<T extends ListItemBase>
    * `useListBox()`.
    */
   listState: ListState<T>;
+  autoSectionSeparators?: boolean;
   children?: CollectionChildren<T>;
   /**
    * Whether the list is filtered by search query or not.
@@ -77,6 +78,7 @@ interface ListBoxProps<T extends ListItemBase>
    * Whether the select has a search input field.
    */
   searchable?: boolean;
+  separatorBeforeKeys?: Set<string>;
   /**
    * When false, hides option details.
    */
@@ -136,6 +138,8 @@ export function ListBox<T extends ListItemBase>({
   onAction,
   virtualized,
   virtualizedListPadding,
+  autoSectionSeparators = true,
+  separatorBeforeKeys,
   scrollContainerRef,
   className,
   ...props
@@ -270,6 +274,11 @@ export function ListBox<T extends ListItemBase>({
                       size={size}
                       showSectionHeaders={showSectionHeaders}
                       showDetails={showDetails}
+                      useSharedSeparator={!autoSectionSeparators}
+                      showSeparator={
+                        autoSectionSeparators ||
+                        separatorBeforeKeys?.has(String(item.key)) === true
+                      }
                     />
                   );
                 }

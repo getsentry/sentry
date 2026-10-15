@@ -17,6 +17,7 @@ export interface SelectOption<Value extends SelectKey> extends SelectValue<Value
 
 export interface SelectSection<Value extends SelectKey> {
   options: Array<SelectOption<Value>>;
+  'aria-label'?: string;
   /**
    * When true, all options inside this section will be disabled.
    */

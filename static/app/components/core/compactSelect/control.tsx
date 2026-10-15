@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  isValidElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme, css} from '@emotion/react';
@@ -7,13 +15,12 @@ import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {OverlayTriggerState} from '@react-stately/overlays';
-import {IconSearch} from '@sentry/icons/search';
 
 import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
-import {InputGroup} from '@sentry/scraps/input';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {MenuFooter as SharedMenuFooter, MenuSearchField} from '@sentry/scraps/menu';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
@@ -104,6 +111,8 @@ export interface ControlProps
   menuFooter?:
     | React.ReactNode
     | ((actions: {closeOverlay: () => void; resetSearch: () => void}) => React.ReactNode);
+  /** Composed content above the scrolling options. */
+  menuHeader?: React.ReactNode;
   /**
    * Items to be displayed in the trailing (right) side of the menu's header.
    */
@@ -186,6 +195,7 @@ export function Control<Value extends SelectKey>({
   menuHeaderTrailingItems,
   menuBody,
   menuFooter,
+  menuHeader,
   onOpenChange,
   items = [],
   isOptionDisabled,
@@ -433,15 +443,9 @@ export function Control<Value extends SelectKey>({
   const [menuFullWidth, setMenuFullWidth] = useState<number>();
   // When search box is focused, read the menu's width and lock it at that value to
   // prevent visual jumps during search
-  const onSearchFocus = useCallback(
-    () => setMenuFullWidth(overlayRef.current?.offsetWidth),
-    [overlayRef]
-  );
+  const onSearchFocus = () => setMenuFullWidth(overlayRef.current?.offsetWidth);
   // When search box is blurred, release the lock the menu's width
-  const onSearchBlur = useCallback(
-    () => !search && setMenuFullWidth(undefined),
-    [search]
-  );
+  const onSearchBlur = () => !search && setMenuFullWidth(undefined);
 
   /**
    * Trigger label, generated from current selection values. If more than one option is
@@ -554,11 +558,12 @@ export function Control<Value extends SelectKey>({
               }
               maxHeight={overlayProps.style?.maxHeight}
               maxHeightProp={maxMenuHeight}
-              data-menu-has-header={!!menuTitle || clearable}
+              data-menu-has-header={!!menuHeader || !!menuTitle || clearable}
               data-menu-has-search={searchEnabled}
               data-menu-has-footer={!!menuFooter}
             >
               <FocusScope contain>
+                {menuHeader}
                 {(menuTitle ||
                   menuHeaderTrailingItems ||
                   (clearable && hasSelection)) && (
@@ -582,45 +587,34 @@ export function Control<Value extends SelectKey>({
                   </MenuHeader>
                 )}
                 {searchEnabled && (
-                  <InputGroup>
-                    <InputGroup.LeadingItems disablePointerEvents>
-                      <Flex
-                        paddingLeft="2xs"
-                        align="center"
-                        justify="center"
-                        // Center the icon by visual weight
-                        style={{transform: 'translateY(1px) translateX(1px)'}}
-                      >
-                        <IconSearch size="xs" variant="muted" />
-                      </Flex>
-                    </InputGroup.LeadingItems>
-                    <SearchInput
-                      ref={searchRef}
-                      data-1p-ignore
-                      placeholder={normalizedSearch?.placeholder ?? 'Search…'}
-                      value={searchInputValue}
-                      onFocus={onSearchFocus}
-                      onBlur={onSearchBlur}
-                      onChange={e => updateSearch(e.target.value)}
-                      size="xs"
-                      {...searchKeyboardProps}
-                    />
-                  </InputGroup>
+                  <MenuSearchField
+                    ref={searchRef}
+                    data-1p-ignore
+                    placeholder={normalizedSearch?.placeholder ?? 'Search…'}
+                    value={searchInputValue}
+                    onFocus={onSearchFocus}
+                    onBlur={onSearchBlur}
+                    {...searchKeyboardProps}
+                    onChange={updateSearch}
+                  />
                 )}
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})
                   : menuBody}
                 {!hideOptions && <Stack minHeight="0">{children}</Stack>}
-                {menuFooter && (
-                  <MenuFooter>
-                    {typeof menuFooter === 'function'
-                      ? menuFooter({
-                          closeOverlay: overlayState.close,
-                          resetSearch: () => updateSearch(''),
-                        })
-                      : menuFooter}
-                  </MenuFooter>
-                )}
+                {menuFooter &&
+                  (isValidElement(menuFooter) && menuFooter.type === SharedMenuFooter ? (
+                    menuFooter
+                  ) : (
+                    <SharedMenuFooter>
+                      {typeof menuFooter === 'function'
+                        ? menuFooter({
+                            closeOverlay: overlayState.close,
+                            resetSearch: () => updateSearch(''),
+                          })
+                        : menuFooter}
+                    </SharedMenuFooter>
+                  ))}
               </FocusScope>
             </StyledOverlay>
           )}
@@ -701,17 +695,6 @@ export const ClearButton = styled(Button)`
   margin: -${p => p.theme.space['2xs']} -${p => p.theme.space.xs};
 `;
 
-const SearchInput = styled(InputGroup.Input)`
-  appearance: none;
-  width: calc(100% - ${p => p.theme.space.xs} * 2);
-  margin: ${p => p.theme.space.xs} ${p => p.theme.space.xs};
-
-  /* Add 1px to top margin if immediately preceded by menu header, to account for the
-  header's shadow border. Account for InputGroup wrapper div. */
-  [data-menu-has-header='true'] > * > & {
-    margin-top: calc(${p => p.theme.space.xs} + 1px);
-  }
-`;
 const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
@@ -758,11 +741,4 @@ const StyledPositionWrapper = styled(PositionWrapper, {
   min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p?.zIndex};
-`;
-
-const MenuFooter = styled('div')`
-  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
-  box-shadow: 0 -1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  z-index: 2;
 `;

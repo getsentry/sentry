@@ -2,6 +2,8 @@ import styled from '@emotion/styled';
 import {useMenuSection} from '@react-aria/menu';
 import type {Node} from '@react-types/shared';
 
+import {MenuSectionLabel} from '@sentry/scraps/menu';
+
 import type {MenuItemProps} from './item';
 
 type DropdownMenuSectionProps = {
@@ -21,7 +23,11 @@ export function DropdownMenuSection({node, children}: DropdownMenuSectionProps) 
 
   return (
     <DropdownMenuSectionWrap {...itemProps}>
-      {node.rendered && <Heading {...headingProps}>{node.rendered}</Heading>}
+      {node.rendered && (
+        <Heading>
+          <MenuSectionLabel id={headingProps.id}>{node.rendered}</MenuSectionLabel>
+        </Heading>
+      )}
       <Group {...groupProps}>{children}</Group>
     </DropdownMenuSectionWrap>
   );
@@ -33,10 +39,6 @@ const DropdownMenuSectionWrap = styled('li')`
 
 const Heading = styled('span')`
   display: inline-block;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
   white-space: nowrap;
   margin: ${p => p.theme.space.md} ${p => p.theme.space.lg} ${p => p.theme.space.xs};
   padding-right: ${p => p.theme.space.md};

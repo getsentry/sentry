@@ -1,0 +1,72 @@
+---
+title: Menu composition
+description: Shared regions and item declarations for action menus and compact selects.
+category: controls
+source: '@sentry/scraps/menu'
+---
+
+import {useState} from 'react';
+
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {
+  ListItem,
+  MenuFooter,
+  MenuHeader,
+  MenuItem,
+  MenuSearchField,
+  MenuSection,
+  MenuSectionLabel,
+  MenuSectionSeparator,
+  Submenu,
+} from '@sentry/scraps/menu';
+import * as Storybook from 'sentry/stories';
+
+`MenuHeader` and `MenuFooter` sit outside the scrolling collection. Sections need either a visible `MenuSectionLabel` or an `aria-label`. Place `MenuSectionSeparator` explicitly between sections. `MenuItem` and `ListItem` declare collection entries; the hosts render them with React Aria's menu and listbox hooks and the shared `MenuListItem` appearance.
+
+<Storybook.Demo>
+  <DropdownMenu triggerLabel="Actions">
+    <MenuHeader>Choose an action</MenuHeader>
+    <MenuSection sectionKey="edit">
+      <MenuSectionLabel>Edit</MenuSectionLabel>
+      <MenuItem itemKey="rename" label="Rename" onAction={() => {}} />
+    </MenuSection>
+    <MenuSectionSeparator />
+    <MenuSection sectionKey="export">
+      <MenuSectionLabel>Export</MenuSectionLabel>
+      <Submenu itemKey="format" label="Choose format">
+        <MenuItem itemKey="csv" label="CSV" onAction={() => {}} />
+        <MenuItem itemKey="json" label="JSON" onAction={() => {}} />
+      </Submenu>
+    </MenuSection>
+    <MenuFooter>Additional actions can go here</MenuFooter>
+  </DropdownMenu>
+</Storybook.Demo>
+
+`MenuSearchField` is controlled. Filter the declared options in the caller; `CompactSelect`'s existing `search` prop remains available for array based options.
+
+export function SearchableComposedSelect() {
+  const [query, setQuery] = useState('');
+  const [value, setValue] = useState();
+  return (
+    <CompactSelect value={value} onChange={option => setValue(option.value)}>
+      <MenuHeader>
+        <MenuSearchField aria-label="Filter fruit" value={query} onChange={setQuery} />
+      </MenuHeader>
+      <MenuSection sectionKey="fruit">
+        <MenuSectionLabel>Fruit</MenuSectionLabel>
+        {'Apple'.toLowerCase().includes(query.toLowerCase()) && (
+          <ListItem value="apple" label="Apple" />
+        )}
+        {'Pear'.toLowerCase().includes(query.toLowerCase()) && (
+          <ListItem value="pear" label="Pear" />
+        )}
+      </MenuSection>
+      <MenuFooter>Choose one fruit</MenuFooter>
+    </CompactSelect>
+  );
+}
+
+<Storybook.Demo>
+  <SearchableComposedSelect />
+</Storybook.Demo>

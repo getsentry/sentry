@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import maxBy from 'lodash/maxBy';
 import type {DistributedOmit} from 'type-fest';
 
+import {composeSelect} from '@sentry/scraps/menu/collection';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
@@ -42,12 +43,31 @@ export type SingleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> 
 export type MultipleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
   DistributedOmit<MultipleListProps<Value>, 'children' | 'items' | 'mode' | 'label'>;
 
+export type ComposedSelectProps<Value extends SelectKey> =
+  | (DistributedOmit<SingleSelectProps<Value>, 'options'> & {
+      children: React.ReactNode;
+      options?: never;
+    })
+  | (DistributedOmit<MultipleSelectProps<Value>, 'options'> & {
+      children: React.ReactNode;
+      options?: never;
+    });
+
 export type SelectProps<Value extends SelectKey> =
   | SingleSelectProps<Value>
   | MultipleSelectProps<Value>;
 
 // A series of TS function overloads to properly parse prop types across 2 dimensions:
 // option value types (number vs string), and selection mode (singular vs multiple)
+export function CompactSelect<Value extends number>(
+  props: ComposedSelectProps<Value>
+): React.JSX.Element;
+export function CompactSelect<Value extends string>(
+  props: ComposedSelectProps<Value>
+): React.JSX.Element;
+export function CompactSelect<Value extends SelectKey>(
+  props: ComposedSelectProps<Value>
+): React.JSX.Element;
 export function CompactSelect<Value extends number>(
   props: SelectProps<Value>
 ): React.JSX.Element;
@@ -61,30 +81,38 @@ export function CompactSelect<Value extends SelectKey>(
 /**
  * Flexible select component with a customizable trigger button
  */
-export function CompactSelect<Value extends SelectKey>({
-  // List props
-  options,
-  value,
-  onChange,
-  multiple,
-  clearable,
-  isOptionDisabled,
-  sizeLimit,
-  sizeLimitMessage,
-  virtualizeThreshold,
+export function CompactSelect<Value extends SelectKey>(
+  input: SelectProps<Value> | ComposedSelectProps<Value>
+) {
+  // Keep the existing overloads for option-driven callers' callback inference.
+  // In the composed overload, `options` is supplied by the child declarations below.
+  const {
+    // List props
+    options,
+    children,
+    value,
+    onChange,
+    multiple,
+    clearable,
+    isOptionDisabled,
+    sizeLimit,
+    sizeLimitMessage,
+    virtualizeThreshold,
 
-  // Control props
-  mode,
-  disabled,
-  emptyMessage,
-  size = 'md',
-  closeOnSelect,
-  menuWidth,
-  ...controlProps
-}: SelectProps<Value>) {
+    // Control props
+    mode,
+    disabled,
+    emptyMessage,
+    size = 'md',
+    closeOnSelect,
+    menuWidth,
+    ...controlProps
+  } = input as SelectProps<Value>;
   const {t} = useTranslation();
   const generatedTriggerId = useId();
   const triggerId = controlProps.triggerId ?? generatedTriggerId;
+  const composition = useMemo(() => composeSelect<Value>(children), [children]);
+  const resolvedOptions = options ?? composition.items;
 
   // Combine list props into an object with two clearly separated types, one where
   // `multiple` is true and the other where it's not. Necessary to avoid TS errors.
@@ -125,7 +153,7 @@ export function CompactSelect<Value extends SelectKey>({
   const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
   const [hasMeasured, setHasMeasured] = useState(false);
   const needsMeasuring =
-    !menuWidth && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
+    !menuWidth && !hasMeasured && shouldVirtualize(resolvedOptions, virtualizeThreshold);
 
   const menuRef = useCallback(
     (element: HTMLDivElement | null) => {
@@ -139,12 +167,15 @@ export function CompactSelect<Value extends SelectKey>({
     [needsMeasuring]
   );
 
-  const controlDisabled = disabled ?? options?.length === 0;
-  const allItemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
+  const controlDisabled = disabled ?? resolvedOptions.length === 0;
+  const allItemsWithKey = useMemo(
+    () => getItemsWithKeys(resolvedOptions),
+    [resolvedOptions]
+  );
 
   const longestOptionItemsWithKey = useMemo(() => {
     if (needsMeasuring) {
-      const longestOption = maxBy(options, option => {
+      const longestOption = maxBy(resolvedOptions, option => {
         if ('options' in option) {
           return 0;
         }
@@ -159,7 +190,7 @@ export function CompactSelect<Value extends SelectKey>({
       return longestOption ? getItemsWithKeys([longestOption]) : [];
     }
     return [];
-  }, [needsMeasuring, options]);
+  }, [needsMeasuring, resolvedOptions]);
   const itemsWithKey = needsMeasuring ? longestOptionItemsWithKey : allItemsWithKey;
 
   const componentTitle = useMemo(
@@ -196,6 +227,8 @@ export function CompactSelect<Value extends SelectKey>({
   return (
     <Control
       {...controlProps}
+      menuHeader={composition.header}
+      menuFooter={controlProps.menuFooter ?? composition.footer}
       menuWidth={menuWidth ?? measuredMenuWidth}
       // decrease height to 1px during measuring so that scrollbars are shown & measured
       menuHeight={needsMeasuring ? '1px' : undefined}
@@ -241,12 +274,18 @@ export function CompactSelect<Value extends SelectKey>({
         sizeLimit={sizeLimit}
         sizeLimitMessage={sizeLimitMessage}
         virtualized={shouldVirtualize(itemsWithKey, virtualizeThreshold)}
+        autoSectionSeparators={options !== undefined}
+        separatorBeforeKeys={composition.separatorBeforeKeys}
         aria-labelledby={triggerId}
       >
         {(item: SelectOptionOrSectionWithKey<Value>) => {
           if ('options' in item) {
             return (
-              <Section key={item.key} title={item.label}>
+              <Section
+                key={item.key}
+                title={item.label}
+                aria-label={'aria-label' in item ? item['aria-label'] : undefined}
+              >
                 {item.options.map(opt => (
                   <Item {...opt} key={opt.key}>
                     {opt.label}

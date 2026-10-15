@@ -10,7 +10,7 @@ interface CopyAsDropdownProps extends Omit<
   DropdownMenuProps,
   'trigger' | 'triggerLabel'
 > {
-  items: DropdownMenuProps['items'];
+  items: NonNullable<DropdownMenuProps['items']>;
 }
 
 export function CopyAsDropdown(props: CopyAsDropdownProps) {
