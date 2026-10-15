@@ -17,11 +17,10 @@ from slack_sdk.models.views import View
 from slack_sdk.webhook import WebhookClient
 
 from sentry import analytics, options
-from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
-from sentry.api.client import ApiClient
+from sentry.api.client import ApiClient, client
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
