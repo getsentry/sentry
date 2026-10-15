@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 
 import {
+  getOrganizationAvatarProps,
   getUserAvatarProps,
   OrganizationAvatar,
   UserAvatar,
@@ -17,16 +18,10 @@ import type {User} from 'sentry/types/user';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 type NavigationMenuHeaderProps =
-  | {
-      avatarProps: BaseAvatarProps;
-      organization: OrganizationSummary;
-      projectCount: number;
-      user?: never;
-    }
-  | {user: User; avatarProps?: never; organization?: never; projectCount?: never};
+  | {organization: OrganizationSummary; projectCount: number; user?: never}
+  | {user: User; organization?: never; projectCount?: never};
 
 export function NavigationMenuHeader({
-  avatarProps,
   organization,
   projectCount,
   user,
@@ -37,7 +32,7 @@ export function NavigationMenuHeader({
         label={t('Organization')}
         title={organization.name || organization.slug}
         subtitle={tn('%s Project', '%s Projects', projectCount)}
-        avatarProps={avatarProps}
+        avatarProps={getOrganizationAvatarProps(organization)}
         avatar={<OrganizationHeaderAvatar organization={organization} />}
       />
     );
