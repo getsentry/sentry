@@ -292,13 +292,13 @@ text_filter
 
 // Filter keys
 key
-  = key:[a-zA-Z0-9_.-]+ {
-      return tc.tokenKeySimple(key.join(''), false);
+  = key:$[a-zA-Z0-9_.-]+ {
+      return tc.tokenKeySimple(key, false);
     }
 
 escaped_key
-  = key:[a-zA-Z0-9_.:-]+ {
-      return tc.tokenKeySimple(key.join(''), false);
+  = key:$[a-zA-Z0-9_.:-]+ {
+      return tc.tokenKeySimple(key, false);
     }
 
 quoted_key
@@ -378,13 +378,13 @@ aggregate_param
   = explicit_tag_aggregate_param / quoted_aggregate_param / raw_aggregate_param
 
 raw_aggregate_param
-  = param:[^()\t\n, \"]+ {
-      return tc.tokenKeyAggregateParam(param.join(''), false);
+  = param:$[^()\t\n, \"]+ {
+      return tc.tokenKeyAggregateParam(param, false);
     }
 
 quoted_aggregate_param
-  = '"' param:('\\"' / [^\t\n\"])* '"' {
-      return tc.tokenKeyAggregateParam(`"${param.join('')}"`, true);
+  = '"' param:$('\\"' / [^\t\n\"])* '"' {
+      return tc.tokenKeyAggregateParam(`"${param}"`, true);
     }
 
 explicit_tag_aggregate_param
@@ -401,13 +401,13 @@ text_key
 // Filter values
 
 value
-  = value:[^()\t\n ]* {
-      return tc.tokenValueText(value.join(''), false);
+  = value:$[^()\t\n ]* {
+      return tc.tokenValueText(value, false);
     }
 
 quoted_value
-  = '"' value:('\\"' / [^"])* '"' {
-      return tc.tokenValueText(value.join(''), true);
+  = '"' value:$('\\"' / [^"])* '"' {
+      return tc.tokenValueText(value, true);
     }
 
 in_value
@@ -485,8 +485,8 @@ iso_8601_date_format
     }
 
 rel_date_format
-  = sign:[+-] value:[0-9]+ unit:[wdhm] &end_value {
-      return tc.tokenValueRelativeDate(value.join(''), sign, unit);
+  = sign:[+-] value:$[0-9]+ unit:[wdhm] &end_value {
+      return tc.tokenValueRelativeDate(value, sign, unit);
     }
 
 duration_format

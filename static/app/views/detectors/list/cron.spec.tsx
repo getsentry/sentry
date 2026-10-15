@@ -28,10 +28,6 @@ describe('CronDetectorsList', () => {
     },
   };
 
-  afterEach(() => {
-    fetchMock.resetMocks();
-  });
-
   beforeEach(() => {
     ConfigStore.set('statuspage', {
       id: 'sentry',
@@ -74,6 +70,10 @@ describe('CronDetectorsList', () => {
         return 50;
       },
     });
+  });
+
+  afterEach(() => {
+    fetchMock.resetMocks();
   });
 
   it('displays empty state when no cron monitors are found', async () => {

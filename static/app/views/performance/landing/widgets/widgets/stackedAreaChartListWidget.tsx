@@ -15,11 +15,11 @@ import {
 } from 'sentry/utils/discover/charts';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {
   canUseMetricsData,
   useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {withApi} from 'sentry/utils/withApi';

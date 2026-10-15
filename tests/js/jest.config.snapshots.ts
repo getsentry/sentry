@@ -1,0 +1,128 @@
+import path from 'node:path';
+import process from 'node:process';
+import {fileURLToPath} from 'node:url';
+
+import type {Config} from '@jest/types';
+import type {Options as SwcOptions} from '@swc/core';
+
+const {CI, GITHUB_PR_SHA, GITHUB_PR_REF, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT, SENTRY_DSN} =
+  process.env;
+
+// `GITHUB_PR_REF` is the head branch name on pull requests, but a fully qualified
+// ref (`refs/heads/master`) on pushes. Normalize both down to a bare branch name
+// for tagging. Keep the master check on the raw ref: only a push to master is
+// `refs/heads/master`, so a pull request opened from a branch named `master`
+// stays `ci:pull_request`.
+const BRANCH = GITHUB_PR_REF?.replace(/^refs\/heads\//, '');
+const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
+
+const rootDir = path.resolve(import.meta.dirname, '../..');
+
+const swcConfig: SwcOptions = {
+  isModule: true,
+  module: {
+    type: 'commonjs',
+  },
+  sourceMaps: 'inline',
+  jsc: {
+    target: 'esnext',
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+      dynamicImport: true,
+    },
+    transform: {
+      react: {
+        runtime: 'automatic',
+        importSource: '@emotion/react',
+      },
+    },
+    experimental: {
+      plugins: [
+        [fileURLToPath(import.meta.resolve('@swc-contrib/mut-cjs-exports')), {}],
+        [
+          fileURLToPath(import.meta.resolve('@swc/plugin-emotion')),
+          {
+            sourceMap: false,
+            autoLabel: 'never',
+          },
+        ],
+      ],
+    },
+  },
+};
+
+/**
+ * ESM packages that need to be transformed.
+ */
+const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color'];
+
+const config: Config.InitialOptions = {
+  rootDir,
+  testTimeout: 30_000,
+  cacheDirectory: '.cache/jest-snapshots',
+  // testEnvironment and testMatch are the core differences between this and the main config
+  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment-node.cjs',
+  testMatch: ['<rootDir>/static/**/*.snapshots.tsx'],
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/static/packages/scraps/'],
+  // Coding agents check out nested git worktrees under .claude/worktrees/, each a
+  // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual
+  // mock in static/ collides with its copies and the file that ends up backing
+  // jest.mock() is decided by crawl order. Keep the module map to this checkout.
+  modulePathIgnorePatterns: ['<rootDir>/\\.claude/'],
+  testEnvironmentOptions: {
+    sentryConfig: {
+      init: {
+        dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
+        environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
+        tracesSampleRate: CI ? 0.75 : 0,
+        profilesSampleRate: 0,
+        transportOptions: {keepAlive: true},
+      },
+      // Applied to the isolation scope, so these land on error events as well as
+      // on the test suite and test transactions.
+      tags: {
+        'ci.branch': BRANCH,
+        'ci.commit': GITHUB_PR_SHA,
+        'ci.github_run_attempt': GITHUB_RUN_ATTEMPT,
+        'ci.github_actions_run': `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,
+      },
+    },
+  },
+
+  setupFiles: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-framework.ts'],
+
+  resolver: '<rootDir>/tests/js/jestReactRouterResolver.cjs',
+  moduleNameMapper: {
+    '^\\./storyManifest\\.generated$':
+      '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
+    '\\.(css|less|png|gif|jpg|woff|mp4)$':
+      '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
+    '^@sentry/scraps/text$': '<rootDir>/static/app/components/core/text',
+    '^@sentry/scraps$': '<rootDir>/static/packages/scraps/src/index.ts',
+    // The app falls back to core components until they move into scraps.
+    '^@sentry/scraps/(.*)$': [
+      '<rootDir>/static/packages/scraps/src/$1',
+      '<rootDir>/static/app/components/core/$1',
+    ],
+    '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
+    '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
+    '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+    '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
+  },
+
+  transform: {
+    '^.+\\.[mc]?[jt]sx?$': [fileURLToPath(import.meta.resolve('@swc/jest')), swcConfig],
+    '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
+  },
+  transformIgnorePatterns: [
+    ESM_NODE_MODULES.length
+      ? `/node_modules/.pnpm/(?!${ESM_NODE_MODULES.join('|')})`
+      : '/node_modules/',
+  ],
+
+  moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
+};
+
+export default config;

@@ -3,9 +3,14 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const compatibilityDirectory = path.join(root, 'static/app/utils/reactRouterV6');
 const sourceDirectories = [path.join(root, 'static'), path.join(root, 'tests/js')];
-const workspaceDirectories = ['app', 'gsApp', 'gsAdmin'].map(directory =>
+const appDirectories = ['app', 'gsApp', 'gsAdmin'].map(directory =>
   path.join(root, 'static', directory)
 );
+const workspaceDirectories = [
+  path.join(root, 'tests/js/getsentry-test'),
+  path.join(root, 'tests/js'),
+  ...appDirectories,
+];
 
 /** @type {import('jest-resolve').SyncResolver} */
 module.exports = function resolveReactRouter(request, options) {
@@ -15,9 +20,16 @@ module.exports = function resolveReactRouter(request, options) {
       options.basedir.startsWith(`${directory}${path.sep}`)
   );
   if (workspaceDirectory && !options.basedir.split(path.sep).includes('node_modules')) {
+    // The root owns application testing. App specs use its test packages without
+    // adding a reverse dependency from an app to its app-aware test support.
+    const isRootTestImport =
+      appDirectories.includes(workspaceDirectory) &&
+      /^(sentry-test|sentry-fixture|getsentry-test)(\/|$)/.test(request);
     options = {
       ...options,
-      moduleDirectory: [path.join(workspaceDirectory, 'node_modules')],
+      moduleDirectory: [
+        path.join(isRootTestImport ? root : workspaceDirectory, 'node_modules'),
+      ],
       paths: [],
     };
   }

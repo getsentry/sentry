@@ -8,9 +8,9 @@ import type {
   AggregationKeyWithAlias,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {sortSelectedFirst} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/utils';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {
   buildTraceMetricAggregate,
   getTraceMetricAggregateActionType,

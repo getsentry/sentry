@@ -245,6 +245,62 @@ describe('searchSyntax/parser', () => {
     });
   });
 
+  it('returns the matched text for keys, values, and aggregate params', () => {
+    const result = parseSearch(
+      'tags[foo:bar]:baz browser.name-1:"Fire \\"fox\\"" device.family: count_if(user.email,equals,"I, got \\"quotes\\""):>100 firstSeen:+7d'
+    );
+
+    const filters = result!.filter(
+      (token): token is TokenResult<Token.FILTER> => token.type === Token.FILTER
+    );
+    expect(filters).toHaveLength(5);
+
+    expect(filters[0]).toMatchObject({
+      key: {
+        type: Token.KEY_EXPLICIT_TAG,
+        key: {type: Token.KEY_SIMPLE, value: 'foo:bar', quoted: false},
+      },
+      value: {type: Token.VALUE_TEXT, value: 'baz', quoted: false},
+    });
+    expect(filters[1]).toMatchObject({
+      key: {type: Token.KEY_SIMPLE, value: 'browser.name-1', quoted: false},
+      value: {type: Token.VALUE_TEXT, value: 'Fire \\"fox\\"', quoted: true},
+    });
+    expect(filters[2]).toMatchObject({
+      key: {type: Token.KEY_SIMPLE, value: 'device.family'},
+      value: {type: Token.VALUE_TEXT, value: '', quoted: false},
+    });
+    expect(filters[3]).toMatchObject({
+      key: {
+        type: Token.KEY_AGGREGATE,
+        name: {type: Token.KEY_SIMPLE, value: 'count_if'},
+        args: {
+          args: [
+            {
+              value: {
+                type: Token.KEY_AGGREGATE_PARAMS,
+                value: 'user.email',
+                quoted: false,
+              },
+            },
+            {value: {type: Token.KEY_AGGREGATE_PARAMS, value: 'equals', quoted: false}},
+            {
+              value: {
+                type: Token.KEY_AGGREGATE_PARAMS,
+                value: '"I, got \\"quotes\\""',
+                quoted: true,
+              },
+            },
+          ],
+        },
+      },
+    });
+    expect(filters[4]).toMatchObject({
+      key: {type: Token.KEY_SIMPLE, value: 'firstSeen'},
+      value: {type: Token.VALUE_RELATIVE_DATE, value: '7', sign: '+', unit: 'd'},
+    });
+  });
+
   it('returns token warnings', () => {
     const result = parseSearch('foo:bar bar:baz tags[foo]:bar tags[bar]:baz', {
       getFilterTokenWarning: key => (key === 'foo' ? 'foo warning' : null),

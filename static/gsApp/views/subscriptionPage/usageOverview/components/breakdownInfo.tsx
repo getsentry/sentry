@@ -21,6 +21,7 @@ import type {
 import {
   checkIsAddOnChildCategory,
   displayBudgetName,
+  displayPriceWithCents,
   formatReservedWithUnits,
   getLineItemUnitType,
   getSoftCapType,
@@ -28,7 +29,6 @@ import {
   supportsPayg,
 } from 'getsentry/utils/billing';
 import {calculateSeerUserSpend} from 'getsentry/utils/dataCategory';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 interface BaseProps {
   activeProductTrial: ProductTrial | null;

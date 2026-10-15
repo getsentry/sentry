@@ -201,8 +201,11 @@ describe('Explore Investigations', () => {
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('refreshes running title and summary generation in the list', async () => {

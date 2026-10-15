@@ -12,6 +12,7 @@ import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {
   findSuggestedColumns,
+  getFirstSamplingWarning,
   getSamplingWarningReason,
   getYAxisDiscoverSavedQuery,
   isSamplingSensitiveAggregate,
@@ -610,9 +611,10 @@ function seriesWithSampleRates(sampleRates: Array<number | null>): TimeSeries[] 
 describe('isSamplingSensitiveAggregate', () => {
   it.each([
     'count_unique(user)',
-    'failure_count()',
-    'failure_rate()',
+    'min(span.duration)',
+    'max(span.duration)',
     'count_unique_if(`span.op:db`,user)',
+    'max_if(`span.op:db`,span.duration)',
   ])('returns true for sampling-sensitive aggregate %s', aggregate => {
     expect(isSamplingSensitiveAggregate(aggregate)).toBe(true);
   });
@@ -621,6 +623,8 @@ describe('isSamplingSensitiveAggregate', () => {
     'count()',
     'avg(span.duration)',
     'p50(span.duration)',
+    'failure_count()',
+    'failure_rate()',
     'count_if(`span.op:db`,span.duration)',
   ])('returns false for non-sensitive aggregate %s', aggregate => {
     expect(isSamplingSensitiveAggregate(aggregate)).toBe(false);
@@ -713,6 +717,45 @@ describe('getSamplingWarningReason', () => {
   it('returns null when the series only contains empty timeseries', () => {
     expect(
       getSamplingWarningReason('count_unique(user)', seriesWithSampleRates([]), 'partial')
+    ).toBeNull();
+  });
+});
+
+describe('getFirstSamplingWarning', () => {
+  it('returns the first sampling-sensitive yAxis that has a warning', () => {
+    expect(
+      getFirstSamplingWarning(
+        ['avg(span.duration)', 'max(span.duration)', 'count_unique(user)'],
+        {
+          'avg(span.duration)': seriesWithSampleRates([0.05]),
+          'max(span.duration)': seriesWithSampleRates([0.05]),
+          'count_unique(user)': seriesWithSampleRates([0.05]),
+        },
+        'full'
+      )
+    ).toEqual({yAxis: 'max(span.duration)', reason: 'lowSampleRate'});
+  });
+
+  it('skips sensitive yAxes without plotted data', () => {
+    expect(
+      getFirstSamplingWarning(
+        ['min(span.duration)', 'count_unique(user)'],
+        {'count_unique(user)': seriesWithSampleRates([1])},
+        'partial'
+      )
+    ).toEqual({yAxis: 'count_unique(user)', reason: 'partialData'});
+  });
+
+  it('returns null when no yAxis has a warning', () => {
+    expect(
+      getFirstSamplingWarning(
+        ['avg(span.duration)', 'max(span.duration)'],
+        {
+          'avg(span.duration)': seriesWithSampleRates([0.05]),
+          'max(span.duration)': seriesWithSampleRates([1]),
+        },
+        'full'
+      )
     ).toBeNull();
   });
 });

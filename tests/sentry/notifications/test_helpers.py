@@ -20,6 +20,7 @@ from sentry.notifications.utils.links import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -92,7 +93,7 @@ class NotificationHelpersTest(TestCase):
 
     def test_get_group_settings_link(self) -> None:
         rule: Rule = self.create_project_rule(self.project)
-        origin = NotificationOrigin.from_legacy_rule(rule)
+        origin = create_notification_origin(rule)
         rule_details = get_rules([origin], self.organization, self.project, self.group.type)
         assert rule_details[0].id == rule.id
         assert rule_details[0].status_url == (
@@ -117,11 +118,12 @@ class NotificationHelpersTest(TestCase):
 
     def test_get_rules_uses_workflow_identity_without_legacy_rule(self) -> None:
         rule = self.create_project_rule(self.project, include_legacy_rule_id=False)
-        origin = NotificationOrigin.from_legacy_rule(rule)
+        origin = create_notification_origin(rule)
 
         [rule_details] = get_rules([origin], self.organization, self.project)
 
-        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+        workflow_id = origin.workflow_id
+        assert workflow_id is not None
         assert rule_details.id == workflow_id
         assert rule_details.status_url == (
             f"/organizations/{self.organization.slug}/monitors/alerts/{workflow_id}/"
@@ -131,7 +133,7 @@ class NotificationHelpersTest(TestCase):
         rule = self.create_project_rule(
             self.project, include_legacy_rule_id=False, include_workflow_id=False
         )
-        origin = NotificationOrigin.from_legacy_rule(rule)
+        origin = create_notification_origin(rule)
 
         [rule_details] = get_rules([origin], self.organization, self.project)
 
@@ -147,7 +149,7 @@ class NotificationHelpersTest(TestCase):
         workflow_id = rule.data["actions"][0]["workflow_id"]
         rule.data["actions"][0]["workflow_id"] = str(workflow_id)
 
-        origin = NotificationOrigin.from_legacy_rule(rule)
+        origin = create_notification_origin(rule)
 
         assert origin.label == rule.label
         assert origin.legacy_rule_id == rule.id
@@ -169,8 +171,8 @@ class NotificationHelpersTest(TestCase):
         project2 = self.create_project()
         rule2 = self.create_project_rule(project2)
         origins = [
-            NotificationOrigin.from_legacy_rule(rule),
-            NotificationOrigin.from_legacy_rule(rule2),
+            create_notification_origin(rule),
+            create_notification_origin(rule2),
         ]
 
         rule_details = get_rules(origins, self.organization, self.project, self.group.type)

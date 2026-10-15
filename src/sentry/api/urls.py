@@ -74,7 +74,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
 )
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
-from sentry.api.endpoints.project_web_vitals_detection import ProjectWebVitalsDetectionEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -312,6 +311,9 @@ from sentry.investigations.endpoints.organization_investigation_block_order impo
 )
 from sentry.investigations.endpoints.organization_investigation_candidates import (
     OrganizationInvestigationCandidatesEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_comment_counts import (
+    OrganizationInvestigationCommentCountsEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_comment_details import (
     OrganizationInvestigationCommentDetailsEndpoint,
@@ -897,7 +899,6 @@ from .endpoints.project_repo import ProjectRepoEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
 from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_servicehook_details import ProjectServiceHookDetailsEndpoint
-from .endpoints.project_servicehook_stats import ProjectServiceHookStatsEndpoint
 from .endpoints.project_servicehooks import ProjectServiceHooksEndpoint
 from .endpoints.project_symbol_sources import ProjectSymbolSourcesEndpoint
 from .endpoints.project_tagkey_details import ProjectTagKeyDetailsEndpoint
@@ -2496,6 +2497,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigation-comments",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comment-counts/$",
+        OrganizationInvestigationCommentCountsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-comment-counts",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comments/(?P<comment_id>[^/]+)/$",
         OrganizationInvestigationCommentDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-comment-details",
@@ -3089,11 +3095,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-service-hook-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/hooks/(?P<hook_id>[^/]+)/stats/$",
-        ProjectServiceHookStatsEndpoint.as_view(),
-        name="sentry-api-0-project-service-hook-stats",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/(?:issues|groups)/$",
         ProjectGroupIndexEndpoint.as_view(),
         name="sentry-api-0-project-group-index",
@@ -3337,11 +3338,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/performance/configure/$",
         ProjectPerformanceGeneralSettingsEndpoint.as_view(),
         name="sentry-api-0-project-performance-general-settings",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/web-vitals-detector/$",
-        ProjectWebVitalsDetectionEndpoint.as_view(),
-        name="sentry-api-0-project-web-vitals-detection",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/legacy-webhooks/$",

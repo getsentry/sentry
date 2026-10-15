@@ -3,7 +3,11 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
-import {transformTimeSeriesResponseToSeries} from './transformTimeSeriesResponseToSeries';
+import {
+  getIngestionCompleteThrough,
+  transformTimeSeriesResponseToSeries,
+  type WidgetSeries,
+} from './transformTimeSeriesResponseToSeries';
 
 function makeTimeSeries(
   yAxis: string,
@@ -120,5 +124,38 @@ describe('transformTimeSeriesResponseToSeries', () => {
       {name: 1000, value: 1},
       {name: 2000, value: 3},
     ]);
+  });
+
+  it('attaches ingestion metadata from the response', () => {
+    const ingestion = {status: 'healthy' as const, completeThrough: 1500};
+    const [series] = transformTimeSeriesResponseToSeries(
+      {
+        timeSeries: [makeTimeSeries('count()')],
+        meta: {dataset: 'spans' as any, start: 0, end: 2000, ingestion},
+      },
+      WidgetQueryFixture({name: ''})
+    );
+
+    expect(series!.ingestion).toEqual(ingestion);
+  });
+
+  describe('getIngestionCompleteThrough', () => {
+    it('returns the complete through timestamp', () => {
+      const series: WidgetSeries[] = [
+        {
+          seriesName: 'series',
+          data: [],
+          ingestion: {status: 'healthy', completeThrough: 2000},
+        },
+      ];
+
+      expect(getIngestionCompleteThrough(series)).toBe(2000);
+    });
+
+    it('returns undefined when no series measured ingestion', () => {
+      expect(
+        getIngestionCompleteThrough([{seriesName: 'series', data: []}])
+      ).toBeUndefined();
+    });
   });
 });

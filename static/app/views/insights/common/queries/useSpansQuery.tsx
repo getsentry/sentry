@@ -524,5 +524,12 @@ export function getStaleTimeForEventView(eventView: EventView) {
   if (usesRelativeDateRange) {
     return getStaleTimeForRelativePeriodTable(eventView.statsPeriod);
   }
+  if (isEventViewEndInFuture(eventView)) {
+    return 0;
+  }
   return Infinity;
+}
+
+export function isEventViewEndInFuture(eventView: EventView) {
+  return defined(eventView.end) && moment.utc(eventView.end).isAfter();
 }

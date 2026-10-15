@@ -116,6 +116,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:expose-migrated-discover-queries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable organization investigation notebooks.
     manager.add("organizations:investigations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable starting investigations from Slack metric alerts. Needs investigations too.
+    manager.add("organizations:investigations-slack", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable AI search bar on the issues page
     manager.add("organizations:gen-ai-issues-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable LLM-generated title and description for external issue details
@@ -125,6 +127,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:inbound-filters-v2-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Suggest a name for a custom inbound filter draft with Seer. Needs inbound-filters-v2 too.
     manager.add("organizations:inbound-filters-name-suggestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Offer custom inbound filter entry points outside of project settings, e.g. in the issue actions menu. Needs inbound-filters-v2 and inbound-filters-v2-ui too.
+    manager.add("organizations:inbound-filters-in-product-flows", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Double write the legacy inbound filter lists into custom filter rows for this org, ahead of the per-list stage option.
     manager.add("organizations:inbound-filters-legacy-double-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Serve the legacy IP address list to Relay as a generic filter instead of the native clientIps setting.
@@ -139,6 +143,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:measured-ingestion-delay-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-gcp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-slack-staging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Lets Vercel builds call the API with Vercel's OIDC token instead of SENTRY_AUTH_TOKEN
+    manager.add("organizations:integrations-vercel-oidc-auth", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:integrations-vercel-upsert-env-var", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:integrations-datadog", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-cursor-origin", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -261,6 +267,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer Agent panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the Seer Automations UI and APIs
+    manager.add("organizations:seer-automations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Agent Index job
     manager.add("organizations:seer-explorer-index", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer agentic triage scheduled autofix
@@ -377,8 +385,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-summary-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Generate an issue summary when an issue is assigned for the first time
     manager.add("organizations:issue-summary-on-first-assignment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Show the "recommended" sort as an option in the issue stream sort dropdown
-    manager.add("organizations:issue-stream-recommended-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Make the "recommended" sort the default sort in the issue stream
     manager.add("organizations:issue-stream-recommended-sort-default", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Serve the recommended_v2 scorer behind the issue stream's "recommended" sort
@@ -557,6 +563,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enables uploading streams to objectstore via multipart uploads.
     # See <https://getsentry.github.io/objectstore/rust/objectstore_service/multipart/>.
     manager.add("projects:relay-upload-multipart", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables resumable TUS uploads on the /upload endpoint.
+    manager.add("projects:resumable-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
 
     # Enable lightweight RCA clustering write path (generate embeddings on new issues)
     manager.add("organizations:supergroups-lightweight-rca-clustering-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
