@@ -54,9 +54,7 @@ export function NavigationMenuHeader({
           height="32px"
           radius="full"
           overflow="hidden"
-          css={theme => css`
-            border: 1px solid ${theme.tokens.border.transparent.neutral.muted};
-          `}
+          border="muted"
         >
           <UserAvatar user={user} size={30} />
         </Container>
@@ -69,15 +67,7 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
   const lightTheme = useInvertedTheme();
 
   return (
-    <Container
-      width="32px"
-      height="32px"
-      radius="md"
-      overflow="hidden"
-      css={theme => css`
-        border: 1px solid ${theme.tokens.border.transparent.neutral.muted};
-      `}
-    >
+    <Container width="32px" height="32px" radius="md" overflow="hidden" border="muted">
       <ThemeProvider theme={lightTheme}>
         <OrganizationAvatar organization={organization} size={30} />
       </ThemeProvider>
