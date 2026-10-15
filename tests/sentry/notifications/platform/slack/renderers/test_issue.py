@@ -88,10 +88,6 @@ class IssueAlertInvocationMixin(TestCase):
 
 
 class IssueNotificationDataTest(IssueAlertInvocationMixin):
-    def test_rule_proxy_requires_identity(self) -> None:
-        with pytest.raises(ValueError, match="workflow_id or legacy_rule_id is required"):
-            SerializableRuleProxy(label="No identity")
-
     def test_rule_proxy_is_frozen(self) -> None:
         proxy = SerializableRuleProxy(label="Test Detector", workflow_id=1)
 

@@ -25,42 +25,6 @@ class NotificationOrigin:
             self.workflow_id == TEST_NOTIFICATION_ID or self.legacy_rule_id == TEST_NOTIFICATION_ID
         )
 
-    @classmethod
-    def from_legacy_data(
-        cls,
-        *,
-        label: str,
-        environment_id: int | None,
-        data: dict[str, Any],
-        fallback_legacy_rule_id: int,
-    ) -> NotificationOrigin:
-        actions = data.get("actions")
-        first_action = actions[0] if isinstance(actions, list) and actions else {}
-        if not isinstance(first_action, dict):
-            first_action = {}
-        workflow_id = first_action.get("workflow_id")
-        legacy_rule_id = first_action.get("legacy_rule_id")
-
-        workflow_id = int(workflow_id) if workflow_id is not None else None
-        legacy_rule_id = int(legacy_rule_id) if legacy_rule_id is not None else None
-
-        if (
-            fallback_legacy_rule_id == TEST_NOTIFICATION_ID
-            or workflow_id == TEST_NOTIFICATION_ID
-            or legacy_rule_id == TEST_NOTIFICATION_ID
-        ):
-            workflow_id = None
-            legacy_rule_id = TEST_NOTIFICATION_ID
-        elif workflow_id is None and legacy_rule_id is None:
-            legacy_rule_id = fallback_legacy_rule_id
-
-        return cls(
-            label=label,
-            environment_id=environment_id,
-            workflow_id=workflow_id,
-            legacy_rule_id=legacy_rule_id,
-        )
-
     @property
     def identifier(self) -> tuple[str, int]:
         """Stable identity used to compare and group notification origins."""

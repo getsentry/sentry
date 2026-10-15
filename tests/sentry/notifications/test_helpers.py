@@ -143,25 +143,12 @@ class NotificationHelpersTest(TestCase):
             f"{self.project.slug}/{rule.id}/details/"
         )
 
-    def test_notification_origin_normalizes_legacy_identity(self) -> None:
-        rule = self.create_project_rule(self.project)
-        rule.data["actions"][0]["legacy_rule_id"] = str(rule.id)
-        workflow_id = rule.data["actions"][0]["workflow_id"]
-        rule.data["actions"][0]["workflow_id"] = str(workflow_id)
-
-        origin = create_notification_origin(rule)
-
-        assert origin.label == rule.label
-        assert origin.legacy_rule_id == rule.id
-        assert origin.workflow_id == workflow_id
-        assert not origin.is_test_notification()
-
     def test_notification_origin_identifies_test_notification(self) -> None:
-        origin = NotificationOrigin.from_legacy_data(
+        origin = NotificationOrigin(
             label="Test notification",
             environment_id=None,
-            data={},
-            fallback_legacy_rule_id=TEST_NOTIFICATION_ID,
+            workflow_id=None,
+            legacy_rule_id=TEST_NOTIFICATION_ID,
         )
 
         assert origin.is_test_notification()

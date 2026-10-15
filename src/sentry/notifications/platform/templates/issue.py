@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, root_validator
+from pydantic import BaseModel
 
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
@@ -31,12 +31,6 @@ class SerializableRuleProxy(BaseModel):
     id: int | None = None
     data: dict[str, Any] = {}
     project_id: int | None = None
-
-    @root_validator(skip_on_failure=True)
-    def _require_identity(cls, values: dict[str, Any]) -> dict[str, Any]:
-        if values.get("workflow_id") is None and values.get("legacy_rule_id") is None:
-            raise ValueError("workflow_id or legacy_rule_id is required")
-        return values
 
     @classmethod
     def from_origin(
