@@ -24,9 +24,12 @@ import {
   NAME_PREFIX,
   toDraft,
   toRequest,
+  variableNames,
   type FormulaDraft,
 } from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
 import {ParametersSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/parametersSection';
+import {ReferencesSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/referencesSection';
+import {FormulaEquationInput} from 'sentry/views/explore/savedFormulas/formulaEquationInput';
 
 const DATASET_OPTIONS: Array<{label: string; value: FormulaDataset}> = [
   {value: 'spans', label: t('Spans')},
@@ -127,15 +130,23 @@ export function FormulaBuilder({
           onChange={params => setDraft({...draft, params})}
         />
 
+        <ReferencesSection
+          dataset={draft.dataset}
+          params={draft.params}
+          references={draft.references}
+          onChange={references => setDraft({...draft, references})}
+        />
+
         <BuilderSection
           title={t('Formula')}
-          description={t('The expression this formula evaluates when it is used.')}
+          description={t(
+            'Combines the parameters and references into the value the formula returns.'
+          )}
         >
-          <Input
+          <FormulaEquationInput
             value={draft.formula}
-            placeholder={t('count() / count_unique(user)')}
-            aria-label={t('Formula')}
-            onChange={event => setDraft({...draft, formula: event.target.value})}
+            names={variableNames(draft)}
+            onChange={expression => setDraft({...draft, formula: expression})}
           />
         </BuilderSection>
 
