@@ -193,7 +193,10 @@ test('CI runner executes repository-relative file selections in workspace direct
 test('standalone package configs discover tests only on shard zero', async t => {
   const {directory, copy, env} = fixture(t);
   copy('scripts/jestSingleShard.js');
-  for (const name of ['icons', 'scraps']) {
+  for (const [name, pattern] of [
+    ['icons', '<rootDir>/src/**/*.spec.tsx'],
+    ['scraps', '<rootDir>/src/**/*.spec.{ts,tsx}'],
+  ]) {
     const config = `static/packages/${name}/jest.config.mjs`;
     copy(config);
     const source = `import config from ${JSON.stringify(path.join(directory, config))}; process.stdout.write(JSON.stringify(config.testMatch));`;
@@ -202,9 +205,7 @@ test('standalone package configs discover tests only on shard zero', async t => 
         env: {...env, CI: shard ? 'true' : '', CI_NODE_TOTAL: '2', CI_NODE_INDEX: shard},
       });
       assert.deepEqual(JSON.parse(result.stdout), [
-        shard === '1'
-          ? '<rootDir>/__no_tests_for_this_shard__'
-          : '<rootDir>/src/**/*.spec.tsx',
+        shard === '1' ? '<rootDir>/__no_tests_for_this_shard__' : pattern,
       ]);
     }
   }
