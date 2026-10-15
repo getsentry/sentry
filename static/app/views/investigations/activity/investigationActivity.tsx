@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -12,11 +11,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {ProgressState} from 'sentry/types/group';
-import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {investigationCommentsQueryOptions} from 'sentry/views/investigations/api';
 import {CommentComposer} from 'sentry/views/investigations/comments/commentComposer';
+import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/cell';
 import type {
   InvestigationComment,
@@ -29,18 +26,6 @@ import {
   ActivityLineRow,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {ActivityProgressMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker/progressMarker';
-
-export function useInvestigationComments(investigationId: string) {
-  const organization = useOrganization();
-  return useQuery({
-    ...investigationCommentsQueryOptions({
-      organizationSlug: organization.slug,
-      investigationId,
-    }),
-    refetchInterval: 10_000,
-    select: selectJsonWithHeaders,
-  });
-}
 
 export function InvestigationActivity({
   investigation,

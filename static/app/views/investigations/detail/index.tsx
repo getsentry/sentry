@@ -31,10 +31,7 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {
-  InvestigationActivity,
-  useInvestigationComments,
-} from 'sentry/views/investigations/activity/investigationActivity';
+import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
 import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
@@ -44,6 +41,7 @@ import {
   useDuplicateInvestigationMutation,
   useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
+import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {
   InvestigationCell,
   isBlockWorking,
