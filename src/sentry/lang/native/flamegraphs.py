@@ -13,6 +13,7 @@ from sentry.attachments import (
 from sentry.ingest.consumer import CACHE_TIMEOUT
 from sentry.models.project import Project
 
+# See: https://develop.sentry.dev/sdk/telemetry/attachments/#flame-graph-validation-and-limits
 MAX_FLAMEGRAPH_SIZE = 10 * 1024 * 1024
 MAX_SYMBOLICATION_FRAMES = 2500
 MAX_SAMPLE_COUNT = 9007199254740991
