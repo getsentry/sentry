@@ -1,8 +1,7 @@
 import {usePopper} from 'react-popper';
+import {renderHook} from '@testing-library/react';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
-
-import {useOverlay} from 'sentry/utils/useOverlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 jest.mock('react-popper', () => ({
   usePopper: jest.fn(),

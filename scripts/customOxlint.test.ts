@@ -29,7 +29,7 @@ test('boundary resolver resolves app aliases with workspace project references',
   const options = lintConfig.settings['import/resolver'].typescript;
 
   for (const [specifier, target] of [
-    ['sentry/components/overlay', 'static/app/components/overlay.tsx'],
+    ['@sentry/scraps/overlay', 'static/packages/scraps/src/overlay.tsx'],
     ['sentry/stories/storybook', 'static/app/stories/storybook.tsx'],
     ['@sentry/icons/add', 'static/packages/icons/src/iconAdd.tsx'],
   ] as const) {

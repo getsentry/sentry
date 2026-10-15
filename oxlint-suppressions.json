@@ -1686,11 +1686,6 @@
       "count": 2
     }
   },
-  "static/app/utils/useHoverOverlay.timing.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
-    }
-  },
   "static/app/utils/usePrevious.stories.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2

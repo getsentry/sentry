@@ -6,7 +6,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 
-import {useStableMergeRef} from 'sentry/utils/useStableMergeRef';
+import {useStableMergeRef} from '@sentry/scraps/useStableMergeRef';
 
 const INTERACTIVE_SELECTOR = [
   'a[href]',

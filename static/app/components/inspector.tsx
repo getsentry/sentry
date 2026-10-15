@@ -11,11 +11,11 @@ import {IconOpen} from '@sentry/icons/open';
 import {Tag} from '@sentry/scraps/badge';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Overlay} from 'sentry/components/overlay';
 import {
   ProfilingContextMenu,
   ProfilingContextMenuGroup,

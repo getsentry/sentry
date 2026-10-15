@@ -28,10 +28,11 @@ import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compa
 import {matchesHotkey} from '@sentry/scraps/hotkey';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Overlay} from 'sentry/components/overlay';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
   useSearchQueryBuilderAI,
@@ -51,7 +52,6 @@ import {
 } from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
   children: CollectionChildren<T>;

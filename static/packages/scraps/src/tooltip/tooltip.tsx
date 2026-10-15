@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {createContext, Fragment, useContext, useLayoutEffect} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
@@ -5,16 +6,10 @@ import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
-// Imported from the module rather than the `text` barrel on purpose. That
-// barrel also re-exports `Prose`, which reaches `code` -> `codeBlock` ->
-// `Button`, and `Button` imports this file — so going through it would close an
-// import cycle and leave `Button` undefined at module-eval time.
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text/text';
-
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import {defined} from 'sentry/utils/defined';
-import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
-import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
+import type {UseHoverOverlayProps} from '@sentry/scraps/useHoverOverlay';
+import {useHoverOverlay} from '@sentry/scraps/useHoverOverlay';
 
 interface TooltipContextProps {
   /**
@@ -93,44 +88,45 @@ function TooltipComponent({
   return (
     <Fragment>
       {wrapTrigger(children)}
-      {createPortal(
-        // Unmounting AnimatePresence (rather than toggling its child) skips
-        // the exit animation entirely. snapClosed is set when another overlay
-        // in the delay-group opens while this one was closing, preventing a
-        // fading-out trail beside the incoming tooltip.
-        snapClosed ? null : (
-          <AnimatePresence>
-            {isOpen ? (
-              <PositionWrapper
-                zIndex={theme.zIndex.tooltip}
-                {...overlayProps}
-                // The tooltip content is portaled to the document body, but
-                // React events still bubble through the React tree — so a click
-                // inside the tooltip would reach the trigger's interactive
-                // ancestor (a Link, tab, menu item, ...) and fire its action.
-                // Stop the interaction-initiating events here so interacting
-                // with tooltip content (selecting text, clicking a copy button)
-                // never triggers the element the tooltip is attached to.
-                onClick={stopPropagation}
-                onMouseDown={stopPropagation}
-                onPointerDown={stopPropagation}
-              >
-                <TooltipContent
-                  animated
-                  maxWidth={maxWidth}
-                  arrowProps={arrowProps}
-                  originPoint={arrowData}
-                  placement={placement}
-                  data-tooltip
+      {typeof document !== 'undefined' &&
+        createPortal(
+          // Unmounting AnimatePresence (rather than toggling its child) skips
+          // the exit animation entirely. snapClosed is set when another overlay
+          // in the delay-group opens while this one was closing, preventing a
+          // fading-out trail beside the incoming tooltip.
+          snapClosed ? null : (
+            <AnimatePresence>
+              {isOpen ? (
+                <PositionWrapper
+                  zIndex={theme.zIndex.tooltip}
+                  {...overlayProps}
+                  // The tooltip content is portaled to the document body, but
+                  // React events still bubble through the React tree — so a click
+                  // inside the tooltip would reach the trigger's interactive
+                  // ancestor (a Link, tab, menu item, ...) and fire its action.
+                  // Stop the interaction-initiating events here so interacting
+                  // with tooltip content (selecting text, clicking a copy button)
+                  // never triggers the element the tooltip is attached to.
+                  onClick={stopPropagation}
+                  onMouseDown={stopPropagation}
+                  onPointerDown={stopPropagation}
                 >
-                  {title}
-                </TooltipContent>
-              </PositionWrapper>
-            ) : null}
-          </AnimatePresence>
-        ),
-        container ?? document.body
-      )}
+                  <TooltipContent
+                    animated
+                    maxWidth={maxWidth}
+                    arrowProps={arrowProps}
+                    originPoint={arrowData}
+                    placement={placement}
+                    data-tooltip
+                  >
+                    {title}
+                  </TooltipContent>
+                </PositionWrapper>
+              ) : null}
+            </AnimatePresence>
+          ),
+          container ?? document.body
+        )}
     </Fragment>
   );
 }
@@ -370,3 +366,7 @@ export const Tooltip = Object.assign(TooltipComponent, {
   Row: TooltipRow,
   Footer: TooltipFooter,
 });
+
+function defined(value: unknown): boolean {
+  return value !== undefined && value !== null;
+}

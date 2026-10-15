@@ -8,9 +8,10 @@ import {IconClose} from '@sentry/icons/close';
 import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {useInvertedTheme} from '@sentry/scraps/theme';
+import {useOverlay, type UseOverlayProps} from '@sentry/scraps/useOverlay';
 
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
   useTourReducer,
   type TourContextType,
@@ -24,7 +25,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 
 export interface TourContextProviderProps<T extends TourEnumType> {
   /**

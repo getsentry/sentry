@@ -1190,9 +1190,18 @@ importers:
       '@emotion/styled':
         specifier: ^11.14.0
         version: 11.14.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+      '@popperjs/core':
+        specifier: ^2.11.5
+        version: 2.11.5
+      '@react-aria/button':
+        specifier: 3.15.1
+        version: 3.15.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/i18n':
         specifier: 3.13.1
         version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/overlays':
+        specifier: 3.32.1
+        version: 3.32.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/slider':
         specifier: 3.9.1
         version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1202,9 +1211,15 @@ importers:
       '@react-aria/visually-hidden':
         specifier: 3.9.1
         version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/overlays':
+        specifier: 3.7.1
+        version: 3.7.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-stately/slider':
         specifier: 3.8.1
         version: 3.8.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-types/shared':
+        specifier: 3.36.0
+        version: 3.36.0(react@19.3.0)
       '@sentry/icons':
         specifier: workspace:*
         version: link:../icons
@@ -1226,6 +1241,9 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.3.0(react@19.3.0)
+      react-popper:
+        specifier: ^2.3.0
+        version: 2.3.0(@popperjs/core@2.11.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     devDependencies:
       '@jest/environment':
         specifier: 30.5.1

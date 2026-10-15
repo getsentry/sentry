@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {useResponsivePropValue} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
+import {HoverOverlayGroupProvider} from '@sentry/scraps/useHoverOverlay';
 
 import {
   StreamGroupTable,
@@ -14,7 +15,6 @@ import type {PageFilters} from 'sentry/types/core';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {HoverOverlayGroupProvider} from 'sentry/utils/useHoverOverlay';
 import {useLocation} from 'sentry/utils/useLocation';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody, ISSUE_LIST_COLUMNS} from 'sentry/views/issueList/groupListBody';
