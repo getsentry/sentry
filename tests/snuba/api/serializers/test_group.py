@@ -563,40 +563,43 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
 
         assert result["issueCategory"] == GroupCategory.DB_QUERY.name.lower()
 
-    def test_unhandled_flag_is_cached(self) -> None:
-        def store_error(*, handled: bool, fingerprint: str) -> Group:
-            event = self.store_event(
-                data={
-                    "exception": {
-                        "values": [
-                            {
-                                "type": "ValueError",
-                                "value": "boom",
-                                "mechanism": {"type": "generic", "handled": handled},
-                            }
-                        ]
-                    },
-                    "fingerprint": [fingerprint],
-                    "timestamp": self.min_ago.isoformat(),
+    def test_is_unhandled(self) -> None:
+        unhandled_group = self.store_event(
+            data={
+                "exception": {
+                    "values": [
+                        {"type": "ValueError", "mechanism": {"type": "generic", "handled": False}}
+                    ]
                 },
-                project_id=self.project.id,
-            )
-            assert event.group is not None
-            return event.group
-
-        unhandled_group = store_error(handled=False, fingerprint="unhandled")
-        handled_group = store_error(handled=True, fingerprint="handled")
+                "fingerprint": ["unhandled"],
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        ).group
+        handled_group = self.store_event(
+            data={
+                "exception": {
+                    "values": [
+                        {"type": "ValueError", "mechanism": {"type": "generic", "handled": True}}
+                    ]
+                },
+                "fingerprint": ["handled"],
+                "timestamp": self.min_ago.isoformat(),
+            },
+            project_id=self.project.id,
+        ).group
+        assert unhandled_group is not None
+        assert handled_group is not None
 
         result = serialize(
             [unhandled_group, handled_group], self.user, serializer=GroupSerializerSnuba()
         )
 
-        assert [item["isUnhandled"] for item in result] == [True, False]
-        unhandled_key = f"group-mechanism-handled:{unhandled_group.id}"
-        handled_key = f"group-mechanism-handled:{handled_group.id}"
-        cached = cache.get_many([unhandled_key, handled_key])
-        assert cached[unhandled_key]
-        assert cached[handled_key] == 0
+        assert result[0]["isUnhandled"] is True
+        assert result[1]["isUnhandled"] is False
+        # the flag is cached for both groups, including the handled one
+        assert cache.get(f"group-mechanism-handled:{unhandled_group.id}")
+        assert cache.get(f"group-mechanism-handled:{handled_group.id}") == 0
 
 
 class PerformanceGroupSerializerSnubaTest(
