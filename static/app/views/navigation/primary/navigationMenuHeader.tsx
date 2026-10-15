@@ -17,6 +17,8 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
+import {getUserMenuDisplayName} from './getUserMenuDisplayName';
+
 type NavigationMenuHeaderProps =
   | {organization: OrganizationSummary; projectCount: number; user?: never}
   | {user: User; organization?: never; projectCount?: never};
@@ -41,11 +43,7 @@ export function NavigationMenuHeader({
   return (
     <MenuHeader
       label={t('User')}
-      title={
-        user.name === user.email
-          ? user.email.split('@')[0]?.split('.').join(' ')
-          : user.name || user.username || user.email
-      }
+      title={getUserMenuDisplayName(user)}
       subtitle={user.email}
       avatarProps={getUserAvatarProps(user)}
       avatar={

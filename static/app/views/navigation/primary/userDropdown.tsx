@@ -23,6 +23,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
+import {getUserMenuDisplayName} from './getUserMenuDisplayName';
 import {NavigationMenuHeader} from './navigationMenuHeader';
 
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
@@ -220,9 +221,7 @@ export function UserDropdown() {
               <UserAvatar user={user} size={32} />
               <Stack gap="xs">
                 <Text size="sm" bold uppercase variant="primary">
-                  {user.name === user.email
-                    ? user.email.split('@')[0]?.split('.').join(' ')
-                    : user.name}
+                  {getUserMenuDisplayName(user)}
                 </Text>
                 <Text size="xs" variant="muted">
                   {user.email}
