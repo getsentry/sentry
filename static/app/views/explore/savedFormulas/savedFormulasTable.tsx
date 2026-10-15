@@ -1,5 +1,8 @@
+import {Fragment} from 'react';
+
 import {InfoText} from '@sentry/scraps/info';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
@@ -10,6 +13,11 @@ import type {
   FormulaDataset,
   SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
+import {
+  buildTokenMap,
+  FormulaToken,
+  FormulaTokens,
+} from 'sentry/views/explore/savedFormulas/formulaTokens';
 
 const DATASET_LABEL_MAP: Record<FormulaDataset, string> = {
   spans: t('Spans'),
@@ -19,6 +27,8 @@ const DATASET_LABEL_MAP: Record<FormulaDataset, string> = {
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 'minmax(200px, 2fr)'},
+  {key: 'params', visible: {xl: true}, width: 'minmax(auto, 180px)'},
+  {key: 'formula', width: 'minmax(0, 3fr)'},
   {key: 'dataset', width: 'max-content'},
   {key: 'unit', visible: {xl: true}, width: 'max-content'},
   {key: 'created-by', width: '48px'},
@@ -43,6 +53,8 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
           <SavedEntityTable.HeaderCell divider={false}>
             {t('Name')}
           </SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell>{t('Parameters')}</SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell>{t('Formula')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Dataset')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Unit')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Creator')}</SavedEntityTable.HeaderCell>
@@ -63,6 +75,34 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
         <InfoText title={formula.name} mode="overflowOnly" monospace>
           {formula.name}
         </InfoText>
+      </SavedEntityTable.Cell>
+      <SavedEntityTable.Cell>
+        <SavedEntityTable.CellTextContent>
+          <Text monospace size="sm">
+            {formula.params.map((param, index) => (
+              <Fragment key={param.name}>
+                {index > 0 && ', '}
+                <FormulaToken
+                  kind={param.type === 'calculation' ? 'calculation' : 'parameter'}
+                >
+                  {param.name}
+                </FormulaToken>
+              </Fragment>
+            ))}
+          </Text>
+        </SavedEntityTable.CellTextContent>
+      </SavedEntityTable.Cell>
+      <SavedEntityTable.Cell>
+        <Tooltip title={formula.formula} showOnlyOnOverflow skipWrapper>
+          <SavedEntityTable.CellTextContent>
+            <Text monospace size="sm">
+              <FormulaTokens
+                expression={formula.formula}
+                tokens={buildTokenMap(formula)}
+              />
+            </Text>
+          </SavedEntityTable.CellTextContent>
+        </Tooltip>
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell>
         <SavedEntityTable.CellTextContent>
