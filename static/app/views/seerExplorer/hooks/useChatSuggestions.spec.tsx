@@ -8,6 +8,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import * as analytics from 'sentry/utils/analytics';
 import {
   LLMContextProvider,
   useLLMContext,
@@ -275,7 +276,7 @@ describe('useChatSuggestions', () => {
         suggestions: DEFAULT_FALLBACK_SUGGESTIONS,
       });
 
-      await act(() => jest.advanceTimersByTimeAsync(2000));
+      await act(() => jest.advanceTimersByTimeAsync(3000));
       expect(result.current).toEqual({
         isLoading: false,
         source: 'fallback',

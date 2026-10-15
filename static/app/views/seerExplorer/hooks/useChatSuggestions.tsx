@@ -111,17 +111,6 @@ export function useChatSuggestions({
   const capturePageContext = usePageContextCapture();
   const isPageReady = usePageContextReady(route);
 
-  // For the fallback suggestions: do any selected projects (or member projects, if none are selected) send DB data?
-  const isProjectSelectionExplicit =
-    selection.projects.length > 0 && !selection.projects.includes(ALL_ACCESS_PROJECTS);
-  const hasDbData = projects.some(
-    project =>
-      project.hasInsightsDb &&
-      (isProjectSelectionExplicit
-        ? selection.projects.includes(Number(project.id))
-        : project.isMember)
-  );
-
   const queryKey = [
     'seer-chat-suggestions',
     organization?.slug,
@@ -136,7 +125,7 @@ export function useChatSuggestions({
   const [timeoutReason, setTimeoutReason] = useState<TimeoutReason | null>(null);
   const hasTimedOut = timeoutReason !== null;
 
-  // Start over when the query changes, e.g. navigating with the panel open.
+  // Clear the timeout when the query changes, e.g. navigating with the panel open.
   const [prevQueryKey, setPrevQueryKey] = useState(serializedQueryKey);
   if (serializedQueryKey !== prevQueryKey) {
     setPrevQueryKey(serializedQueryKey);
@@ -178,23 +167,42 @@ export function useChatSuggestions({
     onTimeout: setTimeoutReason,
   });
 
+  // For the fallback suggestions: do any selected projects (or member projects, if none are selected) send DB data?
+  const isProjectSelectionExplicit =
+    selection.projects.length > 0 && !selection.projects.includes(ALL_ACCESS_PROJECTS);
+  const hasDbData = projects.some(
+    project =>
+      project.hasInsightsDb &&
+      (isProjectSelectionExplicit
+        ? selection.projects.includes(Number(project.id))
+        : project.isMember)
+  );
+
+  // Stable fallback state so a late response doesn't re-fire the analytics.
+  const fallbackState = useMemo(
+    (): ChatSuggestionsState => ({
+      isLoading: false,
+      source: 'fallback',
+      suggestions: getFallbackChatSuggestions(route, hasDbData),
+    }),
+    [route, hasDbData]
+  );
+
   const state = useMemo((): ChatSuggestionsState => {
     if (!hasLlmChatSuggestions) {
       return {isLoading: false, source: 'legacy', suggestions: LEGACY_SUGGESTIONS};
     }
-    if (!hasTimedOut && query.isPending) {
+    if (hasTimedOut) {
+      return fallbackState;
+    }
+    if (query.isPending) {
       return {isLoading: true};
     }
-    if (!hasTimedOut && query.data?.suggestions.length) {
+    if (query.data?.suggestions.length) {
       return {isLoading: false, source: 'generated', suggestions: query.data.suggestions};
     }
-    // Once timed out, what's shown is fixed; a late response is ignored.
-    return {
-      isLoading: false,
-      source: 'fallback',
-      suggestions: getFallbackChatSuggestions(route, hasDbData),
-    };
-  }, [hasLlmChatSuggestions, hasTimedOut, query.data, query.isPending, route, hasDbData]);
+    return fallbackState;
+  }, [hasLlmChatSuggestions, hasTimedOut, query.isPending, query.data, fallbackState]);
 
   const fallbackReason = timeoutReason ?? (query.isError ? 'error' : 'empty');
 
