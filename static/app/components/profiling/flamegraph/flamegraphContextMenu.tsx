@@ -3,6 +3,10 @@ import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconGithub} from '@sentry/icons/github';
+import {IconProfiling} from '@sentry/icons/profiling';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -16,7 +20,6 @@ import {
   ProfilingContextMenuItemCheckbox,
   ProfilingContextMenuLayer,
 } from 'sentry/components/profiling/profilingContextMenu';
-import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -585,6 +588,7 @@ function ProfileIdsSubMenu(props: {
   const {projects} = useProjects();
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // oxlint-disable-next-line react/refs
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
     placement: 'right-start',
     modifiers: [
@@ -635,6 +639,7 @@ function ProfileIdsSubMenu(props: {
     <Fragment>
       <ProfilingContextMenuItemButton
         icon={<IconProfiling size="xs" />}
+        // oxlint-disable-next-line react/refs
         {...props.contextMenu.getMenuItemProps({
           onClick: () => {
             setIsOpen(true);

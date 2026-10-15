@@ -1,14 +1,14 @@
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
-import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
+import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens/tokenUtils';
 
 type Props = {
   onRemove: (token: InternalAppApiToken) => void;
@@ -37,7 +37,7 @@ export function ApiTokenRow({
       <SimpleTable.RowCell>
         <ScopeList>{token.scopes.join(', ')}</ScopeList>
       </SimpleTable.RowCell>
-      <Actions>
+      <SimpleTable.RowCell justify="end" gap="md">
         {canEdit && (
           <LinkButton size="sm" to={`/settings/account/api/auth-tokens/${token.id}/`}>
             {t('Edit')}
@@ -57,7 +57,7 @@ export function ApiTokenRow({
             {t('Revoke')}
           </Button>
         </Confirm>
-      </Actions>
+      </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
 }
@@ -66,11 +66,6 @@ const ScopeList = styled('div')`
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   max-width: 400px;
-`;
-
-const Actions = styled(SimpleTable.RowCell)`
-  justify-content: flex-end;
-  gap: ${p => p.theme.space.md};
 `;
 
 const TokenPreview = styled('div')`

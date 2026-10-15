@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db.models.deletion import ProtectedError
 from django.http import Http404
 from rest_framework import status
@@ -13,8 +15,11 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
+from sentry.api.utils import to_valid_int_id
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 
 from .organization_code_mappings import (
     OrganizationIntegrationMixin,
@@ -31,9 +36,17 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
-    def convert_args(self, request: Request, organization_id_or_slug, config_id, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: int | str,
+        config_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        validated_config_id = to_valid_int_id("config_id", config_id, raise_404=True)
         args, kwargs = super().convert_args(
-            request, organization_id_or_slug, config_id, *args, **kwargs
+            request, organization_id_or_slug, validated_config_id, *args, **kwargs
         )
         ois = integration_service.get_organization_integrations(
             organization_id=kwargs["organization"].id
@@ -42,7 +55,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
             kwargs["config"] = RepositoryProjectPathConfig.objects.select_related(
                 "project_repository__project"
             ).get(
-                id=config_id,
+                id=validated_config_id,
                 organization_integration_id__in=[oi.id for oi in ois],
             )
             # Only set when the request wants to move the mapping to another project.
@@ -54,9 +67,16 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         except (RepositoryProjectPathConfig.DoesNotExist, ValueError):
             raise Http404
 
-        return (args, kwargs)
+        return args, kwargs
 
-    def put(self, request: Request, config_id, organization, config, new_project=None) -> Response:
+    def put(
+        self,
+        request: Request,
+        config_id: int,
+        organization: Organization,
+        config: RepositoryProjectPathConfig,
+        new_project: Project | None = None,
+    ) -> Response:
         """
         Update a repository project path config
         ``````````````````
@@ -102,7 +122,13 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
             )
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request: Request, config_id, organization, config) -> Response:
+    def delete(
+        self,
+        request: Request,
+        config_id: int,
+        organization: Organization,
+        config: RepositoryProjectPathConfig,
+    ) -> Response:
         """
         Delete a repository project path config
 

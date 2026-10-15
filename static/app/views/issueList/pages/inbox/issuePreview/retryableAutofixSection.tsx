@@ -1,4 +1,5 @@
 import {createContext, use} from 'react';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
@@ -10,7 +11,6 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
-import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface RetryableAutofixSectionContextValue {
@@ -26,6 +26,7 @@ const RetryableAutofixSectionContext =
 export function RetryableAutofixSection({
   autofix,
   children,
+  readOnly = false,
   section,
   step,
 }: {
@@ -33,6 +34,7 @@ export function RetryableAutofixSection({
   children: React.ReactNode;
   section: AutofixSection;
   step: AutofixExplorerStep;
+  readOnly?: boolean;
 }) {
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
     useResetAutofixStep({
@@ -44,10 +46,10 @@ export function RetryableAutofixSection({
   return (
     <RetryableAutofixSectionContext
       value={{
-        canReset,
+        canReset: canReset && !readOnly,
         handleReset,
         setShouldShowReset,
-        shouldShowReset,
+        shouldShowReset: shouldShowReset && !readOnly,
       }}
     >
       {children}

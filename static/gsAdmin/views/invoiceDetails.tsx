@@ -1,6 +1,7 @@
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -11,12 +12,12 @@ import {ResultTable} from 'sentry/components/resultTable';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCells} from 'sentry/utils/cells';
+import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {isBillingAdmin, prettyDate} from 'admin/utils';
@@ -82,6 +83,16 @@ export function InvoiceDetails() {
     }
   };
 
+  const handleDownloadPdf = () => {
+    // The receipt renders on the cell that owns the invoice, and the response
+    // carries its own Content-Disposition filename, so the name passed here only
+    // applies to a same-origin (dev) download.
+    downloadFromHref(
+      `sentry-invoice-${invoiceId}.pdf`,
+      `${cellInfo ? cellInfo.locality_url : ''}/api/0/_admin/cells/${region}/payments/${invoiceId}/pdf/`
+    );
+  };
+
   const handleRetry = async () => {
     try {
       const updatedInvoice = await api.requestPromise(
@@ -134,7 +145,7 @@ export function InvoiceDetails() {
 
   const overviewPanel = (
     <DetailsContainer>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Customer">
           {customer.isDeleted ? (
             <span>
@@ -161,13 +172,13 @@ export function InvoiceDetails() {
             </div>
           )}
         </DetailLabel>
-      </DetailList>
-      <DetailList>
+      </DescriptionList>
+      <DescriptionList gap="md">
         <DetailLabel title="ID">{invoice.id}</DetailLabel>
         <DetailLabel title="Effective At">
           {invoice.effectiveAt ? prettyDate(invoice.effectiveAt) : 'n/a'}
         </DetailLabel>
-      </DetailList>
+      </DescriptionList>
     </DetailsContainer>
   );
 
@@ -270,6 +281,16 @@ export function InvoiceDetails() {
               ? 'Invoice is paid'
               : 'Requires billing admin permission',
           onAction: handleRetry,
+        },
+
+        {
+          key: 'downloadPdf',
+          name: 'Download PDF',
+          help: 'Download the invoice receipt as a PDF.',
+          // Deliberately available for deleted organizations: the receipt is
+          // rendered from billing records, which outlive the organization.
+          skipConfirmModal: true,
+          onAction: handleDownloadPdf,
         },
       ]}
       sections={[

@@ -462,6 +462,8 @@ interface CommonIntegration {
   organizationIntegrationStatus: ObjectStatus;
   provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
+  /** GitHub only: feature tiers this installation is missing, oldest first. */
+  missingFeatures?: Array<{description: string; key: string; name: string}> | null;
   outOfDate?: boolean | null;
 }
 
@@ -594,6 +596,8 @@ export type FilesByRepository = Record<
 >;
 
 interface BaseRepositoryProjectPathConfig {
+  automaticallyGenerated: boolean;
+  hasCodeOwner: boolean;
   id: string;
   projectId: string;
   projectSlug: string;

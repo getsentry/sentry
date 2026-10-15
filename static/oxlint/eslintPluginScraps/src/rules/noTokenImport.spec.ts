@@ -1,4 +1,4 @@
-import {RuleTester} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {noTokenImport} from './noTokenImport';
 
@@ -19,12 +19,34 @@ ruleTester.run('no-token-import', noTokenImport, {
       code: 'import {colors} from "sentry/utils/theme/scraps/colors";',
       filename: '/static/app/utils/theme/theme.tsx',
     },
+    {
+      code: 'import {color} from "@sentry/scraps/tokens/color";',
+      filename: '/static/app/utils/theme/theme.tsx',
+    },
+    {
+      code: 'import {size} from "@sentry/scraps/tokens/size";',
+      filename: '/static/packages/scraps/src/theme/base.tsx',
+    },
+    {
+      code: 'import {size} from "@sentry/scraps/tokens";',
+      filename: '/static/packages/scraps/src/tokens/index.ts',
+    },
   ],
 
   invalid: [
     {
       code: 'import {colors} from "sentry/utils/theme/scraps/colors";',
       filename: '/static/app/index.tsx',
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      code: 'import {size} from "@sentry/scraps/tokens";',
+      filename: '/static/app/index.tsx',
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      code: 'import {color} from "@sentry/scraps/tokens/color";',
+      filename: '/static/packages/scraps/src/text/text.tsx',
       errors: [{messageId: 'forbidden'}],
     },
   ],

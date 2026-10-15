@@ -233,11 +233,8 @@ export function ConversationDetailPanel({
     >
       {selectedNode?.renderDetails({
         node: selectedNode,
-        manager: null,
-        onParentClick: () => {},
         onTabScrollToNode: () => {},
         organization,
-        replay: null,
         traceId: nodeTraceMap.get(selectedNode.id) ?? '',
         hideNodeActions: true,
         initiallyCollapseAiIO,

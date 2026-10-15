@@ -60,39 +60,54 @@ def next_starred_position(organization: Organization, user_id: int) -> int:
     return max(positions, default=0) + 1
 
 
-def shift_starred_positions_by_one(
+def shift_starred_positions(
     organization: Organization,
     user_id: int,
     *,
     from_position: int,
+    delta: int,
+    inclusive: bool = False,
 ) -> None:
     """
-    Move every position above ``from_position`` by negative one, closing a gap in the shared list of starred queries.
+    Move every position above ``from_position`` by ``delta``, closing a gap in the shared list of starred queries.
+    If ``inclusive`` is True, ``from_position`` itself is included in the shift. By default it is not.
     """
 
-    ExploreSavedQueryStarred.objects.filter(
-        organization=organization, user_id=user_id, position__gt=from_position
-    ).update(position=models.F("position") - 1)
+    if inclusive:
+        ExploreSavedQueryStarred.objects.filter(
+            organization=organization, user_id=user_id, position__gte=from_position
+        ).update(position=models.F("position") + delta)
 
-    DiscoverSavedQueryStarred.objects.filter(
-        organization=organization, user_id=user_id, position__gt=from_position
-    ).update(position=models.F("position") - 1)
+        DiscoverSavedQueryStarred.objects.filter(
+            organization=organization, user_id=user_id, position__gte=from_position
+        ).update(position=models.F("position") + delta)
+    else:
+        ExploreSavedQueryStarred.objects.filter(
+            organization=organization, user_id=user_id, position__gt=from_position
+        ).update(position=models.F("position") + delta)
+
+        DiscoverSavedQueryStarred.objects.filter(
+            organization=organization, user_id=user_id, position__gt=from_position
+        ).update(position=models.F("position") + delta)
 
 
 def reorder_starred_queries(
     organization: Organization, user_id: int, refs: Sequence[SavedQueryRef]
 ) -> None:
     """
-    Reorders ``refs`` to positions, in the order given, across Discover and Explore tables.
+    Reorders ``refs`` to positions across Discover and Explore tables.
 
-    Both tables are always read, and the positions are normalized to 1...N,
-    where N is the number of starred queries. Therefore, this has to have every
-    starred query the user has, not just those of one product.
+    Can accept a subset of starred queries and reordering is done among the provided refs.
+    In addition, all positions are normalized to 1...N, where N is the number of starred queries.
 
     Raises:
-        ValueError: if ``refs`` is not exactly the set of the user's starred rows
+        ValueError: if ``refs`` names a query the user has not starred, or names the
+            same query twice
     """
-    new_query_positions = list(refs)
+    requested_query_refs = list(refs)
+    set_of_refs = set(requested_query_refs)
+    if len(set_of_refs) != len(requested_query_refs):
+        raise ValueError("Single query cannot take up multiple positions.")
 
     # grab all starred queries in both tables, and map based on SavedQueryRef.
     discover_starred_queries = DiscoverSavedQueryStarred.objects.filter(
@@ -103,34 +118,43 @@ def reorder_starred_queries(
         organization=organization, user_id=user_id, position__isnull=False, starred=True
     )
 
-    existing_query_refs: set[SavedQueryRef] = set()
+    existing_query_refs: dict[
+        SavedQueryRef, DiscoverSavedQueryStarred | ExploreSavedQueryStarred
+    ] = {}
     for discover_row in discover_starred_queries:
-        existing_query_refs.add(
+        existing_query_refs[
             SavedQueryRef(SavedQueryType.DISCOVER, discover_row.discover_saved_query_id)
-        )
+        ] = discover_row
 
     for explore_row in explore_starred_queries:
-        existing_query_refs.add(
+        existing_query_refs[
             SavedQueryRef(SavedQueryType.EXPLORE, explore_row.explore_saved_query_id)
-        )
+        ] = explore_row
 
-    if existing_query_refs != set(new_query_positions):
+    if not set_of_refs.issubset(existing_query_refs):
         raise ValueError("Mismatch between existing and provided starred queries.")
 
-    # normalize positions to 1...N, then assign them in order of the ref sequence provided
-    position_map = {ref: position for position, ref in enumerate(new_query_positions, start=1)}
+    # A deterministic tiebreaker in case a race condition allowed both tables to secure the same position
+    new_order = sorted(
+        existing_query_refs,
+        key=lambda ref: (existing_query_refs[ref].position or 0, ref.type, ref.query_id),
+    )
+
+    # Subset of starred queries should only reorder amongst themselves
+    new_positions = [index for index, ref in enumerate(new_order) if ref in set_of_refs]
+    for position, ref in zip(new_positions, requested_query_refs):
+        new_order[position] = ref
 
     discover_updates: list[DiscoverSavedQueryStarred] = []
     explore_updates: list[ExploreSavedQueryStarred] = []
-    for discover_row in discover_starred_queries:
-        discover_ref = SavedQueryRef(SavedQueryType.DISCOVER, discover_row.discover_saved_query_id)
-        discover_row.position = position_map[discover_ref]
-        discover_updates.append(discover_row)
-
-    for explore_row in explore_starred_queries:
-        explore_ref = SavedQueryRef(SavedQueryType.EXPLORE, explore_row.explore_saved_query_id)
-        explore_row.position = position_map[explore_ref]
-        explore_updates.append(explore_row)
+    # Normalize positions from 1..N
+    for position, ref in enumerate(new_order, start=1):
+        row = existing_query_refs[ref]
+        row.position = position
+        if isinstance(row, DiscoverSavedQueryStarred):
+            discover_updates.append(row)
+        else:
+            explore_updates.append(row)
 
     ExploreSavedQueryStarred.objects.bulk_update(explore_updates, ["position"])
     DiscoverSavedQueryStarred.objects.bulk_update(discover_updates, ["position"])

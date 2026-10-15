@@ -320,10 +320,9 @@ export function formatSpanEvidenceToMarkdown(event: Event, group: Group): string
     const eventTransaction = event as EventTransaction;
     // Only resolve span info when the event carries the evidence payload, to
     // avoid the error capture inside the helper.
-    const spanInfo =
-      eventTransaction.perfProblem || event.occurrence?.evidenceData
-        ? getSpanInfoFromTransactionEvent(eventTransaction)
-        : null;
+    const spanInfo = event.occurrence?.evidenceData
+      ? getSpanInfoFromTransactionEvent(eventTransaction)
+      : null;
 
     if (spanInfo?.parentSpan) {
       lines.push(`**Parent Span:** ${getSpanMarkdownValue(spanInfo.parentSpan)}`);

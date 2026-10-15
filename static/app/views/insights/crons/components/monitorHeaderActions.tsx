@@ -1,3 +1,8 @@
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconSubscribed} from '@sentry/icons/subscribed';
+import {IconUnsubscribed} from '@sentry/icons/unsubscribed';
+
 import {Button, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -7,7 +12,6 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconDelete, IconEdit, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';

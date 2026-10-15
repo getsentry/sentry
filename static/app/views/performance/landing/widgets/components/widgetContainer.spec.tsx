@@ -3,6 +3,7 @@ import {initializeData as _initializeData} from 'sentry-test/performance/initial
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -53,7 +54,6 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
               allowedCharts={allowedCharts}
               rowChartSettings={[]}
               withStaticFilters={withStaticFilters}
-              forceDefaultChartSetting
               {...data}
               {...rest}
             />
@@ -77,6 +77,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
   let issuesListMock: jest.Mock;
 
   beforeEach(() => {
+    localStorageWrapper.removeItem('landing-chart-container');
     ConfigStore.init();
     eventStatsMock = MockApiClient.addMockResponse({
       method: 'GET',
@@ -512,6 +513,10 @@ describe('Performance > Widgets > WidgetContainer', () => {
       'Most Related Issues'
     );
     expect(issuesListMock).toHaveBeenCalledTimes(1);
+    // The issues chart only fetches once the issues list has resolved
+    await waitFor(() => {
+      expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    });
 
     wrapper.rerender(
       <WrappedComponent
@@ -524,6 +529,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
       'Most Related Errors'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
+    // Leftover issues list data must not trigger a chart request for errors
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -604,7 +610,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
-            'has:sentry.normalized_description span.category:db !span.op:[db.sql.room,db.redis] transaction.op:pageload',
+            'has:sentry.normalized_description has:span.group span.category:db !span.op:[db.sql.room,db.redis] transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),

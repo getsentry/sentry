@@ -1,4 +1,5 @@
-import {createMemoryRouter, RouterProvider} from 'react-router-dom';
+import {createMemoryRouter} from 'react-router';
+import {RouterProvider} from 'react-router/dom';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 

@@ -1,5 +1,4 @@
 import {useCallback, useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -10,14 +9,20 @@ import {
   useJumpButtons,
   type VisibleRange,
 } from 'sentry/components/replays/useJumpButtons';
+import {GridTable} from 'sentry/components/replays/virtualizedGrid/gridTable';
+import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflowHidden';
+import {
+  SIMPLE_TABLE_HEADER_ROW_HEIGHT,
+  SimpleTable,
+} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {ErrorFilters} from 'sentry/views/explore/replays/detail/errorList/errorFilters';
 import {
-  COLUMN_COUNT,
   ErrorHeaderCell,
+  TABLE_COLUMNS,
 } from 'sentry/views/explore/replays/detail/errorList/errorHeaderCell';
 import {ErrorTableCell} from 'sentry/views/explore/replays/detail/errorList/errorTableCell';
 import {useErrorFilters} from 'sentry/views/explore/replays/detail/errorList/useErrorFilters';
@@ -30,13 +35,8 @@ import {
   getVisibleRangeFromVirtualRows,
 } from 'sentry/views/explore/replays/detail/virtualizedTableUtils';
 
-const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 25;
-const DEFAULT_COLUMN_WIDTH = 100;
-const DYNAMIC_COLUMN_INDEX = 1;
-const MIN_DYNAMIC_COLUMN_WIDTH = 200;
 const OVERSCAN = 20;
-const STATIC_COLUMN_WIDTHS = [100, 0, 140, 96, 116];
 
 export function ErrorList() {
   const replay = useReplayReader();
@@ -52,22 +52,12 @@ export function ErrorList() {
   const clearSearchTerm = () => setSearchTerm('');
   const {handleSort, items, sortConfig} = useSortErrors({items: filteredItems});
 
-  const {
-    gridTemplateColumns,
-    scrollContainerRef,
-    totalColumnWidth,
-    virtualRows,
-    virtualizer,
-    wrapperRef,
-  } = useVirtualizedGrid({
-    defaultColumnWidth: DEFAULT_COLUMN_WIDTH,
-    dynamicColumnIndex: DYNAMIC_COLUMN_INDEX,
-    minDynamicColumnWidth: MIN_DYNAMIC_COLUMN_WIDTH,
-    overscan: OVERSCAN,
-    rowCount: items.length,
-    rowHeight: BODY_HEIGHT,
-    staticColumnWidths: STATIC_COLUMN_WIDTHS,
-  });
+  const {paddingBottom, paddingTop, scrollContainerRef, virtualRows, virtualizer} =
+    useVirtualizedGrid({
+      overscan: OVERSCAN,
+      rowCount: items.length,
+      rowHeight: BODY_HEIGHT,
+    });
 
   const handleScrollToTableRow = useCallback(
     (row: number) => {
@@ -98,124 +88,103 @@ export function ErrorList() {
   });
 
   return (
-    <Stack wrap="nowrap">
+    <Stack minHeight="0" minWidth="0" wrap="nowrap">
       <ErrorFilters errorFrames={errorFrames} {...filterProps} />
-      <ErrorTable data-test-id="replay-details-errors-tab">
+      <GridTable data-test-id="replay-details-errors-tab">
         {errorFrames ? (
-          <VirtualTable ref={wrapperRef}>
-            <VirtualTable.BodyScrollContainer ref={scrollContainerRef}>
-              <VirtualTable.HeaderViewport style={{width: totalColumnWidth}}>
-                <VirtualTable.HeaderRow
-                  style={{
-                    gridTemplateColumns,
-                  }}
-                >
-                  {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
+          <OverflowHidden>
+            <VirtualTable.Table
+              aria-label={t('Errors')}
+              columns={TABLE_COLUMNS}
+              customSections
+              density="compressed"
+              maxHeight="100%"
+              ref={scrollContainerRef}
+              scrollable
+            >
+              <SimpleTable.Head sticky>
+                <SimpleTable.HeaderRow>
+                  {TABLE_COLUMNS.map((_, columnIndex) => (
                     <ErrorHeaderCell
                       key={columnIndex}
                       handleSort={handleSort}
                       index={columnIndex}
                       sortConfig={sortConfig}
-                      style={{height: HEADER_HEIGHT}}
                     />
                   ))}
-                </VirtualTable.HeaderRow>
-              </VirtualTable.HeaderViewport>
+                </SimpleTable.HeaderRow>
+              </SimpleTable.Head>
               {items.length === 0 ? (
-                <VirtualTable.NoRowsContainer>
-                  <NoRowRenderer
-                    unfilteredItems={errorFrames}
-                    clearSearchTerm={clearSearchTerm}
-                  >
-                    {t('No errors! Go make some.')}
-                  </NoRowRenderer>
-                </VirtualTable.NoRowsContainer>
+                <SimpleTable.Body>
+                  <SimpleTable.Empty>
+                    <NoRowRenderer
+                      unfilteredItems={errorFrames}
+                      clearSearchTerm={clearSearchTerm}
+                    >
+                      {t('No errors! Go make some.')}
+                    </NoRowRenderer>
+                  </SimpleTable.Empty>
+                </SimpleTable.Body>
               ) : (
-                <VirtualTable.Content
-                  style={{
-                    height: virtualizer.getTotalSize(),
-                    width: totalColumnWidth,
-                  }}
-                >
-                  <VirtualTable.Offset
-                    offset={virtualRows[0]?.start ?? 0}
-                    style={{width: totalColumnWidth}}
-                  >
-                    {virtualRows.map(virtualRow => {
-                      const error = items[virtualRow.index];
-                      if (!error) {
-                        return null;
-                      }
+                <SimpleTable.Body style={{paddingBottom, paddingTop}}>
+                  {virtualRows.map(virtualRow => {
+                    const error = items[virtualRow.index];
+                    if (!error) {
+                      return null;
+                    }
 
-                      const isByTimestamp = sortConfig.by === 'timestamp';
-                      const hasOccurred = currentTime >= error.offsetMs;
-                      const isBeforeHover =
-                        currentHoverTime === undefined ||
-                        currentHoverTime >= error.offsetMs;
-                      const isAsc = isByTimestamp ? sortConfig.asc : false;
+                    const isByTimestamp = sortConfig.by === 'timestamp';
+                    const hasOccurred = currentTime >= error.offsetMs;
+                    const isBeforeHover =
+                      currentHoverTime === undefined ||
+                      currentHoverTime >= error.offsetMs;
+                    const isAsc = isByTimestamp ? sortConfig.asc : false;
 
-                      const rowClassName = getTimelineRowClassName({
-                        hasHoverTime: currentHoverTime !== undefined,
-                        hasOccurred,
-                        isAsc,
-                        isBeforeHover,
-                        isByTimestamp,
-                        isLastDataRow: virtualRow.index === items.length - 1,
-                      });
+                    const rowClassName = getTimelineRowClassName({
+                      hasHoverTime: currentHoverTime !== undefined,
+                      hasOccurred,
+                      isAsc,
+                      isBeforeHover,
+                      isByTimestamp,
+                      isLastDataRow: virtualRow.index === items.length - 1,
+                    });
 
-                      return (
-                        <VirtualTable.BodyRow
-                          key={virtualRow.key}
-                          className={rowClassName}
-                          data-index={virtualRow.index}
-                          style={{
-                            gridTemplateColumns,
-                            height: BODY_HEIGHT,
-                          }}
-                        >
-                          {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
-                            <ErrorTableCell
-                              key={`${virtualRow.key}-${columnIndex}`}
-                              columnIndex={columnIndex}
-                              frame={error}
-                              onMouseEnter={onMouseEnter}
-                              onMouseLeave={onMouseLeave}
-                              onClickTimestamp={onClickTimestamp}
-                              startTimestampMs={startTimestampMs}
-                              style={{height: BODY_HEIGHT}}
-                            />
-                          ))}
-                        </VirtualTable.BodyRow>
-                      );
-                    })}
-                  </VirtualTable.Offset>
-                </VirtualTable.Content>
+                    return (
+                      <VirtualTable.BodyRow
+                        key={virtualRow.key}
+                        className={rowClassName}
+                        data-index={virtualRow.index}
+                      >
+                        {TABLE_COLUMNS.map((_, columnIndex) => (
+                          <ErrorTableCell
+                            key={`${virtualRow.key}-${columnIndex}`}
+                            columnIndex={columnIndex}
+                            frame={error}
+                            onMouseEnter={onMouseEnter}
+                            onMouseLeave={onMouseLeave}
+                            onClickTimestamp={onClickTimestamp}
+                            startTimestampMs={startTimestampMs}
+                            style={{height: BODY_HEIGHT}}
+                          />
+                        ))}
+                      </VirtualTable.BodyRow>
+                    );
+                  })}
+                </SimpleTable.Body>
               )}
-            </VirtualTable.BodyScrollContainer>
+            </VirtualTable.Table>
             {sortConfig.by === 'timestamp' && items.length ? (
               <JumpButtons
                 jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
                 onClick={onClickToJump}
-                tableHeaderHeight={HEADER_HEIGHT}
+                tableHeaderHeight={SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed}
               />
             ) : null}
-          </VirtualTable>
+          </OverflowHidden>
         ) : (
           <Placeholder height="100%" />
         )}
-      </ErrorTable>
+      </GridTable>
     </Stack>
   );
 }
-
-const ErrorTable = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex-wrap: nowrap;
-  flex-grow: 1;
-  overflow: hidden;
-  height: 100%;
-
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-`;

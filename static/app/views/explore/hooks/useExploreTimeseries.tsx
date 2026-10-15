@@ -1,9 +1,9 @@
 import {useCallback, useMemo} from 'react';
 
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -56,7 +56,7 @@ export const useExploreTimeseries = ({
   );
 
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
-    queryHookImplementation: useExploreTimeseriesImpl,
+    queryHookImplementation: useExploreTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {query, enabled, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,

@@ -1,5 +1,8 @@
+import type {ReactNode} from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSort} from '@sentry/icons/sort';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -15,7 +18,6 @@ import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -380,7 +382,10 @@ export default function IssueViewsList() {
   return (
     <SentryDocumentTitle title={t('All Views')} orgSlug={organization.slug}>
       <Stack flex={1}>
-        <Layout.Title>{t('All Views')}</Layout.Title>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: t('All Views')}}
+        />
         <TopBar.Slot name="feedback">
           <FeedbackButton
             size="sm"
@@ -392,7 +397,7 @@ export default function IssueViewsList() {
           </FeedbackButton>
         </TopBar.Slot>
         <Layout.Body>
-          <MainTableLayout width="full">
+          <MainTableLayout>
             <FilterSortBar>
               <SearchBar
                 defaultQuery={query}
@@ -521,6 +526,12 @@ const TableHeading = styled('h2')`
   margin-bottom: ${p => p.theme.space.lg};
 `;
 
-const MainTableLayout = styled(Layout.Main)`
-  container-type: inline-size;
-`;
+// A scraps container rather than raw `container-type`, so that the tables inside
+// can resolve their responsive columns against it in JS as well as in CSS.
+function MainTableLayout({children}: {children: ReactNode}) {
+  return (
+    <Layout.Main width="full">
+      <Container containerType="inline-size">{children}</Container>
+    </Layout.Main>
+  );
+}

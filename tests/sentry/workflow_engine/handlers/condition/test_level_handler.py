@@ -5,7 +5,7 @@ from jsonschema import ValidationError
 
 from sentry.rules.conditions.level import LevelCondition
 from sentry.rules.filters.level import LevelFilter
-from sentry.rules.match import MatchType
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -63,6 +63,10 @@ class TestLevelCondition(ConditionTestCase):
     def test_json_schema(self) -> None:
         self.dc.comparison.update({"match": MatchType.EQUAL, "level": 30})
         self.dc.save()
+
+        self.dc.comparison.update({"match": MatchType.CONTAINS, "level": 30})
+        with pytest.raises(ValidationError):
+            self.dc.save()
 
         self.dc.comparison.update({"hi": "bye"})
         with pytest.raises(ValidationError):

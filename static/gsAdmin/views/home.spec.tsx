@@ -86,3 +86,24 @@ describe('HomePage project search', () => {
     expect(projectsMock).not.toHaveBeenCalled();
   });
 });
+
+describe('HomePage invoice lookup', () => {
+  beforeEach(() => {
+    ConfigStore.set('cells', [{name: 'us', locality_url: US_URL}]);
+  });
+
+  it('opens the invoice in the selected region', async () => {
+    const {router} = renderHomePage();
+    const user = userEvent.setup();
+
+    await user.type(
+      screen.getByRole('textbox', {name: 'Invoices'}),
+      '357f1bf2565a4b1bbdfb18fe6700e196'
+    );
+    await user.click(screen.getByRole('button', {name: 'Open invoice'}));
+
+    expect(router.location.pathname).toBe(
+      '/_admin/invoices/us/357f1bf2565a4b1bbdfb18fe6700e196/'
+    );
+  });
+});

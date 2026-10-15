@@ -3,12 +3,15 @@ import {MotionGlobalConfig} from 'framer-motion';
 import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
+import {installTrustedTypesPolicies} from 'sentry/utils/trustedTypes';
 
 if (IS_ACCEPTANCE_TEST || NODE_ENV === 'test') {
   MotionGlobalConfig.skipAnimations = true;
 }
 
 export function commonInitialization(config: Config) {
+  installTrustedTypesPolicies();
+
   if (NODE_ENV === 'development') {
     import(/* webpackMode: "eager" */ 'sentry/utils/silenceReactUnsafeWarnings');
   }

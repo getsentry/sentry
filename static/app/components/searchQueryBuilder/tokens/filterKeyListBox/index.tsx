@@ -387,6 +387,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   }, [fullWidth, isOpen, wrapperRef]);
 
   if (fullWidth) {
+    // oxlint-disable-next-line react/refs
     if (!wrapperRef.current) {
       return null;
     }
@@ -423,6 +424,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
           ) : null}
         </SectionedOverlay>
       </StyledPositionWrapper>,
+      // oxlint-disable-next-line react/refs
       wrapperRef.current
     );
   }
@@ -562,7 +564,7 @@ const RecentFilterPill = styled('li')`
   font-size: ${p => p.theme.font.size.md};
   padding: 0 ${p => p.theme.space.lg} 0 ${p => p.theme.space.sm};
   background-color: ${p => p.theme.tokens.background.primary};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.secondary};
   border-radius: ${p => p.theme.radius.md} 0 0 ${p => p.theme.radius.md};
   cursor: pointer;

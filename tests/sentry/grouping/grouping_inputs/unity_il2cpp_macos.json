@@ -1,0 +1,69 @@
+{
+  "platform": "native",
+  "exception": {
+    "values": [
+      {
+        "type": "EXC_BAD_ACCESS",
+        "value": "Attempted to dereference null pointer.",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "main",
+              "package": "/Applications/SpaceGame.app/Contents/MacOS/SpaceGame"
+            },
+            {
+              "function": "UnityMain",
+              "package": "/Applications/SpaceGame.app/Contents/Frameworks/UnityPlayer.dylib"
+            },
+            {
+              "function": "PlayerLoop",
+              "package": "/Applications/SpaceGame.app/Contents/Frameworks/UnityPlayer.dylib"
+            },
+            {
+              "function": "ScriptingInvocation::Invoke",
+              "package": "/Applications/SpaceGame.app/Contents/Frameworks/UnityPlayer.dylib"
+            },
+            {
+              "function": "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017",
+              "package": "/Applications/SpaceGame.app/Contents/Frameworks/GameAssembly.dylib",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Library/Bee/artifacts/MacStandalonePlayerBuildProgram/il2cppOutput/cpp/Il2CppInvokerTable.cpp"
+            },
+            {
+              "function": "EnemySpawner_Update_m0F4C0A0B9E21D0E4C5A17B3D8C2F91A0B6E7D4C3",
+              "package": "/Applications/SpaceGame.app/Contents/Frameworks/GameAssembly.dylib",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Assets/Scripts/EnemySpawner.cs"
+            },
+            {
+              "function": "CombatSystem_ApplyDamage_m7486FA1E8A228E806BA045D26ABECC87DFD436B4",
+              "package": "/Applications/SpaceGame.app/Contents/Frameworks/GameAssembly.dylib",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Packages/com.mystudio.combat/Runtime/CombatSystem.cs"
+            },
+            {
+              "function": "TMP_Text_SetText_mA1B2C3D4E5F60718293A4B5C6D7E8F9012345678",
+              "package": "/Applications/SpaceGame.app/Contents/Frameworks/GameAssembly.dylib",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Library/PackageCache/com.unity.textmeshpro@3.0.6/Assets/TMP_Text.cs"
+            },
+            {
+              "function": "Animation_Play_m5D3E8F1A2B4C6D7E8F9A0B1C2D3E4F5061728394",
+              "package": "/Applications/SpaceGame.app/Contents/Frameworks/GameAssembly.dylib",
+              "abs_path": "/Users/bokken/build/output/unity/unity/Modules/Animation/ScriptBindings/Assets/Animation.bindings.cs"
+            },
+            {
+              "function": "il2cpp_codegen_raise_null_reference_exception",
+              "package": "/Applications/SpaceGame.app/Contents/Frameworks/GameAssembly.dylib",
+              "abs_path": "/Users/builder/Projects/SpaceGame/Library/Bee/artifacts/MacStandalonePlayerBuildProgram/il2cppOutput/cpp/Il2CppCodeGen.cpp"
+            },
+            {
+              "function": "sentry__handle_signal",
+              "package": "/Applications/SpaceGame.app/Contents/PlugIns/libsentry.dylib"
+            },
+            {
+              "function": "+[SentrySDK captureCrashEvent:]",
+              "package": "/Applications/SpaceGame.app/Contents/PlugIns/Sentry.dylib"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

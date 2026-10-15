@@ -1,0 +1,90 @@
+import {RuleTester} from 'oxlint/plugins-dev';
+
+import {noRestrictedModuleMocks} from './noRestrictedModuleMocks';
+
+const ruleTester = new RuleTester();
+
+ruleTester.run('no-restricted-module-mocks', noRestrictedModuleMocks, {
+  valid: [
+    "jest.mock('sentry/utils/analytics');",
+    "jest.mock('sentry/utils/useLocationExtra');",
+    "jest.requireActual('sentry/utils/useLocation');",
+    "other.mock('sentry/utils/useLocation');",
+    'jest.mock(moduleName);',
+    "const hooks = {useLocation() {}}; jest.spyOn(hooks, 'useLocation');",
+    "import * as location from 'sentry/utils/useLocation'; jest.spyOn(location, 'parseLocation');",
+  ],
+  invalid: [
+    ...[
+      'useLocation',
+      'useNavigate',
+      'useOrganization',
+      'useParams',
+      'useProjects',
+    ].flatMap(hook =>
+      ['mock', 'doMock'].map(method => ({
+        code: `jest.${method}('sentry/utils/${hook}', () => ({}));`,
+        errors: [{messageId: 'forbidden' as const}],
+      }))
+    ),
+    {
+      code: "jest.mock('sentry/utils/useLocation');",
+      errors: [
+        {
+          messageId: 'forbidden',
+          data: {
+            hook: 'useLocation',
+            replacement: 'Set initialRouterConfig.location in the render options.',
+          },
+        },
+      ],
+    },
+    {
+      code: "jest.mock('sentry/components/pageFilters/usePageFilters');",
+      errors: [
+        {
+          messageId: 'forbidden',
+          data: {
+            hook: 'usePageFilters',
+            replacement:
+              'Use PageFiltersStore.onInitializeUrlState(PageFiltersFixture({...})).',
+          },
+        },
+      ],
+    },
+    {
+      code: "jest.mock('sentry/utils/useParams');",
+      errors: [
+        {
+          messageId: 'forbidden',
+          data: {
+            hook: 'useParams',
+            replacement:
+              'Set initialRouterConfig.route and initialRouterConfig.location in the render options.',
+          },
+        },
+      ],
+    },
+    {
+      code: "import * as router from 'sentry/utils/useNavigate'; jest.spyOn(router, 'useNavigate');",
+      errors: [
+        {
+          messageId: 'forbidden',
+          data: {
+            hook: 'useNavigate',
+            replacement:
+              'Use the router provided by render and assert on router.location after interacting.',
+          },
+        },
+      ],
+    },
+    {
+      code: "jest.spyOn(require('sentry/utils/useOrganization'), 'useOrganization');",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      code: "import * as pageFilters from 'sentry/components/pageFilters/usePageFilters'; jest.spyOn(pageFilters, 'usePageFilters');",
+      errors: [{messageId: 'forbidden'}],
+    },
+  ],
+});

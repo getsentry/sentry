@@ -6,13 +6,14 @@ import type {
   Ref,
 } from 'react';
 import {useCallback, useRef} from 'react';
-import styled from '@emotion/styled';
 import {useTextField} from '@react-aria/textfield';
 import {mergeRefs} from '@react-aria/utils';
 import type {KeyboardEvent} from '@react-types/shared';
 
-import {Input, useAutosizeInput} from '@sentry/scraps/input';
+import {useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+
+import {UnstyledInput} from 'sentry/components/tokenizedInput/token/unstyledInput';
 
 interface InputBoxProps {
   inputLabel: string;
@@ -124,22 +125,3 @@ export function InputBox({
     </Flex>
   );
 }
-
-const UnstyledInput = styled(Input)`
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  flex-grow: 1;
-  padding: 0;
-  height: auto;
-  min-height: auto;
-  resize: none;
-  min-width: 1px;
-  border-radius: 0;
-
-  &:focus {
-    outline: none;
-    border: none;
-    box-shadow: none;
-  }
-`;

@@ -1,4 +1,5 @@
 import {useMemo, useState, type ReactNode} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -21,7 +22,6 @@ import {
   STEP_LABELS,
 } from 'sentry/components/seer/markdown/embeds/components/autofix';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconArrow} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -121,7 +121,7 @@ const PLANNED_SOLUTION = autofix(
       {
         title: 'Add a checkout smoke test with zero items',
         description:
-          'Render `/checkout` with an empty cart and assert the quote renders `$0.00` instead of the error state.',
+          'Render `/checkout` with an empty cart in `static/app/views/checkout/components/ThisFilenameIsLongEnoughToOverflowTheAutofixContentPanel.spec.tsx` and assert the quote renders `$0.00` instead of the error state.',
       },
     ],
   }

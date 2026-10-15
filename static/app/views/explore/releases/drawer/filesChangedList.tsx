@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -12,8 +13,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {t, tn} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
@@ -34,14 +33,14 @@ interface FilesChangedProps {
 export function FilesChangedList({releaseRepos, release}: FilesChangedProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
-  const locationQuery = useLocationQuery({
-    fields: {
-      [ReleasesDrawerFields.FILES_CURSOR]: decodeScalar,
-      [ReleasesDrawerFields.ACTIVE_REPO]: decodeScalar,
-    },
-  });
-  const rdActiveRepo = locationQuery[ReleasesDrawerFields.ACTIVE_REPO];
-  const rdFilesCursor = locationQuery[ReleasesDrawerFields.FILES_CURSOR];
+  const [rdActiveRepo] = useQueryState(
+    ReleasesDrawerFields.ACTIVE_REPO,
+    parseAsString.withDefault('')
+  );
+  const [rdFilesCursor] = useQueryState(
+    ReleasesDrawerFields.FILES_CURSOR,
+    parseAsString.withDefault('')
+  );
   const activeReleaseRepo =
     releaseRepos.find(repo => repo.name === rdActiveRepo) ?? releaseRepos[0];
 

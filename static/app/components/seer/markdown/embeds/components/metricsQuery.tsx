@@ -10,9 +10,13 @@ const LazyMetricsQueryBlock = lazy(() => import('./metricsQueryBlock'));
 export const MetricsQuery = defineSeerEmbed({
   name: 'metricsQuery',
   render(props, level) {
-    if (level === 'block') {
-      return <LazyLoad LazyComponent={LazyMetricsQueryBlock} data={props} />;
+    switch (level) {
+      case 'block':
+        return <LazyLoad LazyComponent={LazyMetricsQueryBlock} data={props} />;
+      case 'markdown':
+        return <MetricsQueryLink data={props} format="markdown" />;
+      case 'inline':
+        return <MetricsQueryLink data={props} />;
     }
-    return <MetricsQueryLink data={props} />;
   },
 });

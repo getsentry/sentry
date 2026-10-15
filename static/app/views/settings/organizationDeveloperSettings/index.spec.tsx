@@ -273,7 +273,7 @@ describe('Organization Developer Settings', () => {
         },
       });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-      expect(deleteButton).toBeDisabled();
+      expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('publish button is disabled', async () => {
@@ -288,7 +288,7 @@ describe('Organization Developer Settings', () => {
         },
       });
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
-      expect(publishButton).toBeDisabled();
+      expect(publishButton).toHaveAttribute('aria-disabled', 'true');
     });
   });
 
@@ -338,7 +338,7 @@ describe('Organization Developer Settings', () => {
         },
       });
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
-      expect(deleteButton).toBeDisabled();
+      expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('publish button is disabled', async () => {
@@ -353,7 +353,7 @@ describe('Organization Developer Settings', () => {
         },
       });
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
-      expect(publishButton).toBeDisabled();
+      expect(publishButton).toHaveAttribute('aria-disabled', 'true');
     });
   });
 });

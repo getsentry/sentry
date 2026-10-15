@@ -6,6 +6,7 @@ from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
+import orjson
 from slack_sdk.web import SlackResponse
 
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
@@ -16,6 +17,8 @@ from sentry.incidents.typings.metric_detector import (
     NotificationContext,
     OpenPeriodContext,
 )
+from sentry.integrations.slack.message_builder.routing import decode_action_id
+from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.activity import Activity
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -23,6 +26,7 @@ from sentry.notifications.notification_action.metric_alert_registry import Slack
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_detector_serializer,
 )
+from sentry.notifications.notification_action.utils import metric_alert_notification_data_factory
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -80,43 +84,70 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
             notification_uuid=str(uuid.uuid4()),
         )
 
-    @override_options({"notifications.platform-rollout.internal-testing": {"metric-alert": 1.0}})
-    @with_feature("organizations:notification-platform.internal-testing")
-    @patch("sentry.integrations.slack.integration.SlackSdkClient")
-    @freeze_time("2021-01-01 00:00:00")
-    def test_send_alert_via_np_sends_to_slack_channel(
-        self, mock_slack_client: mock.MagicMock
+    @with_feature("organizations:metric-alert-chartcuterie")
+    @patch("sentry.integrations.slack.utils.notifications.build_metric_alert_chart")
+    @patch("sentry.integrations.slack.utils.notifications.SlackSdkClient")
+    def test_send_alert_and_resolution_with_notes_and_chart(
+        self,
+        mock_slack_client: mock.MagicMock,
+        mock_chart: mock.MagicMock,
     ) -> None:
-        mock_client_instance = mock_slack_client.return_value
-        mock_client_instance.chat_postMessage.return_value = SlackResponse(
-            client=mock_client_instance,
-            http_verb="POST",
-            api_url="https://slack.com/api/chat.postMessage",
-            req_args={},
-            data={"ok": True, "ts": "123.456"},
-            headers={},
-            status_code=200,
-        )
+        self.action.update(data={"notes": "Check <https://example.com/runbook|the runbook>"})
+        mock_chart.return_value = "https://example.com/chart.png"
+        client = mock_slack_client.return_value
+        client.chat_postMessage.return_value = {"ok": True, "ts": "123.456"}
+
+        kwargs = self._make_send_alert_kwargs()
+        self.handler.send_alert(**kwargs)
+
+        client.chat_postMessage.assert_called_once()
+        payload = client.chat_postMessage.call_args.kwargs
+        assert payload["channel"] == "channel123"
+        blocks = orjson.loads(payload["attachments"])[0]["blocks"]
+        assert "123.45" in blocks[0]["text"]["text"]
+        expected_notes_and_chart = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "notes: Check <https://example.com/runbook|the runbook>",
+                },
+            },
+            {
+                "type": "image",
+                "image_url": "https://example.com/chart.png",
+                "alt_text": "Metric Alert Chart",
+            },
+        ]
+        assert blocks[1:] == expected_notes_and_chart
+
+        kwargs["metric_issue_context"].new_status = IncidentStatus.CLOSED
+        kwargs["trigger_status"] = TriggerStatus.RESOLVED
+
+        self.handler.send_alert(**kwargs)
+
+        assert client.chat_postMessage.call_count == 2
+        resolved_payload = client.chat_postMessage.call_args.kwargs
+        assert resolved_payload["channel"] == "channel123"
+        assert "Resolved" in resolved_payload["text"]
+        resolved_blocks = orjson.loads(resolved_payload["attachments"])[0]["blocks"]
+        assert resolved_blocks[1:] == expected_notes_and_chart
+
+    @patch("sentry.integrations.slack.utils.notifications.SlackSdkClient")
+    def test_send_alert_with_empty_notes(self, mock_slack_client: mock.MagicMock) -> None:
+        self.action.update(data={"notes": ""})
+        client = mock_slack_client.return_value
+        client.chat_postMessage.return_value = {"ok": True, "ts": "123.456"}
 
         self.handler.send_alert(**self._make_send_alert_kwargs())
 
-        mock_client_instance.chat_postMessage.assert_called_once()
-        call_kwargs = mock_client_instance.chat_postMessage.call_args.kwargs
-        assert call_kwargs["channel"] == "channel123"
-        assert call_kwargs["attachments"] is not None
-        attachments: list[Any] = call_kwargs["attachments"]
-        assert len(attachments) == 1
-        blocks: list[Any] = attachments[0]["blocks"]
-        assert len(blocks) >= 1
-        assert blocks[0]["type"] == "section"
-        assert blocks[0]["text"]["type"] == "mrkdwn"
+        client.chat_postMessage.assert_called_once()
+        blocks = orjson.loads(client.chat_postMessage.call_args.kwargs["attachments"])[0]["blocks"]
+        assert len(blocks) == 1
 
     @patch(f"{_HANDLER_PATH}.send_incident_alert_notification")
     @freeze_time("2021-01-01 00:00:00")
-    def test_send_alert_falls_back_to_legacy_when_no_access(
-        self, mock_send_incident: mock.MagicMock
-    ) -> None:
-        # No feature flag enabled → has_access returns False → legacy path
+    def test_send_alert(self, mock_send_incident: mock.MagicMock) -> None:
         kwargs = self._make_send_alert_kwargs()
         self.handler.send_alert(**kwargs)
 
@@ -129,6 +160,84 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
             detector_serialized_response=get_detector_serializer(self.detector),
             notification_uuid=kwargs["notification_uuid"],
         )
+
+    def _invocation(self, resolved: bool = False) -> ActionInvocation:
+        event_data = self.event_data
+        if resolved:
+            activity = Activity(
+                project=self.project,
+                group=self.group,
+                type=ActivityType.SET_RESOLVED.value,
+                data=asdict(self.evidence_data),
+            )
+            activity.save()
+            event_data = WorkflowEventData(
+                event=activity, workflow_env=self.workflow.environment, group=self.group
+            )
+        return ActionInvocation(
+            event_data=event_data,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+
+    @override_options({"notifications.platform-rollout.internal-testing": {"metric-alert": 1.0}})
+    @override_options({"notifications.platform.alert-providers": {"metric-alert": ["slack"]}})
+    @with_feature("organizations:notification-platform.internal-testing")
+    def _send_platform_alert_and_get_blocks(self, invocation: ActionInvocation) -> list[Any]:
+        with patch("sentry.integrations.slack.integration.SlackSdkClient") as mock_client:
+            mock_client.return_value.chat_postMessage.return_value = SlackResponse(
+                client=mock_client.return_value,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": True, "ts": "123.456"},
+                headers={},
+                status_code=200,
+            )
+            self.handler.invoke_legacy_registry(invocation)
+            payload = mock_client.return_value.chat_postMessage.call_args.kwargs
+        return payload["attachments"][0]["blocks"]
+
+    @with_feature(["organizations:investigations", "organizations:investigations-slack"])
+    def test_send_alert_with_investigation_button(self) -> None:
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation())
+
+        assert [block["type"] for block in blocks] == ["section", "actions"]
+        (button,) = blocks[1]["elements"]
+        assert button["text"]["text"] == "Investigate with Seer"
+        routing = decode_action_id(button["action_id"])
+        assert routing.action == SlackAction.SEER_INVESTIGATION_START
+        assert routing.organization_id == self.organization.id
+        assert routing.project_id == self.group.project_id
+        assert orjson.loads(button["value"]) == {
+            "groupId": self.group.id,
+            "openPeriodId": OpenPeriodContext.from_group(self.group).id,
+        }
+
+    @with_feature(["organizations:investigations", "organizations:investigations-slack"])
+    def test_send_alert_resolved_has_no_investigation_button(self) -> None:
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation(resolved=True))
+
+        assert [block["type"] for block in blocks] == ["section"]
+
+    def test_send_alert_without_flags_has_no_investigation_button(self) -> None:
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation())
+
+        assert [block["type"] for block in blocks] == ["section"]
+
+    @with_feature("organizations:investigations")
+    def test_send_alert_without_slack_flag_has_no_investigation_button(self) -> None:
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation())
+
+        assert [block["type"] for block in blocks] == ["section"]
+
+    @with_feature("organizations:investigations-slack")
+    def test_send_alert_without_investigations_flag_has_no_investigation_button(self) -> None:
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation())
+
+        assert [block["type"] for block in blocks] == ["section"]
 
 
 class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
@@ -219,6 +328,7 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
     )
     @freeze_time("2021-01-01 00:00:00")
     def test_invoke_legacy_registry_with_activity(self, mock_send_alert: mock.MagicMock) -> None:
+        self.action.update(data={"notes": "Check the runbook"})
         activity = Activity(
             project=self.project,
             group=self.group,
@@ -260,7 +370,21 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
             target_display="Channel 123",
             sentry_app_config=None,
             sentry_app_id=None,
+            notes="Check the runbook",
         )
+
+        notification_data = metric_alert_notification_data_factory(
+            action_type=self.action.type,
+            notification_context=notification_context,
+            alert_context=alert_context,
+            metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
+            organization=organization,
+            notification_uuid=notification_uuid,
+            chart_url=None,
+        )
+        assert notification_data.notes == "Check the runbook"
+        assert notification_data.new_status == IncidentStatus.CLOSED.value
 
         self.assert_alert_context(
             alert_context,

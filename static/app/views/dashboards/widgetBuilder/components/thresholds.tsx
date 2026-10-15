@@ -3,6 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
   HighlightedText,
   Thresholds,
@@ -10,6 +11,8 @@ import {
 import {SectionHeader} from 'sentry/views/dashboards/widgetBuilder/components/common/sectionHeader';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 
 type ThresholdsSectionProps = {
   dataType?: string;
@@ -25,6 +28,15 @@ export function ThresholdsSection({
   setError,
 }: ThresholdsSectionProps) {
   const {state, dispatch} = useWidgetBuilderContext();
+  const isTimeSeriesWidget = Boolean(
+    state.displayType && usesTimeSeriesData(state.displayType)
+  );
+  const showThresholdTimeWindow =
+    isTimeSeriesWidget && canScaleThresholds(convertBuilderStateToWidget(state));
+  const hasThresholdValues = Boolean(
+    defined(state.thresholds?.max_values?.max1) ||
+    defined(state.thresholds?.max_values?.max2)
+  );
 
   const prevDataTypeRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -46,6 +58,15 @@ export function ThresholdsSection({
       });
     }
   }, [dataType, dispatch, state.thresholds]);
+
+  useEffect(() => {
+    if (state.thresholds?.timeWindow && !showThresholdTimeWindow) {
+      dispatch({
+        type: BuilderStateAction.SET_THRESHOLDS,
+        payload: {...state.thresholds, timeWindow: undefined},
+      });
+    }
+  }, [dispatch, showThresholdTimeWindow, state.thresholds]);
 
   return (
     <Fragment>
@@ -69,6 +90,7 @@ export function ThresholdsSection({
           dispatch({
             type: BuilderStateAction.SET_THRESHOLDS,
             payload: {
+              ...state.thresholds,
               max_values: state.thresholds?.max_values ?? {},
               unit: state.thresholds?.unit ?? null,
               preferredPolarity: polarity,
@@ -83,7 +105,13 @@ export function ThresholdsSection({
           }
 
           if (newThresholds) {
+            newThresholds.max_values ??= {};
             if (value) {
+              // Match the displayed unit on first entry without reinterpreting
+              // existing unitless thresholds, which use the base unit.
+              if (!hasThresholdValues) {
+                newThresholds.unit ??= dataUnit || null;
+              }
               newThresholds.max_values[maxKey] = Number(value);
             } else {
               delete newThresholds.max_values[maxKey];
@@ -92,7 +120,7 @@ export function ThresholdsSection({
 
           // Check if the value cleared all of the max values
           if (
-            newThresholds &&
+            newThresholds?.max_values &&
             Object.values(newThresholds.max_values).every(
               nextMaxValue => !defined(nextMaxValue)
             )
@@ -114,10 +142,30 @@ export function ThresholdsSection({
           dispatch({
             type: BuilderStateAction.SET_THRESHOLDS,
             payload: {
+              ...state.thresholds,
               max_values: state.thresholds?.max_values ?? {},
               unit,
               preferredPolarity: state.thresholds?.preferredPolarity,
             },
+          });
+        }}
+        showThresholdTimeWindow={showThresholdTimeWindow}
+        thresholdTimeWindowDisabled={!hasThresholdValues}
+        onThresholdTimeWindowChange={timeWindow => {
+          if (!state.thresholds) {
+            return;
+          }
+
+          const nextThresholds = cloneDeep(state.thresholds);
+          if (timeWindow) {
+            nextThresholds.timeWindow = timeWindow;
+          } else {
+            delete nextThresholds.timeWindow;
+          }
+
+          dispatch({
+            type: BuilderStateAction.SET_THRESHOLDS,
+            payload: nextThresholds,
           });
         }}
         dataType={dataType}

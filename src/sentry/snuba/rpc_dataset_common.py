@@ -42,6 +42,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     OrFilter,
     TraceItemFilter,
 )
+from sentry_sdk import traces
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover import arithmetic
@@ -69,7 +70,6 @@ from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, Sn
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
 from sentry.utils import json, metrics, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -447,7 +447,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def _run_table_query(
         cls,
         query: TableQuery,
@@ -496,7 +496,7 @@ class RPCBase:
         raise NotImplementedError()
 
     @classmethod
-    @trace
+    @traces.trace
     def run_bulk_table_queries(
         cls, queries: list[TableQuery], debug: str | bool = False
     ) -> dict[str, EAPResponse]:
@@ -577,6 +577,8 @@ class RPCBase:
         final_data: SnubaData = []
         final_confidence: ConfidenceData = []
         final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
+        if rpc_response.routing_hint:
+            final_meta["routing_hint"] = rpc_response.routing_hint
         by_public_alias = {col.public_alias: col for col in table_request.columns}
         for column_value in rpc_response.column_values:
             attribute = column_value.attribute_name
@@ -862,7 +864,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def run_timeseries_query(
         cls,
         *,
@@ -958,7 +960,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def build_top_event_conditions(
         cls, resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
     ) -> Any:
@@ -1005,7 +1007,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def run_top_events_timeseries_query(
         cls,
         *,
@@ -1133,21 +1135,24 @@ class RPCBase:
                         int(groupby_attributes[resolved_groupby.internal_name])
                     ]
                 else:
-                    resolved_groupby, context = search_resolver.resolve_attribute(col)
+                    resolved_groupby, contexts = search_resolver.resolve_attribute(col)
 
                     # Virtual context columns (VCCs) are currently only supported in TraceItemTable.
                     # Since timeseries run the query with the original column, we need to map
                     # them correctly so they map the table result. We need to map both the column name
                     # and the values.
-                    if context is not None:
-                        resolved_groupby = search_resolver.map_context_to_original_column(context)
+                    for context in contexts:
+                        if context is not None:
+                            resolved_groupby = search_resolver.map_context_to_original_column(
+                                context
+                            )
 
-                    groupby_value = groupby_attributes[resolved_groupby.internal_name]
-                    if context is not None:
-                        groupby_value = context.constructor(params, search_resolver).value_map[
-                            groupby_value
-                        ]
-                        groupby_attributes[resolved_groupby.internal_name] = groupby_value
+                        groupby_value = groupby_attributes[resolved_groupby.internal_name]
+                        if context is not None:
+                            groupby_value = context.constructor(params, search_resolver).value_map[
+                                groupby_value
+                            ]
+                            groupby_attributes[resolved_groupby.internal_name] = groupby_value
 
                     remapped_groupby[col] = groupby_value
 

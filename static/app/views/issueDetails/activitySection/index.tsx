@@ -1,91 +1,28 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {TimeSince} from 'sentry/components/timeSince';
-import {IconChat, IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
-import type {Group, GroupActivity} from 'sentry/types/group';
+import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
-import {
-  buildActivityFeedItems,
-  type DisplayedActivityFeedItem,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
-import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
-import {
-  ActivityLineNote,
-  isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
+import {ActivityFeed} from 'sentry/views/issueDetails/activitySection/activityFeed';
+import {buildActivityFeedItems} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-
-interface ActivityFeedRowProps {
-  group: Group;
-  inputVariant: 'compact' | 'full';
-  item: DisplayedActivityFeedItem;
-  onCommentDelete: (item: GroupActivity) => Promise<void>;
-  onCommentUpdate: (item: GroupActivity, data: NoteType) => Promise<void>;
-  timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
-}
-
-function ActivityFeedRow({
-  item,
-  onCommentDelete,
-  onCommentUpdate,
-  group,
-  inputVariant,
-  timestampUnitStyle,
-}: ActivityFeedRowProps) {
-  if (item.type === 'collapsed_status_activities') {
-    return (
-      <CollapsedStatusActivityRow eventCount={item.activities.length}>
-        {item.activities.map(activity => (
-          <ActivityFeedRow
-            item={activity}
-            onCommentDelete={onCommentDelete}
-            onCommentUpdate={onCommentUpdate}
-            group={group}
-            key={activity.activity.id}
-            inputVariant={inputVariant}
-            timestampUnitStyle={timestampUnitStyle}
-          />
-        ))}
-      </CollapsedStatusActivityRow>
-    );
-  }
-
-  const {activity} = item;
-
-  if (!isActivityNote(activity)) {
-    return (
-      <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle} />
-    );
-  }
-
-  return (
-    <ActivityLineNote
-      activity={activity}
-      inputVariant={inputVariant}
-      onDelete={() => onCommentDelete(activity)}
-      onUpdate={data => onCommentUpdate(activity, data)}
-      timestampUnitStyle={timestampUnitStyle}
-    />
-  );
-}
 
 interface ActivitySectionProps {
   group: Group;
@@ -144,20 +81,30 @@ export function ActivitySection({
     }
   }
 
-  async function handleDelete(item: GroupActivity) {
-    await deleteComment(item.id);
+  async function handleDelete(item: GroupActivityNote) {
+    const commentId = item.commentId;
+    await deleteComment(commentId);
     trackAnalytics('issue_details.comment_deleted', {organization});
     addSuccessMessage(t('Comment removed'));
-    onActivityChange?.(activities.filter(activity => activity.id !== item.id));
+    onActivityChange?.(
+      activities.filter(
+        activity => !isActivityNote(activity) || activity.commentId !== commentId
+      )
+    );
   }
 
-  async function handleUpdate(item: GroupActivity, data: NoteType) {
+  async function handleUpdate(item: GroupActivityNote, data: NoteType) {
     try {
-      const result = await updateComment(item.id, data);
+      const commentId = item.commentId;
+      const result = await updateComment(commentId, data);
       trackAnalytics('issue_details.comment_updated', {organization});
       addSuccessMessage(t('Comment updated'));
       onActivityChange?.(
-        activities.map(activity => (activity.id === result.id ? result : activity))
+        activities.map(activity =>
+          isActivityNote(activity) && activity.commentId === commentId
+            ? {...activity, data: {...activity.data, ...result.data}}
+            : activity
+        )
       );
     } catch (error) {
       addErrorMessage(t('Unable to update comment'));
@@ -188,17 +135,6 @@ export function ActivitySection({
   const inputVariant = isStandalone ? 'full' : 'compact';
   const timestampUnitStyle = isStandalone ? undefined : 'short';
 
-  const renderActivityItem = (item: DisplayedActivityFeedItem) => (
-    <ActivityFeedRow
-      item={item}
-      onCommentDelete={handleDelete}
-      onCommentUpdate={handleUpdate}
-      group={group}
-      key={item.activity.id}
-      inputVariant={inputVariant}
-      timestampUnitStyle={timestampUnitStyle}
-    />
-  );
   const noteInput = (
     <ActivityNoteInput
       storageKey="groupinput:latest"
@@ -211,17 +147,40 @@ export function ActivitySection({
   );
 
   const timeline = (
-    <ActivityLineList data-test-id="activity-timeline">
-      {displayedActivities.map(renderActivityItem)}
-    </ActivityLineList>
+    <ActivityFeed
+      group={group}
+      items={displayedActivities}
+      inputVariant={inputVariant}
+      timestampUnitStyle={timestampUnitStyle}
+      onCommentDelete={handleDelete}
+      onCommentUpdate={handleUpdate}
+    />
   );
-  const hiddenActivityCount =
-    displayedActivities.length >= 5 ? displayedActivities.length - 3 : 0;
-  const sidebarVisibleActivities =
-    hiddenActivityCount > 0 ? displayedActivities.slice(0, 3) : displayedActivities;
+  const shouldCollapseSidebar = displayedActivities.length >= 5;
+  const sidebarVisibleActivities = shouldCollapseSidebar
+    ? displayedActivities.slice(0, 3)
+    : displayedActivities;
+  // Count the events inside status-flapping rollups so the label reflects how much
+  // activity is actually hidden, not how many rows it collapses into.
+  const hiddenActivityCount = shouldCollapseSidebar
+    ? displayedActivities
+        .slice(3)
+        .reduce(
+          (count, item) =>
+            count +
+            (item.type === 'collapsed_status_activities' ? item.activities.length : 1),
+          0
+        )
+    : 0;
   const sidebarActivityItems = (
-    <Fragment>
-      {sidebarVisibleActivities.map(renderActivityItem)}
+    <ActivityFeed
+      group={group}
+      items={sidebarVisibleActivities}
+      inputVariant={inputVariant}
+      timestampUnitStyle={timestampUnitStyle}
+      onCommentDelete={handleDelete}
+      onCommentUpdate={handleUpdate}
+    >
       <MoreActivityRow>
         <MoreActivityIcon>
           <RotatedEllipsisIcon direction="up" />
@@ -245,7 +204,7 @@ export function ActivitySection({
           </LinkButton>
         </Container>
       </MoreActivityRow>
-    </Fragment>
+    </ActivityFeed>
   );
 
   if (isStandalone) {
@@ -283,9 +242,7 @@ export function ActivitySection({
     >
       <Grid gap="lg">
         {noteInput}
-        <ActivityLineList data-test-id="activity-timeline">
-          {sidebarActivityItems}
-        </ActivityLineList>
+        {sidebarActivityItems}
       </Grid>
     </SidebarFoldSection>
   );

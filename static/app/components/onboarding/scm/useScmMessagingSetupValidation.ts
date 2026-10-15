@@ -162,6 +162,7 @@ export function useScmMessagingSetupValidation({
   // both settle.
   useEffect(() => {
     if (messagingSetup.mode === 'selected') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setStaleReason(undefined);
     }
   }, [messagingSetup]);
@@ -172,6 +173,7 @@ export function useScmMessagingSetupValidation({
     }
 
     if (!integration) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setStaleReason(
         hasInactiveIntegration
           ? 'inactiveIntegration'

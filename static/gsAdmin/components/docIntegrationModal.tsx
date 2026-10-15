@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -14,7 +16,6 @@ import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconAdd, IconClose} from 'sentry/icons';
 import type {DocIntegration, IntegrationFeature} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -177,27 +178,28 @@ export function DocIntegrationModal(props: Props) {
     return outgoingData;
   };
 
-  const onSubmit = (
+  const onSubmit = async (
     data: Record<string, any>,
     onSuccess: (response: Record<string, any>) => void,
     onError: (error: any) => void
   ) => {
     addLoadingMessage('Saving changes\u2026');
-    api.request(
-      docIntegration ? `/doc-integrations/${docIntegration.slug}/` : '/doc-integrations/',
-      {
-        method: docIntegration ? 'PUT' : 'POST',
-        data: prepareData(data),
-        success: response => {
-          clearIndicators();
-          onSuccess(response);
-        },
-        error: error => {
-          clearIndicators();
-          onError(error);
-        },
-      }
-    );
+    try {
+      const response = await api.requestPromise(
+        docIntegration
+          ? `/doc-integrations/${docIntegration.slug}/`
+          : '/doc-integrations/',
+        {
+          method: docIntegration ? 'PUT' : 'POST',
+          data: prepareData(data),
+        }
+      );
+      clearIndicators();
+      onSuccess(response);
+    } catch (error) {
+      clearIndicators();
+      onError(error);
+    }
   };
 
   return (

@@ -10,6 +10,7 @@ import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {
+  formatPrice,
   isBizPlanFamily,
   isDeveloperPlan,
   isNewPayingCustomer,
@@ -92,17 +93,14 @@ function PlanSubstep({
 
   return (
     <Stack gap="xl">
-      <Grid
-        columns={{'screen:xs': '1fr', 'screen:lg': `repeat(${planOptions.length}, 1fr)`}}
-        gap="lg"
-      >
+      <Grid columns={{zero: '1fr', '4xl': `repeat(${planOptions.length}, 1fr)`}} gap="lg">
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
           const shouldShowDefaultPayAsYouGo = isNewPayingCustomer(
             subscription,
             organization
           );
-          const basePrice = utils.formatPrice({cents: plan.basePrice});
+          const basePrice = formatPrice({cents: plan.basePrice});
           const planContent = utils.getContentForPlan(plan);
           const badge = getBadge(plan);
 

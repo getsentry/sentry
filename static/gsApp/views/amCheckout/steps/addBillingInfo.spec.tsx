@@ -91,7 +91,10 @@ describe('AddBillingInformation', () => {
     expect(await screen.findByText('Edit billing information')).toBeInTheDocument();
     expect(await screen.findByText('Business address')).toBeInTheDocument();
     expect(screen.getByText('Payment method')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Confirm'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(
       screen.queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();
@@ -113,22 +116,24 @@ describe('AddBillingInformation', () => {
     );
 
     expect(await screen.findByText('Add billing information')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled(); // cannot checkout without billing info
-    expect(await screen.findByTestId('credit-card-panel')).toBeInTheDocument();
-    expect(screen.getByTestId('billing-details-panel')).toBeInTheDocument();
-    const inCardPanel = within(screen.getByTestId('credit-card-panel'));
-    const inBillingDetailsPanel = within(screen.getByTestId('billing-details-panel'));
+    expect(screen.getByRole('button', {name: 'Confirm'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    ); // cannot checkout without billing info
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
 
     expect(
-      inBillingDetailsPanel.queryByRole('button', {name: 'Edit business address'})
+      screen.queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();
     expect(
-      inBillingDetailsPanel.getByRole('button', {name: 'Save Changes'})
+      within(screen.getByTestId('billing-details-panel')).getByRole('button', {
+        name: 'Save Changes',
+      })
     ).toBeInTheDocument();
 
-    await inCardPanel.findByRole('button', {name: 'Save Changes'});
+    await within(cardPanel).findByRole('button', {name: 'Save Changes'});
     expect(
-      inCardPanel.queryByRole('button', {name: 'Edit payment method'})
+      screen.queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
   });
 });

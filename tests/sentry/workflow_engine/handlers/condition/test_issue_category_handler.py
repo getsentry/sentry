@@ -5,8 +5,14 @@ import pytest
 from jsonschema import ValidationError
 
 from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
+from sentry.models.group import Group
 from sentry.rules.filters.issue_category import IssueCategoryFilter
+from sentry.workflow_engine.handlers.condition.issue_category_handler import (
+    IssueCategoryConditionHandler,
+)
+from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import ActionFilterPreviewPlan
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
@@ -118,6 +124,23 @@ class TestIssueCategoryCondition(ConditionTestCase):
 
         self.dc.update(comparison={"value": GroupCategory.DB_QUERY.value})
         self.assert_passes(self.dc, WorkflowEventData(event=perf_group_event, group=perf_group))
+
+    def test_preview_behavior_supports_legacy_performance_category(self) -> None:
+        perf_group, _, _ = self.create_group_event(
+            group_type_id=PerformanceNPlusOneGroupType.type_id
+        )
+        plan = ActionFilterPreviewPlan(DataConditionGroup.Type.ALL)
+
+        IssueCategoryConditionHandler.preview_behavior.filter_preview(
+            plan, {"value": GroupCategory.PERFORMANCE.value}
+        )
+
+        matching_group_ids = set(
+            Group.objects.filter(id__in=[self.group.id, perf_group.id])
+            .filter(*plan.group_filters)
+            .values_list("id", flat=True)
+        )
+        assert matching_group_ids == {perf_group.id}
 
     def test_exclude(self) -> None:
         assert self.event.group is not None

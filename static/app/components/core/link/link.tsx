@@ -1,10 +1,11 @@
-import {type LinkProps as ReactRouterLinkProps} from 'react-router-dom';
+import {type LinkProps as ReactRouterLinkProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonVariant} from '@sentry/scraps/button/types';
+import {getTextStyles} from '@sentry/scraps/text/text';
 import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {useLinkBehavior} from './linkBehaviorContext';
@@ -38,6 +39,15 @@ export interface LinkProps
   disabled?: boolean;
 }
 
+/**
+ * Where something leads: a route inside the product, or an external URL
+ * outside it. The two are mutually exclusive, so a component can pick `Link`
+ * or `ExternalLink` from whichever one it was handed.
+ */
+export type LinkDestination =
+  | {to: LinkProps['to']; externalHref?: never}
+  | {externalHref: string; to?: never};
+
 const getLinkStyles = ({
   disabled,
   theme,
@@ -60,9 +70,15 @@ const getLinkStyles = ({
   }
 `;
 
+const getLinkTextStyles = ({theme}: {theme: Theme}) => css`
+  ${getTextStyles({theme, variant: 'inherit'})}
+  font-family: inherit;
+`;
+
 const Anchor = styled('a', {
   shouldForwardProp: prop => isPropValid(prop) && prop !== 'disabled',
 })<{disabled?: LinkProps['disabled']}>`
+  ${getLinkTextStyles}
   ${getLinkStyles}
 `;
 
@@ -100,6 +116,7 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
 }
 
 const StyledLink = styled(LinkBase)`
+  ${getLinkTextStyles}
   ${getLinkStyles}
 `;
 

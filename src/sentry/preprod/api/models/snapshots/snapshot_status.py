@@ -35,11 +35,12 @@ def derive_snapshot_status(status_input: SnapshotStatusInput) -> SnapshotDerived
     comparison_error_message = None
 
     if status_input.latest_comparison is not None:
-        comparison_state = PreprodSnapshotComparison.State(
-            status_input.latest_comparison.state
-        ).name.lower()
-        if status_input.latest_comparison.state == PreprodSnapshotComparison.State.FAILED:
-            comparison_error_message = status_input.latest_comparison.error_message
+        latest = status_input.latest_comparison
+        comparison_state = PreprodSnapshotComparison.State(latest.state).name.lower()
+        if latest.state == PreprodSnapshotComparison.State.FAILED:
+            comparison_error_message = latest.error_message
+            if latest.error_code == PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING:
+                comparison_state = "no_base_build"
     elif status_input.has_base_sha:
         grace_period_expired = status_input.artifact_age_seconds > MISSING_BASE_GRACE_PERIOD_SECONDS
         if grace_period_expired and status_input.base_artifact_exists is False:

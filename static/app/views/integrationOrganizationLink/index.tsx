@@ -7,6 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Stack} from '@sentry/scraps/layout';
+import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -29,7 +30,6 @@ import {generateOrgSlugUrl} from 'sentry/utils';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {getIntegrationFeatureGate} from 'sentry/utils/integrationUtil';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -157,6 +157,7 @@ export default function IntegrationOrganizationLink() {
   useEffect(() => {
     // If only one organization, select it and redirect
     if (organizations.length === 1) {
+      // oxlint-disable-next-line react/set-state-in-effect
       selectOrganization(organizations[0]!.slug);
     }
     // Now, check the subdomain and use that org slug if it exists
@@ -164,6 +165,7 @@ export default function IntegrationOrganizationLink() {
     if (customerDomain?.subdomain) {
       selectOrganization(customerDomain.subdomain);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organizations, location.search, selectOrganization]);
 
   const hasAccess = organization?.access.includes('org:integrations');
@@ -201,6 +203,20 @@ export default function IntegrationOrganizationLink() {
     }
     return {installation_id: installationId};
   }, [integrationSlug, installationId]);
+
+  // Origin marketplace installs arrive here with the signed installation receipt
+  // in the URL query (forwarded from `/extensions/cursor_origin/setup/`). The
+  // pipeline verifies it again before it trusts the installation it names.
+  const cursorOriginParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'cursor_origin') {
+      return null;
+    }
+    const installationReceipt = location.query.installationReceipt;
+    if (typeof installationReceipt !== 'string') {
+      return null;
+    }
+    return {installationReceipt};
+  }, [integrationSlug, location.query]);
 
   // Discord App Directory installs arrive here with `code` and `guild_id` in
   // the URL query (forwarded from `/extensions/discord/configure/`). The
@@ -315,6 +331,7 @@ export default function IntegrationOrganizationLink() {
     // initial data; otherwise the flow starts with no provider-supplied params.
     const urlParams =
       gitHubAppListingParams ??
+      cursorOriginParams ??
       discordAppDirectoryParams ??
       msTeamsParams ??
       jiraParams ??
@@ -328,6 +345,7 @@ export default function IntegrationOrganizationLink() {
     organization,
     isInvalidFlow,
     gitHubAppListingParams,
+    cursorOriginParams,
     discordAppDirectoryParams,
     msTeamsParams,
     jiraParams,

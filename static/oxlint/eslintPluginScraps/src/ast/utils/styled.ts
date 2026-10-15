@@ -1,11 +1,14 @@
+import type {ESTree} from '@oxlint/plugins';
+
+import type {createImportTracker} from '../tracker/imports.ts';
+
+type ImportTracker = ReturnType<typeof createImportTracker>;
 /**
  * @file Shared utility for classifying styled/css tagged template and call expressions.
  *
  * Replaces ad-hoc tag detection duplicated across rules with a single function
  * that returns a discriminated union describing what the node represents.
  */
-
-import type {TSESTree} from '@typescript-eslint/utils';
 
 /**
  * Discriminated union describing a styled/css call site.
@@ -15,15 +18,15 @@ import type {TSESTree} from '@typescript-eslint/utils';
  * - `css`: bare `css` tagged template
  */
 export type StyledCallInfo =
-  | {kind: 'element'; name: string; tag: TSESTree.Node}
-  | {kind: 'component'; name: string; tag: TSESTree.Node}
-  | {kind: 'css'; tag: TSESTree.Node}
+  | {kind: 'element'; name: string; tag: ESTree.Node}
+  | {kind: 'component'; name: string; tag: ESTree.Node}
+  | {kind: 'css'; tag: ESTree.Node}
   | null;
 
 /**
  * Get the name string from a member expression chain (e.g. `Mod.Button` → "Mod.Button").
  */
-function getMemberName(node: TSESTree.Node): string | null {
+function getMemberName(node: ESTree.Node): string | null {
   if (node.type === 'Identifier') {
     return node.name;
   }
@@ -43,7 +46,7 @@ function getMemberName(node: TSESTree.Node): string | null {
 /**
  * Classify a name as element or component using React's capitalization convention.
  */
-function classifyName(name: string, tag: TSESTree.Node): NonNullable<StyledCallInfo> {
+function classifyName(name: string, tag: ESTree.Node): NonNullable<StyledCallInfo> {
   // Dot-notation names (Mod.Button) are always components
   if (name.includes('.')) {
     return {kind: 'component', name, tag};
@@ -62,35 +65,19 @@ function classifyName(name: string, tag: TSESTree.Node): NonNullable<StyledCallI
  * This is the core classification logic — `getStyledCallInfo` is a thin
  * wrapper that extracts the tag/callee and delegates here.
  */
-function classifyTag(tag: TSESTree.Node): StyledCallInfo {
-  // css`...` — bare identifier
-  if (tag.type === 'Identifier' && tag.name === 'css') {
+function classifyTag(tag: ESTree.Node, imports: ImportTracker): StyledCallInfo {
+  if (imports.is(tag, '@emotion/react', 'css')) {
     return {kind: 'css', tag};
   }
 
   // MemberExpression patterns
   if (tag.type === 'MemberExpression') {
-    // X.css`...`
-    if (tag.property.type === 'Identifier' && tag.property.name === 'css') {
-      return {kind: 'css', tag};
-    }
-
     // styled.div`...` or styled.div({...})
     if (
-      tag.object.type === 'Identifier' &&
-      tag.object.name === 'styled' &&
+      imports.is(tag.object, '@emotion/styled', 'default') &&
       tag.property.type === 'Identifier'
     ) {
       return classifyName(tag.property.name, tag);
-    }
-
-    // styled(Component).attrs({})`...` — unwrap .attrs and recurse on inner call
-    if (
-      tag.property.type === 'Identifier' &&
-      tag.property.name === 'attrs' &&
-      tag.object.type === 'CallExpression'
-    ) {
-      return classifyTag(tag.object);
     }
   }
 
@@ -99,18 +86,8 @@ function classifyTag(tag: TSESTree.Node): StyledCallInfo {
     const innerCallee = tag.callee;
 
     // styled(X)
-    if (innerCallee.type === 'Identifier' && innerCallee.name === 'styled') {
+    if (imports.is(innerCallee, '@emotion/styled', 'default')) {
       return classifyStyledArgs(tag.arguments, tag);
-    }
-
-    // styled(X).attrs({})(...) — unwrap .attrs and recurse on inner call
-    if (
-      innerCallee.type === 'MemberExpression' &&
-      innerCallee.property.type === 'Identifier' &&
-      innerCallee.property.name === 'attrs' &&
-      innerCallee.object.type === 'CallExpression'
-    ) {
-      return classifyTag(innerCallee.object);
     }
   }
 
@@ -120,10 +97,7 @@ function classifyTag(tag: TSESTree.Node): StyledCallInfo {
 /**
  * Classify a `styled(...)` call from its arguments.
  */
-function classifyStyledArgs(
-  args: TSESTree.CallExpressionArgument[],
-  tag: TSESTree.Node
-): StyledCallInfo {
+function classifyStyledArgs(args: ESTree.Argument[], tag: ESTree.Node): StyledCallInfo {
   const arg = args[0];
   if (!arg) {
     return null;
@@ -146,9 +120,9 @@ function classifyStyledArgs(
  * Intermediate patterns:
  * - `styled(X)\`...\`` → styled(X) is tag of a TaggedTemplateExpression
  * - `styled(X)({...})` → styled(X) is callee of another CallExpression
- * - `styled(X).attrs({})\`...\`` → styled(X) feeds into a MemberExpression chain
+ * - Calls feeding into a MemberExpression chain
  */
-function isIntermediateCall(node: TSESTree.CallExpression): boolean {
+function isIntermediateCall(node: ESTree.CallExpression): boolean {
   const {parent} = node;
   if (!parent) {
     return false;
@@ -161,7 +135,7 @@ function isIntermediateCall(node: TSESTree.CallExpression): boolean {
   if (parent.type === 'CallExpression' && parent.callee === node) {
     return true;
   }
-  // styled(X).attrs(...) — this CallExpression feeds into a member chain
+  // Calls feeding into a member chain
   if (parent.type === 'MemberExpression' && parent.object === node) {
     return true;
   }
@@ -180,12 +154,12 @@ function isIntermediateCall(node: TSESTree.CallExpression): boolean {
  * - `styled('div')\`...\`` and `styled('div')({...})`
  * - `styled(Component)\`...\`` and `styled(Component)({...})`
  * - `styled(Mod.Component)\`...\``
- * - `styled(Component).attrs({...})\`...\``
  * - `css\`...\``
- * - `X.css\`...\`` (member expression ending in css)
+ * - `X.css\`...\`` (Emotion namespace import)
  */
 export function getStyledCallInfo(
-  node: TSESTree.TaggedTemplateExpression | TSESTree.CallExpression
+  node: ESTree.TaggedTemplateExpression | ESTree.CallExpression,
+  imports: ImportTracker
 ): StyledCallInfo {
   // Skip intermediate CallExpressions — the outermost node will classify instead
   if (node.type === 'CallExpression' && isIntermediateCall(node)) {
@@ -195,17 +169,13 @@ export function getStyledCallInfo(
   const tag = node.type === 'TaggedTemplateExpression' ? node.tag : node.callee;
 
   // Try classifying from the tag/callee expression
-  const result = classifyTag(tag);
+  const result = classifyTag(tag, imports);
   if (result) {
     return result;
   }
 
   // Direct styled(X) as a CallExpression node (not as tag of template)
-  if (
-    node.type === 'CallExpression' &&
-    tag.type === 'Identifier' &&
-    tag.name === 'styled'
-  ) {
+  if (node.type === 'CallExpression' && imports.is(tag, '@emotion/styled', 'default')) {
     return classifyStyledArgs(node.arguments, node);
   }
 

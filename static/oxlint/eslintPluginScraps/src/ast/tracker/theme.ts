@@ -1,3 +1,4 @@
+import type {ESTree} from '@oxlint/plugins';
 /**
  * @file Theme binding tracker for scope-aware theme variable resolution.
  *
@@ -8,8 +9,6 @@
  * - const { tokens } = theme
  * - Callback parameters: (theme) => ..., (p) => p.theme
  */
-
-import type {TSESTree} from '@typescript-eslint/utils';
 
 import type {ThemeBinding, ThemeTracker} from '../extractor/types.ts';
 
@@ -33,7 +32,7 @@ export function createThemeTracker(): ThemeTracker {
   return {
     visitors: {
       // Track useTheme import
-      ImportDeclaration(node: TSESTree.ImportDeclaration) {
+      ImportDeclaration(node: ESTree.ImportDeclaration) {
         if (node.source.value !== '@emotion/react') {
           return;
         }
@@ -51,7 +50,7 @@ export function createThemeTracker(): ThemeTracker {
       },
 
       // Track const theme = useTheme()
-      VariableDeclarator(node: TSESTree.VariableDeclarator) {
+      VariableDeclarator(node: ESTree.VariableDeclarator) {
         if (!useThemeImported) {
           return;
         }

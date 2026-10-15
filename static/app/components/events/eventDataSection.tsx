@@ -1,10 +1,5 @@
-import styled from '@emotion/styled';
-
-import {Container} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-
-import {DataSection} from 'sentry/components/events/styles';
-import {IconLink} from 'sentry/icons';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 interface EventDataSectionProps {
   children: React.ReactNode;
@@ -13,7 +8,7 @@ interface EventDataSectionProps {
    */
   title: React.ReactNode;
   /**
-   * Used as the `id` of the section. This powers the permalink
+   * Used as the `id` of the section for hash navigation.
    */
   type: string;
   /**
@@ -22,12 +17,6 @@ interface EventDataSectionProps {
   actions?: React.ReactNode;
   className?: string;
   ref?: React.Ref<HTMLDivElement>;
-  /**
-   * Should the permalink be enabled for this section?
-   *
-   * @default true
-   */
-  showPermalink?: boolean;
 }
 
 function scrollToSection(element: HTMLDivElement) {
@@ -56,107 +45,25 @@ export function EventDataSection({
   type,
   title,
   actions,
-  showPermalink = true,
   ...props
 }: EventDataSectionProps) {
-  const titleNode = <h3>{title}</h3>;
-
   return (
-    <DataSection ref={scrollToSection} className={className || ''} {...props}>
-      <SectionHeader id={type} data-test-id={`event-section-${type}`}>
+    <Stack gap="md" ref={scrollToSection} className={className} {...props}>
+      <Flex id={type} align="center" gap="xs" wrap="wrap">
         {title && (
-          <Title>
-            {showPermalink ? (
-              <Container as="span" width="100%" position="relative" className="permalink">
-                <PermalinkAnchor href={`#${type}`} openInNewTab={false}>
-                  <StyledIconLink size="xs" variant="muted" />
-                </PermalinkAnchor>
-                {titleNode}
-              </Container>
-            ) : (
-              titleNode
-            )}
-          </Title>
+          <Container flexGrow={1} padding="sm 0">
+            <Heading as="h3" size="lg" variant="primary">
+              {title}
+            </Heading>
+          </Container>
         )}
         {actions && (
           <Container flexShrink={0} maxWidth="100%">
             {actions}
           </Container>
         )}
-      </SectionHeader>
+      </Flex>
       <Container position="relative">{children}</Container>
-    </DataSection>
+    </Stack>
   );
 }
-
-const Title = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;
-
-const StyledIconLink = styled(IconLink)`
-  opacity: 0;
-  transform: translateY(-1px);
-  transition: opacity 100ms;
-`;
-
-const PermalinkAnchor = styled(ExternalLink)`
-  display: flex;
-  align-items: center;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: calc(100% + ${p => p.theme.space['2xl']});
-  height: 100%;
-  padding-left: ${p => p.theme.space.xs};
-  transform: translateX(-${p => p.theme.space['2xl']});
-
-  :hover ${StyledIconLink}, :focus ${StyledIconLink} {
-    opacity: 1;
-  }
-`;
-
-const SectionHeader = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  margin-bottom: ${p => p.theme.space.md};
-
-  & h3,
-  & h3 a {
-    color: ${p => p.theme.tokens.content.secondary};
-    font-size: ${p => p.theme.font.size.md};
-    font-weight: ${p => p.theme.font.weight.sans.medium};
-  }
-
-  & h3 {
-    padding: ${p => p.theme.space.sm} 0;
-    margin-bottom: 0;
-  }
-
-  & small {
-    color: ${p => p.theme.tokens.content.primary};
-    font-size: ${p => p.theme.font.size.md};
-    margin-right: ${p => p.theme.space.xs};
-    margin-left: ${p => p.theme.space.xs};
-  }
-  & small > span {
-    color: ${p => p.theme.tokens.content.primary};
-    font-weight: ${p => p.theme.font.weight.sans.regular};
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    & > small {
-      margin-left: ${p => p.theme.space.md};
-      display: inline-block;
-    }
-  }
-
-  > *:first-child {
-    position: relative;
-    flex-grow: 1;
-  }
-`;

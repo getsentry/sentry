@@ -9,11 +9,13 @@ from typing import Any
 
 import click
 import taskbroker_client.constants as taskworker_constants
+from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
 from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 DEFAULT_BLOCK_SIZE = int(32 * 1e6)
 logger = logging.getLogger("sentry.runner.commands.run")
@@ -32,6 +34,11 @@ def _address_validate(
         host = value
         port = None
     return host, port
+
+
+def _tick_taskworker_scheduler(runner: ScheduleRunner) -> float:
+    with viewer_context_scope(ViewerContext(actor_type=ActorType.SYSTEM)):
+        return runner.tick()
 
 
 @click.group()
@@ -106,7 +113,6 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     All tasks defined in settings.TASKWORKER_SCHEDULES will be scheduled as required.
     """
     from django.conf import settings
-    from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
     from sentry.taskworker.runtime import app
     from sentry.utils.redis import redis_clusters
@@ -128,7 +134,7 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 
         runner.log_startup()
         while True:
-            sleep_time = runner.tick()
+            sleep_time = _tick_taskworker_scheduler(runner)
             time.sleep(sleep_time)
 
 
@@ -609,10 +615,6 @@ def basic_consumer(
         arroyo_args=arroyo_args,
         **options,
     )
-
-    # for backwards compat: should eventually be removed
-    if not quantized_rebalance_delay_secs and consumer_name == "ingest-generic-metrics":
-        quantized_rebalance_delay_secs = options.get("sentry-metrics.synchronized-rebalance-delay")
 
     dump_stacktrace_on_shutdown = consumer_name in get("consumer.dump_stacktrace_on_shutdown", [])
     verbose_multiprocessing_logs = consumer_name in get("consumer.verbose_multiprocessing_logs", [])

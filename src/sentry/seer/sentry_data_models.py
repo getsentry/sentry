@@ -116,6 +116,11 @@ class OrganizationSlugResponse(BaseModel):
     slug: str
 
 
+class ReferencedFixStatementsResponse(BaseModel):
+    statements: list[str]
+    short_ids: list[str]
+
+
 class OrganizationProjectDetail(BaseModel):
     id: int
     slug: str
@@ -227,15 +232,6 @@ class AttributeNamesResponse(BaseModel):
     # populated when the caller requests context and the organization has
     # authored some; attributes without context are still listed in `fields`.
     custom_fields: list[AttributeMeta] = []
-
-
-class AttributeBucket(BaseModel):
-    value: str
-    count: float
-
-
-class AttributesAndValuesResponse(BaseModel):
-    attributes_and_values: dict[str, list[AttributeBucket]]
 
 
 class MetricMetadataRow(BaseModel):
@@ -412,11 +408,10 @@ class TraceItemEventsResponse(BaseModel):
 
 
 class ExecuteQuerySuccessResponse(BaseModel):
-    """Success shape for `execute_table_query`, `execute_trace_table_query`, and
-    `execute_replays_query`: `{"data": [...], "meta": {...}}`. `meta` is omitted
-    from the wire when the upstream call didn't return one (e.g. the no-projects
-    short-circuit in `execute_replays_query`), which is why we lean on
-    `exclude_unset` instead of emitting `"meta": None`."""
+    """Success shape for `execute_table_query` and `execute_trace_table_query`:
+    `{"data": [...], "meta": {...}}`. `meta` is omitted from the wire when the
+    upstream call didn't return one, which is why we lean on `exclude_unset`
+    instead of emitting `"meta": None`."""
 
     data: list[dict[str, Any]]
     meta: dict[str, Any] | None = None
@@ -505,14 +500,16 @@ class IssueCommittersResponse(_DictProxyMixin):
 
 
 class IssueOwner(BaseModel):
-    """A resolved code owner of an issue's failing files. Exactly one of the identity
-    fields is set: `email` for a `user`, `slug` for a `team`. `name` is the display
-    name when known. Kept fully typed (not a dict passthrough) so the same model can be
-    reused for RPC request/response validation on both sides of the wire."""
+    """A resolved code owner of an issue's failing files.
+
+    Users carry `username` and, when available, `email`; teams carry `slug`. `name`
+    is the display name when known.
+    """
 
     type: Literal["user", "team"]
     name: str | None = None
     email: str | None = None
+    username: str | None = None
     slug: str | None = None
 
 
@@ -539,7 +536,7 @@ class TeamMembersResponse(_DictProxyMixin):
     """`get_team_members` returns the active users on a team, letting the agent drill from
     a team-level owner (e.g. one returned by `get_issue_ownership`) down to individual
     users — the eventual target when suggesting an assignee. `members` reuses `IssueOwner`
-    (always `type="user"`, with `email`/`name`); it is empty when the team has no active
+    (always `type="user"`, with `username`/`email`/`name`); it is empty when the team has no active
     members. Returns `None` (not this model) when the team can't be found."""
 
     team_id: int
@@ -557,6 +554,10 @@ class GroupAssigneesResponse(_DictProxyMixin):
     # Dict keys are int issue IDs, but JSON serializes them as strings, so make that explicit.
     # Consumer will convert back to int.
     assignees: dict[str, UserIdentity]
+
+
+class ProjectMembersResponse(_DictProxyMixin):
+    members: list[UserIdentity]
 
 
 class TransactionsForProjectResponse(BaseModel):

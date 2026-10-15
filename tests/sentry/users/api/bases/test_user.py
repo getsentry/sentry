@@ -5,12 +5,15 @@ from django.test import override_settings
 from rest_framework.views import APIView
 
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.auth.services.auth import AuthenticatedToken
+from sentry.seer import agent_token
 from sentry.testutils.cases import DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import all_silo_test, control_silo_test, no_silo_test
 from sentry.users.api.bases.user import (
     RegionSiloUserEndpoint,
     UserAndStaffPermission,
+    UserDisplayPreferencesPermission,
     UserEndpoint,
     UserPermission,
 )
@@ -101,6 +104,90 @@ class UserAndStaffPermissionTest(DRFPermissionTestCase):
         # The user passed in and the user on the request must be different to check staff.
         assert UserAndStaffPermission().has_object_permission(
             self.staff_request, APIView(), self.create_user()
+        )
+
+
+@all_silo_test
+class UserDisplayPreferencesPermissionTest(DRFPermissionTestCase):
+    """`UserDisplayPreferencesPermission` lifts `UserPermission`'s rejection of agent credentials.
+
+    What replaces it is a self-only check against the credential, so these cover the
+    boundary that keeps an agent off other people's accounts.
+    """
+
+    options_permission = UserDisplayPreferencesPermission()
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.normal_user = self.create_user()
+        self.other_user = self.create_user()
+
+    def _agent_auth(self, user_id: int, scopes: list[str]) -> AuthenticatedToken:
+        return AuthenticatedToken(kind=agent_token.AGENT_TOKEN_KIND, scopes=scopes, user_id=user_id)
+
+    def test_allows_agent_on_its_own_options(self) -> None:
+        auth = self._agent_auth(self.normal_user.id, ["org:read"])
+        request = self.make_request(user=self.normal_user, auth=auth, method="GET")
+
+        assert self.options_permission.has_object_permission(request, APIView(), self.normal_user)
+
+    def test_rejects_agent_on_another_users_options(self) -> None:
+        auth = self._agent_auth(self.normal_user.id, ["org:read"])
+        request = self.make_request(user=self.normal_user, auth=auth, method="GET")
+
+        assert not self.options_permission.has_object_permission(
+            request, APIView(), self.other_user
+        )
+
+    def test_rejects_agent_when_no_user_is_resolved(self) -> None:
+        auth = self._agent_auth(self.normal_user.id, ["org:read"])
+        request = self.make_request(user=self.normal_user, auth=auth, method="GET")
+
+        assert not self.options_permission.has_object_permission(request, APIView(), None)
+
+    def test_read_scope_allows_get(self) -> None:
+        auth = self._agent_auth(self.normal_user.id, ["org:read"])
+        request = self.make_request(user=self.normal_user, auth=auth, method="GET")
+
+        assert self.options_permission.has_permission(request, APIView())
+
+    def test_agent_read_scope_allows_put(self) -> None:
+        # The relaxed write rule is for agent credentials only: the user it acts for
+        # needs no scope at all, and no write scope exists that a member could approve.
+        auth = self._agent_auth(self.normal_user.id, ["org:read"])
+        request = self.make_request(user=self.normal_user, auth=auth, method="PUT")
+
+        assert self.options_permission.has_permission(request, APIView())
+
+    def test_ordinary_token_read_scope_allows_put(self) -> None:
+        # No scope is required for anyone: these are the caller's own settings, and
+        # has_object_permission is what keeps a caller to their own.
+        auth = AuthenticatedToken(
+            kind="api_token", scopes=["org:read"], user_id=self.normal_user.id
+        )
+        request = self.make_request(user=self.normal_user, auth=auth, method="PUT")
+
+        assert self.options_permission.has_permission(request, APIView())
+
+    def test_ordinary_token_write_scope_allows_put(self) -> None:
+        auth = AuthenticatedToken(
+            kind="api_token", scopes=["org:write"], user_id=self.normal_user.id
+        )
+        request = self.make_request(user=self.normal_user, auth=auth, method="PUT")
+
+        assert self.options_permission.has_permission(request, APIView())
+
+    def test_write_scope_allows_put(self) -> None:
+        auth = self._agent_auth(self.normal_user.id, ["org:write"])
+        request = self.make_request(user=self.normal_user, auth=auth, method="PUT")
+
+        assert self.options_permission.has_permission(request, APIView())
+
+    def test_rejects_staff_on_another_users_options(self) -> None:
+        # Deliberately narrower than UserAndStaffPermission: preferences are personal,
+        # so there is no operator path to somebody else's.
+        assert not self.options_permission.has_object_permission(
+            self.staff_request, APIView(), self.normal_user
         )
 
 

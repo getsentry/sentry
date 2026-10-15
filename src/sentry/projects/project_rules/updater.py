@@ -11,7 +11,6 @@ from sentry.types.actor import Actor
 from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
     update_migrated_issue_alert,
 )
-from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +41,6 @@ class ProjectRuleUpdater:
             self._update_conditions()
             self._update_frequency()
             self.rule.save()
-            # Mark that we're using legacy Rule models
-            report_used_legacy_models()
-
             # uncaught errors will rollback the transaction
             workflow = update_migrated_issue_alert(self.rule)
             if workflow:

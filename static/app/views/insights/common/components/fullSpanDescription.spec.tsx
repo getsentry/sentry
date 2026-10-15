@@ -1,25 +1,26 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {ModuleName} from 'sentry/views/insights/types';
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('FullSpanDescription', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+  });
+
+  afterEach(() => {
+    PageFiltersStore.reset();
   });
 
   const organization = OrganizationFixture();
 
   const project = ProjectFixture();
-
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
   const groupId = '2ed2abf6ce7e3577';
   const spanId = 'abfed2aabf';

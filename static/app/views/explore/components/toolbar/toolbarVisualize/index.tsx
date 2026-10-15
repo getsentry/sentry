@@ -2,6 +2,8 @@ import type {ReactNode} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
@@ -10,11 +12,13 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
-import {IconAdd} from 'sentry/icons';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {ParsedFunction} from 'sentry/utils/discover/fields';
-import {getFieldDefinition, type GetFieldDefinitionType} from 'sentry/utils/fields';
+import {
+  FieldKind,
+  getFieldDefinition,
+  type GetFieldDefinitionType,
+} from 'sentry/utils/fields';
 import {
   ToolbarFooterButton,
   ToolbarHeader,
@@ -22,6 +26,7 @@ import {
   ToolbarRow,
 } from 'sentry/views/explore/components/toolbar/styles';
 import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 export function ToolbarVisualizeHeader() {
@@ -111,7 +116,10 @@ export function ToolbarVisualizeDropdown({
         <Flex gap="md" align="center" width="100%">
           <AggregateCompactSelect
             search
-            options={aggregateOptions}
+            options={aggregateOptions.map(option => ({
+              ...option,
+              trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,
+            }))}
             value={parsedFunction?.name ?? ''}
             onChange={onChangeAggregate}
           />

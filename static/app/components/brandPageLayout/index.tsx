@@ -1,15 +1,12 @@
 import {Activity} from 'react';
 
-import artworkBackground from 'sentry-images/brandPageLayout/background.avif';
-import artworkImage from 'sentry-images/brandPageLayout/full-art.avif';
-import artworkOutline from 'sentry-images/brandPageLayout/outline.webp';
-
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {slot} from '@sentry/scraps/slot';
 
+import {AnimatedIllustration} from './animatedIllustration';
 import {BrandLayoutArt} from './art';
+import {ARTWORK_BLEED, ARTWORK_HEIGHT, ARTWORK_WIDTH} from './artworkLayers';
 import {BrandPageBackground} from './background';
-import {InteractiveIllustration} from './interactiveIllustration';
 
 const BrandPageLayoutSlot = slot(['headerStart', 'headerEnd', 'content'] as const);
 
@@ -25,12 +22,12 @@ interface BrandPageLayoutProps {
  */
 function BrandPageLayoutRoot({
   artwork = (
-    <BrandLayoutArt intrinsicHeight={1117} intrinsicWidth={1567} rightBleed={132}>
-      <InteractiveIllustration
-        backgroundSrc={artworkBackground}
-        outlineSrc={artworkOutline}
-        src={artworkImage}
-      />
+    <BrandLayoutArt
+      intrinsicHeight={ARTWORK_HEIGHT}
+      intrinsicWidth={ARTWORK_WIDTH}
+      rightBleed={ARTWORK_BLEED}
+    >
+      <AnimatedIllustration />
     </BrandLayoutArt>
   ),
   background = <BrandPageBackground />,
@@ -58,7 +55,12 @@ function BrandPageLayoutRoot({
           position="relative"
         >
           <Container position="absolute" inset="0" overflow="hidden">
-            {background}
+            <Activity
+              mode={isArtworkActive ? 'visible' : 'hidden'}
+              name="Brand background"
+            >
+              {background}
+            </Activity>
           </Container>
           <Container
             position="absolute"
@@ -131,4 +133,4 @@ export const BrandPageLayout = Object.assign(BrandPageLayoutRoot, {
   HeaderStart,
 });
 
-export {BrandLayoutArt, BrandPageBackground, InteractiveIllustration};
+export {AnimatedIllustration, BrandLayoutArt, BrandPageBackground};

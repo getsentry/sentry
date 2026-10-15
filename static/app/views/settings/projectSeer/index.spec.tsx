@@ -1789,4 +1789,49 @@ describe('ProjectSeer', () => {
       expect(within(modal).getByText('getsentry/gitlab-repo')).toBeInTheDocument();
     });
   });
+
+  describe('Cursor Origin support', () => {
+    it('shows Origin repos as selectable when seer-cursor-origin-support flag is on', async () => {
+      const orgWithOriginSupport = OrganizationFixture({
+        features: ['seer-cursor-origin-support'],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithOriginSupport.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: [
+          RepositoryFixture({
+            id: '1',
+            name: 'getsentry/sentry',
+            externalId: '101',
+            provider: {id: 'integrations:github', name: 'GitHub'},
+            integrationId: '201',
+          }),
+          RepositoryFixture({
+            id: '4',
+            name: 'acme/rocket',
+            externalId: 'r_01example',
+            provider: {id: 'integrations:cursor_origin', name: 'Cursor Origin'},
+            integrationId: '204',
+          }),
+        ],
+      });
+
+      render(<ProjectSeer />, {
+        organization: orgWithOriginSupport,
+        outletContext: {project},
+      });
+      renderGlobalModal({organization: orgWithOriginSupport});
+
+      expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Add Repositories to Project'})
+      );
+
+      const modal = await screen.findByRole('dialog');
+      expect(await within(modal).findByText('acme/rocket')).toBeInTheDocument();
+      expect(within(modal).getByRole('checkbox', {checked: false})).toBeEnabled();
+    });
+  });
 });

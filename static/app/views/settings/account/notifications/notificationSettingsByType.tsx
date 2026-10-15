@@ -1,5 +1,10 @@
 import {Fragment, useEffect} from 'react';
-import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
+import {
+  mutationOptions,
+  type UseMutationOptions,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -60,7 +65,9 @@ const getQueryParams = (notificationType: string) => {
 
 const notificationOptionsQueryKey = (notificationType: string) =>
   [
-    getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
+    getApiUrl('/users/$userId/notification-options/', {
+      path: {userId: 'me'},
+    }),
     {query: getQueryParams(notificationType)},
   ] as const;
 
@@ -71,6 +78,57 @@ function choicesToOptions(
   choices: ReadonlyArray<readonly [string, string]>
 ): Array<{label: string; value: string}> {
   return choices.map(([value, label]) => ({value, label}));
+}
+
+function DefaultNotificationField({
+  initialValue,
+  notificationType,
+  fieldMutationOptions,
+}: {
+  fieldMutationOptions: UseMutationOptions<
+    NotificationOptionsObject,
+    Error,
+    Record<string, string>
+  >;
+  initialValue: string;
+  notificationType: string;
+}) {
+  const fieldDef =
+    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType];
+
+  const choices = fieldDef.choices;
+  const help =
+    notificationType === 'spikeProtection'
+      ? t('This is the default for all projects under all organizations.')
+      : isGroupedByProject(notificationType)
+        ? t('This is the default for all projects.')
+        : t('This is the default for all organizations.');
+  const label = fieldDef.label;
+  const name = notificationType;
+
+  if (!choices) {
+    return null;
+  }
+  const schema = z.object({[name]: z.string()});
+
+  return (
+    <AutoSaveForm
+      name={name}
+      schema={schema}
+      initialValue={initialValue}
+      mutationOptions={fieldMutationOptions}
+    >
+      {field => (
+        <field.Layout.Row label={label} hintText={help}>
+          <field.Select
+            value={field.state.value}
+            onChange={field.handleChange}
+            options={choicesToOptions(choices)}
+          />
+        </field.Layout.Row>
+      )}
+    </AutoSaveForm>
+  );
 }
 
 export function NotificationSettingsByType({notificationType}: Props) {
@@ -239,9 +297,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     mutationFn: (data: Omit<NotificationOptionsObject, 'id'>) =>
       fetchMutation<NotificationOptionsObject>({
         method: 'PUT',
-        url: getApiUrl('/users/$userId/notification-options/', {
-          path: {userId: 'me'},
-        }),
+        url: getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
         options: {},
         data,
       }),
@@ -261,9 +317,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     mutationFn: (data: NotificationOptionsObject) =>
       fetchMutation<NotificationOptionsObject>({
         method: 'PUT',
-        url: getApiUrl('/users/$userId/notification-options/', {
-          path: {userId: 'me'},
-        }),
+        url: getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
         options: {},
         data,
       }),
@@ -369,71 +423,14 @@ export function NotificationSettingsByType({notificationType}: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [
-          getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
+          getApiUrl('/users/$userId/notification-providers/', {
+            path: {userId: 'me'},
+          }),
           {query: getQueryParams(notificationType)},
         ],
       });
     },
   });
-
-  const renderQuotaFields = () => {
-    return QUOTA_FIELDS.map(field => {
-      const schema = z.object({[field.name]: z.string()});
-      return (
-        <AutoSaveForm
-          key={field.name}
-          name={field.name}
-          schema={schema}
-          initialValue={initialTopOptionData[field.name] ?? 'always'}
-          mutationOptions={optionMutationOptions(field.name)}
-        >
-          {fieldApi => (
-            <fieldApi.Layout.Row label={field.label} hintText={field.help}>
-              <fieldApi.Select
-                value={fieldApi.state.value}
-                onChange={fieldApi.handleChange}
-                options={choicesToOptions(field.choices)}
-              />
-            </fieldApi.Layout.Row>
-          )}
-        </AutoSaveForm>
-      );
-    });
-  };
-
-  const renderDefaultField = () => {
-    const fieldDef =
-      NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType];
-    if (!fieldDef?.choices) {
-      return null;
-    }
-    const help =
-      notificationType === 'spikeProtection'
-        ? t('This is the default for all projects under all organizations.')
-        : isGroupedByProject(notificationType)
-          ? t('This is the default for all projects.')
-          : t('This is the default for all organizations.');
-
-    const schema = z.object({[notificationType]: z.string()});
-    return (
-      <AutoSaveForm
-        name={notificationType}
-        schema={schema}
-        initialValue={initialTopOptionData[notificationType] ?? 'always'}
-        mutationOptions={optionMutationOptions(notificationType)}
-      >
-        {field => (
-          <field.Layout.Row label={fieldDef.label} hintText={help}>
-            <field.Select
-              value={field.state.value}
-              onChange={field.handleChange}
-              options={choicesToOptions(fieldDef.choices)}
-            />
-          </field.Layout.Row>
-        )}
-      </AutoSaveForm>
-    );
-  };
 
   return (
     <Fragment>
@@ -448,7 +445,36 @@ export function NotificationSettingsByType({notificationType}: Props) {
               : t('All Organizations')
           }
         >
-          {notificationType === 'quota' ? renderQuotaFields() : renderDefaultField()}
+          {notificationType === 'quota' ? (
+            QUOTA_FIELDS.map(field => {
+              const schema = z.object({[field.name]: z.string()});
+              return (
+                <AutoSaveForm
+                  key={field.name}
+                  name={field.name}
+                  schema={schema}
+                  initialValue={initialTopOptionData[field.name] ?? 'always'}
+                  mutationOptions={optionMutationOptions(field.name)}
+                >
+                  {fieldApi => (
+                    <fieldApi.Layout.Row label={field.label} hintText={field.help}>
+                      <fieldApi.Select
+                        value={fieldApi.state.value}
+                        onChange={fieldApi.handleChange}
+                        options={choicesToOptions(field.choices)}
+                      />
+                    </fieldApi.Layout.Row>
+                  )}
+                </AutoSaveForm>
+              );
+            })
+          ) : (
+            <DefaultNotificationField
+              notificationType={notificationType}
+              initialValue={initialTopOptionData[notificationType] ?? 'always'}
+              fieldMutationOptions={optionMutationOptions(notificationType)}
+            />
+          )}
         </FieldGroup>
       )}
       {notificationType !== 'reports' && notificationType !== 'brokenMonitors' ? (

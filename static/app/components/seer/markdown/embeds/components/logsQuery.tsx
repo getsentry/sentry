@@ -10,9 +10,13 @@ const LazyLogsQueryBlock = lazy(() => import('./logsQueryBlock'));
 export const LogsQuery = defineSeerEmbed({
   name: 'logsQuery',
   render(props, level) {
-    if (level === 'block') {
-      return <LazyLoad LazyComponent={LazyLogsQueryBlock} data={props} />;
+    switch (level) {
+      case 'block':
+        return <LazyLoad LazyComponent={LazyLogsQueryBlock} data={props} />;
+      case 'markdown':
+        return <LogsQueryLink data={props} format="markdown" />;
+      case 'inline':
+        return <LogsQueryLink data={props} />;
     }
-    return <LogsQueryLink data={props} />;
   },
 });

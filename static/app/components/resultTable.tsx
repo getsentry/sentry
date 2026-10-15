@@ -42,7 +42,7 @@ export const ResultTable = styled('table')`
     }
   }
 
-  @media (max-width: 768px) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     display: block;
 
     thead {

@@ -14,10 +14,7 @@ import {
 
 describe('docsFlowAnalytics', () => {
   describe('resolveDocsFlowEvent', () => {
-    it('keeps distinct names for the onboarding arms', () => {
-      expect(resolveDocsFlowEvent(DSN_COPIED_EVENT, 'onboarding')).toBe(
-        'onboarding.dsn-copied'
-      );
+    it('uses SCM names for onboarding', () => {
       expect(resolveDocsFlowEvent(DSN_COPIED_EVENT, 'onboarding-scm')).toBe(
         'onboarding.scm_dsn_copied'
       );
@@ -50,21 +47,15 @@ describe('docsFlowAnalytics', () => {
     });
 
     it('reproduces the exact onboarding names for the regression-gated flows', () => {
-      expect(resolveDocsFlowEvent(NEXT_STEP_CLICKED_EVENT, 'onboarding')).toBe(
-        'onboarding.next_step_clicked'
-      );
       expect(resolveDocsFlowEvent(NEXT_STEP_CLICKED_EVENT, 'onboarding-scm')).toBe(
         'onboarding.scm_next_step_clicked'
-      );
-      expect(resolveDocsFlowEvent(JS_LOADER_NPM_DOCS_SHOWN_EVENT, 'onboarding')).toBe(
-        'onboarding.js_loader_npm_docs_shown'
       );
       expect(
         resolveDocsFlowEvent(SETUP_LOADER_DOCS_RENDERED_EVENT, 'onboarding-scm')
       ).toBe('onboarding.scm_setup_loader_docs_rendered');
       expect(
-        resolveDocsFlowEvent(SOURCE_MAPS_SELECTED_AND_COPIED_EVENT, 'onboarding')
-      ).toBe('onboarding.source_maps_wizard_selected_and_copied');
+        resolveDocsFlowEvent(SOURCE_MAPS_SELECTED_AND_COPIED_EVENT, 'onboarding-scm')
+      ).toBe('onboarding.scm_source_maps_wizard_selected_and_copied');
     });
   });
 
@@ -74,8 +65,7 @@ describe('docsFlowAnalytics', () => {
       expect(docsFlowVariantParams('project-creation')).toEqual({variant: 'legacy'});
     });
 
-    it('omits variant for the onboarding arms (their events are onboarding.*)', () => {
-      expect(docsFlowVariantParams('onboarding')).toEqual({});
+    it('omits variant for onboarding (its events are onboarding.*)', () => {
       expect(docsFlowVariantParams('onboarding-scm')).toEqual({});
     });
 
@@ -93,17 +83,12 @@ describe('docsFlowAnalytics', () => {
         project_id: '42',
       });
       expect(docsFlowProjectIdParams(undefined, '42')).toEqual({project_id: '42'});
-      expect(docsFlowProjectIdParams('onboarding', '42')).toEqual({});
       expect(docsFlowProjectIdParams('onboarding-scm', '42')).toEqual({});
     });
   });
 
   describe('docsFlowMarkdownParams', () => {
     it('sets source by flow and variant by SCM experience', () => {
-      expect(docsFlowMarkdownParams('onboarding')).toEqual({
-        source: 'first_time_setup',
-        variant: 'legacy',
-      });
       expect(docsFlowMarkdownParams('onboarding-scm')).toEqual({
         source: 'first_time_setup',
         variant: 'scm',
@@ -127,7 +112,6 @@ describe('docsFlowAnalytics', () => {
 
   describe('docsFlowGamingOrigin', () => {
     it('collapses onto the 2-value origin taxonomy (Q1: no SCM split)', () => {
-      expect(docsFlowGamingOrigin('onboarding')).toBe('onboarding');
       expect(docsFlowGamingOrigin('onboarding-scm')).toBe('onboarding');
       expect(docsFlowGamingOrigin('project-creation')).toBe('project-creation');
       expect(docsFlowGamingOrigin('project-creation-scm')).toBe('project-creation');

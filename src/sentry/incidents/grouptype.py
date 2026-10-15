@@ -32,6 +32,7 @@ from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorException,
     DetectorGroupKey,
@@ -67,7 +68,7 @@ class StoredAnomalyDetectionResult(TypedDict):
     timestamp: str
 
 
-StoredMetricResult = float | StoredAnomalyDetectionResult
+StoredMetricResult = float | StoredAnomalyDetectionResult | None
 
 
 @dataclass
@@ -186,6 +187,8 @@ def get_alert_type_from_aggregate_dataset(
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
+    activation_creates_new_issue = True
+
     def build_detector_evidence_data(
         self,
         group_evaluation: DataConditionGroupEvaluation,
@@ -352,7 +355,7 @@ class MetricIssue(GroupType):
     slug = "metric_issue"
     description = "Metric issue triggered"
     category = GroupCategory.METRIC.value
-    creation_quota = Quota(3600, 60, 100)
+    creation_quota = Quota(3600, 60, 1000)
     default_priority = PriorityLevel.HIGH
     released = True
     enable_auto_resolve = False
@@ -360,23 +363,25 @@ class MetricIssue(GroupType):
     enable_status_change_workflow_notifications = False
     enable_workflow_notifications = False
     enable_user_status_and_priority_changes = False
-    detector_settings = DetectorSettings(
-        handler=MetricIssueDetectorHandler,
-        validator=MetricIssueDetectorValidator,
-        config_schema={
-            "$schema": "https://json-schema.org/draft/2020-12/schema",
-            "description": "A representation of a metric detector config dict",
-            "type": "object",
-            "required": ["detection_type"],
-            "properties": {
-                "comparison_delta": {
-                    "type": ["integer", "null"],
-                    "enum": COMPARISON_DELTA_CHOICES,
-                },
-                "detection_type": {
-                    "type": "string",
-                    "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
-                },
+
+
+@detector_settings_registry.register(MetricIssue.slug)
+class MetricIssueDetectorSettings(DetectorSettings):
+    handler = MetricIssueDetectorHandler
+    validator = MetricIssueDetectorValidator
+    config_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "A representation of a metric detector config dict",
+        "type": "object",
+        "required": ["detection_type"],
+        "properties": {
+            "comparison_delta": {
+                "type": ["integer", "null"],
+                "enum": COMPARISON_DELTA_CHOICES,
+            },
+            "detection_type": {
+                "type": "string",
+                "enum": [detection_type.value for detection_type in AlertRuleDetectionType],
             },
         },
-    )
+    }

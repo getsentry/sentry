@@ -4,10 +4,10 @@ import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+import {mapArrayToObject} from 'sentry/utils/array/mapArrayToObject';
 import {OrganizationSampleRateInput} from 'sentry/views/settings/dynamicSampling/organizationSampleRateInput';
 import {ProjectsTable} from 'sentry/views/settings/dynamicSampling/projectsTable';
 import {SamplingBreakdown} from 'sentry/views/settings/dynamicSampling/samplingBreakdown';
-import {mapArrayToObject} from 'sentry/views/settings/dynamicSampling/utils';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
 import {balanceSampleRate} from 'sentry/views/settings/dynamicSampling/utils/rebalancing';

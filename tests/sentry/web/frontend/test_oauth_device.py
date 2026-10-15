@@ -1,7 +1,9 @@
 from datetime import timedelta
 from functools import cached_property
 from unittest.mock import patch
+from urllib.parse import urlencode
 
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.models.apiapplication import ApiApplication
@@ -29,17 +31,41 @@ class OAuthDeviceVerificationTest(TestCase):
             scope_list=["project:read", "org:read"],
         )
 
-    def test_get_unauthenticated_shows_login(self) -> None:
-        """GET without authentication should show login form."""
+    def test_get_unauthenticated_redirects_to_login(self) -> None:
         resp = self.client.get(self.path)
-        assert resp.status_code == 200
-        assert b"login" in resp.content.lower() or b"sign in" in resp.content.lower()
+        self.assertRedirects(
+            resp,
+            f"{reverse('sentry-login')}?{urlencode({'next': self.path})}",
+            fetch_redirect_response=False,
+        )
 
-    def test_get_with_user_code_stores_in_session(self) -> None:
-        """GET with user_code parameter should store it in session for after login."""
-        resp = self.client.get(f"{self.path}?user_code={self.device_code.user_code}")
+    def test_get_preserves_user_code_in_login_destination(self) -> None:
+        full_path = f"{self.path}?user_code={self.device_code.user_code}"
+        resp = self.client.get(full_path)
+        self.assertRedirects(
+            resp,
+            f"{reverse('sentry-login')}?{urlencode({'next': full_path})}",
+            fetch_redirect_response=False,
+        )
+        assert self.client.session["_next"] == full_path
+
+        self.login_as(self.user)
+        resp = self.client.get(full_path)
         assert resp.status_code == 200
-        assert self.client.session.get("device_user_code") == self.device_code.user_code.upper()
+        self.assertTemplateUsed("sentry/oauth-device-authorize.html")
+        assert resp.context["user_code"] == self.device_code.user_code
+
+    def test_unauthenticated_post_requires_login(self) -> None:
+        resp = self.client.post(
+            self.path, {"op": "approve", "user_code": self.device_code.user_code}
+        )
+        self.assertRedirects(
+            resp,
+            f"{reverse('sentry-login')}?{urlencode({'next': self.path})}",
+            fetch_redirect_response=False,
+        )
+        self.device_code.refresh_from_db()
+        assert self.device_code.status == DeviceCodeStatus.PENDING
 
     def test_get_authenticated_shows_entry_form(self) -> None:
         """GET while authenticated should show user code entry form."""

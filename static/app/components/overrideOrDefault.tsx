@@ -49,6 +49,7 @@ export function OverrideOrDefault<H extends OverrideName>({
     if (!OverrideComponent) {
       return null;
     }
+    // oxlint-disable-next-line react/static-components
     return <OverrideComponent {...props} />;
   }
 

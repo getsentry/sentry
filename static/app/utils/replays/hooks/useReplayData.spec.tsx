@@ -9,7 +9,12 @@ import {
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -49,10 +54,14 @@ describe('useReplayData', () => {
   });
 
   afterEach(() => {
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
-    jest.useRealTimers();
+    try {
+      cleanup();
+      act(() => {
+        jest.runOnlyPendingTimers();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('should hydrate the replayRecord', async () => {
@@ -260,29 +269,22 @@ describe('useReplayData', () => {
       url: `/organizations/${organization.slug}/replays/${mockReplayResponse.id}/`,
       body: {data: mockReplayResponse},
     });
-    const mockedSegmentsCall1 = MockApiClient.addMockResponse({
+    const mockedSegmentsCall = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/replays/${mockReplayResponse.id}/recording-segments/`,
-      body: mockSegmentResponse1,
+      body: [...mockSegmentResponse1, ...mockSegmentResponse2],
       match: [(_url, options) => options.query?.cursor === '0:0:0'],
-    });
-    const mockedSegmentsCall2 = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/replays/${mockReplayResponse.id}/recording-segments/`,
-      body: mockSegmentResponse2,
-      match: [(_url, options) => options.query?.cursor === '0:1:0'],
     });
 
     const {result} = renderHookWithProviders(useReplayData, {
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
-        segmentsPerPage: 1,
       },
     });
 
     await act(() => jest.advanceTimersByTimeAsync(0));
 
-    await waitFor(() => expect(mockedSegmentsCall1).toHaveBeenCalledTimes(1));
-    expect(mockedSegmentsCall2).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(mockedSegmentsCall).toHaveBeenCalledTimes(1));
 
     await waitFor(() => {
       expect(result.current).toStrictEqual(
@@ -348,7 +350,6 @@ describe('useReplayData', () => {
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
-        errorsPerPage: 1,
       },
     });
 
@@ -483,7 +484,6 @@ describe('useReplayData', () => {
       initialProps: {
         replayId: mockReplayResponse.id,
         orgSlug: organization.slug,
-        errorsPerPage: 1,
       },
     });
 

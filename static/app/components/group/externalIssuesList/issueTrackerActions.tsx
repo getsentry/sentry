@@ -1,16 +1,16 @@
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {
   ExternalIssueAction,
   ExternalIssueIntegration,
 } from 'sentry/components/group/externalIssuesList/hooks/types';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Theme} from 'sentry/utils/theme';
@@ -267,7 +267,7 @@ export function IssueTrackerActionDropdown({
       trigger={(triggerProps, isOpen) => {
         const DropdownButtonComponent = fullWidth
           ? FullWidthDropdownButton
-          : DropdownButton;
+          : OverlayTrigger.Button;
 
         return (
           <DropdownButtonComponent
@@ -320,7 +320,7 @@ const IssueActionButton = styled(Button)`
   font-weight: normal;
 `;
 
-const IssueActionDropdownMenu = styled(DropdownButton)`
+const IssueActionDropdownMenu = styled(OverlayTrigger.Button)`
   display: flex;
   align-items: center;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.sm};
@@ -349,7 +349,7 @@ const FullWidthButton = styled(Button)`
   ${fullWidthButtonStyles}
 `;
 
-const FullWidthDropdownButton = styled(DropdownButton)`
+const FullWidthDropdownButton = styled(OverlayTrigger.Button)`
   ${fullWidthButtonStyles}
 `;
 

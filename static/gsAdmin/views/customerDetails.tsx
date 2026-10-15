@@ -193,10 +193,33 @@ export function CustomerDetails() {
     refetchBillingConfig();
   };
 
+  const onSetTestFlagMutation = useMutation({
+    mutationFn: (params: {isTest: boolean; notes?: string}) =>
+      fetchMutation<{isTest: boolean}>({
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/test-flag/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
+        method: 'PUT',
+        data: params,
+      }),
+    onSuccess: async () => {
+      await refetchSubscription();
+      addSuccessMessage('Test organization flag updated.');
+    },
+    onError: () => {
+      addErrorMessage('Could not update the test organization flag. Try again.');
+    },
+  });
+
   const onToggleBillingPlatformMigrationMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
       fetchMutation({
-        url: `/_admin/customers/${orgId}/billing-platform-migration/`,
+        url: getApiUrl(
+          '/_admin/customers/$organizationIdOrSlug/billing-platform-migration/',
+          {
+            path: {organizationIdOrSlug: orgId},
+          }
+        ),
         method: 'POST',
         data: params,
       }),
@@ -349,6 +372,12 @@ export function CustomerDetails() {
 
   const badges: BadgeItem[] = [
     {
+      name: 'Test Organization',
+      level: 'warning',
+      help: 'This organization is marked for internal testing. Billing is unchanged.',
+      visible: subscription.isTest === true,
+    },
+    {
       name: 'Suspended',
       level: 'danger',
       help: subscription.suspensionReason,
@@ -482,6 +511,22 @@ export function CustomerDetails() {
             ...actionRequiresBillingAdmin,
           },
           {
+            key: 'setTestFlag',
+            name: subscription.isTest
+              ? 'Remove test organization flag'
+              : 'Mark as test organization',
+            help: 'Change the internal test marker',
+            disabled:
+              subscription.isTest === undefined || onSetTestFlagMutation.isPending,
+            disabledReason: 'The test flag is unavailable or an update is in progress.',
+            confirmModalOpts: {
+              confirmText: subscription.isTest ? 'Remove test flag' : 'Mark as test',
+              showTicketURL: false,
+            },
+            onAction: ({notes}) =>
+              onSetTestFlagMutation.mutate({notes, isTest: !subscription.isTest}),
+          },
+          {
             key: 'toggleBillingPlatformMigration',
             name: subscription.hasMigratedToBillingPlatform
               ? '[Do Not Use] Unmigrate from Billing Platform'
@@ -494,7 +539,6 @@ export function CustomerDetails() {
                 ...params,
                 migrated: !subscription.hasMigratedToBillingPlatform,
               }),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'recreateBillingPlatformModels',
@@ -506,7 +550,6 @@ export function CustomerDetails() {
             },
             onAction: params =>
               onUpdateMutation.mutate({...params, recreateBillingPlatformModels: true}),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'convertToSelfServe',

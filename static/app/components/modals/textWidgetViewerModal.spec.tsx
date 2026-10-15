@@ -168,7 +168,10 @@ describe('Modals -> TextWidgetViewerModal', () => {
         dashboardCreator: UserFixture({id: '999'}),
       });
 
-      expect(await screen.findByRole('button', {name: 'Edit Widget'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Edit Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('is enabled when user is the dashboard creator', async () => {

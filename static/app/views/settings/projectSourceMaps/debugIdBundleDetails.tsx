@@ -1,10 +1,9 @@
 import {useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {DebugIdBundle, DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
@@ -30,6 +29,7 @@ export function DebugIdBundleDetails({
       {
         key: 'releases',
         subject: t('Associated Releases'),
+        actionButtonAlwaysVisible: true,
         actionButton: associations.length > 3 && (
           <Button size="xs" onClick={() => setShowAll(value => !value)}>
             {showAll ? t('Show Less') : t('Show All')}
@@ -46,11 +46,7 @@ export function DebugIdBundleDetails({
       {
         key: 'date',
         subject: t('Date Uploaded'),
-        value: (
-          <pre>
-            <DateTime timeZone year date={debugIdBundle.date} />
-          </pre>
-        ),
+        value: <DateTime timeZone year date={debugIdBundle.date} />,
       },
     ];
   }, [
@@ -61,11 +57,7 @@ export function DebugIdBundleDetails({
     projectId,
   ]);
 
-  return <StyledKeyValueList data={detailsData} shouldSort={false} />;
+  return (
+    <KeyValueTableCard contentItems={detailsData.map(item => ({item}))} variant="label" />
+  );
 }
-
-const StyledKeyValueList = styled(KeyValueList)`
-  && {
-    margin-bottom: 0;
-  }
-`;

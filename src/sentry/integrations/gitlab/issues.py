@@ -8,6 +8,7 @@ from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.types import IntegrationIssueConfigField
+from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.models.group import Group
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -182,6 +183,16 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
                 "help": ("Leave blank if you don't want to add a comment to the GitLab issue."),
             },
         ]
+
+    def get_issue_link_data(self, url: str) -> dict[str, str]:
+        path = get_issue_url_path(url, self.model.metadata["base_url"])
+        match = re.fullmatch(r"/(.+?)(?:/-)?/issues/(\d+)", path)
+        group = self.model.metadata["domain_name"].partition("/")[2]
+        if not match or (group and not match[1].startswith(f"{group}/")):
+            raise IntegrationFormError(
+                {"externalIssue": "Issue URL does not belong to this installation"}
+            )
+        return {"externalIssue": f"{match[1]}#{match[2]}"}
 
     def get_issue(self, issue_id, **kwargs):
         project_id, issue_num = issue_id.split("#")

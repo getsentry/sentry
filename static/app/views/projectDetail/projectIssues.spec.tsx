@@ -123,7 +123,7 @@ describe('ProjectDetail > ProjectIssues', () => {
     );
   });
 
-  it('renders a link to Discover', async () => {
+  it('renders a link to Explore', async () => {
     const {router} = render(
       <ProjectIssues
         api={new MockApiClient()}
@@ -136,12 +136,12 @@ describe('ProjectDetail > ProjectIssues', () => {
       }
     );
 
-    const link = screen.getByLabelText('Open in Discover');
+    const link = screen.getByLabelText('Open in Explore');
     expect(link).toBeInTheDocument();
     await userEvent.click(link);
 
     expect(router.location.pathname).toBe(
-      `/organizations/${organization.slug}/explore/discover/results/`
+      `/organizations/${organization.slug}/explore/errors/results/`
     );
     expect(router.location.query).toEqual({
       display: 'top5',

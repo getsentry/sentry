@@ -6,7 +6,7 @@ import type {Organization} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {canUseMetricsData} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {canUseMetricsData} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import type {MetricsCompatibilityData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
 import {MetricsCompatibilityQuery} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuery';
 import type {MetricsCompatibilitySumData} from 'sentry/utils/performance/metricsEnhanced/metricsCompatibilityQuerySums';
@@ -15,7 +15,7 @@ import {MetricsCompatibilitySumsQuery} from 'sentry/utils/performance/metricsEnh
 const UNPARAM_THRESHOLD = 0.01;
 const NULL_THRESHOLD = 0.01;
 
-export interface MetricDataSwitcherOutcome {
+interface MetricDataSwitcherOutcome {
   forceTransactionsOnly: boolean;
   compatibleProjects?: number[];
   shouldNotifyUnnamedTransactions?: boolean;

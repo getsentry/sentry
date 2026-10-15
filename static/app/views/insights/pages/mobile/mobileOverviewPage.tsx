@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Link} from '@sentry/scraps/link';
@@ -15,16 +16,15 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {
   canUseMetricsData,
   useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -209,11 +209,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
     });
   }
 
-  const {query: searchBarQuery} = useLocationQuery({
-    fields: {
-      query: decodeScalar,
-    },
-  });
+  const [searchBarQuery] = useQueryState('query', parseAsString.withDefault(''));
 
   const sorts: [ValidSort, ValidSort] = [
     {

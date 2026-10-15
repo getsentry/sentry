@@ -34,6 +34,7 @@ type TVariables = {
     repoId: string;
   }>;
   stoppingPoint: UserFacingStoppingPoint;
+  prIteration?: boolean;
 };
 
 /**
@@ -66,6 +67,7 @@ export function useMutateAutofixProject() {
       repoEntries,
       agentOption,
       stoppingPoint,
+      prIteration,
     }: TVariables): Promise<void> => {
       const tuning = getTuningFromStoppingPoint(stoppingPoint);
       const {agent, integrationId} = parseAgentOption(agentOption, knownAgents);
@@ -131,6 +133,7 @@ export function useMutateAutofixProject() {
             automationTuning: tuning,
             ...(stoppingPointValue ? {stoppingPoint: stoppingPointValue} : {}),
             ...(handoff ? {autoCreatePr: handoff.auto_create_pr} : {}),
+            ...(prIteration === undefined ? {} : {prIteration}),
           },
         });
       } catch (error) {

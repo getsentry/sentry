@@ -32,11 +32,14 @@ class ResolvedMention(TypedDict):
 
     name: str
     email: str
+    username: str
 
 
 class ActivitySerializerResponse(TypedDict):
-    # Byte-identical envelope of ActivitySerializer.serialize() — always these six keys.
+    # Matches the envelope of ActivitySerializer.serialize().
     id: str
+    # The reference accepted by the notes endpoints, or null for non-comments.
+    commentId: str | None
     # The serialized acting user (a user serializer response), or null for
     # system/integration activity. Left loose: the full user shape is out of scope.
     user: dict[str, Any] | None
@@ -73,7 +76,8 @@ def _resolve_mentioned_users(
 ) -> dict[ActivityId, list[ResolvedMention]]:
     """The Sentry users each activity @mentions, keyed by activity id, resolved in one batch.
 
-    Returns shape: { activity.id: [{ "name": "David Cramer", "email": "david@sentry.io"}] }
+    Returns shape:
+    { activity.id: [{ "name": "David Cramer", "email": "david@sentry.io", "username": "dcramer"}] }
     """
     activity_to_user_ids = {
         activity.id: [
@@ -91,7 +95,11 @@ def _resolve_mentioned_users(
     users = {u.id: u for u in user_service.get_many_by_id(ids=list(all_user_ids))}
     return {
         activity_id: [
-            {"name": user.get_display_name(), "email": user.email}
+            {
+                "name": user.get_display_name(),
+                "email": user.email,
+                "username": user.username,
+            }
             for user_id in user_ids
             if (user := users.get(user_id))
         ]
@@ -241,6 +249,7 @@ class ActivitySerializer(Serializer):
 
         return {
             "id": str(obj.id),
+            "commentId": str(obj.id) if obj.type == ActivityType.NOTE.value else None,
             "user": attrs["user"],
             "sentry_app": attrs["sentry_app"],
             "type": obj.get_type_display(),

@@ -1,12 +1,6 @@
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 
-__all__ = (
-    "AlertRuleSerializer",
-    "AlertRuleTriggerSerializer",
-    "AlertRuleTriggerActionSerializer",
-    "ACTION_TARGET_TYPE_TO_STRING",
-    "STRING_TO_ACTION_TARGET_TYPE",
-)
+__all__ = ("ACTION_TARGET_TYPE_TO_STRING",)
 
 ACTION_TARGET_TYPE_TO_STRING = {
     AlertRuleTriggerAction.TargetType.USER: "user",
@@ -15,9 +9,3 @@ ACTION_TARGET_TYPE_TO_STRING = {
     AlertRuleTriggerAction.TargetType.SENTRY_APP: "sentry_app",
     AlertRuleTriggerAction.TargetType.ISSUE_OWNERS: "issue_owners",
 }
-STRING_TO_ACTION_TARGET_TYPE = {v: k for (k, v) in ACTION_TARGET_TYPE_TO_STRING.items()}
-
-
-from .alert_rule import AlertRuleSerializer
-from .alert_rule_trigger import AlertRuleTriggerSerializer
-from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer

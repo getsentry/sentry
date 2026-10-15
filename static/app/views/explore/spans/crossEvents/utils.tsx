@@ -1,6 +1,6 @@
 import type {SelectOption} from '@sentry/scraps/compactSelect';
+import type {DropdownMenuProps} from '@sentry/scraps/dropdownMenu';
 
-import type {DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {

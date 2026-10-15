@@ -1,6 +1,10 @@
+from unittest.mock import patch
+
+from sentry.hybridcloud.rpc.service import RpcRemoteException
 from sentry.integrations.api.endpoints.organization_integrations_index import (
     OrganizationIntegrationsEndpoint,
 )
+from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -45,9 +49,49 @@ class OrganizationIntegrationsListTest(APITestCase):
         assert "configOrganization" in response.data[0]
 
     def test_no_config(self) -> None:
-        response = self.get_success_response(self.organization.slug, qs_params={"includeConfig": 0})
+        with patch.object(organization_service, "get", wraps=organization_service.get) as get_org:
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"includeConfig": 0}
+            )
 
         assert "configOrganization" not in response.data[0]
+        get_org.assert_not_called()
+
+    def test_organization_prefetch_failure_preserves_unaffected_integrations(self) -> None:
+        expected = self.get_success_response(self.organization.slug).data
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            name="GitHub",
+            external_id="github:1",
+        )
+
+        with patch.object(
+            organization_service,
+            "get",
+            side_effect=RpcRemoteException("organization", "get_organization_by_id", "Unavailable"),
+        ):
+            response = self.get_success_response(self.organization.slug)
+
+        assert response.data == expected
+
+    def test_config_shares_full_organization_for_github(self) -> None:
+        for number in range(30):
+            self.create_integration(
+                organization=self.organization,
+                provider="github",
+                name=f"GitHub {number}",
+                external_id=f"github:{number}",
+            )
+
+        with patch.object(organization_service, "get", wraps=organization_service.get) as get_org:
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"provider_key": "github"}
+            )
+
+        assert len(response.data) == 30
+        assert all(item["configOrganization"] for item in response.data)
+        get_org.assert_called_once_with(id=self.organization.id)
 
     def test_opts_out_of_organization_projects_and_teams(self) -> None:
         # This endpoint only needs the organization id, so it skips serializing every

@@ -1,4 +1,4 @@
-import {useNavigate} from 'react-router-dom';
+import {useNavigate} from 'react-router';
 import {useMutation} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';

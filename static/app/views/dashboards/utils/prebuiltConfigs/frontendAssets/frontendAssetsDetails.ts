@@ -40,7 +40,6 @@ const ASSET_DESCRIPTION_WIDGET: PrebuiltWidget = {
       fieldAliases: [],
       conditions: '',
       orderby: SpanFields.ID,
-      onDemand: [],
       linkedDashboards: [],
     },
   ],

@@ -1,17 +1,19 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
+import sortBy from 'lodash/sortBy';
 import Prism from 'prismjs';
 
 import {Alert} from '@sentry/scraps/alert';
+import {loadPrismLanguage} from '@sentry/scraps/code';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {List} from 'sentry/components/list';
+import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t, tn} from 'sentry/locale';
 import type {EntryRequestDataGraphQl, Event} from 'sentry/types/event';
 import {uniq} from 'sentry/utils/array/uniq';
 import {defined} from 'sentry/utils/defined';
-import {loadPrismLanguage} from 'sentry/utils/prism';
 
 type GraphQlBodyProps = {data: EntryRequestDataGraphQl['data']; event: Event};
 
@@ -119,22 +121,24 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
   const erroredLines = getErrorLineNumbers(errors);
 
   return (
-    <div>
+    <Stack gap="sm">
       <pre className="language-graphql" data-line={erroredLines.join(',')}>
         <code className="language-graphql" ref={ref}>
           {data.query}
         </code>
       </pre>
       <ErrorsAlert errors={errors} />
-      <KeyValueList
-        data={Object.entries(omit(data, 'query')).map(([key, value]) => ({
-          key,
-          subject: key,
-          value: value as React.ReactNode,
-        }))}
-        isContextData
-      />
-    </div>
+      <Grid columns="fit-content(50%) 1fr" gap="0 lg">
+        {sortBy(Object.entries(omit(data, 'query')), ([key]) => key.toLowerCase()).map(
+          ([key, value]) => (
+            <KeyValueTableDataRow
+              key={key}
+              item={{key, subject: key, value: value as React.ReactNode}}
+            />
+          )
+        )}
+      </Grid>
+    </Stack>
   );
 }
 

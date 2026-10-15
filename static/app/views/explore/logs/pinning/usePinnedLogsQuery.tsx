@@ -50,13 +50,18 @@ interface PinnedLogsQueryContext {
   organizationSlug: string;
 }
 
-const pinnedLogBatcher = createBatcher<OurLogsResponseItem, PinnedLogsQueryContext>(
+interface PinnedLogResult {
+  row: OurLogsResponseItem;
+  routingHint?: string;
+}
+
+const pinnedLogBatcher = createBatcher<PinnedLogResult, PinnedLogsQueryContext>(
   async (client, {organizationSlug, baseQuery}, ids: string[]) => {
     const url = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
       path: {organizationIdOrSlug: organizationSlug},
     });
 
-    const rowsById = new Map<string, OurLogsResponseItem | Error>();
+    const rowsById = new Map<string, PinnedLogResult | Error>();
     try {
       const {json} = await apiFetch<EventsLogsResult>({
         client,
@@ -76,7 +81,10 @@ const pinnedLogBatcher = createBatcher<OurLogsResponseItem, PinnedLogsQueryConte
         meta: undefined,
       });
       for (const row of json.data) {
-        rowsById.set(row[OurLogKnownFieldKey.ID], row);
+        rowsById.set(row[OurLogKnownFieldKey.ID], {
+          row,
+          routingHint: json.meta?.routingHint,
+        });
       }
     } catch (error) {
       const failure = error instanceof Error ? error : new Error(String(error));
@@ -122,7 +130,7 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
   const enabled = pageFiltersReady && !!logsPinning;
   const queryClient = useQueryClient();
 
-  const {fetchedRows, isError, isPending, statusById} = useQueries({
+  const {fetchedRows, routingHintsById, isError, isPending, statusById} = useQueries({
     queries: batchedQueryOptions({
       batcher: pinnedLogBatcher,
       context: queryContext,
@@ -136,14 +144,17 @@ export function usePinnedLogsQuery({allRows, logsPinning}: PinnedLogsOptions) {
     queryClient.refetchQueries({queryKey: [PINNED_LOG_ROW_QUERY_KEY], type: 'active'});
   }, [queryClient]);
 
-  return {fetchedRows, isError, isPending, statusById, refetch};
+  return {fetchedRows, routingHintsById, isError, isPending, statusById, refetch};
 }
 
 function combinePinnedRows(
-  results: Array<UseQueryResult<OurLogsResponseItem | null>>,
+  results: Array<UseQueryResult<PinnedLogResult | null>>,
   ids: string[]
 ) {
   const fetchedRows: OurLogsResponseItem[] = [];
+  // The combined query result can structurally share rows across cached queries.
+  // Key by ID so preserving an older row object does not lose its current hint.
+  const routingHintsById = new Map<string, string | undefined>();
   const statusById = new Map<string, BatchedQueryStatus>();
   let isPending = false;
   let isError = false;
@@ -165,12 +176,16 @@ function combinePinnedRows(
         statusById.set(id, 'success');
       }
       if (result.data) {
-        fetchedRows.push(result.data);
+        fetchedRows.push(result.data.row);
+        routingHintsById.set(
+          result.data.row[OurLogKnownFieldKey.ID],
+          result.data.routingHint
+        );
       }
     }
   });
 
-  return {fetchedRows, isPending, isError, statusById};
+  return {fetchedRows, routingHintsById, isPending, isError, statusById};
 }
 
 /**

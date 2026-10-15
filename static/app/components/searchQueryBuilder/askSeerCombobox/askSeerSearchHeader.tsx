@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
+import {IconExclamation} from '@sentry/icons/exclamation';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconExclamation, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface SeerSearchHeaderProps {
@@ -22,7 +23,7 @@ export function AskSeerSearchHeader({
       {isError ? (
         <IconExclamation aria-label={t('Error')} variant="danger" />
       ) : (
-        <StyledIconSeer animation={loading ? 'loading' : undefined} />
+        <StyledIconSeer animation={loading ? 'idle' : undefined} />
       )}
       <Text monospace>{title}</Text>
     </Flex>

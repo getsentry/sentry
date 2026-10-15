@@ -1,7 +1,5 @@
-import {Fragment} from 'react';
-
-import {EditableText} from 'sentry/components/editableText';
 import {t} from 'sentry/locale';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import type {DashboardDetails} from './types';
 
@@ -13,19 +11,21 @@ type Props = {
 
 export function DashboardTitle({dashboard, isEditingDashboard, onUpdate}: Props) {
   return (
-    <Fragment>
-      {dashboard ? (
-        <EditableText
-          isDisabled={!isEditingDashboard}
-          value={dashboard.title}
-          onChange={newTitle => onUpdate({...dashboard, title: newTitle})}
-          errorMessage={t('Please set a title for this dashboard')}
-          autoSelect
-          variant="compact"
-        />
-      ) : (
-        t('Dashboards')
-      )}
-    </Fragment>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={
+        dashboard
+          ? {
+              type: 'editable-title',
+              value: dashboard.title,
+              onChange: newTitle => onUpdate({...dashboard, title: newTitle}),
+              errorMessage: t('Please set a title for this dashboard'),
+              autoSelect: true,
+              isDisabled: !isEditingDashboard,
+              'aria-label': t('Dashboard name'),
+            }
+          : {type: 'page-title', label: t('Dashboards')}
+      }
+    />
   );
 }

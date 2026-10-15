@@ -136,7 +136,8 @@ def _metric_alert_threshold(conditions: Any) -> str | None:
         if not isinstance(condition, dict):
             continue
         comparison = condition.get("comparison")
-        if comparison is None:
+        # anomaly detection puts a config object here, not a number
+        if not isinstance(comparison, str | int | float) or isinstance(comparison, bool):
             continue
         condition_type = condition.get("type")
         label = _COMPARISON_LABELS.get(condition_type) if isinstance(condition_type, str) else None

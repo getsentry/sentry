@@ -44,6 +44,7 @@ describe('WebAuthn2FAMethod', () => {
     render(
       <WebAuthn2FAMethod
         isActive
+        isAuthenticating={false}
         isProcessing={false}
         submissionFailed={false}
         onRetrySubmission={jest.fn()}
@@ -73,6 +74,7 @@ describe('WebAuthn2FAMethod', () => {
     render(
       <WebAuthn2FAMethod
         isActive
+        isAuthenticating={false}
         isProcessing={false}
         submissionFailed={false}
         onRetrySubmission={jest.fn()}
@@ -113,6 +115,7 @@ describe('WebAuthn2FAMethod', () => {
     const {rerender} = render(
       <WebAuthn2FAMethod
         isActive
+        isAuthenticating={false}
         isProcessing={false}
         submissionFailed={false}
         onRetrySubmission={jest.fn()}
@@ -124,6 +127,7 @@ describe('WebAuthn2FAMethod', () => {
     rerender(
       <WebAuthn2FAMethod
         isActive
+        isAuthenticating={false}
         isProcessing={false}
         submissionFailed={false}
         onRetrySubmission={jest.fn()}

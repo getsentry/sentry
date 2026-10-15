@@ -1,6 +1,7 @@
 import {type ReactNode, useCallback, useState} from 'react';
+import {css} from '@emotion/react';
 
-import {Container} from '@sentry/scraps/layout/container';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 
@@ -39,18 +40,27 @@ export function ClippedDetail({children}: {children: ReactNode}) {
           {...containerProps}
           clipHeight={DETAIL_CLIP_HEIGHT}
           defaultClipped
-          buttonProps={{size: 'xs'}}
+          buttonProps={{size: 'sm', variant: 'secondary'}}
           clipFade={({showMoreButton}) => (
-            <Container
+            <Flex
               ref={onClipFadeRef}
               position="absolute"
               left={0}
+              right={0}
               bottom={0}
-              paddingTop="xs"
+              justify="center"
+              paddingTop="3xl"
               pointerEvents="none"
+              css={theme => css`
+                background: linear-gradient(
+                  to bottom,
+                  transparent,
+                  ${theme.tokens.background.secondary}
+                );
+              `}
             >
               <Container pointerEvents="auto">{showMoreButton}</Container>
-            </Container>
+            </Flex>
           )}
         >
           <div inert={isClipped ? true : undefined}>{children}</div>

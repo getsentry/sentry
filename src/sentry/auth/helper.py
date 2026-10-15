@@ -21,11 +21,10 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from flagpole.conditions import glob_star_match
 from sentry import audit_log, features, options
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
-from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
+from sentry.auth.email import AmbiguousUserFromEmail, emails_match, resolve_email_to_user
 from sentry.auth.email_verification import (
     hash_email,
     is_email_verified_by_trusted_provider,
@@ -40,6 +39,7 @@ from sentry.auth.exceptions import (
 )
 from sentry.auth.idpmigration import (
     SSO_VERIFICATION_KEY,
+    delete_verification_key,
     get_verification_value_from_key,
     send_one_time_account_confirm_link,
 )
@@ -73,6 +73,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cache import cache
+from sentry.utils.glob import glob_star_match
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -573,10 +574,16 @@ class AuthIdentityHandler:
         return response
 
     def has_verified_account(self, verification_value: dict[str, Any]) -> bool:
-        return bool(
-            verification_value["email"] == self.identity["email"]
-            and verification_value["user_id"] == self.user.id
-        )
+        """Whether a one-time account-confirmation key authorizes linking this IdP
+        identity to ``self.user``: same user, same organization, same IdP identity."""
+        if self.user.id is None or verification_value.get("user_id") != self.user.id:
+            return False
+        if verification_value.get("organization_id") != self.organization.id:
+            return False
+        if verification_value.get("identity_id") != str(self.identity["id"]):
+            return False
+        stored_email = verification_value.get("email")
+        return isinstance(stored_email, str) and emails_match(stored_email, self.identity["email"])
 
     @property
     def _logged_in_user(self) -> User | None:
@@ -747,6 +754,8 @@ class AuthIdentityHandler:
         try:
             if op == "confirm" and (self.request.user.is_authenticated or is_account_verified):
                 auth_identity = self.handle_attach_identity()
+                if is_account_verified and verification_key:
+                    delete_verification_key(verification_key)
             elif op == "confirm":
                 logger.info(
                     "sso.login-pipeline.merge-failed",
@@ -760,15 +769,21 @@ class AuthIdentityHandler:
                 messages.add_message(self.request, messages.ERROR, ERR_MERGE_FAILED)
                 return self._build_confirmation_response(is_new_account)
             elif op == "newuser":
-                is_trusted = (
-                    is_email_verified_by_trusted_provider(self.provider.key, self.identity)
-                    or self._email_verified_via_pending_invite()
+                trusted_provider_verified = is_email_verified_by_trusted_provider(
+                    self.provider.key, self.identity
                 )
+                is_trusted = trusted_provider_verified or self._email_verified_via_pending_invite()
                 if not is_trusted and _sso_verification_required(self.identity["email"]):
                     return self._send_sso_verification_email_and_redirect(
                         self.identity["email"], state
                     )
                 auth_identity = self.handle_new_user(email_verified=is_trusted)
+                if trusted_provider_verified:
+                    metrics.incr(
+                        "auth.signup.verification_email_saved",
+                        tags={"signup_method": "sso", "provider": self.provider.key},
+                        sample_rate=1.0,
+                    )
                 created_new_user = True
             elif op is None and self._has_verified_signup_email(state):
                 try:

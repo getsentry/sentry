@@ -10,9 +10,13 @@ const LazyErrorsQueryBlock = lazy(() => import('./errorsQueryBlock'));
 export const ErrorsQuery = defineSeerEmbed({
   name: 'errorsQuery',
   render(props, level) {
-    if (level === 'block') {
-      return <LazyLoad LazyComponent={LazyErrorsQueryBlock} data={props} />;
+    switch (level) {
+      case 'block':
+        return <LazyLoad LazyComponent={LazyErrorsQueryBlock} data={props} />;
+      case 'markdown':
+        return <ErrorsQueryLink data={props} format="markdown" />;
+      case 'inline':
+        return <ErrorsQueryLink data={props} />;
     }
-    return <ErrorsQueryLink data={props} />;
   },
 });

@@ -643,6 +643,7 @@ function useHoverOverlay({
 
   useEffect(() => {
     if (showOnlyOnOverflow && !isOverflowing) {
+      // oxlint-disable-next-line react/set-state-in-effect
       reset();
     }
   }, [showOnlyOnOverflow, isOverflowing, reset]);

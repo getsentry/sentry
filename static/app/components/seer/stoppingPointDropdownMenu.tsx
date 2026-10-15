@@ -1,9 +1,9 @@
+import {IconOpen} from '@sentry/icons/open';
+
+import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
-import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
 import {useStoppingPointSelectOptions} from 'sentry/utils/seer/stoppingPoint';
 import type {SeerAutofixStoppingPoint} from 'sentry/utils/seer/types';

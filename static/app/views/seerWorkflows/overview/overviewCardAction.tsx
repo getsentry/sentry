@@ -1,17 +1,24 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {
+  DropdownMenu,
+  type MenuItemProps,
+  DropdownMenuFooter,
+} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconAdd, IconChevron, IconOpen, IconSeer} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -173,7 +180,7 @@ export function OverviewCardAction({
       <DropdownMenu
         items={menuItems}
         trigger={(triggerProps, isOpen) => (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             size="sm"
             variant="secondary"

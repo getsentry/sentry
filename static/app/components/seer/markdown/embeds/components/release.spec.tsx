@@ -10,9 +10,9 @@ import {SeerMarkdown} from 'sentry/components/seer/markdown';
 const version = 'frontend@65318d61d370';
 const projectId = 4383603;
 
-function renderReleaseEmbed(level: 'block' | 'inline' = 'block') {
+function ExampleReleaseEmbed({level = 'block'}: {level?: 'block' | 'inline'}) {
   const tag = `{% release %}${JSON.stringify({version, projectId})}{% /release %}`;
-  return render(<SeerMarkdown raw={level === 'inline' ? `See ${tag}` : tag} />);
+  return <SeerMarkdown raw={level === 'inline' ? `See ${tag}` : tag} />;
 }
 
 describe('release embed', () => {
@@ -48,7 +48,7 @@ describe('release embed', () => {
       ],
     });
 
-    renderReleaseEmbed();
+    render(<ExampleReleaseEmbed />);
 
     expect(await screen.findByText('New Issues')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
@@ -62,7 +62,9 @@ describe('release embed', () => {
     expect(screen.getByText('staging')).toBeInTheDocument();
     expect(screen.getByText('development')).toBeInTheDocument();
     expect(screen.queryByText('old')).not.toBeInTheDocument();
-    expect(screen.getByRole('link', {name: /Release:/})).toHaveAttribute(
+    // The block's name is the collapse toggle; the link out is a separate target.
+    expect(screen.getByRole('button', {name: /Release:/})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Release'})).toHaveAttribute(
       'href',
       `/organizations/org-slug/explore/releases/${encodeURIComponent(version)}/?project=${projectId}`
     );
@@ -95,7 +97,7 @@ describe('release embed', () => {
       body: [],
     });
 
-    renderReleaseEmbed();
+    render(<ExampleReleaseEmbed />);
 
     expect(await screen.findByText('2 commits')).toBeInTheDocument();
     expect(screen.queryByText('2 commits by 0 authors')).not.toBeInTheDocument();
@@ -111,7 +113,7 @@ describe('release embed', () => {
       body: [],
     });
 
-    renderReleaseEmbed('inline');
+    render(<ExampleReleaseEmbed level="inline" />);
 
     expect(screen.getByRole('link', {name: /Release:/})).toBeInTheDocument();
     expect(releaseRequest).not.toHaveBeenCalled();

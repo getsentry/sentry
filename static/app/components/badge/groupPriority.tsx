@@ -1,19 +1,18 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Activity} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
@@ -169,7 +168,7 @@ export function GroupPriorityDropdown({
       minMenuWidth={230}
       trigger={(triggerProps, isOpen) =>
         shouldUseNewUI ? (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             aria-label={t(
               'Modify issue priority: %s',
@@ -183,6 +182,7 @@ export function GroupPriorityDropdown({
           />
         ) : (
           <DropdownButton
+            showChevron={false}
             {...triggerProps}
             aria-label={t('Modify issue priority')}
             size="zero"
@@ -226,7 +226,7 @@ const StyledTag = styled(Tag)`
   overflow: hidden;
 `;
 
-const DropdownButton = styled(Button)`
+const DropdownButton = styled(OverlayTrigger.Button)`
   padding: 0;
   border-radius: ${p => p.theme.radius.full};
 

@@ -131,6 +131,7 @@ export function SeerXRayOverlay() {
 
   useEffect(() => {
     if (!enabled) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setMeasured([]);
       setSelectedNodeId(null);
       return;

@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import type {Node} from '@react-types/shared';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import type {FormSize} from 'sentry/utils/theme';
 
 const heightEstimations = {
@@ -23,33 +23,39 @@ type ObjectLike = object;
 
 export function useVirtualizedItems<T extends ObjectLike>({
   listItems,
+  listPadding = listPaddingVertical,
   virtualized = false,
   size,
 }: {
   listItems: Array<Node<T>>;
   size: FormSize;
   virtualized: boolean | undefined;
+  listPadding?: number;
 }) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const heightEstimation = heightEstimations[size];
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: listItems.length,
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
       const item = listItems[index];
-      if (item?.value && 'details' in item.value) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (item?.props?.details) {
         return heightEstimation.large;
       }
       return heightEstimation.regular;
     },
     enabled: virtualized,
+    overscan: 1,
   });
 
   if (virtualized) {
-    const virtualizedItems = virtualizer.getVirtualItems();
     return {
-      items: virtualizedItems,
+      items: virtualItems,
+      scrollToIndex: (index: number) => {
+        virtualizer.scrollToIndex(index, {align: 'auto'});
+      },
       scrollElementRef,
       itemProps: (index: number) => ({
         ref: virtualizer.measureElement,
@@ -58,7 +64,7 @@ export function useVirtualizedItems<T extends ObjectLike>({
       wrapperProps: {
         'data-is-virtualized': true,
         style: {
-          height: virtualizer.getTotalSize() + listPaddingVertical * 2,
+          height: totalSize + listPadding * 2,
           width: '100%',
           position: 'relative',
         },
@@ -68,13 +74,14 @@ export function useVirtualizedItems<T extends ObjectLike>({
         top: 0,
         left: 0,
         width: '100%',
-        transform: `translateY(${virtualizedItems[0]?.start ?? 0}px)`,
+        transform: `translateY(${virtualItems[0]?.start ?? 0}px)`,
       },
     } as const;
   }
 
   return {
     items: listItems.map((_, index) => ({index, start: 0})),
+    scrollToIndex: () => {},
     scrollElementRef: undefined,
     itemProps: () => {},
     wrapperProps: {

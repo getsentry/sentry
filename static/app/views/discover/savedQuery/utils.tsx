@@ -18,17 +18,14 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverDatasets,
-  DisplayModes,
-  SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
+import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
+import {getDatasetFromLocationOrSavedQueryDataset} from 'sentry/views/discover/savedQuery/datasets';
+
+const DATASET_PARAM = 'queryDataset';
 
 export function handleCreateQuery(
   api: Client,
@@ -199,17 +196,11 @@ export function handleUpdateHomepageQuery(
 
   return promise
     .then(savedQuery => {
-      addSuccessMessage(
-        getDiscoverDeprecation(organization)
-          ? t('Saved as Errors default')
-          : t('Saved as Discover default')
-      );
+      addSuccessMessage(t('Saved as Errors default'));
       return savedQuery;
     })
     .catch((e: RequestError) => {
-      let errorMessage = getDiscoverDeprecation(organization)
-        ? t('Unable to set query as Errors default')
-        : t('Unable to set query as Discover default');
+      let errorMessage = t('Unable to set query as Errors default');
 
       if ('responseJSON' in e) {
         const response = e.responseJSON;
@@ -226,18 +217,10 @@ export function handleResetHomepageQuery(api: Client, organization: Organization
 
   return promise
     .then(() => {
-      addSuccessMessage(
-        getDiscoverDeprecation(organization)
-          ? t('Successfully removed Errors default')
-          : t('Successfully removed Discover default')
-      );
+      addSuccessMessage(t('Successfully removed Errors default'));
     })
     .catch(() => {
-      addErrorMessage(
-        getDiscoverDeprecation(organization)
-          ? t('Unable to remove Errors default')
-          : t('Unable to remove Discover default')
-      );
+      addErrorMessage(t('Unable to remove Errors default'));
     });
 }
 
@@ -321,48 +304,6 @@ export function getSavedQueryWithDataset<T extends SavedQuery | NewQuery>(
       savedQuery?.queryDataset
     ),
   };
-}
-
-export function getDatasetFromLocationOrSavedQueryDataset(
-  location: Location | undefined,
-  queryDataset: SavedQueryDatasets | undefined
-): DiscoverDatasets | undefined {
-  const dataset = decodeScalar(location?.query?.dataset);
-  if (dataset) {
-    return dataset as DiscoverDatasets;
-  }
-  const savedQueryDataset = decodeScalar(location?.query?.queryDataset) ?? queryDataset;
-  switch (savedQueryDataset) {
-    case SavedQueryDatasets.ERRORS:
-      return DiscoverDatasets.ERRORS;
-    case SavedQueryDatasets.TRANSACTIONS:
-      return DiscoverDatasets.TRANSACTIONS;
-    case SavedQueryDatasets.DISCOVER:
-      return DiscoverDatasets.DISCOVER;
-    default:
-      return undefined;
-  }
-}
-
-export function getSavedQueryDatasetFromLocationOrDataset(
-  location: Location | undefined,
-  dataset: DiscoverDatasets | undefined
-): SavedQueryDatasets | undefined {
-  const savedQueryDataset = decodeScalar(location?.query?.queryDataset);
-  if (savedQueryDataset) {
-    return savedQueryDataset as SavedQueryDatasets;
-  }
-  const discoverDataset = decodeScalar(location?.query?.dataset) ?? dataset;
-  switch (discoverDataset) {
-    case DiscoverDatasets.ERRORS:
-      return SavedQueryDatasets.ERRORS;
-    case DiscoverDatasets.TRANSACTIONS:
-      return SavedQueryDatasets.TRANSACTIONS;
-    case DiscoverDatasets.DISCOVER:
-      return SavedQueryDatasets.DISCOVER;
-    default:
-      return undefined;
-  }
 }
 
 export function getTransactionDeprecationMessage(tracesUrl: string) {

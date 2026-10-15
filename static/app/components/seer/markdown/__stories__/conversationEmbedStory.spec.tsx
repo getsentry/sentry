@@ -3,6 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
 
 import {ConversationEmbedStory} from './conversationEmbedStory';
+import {findExampleTags} from './embedStoryTestUtils';
 
 jest.mock('sentry/components/seer/markdown', () => ({
   SeerMarkdown: ({raw}: {raw: string}) => <div aria-label="Rendered markdown">{raw}</div>,
@@ -11,7 +12,6 @@ jest.mock('sentry/components/seer/markdown', () => ({
 function createConversation(conversation: Partial<Conversation>): Conversation {
   return {
     conversationId: 'conv-1',
-    duration: 1000,
     endTimestamp: Date.UTC(2026, 7, 25, 16, 39, 2),
     errors: 0,
     firstInput: 'Where is my refund?',
@@ -22,6 +22,7 @@ function createConversation(conversation: Partial<Conversation>): Conversation {
     outputTokens: 50,
     projectId: 11,
     startTimestamp: Date.UTC(2026, 7, 25, 16, 37, 12),
+    timeSpan: 110_000,
     title: null,
     toolCalls: 1,
     toolErrors: 0,
@@ -56,7 +57,7 @@ describe('ConversationEmbedStory', () => {
 
     render(<ConversationEmbedStory />);
 
-    const renderedMarkdown = await screen.findByLabelText('Rendered markdown');
+    const [renderedMarkdown] = await findExampleTags();
     expect(renderedMarkdown).toHaveTextContent(titled.conversationId);
     expect(renderedMarkdown).toHaveTextContent('Refund request escalated to a human');
     expect(renderedMarkdown).toHaveTextContent(
@@ -86,7 +87,7 @@ describe('ConversationEmbedStory', () => {
 
     render(<ConversationEmbedStory />);
 
-    const renderedMarkdown = await screen.findByLabelText('Rendered markdown');
+    const [renderedMarkdown] = await findExampleTags();
     expect(renderedMarkdown).toHaveTextContent(newer.conversationId);
     expect(renderedMarkdown).not.toHaveTextContent(older.conversationId);
   });

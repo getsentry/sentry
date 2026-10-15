@@ -127,6 +127,8 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
             "decode_error",
             "json_error",
             "seer_reported_failure",
+            "no_alert_timeseries",
+            "alert_not_found",
             "empty_timeseries",
             "no_data",
             "missing_anomaly_type",
@@ -417,6 +419,54 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         self.assert_outcome_emitted(
             mock_metrics,
             "seer_reported_failure",
+            dataset=self.subscription.snuba_query.dataset,
+        )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.metrics")
+    def test_seer_call_no_alert_timeseries(
+        self,
+        mock_metrics: mock.MagicMock,
+        mock_seer_request: mock.MagicMock,
+    ) -> None:
+        mock_seer_request.return_value = HTTPResponse(
+            orjson.dumps({"success": False, "message": "No timeseries data found for alert"}),
+            status=200,
+        )
+        self.dc.evaluate_value(self.data_packet.packet.values)
+        self.assert_outcome_emitted(
+            mock_metrics,
+            "no_alert_timeseries",
+            dataset=self.subscription.snuba_query.dataset,
+        )
+
+    @mock.patch(
+        "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
+    )
+    @mock.patch("sentry.seer.anomaly_detection.get_anomaly_data.metrics")
+    def test_seer_call_alert_not_found(
+        self,
+        mock_metrics: mock.MagicMock,
+        mock_seer_request: mock.MagicMock,
+    ) -> None:
+        mock_seer_request.return_value = HTTPResponse(
+            orjson.dumps(
+                {
+                    "success": False,
+                    "message": (
+                        f"Alert with id None, source id {self.subscription.id} "
+                        f"and type {DataSourceType.SNUBA_QUERY_SUBSCRIPTION} not found"
+                    ),
+                }
+            ),
+            status=200,
+        )
+        self.dc.evaluate_value(self.data_packet.packet.values)
+        self.assert_outcome_emitted(
+            mock_metrics,
+            "alert_not_found",
             dataset=self.subscription.snuba_query.dataset,
         )
 

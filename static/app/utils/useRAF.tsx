@@ -1,12 +1,28 @@
-import {useEffect} from 'react';
+import {useEffect, useLayoutEffect, useRef} from 'react';
 
 export function useRAF(callback: () => unknown, opts?: {enabled: boolean}) {
   const {enabled = true} = opts ?? {};
+  const callbackRef = useRef(callback);
+  useLayoutEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
   useEffect(() => {
     if (enabled) {
-      const timer = window.requestAnimationFrame(callback);
-      return () => window.cancelAnimationFrame(timer);
+      let timer: number;
+      let active = true;
+      const tick = () => {
+        callbackRef.current();
+        if (active) {
+          timer = window.requestAnimationFrame(tick);
+        }
+      };
+      timer = window.requestAnimationFrame(tick);
+      return () => {
+        active = false;
+        window.cancelAnimationFrame(timer);
+      };
     }
     return () => {};
-  }, [callback, enabled]);
+  }, [enabled]);
 }

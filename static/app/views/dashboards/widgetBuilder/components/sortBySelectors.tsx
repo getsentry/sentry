@@ -1,8 +1,8 @@
 import {useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 import uniqBy from 'lodash/uniqBy';
 
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -17,20 +17,21 @@ import {
   isEquation,
   isEquationAlias,
   parseFunction,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ExploreArithmeticBuilder} from 'sentry/views/dashboards/widgetBuilder/components/exploreArithmeticBuilder';
-import {getColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
+import {getColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize/utils';
+import {CUSTOM_EQUATION_VALUE} from 'sentry/views/dashboards/widgetBuilder/constants';
 import {SortDirection, sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-
-export const CUSTOM_EQUATION_VALUE = 'custom-equation';
+import {hasConditionalAggregateFilter} from 'sentry/views/explore/utils/conditionalAggregate';
 
 interface Values {
   sortBy: string;
@@ -76,6 +77,7 @@ export function SortBySelectors({
   useEffect(() => {
     const isSortingByEquation = isEquation(trimStart(values.sortBy, '-'));
     if (isSortingByEquation) {
+      // oxlint-disable-next-line react/set-state-in-effect, react-you-might-not-need-an-effect/no-derived-state
       setCustomEquation({
         sortBy: trimStart(values.sortBy, '-'),
         sortDirection: values.sortDirection,
@@ -114,7 +116,7 @@ export function SortBySelectors({
   ]);
 
   return (
-    <Wrapper>
+    <Grid gap="md" columns={{zero: '1fr', xl: '200px 1fr'}}>
       <Tooltip
         title={disableSortReason}
         disabled={!disableSortDirection || (disableSortDirection && disableSort)}
@@ -173,14 +175,11 @@ export function SortBySelectors({
           ) : (
             <QueryField
               disabled={disableSort}
-              fieldValue={
-                // Fields in metrics widgets would parse as function in explodeField
-                widgetType === WidgetType.METRICS
-                  ? {kind: 'field', field: values.sortBy}
-                  : showCustomEquation
-                    ? explodeField({field: CUSTOM_EQUATION_VALUE})
-                    : explodeField({field: values.sortBy})
-              }
+              fieldValue={getTimeseriesSortFieldValue(
+                values.sortBy,
+                widgetType,
+                showCustomEquation
+              )}
               fieldOptions={timeseriesSortOptions}
               filterPrimaryOptions={
                 datasetConfig.filterSeriesSortOptions
@@ -251,7 +250,7 @@ export function SortBySelectors({
         }
       </Tooltip>
       {showCustomEquation && (
-        <ArithmeticInputWrapper>
+        <Container column="1/-1">
           {widgetType === WidgetType.SPANS ? (
             <ExploreArithmeticBuilder
               equation={getEquation(customEquation.sortBy)}
@@ -281,21 +280,29 @@ export function SortBySelectors({
               hideFieldOptions
             />
           )}
-        </ArithmeticInputWrapper>
+        </Container>
       )}
-    </Wrapper>
+    </Grid>
   );
 }
 
-const Wrapper = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 200px 1fr;
+function getTimeseriesSortFieldValue(
+  sortBy: string,
+  widgetType: WidgetType,
+  showCustomEquation: boolean
+): QueryFieldValue {
+  // Fields in metrics widgets would parse as function in explodeField
+  if (widgetType === WidgetType.METRICS) {
+    return {kind: 'field', field: sortBy};
   }
-`;
-
-const ArithmeticInputWrapper = styled('div')`
-  grid-column: 1/-1;
-`;
+  if (showCustomEquation) {
+    return explodeField({field: CUSTOM_EQUATION_VALUE});
+  }
+  // Keep Explore `_if` combinators as fields so QueryField can match the
+  // injected sort option. explodeField would parse them as `avg_if` / `p95_if`,
+  // which are not in the generic aggregate catalog.
+  if (hasConditionalAggregateFilter(sortBy)) {
+    return {kind: 'field', field: sortBy};
+  }
+  return explodeField({field: sortBy});
+}

@@ -36,7 +36,7 @@ const MOCKED_COMPLETED_SESSION = {
                 {
                   title: 'Error Count',
                   display_type: 'line',
-                  widget_type: 'discover',
+                  widget_type: 'error-events',
                   queries: [
                     {
                       name: '',

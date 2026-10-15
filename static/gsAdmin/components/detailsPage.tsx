@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -110,6 +109,7 @@ type Props = {
    * List of badges to display next to the title
    */
   badges?: BadgeItem[];
+  children?: React.ReactNode;
   /**
    * Breadcrumbs between the root and name in the details page title
    */
@@ -127,6 +127,7 @@ export function DetailsPage({
   actions = [],
   badges = [],
   sections = [],
+  children,
 }: Props) {
   return (
     <Fragment>
@@ -151,26 +152,37 @@ export function DetailsPage({
         )}
       </PageHeader>
 
-      {sections
-        .filter(section => section.visible !== false)
-        .map((section, i) =>
-          section.noPanel ? (
-            <Fragment key={section.name ?? i}>{section.content}</Fragment>
-          ) : (
-            <Panel key={section.name ?? i}>
-              {section.name && <PanelHeader>{section.name}</PanelHeader>}
-              <ErrorBoundary>
-                <SectionBody withPadding={!section.noPadding}>
-                  {section.content}
-                </SectionBody>
-              </ErrorBoundary>
-            </Panel>
-          )
-        )}
+      {sections.map((section, i) => (
+        <DetailsPageSection key={section.name ?? i} {...section}>
+          {section.content}
+        </DetailsPageSection>
+      ))}
+      {children}
     </Fragment>
   );
 }
 
-const SectionBody = styled('div')<{withPadding?: boolean}>`
-  ${p => p.withPadding && `padding: ${p.theme.space.xl}`};
-`;
+function DetailsPageSection({
+  children,
+  name,
+  noPadding,
+  noPanel,
+  visible,
+}: Omit<SectionItem, 'content'> & {children: React.ReactNode}) {
+  if (visible === false) {
+    return null;
+  }
+  if (noPanel) {
+    return <Fragment>{children}</Fragment>;
+  }
+  return (
+    <Panel>
+      {name && <PanelHeader>{name}</PanelHeader>}
+      <ErrorBoundary>
+        <Container padding={noPadding ? undefined : 'xl'}>{children}</Container>
+      </ErrorBoundary>
+    </Panel>
+  );
+}
+
+DetailsPage.Section = DetailsPageSection;

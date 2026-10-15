@@ -1,10 +1,13 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconUpload} from '@sentry/icons/upload';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
+import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -13,7 +16,6 @@ import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {
   getSourceMapsDocLinks,
   projectPlatformToDocsMap,
@@ -21,7 +23,7 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SearchBar} from 'sentry/components/searchBar';
-import {IconDelete, IconUpload} from 'sentry/icons';
+import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t, tct} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -421,6 +423,7 @@ function SourceMapUploadDetails({
       {
         key: 'releases',
         subject: t('Found in Releases'),
+        actionButtonAlwaysVisible: true,
         actionButton: rows.length > 3 && (
           <Button size="xs" onClick={() => setShowAll(value => !value)}>
             {showAll ? t('Show Less') : t('Show All')}
@@ -433,7 +436,13 @@ function SourceMapUploadDetails({
     ];
   }, [sourceMapUpload, showAll, projectId]);
 
-  return <StyledKeyValueList data={detailsData} shouldSort={false} />;
+  return (
+    <Grid columns="fit-content(50%) 1fr" gap="0 lg">
+      {detailsData.map(item => (
+        <KeyValueTableDataRow key={item.key} item={item} variant="label" />
+      ))}
+    </Grid>
+  );
 }
 
 interface SourceMapUploadDeleteButtonProps {
@@ -472,12 +481,6 @@ function SourceMapUploadDeleteButton({onDelete}: SourceMapUploadDeleteButtonProp
     </Access>
   );
 }
-
-const StyledKeyValueList = styled(KeyValueList)`
-  && {
-    margin-bottom: 0;
-  }
-`;
 
 const List = styled('div')`
   display: grid;

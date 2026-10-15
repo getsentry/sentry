@@ -1,14 +1,17 @@
-import {ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
 
 /**
  * ESLint rule: no-token-import
  *
- * Disallows imports from the scraps token path except within
- * the designated theme directory.
+ * Disallows raw token imports outside theme definitions and token exports.
  */
 
 const TOKEN_PATH = 'utils/theme/scraps';
-const EXCEPT_DIR_NAME = 'static/app/utils/theme';
+const EXCEPT_DIRS = [
+  'static/app/utils/theme/',
+  'static/packages/scraps/src/theme/',
+  'static/packages/scraps/src/tokens/',
+];
 
 /**
  *
@@ -20,14 +23,19 @@ function isForbiddenImportPath(importPath: string) {
     return false;
   }
 
-  return importPath.includes(TOKEN_PATH);
+  return (
+    importPath.includes(TOKEN_PATH) ||
+    importPath === '@sentry/scraps/tokens' ||
+    importPath.startsWith('@sentry/scraps/tokens/')
+  );
 }
 
-export const noTokenImport = ESLintUtils.RuleCreator.withoutDocs({
+export const noTokenImport = defineRule({
   meta: {
     type: 'problem',
     docs: {
-      description: `Disallow imports from "${TOKEN_PATH}" except within a directory named "${EXCEPT_DIR_NAME}".`,
+      description:
+        'Disallow raw token imports outside theme definitions and token exports.',
     },
     schema: [],
     messages: {
@@ -35,7 +43,9 @@ export const noTokenImport = ESLintUtils.RuleCreator.withoutDocs({
     },
   },
   create(context) {
-    const importerIsInAllowedDir = context.filename.includes(EXCEPT_DIR_NAME);
+    const importerIsInAllowedDir = EXCEPT_DIRS.some(directory =>
+      context.filename.includes(directory)
+    );
 
     return {
       ImportDeclaration(node) {

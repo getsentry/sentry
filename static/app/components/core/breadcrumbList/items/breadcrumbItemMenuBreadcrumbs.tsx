@@ -1,15 +1,16 @@
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
-import {useTranslation} from '@sentry/scraps/translationContext';
-
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {IconEllipsis} from 'sentry/icons';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 interface BreadcrumbMenuLinkItem {
   key: string;
   label: string;
-  to: LinkProps['to'];
+  externalHref?: string;
+  to?: LinkProps['to'];
 }
 
 interface BreadcrumbItemMenuBreadcrumbsProps {
@@ -32,13 +33,12 @@ export function BreadcrumbItemMenuBreadcrumbs({
         size="sm"
         items={items}
         trigger={(triggerProps, isOpen) => (
-          <DropdownButton
+          <OverlayTrigger.IconButton
             {...triggerProps}
             aria-label={t('More breadcrumbs')}
             aria-expanded={isOpen}
             size="zero"
             variant="transparent"
-            showChevron={false}
             icon={<IconEllipsis size="xs" aria-hidden />}
           />
         )}

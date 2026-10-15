@@ -1,59 +1,43 @@
-import {ThemeProvider} from '@emotion/react';
-
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
 
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
-
-const themes = {light: lightTheme, dark: darkTheme};
-
 describe('Checkbox', () => {
-  describe.each(['light', 'dark'] as const)('theme-%s', themeName => {
-    it.snapshot.each<CheckboxProps['checked']>([false, true, 'indeterminate'])(
-      'checked-%s',
-      checked => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8}}>
-            <Checkbox checked={checked} onChange={() => {}} />
-          </div>
-        </ThemeProvider>
-      ),
-      checked => ({tags: {checked: String(checked), area: 'core'}})
-    );
+  it.snapshot.each<CheckboxProps['checked']>([false, true, 'indeterminate'])(
+    'checked-%s',
+    checked => (
+      <div style={{padding: 8}}>
+        <Checkbox checked={checked} onChange={() => {}} />
+      </div>
+    ),
+    checked => ({tags: {checked: String(checked), area: 'core'}})
+  );
 
-    it.snapshot.each<CheckboxProps['size']>(['xs', 'sm', 'md'])(
-      'size-%s',
-      size => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8}}>
-            <Checkbox checked size={size} onChange={() => {}} />
-          </div>
-        </ThemeProvider>
-      ),
-      size => ({tags: {size: String(size), area: 'core'}})
-    );
+  it.snapshot.each<CheckboxProps['size']>(['xs', 'sm', 'md'])(
+    'size-%s',
+    size => (
+      <div style={{padding: 8}}>
+        <Checkbox checked size={size} onChange={() => {}} />
+      </div>
+    ),
+    size => ({tags: {size: String(size), area: 'core'}})
+  );
 
-    it.snapshot(
-      'disabled-unchecked',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8}}>
-            <Checkbox disabled onChange={() => {}} />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {disabled: 'true', area: 'core'}}
-    );
+  it.snapshot(
+    'disabled-unchecked',
+    () => (
+      <div style={{padding: 8}}>
+        <Checkbox disabled onChange={() => {}} />
+      </div>
+    ),
+    {tags: {disabled: 'true', area: 'core'}}
+  );
 
-    it.snapshot(
-      'disabled-checked',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8}}>
-            <Checkbox checked disabled onChange={() => {}} />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {disabled: 'true', checked: 'true', area: 'core'}}
-    );
-  });
+  it.snapshot(
+    'disabled-checked',
+    () => (
+      <div style={{padding: 8}}>
+        <Checkbox checked disabled onChange={() => {}} />
+      </div>
+    ),
+    {tags: {disabled: 'true', checked: 'true', area: 'core'}}
+  );
 });

@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
+import {IconSearch} from '@sentry/icons/search';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {InputGroup} from '@sentry/scraps/input';
@@ -25,10 +25,10 @@ import {
 } from 'sentry/components/events/featureFlags/utils';
 import {useFocusControl} from 'sentry/components/events/useFocusControl';
 import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
-import {IconSearch} from 'sentry/icons';
+  KeyValueColumns,
+  KeyValueTableDataRow,
+  type KeyValueTableDataRowProps,
+} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -40,7 +40,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 interface FlagDrawerProps {
   event: Event;
   group: Group;
-  hydratedFlags: KeyValueDataContentProps[];
+  hydratedFlags: KeyValueTableDataRowProps[];
   initialOrderBy: OrderBy;
   project: Project;
   focusControl?: FlagControlOptions;
@@ -116,39 +116,14 @@ export function EventFeatureFlagDrawer({
         {actions}
       </EventNavigator>
       <EventDrawerBody>
-        <CardContainer numCols={1}>
-          <KeyValueData.Card expandLeft contentItems={searchResults} />
-        </CardContainer>
+        <KeyValueColumns columnCount={1} maxKeyWidth="70%">
+          {() => [
+            searchResults.map((rowProps, index) => (
+              <KeyValueTableDataRow key={index} {...rowProps} />
+            )),
+          ]}
+        </KeyValueColumns>
       </EventDrawerBody>
     </EventDrawerContainer>
   );
 }
-
-export const CardContainer = styled('div')<{numCols: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.numCols}, 1fr);
-  align-items: start;
-
-  div {
-    border: none;
-    border-radius: ${p => p.theme.space.xs};
-  }
-
-  > * {
-    padding-left: 0px;
-
-    &:first-child {
-      margin-left: -${p => p.theme.space.md};
-    }
-    :not(:last-child) {
-      border-right: 1.5px solid ${p => p.theme.tokens.border.secondary};
-      padding-right: ${p => p.theme.space.xl};
-    }
-    :not(:first-child) {
-      border-left: 1.5px solid ${p => p.theme.tokens.border.secondary};
-      padding-left: ${p => p.theme.space.xl};
-      padding-right: 0;
-      margin-left: -1px;
-    }
-  }
-`;

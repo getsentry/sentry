@@ -1,6 +1,15 @@
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
+/** Dataset the search agent runs against. */
+export type AskSeerStrategy = 'Errors' | 'Issues' | 'Logs' | 'Metrics' | 'Traces';
+
+/**
+ * Which surface started a search agent run. Must match the `SearchAgentReferrer`
+ * allowlist in `search_agent_start.py`; unknown values are ignored by the backend.
+ */
+export type AskSeerReferrer = 'search_bar';
+
 export interface SeerRawResponseItem {
   end: string | null;
   group_by: string[];
@@ -9,6 +18,8 @@ export interface SeerRawResponseItem {
   sort: string;
   start: string | null;
   stats_period: string;
+  // User-requested attributes to surface as table columns.
+  extra_fields?: string[];
   // Cross-event queries; null if absent. Only applicable for explore/traces
   log_query?: string | null;
   metric_query?: string | null;
@@ -42,6 +53,11 @@ export interface QueryTokensProps {
    * the "Projects" chip and the projects applied when the suggestion is chosen.
    */
   expandedProjectIds?: number[];
+  /**
+   * Extra attributes the agent wants surfaced as table columns. Drives the
+   * "Fields" chip and the columns applied when the suggestion is chosen.
+   */
+  extraFields?: string[];
   groupBys?: string[];
   // Seer returns the interval nested per-visualization, but the chart uses a
   // single shared interval, so we hoist it to a chart-level field.

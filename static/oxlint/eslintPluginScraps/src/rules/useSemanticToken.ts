@@ -1,4 +1,4 @@
-import {ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
 /**
  * ESLint rule: use-semantic-token
  *
@@ -10,14 +10,11 @@ import {createStyleCollector, shouldAnalyze} from '../ast/extractor/index.ts';
 import type {StyleDeclaration} from '../ast/extractor/types.ts';
 import {findRuleForToken, PROPERTY_TO_RULE} from '../config/tokenRules.ts';
 
-export interface Options {
+interface Options {
   enabledCategories?: string[];
 }
 
-export const useSemanticToken = ESLintUtils.RuleCreator.withoutDocs<
-  [Options],
-  'invalidProperty' | 'invalidPropertyWithSuggestion'
->({
+export const useSemanticToken = defineRule({
   meta: {
     type: 'problem',
     docs: {
@@ -44,8 +41,8 @@ export const useSemanticToken = ESLintUtils.RuleCreator.withoutDocs<
         '`{{property}}` cannot use token `{{tokenPath}}`. Use a `{{suggestedCategory}}` token instead.',
     },
   },
-  defaultOptions: [{}],
-  create(context, [options]) {
+  create(context) {
+    const options = (context.options[0] ?? {}) as Options;
     // Fast bailout: skip files without emotion/styled patterns
     if (!shouldAnalyze(context)) {
       return {};

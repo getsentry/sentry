@@ -3,6 +3,7 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 export function isEventsStats(obj: unknown): obj is EventsStats {
   if (typeof obj !== 'object' || obj === null) {
@@ -34,6 +35,17 @@ export function isGroupedMultiSeriesEventsStats(
     getValues(obj).every(subObject => isMultiSeriesEventsStats(subObject)) &&
     !Object.hasOwn(obj, 'data')
   );
+}
+
+/** @public */
+export function isEventsTimeSeriesResponse(
+  obj: unknown
+): obj is EventsTimeSeriesResponse {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  return 'timeSeries' in obj && Array.isArray(obj.timeSeries);
 }
 
 function getValues(obj: unknown): unknown[] {

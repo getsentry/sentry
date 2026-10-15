@@ -45,7 +45,7 @@ describe('initializeSdk', () => {
     );
   });
 
-  it('ignores the ECharts tooltip error thrown when a chart replaces its series', () => {
+  it('ignores the ECharts tooltip error thrown when a chart replaces its series (Chrome/V8)', () => {
     initializeSdk({
       ...window.__initialData,
       apmSampling: 1,
@@ -60,6 +60,29 @@ describe('initializeSdk', () => {
     const ignoreErrors = jest.mocked(Sentry.init).mock.lastCall?.[0]?.ignoreErrors ?? [];
     const message =
       "TypeError: Cannot read properties of undefined (reading 'getDataParams')";
+
+    expect(
+      ignoreErrors.some(pattern =>
+        typeof pattern === 'string' ? message.includes(pattern) : pattern.test(message)
+      )
+    ).toBe(true);
+  });
+
+  it('ignores the ECharts tooltip error thrown when a chart replaces its series (Safari/WebKit)', () => {
+    initializeSdk({
+      ...window.__initialData,
+      apmSampling: 1,
+      sentryConfig: {
+        allowUrls: [],
+        dsn: '',
+        release: '',
+        tracePropagationTargets: [],
+      },
+    });
+
+    const ignoreErrors = jest.mocked(Sentry.init).mock.lastCall?.[0]?.ignoreErrors ?? [];
+    const message =
+      "TypeError: undefined is not an object (evaluating 'a.getDataParams')";
 
     expect(
       ignoreErrors.some(pattern =>
@@ -149,6 +172,47 @@ describe('isFilteredRequestErrorEvent', () => {
         });
       }
     }
+  });
+
+  describe('requests that never got a response', () => {
+    for (const method of [...methods, 'PATCH']) {
+      it(`recognizes ${method} RequestErrors without a status`, () => {
+        const event = {
+          exception: {values: [{type: 'RequestError', value: `${method} /assistant/`}]},
+        };
+
+        expect(isFilteredRequestErrorEvent(event)).toBeTruthy();
+      });
+    }
+
+    it('recognizes RequestErrors without a status as causes', () => {
+      const event = {
+        exception: {
+          values: [
+            {type: 'RequestError', value: 'GET /assistant/'},
+            {type: 'InsufficientTreatsError', value: 'Not enough treats!'},
+          ],
+        },
+      };
+
+      expect(isFilteredRequestErrorEvent(event)).toBeTruthy();
+    });
+
+    it('rejects RequestErrors with a non-numeric status', () => {
+      const event = {
+        exception: {values: [{type: 'RequestError', value: 'GET /assistant/ n/a'}]},
+      };
+
+      expect(isFilteredRequestErrorEvent(event)).toBeFalsy();
+    });
+
+    it('rejects other error types without a status', () => {
+      const event = {
+        exception: {values: [{type: 'InternalServerError', value: 'GET /assistant/'}]},
+      };
+
+      expect(isFilteredRequestErrorEvent(event)).toBeFalsy();
+    });
   });
 
   describe('non-matching error type, non-matching message', () => {

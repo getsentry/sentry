@@ -16,7 +16,7 @@ from rest_framework.exceptions import PermissionDenied
 from sentry_sdk import capture_exception
 
 from bitfield.types import BitHandler
-from sentry import analytics, audit_log, features, options, roles
+from sentry import analytics, audit_log, options, roles
 from sentry.analytics.events.organization_removed import OrganizationRemoved
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, cell_silo_endpoint
@@ -647,10 +647,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         for key, option, type_, default_value in ORG_OPTIONS:
             if key not in data:
-                continue
-            if key == "enableSeerCoding" and features.has(
-                "organizations:seer-disable-coding-setting", org
-            ):
                 continue
             try:
                 option_inst = OrganizationOption.objects.get(organization=org, key=option)

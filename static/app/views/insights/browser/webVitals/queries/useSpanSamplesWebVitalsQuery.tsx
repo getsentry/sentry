@@ -29,7 +29,6 @@ export function useSpanSamplesWebVitalsQuery({
   limit,
   enabled,
   filter = SPANS_FILTER,
-  sortName,
   browserTypes,
   subregions,
   webVital = 'inp',
@@ -38,7 +37,6 @@ export function useSpanSamplesWebVitalsQuery({
   browserTypes?: BrowserType[];
   enabled?: boolean;
   filter?: string;
-  sortName?: string;
   subregions?: SubregionCode[];
   transaction?: string;
   webVital?: WebVitals;
@@ -48,7 +46,6 @@ export function useSpanSamplesWebVitalsQuery({
     ...SORTABLE_INDEXED_INTERACTION_FIELDS,
   ];
   const sort = useWebVitalsSort({
-    sortName,
     defaultSort: DEFAULT_INDEXED_SPANS_SORT,
     sortableFields: filteredSortableFields,
   });

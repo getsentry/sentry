@@ -18,10 +18,10 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
+from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
@@ -315,11 +315,11 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
             organization_id=self.organization.id,
         )
         data = MockNotification(message="test")
-        rendered_template = MockNotificationTemplate().render(data)
-        renderer = SlackNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
+        self.slack_renderable, _ = NotificationService.render_template(
+            data=data,
+            template=MockNotificationTemplate(),
+            provider=SlackNotificationProvider,
         )
-        self.slack_renderable = renderer.render(data=data, rendered_template=rendered_template)
 
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     def test_send_notification_success(self, mock_chat_post: MagicMock) -> None:

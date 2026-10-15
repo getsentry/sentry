@@ -1,5 +1,6 @@
 import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -12,7 +13,6 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -94,40 +94,33 @@ export function ShareIssueModal({
     );
   };
 
-  const handlePublicShare = (
+  const handlePublicShare = async (
     e: React.ChangeEvent<HTMLInputElement> | null,
     reshare?: boolean
   ) => {
     e?.preventDefault();
     setLoading(true);
     onToggle();
-    bulkUpdate(
-      api,
-      {
+    try {
+      await bulkUpdate(api, {
         orgId: organization.slug,
         projectId: projectSlug,
         itemIds: [groupId],
         data: {
           isPublic: reshare ?? !isPublished,
         },
-      },
-      {
-        success: () => {
-          queryClient.invalidateQueries({
-            queryKey: groupQueryKey({
-              organizationSlug: organization.slug,
-              groupId,
-            }),
-          });
-        },
-        error: () => {
-          addErrorMessage(t('Error sharing'));
-        },
-        complete: () => {
-          setLoading(false);
-        },
-      }
-    );
+      });
+      queryClient.invalidateQueries({
+        queryKey: groupQueryKey({
+          organizationSlug: organization.slug,
+          groupId,
+        }),
+      });
+    } catch {
+      addErrorMessage(t('Error sharing'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;

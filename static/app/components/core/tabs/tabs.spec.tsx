@@ -290,21 +290,30 @@ describe('Tabs overflow', () => {
   // control how many tabs fit. The component reserves 48px for the trigger.
   const TAB_WIDTH = 100;
 
-  // Available width reported by the tab list wrapper, mutable so resizes can be
-  // simulated. jsdom has no layout engine, so all measurement is mocked.
+  // Widths reported by each tab and by the tab list wrapper, mutable so resizes
+  // can be simulated. jsdom has no layout engine, so all measurement is mocked.
+  let tabWidth = TAB_WIDTH;
   let containerWidth = 1000;
   let resizeCallbacks: ResizeObserverCallback[] = [];
   let originalResizeObserver: typeof ResizeObserver;
 
   beforeEach(() => {
+    tabWidth = TAB_WIDTH;
     containerWidth = 1000;
     resizeCallbacks = [];
 
-    // Each tab (<li role="tab">) measures TAB_WIDTH; everything else is 0.
+    // Each tab (<li role="tab">) measures tabWidth and the tab list wrapper
+    // (whose direct child is the tablist) measures containerWidth; everything
+    // else is 0.
     jest
       .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
       .mockImplementation(function (this: HTMLElement) {
-        const width = this.getAttribute('role') === 'tab' ? TAB_WIDTH : 0;
+        let width = 0;
+        if (this.getAttribute('role') === 'tab') {
+          width = tabWidth;
+        } else if (this.querySelector(':scope > [role="tablist"]')) {
+          width = containerWidth;
+        }
         return {
           width,
           height: 0,
@@ -317,15 +326,6 @@ describe('Tabs overflow', () => {
           toJSON: () => ({}),
         };
       });
-
-    // Only the tab list wrapper (whose direct child is the tablist) reports the
-    // configured available width; everything else reports 0 (jsdom default).
-    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
-      configurable: true,
-      get(this: HTMLElement) {
-        return this.querySelector(':scope > [role="tablist"]') ? containerWidth : 0;
-      },
-    });
 
     // Controllable ResizeObserver so resizes can be triggered on demand (the
     // global mock is a no-op).
@@ -342,8 +342,6 @@ describe('Tabs overflow', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
-    // Remove the prototype override so the jsdom default is restored.
-    delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientWidth;
     window.ResizeObserver = originalResizeObserver;
   });
 
@@ -376,6 +374,35 @@ describe('Tabs overflow', () => {
     renderTabs();
 
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
+  });
+
+  it('does not overflow when the tabs fill the container to a fraction of a pixel', async () => {
+    // A shrink-to-fit container is exactly as wide as its tabs, which is not a
+    // whole number of pixels. Rounding the container down would push the last
+    // tab into the menu, shrink the container around the remaining tabs, and
+    // repeat until only the first tab is left.
+    const gap = 4;
+    const realGetComputedStyle = window.getComputedStyle;
+    jest
+      .spyOn(window, 'getComputedStyle')
+      .mockImplementation(element =>
+        element.getAttribute('role') === 'tablist'
+          ? ({columnGap: `${gap}px`} as CSSStyleDeclaration)
+          : realGetComputedStyle(element)
+      );
+    tabWidth = 100.125;
+    const tabsWithGaps = TABS.length * tabWidth + (TABS.length - 1) * gap;
+    containerWidth = tabsWithGaps;
+    renderTabs();
+
+    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
+    expect(screen.getAllByRole('tab')).toHaveLength(TABS.length);
+
+    // One pixel less than the tabs and their gaps must overflow, which only
+    // holds if the gaps are counted.
+    resizeContainerTo(tabsWithGaps - 1);
+
+    expect(await screen.findByRole('button', {name: 'More tabs'})).toBeInTheDocument();
   });
 
   it('moves tabs that do not fit into an overflow menu', async () => {

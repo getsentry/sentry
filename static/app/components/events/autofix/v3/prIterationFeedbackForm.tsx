@@ -1,20 +1,19 @@
 import {useRef, useState} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconClose} from '@sentry/icons/close';
+import {IconReturn} from '@sentry/icons/return';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
 import {
   isPrIterationPaused,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {IconArrow} from 'sentry/icons/iconArrow';
-import {IconClose} from 'sentry/icons/iconClose';
-import {IconReturn} from 'sentry/icons/iconReturn';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -63,8 +62,8 @@ export function PrIterationFeedbackForm({
     try {
       await startStep('pr_iteration', {runId, userContext: feedback});
     } catch {
+      // startStep already reports why the request failed.
       setIsSubmitting(false);
-      addErrorMessage(t('Failed to submit feedback. Please try again.'));
       return;
     }
     trackAnalytics('autofix.pr_iteration.feedback', {
@@ -83,15 +82,13 @@ export function PrIterationFeedbackForm({
 
   return (
     <Stack gap="xl">
-      <Flex gap="xs" align="center">
-        <Text>{prompt}</Text>
-        <FeatureBadge type="alpha" />
-      </Flex>
+      <Text>{prompt}</Text>
       <Tooltip title={pausedTooltip} disabled={!isPaused} containerDisplayMode="block">
         <InputGroup>
           <InputGroup.TextArea
             autosize
             rows={2}
+            maxLength={AUTOFIX_USER_CONTEXT_MAX_LENGTH}
             placeholder={t(
               'Give Seer additional context to improve your pull request and make changes to your code. Hit ENTER to submit.'
             )}

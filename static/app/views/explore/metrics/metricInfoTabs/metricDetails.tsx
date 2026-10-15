@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
@@ -8,7 +9,6 @@ import {Text} from '@sentry/scraps/text';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
@@ -18,7 +18,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {LogAttributesRendererMap} from 'sentry/views/explore/logs/fieldRenderers';
+import {
+  LogAttributesRendererMap,
+  SpanIDRenderer,
+} from 'sentry/views/explore/logs/fieldRenderers';
 import {
   getLogColors,
   LogAttributeTreeWrapper,
@@ -36,17 +39,14 @@ import {
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
 import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMetricAttributesTreeActions';
-import type {
-  EAPTraceMeta,
-  TraceMeta,
-} from 'sentry/views/performance/newTraceDetails/traceApi/types';
-import {
-  getTraceMetaErrorCount,
-  getTraceMetaLogsCount,
-  getTraceMetaMetricsCount,
-  getTraceMetaSpanCount,
-  useTraceMeta,
-} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import type {EAPTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/types';
+import {useTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
+
+const MetricAttributesRendererMap = {
+  ...LogAttributesRendererMap,
+  [TraceMetricKnownFieldKey.OLD_SPAN_ID]: SpanIDRenderer,
+};
 
 function MetricDetailsEmptyState({children}: {children: React.ReactNode}) {
   return (
@@ -58,12 +58,14 @@ function MetricDetailsEmptyState({children}: {children: React.ReactNode}) {
 
 export function MetricDetails({
   dataRow,
+  routingHint,
   ref,
   showTelemetry,
 }: {
   dataRow: TraceMetricEventsResponseItem;
   ref: React.RefObject<HTMLTableRowElement | null>;
   showTelemetry: boolean;
+  routingHint?: string;
 }) {
   const theme = useTheme();
   const location = useLocation();
@@ -94,6 +96,7 @@ export function MetricDetails({
     traceId: String(dataRow[TraceMetricKnownFieldKey.TRACE] ?? ''),
     timestamp,
     enabled: enableQueries,
+    routingHint,
   });
 
   const traceSlug = String(dataRow[TraceMetricKnownFieldKey.TRACE] ?? '');
@@ -106,7 +109,7 @@ export function MetricDetails({
   if (isError) {
     return (
       <MetricsDetailsWrapper ref={ref}>
-        <LogDetailTableBodyCell colSpan={0}>
+        <LogDetailTableBodyCell>
           <EmptyStreamWrapper>
             <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
           </EmptyStreamWrapper>
@@ -118,14 +121,16 @@ export function MetricDetails({
   if (isTraceDetailsLoading || (isTraceMetaLoading && showTelemetry)) {
     return (
       <MetricsDetailsWrapper ref={ref}>
-        <LogDetailTableBodyCell colSpan={0}>
+        <LogDetailTableBodyCell>
           <LoadingIndicator />
         </LogDetailTableBodyCell>
       </MetricsDetailsWrapper>
     );
   }
 
-  const attributes: Record<string, TraceItemResponseAttribute['value']> = {};
+  const attributes: Record<string, TraceItemResponseAttribute['value']> = {
+    [TraceMetricKnownFieldKey.TIMESTAMP]: dataRow[TraceMetricKnownFieldKey.TIMESTAMP],
+  };
   const attributeTypes: Record<string, TraceItemResponseAttribute['type']> = {};
   for (const attr of traceDetailsData?.attributes ?? []) {
     attributes[attr.name] = attr.value;
@@ -138,7 +143,7 @@ export function MetricDetails({
 
   return (
     <MetricsDetailsWrapper ref={ref}>
-      <LogDetailTableBodyCell colSpan={0}>
+      <LogDetailTableBodyCell>
         <DetailsContent>
           {showTelemetry ? (
             <MetricDetailsTraceSummary
@@ -152,8 +157,9 @@ export function MetricDetails({
               {visibleAttributes.length > 0 ? (
                 <AttributesTree
                   attributes={visibleAttributes}
+                  config={{attributeDetailsType: 'tracemetric'}}
                   getCustomActions={getActions}
-                  renderers={LogAttributesRendererMap}
+                  renderers={MetricAttributesRendererMap}
                   rendererExtra={{
                     attributes,
                     attributeTypes,
@@ -167,6 +173,7 @@ export function MetricDetails({
                     projectSlug,
                     project,
                     traceItemMeta: traceDetailsData?.meta,
+                    traceViewSource: TraceViewSources.TRACE_METRICS,
                     theme,
                   }}
                 />
@@ -187,7 +194,7 @@ function MetricDetailsTraceSummary({
   traceMeta,
   traceMetaErrors,
 }: {
-  traceMeta: TraceMeta | EAPTraceMeta | undefined;
+  traceMeta: EAPTraceMeta | undefined;
   traceMetaErrors: Error[];
 }) {
   return (
@@ -210,7 +217,7 @@ function MetricDetailsTraceSummaryContent({
   traceMeta,
   traceMetaErrors,
 }: {
-  traceMeta: TraceMeta | EAPTraceMeta | undefined;
+  traceMeta: EAPTraceMeta | undefined;
   traceMetaErrors: Error[];
 }) {
   if (traceMetaErrors.length > 0) {
@@ -229,10 +236,10 @@ function MetricDetailsTraceSummaryContent({
     );
   }
 
-  const errors = getTraceMetaErrorCount(traceMeta) ?? 0;
-  const logs = getTraceMetaLogsCount(traceMeta) ?? 0;
-  const spans = getTraceMetaSpanCount(traceMeta) ?? 0;
-  const metrics = getTraceMetaMetricsCount(traceMeta) ?? 0;
+  const errors = traceMeta.errorsCount;
+  const logs = traceMeta.logsCount;
+  const spans = traceMeta.spansCount;
+  const metrics = traceMeta.metricsCount;
 
   return (
     <Text size="sm" monospace variant="secondary">

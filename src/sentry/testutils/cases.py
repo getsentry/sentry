@@ -139,8 +139,7 @@ from sentry.search.events.constants import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
@@ -811,28 +810,6 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("project", self.project)
         kwargs.setdefault("data", {})
         return self.rule_cls(**kwargs)
-
-    def get_state(self, **kwargs):
-        from sentry.rules import EventState
-
-        kwargs.setdefault("is_new", True)
-        kwargs.setdefault("is_regression", True)
-        kwargs.setdefault("is_new_group_environment", True)
-        kwargs.setdefault("has_reappeared", True)
-        kwargs.setdefault("has_escalated", False)
-        return EventState(**kwargs)
-
-    def assertPasses(self, rule, event=None, **kwargs):
-        if event is None:
-            event = self.event
-        state = self.get_state(**kwargs)
-        assert rule.passes(event, state) is True
-
-    def assertDoesNotPass(self, rule, event=None, **kwargs):
-        if event is None:
-            event = self.event
-        state = self.get_state(**kwargs)
-        assert rule.passes(event, state) is False
 
 
 class DRFPermissionTestCase(TestCase):
@@ -1556,6 +1533,8 @@ class BaseMetricsTestCase(SnubaTestCase):
         parsed = parse_mri(mri)
         metric_type = parsed.entity
         use_case_id = UseCaseID(parsed.namespace)
+        if use_case_id is not UseCaseID.SESSIONS:
+            return
 
         mapping_meta = {}
 
@@ -1583,9 +1562,6 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         def tag_value(name):
             assert isinstance(name, str)
-
-            if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
-                return name
 
             res = indexer.record(
                 use_case_id=use_case_id,
@@ -1627,7 +1603,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
-            "version": (2 if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE else 1),
+            "version": 1,
         }
 
         msg["mapping_meta"] = {}
@@ -1639,13 +1615,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         if sampling_weight:
             msg["sampling_weight"] = sampling_weight
 
-        if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
-            # Generic metrics sets/gauges/distributions are no longer registered in Snuba.
-            if metric_type in {"s", "d", "g"}:
-                return
-            entity = f"generic_metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
-        else:
-            entity = f"metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
+        entity = f"metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
 
         cls.__send_buckets([msg], entity)
 
@@ -1654,10 +1624,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         # DO NOT USE THIS METHOD IN YOUR TESTS, use store_metric instead. we
         # need to be able to make changes to the indexer's output protocol
         # without having to update a million tests
-        if entity.startswith("generic_"):
-            codec = get_topic_codec(Topic.SNUBA_GENERIC_METRICS)
-        else:
-            codec = get_topic_codec(Topic.SNUBA_METRICS)
+        codec = get_topic_codec(Topic.SNUBA_METRICS)
 
         for bucket in buckets:
             codec.validate(bucket)
@@ -2729,20 +2696,25 @@ class TestMigrations(TransactionTestCase):
         self.setup_initial_state()
 
         executor = MigrationExecutor(conn)
-        old_apps = executor.loader.project_state(migrate_from).apps
 
         # Reverse to the original migration
         # XXX: We don't pass project state here, since Django doesn't use it when rolling back migrations.
         self._project_state_cache = executor.migrate(migrate_from)
 
-        self.setup_before_migration(old_apps)
+        # Reuse the states `migrate` returns rather than rebuilding them from the whole
+        # migration history with `loader.project_state()`, which takes several seconds.
+        # These reflect what's applied in the database, so they also include migrations in
+        # other apps that stay applied, even if the target doesn't depend on them. The graph
+        # state only follows the target's dependencies. See
+        # `ExecutorStateTest` in tests/sentry/new_migrations/test_migrations.py.
+        self.setup_before_migration(self._project_state_cache.apps)
 
         # Run the migration to test
         executor = MigrationExecutor(conn)
         executor.loader.build_graph()  # reload.
         self._project_state_cache = executor.migrate(migrate_to, state=self._project_state_cache)
 
-        self.apps = executor.loader.project_state(migrate_to).apps
+        self.apps = self._project_state_cache.apps
 
     def tearDown(self):
         super().tearDownClass()
@@ -3533,9 +3505,10 @@ class OurLogTestCase(BaseTestCase, TraceItemTestCase):
             attributes_proto["sentry.observed_timestamp_nanos"] = AnyValue(
                 int_value=int(timestamp.timestamp() * 1e9)
             )
-        attributes_proto["sentry.timestamp_precise"] = AnyValue(
-            int_value=int(timestamp.timestamp() * 1e9)
-        )
+        if "sentry.timestamp_precise" not in attributes:
+            attributes_proto["sentry.timestamp_precise"] = AnyValue(
+                int_value=int(timestamp.timestamp() * 1e9)
+            )
 
         return TraceItem(
             organization_id=organization.id,

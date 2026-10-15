@@ -1,19 +1,199 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from typing import Any
 from unittest import mock
 
 import pytest
+from django.test import RequestFactory
 from django.urls import reverse
+from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 
-from sentry.api.endpoints.timeseries import INGESTION_DELAY_MESSAGE
-from sentry.constants import DataCategory
-from sentry.testutils.cases import APITestCase, OutcomesSnubaTest, SnubaTestCase
+from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
+from sentry.api.endpoints.timeseries import IncompleteReason
+from sentry.api.helpers.timeseries_processing import (
+    FillTransformation,
+    SmoothTransformation,
+    Transformation,
+)
+from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
+from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.utils.outcomes import Outcome
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        ("", {}),
+        ("transformationsExtra=ignored&query=anything", {}),
+        ("transformations[0]=fill(locf)", {0: [FillTransformation(mode="locf")]}),
+        (
+            "transformations[0]=smooth(sma,,5)",
+            {0: [SmoothTransformation(mode="sma", window_size=5)]},
+        ),
+        (
+            "transformations[0]=smooth%28sma%2C5%29&transformations[0]=smooth(sma,3)",
+            {
+                0: [
+                    SmoothTransformation(mode="sma", window_size=5),
+                    SmoothTransformation(mode="sma", window_size=3),
+                ]
+            },
+        ),
+        (
+            "yAxis=count()&yAxis=count()&transformations%5B1%5D=fill%28locf%29"
+            "&transformations%5B1%5D=smooth%28sma%2C3%29&transformations%5B0%5D=fill%28zero%29",
+            {
+                1: [
+                    FillTransformation(mode="locf"),
+                    SmoothTransformation(mode="sma", window_size=3),
+                ],
+                0: [FillTransformation(mode="zero")],
+            },
+        ),
+        (
+            "yAxis=count()&yAxis=avg(span.duration)&yAxis=p90(span.duration)"
+            "&transformations[2]=smooth(sma,3)",
+            {2: [SmoothTransformation(mode="sma", window_size=3)]},
+        ),
+        (
+            "transformations[0]=fill(locf)&transformations[0]=fill(locf)",
+            {0: [FillTransformation(mode="locf"), FillTransformation(mode="locf")]},
+        ),
+    ],
+)
+def test_decode_transformations(query: str, expected: dict[int, list[Transformation]]) -> None:
+    request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
+
+    assert OrganizationEventsTimeseriesEndpoint().get_transformations(request) == expected
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "transformations",
+        "transformations[]",
+        "transformations[-1]",
+        "transformations[abc]",
+        "transformations[01]",
+        "transformations[0][]",
+        "transformations[0]extra",
+        "transformations[0",
+        "transformations[٠]",
+        pytest.param(f"transformations[{'9' * 5000}]", id="oversized-index"),
+    ],
+)
+def test_decode_transformations_invalid_key(key: str) -> None:
+    request = Request(RequestFactory().get("/events-timeseries/", {key: "fill(locf)"}))
+
+    with pytest.raises(ParseError, match="Invalid transformations index"):
+        OrganizationEventsTimeseriesEndpoint().get_transformations(request)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        "transformations[1]=fill(locf)",
+        "yAxis=count()&yAxis=avg(span.duration)&transformations[2]=fill(locf)",
+        "transformations[1000000000]=fill(locf)",
+    ],
+)
+def test_decode_transformations_index_out_of_range(query: str) -> None:
+    request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
+
+    with pytest.raises(ParseError, match="transformations index must match a yAxis position"):
+        OrganizationEventsTimeseriesEndpoint().get_transformations(request)
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("", " is not a valid transformation"),
+        ("[fill(locf), smooth(sma)]", "[fill(locf), smooth(sma)] is not a valid transformation"),
+        (
+            "fill(sma)",
+            "fill(sma): mode argument invalid: expected one of locf, zero, linear",
+        ),
+        (
+            "smooth(sma,0)",
+            "smooth(sma,0): window_size argument invalid: Window size must be positive.",
+        ),
+        ("fill()", "fill(): argument count must be 1"),
+        ("smooth()", "smooth(): argument count must be 2"),
+        ("smooth(sma)", "smooth(sma): argument count must be 2"),
+        ("fill(locf,zero)", "fill(locf,zero): argument count must be 1"),
+        ("smooth(sma,5,6)", "smooth(sma,5,6): argument count must be 2"),
+    ],
+)
+def test_decode_transformations_invalid_value(
+    value: str, expected: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    request = Request(
+        RequestFactory().get("/events-timeseries/", {"transformations[0]": ["fill(locf)", value]})
+    )
+
+    with caplog.at_level(logging.INFO, logger="sentry.api.utils"):
+        with pytest.raises(ParseError) as error:
+            OrganizationEventsTimeseriesEndpoint().get_transformations(request)
+
+    assert error.value.detail == expected
+    assert caplog.record_tuples == [("sentry.api.utils", logging.INFO, "A query error was handled")]
+    assert getattr(caplog.records[0], "query.error_reason") == expected
+
+
+class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-events-timeseries"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.org = self.create_organization(owner=self.user)
+
+    def test_invalid_transformations_with_no_projects(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
+            }
+        ):
+            response = self.get_error_response(
+                self.org.slug, **{"transformations[-1]": ["fill(locf)"]}, status_code=400
+            )
+
+        assert response.data == {"detail": "Invalid transformations index"}
+
+    def test_invalid_transformation_function_with_no_projects(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
+            }
+        ):
+            response = self.get_error_response(
+                self.org.slug, **{"transformations[0]": ["smooth(linear,3)"]}, status_code=400
+            )
+
+        assert response.data == {
+            "detail": "smooth(linear,3): mode argument invalid: expected one of sma"
+        }
+
+    def test_transformations_ignored_when_feature_disabled(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": False,
+            }
+        ):
+            response = self.get_success_response(
+                self.org.slug,
+                **{"transformations[-1]": ["fill(locf)"], "transformations[0]": ["fill(sma)"]},
+            )
+
+        assert response.data == {"timeSeries": []}
 
 
 class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
@@ -108,6 +288,11 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "end": self.end,
                 "interval": "1h",
                 "project": [self.project.id, self.project2.id],
+                "transformations[0]": ["fill(locf)", "smooth(sma,3)"],
+            },
+            features={
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
             },
         )
         assert response.status_code == 200, response.content
@@ -350,6 +535,92 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
 
+    def test_top_events_no_results(self) -> None:
+        for dataset in ["errors", "discover", "transactions"]:
+            response = self.do_request(
+                data={
+                    "start": self.start,
+                    "end": self.end,
+                    "interval": "1h",
+                    "yAxis": ["count()", "count_unique(user)", "epm()"],
+                    "groupBy": ["count()", "message"],
+                    "orderby": ["-count()"],
+                    "topEvents": 5,
+                    "project": [self.project.id],
+                    "dataset": dataset,
+                    "query": "message:synthetic-no-match",
+                },
+            )
+
+            assert response.status_code == 200, response.content
+            assert len(response.data["timeSeries"]) == 3
+            count, unique_users, events_per_minute = response.data["timeSeries"]
+            assert count["yAxis"] == "count()"
+            assert unique_users["yAxis"] == "count_unique(user)"
+            assert events_per_minute["yAxis"] == "epm()"
+            integer_meta = {
+                "valueType": "integer",
+                "valueUnit": None,
+                "interval": 3_600_000,
+            }
+            assert count["meta"] == integer_meta
+            assert unique_users["meta"] == integer_meta
+            assert events_per_minute["meta"] == {
+                "valueType": "rate",
+                "valueUnit": "1/minute",
+                "interval": 3_600_000,
+            }
+            expected_values = [
+                {
+                    "incomplete": False,
+                    "timestamp": (self.start + timedelta(hours=hour)).timestamp() * 1000,
+                    "value": 0,
+                }
+                for hour in range(3)
+            ]
+            assert count["values"] == expected_values
+            assert unique_users["values"] == expected_values
+            assert events_per_minute["values"] == expected_values
+
+    def test_errors_top_events(self) -> None:
+        for message, minutes in [("very bad", 1), ("very bad", 2), ("oh my", 3)]:
+            self.store_event(
+                data={
+                    "message": message,
+                    "timestamp": (self.start + timedelta(minutes=minutes)).isoformat(),
+                    "fingerprint": [message],
+                },
+                project_id=self.project.id,
+            )
+
+        response = self.do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "groupBy": ["count()", "message"],
+                "orderby": ["-count()"],
+                "topEvents": 1,
+                "project": [self.project.id],
+                "dataset": "errors",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 2
+
+        other, top = response.data["timeSeries"]
+        assert top["groupBy"] == [{"key": "message", "value": "very bad"}]
+        assert top["meta"]["isOther"] is False
+        assert top["meta"]["order"] == 0
+        assert top["values"][0]["value"] == 2
+
+        assert other["groupBy"] is None
+        assert other["meta"]["isOther"] is True
+        assert other["meta"]["order"] == 1
+        assert other["values"][0]["value"] == 1
+
     def test_incomplete_bucket(self):
         with freeze_time(self.end):
             response = self.do_request(
@@ -378,13 +649,13 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
             {
                 "incomplete": True,
-                "incompleteReason": INGESTION_DELAY_MESSAGE,
+                "incompleteReason": IncompleteReason.INGESTION_PENDING,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 1,
                 "value": 2,
             },
             {
                 "incomplete": True,
-                "incompleteReason": INGESTION_DELAY_MESSAGE,
+                "incompleteReason": IncompleteReason.NOT_ELAPSED,
                 "timestamp": self.start.timestamp() * 1000 + 3_600_000 * 2,
                 "value": 0,
             },
@@ -516,13 +787,12 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         mock_sdk_logger.warning.assert_not_called()
 
 
-class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest):
+class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
     endpoint = "sentry-api-0-organization-events-timeseries"
 
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
-        # Align to an hour boundary so the hourly Outcomes rollup buckets cleanly.
         self.end = before_now(days=1).replace(minute=0, second=0, microsecond=0)
         self.start = self.end - timedelta(hours=2)
         self.url = reverse(
@@ -530,78 +800,159 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def _store_span_drop(self, quantity: int, minutes: int = 30) -> None:
-        self.store_outcomes(
-            {
-                "org_id": self.organization.id,
-                "project_id": self.project.id,
-                "outcome": Outcome.RATE_LIMITED,
-                "reason": "over_quota",
-                "category": DataCategory.SPAN,
-                "timestamp": self.start + timedelta(minutes=minutes),
-                "quantity": quantity,
-            }
-        )
-
-    def _do_request(self, features: dict[str, bool], annotations: bool = True):
+    def _do_request(self, features: dict[str, bool], dataset: str = "spans"):
         data: dict[str, Any] = {
             "start": self.start,
             "end": self.end,
             "interval": "1h",
             "project": [self.project.id],
-            "dataset": "spans",
+            "dataset": dataset,
         }
-        if annotations:
-            data["includeAnnotations"] = ""
         with self.feature(features):
             return self.client.get(self.url, data=data, format="json")
 
-    def test_annotations_absent_without_flag(self) -> None:
-        self._store_span_drop(2000)
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_ingestion_delay_absent_without_flag(self, mock_measure) -> None:
         response = self._do_request({"organizations:visibility-explore-view": True})
         assert response.status_code == 200, response.content
-        assert "annotations" not in response.data["meta"]
+        assert "ingestion" not in response.data["meta"]
+        # The measurement costs a snuba query, so it must not run when unflagged.
+        assert not mock_measure.called
 
-    def test_annotations_absent_without_query_param(self) -> None:
-        # Flag on, but the endpoint must not enrich unless the caller opts in.
-        self._store_span_drop(2000)
-        response = self._do_request(
-            {
-                "organizations:visibility-explore-view": True,
-                "organizations:explore-data-fidelity-annotations": True,
-            },
-            annotations=False,
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_ingestion_delay_present(self, mock_measure) -> None:
+        complete_through = before_now(minutes=5)
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=42.5,
+            complete_through=complete_through,
+            status=IngestionStatus.HEALTHY,
         )
-        assert response.status_code == 200, response.content
-        assert "annotations" not in response.data["meta"]
-
-    def test_annotations_present_with_flag(self) -> None:
-        # Two drops in different hourly buckets: annotations are per-bucket, so
-        # each carries its own start/end rather than the whole query's range.
-        self._store_span_drop(2000, minutes=30)
-        self._store_span_drop(1500, minutes=90)
         response = self._do_request(
             {
                 "organizations:visibility-explore-view": True,
-                "organizations:explore-data-fidelity-annotations": True,
+                "organizations:measured-ingestion-delay-metadata": True,
             }
         )
         assert response.status_code == 200, response.content
-        assert "annotations" in response.data["meta"]
-        annotations = response.data["meta"]["annotations"]
-        assert len(annotations) == 2
-        assert {a["droppedCount"] for a in annotations} == {2000, 1500}
-        assert {a["category"] for a in annotations} == {DataCategory.SPAN.api_name()}
-        # Distinct buckets => distinct start times, one interval apart.
-        starts = sorted(a["start"] for a in annotations)
-        assert starts[1] - starts[0] == 3_600_000
+        assert response.data["meta"]["ingestion"] == {
+            "status": "healthy",
+            "delaySeconds": 42.5,
+            # Milliseconds, matching start/end on the same object.
+            "completeThrough": complete_through.timestamp() * 1000,
+        }
 
-    def test_annotations_empty_when_no_drops(self) -> None:
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_unknown_status_is_reported_without_values(self, mock_measure) -> None:
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=None,
+            complete_through=None,
+            status=IngestionStatus.UNKNOWN,
+        )
         response = self._do_request(
             {
                 "organizations:visibility-explore-view": True,
-                "organizations:explore-data-fidelity-annotations": True,
+                "organizations:measured-ingestion-delay-metadata": True,
             }
         )
         assert response.status_code == 200, response.content
-        assert response.data["meta"]["annotations"] == []
+        assert response.data["meta"]["ingestion"] == {"status": "unknown"}
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_ingestion_delay_query_failure_does_not_break_the_response(self, mock_measure) -> None:
+        mock_measure.side_effect = Exception("snuba is down")
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert "ingestion" not in response.data["meta"]
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_complete_through_is_returned_in_milliseconds(self, mock_measure) -> None:
+        complete_through = before_now(seconds=10)
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=42.5,
+            complete_through=complete_through,
+            status=IngestionStatus.HEALTHY,
+        )
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["ingestion"]["delaySeconds"] == 42.5
+        assert (
+            response.data["meta"]["ingestion"]["completeThrough"]
+            == complete_through.timestamp() * 1000
+        )
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_buckets_are_marked_incomplete_from_measured_complete_through(
+        self, mock_measure
+    ) -> None:
+        complete_through = self.end - timedelta(seconds=10)
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=3600.0,
+            complete_through=complete_through,
+            status=IngestionStatus.HEALTHY,
+        )
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        boundary_ms = complete_through.timestamp() * 1000
+        interval_ms = response.data["timeSeries"][0]["meta"]["interval"]
+        rows = response.data["timeSeries"][0]["values"]
+        for row in rows:
+            extends_past_boundary = row["timestamp"] + interval_ms >= boundary_ms
+            assert row["incomplete"] is extends_past_boundary, row
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_buckets_fall_back_to_static_incomplete_boundary_when_no_measurement(
+        self, mock_measure
+    ) -> None:
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=None,
+            complete_through=None,
+            status=IngestionStatus.UNKNOWN,
+        )
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert "completeThrough" not in response.data["meta"]["ingestion"]
+        assert not any(row["incomplete"] for row in response.data["timeSeries"][0]["values"])
+
+    @mock.patch("sentry.quotas.backend.get_event_retention")
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_buckets_starting_before_retention_are_marked_outside_it(
+        self, mock_measure, mock_retention
+    ) -> None:
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=1.0,
+            complete_through=self.end,
+            status=IngestionStatus.HEALTHY,
+        )
+        mock_retention.return_value = 1  # 1 day
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        rows = response.data["timeSeries"][0]["values"]
+        assert rows[0]["incompleteReason"] == IncompleteReason.OUTSIDE_RETENTION
+        assert rows[1]["incompleteReason"] == IncompleteReason.OUTSIDE_RETENTION

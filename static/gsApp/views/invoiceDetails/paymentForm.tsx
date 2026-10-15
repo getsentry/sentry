@@ -13,7 +13,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
 import type {Invoice} from 'getsentry/types';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
+import {displayPriceWithCents} from 'getsentry/utils/billing';
 
 type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'closeModal'> & {
   invoice: Invoice;
@@ -55,6 +55,7 @@ export default function InvoiceDetailsPaymentForm({
             onCancel={() => closeModal()}
             amount={invoice.amountBilled ?? 0}
             cardMode="payment"
+            invoiceGuid={invoice.id}
             onSuccess={() => {
               reloadInvoice();
               closeModal();

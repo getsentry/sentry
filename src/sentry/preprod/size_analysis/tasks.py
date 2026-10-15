@@ -30,7 +30,7 @@ from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_com
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_size_tasks
 from sentry.utils import metrics
 
 # Threshold type categories for filtering detectors by path.
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.preprod.tasks.compare_preprod_artifact_size_analysis",
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
     processing_deadline_duration=120,
     silo_mode=SiloMode.CELL,
 )
@@ -299,7 +299,7 @@ def compare_preprod_artifact_size_analysis(
 
 @instrumented_task(
     name="sentry.preprod.tasks.manual_size_analysis_comparison",
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
     processing_deadline_duration=120,
     silo_mode=SiloMode.CELL,
 )

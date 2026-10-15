@@ -71,23 +71,6 @@ type BaseSpanType = RawSpanType & {
   type?: undefined;
 };
 
-export const rawSpanKeys = new Set<keyof RawSpanType>([
-  'trace_id',
-  'parent_span_id',
-  'span_id',
-  'start_timestamp',
-  'timestamp',
-  'same_process_as_parent',
-  'op',
-  'origin',
-  'description',
-  'status',
-  'data',
-  'tags',
-  'hash',
-  'exclusive_time',
-]);
-
 export type OrphanSpanType = RawSpanType & {
   type: 'orphan';
 };
@@ -255,40 +238,4 @@ export type TraceBound = {
 export type DescendantGroup = {
   group: SpanTreeModel[];
   occurrence?: number;
-};
-
-export type TraceInfo = {
-  /**
-   * The very latest end timestamp in the trace.
-   */
-  endTimestamp: number;
-  /**
-   * The errors in the trace.
-   */
-  errors: Set<string>;
-  /**
-   * The maximum generation in the trace.
-   */
-  maxGeneration: number;
-  /**
-   * The performance Issues on the trace
-   */
-  performanceIssues: Set<string>;
-  /**
-   * The projects in the trace
-   */
-  projects: Set<string>;
-  /**
-   * The very earliest start timestamp in the trace.
-   */
-  startTimestamp: number;
-  /**
-   * The number of events that are not transactions,
-   * appearing as its own row in the trace view
-   */
-  trailingOrphansCount: number;
-  /**
-   * The transactions in the trace.
-   */
-  transactions: Set<string>;
 };

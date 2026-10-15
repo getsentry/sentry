@@ -1,16 +1,24 @@
 import type {KeyboardEvent, PointerEvent, ReactNode} from 'react';
 import {useCallback, useRef} from 'react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {DEFAULT_FILTER_KEY_MENU_WIDTH} from 'sentry/components/searchQueryBuilder/context';
 
 const PAGE_EDGE_PADDING_PX = 16;
 
 /**
  * Autocomplete menus can render inside this wrapper rather than a portal. Selecting an
- * option depends on the pointer sequence completing untouched, so menu targets are
- * always left alone by the capture handlers below.
+ * option depends on the pointer sequence completing untouched. Leave menu presses
+ * alone, except for the release of the press that expanded the bar beneath it.
  */
-const MENU_TARGETS = '[data-overlay], [role="listbox"], [role="option"]';
+const MENU_TARGETS =
+  '[data-query-builder-menu], [data-overlay], [role="listbox"], [role="option"]';
 const CONTROL_TARGETS = 'input, textarea, button, a, [role="button"]';
+const TRAILING_INPUT_SELECTOR =
+  '[data-test-id="query-builder-input"], [data-test-id="arithmetic-builder-input"]';
+const FIELD_SELECTOR =
+  '[data-test-id="search-query-builder"], [data-test-id="arithmetic-builder"]';
 
 function closestMatch(target: EventTarget | null, selector: string) {
   return target instanceof Element ? target.closest(selector) : null;
@@ -22,14 +30,47 @@ function focusInputAtEnd(input: HTMLInputElement) {
   input.setSelectionRange(end, end);
 }
 
+/** True when the element is not display:none / hidden (works in jsdom and browsers). */
+function isRenderedVisibly(el: HTMLElement) {
+  let node: HTMLElement | null = el;
+  while (node) {
+    if (node.hidden || node.getAttribute('aria-hidden') === 'true') {
+      return false;
+    }
+    if (node.style.display === 'none' || node.style.visibility === 'hidden') {
+      return false;
+    }
+    node = node.parentElement;
+  }
+  return true;
+}
+
+function findOpenSuggestionListbox(root: HTMLElement) {
+  const openCombobox = root.querySelector('[role="combobox"][aria-expanded="true"]');
+  if (!openCombobox) {
+    return null;
+  }
+
+  const listboxId = openCombobox.getAttribute('aria-controls');
+  const listbox = listboxId
+    ? document.getElementById(listboxId)
+    : root.querySelector('[role="listbox"]');
+  if (!(listbox instanceof HTMLElement) || !isRenderedVisibly(listbox)) {
+    return null;
+  }
+  return {openCombobox, listbox};
+}
+
 /**
- * Grows a series filter bar to the remaining window width while focused so a long query
- * has room to be read and edited, then collapses it back into the toolbar column.
+ * Grows a series filter bar or equation builder to the filter key menu width while
+ * focused so a long query has room to be read and edited, then collapses it back into
+ * the toolbar column.
  */
 export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
   const ref = useRef<HTMLDivElement>(null);
+  const openingPointerId = useRef<number | null>(null);
 
-  const expandToPageWidth = useCallback(() => {
+  const expandToMenuWidth = useCallback(() => {
     const el = ref.current;
     if (!el || el.dataset.expanded === 'true') {
       return;
@@ -37,8 +78,12 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
     const {left} = el.getBoundingClientRect();
     // Expand instantly so focus and the caret are not racing the width animation.
     el.style.transition = 'none';
-    el.style.width = `${document.documentElement.clientWidth - left - PAGE_EDGE_PADDING_PX}px`;
+    el.style.width = `${Math.min(
+      DEFAULT_FILTER_KEY_MENU_WIDTH,
+      document.documentElement.clientWidth - left - PAGE_EDGE_PADDING_PX
+    )}px`;
     el.dataset.expanded = 'true';
+    delete el.dataset.collapsed;
     requestAnimationFrame(() => {
       if (ref.current) {
         ref.current.style.transition = '';
@@ -48,15 +93,38 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
 
   const collapseToDefaultWidth = useCallback(() => {
     const el = ref.current;
-    if (!el) {
+    if (!el || el.dataset.expanded !== 'true') {
       return;
     }
     el.style.width = '';
+    el.dataset.collapsed = 'true';
     delete el.dataset.expanded;
   }, []);
 
   const isSuggestionMenuOpen = useCallback(() => {
-    return Boolean(ref.current?.querySelector('[role="combobox"][aria-expanded="true"]'));
+    const root = ref.current;
+    if (!root) {
+      return false;
+    }
+
+    // Prefer a visibly rendered listbox over aria-expanded alone: ComboBox opens the
+    // React Aria menu state on focus (aria-expanded=true) even when there are no
+    // options to show and the overlay is display:none.
+    return findOpenSuggestionListbox(root) !== null;
+  }, []);
+
+  /**
+   * Enter accepts a suggestion only after the user highlights one (ArrowUp/Down sets
+   * aria-activedescendant). An open menu alone must not block dismiss — the listbox
+   * used to autofocus the first option on open, which made Enter always "accept".
+   */
+  const isAcceptingAutocompleteSuggestion = useCallback(() => {
+    const root = ref.current;
+    if (!root) {
+      return false;
+    }
+    const openMenu = findOpenSuggestionListbox(root);
+    return Boolean(openMenu?.openCombobox.getAttribute('aria-activedescendant'));
   }, []);
 
   const collapseAfterBlur = useCallback(() => {
@@ -74,9 +142,7 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
   }, [collapseToDefaultWidth, isSuggestionMenuOpen]);
 
   const focusTrailingInput = useCallback(() => {
-    const input = ref.current?.querySelector<HTMLInputElement>(
-      '[data-test-id="query-builder-input"]'
-    );
+    const input = ref.current?.querySelector<HTMLInputElement>(TRAILING_INPUT_SELECTOR);
     if (!input) {
       return;
     }
@@ -90,8 +156,19 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
 
   const onPointerDownCapture = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
+      openingPointerId.current = null;
       const el = ref.current;
       if (!el || closestMatch(event.target, MENU_TARGETS)) {
+        return;
+      }
+
+      // Let the panel preserve the current editor's focus when its padding is clicked.
+      if (
+        event.target instanceof Element &&
+        event.target.matches(
+          '[data-test-id="search-query-builder-panel"], [data-test-id="arithmetic-builder-panel"]'
+        )
+      ) {
         return;
       }
 
@@ -109,41 +186,57 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
       // reliably. Take over this first click and put the caret at the end of the trailing
       // input instead; individual tokens stay editable on subsequent clicks.
       event.preventDefault();
-      expandToPageWidth();
+      openingPointerId.current = event.pointerId;
+      expandToMenuWidth();
       focusTrailingInput();
       requestAnimationFrame(() => {
         focusTrailingInput();
       });
     },
-    [expandToPageWidth, focusTrailingInput]
+    [expandToMenuWidth, focusTrailingInput]
   );
 
   const collapseOnEnter = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
-      // Accepting an autocomplete suggestion also uses Enter, so stay expanded while a
-      // menu is open.
-      if (
-        event.key !== 'Enter' ||
-        event.nativeEvent.isComposing ||
-        isSuggestionMenuOpen()
-      ) {
+      if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
         return;
       }
 
-      const active = document.activeElement;
-      if (active instanceof HTMLElement && ref.current?.contains(active)) {
-        active.blur();
+      // Arrow-highlighted suggestion: let the ComboBox handle Enter to accept it.
+      if (isAcceptingAutocompleteSuggestion()) {
+        return;
       }
-      collapseToDefaultWidth();
+
+      // Do not preventDefault/stopPropagation — ComboBox Enter must still run
+      // onInputCommit for free-text and function arguments. Collapse after that.
+      requestAnimationFrame(() => {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && ref.current?.contains(active)) {
+          active.blur();
+        }
+        collapseToDefaultWidth();
+      });
     },
-    [collapseToDefaultWidth, isSuggestionMenuOpen]
+    [collapseToDefaultWidth, isAcceptingAutocompleteSuggestion]
   );
 
   return (
     <ExpandableFilterSearchBarWrapper
       ref={ref}
       onPointerDownCapture={onPointerDownCapture}
-      onFocusCapture={expandToPageWidth}
+      onPointerUpCapture={event => {
+        if (openingPointerId.current === event.pointerId) {
+          openingPointerId.current = null;
+          // Expansion can put a suggestion under the pointer. React Aria selects
+          // options on release even when the press started on a different element.
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
+      onPointerCancelCapture={() => {
+        openingPointerId.current = null;
+      }}
+      onFocusCapture={expandToMenuWidth}
       onBlurCapture={collapseAfterBlur}
       onKeyDownCapture={collapseOnEnter}
     >
@@ -156,13 +249,35 @@ const ExpandableFilterSearchBarWrapper = styled('div')`
   width: 100%;
   min-width: 0;
   position: relative;
+  /* Keep inactive rows below the active filter's suggestions. */
+  z-index: ${p => p.theme.zIndex.header - 1};
   /* Clip long queries while collapsed; overlays escape once expanded. */
   overflow: hidden;
   transition: width ${p => p.theme.motion.smooth.moderate};
 
-  [data-test-id='search-query-builder'] {
+  ${FIELD_SELECTOR} {
     max-width: 100%;
     resize: none;
+  }
+
+  &[data-collapsed='true']:not(:focus-within) {
+    /* Retain elevation until closing finishes, then return below active filters. */
+    animation: ${p => keyframes`
+        from, to {
+          z-index: ${p.theme.zIndex.header};
+        }
+      `}
+      ${p => p.theme.motion.smooth.moderate};
+
+    ${FIELD_SELECTOR} {
+      /* Use an opaque fill during closing, then return to the input's default fill. */
+      animation: ${p => keyframes`
+          from, to {
+            background-color: ${p.theme.tokens.background.secondary};
+          }
+        `}
+        ${p => p.theme.motion.smooth.moderate};
+    }
   }
 
   /* The measuring overlay sits above the input and swallows caret placement clicks. */
@@ -173,11 +288,10 @@ const ExpandableFilterSearchBarWrapper = styled('div')`
   &[data-expanded='true'],
   &:focus-within {
     overflow: visible;
-    /* Above Explore chart content, below CompactSelect overlays (dropdown) and
-     * AttributeDetails (tooltip) so argument menus/tooltips stay usable. */
+    flex-shrink: 0;
     z-index: ${p => p.theme.zIndex.header};
 
-    [data-test-id='search-query-builder'] {
+    ${FIELD_SELECTOR} {
       background-color: ${p => p.theme.tokens.background.primary};
     }
   }

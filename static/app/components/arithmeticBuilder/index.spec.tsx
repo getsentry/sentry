@@ -28,8 +28,10 @@ const getSpanFieldDefinition = (key: string) => {
 function ArithmeticBuilderWrapper({
   expression,
   references,
+  menuPresentation,
 }: {
   expression: string;
+  menuPresentation?: 'floating' | 'panel';
   references?: Set<string>;
 }) {
   return (
@@ -39,6 +41,7 @@ function ArithmeticBuilderWrapper({
       getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
       references={references}
+      menuPresentation={menuPresentation}
     />
   );
 }
@@ -240,26 +243,44 @@ describe('ArithmeticBuilder', () => {
     // Because we're deleting tokens from the start, we cannot get them
     // up front as they will change as we delete. We have to get the
     // element once we reach that position.
-    const tokens: Array<() => HTMLElement | null> = [
-      firstFreeText,
-      () => screen.queryByRole('gridcell', {name: 'Delete left'}),
-      firstFreeText,
-      () => screen.queryByPlaceholderText('span.duration'),
-      firstFreeText,
-      () => screen.queryByRole('gridcell', {name: 'Delete +'}),
-      firstFreeText,
-      () => screen.queryByPlaceholderText('span.op'),
-      firstFreeText,
-      () => screen.queryByRole('gridcell', {name: 'Delete right'}),
-      firstFreeText,
+    const tokens: Array<{
+      focus: () => HTMLElement | null;
+      gone: () => HTMLElement | null;
+    }> = [
+      {focus: firstFreeText, gone: firstFreeText},
+      {
+        focus: () => screen.queryByRole('gridcell', {name: 'Delete left'}),
+        gone: () => screen.queryByRole('gridcell', {name: 'Delete left'}),
+      },
+      {focus: firstFreeText, gone: firstFreeText},
+      {
+        focus: () => screen.queryByPlaceholderText('span.duration'),
+        gone: () => screen.queryByRole('row', {name: 'sum(span.duration)'}),
+      },
+      {focus: firstFreeText, gone: firstFreeText},
+      {
+        focus: () => screen.queryByRole('gridcell', {name: 'Delete +'}),
+        gone: () => screen.queryByRole('gridcell', {name: 'Delete +'}),
+      },
+      {focus: firstFreeText, gone: firstFreeText},
+      {
+        focus: () => screen.queryByPlaceholderText('span.op'),
+        gone: () => screen.queryByRole('row', {name: 'count_if(span.op,equals,db)'}),
+      },
+      {focus: firstFreeText, gone: firstFreeText},
+      {
+        focus: () => screen.queryByRole('gridcell', {name: 'Delete right'}),
+        gone: () => screen.queryByRole('gridcell', {name: 'Delete right'}),
+      },
+      {focus: firstFreeText, gone: firstFreeText},
     ];
 
     let i = 0;
-    const focus = () => expect(tokens[i]!()).toHaveFocus();
-    const focus0 = () => expect(tokens[0]!()).toHaveFocus();
-    const deletion = () => expect(tokens[i]!()).not.toBeInTheDocument();
+    const focus = () => expect(tokens[i]!.focus()).toHaveFocus();
+    const focus0 = () => expect(tokens[0]!.focus()).toHaveFocus();
+    const deletion = () => expect(tokens[i]!.gone()).not.toBeInTheDocument();
 
-    await userEvent.click(tokens[i]!()!);
+    await userEvent.click(tokens[i]!.focus()!);
     await waitFor(focus);
 
     while (i < tokens.length - 1) {
@@ -275,6 +296,23 @@ describe('ArithmeticBuilder', () => {
     }
 
     expect(screen.getAllByRole('row')).toHaveLength(1);
+  });
+
+  it('deleting a function keeps the following function arguments', async () => {
+    const expression = 'sum(span.duration) + count_if(span.op,equals,db)';
+    render(<ArithmeticBuilderWrapper expression={expression} />);
+
+    const sumRow = await screen.findByRole('row', {name: 'sum(span.duration)'});
+    await userEvent.click(
+      within(sumRow).getByRole('button', {name: 'Remove function sum(span.duration)'})
+    );
+
+    expect(
+      screen.queryByRole('row', {name: 'sum(span.duration)'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: 'count_if(span.op,equals,db)'})
+    ).toBeInTheDocument();
   });
 
   it('deleting a middle literal does not shift remaining literal values', async () => {
@@ -300,4 +338,60 @@ describe('ArithmeticBuilder', () => {
       );
     }).toThrow('Invalid reference: !invalid');
   });
+
+  it('keeps suggestions in the same panel as the input', async () => {
+    render(<ArithmeticBuilderWrapper expression="" menuPresentation="panel" />);
+
+    const panel = screen.getByTestId('arithmetic-builder-panel');
+    await userEvent.click(screen.getByTestId('arithmetic-builder-input'));
+
+    const listbox = await screen.findByRole('listbox');
+    expect(panel).toContainElement(listbox);
+    expect(panel).toContainElement(screen.getByTestId('arithmetic-builder-input'));
+  });
+
+  it('closes equation suggestions when focusing another token in panel mode', async () => {
+    render(
+      <ArithmeticBuilderWrapper
+        expression="avg(span.duration)"
+        menuPresentation="panel"
+      />
+    );
+
+    const trailingInput = screen.getAllByRole('combobox', {name: 'Add a term'}).at(-1)!;
+    await userEvent.click(trailingInput);
+    expect(await screen.findByRole('listbox')).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('combobox', {name: 'Select an attribute', hidden: true})
+    );
+
+    expect(screen.getAllByRole('listbox')).toHaveLength(1);
+  });
+
+  it.each(['padding', 'gap'])(
+    'preserves equation editing when clicking panel %s',
+    async target => {
+      render(<ArithmeticBuilderWrapper expression="" menuPresentation="panel" />);
+
+      const input = screen.getByTestId('arithmetic-builder-input');
+      await userEvent.click(input);
+      await userEvent.type(input, 'avg');
+      const option = await screen.findByRole('option', {name: 'avg'});
+
+      const panel = screen.getByTestId('arithmetic-builder-panel');
+      const chrome =
+        target === 'gap' ? panel.querySelector('[data-query-builder-menu]')! : panel;
+      await userEvent.click(chrome);
+
+      expect(input).toHaveFocus();
+      expect(input).toHaveValue('avg');
+      expect(option).toBeInTheDocument();
+
+      await userEvent.click(option);
+      expect(
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
+      ).toBeInTheDocument();
+    }
+  );
 });

@@ -28,7 +28,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 import type {UsageSeries} from './types';
 import type {TableStat} from './usageTable';
-import UsageTable, {CellProject, CellStat} from './usageTable';
+import {CellProject, CellStat, UsageTable} from './usageTable';
 import {getOffsetFromCursor, getPaginationPageLink} from './utils';
 
 type Props = {

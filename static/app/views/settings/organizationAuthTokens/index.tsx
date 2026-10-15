@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -11,7 +11,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {Access} from 'sentry/components/acl/access';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -35,10 +34,10 @@ type RevokeTokenQueryVariables = {
 };
 
 const TOKEN_COLUMNS: TableColumnConfig[] = [
-  {key: 'token', width: 'auto'},
-  {key: 'created', width: 'auto'},
-  {key: 'lastAccess', width: 'auto'},
-  {key: 'actions', width: 'auto'},
+  {key: 'token', width: 'minmax(0, 1fr)'},
+  {key: 'created', visible: {xl: true}, width: 'max-content'},
+  {key: 'lastAccess', visible: {xl: true}, width: 'minmax(0, 1fr)'},
+  {key: 'actions', width: {zero: '1fr', xl: 'auto'}},
 ];
 
 export const makeFetchOrgAuthTokensForOrgQueryKey = ({
@@ -199,7 +198,7 @@ function OrganizationAuthTokensIndex() {
             }
           />
 
-          <ResponsiveSimpleTable
+          <SimpleTable
             columns={TOKEN_COLUMNS}
             header={
               <SimpleTable.HeaderRow>
@@ -230,30 +229,11 @@ function OrganizationAuthTokensIndex() {
                 revokeToken={hasAccess ? handleRevokeToken : undefined}
               />
             )}
-          </ResponsiveSimpleTable>
+          </SimpleTable>
         </Fragment>
       )}
     </Access>
   );
 }
-
-export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
-  return `${tokenPrefix}************${tokenLastCharacters}`;
-}
-
-const ResponsiveSimpleTable = styled(SimpleTable)`
-  @container (max-width: ${p => p.theme.container.xl}) {
-    grid-template-columns: 1fr 1fr;
-
-    /* Hide the "Created" and "Last access" columns; the flat nth-child(4n + x)
-       form this replaced counted cells across the whole grid. */
-    [role='columnheader']:nth-child(2),
-    [role='columnheader']:nth-child(3),
-    [role='cell']:nth-child(2),
-    [role='cell']:nth-child(3) {
-      display: none;
-    }
-  }
-`;
 
 export default OrganizationAuthTokensIndex;

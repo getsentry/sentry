@@ -173,6 +173,7 @@ class Repository(Model):
         )
 
         data = UnableToDeleteRepository(
+            organization_id=self.organization_id,
             repository_name=self.name,
             provider_name=provider.name if (provider := self.get_provider()) else self.provider,
             error_message=error_message,

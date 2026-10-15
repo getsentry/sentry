@@ -103,8 +103,6 @@ describe('DemoTours', () => {
 
   describe('useDemoTour', () => {
     it('returns null when used outside provider', () => {
-      jest.spyOn(console, 'error').mockImplementation(() => {});
-
       const {result} = renderHookWithProviders(() => useDemoTour(DemoTour.RELEASES));
 
       expect(result.current).toBeNull();

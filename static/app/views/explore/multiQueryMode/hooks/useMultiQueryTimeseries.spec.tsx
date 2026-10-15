@@ -1,23 +1,26 @@
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMultiQueryTimeseries} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTimeseries';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
-jest.mock('sentry/components/pageFilters/usePageFilters');
 jest.mock('sentry/views/explore/multiQueryMode/locationUtils');
 
 describe('useMultiQueryTimeseries', () => {
   let mockNormalRequestUrl: jest.Mock;
 
   beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    PageFiltersStore.reset();
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {

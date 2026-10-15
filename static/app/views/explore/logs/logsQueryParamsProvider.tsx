@@ -3,6 +3,7 @@ import {createContext, useContext} from 'react';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsAutoRefreshProvider} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {PersistedLogsPageParamsProvider} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {
   LogsFrozenContextProvider,
   type LogsFrozenContextProviderProps,
@@ -56,13 +57,15 @@ export function LogsQueryParamsProvider({
 
   return (
     <LogsAnalyticsPageSourceContext value={analyticsPageSource}>
-      <LogsFrozenContextProvider {...freeze}>
-        <LogsQueryParamsProviderComponent frozenParams={frozenParams}>
-          <LogsAutoRefreshProvider isTableFrozen={isTableFrozen}>
-            {children}
-          </LogsAutoRefreshProvider>
-        </LogsQueryParamsProviderComponent>
-      </LogsFrozenContextProvider>
+      <PersistedLogsPageParamsProvider>
+        <LogsFrozenContextProvider {...freeze}>
+          <LogsQueryParamsProviderComponent frozenParams={frozenParams}>
+            <LogsAutoRefreshProvider isTableFrozen={isTableFrozen}>
+              {children}
+            </LogsAutoRefreshProvider>
+          </LogsQueryParamsProviderComponent>
+        </LogsFrozenContextProvider>
+      </PersistedLogsPageParamsProvider>
     </LogsAnalyticsPageSourceContext>
   );
 }

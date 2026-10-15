@@ -1,11 +1,12 @@
+import type {ESTree, Context, Visitor} from '@oxlint/plugins';
+
+import type {createImportTracker} from '../tracker/imports.ts';
 /**
  * @file Type definitions for the Style Declaration IR
  *
  * This module defines the intermediate representation (IR) used by all
  * style extractors and consumed by lint rules.
  */
-
-import type {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
 /**
  * Represents a single CSS property declaration found in the source code.
@@ -49,7 +50,7 @@ interface StyleProperty {
   /**
    * The AST node representing the property (for error location).
    */
-  node: TSESTree.Node;
+  node: ESTree.Node;
 }
 
 /**
@@ -76,7 +77,7 @@ export interface StyleValue {
   /**
    * The AST node representing this value.
    */
-  node: TSESTree.Node;
+  node: ESTree.Node;
 
   /**
    * If this value is a theme token reference, contains token path info.
@@ -91,7 +92,7 @@ export interface TokenInfo {
   /**
    * The member expression node for precise error highlighting.
    */
-  node: TSESTree.Node;
+  node: ESTree.Node;
 
   /**
    * The final token name (e.g., 'primary').
@@ -131,7 +132,7 @@ export interface ThemeBinding {
   /**
    * The node where the binding was declared.
    */
-  declarationNode: TSESTree.Node;
+  declarationNode: ESTree.Node;
 
   /**
    * The local variable name (e.g., 'theme', 't', 'p').
@@ -151,12 +152,12 @@ interface StyleRawNodes {
   /**
    * The containing node (template literal, object expression, etc.).
    */
-  containerNode: TSESTree.Node;
+  containerNode: ESTree.Node;
 
   /**
    * The root styled/css/style node.
    */
-  sourceNode: TSESTree.Node;
+  sourceNode: ESTree.Node;
 }
 
 /**
@@ -188,10 +189,13 @@ export interface ExtractorContext {
    */
   collector: StyleCollector;
 
+  /** Resolves Emotion APIs against their lexical imports. */
+  importTracker: ReturnType<typeof createImportTracker>;
+
   /**
    * The ESLint rule context.
    */
-  ruleContext: TSESLint.RuleContext<string, unknown[]>;
+  ruleContext: Context;
 
   /**
    * The theme binding tracker.
@@ -221,10 +225,10 @@ export interface ThemeTracker {
   /**
    * Register a callback parameter as a theme binding.
    */
-  registerCallbackBinding: (name: string, node: TSESTree.Node) => void;
+  registerCallbackBinding: (name: string, node: ESTree.Node) => void;
 
   /**
    * ESLint visitor functions for tracking theme bindings.
    */
-  visitors: TSESLint.RuleListener;
+  visitors: Visitor;
 }

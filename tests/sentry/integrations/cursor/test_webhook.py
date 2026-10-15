@@ -406,6 +406,32 @@ class TestCursorWebhook(APITestCase):
         assert mock_update_state.call_count == 1
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
+    def test_invalid_agent_url_is_dropped(self, mock_update_state):
+        mock_update_state.return_value = CodingAgentSyncResult(
+            known_to_seer=True, run_id=None, group_id=None
+        )
+
+        for bad_url in [
+            "javascript:alert(document.domain)",
+            "data:text/html,<script>alert(1)</script>",
+            "http://cursor.sh/agents/1",
+            "not-a-url-at-all",
+            123,
+        ]:
+            mock_update_state.reset_mock()
+            payload = self._build_status_payload(status="FINISHED")
+            payload["target"]["url"] = bad_url
+            body = orjson.dumps(payload)
+            headers = self._signed_headers(body)
+
+            response = self._post_with_headers(body, headers)
+
+            assert response.status_code == 204, bad_url
+            # The Seer state update still happens, but with no agent_url.
+            assert mock_update_state.call_count == 1, bad_url
+            assert mock_update_state.call_args[1]["agent_url"] is None, bad_url
+
+    @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
     def test_invalid_pr_url_is_dropped(self, mock_update_state):
         # Anything that isn't a PR URL in the reported repo is nulled out, so no attribution
         # fires.

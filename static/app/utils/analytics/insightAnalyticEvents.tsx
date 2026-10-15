@@ -45,6 +45,7 @@ export type InsightEventParameters = {
   'insight.vital.overview.toggle_data_type': {type: string};
   'insight.vital.overview.toggle_tab': {tab: string};
   'insight.vital.select_browser_value': {browsers: string[]};
+  'insight.vital.select_navigation_type': {navigation_types: string};
   'insight.vital.vital_sidebar_opened': {vital: string};
   'insights.create_alert': {referrer: string};
   'insights.eap.toggle': {
@@ -89,6 +90,8 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.asset.filter_by_blocking': 'Insights: Assets - filter blocking',
   'insight.asset.filter_by_page': 'Insights: Assets - filter page',
   'insight.asset.filter_by_type': 'Insights: Assets - filter asset type',
+  'insight.vital.select_navigation_type':
+    'Insights: Vitals - select navigation type buckets',
   'insight.general.chart_zoom': 'Insights: chart zoom',
   'insight.general.search': 'Insights: search in modules',
   'insight.general.select_action_value': 'Insights: select actionSelector dropdown value',

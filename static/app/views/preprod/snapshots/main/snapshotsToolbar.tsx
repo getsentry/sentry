@@ -3,7 +3,15 @@ import {Fragment, useEffect, useRef, useState} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconExpand} from '@sentry/icons/expand';
+import {IconHide} from '@sentry/icons/hide';
+import {IconInput} from '@sentry/icons/input';
+import {IconList} from '@sentry/icons/list';
+import {IconPause} from '@sentry/icons/pause';
+import {IconShow} from '@sentry/icons/show';
+import {IconStack} from '@sentry/icons/stack';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -12,17 +20,17 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProgressBar} from 'sentry/components/progressBar';
-import {IconExpand, IconInput, IconList, IconPause, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
+import {KeyboardShortcutsButton} from './keyboardShortcutsButton';
 
 const TRANSPARENT_COLOR = 'transparent';
 
 // Diagonal slash drawn across an empty/transparent swatch. `halfWidth` is the
 // half-thickness of the line in px, so larger swatches can use a bolder slash.
 const slashGradient = (theme: Theme, halfWidth: number) => css`
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background-image: linear-gradient(
     to top right,
     transparent calc(50% - ${halfWidth + 1}px),
@@ -72,6 +80,7 @@ export function ToolbarContainer({
             </Flex>
           )}
           <Flex display={{zero: 'none', xl: 'flex'}}>{soloDiffToggle}</Flex>
+          <KeyboardShortcutsButton />
         </Flex>
       </Flex>
       <Separator orientation="horizontal" />
@@ -158,6 +167,19 @@ export function SortDropdown({
 }
 
 const OPACITY_PRESETS = [0, 50, 100];
+const DEFAULT_VISIBLE_OPACITY = 50;
+
+function useOverlayToggle(opacity: number, onOpacityChange: (opacity: number) => void) {
+  const lastVisibleOpacity = useRef(opacity || DEFAULT_VISIBLE_OPACITY);
+
+  useEffect(() => {
+    if (opacity > 0) {
+      lastVisibleOpacity.current = opacity;
+    }
+  }, [opacity]);
+
+  return () => onOpacityChange(opacity === 0 ? lastVisibleOpacity.current : 0);
+}
 
 export function ColorPickerButton({
   color,
@@ -174,6 +196,11 @@ export function ColorPickerButton({
   const [isOpen, setIsOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
   const palette = theme.chart.getColorPalette(10);
+  const isHidden = opacity === 0;
+  const toggleOverlay = useOverlayToggle(opacity, onOpacityChange);
+  const toggleLabel = isHidden ? t('Show overlay') : t('Hide overlay');
+  // `transparent` supports legacy localStorage color values.
+  const showSlash = isHidden || color === TRANSPARENT_COLOR;
 
   useEffect(() => {
     if (!isOpen) {
@@ -190,11 +217,20 @@ export function ColorPickerButton({
 
   return (
     <ColorPickerWrapper ref={pickerRef}>
+      <Tooltip title={toggleLabel} skipWrapper>
+        <Button
+          size="xs"
+          variant="transparent"
+          icon={isHidden ? <IconShow /> : <IconHide />}
+          aria-label={toggleLabel}
+          aria-pressed={!isHidden}
+          onClick={toggleOverlay}
+        />
+      </Tooltip>
       <Tooltip title={t('Overlay color')} skipWrapper>
         <ColorTrigger
           $color={color}
-          // `transparent` supports legacy localStorage color values.
-          $slash={opacity === 0 || color === TRANSPARENT_COLOR}
+          $slash={showSlash}
           aria-label={t('Pick overlay color')}
           onClick={() => setIsOpen(v => !v)}
         />
@@ -251,7 +287,12 @@ export function DiffModeToggle({
   const onionLabel = t('Onion');
 
   return (
-    <SegmentedControl size="xs" value={diffMode} onChange={onDiffModeChange}>
+    <SegmentedControl
+      size="xs"
+      value={diffMode}
+      onChange={onDiffModeChange}
+      aria-label={t('Diff mode')}
+    >
       {showSplit ? (
         <SegmentedControl.Item
           key="split"
@@ -286,6 +327,7 @@ const ColorPickerWrapper = styled('div')`
   position: relative;
   display: flex;
   align-items: center;
+  gap: ${p => p.theme.space['2xs']};
 `;
 
 const ColorPickerDropdown = styled('div')`

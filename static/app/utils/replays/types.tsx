@@ -1,9 +1,3 @@
-import {
-  EventType,
-  IncrementalSource,
-  MouseInteractions,
-  type eventWithTime as TEventWithTime,
-} from '@sentry-internal/rrweb';
 import type {
   ReplayBreadcrumbFrameEvent as TBreadcrumbFrameEvent,
   ReplayOptionFrameEvent as TOptionFrameEvent,
@@ -11,13 +5,19 @@ import type {
   ReplaySpanFrame as TRawSpanFrame,
   ReplaySpanFrameEvent as TSpanFrameEvent,
 } from '@sentry/react';
+import {
+  EventType,
+  IncrementalSource,
+  MouseInteractions,
+  type eventWithTime as TEventWithTime,
+} from '@sentry/rrweb';
 import invariant from 'invariant';
 
-export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
-export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';
+export type {serializedNodeWithId} from '@sentry/rrweb-snapshot';
+export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry/rrweb';
 
-export {NodeType} from '@sentry-internal/rrweb-snapshot';
-export {EventType, IncrementalSource} from '@sentry-internal/rrweb';
+export {NodeType} from '@sentry/rrweb-snapshot';
+export {EventType, IncrementalSource} from '@sentry/rrweb';
 
 export type Dimensions = {
   height: number;

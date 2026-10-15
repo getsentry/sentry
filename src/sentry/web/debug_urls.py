@@ -1,5 +1,4 @@
 from django.urls import re_path
-from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
 from sentry.web.frontend.debug import debug_auth_views
@@ -143,11 +142,6 @@ urlpatterns = [
     re_path(r"^debug/trigger-error/$", DebugTriggerErrorView.as_view()),
     re_path(r"^debug/auth-confirm-identity/$", debug_auth_views.DebugAuthConfirmIdentity.as_view()),
     re_path(r"^debug/auth-confirm-link/$", debug_auth_views.DebugAuthConfirmLink.as_view()),
-    re_path(
-        r"^debug/sudo/$",
-        TemplateView.as_view(template_name="sentry/account/sudo.html"),
-        name="debug-sudo",
-    ),
     re_path(r"^debug/oauth/authorize/$", DebugOAuthAuthorizeView.as_view()),
     re_path(r"^debug/oauth/authorize/error/$", DebugOAuthAuthorizeErrorView.as_view()),
     re_path(r"^debug/charts/chart-renderer/$", DebugChartRendererView.as_view()),

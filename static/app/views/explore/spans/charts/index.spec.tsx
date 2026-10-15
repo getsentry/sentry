@@ -1,8 +1,12 @@
 import {useMemo, useState} from 'react';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
@@ -107,6 +111,115 @@ describe('ExploreCharts', () => {
 
       expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
       expect(screen.queryByLabelText('Expand chart')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('dropped data layer', () => {
+    const features = ['explore-data-fidelity-annotations'];
+
+    beforeEach(() => {
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    });
+
+    afterEach(() => {
+      PageFiltersStore.reset();
+    });
+
+    function renderCharts({
+      acceptedEvents = [],
+      droppedEvents = [],
+      organizationFeatures = features,
+    }: {
+      acceptedEvents?: DroppedEventsBucket[];
+      droppedEvents?: DroppedEventsBucket[];
+      organizationFeatures?: string[];
+    }) {
+      const request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-dropped/',
+        body: {
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+          droppedEvents,
+          acceptedEvents,
+        },
+      });
+
+      render(
+        <SpansQueryParamsProvider>
+          <ChartSelectionProvider>
+            <ExploreCharts
+              extrapolate
+              query=""
+              timeseriesResult={timeseriesResultFixture()}
+              visualizes={defaultVisualizes()}
+              setVisualizes={() => {}}
+              rawSpanCounts={{
+                total: {count: 0, isLoading: false},
+                normal: {count: 0, isLoading: false},
+              }}
+            />
+          </ChartSelectionProvider>
+        </SpansQueryParamsProvider>,
+        {organization: OrganizationFixture({features: organizationFeatures})}
+      );
+
+      return request;
+    }
+
+    it('hides the Layers control without the feature flag', async () => {
+      const request = renderCharts({
+        organizationFeatures: [],
+        droppedEvents: [DroppedEventFixture()],
+      });
+
+      expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
+      expect(request).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
+
+    it('hides the Layers control when only accepted annotations are present', async () => {
+      const request = renderCharts({
+        acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 8000})],
+      });
+
+      await waitFor(() => expect(request).toHaveBeenCalled());
+      await act(async () => {});
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
+
+    it('hides the Layers control when every drop is configured', async () => {
+      const request = renderCharts({
+        droppedEvents: [
+          DroppedEventFixture({outcome: 'client_discard', reason: 'sample_rate'}),
+        ],
+      });
+
+      await waitFor(() => expect(request).toHaveBeenCalled());
+      await act(async () => {});
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
+
+    it('shows the Layers control when a drop ratio is below 5%', async () => {
+      renderCharts({
+        droppedEvents: [DroppedEventFixture({count: 4})],
+        acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 96})],
+      });
+
+      expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
+    });
+
+    it('shows the Layers control and toggles the dropped-data layer', async () => {
+      renderCharts({droppedEvents: [DroppedEventFixture()]});
+
+      await userEvent.click(await screen.findByLabelText('Chart layers'));
+
+      const option = await screen.findByRole('option', {name: 'Dropped Data'});
+      expect(option).toHaveAttribute('aria-selected', 'true');
+
+      await userEvent.click(option);
+      expect(await screen.findByRole('option', {name: 'Dropped Data'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
     });
   });
 

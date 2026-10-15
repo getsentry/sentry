@@ -7,7 +7,6 @@ from enum import Enum
 from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid4
 
-from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, router, transaction
 from django.db.models.signals import post_delete, post_save
@@ -17,7 +16,6 @@ from sentry.backup.dependencies import PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, UUIDField, cell_silo_model
-from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.organization import Organization
@@ -236,43 +234,11 @@ class Incident(Model):
 
 
 class IncidentActivityType(Enum):
+    """Numeric activity types retained for legacy-compatible response payloads."""
+
     CREATED = 1
     STATUS_CHANGE = 2
     DETECTED = 4
-
-
-@cell_silo_model
-class IncidentActivity(Model):
-    """
-    An IncidentActivity is a record of a change that occurred in an Incident. This could be a status change,
-    """
-
-    __relocation_scope__ = RelocationScope.Global
-
-    incident = FlexibleForeignKey("sentry.Incident")
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
-    type: models.Field[int, int] = models.IntegerField()
-    value = models.TextField(null=True)
-    previous_value = models.TextField(null=True)
-    comment = models.TextField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
-    notification_uuid = models.UUIDField("notification_uuid", null=True)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_incidentactivity"
-
-    def normalize_before_relocation_import(
-        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> int | None:
-        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
-        if old_pk is None:
-            return None
-
-        # Generate a new UUID, if one exists.
-        if self.notification_uuid:
-            self.notification_uuid = uuid4()
-        return old_pk
 
 
 class TriggerStatus(Enum):

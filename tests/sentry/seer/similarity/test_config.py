@@ -1,62 +1,53 @@
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+import pytest
+
+from sentry.models.project import Project
 from sentry.seer.similarity.config import (
     SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE,
-    SEER_GROUPING_NEXT_VERSION,
-    SEER_GROUPING_STABLE_VERSION,
+    SEER_GROUPING_SKIP_FALLBACK_FEATURE,
     get_grouping_model_version,
     should_send_to_seer_for_training,
+    should_skip_seer_fallback,
 )
-from sentry.testutils.cases import TestCase
+from sentry.seer.similarity.types import GroupingVersion
 
 
-class GetGroupingModelVersionTest(TestCase):
-    def test_returns_stable_when_no_flags(self) -> None:
-        assert get_grouping_model_version(self.project) == SEER_GROUPING_STABLE_VERSION
-
-    def test_returns_stable_when_rollout_disabled(self) -> None:
-        with patch("sentry.seer.similarity.config.SEER_GROUPING_NEXT_VERSION", None):
-            assert get_grouping_model_version(self.project) == SEER_GROUPING_STABLE_VERSION
-
-    def test_returns_next_version_when_flag_enabled(self) -> None:
-        with self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE):
-            assert get_grouping_model_version(self.project) == SEER_GROUPING_NEXT_VERSION
-
-    def test_flag_is_noop_when_version_is_none(self) -> None:
-        with (
-            patch("sentry.seer.similarity.config.SEER_GROUPING_NEXT_VERSION", None),
-            self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE),
-        ):
-            assert get_grouping_model_version(self.project) == SEER_GROUPING_STABLE_VERSION
+@pytest.fixture
+def project() -> Project:
+    return Mock(spec=Project)
 
 
-class ShouldSendToSeerForTrainingTest(TestCase):
-    def test_returns_false_when_no_rollout(self) -> None:
-        with patch("sentry.seer.similarity.config.SEER_GROUPING_NEXT_VERSION", None):
-            result = should_send_to_seer_for_training(
-                self.project, grouphash_seer_latest_training_model=None
-            )
-            assert result is False
+@pytest.mark.parametrize("flag_enabled", [False, True])
+def test_flags_are_dormant_without_next_model(project: Project, flag_enabled: bool) -> None:
+    with patch("sentry.seer.similarity.config.features.has", return_value=flag_enabled) as has:
+        assert get_grouping_model_version(project) == GroupingVersion.V2_1
+        assert should_skip_seer_fallback(project)
+        assert not should_send_to_seer_for_training(project, None)
+        has.assert_not_called()
 
-    def test_returns_false_when_no_flags(self) -> None:
-        result = should_send_to_seer_for_training(
-            self.project, grouphash_seer_latest_training_model=None
+
+@pytest.mark.parametrize("rollout_enabled", [False, True])
+@pytest.mark.parametrize("skip_fallback", [False, True])
+def test_candidate_controls_are_independent(
+    project: Project, rollout_enabled: bool, skip_fallback: bool
+) -> None:
+    flag_values = {
+        SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE: rollout_enabled,
+        SEER_GROUPING_SKIP_FALLBACK_FEATURE: skip_fallback,
+    }
+    with (
+        patch("sentry.seer.similarity.config.SEER_GROUPING_STABLE_VERSION", GroupingVersion.V1),
+        patch("sentry.seer.similarity.config.SEER_GROUPING_NEXT_VERSION", GroupingVersion.V2_1),
+        patch(
+            "sentry.seer.similarity.config.features.has",
+            side_effect=lambda flag, project: flag_values[flag],
+        ) as has,
+    ):
+        assert get_grouping_model_version(project) == (
+            GroupingVersion.V2_1 if rollout_enabled else GroupingVersion.V1
         )
-        assert result is False
-
-    def test_returns_true_when_training_needed(self) -> None:
-        # Old training models that should trigger retraining for the current rollout version
-        for training_model in [None, "v1", "v2"]:
-            with self.subTest(training_model=training_model):
-                with self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE):
-                    result = should_send_to_seer_for_training(
-                        self.project, grouphash_seer_latest_training_model=training_model
-                    )
-                    assert result is True
-
-    def test_returns_false_when_already_sent_to_current_version(self) -> None:
-        with self.feature(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE):
-            result = should_send_to_seer_for_training(
-                self.project, grouphash_seer_latest_training_model="v2.1"
-            )
-            assert result is False
+        assert should_send_to_seer_for_training(project, None) is rollout_enabled
+        assert should_skip_seer_fallback(project) is skip_fallback
+        has.assert_any_call(SEER_GROUPING_NEXT_MODEL_ROLLOUT_FEATURE, project)
+        has.assert_any_call(SEER_GROUPING_SKIP_FALLBACK_FEATURE, project)

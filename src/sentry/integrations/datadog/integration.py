@@ -166,7 +166,7 @@ class DatadogIntegration(IntegrationInstallation):
 
 class DatadogIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.DATADOG.value
-    name = "Datadog (Seer)"
+    name = "Datadog for Seer"
     metadata = metadata
     integration_cls = DatadogIntegration
     features = frozenset([IntegrationFeatures.SEER_CONTEXT])

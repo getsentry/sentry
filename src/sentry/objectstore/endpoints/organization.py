@@ -119,7 +119,11 @@ class ObjectstoreEndpoint(Endpoint):
             request.method,
             url=target_url,
             headers=headers,
-            data=get_raw_body(request._request),
+            data=(
+                get_raw_body(request._request)
+                if request.method in ("PUT", "POST", "PATCH")
+                else None
+            ),
             params=query_string,
             stream=True,
             allow_redirects=False,

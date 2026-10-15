@@ -78,10 +78,7 @@ type ProjectCreationAlertCondition = {
   value: string;
 };
 
-export type RequestDataFragment = Pick<
-  IssueAlertRule,
-  'actions' | 'frequency' | 'name'
-> & {
+export type RequestDataFragment = Pick<IssueAlertRule, 'actions' | 'frequency'> & {
   conditions: ProjectCreationAlertCondition[];
   defaultRules: boolean;
   shouldCreateCustomRule: boolean;
@@ -105,7 +102,6 @@ export function getRequestDataFragment({
     defaultRules: alertSetting === RuleAction.DEFAULT_ALERT,
     shouldCreateRule: alertSetting !== RuleAction.CREATE_ALERT_LATER,
     shouldCreateCustomRule: alertSetting === RuleAction.CUSTOMIZED_ALERTS,
-    name: 'Send a notification for new issues',
     conditions:
       interval.length > 0 && threshold.length > 0
         ? [

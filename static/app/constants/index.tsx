@@ -118,6 +118,232 @@ export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj 
   scope: 'org:ci',
 };
 
+export enum GranularPermissionLevel {
+  READ = 'read',
+  CREATE = 'create',
+  WRITE = 'write',
+  DELETE = 'delete',
+  ADMIN = 'admin',
+  RELEASES = 'releases',
+  INVITE = 'invite',
+  BILLING = 'billing',
+}
+
+export type GranularPermissionObj = {
+  /**
+   * Short description shown under the label.
+   */
+  help: string;
+  /**
+   * Row label. Also identifies the row, since a resource can have several rows.
+   */
+  label: string;
+  /**
+   * Access levels in ascending order. Selecting a level also grants every
+   * level before it.
+   */
+  levels: GranularPermissionLevel[];
+  /**
+   * Scope prefix, e.g. `dashboard` for `dashboard:read`.
+   */
+  resource: string;
+};
+
+// Granular permissions replace SENTRY_APP_PERMISSIONS on personal tokens while
+// `organizations:granular-permission-scopes-ui` is enabled. Scopes listed here
+// that the backend hasn't registered yet are rejected when creating a token.
+//
+// `project_v2:distribution` is left out: personal tokens can't be used for
+// Distribution (see DISPLAYED_PERMISSIONS in apiNewToken.tsx).
+export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
+  // Ordered by how often people need them, most important first.
+  {
+    resource: 'issue',
+    label: t('Issues'),
+    help: t('Issues and their workflow statuses'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+      GranularPermissionLevel.ADMIN,
+    ],
+  },
+  {
+    resource: 'monitors',
+    label: t('Monitors'),
+    help: t('Monitors and the alerts they trigger'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+    ],
+  },
+  {
+    resource: 'dashboard',
+    label: t('Dashboards'),
+    help: t('Dashboards and their widgets'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.CREATE,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+      GranularPermissionLevel.ADMIN,
+    ],
+  },
+  {
+    resource: 'event',
+    label: t('Events'),
+    help: t('Events sent to your projects'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.ADMIN,
+    ],
+  },
+  {
+    resource: 'project_v2',
+    label: t('Projects'),
+    help: t('Projects, tags, debug files, and feedback'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.CREATE,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.ADMIN,
+    ],
+  },
+  // Not a level above admin, so it gets its own row.
+  {
+    resource: 'project_v2',
+    label: t('Project Releases'),
+    help: t('Releases, commits, and related files within projects'),
+    levels: [GranularPermissionLevel.RELEASES],
+  },
+  {
+    resource: 'team_v2',
+    label: t('Teams'),
+    help: t('Teams and team membership'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+      GranularPermissionLevel.ADMIN,
+    ],
+  },
+  {
+    resource: 'member',
+    label: t('Members'),
+    help: t('Organization members and their roles'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.ADMIN,
+    ],
+  },
+  // Not a level above admin, so it gets its own row.
+  {
+    resource: 'member',
+    label: t('Member Invites'),
+    help: t('Invite new members to the organization'),
+    levels: [GranularPermissionLevel.INVITE],
+  },
+  {
+    resource: 'org_v2',
+    label: t('Organization'),
+    help: t('Organization details and settings'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.ADMIN,
+    ],
+  },
+  // Not a level above admin, so it gets its own row.
+  {
+    resource: 'org_v2',
+    label: t('Billing'),
+    help: t('Subscription, usage, and billing details'),
+    levels: [GranularPermissionLevel.BILLING],
+  },
+  {
+    resource: 'issueview',
+    label: t('Issue Views'),
+    help: t('Saved views of the issue stream'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+      GranularPermissionLevel.ADMIN,
+    ],
+  },
+  {
+    resource: 'savedquery',
+    label: t('Saved Queries'),
+    help: t('Saved Discover and Explore queries'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+      GranularPermissionLevel.ADMIN,
+    ],
+  },
+  {
+    resource: 'telemetry',
+    label: t('Telemetry'),
+    help: t('Telemetry data such as spans, logs, and metrics'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.ADMIN,
+    ],
+  },
+  {
+    resource: 'user_preferences',
+    label: t('User Preferences'),
+    help: t('Your personal settings and preferences'),
+    levels: [GranularPermissionLevel.READ, GranularPermissionLevel.WRITE],
+  },
+  // CI and integrations
+  {
+    resource: 'releases',
+    label: t('Releases'),
+    help: t('Read, update, and delete releases, typically from CI'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+    ],
+  },
+  {
+    resource: 'source_maps',
+    label: t('Source Maps'),
+    help: t('Upload and manage source maps'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+    ],
+  },
+  {
+    resource: 'repositories',
+    label: t('Repositories'),
+    help: t('Connected code repositories'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+    ],
+  },
+  {
+    resource: 'integration',
+    label: t('Integrations'),
+    help: t('Installed integrations and their configuration'),
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+    ],
+  },
+];
+
 export const SPECIAL_SENTRY_APP_PERMISSIONS: SpecialPermissionObj[] = [
   CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
 ];
@@ -200,7 +426,6 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
   },
 ];
 
-export const DEFAULT_TOAST_DURATION = 6000;
 export const DEFAULT_DEBOUNCE_DURATION = 300;
 
 // sentry.io project ID for seer-agents.

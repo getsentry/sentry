@@ -1,17 +1,19 @@
 import type React from 'react';
 import {useEffect, useState} from 'react';
-import {Outlet, useLocation} from 'react-router-dom';
+import {Outlet, useLocation} from 'react-router';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconMenu} from '@sentry/icons/menu';
+import {IconSentry} from '@sentry/icons/sentry';
+import {IconSliders} from '@sentry/icons/sliders';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from '@sentry/scraps/modal';
 
-import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
-import {IconChevron, IconMenu, IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
@@ -62,6 +64,7 @@ export function Layout() {
 
   // Close mobile drawer on route change.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect, react/exhaustive-effect-dependencies
     closeSidebar();
   }, [location.pathname]);
 
@@ -76,6 +79,7 @@ export function Layout() {
     };
     mq.addEventListener('change', handleChange);
     return () => mq.removeEventListener('change', handleChange);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, []);
 
   // Lock body scroll while the mobile sidebar drawer is open.
@@ -93,7 +97,6 @@ export function Layout() {
           <GlobalStyles theme={theme} />
           <GlobalModal />
           <SystemAlerts className="messages-container" />
-          <Indicators className="indicators-container" />
           <AppContainer isCollapsed={isCollapsed}>
             {/* Mobile: tap-outside backdrop for the drawer */}
             <Overlay isOpen={sidebarOpen} onClick={closeSidebar} />
@@ -180,7 +183,11 @@ export function Layout() {
                 </ThemeToggle>
               </SidebarActions>
             </Sidebar>
-            <Stack minWidth={0} inert={sidebarOpen || undefined}>
+            <Stack
+              minWidth={0}
+              containerType="inline-size"
+              inert={sidebarOpen || undefined}
+            >
               {/* Mobile only: sticky top bar with hamburger and logo */}
               <MobileTopBar>
                 <Button

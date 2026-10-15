@@ -21,6 +21,7 @@ from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.discover_saved_query_examples import DiscoverExamples
 from sentry.apidocs.parameters import DiscoverSavedQueryParams, GlobalParams
@@ -186,6 +187,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class DiscoverSavedQueryVisitEndpoint(DiscoverSavedQueryBase):
     publish_status = {
@@ -195,14 +197,24 @@ class DiscoverSavedQueryVisitEndpoint(DiscoverSavedQueryBase):
     def has_feature(self, organization, request):
         return features.has("organizations:discover-query", organization, actor=request.user)
 
-    def has_migrate_feature(self, organization, request):
-        return features.has(
-            "organizations:discover-queries-in-all-queries", organization, actor=request.user
-        )
-
-    def post(self, request: Request, organization, query) -> Response:
+    @extend_schema(
+        operation_id="visitOrganizationDiscoverSavedQuery",
+        summary="Record a Visit to an Organization's Discover Saved Query",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, DiscoverSavedQueryParams.DISCOVER_SAVED_QUERY_ID],
+        request=None,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, organization: Organization, query: DiscoverSavedQuery
+    ) -> Response[None]:
         """
-        Update last_visited and increment visits counter
+        Record that the requesting user visited a saved query. Increments the query's
+        visit count and updates its last visited time.
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
@@ -213,7 +225,7 @@ class DiscoverSavedQueryVisitEndpoint(DiscoverSavedQueryBase):
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
 
-        if self.has_migrate_feature(organization, request) and request.user.is_authenticated:
+        if request.user.is_authenticated:
             DiscoverSavedQueryLastVisited.objects.update_or_create(
                 organization=organization,
                 user_id=request.user.id,

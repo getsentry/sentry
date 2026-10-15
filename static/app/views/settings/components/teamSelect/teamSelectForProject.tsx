@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconSubtract} from '@sentry/icons/subtract';
 
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
@@ -11,7 +12,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -37,50 +37,6 @@ export function TeamSelect({
   onRemoveTeam,
   onCreateTeam,
 }: Props) {
-  const renderBody = () => {
-    const numTeams = selectedTeams.length;
-    if (numTeams === 0) {
-      return <EmptyMessage>{t('No Teams assigned')}</EmptyMessage>;
-    }
-
-    // If the user is not a team-admin in any parent teams of this project, they will
-    // not be able to edit the configuration. Warn the user if this is their last team
-    // where they have team-admin role.
-    const isUserLastTeamWrite =
-      selectedTeams.reduce(
-        (count, team) => (team.access.includes('team:write') ? count + 1 : count),
-        0
-      ) === 1;
-    const isOnlyTeam = numTeams === 1;
-
-    const confirmMessage = isUserLastTeamWrite
-      ? t(
-          "This is the last team that grants Team Admin access to you for this project. After removing this team, you will not be able to edit this project's configuration."
-        )
-      : isOnlyTeam
-        ? t(
-            'This is the last team with access to this project. After removing this team, only organization owners and managers will be able to access the project pages.'
-          )
-        : t(
-            'Removing this team from the project means that members of the team can no longer access this project. Do you want to continue?'
-          );
-
-    return (
-      <Fragment>
-        {selectedTeams.map(team => (
-          <TeamRow
-            key={team.slug}
-            disabled={disabled || !team.access.includes('team:write')}
-            confirmMessage={confirmMessage}
-            organization={organization}
-            team={team}
-            onRemoveTeam={slug => onRemoveTeam(slug)}
-          />
-        ))}
-      </Fragment>
-    );
-  };
-
   const {teams, onSearch, fetching: isLoadingTeams} = useTeams();
 
   return (
@@ -101,8 +57,69 @@ export function TeamSelect({
         />
       </PanelHeader>
 
-      <PanelBody>{renderBody()}</PanelBody>
+      <PanelBody>
+        <TeamSelectBody
+          disabled={disabled}
+          onRemoveTeam={onRemoveTeam}
+          organization={organization}
+          selectedTeams={selectedTeams}
+        />
+      </PanelBody>
     </Panel>
+  );
+}
+
+function TeamSelectBody({
+  disabled,
+  onRemoveTeam,
+  organization,
+  selectedTeams,
+}: {
+  disabled: boolean;
+  onRemoveTeam: Props['onRemoveTeam'];
+  organization: Organization;
+  selectedTeams: Team[];
+}) {
+  const numTeams = selectedTeams.length;
+  if (numTeams === 0) {
+    return <EmptyMessage>{t('No Teams assigned')}</EmptyMessage>;
+  }
+
+  // If the user is not a team-admin in any parent teams of this project, they will
+  // not be able to edit the configuration. Warn the user if this is their last team
+  // where they have team-admin role.
+  const isUserLastTeamWrite =
+    selectedTeams.reduce(
+      (count, team) => (team.access.includes('team:write') ? count + 1 : count),
+      0
+    ) === 1;
+  const isOnlyTeam = numTeams === 1;
+
+  const confirmMessage = isUserLastTeamWrite
+    ? t(
+        "This is the last team that grants Team Admin access to you for this project. After removing this team, you will not be able to edit this project's configuration."
+      )
+    : isOnlyTeam
+      ? t(
+          'This is the last team with access to this project. After removing this team, only organization owners and managers will be able to access the project pages.'
+        )
+      : t(
+          'Removing this team from the project means that members of the team can no longer access this project. Do you want to continue?'
+        );
+
+  return (
+    <Fragment>
+      {selectedTeams.map(team => (
+        <TeamRow
+          key={team.slug}
+          disabled={disabled || !team.access.includes('team:write')}
+          confirmMessage={confirmMessage}
+          organization={organization}
+          team={team}
+          onRemoveTeam={slug => onRemoveTeam(slug)}
+        />
+      ))}
+    </Fragment>
   );
 }
 

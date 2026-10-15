@@ -10,7 +10,6 @@ is_login_provider = default_manager.is_login_provider
 
 
 def _register_providers() -> None:
-    from .bitbucket.provider import BitbucketIdentityProvider
     from .datadog.provider import DatadogIdentityProvider, DatadogPatIdentityProvider
     from .discord.provider import DiscordIdentityProvider
     from .gcp.provider import GCPIdentityProvider
@@ -19,7 +18,6 @@ def _register_providers() -> None:
     from .gitlab.provider import GitlabIdentityProvider
     from .google.provider import GoogleIdentityProvider
     from .slack.provider import SlackIdentityProvider, SlackStagingIdentityProvider
-    from .vercel.provider import VercelIdentityProvider
     from .vsts.provider import VSTSIdentityProvider, VSTSNewIdentityProvider
 
     # TODO(epurkhiser): Should this be moved into it's own plugin, it should be
@@ -30,8 +28,6 @@ def _register_providers() -> None:
     register(GitHubEnterpriseIdentityProvider)
     register(VSTSNewIdentityProvider)
     register(VSTSIdentityProvider)
-    register(VercelIdentityProvider)
-    register(BitbucketIdentityProvider)
     register(GitlabIdentityProvider)
     register(GoogleIdentityProvider)
     register(DiscordIdentityProvider)

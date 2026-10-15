@@ -1,5 +1,7 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconGlobe} from '@sentry/icons/globe';
+import {IconTerminal} from '@sentry/icons/terminal';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {PlatformIcon} from 'platformicons';
 
@@ -20,7 +22,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
-import {IconGlobe, IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import type {CronDetector, Detector} from 'sentry/types/workflowEngine/detectors';
@@ -68,12 +69,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
   });
 
   return (
-    <SimpleTable.RowCell
-      data-column-name="visualization"
-      padding="lg 0"
-      borderLeft="muted"
-      height="100%"
-    >
+    <SimpleTable.RowCell column="-3 / -1" padding="lg 0" borderLeft="muted" height="100%">
       <Stack gap="sm" width="100%" ref={elementRef}>
         {cronEnvironments.map(environment => {
           if (isPending) {
@@ -103,13 +99,13 @@ const ADDITIONAL_COLUMNS: MonitorListAdditionalColumn[] = [
   {
     id: 'environment-label',
     columnWidth: '120px',
-    renderHeaderCell: () => <HeaderCell data-column-name="environment-label" />,
+    renderHeaderCell: () => <HeaderCell />,
     renderCell: (detector: Detector) => {
       if (detector.type !== 'monitor_check_in_failure') {
         return null;
       }
       return (
-        <SimpleTable.RowCell data-column-name="environment-label" alignSelf="start">
+        <SimpleTable.RowCell alignSelf="start">
           <Stack gap="sm" width="100%">
             {detector.dataSources[0].queryObj.environments.map(environment => {
               return (
@@ -243,7 +239,7 @@ export default function CronDetectorsList() {
         if (!detector) {
           return (
             <SimpleTable.RowCell
-              data-column-name="visualization"
+              column="-3 / -1"
               padding="lg 0"
               borderLeft="muted"
               height="100%"

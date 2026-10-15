@@ -1,3 +1,4 @@
+import type {ESTree} from '@oxlint/plugins';
 /**
  * @file Value decomposition for style expressions.
  *
@@ -5,14 +6,12 @@
  * logical expressions, and nested member expressions.
  */
 
-import type {TSESTree} from '@typescript-eslint/utils';
-
 import type {StyleValue, ThemeTracker, TokenInfo} from './types.ts';
 
 /**
  * Decompose an expression into all possible StyleValue entries.
  */
-export function decomposeValue(node: TSESTree.Node, themeTracker: ThemeTracker) {
+export function decomposeValue(node: ESTree.Node, themeTracker: ThemeTracker) {
   const values: StyleValue[] = [];
 
   collectValues(node, values, themeTracker);
@@ -24,7 +23,7 @@ export function decomposeValue(node: TSESTree.Node, themeTracker: ThemeTracker) 
  * Recursively collect values from an expression.
  */
 function collectValues(
-  node: TSESTree.Node,
+  node: ESTree.Node,
   values: StyleValue[],
   themeTracker: ThemeTracker
 ) {
@@ -125,7 +124,7 @@ function collectValues(
  * Create a StyleValue for a MemberExpression, extracting token info if present.
  */
 function createMemberValue(
-  node: TSESTree.MemberExpression,
+  node: ESTree.MemberExpression,
   themeTracker: ThemeTracker
 ): StyleValue {
   const tokenInfo = extractTokenInfo(node, themeTracker);
@@ -141,11 +140,11 @@ function createMemberValue(
  * Extract token information from a MemberExpression if it's a theme token.
  */
 function extractTokenInfo(
-  node: TSESTree.MemberExpression,
+  node: ESTree.MemberExpression,
   themeTracker: ThemeTracker
 ): TokenInfo | null {
   const pathParts: string[] = [];
-  let current: TSESTree.Node = node;
+  let current: ESTree.Node = node;
 
   // Walk up the member expression chain
   while (current.type === 'MemberExpression' && current.property?.type === 'Identifier') {

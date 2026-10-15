@@ -585,7 +585,7 @@ function Component() {
 
 ### Images and Icons
 
-Place all icons in the `static/app/icons` folder. Never inline SVGs or add them to any other folder. Optimize SVGs using svgo or svgomg.
+Place SvgIcon-based icons in `static/packages/icons/src` and import them from explicit `@sentry/icons` subpaths. Keep app asset wrappers in `static/app/icons`. The icons package must not depend on scraps or app code. Never inline SVGs. Optimize SVGs using svgo or svgomg.
 
 ```tsx
 // ❌ Never inline SVGs
@@ -606,7 +606,7 @@ function Component(){
 import {CustomIcon} from "./customIcon"
 
 // ✅ Import icon from our icon set
-import {IconExclamation} from "sentry/icons"
+import {IconExclamation} from "@sentry/icons/exclamation"
 ```
 
 All images belong inside `static/app/images` and must be imported via the webpack loader (the `sentry-images` alias), never referenced by static path.

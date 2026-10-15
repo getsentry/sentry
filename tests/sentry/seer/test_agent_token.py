@@ -149,7 +149,6 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert not request.user.is_staff
         assert not request.user.is_superuser
         assert getattr(request.user, "permissions", None) == frozenset()
-        assert getattr(request.user, "roles", None) == frozenset()
 
     def _auth(self, bearer: str, *, feature_enabled: bool = True) -> tuple[Any, Any] | None:
         request = RequestFactory().get("/api/0/organizations/")

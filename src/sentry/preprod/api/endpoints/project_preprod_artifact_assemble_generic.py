@@ -8,6 +8,7 @@ import jsonschema
 import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
@@ -32,7 +33,6 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -109,8 +109,9 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
             )
         )
 
-        with start_span(
-            op="preprod_artifact.assemble_generic", name="preprod_artifact.assemble_generic"
+        with traces.start_span(
+            name="preprod_artifact.assemble_generic",
+            attributes={"sentry.op": "preprod_artifact.assemble_generic"},
         ):
             data, error_message = validate_preprod_artifact_generic_schema(request.body)
             if error_message:

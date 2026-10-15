@@ -20,7 +20,7 @@ describe('SavedQueriesTable', () => {
 
   beforeEach(() => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -64,6 +64,7 @@ describe('SavedQueriesTable', () => {
   it('should render', async () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     expect(screen.getByText('Name')).toBeInTheDocument();
+    expect(screen.getByText('Type')).toBeInTheDocument();
     expect(screen.getByText('Project')).toBeInTheDocument();
     expect(screen.getByText('Query')).toBeInTheDocument();
     expect(screen.getByText('Creator')).toBeInTheDocument();
@@ -75,7 +76,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
     await waitFor(() =>
       expect(getQueriesMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/explore/saved/`,
+        `/organizations/${organization.slug}/explore/all-queries/`,
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({
@@ -91,7 +92,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="shared" title="title" />);
     await waitFor(() =>
       expect(getQueriesMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/explore/saved/`,
+        `/organizations/${organization.slug}/explore/all-queries/`,
         expect.objectContaining({
           method: 'GET',
           query: expect.objectContaining({
@@ -128,7 +129,7 @@ describe('SavedQueriesTable', () => {
 
   it('should link to a single query view', async () => {
     render(<SavedQueriesTable mode="owned" title="title" />);
-    expect(await screen.findByText('Query Name')).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Query Name'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/traces/?environment=production&groupBy=&id=1&project=1&title=Query%20Name'
     );
@@ -136,7 +137,7 @@ describe('SavedQueriesTable', () => {
 
   it('should link to a multi query view', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -161,7 +162,7 @@ describe('SavedQueriesTable', () => {
       ],
     });
     render(<SavedQueriesTable mode="owned" title="title" />);
-    expect(await screen.findByText('Query Name')).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Query Name'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/traces/compare/?environment=production&id=1&project=1&queries=%7B%22fields%22%3A%5B%22id%22%2C%22timestamp%22%5D%2C%22groupBys%22%3A%5B%5D%2C%22query%22%3A%22%22%2C%22yAxes%22%3A%5B%5D%2C%22caseInsensitive%22%3A%221%22%7D&queries=%7B%22fields%22%3A%5B%22id%22%2C%22timestamp%22%5D%2C%22groupBys%22%3A%5B%5D%2C%22query%22%3A%22%22%2C%22yAxes%22%3A%5B%5D%7D&title=Query%20Name'
     );
@@ -169,7 +170,7 @@ describe('SavedQueriesTable', () => {
 
   it('should link to a single query view for logs dataset', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -197,7 +198,7 @@ describe('SavedQueriesTable', () => {
       ],
     });
     render(<SavedQueriesTable mode="owned" title="title" />);
-    expect(await screen.findByText('Logs Query Name')).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Logs Query Name'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22message%22%7D&caseInsensitive=1&environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=message&logsFields=user.email&logsQuery=message%3A%22System%20time%20zone%20does%20not%20match%20user%20preferences%20time%20zone%22&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=Logs%20Query%20Name'
     );
@@ -205,7 +206,7 @@ describe('SavedQueriesTable', () => {
 
   it('should link to a single query view for logs dataset with aggregate', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -232,7 +233,7 @@ describe('SavedQueriesTable', () => {
       ],
     });
     render(<SavedQueriesTable mode="owned" title="title" />);
-    expect(await screen.findByText('ABC')).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'ABC'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22message%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22avg%28tags%5Bamount%2Cnumber%5D%29%22%5D%7D&environment=production&id=1&interval=5m&logsFields=timestamp&logsFields=tags%5Bamount%2Cnumber%5D&logsQuery=message%3Afoo&logsSortBys=user.email&mode=samples&project=1&statsPeriod=1h&title=ABC'
     );
@@ -240,7 +241,7 @@ describe('SavedQueriesTable', () => {
 
   it('should link to a single query view for replays dataset', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -263,7 +264,7 @@ describe('SavedQueriesTable', () => {
       ],
     });
     render(<SavedQueriesTable mode="owned" title="title" />);
-    expect(await screen.findByText('Replays Query Name')).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Replays Query Name'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/replays/?end=2024-01-02T00%3A00%3A00.000&environment=production&environment=staging&id=1&project=1&project=2&query=user.email%3A%2A%40example.com&start=2024-01-01T00%3A00%3A00.000&title=Replays%20Query%20Name'
     );
@@ -271,7 +272,7 @@ describe('SavedQueriesTable', () => {
 
   it('should link to a single query view for replays dataset with statsPeriod', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 2,
@@ -293,7 +294,7 @@ describe('SavedQueriesTable', () => {
       ],
     });
     render(<SavedQueriesTable mode="owned" title="title" />);
-    expect(await screen.findByText('Recent Replays')).toHaveAttribute(
+    expect(await screen.findByRole('link', {name: 'Recent Replays'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/explore/replays/?environment=production&id=2&project=3&query=browser.name%3AChrome&statsPeriod=24h&title=Recent%20Replays'
     );
@@ -301,7 +302,7 @@ describe('SavedQueriesTable', () => {
 
   it('should display starred status', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -372,7 +373,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" sort="mostPopular" title="title" />);
     await screen.findByText('Query Name');
     expect(getQueriesMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/explore/saved/`,
+      `/organizations/${organization.slug}/explore/all-queries/`,
       expect.objectContaining({
         query: expect.objectContaining({sortBy: ['starred', 'mostPopular']}),
       })
@@ -383,7 +384,7 @@ describe('SavedQueriesTable', () => {
     render(<SavedQueriesTable mode="owned" searchQuery="Query Name" title="title" />);
     await screen.findByText('Query Name');
     expect(getQueriesMock).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/explore/saved/`,
+      `/organizations/${organization.slug}/explore/all-queries/`,
       expect.objectContaining({
         query: expect.objectContaining({query: 'Query Name'}),
       })
@@ -392,7 +393,7 @@ describe('SavedQueriesTable', () => {
 
   it('should not crash when a saved query has no query field', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -418,7 +419,7 @@ describe('SavedQueriesTable', () => {
 
   it('should not crash when a saved query has an empty query array', async () => {
     getQueriesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [
         {
           id: 1,
@@ -458,6 +459,108 @@ describe('SavedQueriesTable', () => {
           }),
         })
       )
+    );
+  });
+});
+
+describe('SavedQueriesTable with discover queries', () => {
+  const {organization} = initializeOrg();
+  let getQueriesMock: jest.Mock;
+  let updateDiscoverQueryMock: jest.Mock;
+
+  beforeEach(() => {
+    updateDiscoverQueryMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/discover/saved/1/`,
+      method: 'PUT',
+    });
+    getQueriesMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
+      body: [
+        {
+          id: 1,
+          queryType: 'explore',
+          name: 'Explore Query',
+          dataset: 'spans',
+          projects: [1],
+          environment: ['production'],
+          createdBy: {name: 'Test User'},
+          query: [{query: '', visualize: [], groupby: []}],
+        },
+        {
+          // Discover ids are their own sequence, so this collides with the
+          // explore row above on purpose.
+          id: 1,
+          queryType: 'discover',
+          name: 'Discover Query',
+          queryDataset: 'error-events',
+          projects: [1],
+          environment: ['production'],
+          createdBy: {name: 'Test User'},
+          fields: ['title'],
+          query: '',
+          orderby: '',
+          yAxis: ['count()'],
+        },
+      ],
+    });
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('fetches the combined endpoint and renders both products', async () => {
+    render(<SavedQueriesTable mode="owned" title="title" />, {organization});
+
+    expect(await screen.findByText('Explore Query')).toBeInTheDocument();
+    expect(screen.getByText('Discover Query')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(getQueriesMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/explore/all-queries/`,
+        expect.objectContaining({method: 'GET'})
+      )
+    );
+  });
+
+  it('renames a discover query', async () => {
+    render(<SavedQueriesTable mode="owned" title="title" />, {organization});
+    renderGlobalModal();
+
+    await screen.findByText('Discover Query');
+    const discoverRow = screen.getByTestId('table-row-1');
+    await userEvent.click(within(discoverRow).getByLabelText('More options'));
+    await userEvent.click(screen.getByText('Rename'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Rename Query')).toBeInTheDocument();
+
+    const input = within(dialog).getByPlaceholderText('Enter a name for your query');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'Renamed Discover Query');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() =>
+      expect(updateDiscoverQueryMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/discover/saved/1/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            name: 'Renamed Discover Query',
+            queryType: 'discover',
+          }),
+        })
+      )
+    );
+  });
+
+  it('links a discover row to the discover results view', async () => {
+    render(<SavedQueriesTable mode="owned" title="title" />, {organization});
+
+    const link = await screen.findByRole('link', {name: 'Discover Query'});
+    // makeDiscoverPathname puts discover under the explore base path.
+    expect(link).toHaveAttribute(
+      'href',
+      expect.stringContaining('explore/errors/results/')
     );
   });
 });

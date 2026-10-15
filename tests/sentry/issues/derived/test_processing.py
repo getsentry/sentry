@@ -3,10 +3,11 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 import pytest
+import time_machine
 from django.db import connection, router, transaction
+from django.db.models.functions import Now
 from django.utils import timezone as django_timezone
 
-from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
@@ -30,12 +31,14 @@ from sentry.issues.derived.check import (
     CheckFailure,
     CheckInvalidated,
     CheckPassed,
+    CheckRecentBackfill,
     CheckTimeout,
     FeatureDifference,
     check_derived_data,
 )
 from sentry.issues.derived.features import (
     BLOCKER,
+    FIRST_ASSIGNMENT_ACTION_ID,
     HAS_OPEN_FIX_PR,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
@@ -48,6 +51,7 @@ from sentry.issues.derived.framework import (
     AggregatorResult,
     Feature,
     Pipeline,
+    Scope,
     State,
     StateUpdate,
     StateView,
@@ -63,8 +67,10 @@ from sentry.issues.derived.processing import (
     process_group_log,
 )
 from sentry.issues.derived.promote import PromotionResult, promote_to_live
+from sentry.issues.derived.replay import FeatureHistoryLimitExceeded, replay_feature_from_log
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
@@ -77,6 +83,68 @@ from sentry.utils import json
 SOURCE = ActionSource.API
 
 
+class ReplayFeatureFromLogTest(TestCase):
+    def test_replays_only_relevant_history_within_limit(self) -> None:
+        group = self.group
+        self.create_group_action_log_entry(group, type=GroupActionType.VIEW)
+        self.create_group_action_log_entry(group, type=GroupActionType.VIEW)
+        self.create_group_action_log_entry(group, type=GroupActionType.ASSIGN)
+        first = self.create_group_action_log_entry(
+            group, type=GroupActionType.ASSIGN, date_added=django_timezone.now() - timedelta(days=1)
+        )
+
+        assert (
+            replay_feature_from_log(group.id, PIPELINE, FIRST_ASSIGNMENT_ACTION_ID, history_limit=2)
+            == first.id
+        )
+        with pytest.raises(FeatureHistoryLimitExceeded):
+            replay_feature_from_log(group.id, PIPELINE, FIRST_ASSIGNMENT_ACTION_ID, history_limit=1)
+        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
+
+    def test_replays_all_types_for_unrestricted_scope(self) -> None:
+        count = Feature[int]("count", default=0)
+
+        @aggregator((count,))
+        def count_entries(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+            return StateUpdate({count: state[count] + 1})
+
+        group = self.group
+        self.create_group_action_log_entry(group, type=GroupActionType.VIEW)
+        self.create_group_action_log_entry(group, type=GroupActionType.ASSIGN)
+
+        assert replay_feature_from_log(group.id, Pipeline([count_entries]), count) == 2
+
+    def test_replays_transitive_dependencies_without_unrelated_aggregators(self) -> None:
+        views = Feature[int]("views", default=0)
+        accumulated = Feature[int]("accumulated", default=0)
+        result = Feature[int]("result", default=0)
+        unrelated = Feature[int]("unrelated", default=0)
+
+        @aggregator((views,), scope=(GroupActionType.VIEW,))
+        def count_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+            return StateUpdate({views: state[views] + 1})
+
+        @aggregator((accumulated,), deps=(views,), scope=Scope.DEPS)
+        def accumulate_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+            return StateUpdate({accumulated: state[accumulated] + state[views]})
+
+        @aggregator((result,), deps=(accumulated,), scope=Scope.DEPS)
+        def copy_accumulated(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+            return StateUpdate({result: state[accumulated]})
+
+        @aggregator((unrelated,))
+        def unrelated_aggregator(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+            raise AssertionError("Unrelated aggregators must not run during feature replay")
+
+        group = self.group
+        self.create_group_action_log_entry(group, type=GroupActionType.VIEW)
+        self.create_group_action_log_entry(group, type=GroupActionType.ASSIGN)
+        self.create_group_action_log_entry(group, type=GroupActionType.VIEW)
+        pipeline = Pipeline([count_views, accumulate_views, copy_accumulated, unrelated_aggregator])
+
+        assert replay_feature_from_log(group.id, pipeline, result, history_limit=2) == 3
+
+
 def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYSTEM_ACTOR) -> None:
     with outbox_runner():
         publish_action(
@@ -86,6 +154,12 @@ def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYS
             project=group.project,
             actor=actor,
         )
+
+
+def _age_action_log_entries(group_id: int) -> None:
+    GroupActionLogEntry.objects.filter(group_id=group_id).update(
+        date_updated=django_timezone.now() - timedelta(minutes=11)
+    )
 
 
 @with_feature("projects:issue-action-log-write-to-db")
@@ -149,6 +223,22 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.cursor_id > first_cursor
 
+    def test_incremental_processing_bumps_date_updated(self) -> None:
+        group = self.create_group()
+        user = self.user
+
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        derived = process_group_log(group.id)
+        # Force a stale date_updated so the bump is observable even if the
+        # second write happens in the same second as the first.
+        stale = django_timezone.now() - timedelta(minutes=5)
+        GroupDerivedData.objects.filter(group_id=group.id).update(date_updated=stale)
+
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        derived = process_group_log(group.id)
+        assert derived.date_updated > stale
+        assert GroupDerivedData.objects.get(group_id=group.id).date_updated > stale
+
     def test_noop_when_no_new_entries(self) -> None:
         group = self.create_group()
         user = self.user
@@ -167,11 +257,22 @@ class ProcessGroupLogTest(TestCase):
 
         assert check_derived_data(derived, PIPELINE) == CheckPassed()
 
+    def test_check_derived_data_skips_recently_backfilled_log_entry(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        GroupActionLogEntry.objects.filter(group_id=group.id).update(
+            date_added=django_timezone.now() - timedelta(days=30)
+        )
+
+        assert check_derived_data(derived, PIPELINE) == CheckRecentBackfill()
+
     def test_check_derived_data_reports_different_features(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
         derived.view_count = 0
+        _age_action_log_entries(group.id)
 
         assert check_derived_data(derived, PIPELINE) == CheckFailure(
             group_id=group.id,
@@ -194,6 +295,7 @@ class ProcessGroupLogTest(TestCase):
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
+        _age_action_log_entries(group.id)
 
         with pytest.raises(CheckTimeout) as exc_info:
             check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
@@ -214,6 +316,7 @@ class ProcessGroupLogTest(TestCase):
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
+        _age_action_log_entries(group.id)
 
         with pytest.raises(CheckTimeout) as first_timeout:
             check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
@@ -242,6 +345,9 @@ class ProcessGroupLogTest(TestCase):
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
         entries = list(GroupActionLogEntry.objects.filter(group_id=group.id))
+        _age_action_log_entries(group.id)
+        for entry in entries:
+            entry.date_updated = django_timezone.now() - timedelta(minutes=11)
 
         with patch(
             "sentry.issues.derived.check._entries_through_target_cursor", side_effect=[entries]
@@ -255,6 +361,7 @@ class ProcessGroupLogTest(TestCase):
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
+        _age_action_log_entries(group.id)
 
         with pytest.raises(CheckTimeout) as exc_info:
             check_derived_data(derived, PIPELINE, timeout=timedelta(0), batch_size=1)
@@ -279,6 +386,7 @@ class ProcessGroupLogTest(TestCase):
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
+        _age_action_log_entries(group.id)
         original_run = PIPELINE.run
 
         def run_and_invalidate(
@@ -536,6 +644,9 @@ class ProcessGroupLogTest(TestCase):
         process_group_log(group.id)
         assert GroupDerivedData.objects.filter(group_id=group.id).exists()
 
+        stale = django_timezone.now() - timedelta(minutes=5)
+        GroupDerivedData.objects.filter(group_id=group.id).update(date_updated=stale)
+
         with patch(
             "sentry.issues.derived.processing.generate_group_derived_data.delay"
         ) as mock_generate:
@@ -543,6 +654,7 @@ class ProcessGroupLogTest(TestCase):
         row = GroupDerivedData.objects.get(group_id=group.id)
         # Soft invalidation nulls pipeline_hash but keeps the row readable.
         assert row.pipeline_hash is None
+        assert row.date_updated > stale
         mock_generate.assert_called_once_with(group.id)
 
     def test_invalidate_soft_no_trigger_skips_task(self) -> None:
@@ -727,6 +839,31 @@ class ProcessGroupLogTest(TestCase):
         derived.refresh_from_db()
         assert derived.pipeline_hash is None
         assert derived.generated_at > before
+
+    def test_invalidate_soft_uses_database_clock(self) -> None:
+        group = self.create_group()
+        derived = self.create_group_derived_data(group, generated_at=EPOCH)
+        before = Group.objects.filter(id=group.id).values_list(Now(), flat=True).get()
+
+        with time_machine.travel(before - timedelta(hours=1)), self.assertNumQueries(1):
+            invalidate_group_derived_data(group.id, trigger_regenerate=False)
+
+        after = Group.objects.filter(id=group.id).values_list(Now(), flat=True).get()
+        derived.refresh_from_db()
+        assert before <= derived.generated_at <= after
+        assert derived.pipeline_hash is None
+
+    def test_invalidate_soft_placeholder_uses_database_clock(self) -> None:
+        group = self.create_group()
+        before = Group.objects.filter(id=group.id).values_list(Now(), flat=True).get()
+
+        with time_machine.travel(before + timedelta(hours=1)):
+            invalidate_group_derived_data(group.id, trigger_regenerate=False)
+
+        after = Group.objects.filter(id=group.id).values_list(Now(), flat=True).get()
+        derived = GroupDerivedData.objects.get(group_id=group.id)
+        assert before <= derived.generated_at <= after
+        assert derived.pipeline_hash is None
 
     def test_invalidate_matches_null_hash_row_regardless_of_cursor(self) -> None:
         # A null-hash row is already stale — a subsequent invalidation whose
@@ -1222,7 +1359,7 @@ class DerivedDataTransactionTest(TestCase):
         group = self.create_group()
 
         try:
-            with transaction.atomic(using=router.db_for_write(CellOutbox)):
+            with transaction.atomic(using=router.db_for_write(GroupActionLogOutbox)):
                 publish_action(
                     ViewAction(),
                     source=SOURCE,
@@ -1230,14 +1367,14 @@ class DerivedDataTransactionTest(TestCase):
                     project=group.project,
                     actor=GroupActionActor.user(self.user.id),
                 )
-                assert CellOutbox.objects.filter(
+                assert GroupActionLogOutbox.objects.filter(
                     category=OutboxCategory.GROUP_ACTION_LOG_EVENT
                 ).exists()
                 raise _IntentionalRollback
         except _IntentionalRollback:
             pass
 
-        assert not CellOutbox.objects.filter(
+        assert not GroupActionLogOutbox.objects.filter(
             category=OutboxCategory.GROUP_ACTION_LOG_EVENT
         ).exists()
         assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0

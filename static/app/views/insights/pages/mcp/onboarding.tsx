@@ -43,7 +43,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
 function useOnboardingProject() {
   const {projects} = useProjects();
@@ -86,13 +85,14 @@ function useAiSpanWaiter(project: Project) {
         },
       },
     },
-    Referrer.ONBOARDING
+    'api.insights.mcp.onboarding'
   );
 
   const hasEvents = Boolean(request.data?.length);
 
   useEffect(() => {
     if (hasEvents && shouldRefetch) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setShouldRefetch(false);
     }
   }, [hasEvents, shouldRefetch]);
@@ -292,7 +292,7 @@ export function Onboarding() {
           </p>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/insights/ai/mcp/"
+            href="https://docs.sentry.io/product/mcp-servers/"
             external
           >
             {t('Go to Documentation')}
@@ -440,7 +440,7 @@ const Image = styled('img')`
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;

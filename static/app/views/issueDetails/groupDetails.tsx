@@ -1,9 +1,10 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {Outlet} from 'react-router-dom';
+import {Navigate, Outlet} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -25,6 +26,7 @@ import type {Group} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -36,13 +38,12 @@ import {
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {decodeBoolean} from 'sentry/utils/queryString';
+import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
@@ -51,6 +52,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
+import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
@@ -228,7 +230,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
   }, [groupId, incomingEnvs, organization, queryClient]);
 }
 
-function useFetchGroupDetails(): FetchGroupDetailsState {
+export function useFetchGroupDetails(): FetchGroupDetailsState {
   const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
@@ -265,14 +267,14 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
    * This is not closer to the GroupEventHeader because it is unmounted
    * between route changes like latest event => eventId
    */
-  const previousEvent = useMemoWithPrevious<typeof event | null>(
+  const previousEvent = useMemoWithPrevious<{event: Event; groupId: string} | null>(
     previousInstance => {
       if (event) {
-        return event;
+        return {event, groupId};
       }
       return previousInstance;
     },
-    [event]
+    [event, groupId]
   );
 
   // If the environment changes, we need to refetch the group, but we can
@@ -316,6 +318,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     if (defined(group)) {
       GroupStore.loadInitialData([group]);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [groupId, group]);
 
   useSyncGroupStore(groupId, environments);
@@ -332,7 +335,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       });
 
       if (reprocessingNewRoute) {
-        navigate(reprocessingNewRoute);
+        navigate(reprocessingNewRoute, {replace: true});
       }
     }
   }, [
@@ -392,6 +395,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       // something smarter.
       delete locationQuery._allp;
       navigate({...window.location, query: locationQuery}, {replace: true});
+      // oxlint-disable-next-line react/set-state-in-effect
       setAllProjectChanged(true);
     }
   }, [group?.project.id, allProjectChanged, navigate]);
@@ -416,8 +420,8 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const refetchData = useCallback(() => {
     refetchEvent();
-    refetchGroup();
-  }, [refetchGroup, refetchEvent]);
+    refetchGroupCall();
+  }, [refetchGroupCall, refetchEvent]);
 
   // Refetch when group is stale
   useEffect(() => {
@@ -437,8 +441,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   return {
     loadingGroup,
     group,
-    // Allow previous event to be displayed while new event is loading
-    event: (loadingEvent ? (event ?? previousEvent) : event) ?? null,
+    // Only retain an event while loading another event from the same issue.
+    event:
+      event ??
+      (loadingEvent && previousEvent?.groupId === groupId ? previousEvent.event : null),
     errorType,
     error: isGroupError,
     refetchData,
@@ -574,7 +580,8 @@ type IssueView =
   | 'replays'
   | 'attachments'
   | 'distributions'
-  | 'distributions-tag-detail';
+  | 'distributions-tag-detail'
+  | 'autofix';
 
 const ISSUE_VIEW_PREAMBLES: Record<IssueView, string> = {
   'specific-event':
@@ -591,6 +598,8 @@ const ISSUE_VIEW_PREAMBLES: Record<IssueView, string> = {
     'Sentry issue tag detail page. The user is drilling into a specific tag distribution. You can get issue tag values for the tagKey below to see exact counts and percentages.',
   'issue-overview':
     'Sentry issue detail page. Shows a single grouped issue with its latest event.',
+  autofix:
+    "Sentry issue autofix tab. The user is viewing Seer's analysis of this issue — root cause, proposed solution, code changes and any pull requests it opened.",
 };
 
 function getIssueDetailContextHint(view: IssueView): string {
@@ -624,11 +633,15 @@ function GroupDetailsContentInner({
   const {isAnyDrawerOpen} = useDrawer();
 
   const {currentTab} = useGroupDetailsRoute();
-  const {seerDrawer} = useLocationQuery({
-    fields: {
-      seerDrawer: decodeBoolean,
-    },
-  });
+  const location = useLocation();
+  const autofixPage = hasAutofixPage(organization);
+  // nuqs flips this as soon as the drawer closes, before the URL catches up, so
+  // closing the drawer doesn't reopen it.
+  const [seerDrawer] = useQueryState('seerDrawer', parseAsBoolean.withDefault(false));
+  // Autofix has its own tab behind the flag, so legacy `?seerDrawer=true` links
+  // are redirected there instead of opening the drawer. This reads the router
+  // location, which updates with the redirect, so it renders only once.
+  const redirectToAutofixTab = autofixPage && location.query.seerDrawer === 'true';
 
   const {hasAutofixQuota} = useAiConfig(group, project);
 
@@ -637,7 +650,7 @@ function GroupDetailsContentInner({
       return;
     }
 
-    if (seerDrawer) {
+    if (seerDrawer && !autofixPage) {
       openSeerDrawer();
       return;
     }
@@ -655,6 +668,7 @@ function GroupDetailsContentInner({
   }, [
     currentTab,
     isAnyDrawerOpen,
+    autofixPage,
     seerDrawer,
     openDistributionsDrawer,
     openSimilarIssuesDrawer,
@@ -688,6 +702,8 @@ function GroupDetailsContentInner({
     issueView = 'replays';
   } else if (currentTab === Tab.ATTACHMENTS) {
     issueView = 'attachments';
+  } else if (currentTab === Tab.AUTOFIX) {
+    issueView = 'autofix';
   } else if (currentTab === Tab.DISTRIBUTIONS) {
     issueView = tagKey ? 'distributions-tag-detail' : 'distributions';
   }
@@ -698,8 +714,11 @@ function GroupDetailsContentInner({
     title: group.title,
     level: group.level,
     status: group.status,
+    substatus: group.substatus,
     priority: group.priority,
     issueType: group.issueType,
+    subtitle: group.metadata?.value,
+    culprit: group.culprit,
     count: group.count,
     userCount: group.userCount,
     firstSeen: group.firstSeen,
@@ -717,6 +736,25 @@ function GroupDetailsContentInner({
     Tab.MERGED,
     Tab.ACTIVITY,
   ].includes(currentTab);
+
+  if (redirectToAutofixTab) {
+    return (
+      <Navigate
+        replace
+        to={locationDescriptorToTo(
+          makeSeerLocation({
+            organization,
+            groupId: group.id,
+            action:
+              typeof location.query.seerDrawerAction === 'string'
+                ? location.query.seerDrawerAction
+                : undefined,
+            query: location.query,
+          })
+        )}
+      />
+    );
+  }
 
   return (
     <GroupDetailsLayout group={group} event={event ?? undefined} project={project}>
@@ -834,8 +872,8 @@ function GroupDetails() {
       return defaultTitle;
     }
 
-    const {title} = getTitle(group);
-    const message = getMessage(group);
+    const title = stripAnsi(getTitle(group).title ?? '');
+    const message = stripAnsi(getMessage(group) ?? '');
 
     const eventDetails = `${organization.slug} — ${group.project.slug}`;
 

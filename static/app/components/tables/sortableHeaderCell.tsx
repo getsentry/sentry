@@ -1,12 +1,13 @@
 import type {HTMLAttributes, MouseEvent, ReactNode} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import type {LocationDescriptor} from 'history';
 
+import {FLEX_JUSTIFY_CONTENT, type FlexJustify} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {IconArrow} from 'sentry/icons';
 
 export type SortDirection = 'asc' | 'desc';
 
@@ -23,7 +24,13 @@ export function getAriaSort(
   }
 }
 
-export type ColumnAlign = 'left' | 'right';
+export type ColumnAlign = 'left' | 'center' | 'right';
+
+export const COLUMN_ALIGN_JUSTIFY = {
+  center: 'center',
+  left: 'start',
+  right: 'end',
+} as const satisfies Record<ColumnAlign, FlexJustify>;
 
 interface SortableHeaderCellProps extends HTMLAttributes<HTMLDivElement> {
   align?: ColumnAlign;
@@ -63,7 +70,9 @@ export function SortableHeaderCell({
     >
       {overlays}
       <Tooltip showOnlyOnOverflow skipWrapper title={children}>
-        <Label>{children}</Label>
+        <Label align={align} grow={!direction}>
+          {children}
+        </Label>
       </Tooltip>
       {direction && (
         <IconArrow
@@ -76,10 +85,23 @@ export function SortableHeaderCell({
   );
 }
 
-const Label = styled('div')`
+const Label = styled('div', {
+  shouldForwardProp: prop => prop !== 'align' && prop !== 'grow',
+})<{grow: boolean; align?: ColumnAlign}>`
+  margin: -${p => p.theme.space['2xs']};
   overflow: hidden;
+  padding: ${p => p.theme.space['2xs']};
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  /* Without a sort arrow beside it, the label fills the cell so that content
+     aligning itself, such as a right-aligned column label, has room to. */
+  ${p =>
+    p.grow &&
+    css`
+      flex: 1;
+      text-align: ${p.align ?? 'left'};
+    `}
 `;
 
 export const HeaderCellContent = styled('div', {
@@ -100,13 +122,18 @@ export const HeaderCellContent = styled('div', {
   flex: 1;
   font: inherit;
   gap: ${p => p.theme.space.xs};
+  margin: -${p => p.theme.space['2xs']};
   min-width: 0;
   overflow: hidden;
-  padding: 0;
+  padding: ${p => p.theme.space['2xs']};
   text-align: inherit;
   text-transform: inherit;
 
-  ${p => p.align === 'right' && 'justify-content: flex-end;'}
+  ${p =>
+    p.align &&
+    css`
+      justify-content: ${FLEX_JUSTIFY_CONTENT[COLUMN_ALIGN_JUSTIFY[p.align]]};
+    `}
 
   &:hover,
   &:active,

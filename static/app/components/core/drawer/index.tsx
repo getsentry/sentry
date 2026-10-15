@@ -13,7 +13,7 @@ import type {Location} from 'history';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';

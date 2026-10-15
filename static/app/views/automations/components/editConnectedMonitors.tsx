@@ -1,6 +1,9 @@
 import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
 import {useQueryClient} from '@tanstack/react-query';
+import {parseAsInteger, parseAsNativeArrayOf, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -10,13 +13,13 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {RadioGroup, type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import {FormContext} from 'sentry/components/forms/formContext';
+import {LoadingError} from 'sentry/components/loadingError';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -25,7 +28,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
+import {getNoAllProjectsWritePermissionTooltip} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
+import {
+  canConnectAutomationToDetector,
+  hasAutomationWriteAccess,
+  hasOrganizationAutomationWriteAccess,
+} from 'sentry/views/automations/utils/permissions';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
@@ -136,11 +145,17 @@ function ConnectMonitorsDrawer({
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const {projects} = useProjects();
 
   // Because GlobalDrawer is rendered outside of our form context, we need to duplicate the state here
   const [localDetectorIds, setLocalDetectorIds] = useState(initialIds);
 
   const toggleConnected = ({detector}: {detector: Detector}) => {
+    const project = projects.find(p => p.id === detector.projectId);
+    if (!canConnectAutomationToDetector({organization, detector, project})) {
+      return;
+    }
+
     const oldDetectorsData =
       queryClient.getQueryData(
         detectorListApiOptions(organization, {
@@ -188,7 +203,11 @@ function AllProjectIssuesSection({
 }: {
   onProjectChange: (projectIds: string[]) => void;
 }) {
+  const organization = useOrganization();
   const {projects} = useProjects();
+  const writableProjects = projects.filter(project =>
+    hasAutomationWriteAccess({organization, project})
+  );
 
   return (
     <Stack gap="md">
@@ -197,7 +216,7 @@ function AllProjectIssuesSection({
           name="projectIds"
           label={t('Projects')}
           placeholder={t('Select projects')}
-          projects={projects}
+          projects={writableProjects}
           groupProjects={p => (p.isMember ? 'member' : 'all')}
           groups={PROJECT_GROUPS}
           onChange={(values: string[]) => onProjectChange(values)}
@@ -221,11 +240,27 @@ function SpecificMonitorsSection({
   const ref = useRef<HTMLButtonElement>(null);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const organization = useOrganization();
+  const {projects} = useProjects();
+  const [, setProjectIds] = useQueryState(
+    'project',
+    parseAsNativeArrayOf(parseAsInteger)
+  );
 
-  const toggleDrawer = () => {
+  const toggleDrawer = async () => {
     if (isDrawerOpen) {
       closeDrawer();
       return;
+    }
+
+    // For users which only have access to writable projects, preset the project filter
+    // to the correct project list.
+    if (!hasOrganizationAutomationWriteAccess(organization)) {
+      await setProjectIds(
+        projects
+          .filter(project => hasAutomationWriteAccess({organization, project}))
+          .map(project => Number(project.id))
+          .slice(0, 50) // Limit to the same number that the project selector field allows
+      );
     }
 
     openDrawer(
@@ -300,7 +335,6 @@ function EditConnectedMonitorsContent({
   const [monitorMode, setMonitorMode] = useState<MonitorMode>(initialMode);
   const {form} = useContext(FormContext);
   const errorContext = useContext(AutomationBuilderErrorContext);
-  const organization = useOrganization();
 
   const handleModeChange = useCallback(
     (newMode: MonitorMode) => {
@@ -335,7 +369,9 @@ function EditConnectedMonitorsContent({
     [setConnectedIds, errorContext]
   );
 
-  const canEditAllProjects = useCanEditDetectorWorkflowConnections({projectId: null});
+  const canEditAllProjects = useCanEditDetectorWorkflowConnections({
+    projectId: null,
+  });
 
   const monitorModeChoices: Array<RadioOption<MonitorMode>> = [
     ['project', t('Alert on all issues in selected projects')],
@@ -343,17 +379,10 @@ function EditConnectedMonitorsContent({
   ];
 
   const disabledChoices: Array<[MonitorMode, React.ReactNode?]> = [];
-  if (organization.features.includes('workflow-engine-all-projects-detector')) {
-    monitorModeChoices.push(['allProjects', t('Alert on all issues in all projects')]);
+  monitorModeChoices.push(['allProjects', t('Alert on all issues in all projects')]);
 
-    if (!canEditAllProjects) {
-      disabledChoices.push([
-        'allProjects',
-        t(
-          'Only organization owners and managers can create/modify global issue monitors.'
-        ),
-      ]);
-    }
+  if (!canEditAllProjects) {
+    disabledChoices.push(['allProjects', getNoAllProjectsWritePermissionTooltip()]);
   }
 
   return (
@@ -395,13 +424,16 @@ function EditConnectedMonitorsContent({
 export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
   const {form} = useContext(FormContext);
   const [firstLoad, setFirstLoad] = useState(true);
-  const {connectedDetectors, isLoading} = useConnectedDetectors();
+  const {connectedDetectors, isError, isLoading, refetch} =
+    useConnectedDetectors(connectedIds);
+  const hasUnresolvedDetectors = connectedDetectors.length !== connectedIds.length;
   const initialMode = getInitialMonitorMode(connectedDetectors);
 
   useEffect(() => {
-    if (isLoading || !firstLoad) {
+    if (isLoading || isError || hasUnresolvedDetectors || !firstLoad) {
       return;
     }
+    // oxlint-disable-next-line react/set-state-in-effect
     setFirstLoad(false);
 
     if (initialMode === 'allProjects') {
@@ -422,7 +454,16 @@ export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
     if (form && selectedProjectIds.length > 0) {
       form.setValue('projectIds', selectedProjectIds);
     }
-  }, [connectedIds, connectedDetectors, form, firstLoad, isLoading, initialMode]);
+  }, [
+    connectedIds,
+    connectedDetectors,
+    form,
+    firstLoad,
+    hasUnresolvedDetectors,
+    isError,
+    isLoading,
+    initialMode,
+  ]);
 
   if (isLoading && firstLoad) {
     return (
@@ -434,6 +475,23 @@ export function EditConnectedMonitors({connectedIds, setConnectedIds}: Props) {
           )}
         >
           <Placeholder width="100%" height="200px" />
+        </FormSection>
+      </WorkflowEngineContainer>
+    );
+  }
+
+  // If we didn't resolve the detectors for whatever reason, display a loading error. If we used a
+  // fallback, changing other parts of the alert could be modifying connected detectors without warning.
+  if (firstLoad && (isError || hasUnresolvedDetectors)) {
+    return (
+      <WorkflowEngineContainer>
+        <FormSection
+          title={t('Source')}
+          description={t(
+            'Get alerted when new issues are detected or an issue changes state.'
+          )}
+        >
+          <LoadingError onRetry={refetch} />
         </FormSection>
       </WorkflowEngineContainer>
     );

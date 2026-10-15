@@ -1,4 +1,5 @@
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {isNumericAttribute} from 'sentry/views/explore/components/traceItemAttributes/utils';
@@ -8,15 +9,15 @@ export function useAttributeTreeSearchActions() {
   const addSearchFilter = useAddSearchFilter();
 
   return (content: AttributesTreeContent) => {
-    if (!content.originalAttribute) {
+    if (!content.original) {
       return [];
     }
 
-    const key = content.originalAttribute.original_attribute_key;
+    const key = content.original.original_attribute_key;
     const value = content.value;
     const isNumeric = isNumericAttribute({
       value,
-      type: content.originalAttribute.type,
+      type: content.original.type,
       key,
     });
 

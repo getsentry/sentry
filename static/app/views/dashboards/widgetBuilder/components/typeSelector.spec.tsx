@@ -1,8 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
@@ -10,12 +9,6 @@ import {
   WidgetBuilderTypeSelector as TypeSelector,
 } from 'sentry/views/dashboards/widgetBuilder/components/typeSelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
-
-const mockUseNavigate = jest.mocked(useNavigate);
 
 describe('TypeSelector', () => {
   it('gates trace metrics tables behind the release flag', () => {
@@ -39,10 +32,7 @@ describe('TypeSelector', () => {
   });
 
   it('changes the visualization type', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <TypeSelector />
       </WidgetBuilderProvider>
@@ -53,12 +43,11 @@ describe('TypeSelector', () => {
     // select new option
     await userEvent.click(await screen.findByText('Bar (Time Series)'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({displayType: 'bar'}),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({displayType: 'bar'})
+      );
+    });
   });
 
   it('displays error message when there is an error', async () => {
@@ -72,8 +61,6 @@ describe('TypeSelector', () => {
   });
 
   it('shows text widget option', async () => {
-    mockUseNavigate.mockReturnValue(jest.fn());
-
     render(
       <WidgetBuilderProvider>
         <TypeSelector />
@@ -88,10 +75,7 @@ describe('TypeSelector', () => {
   });
 
   it('resets the widget builder state when the display type is changed on an issue widget', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <TypeSelector />
       </WidgetBuilderProvider>,
@@ -108,37 +92,19 @@ describe('TypeSelector', () => {
     await userEvent.click(await screen.findByText('Line'));
     await userEvent.click(await screen.findByText('Table'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
           displayType: 'table',
-        }),
-      }),
-      expect.anything()
-    );
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
           dataset: WidgetType.ISSUE,
-        }),
-      }),
-      expect.anything()
-    );
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
           field: ['issue', 'assignee', 'title'],
-        }),
-      }),
-      expect.anything()
-    );
+        })
+      );
+    });
   });
 
   it('resets the widget builder state to dataset defaults when display type is changed from text widget', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <TypeSelector />
       </WidgetBuilderProvider>,
@@ -156,29 +122,14 @@ describe('TypeSelector', () => {
     await userEvent.click(await screen.findByText('Text (Markdown)'));
     await userEvent.click(await screen.findByText('Table'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
           displayType: 'table',
-        }),
-      }),
-      expect.anything()
-    );
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
           dataset: WidgetType.ERRORS,
-        }),
-      }),
-      expect.anything()
-    );
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          field: ['count_unique(user)'],
-        }),
-      }),
-      expect.anything()
-    );
+          field: 'count_unique(user)',
+        })
+      );
+    });
   });
 });

@@ -7,6 +7,7 @@ import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {
   DisableDetectorAction,
+  DuplicateDetectorAction,
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/details/common/automations';
@@ -63,6 +64,7 @@ export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
             <MetricTimePeriodSelect dataset={detectorDataset} interval={interval} />
             <Flex align="center" gap="sm" marginLeft="auto">
               <DisableDetectorAction detector={detector} />
+              <DuplicateDetectorAction detector={detector} />
               <EditDetectorAction detector={detector} />
             </Flex>
           </Flex>

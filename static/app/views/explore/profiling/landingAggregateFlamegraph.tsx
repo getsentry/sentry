@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -13,7 +14,6 @@ import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggreg
 import {AggregateFlamegraphSidePanel} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphSidePanel';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {DeepPartial} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -253,6 +253,7 @@ export function LandingAggregateFlamegraph({
   useEffect(() => {
     const newView = decodeViewOrDefault(location.query.view, 'flamegraph');
     if (newView !== view) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setView(decodeViewOrDefault(location.query.view, 'flamegraph'));
     }
   }, [location.query.view, view]);
@@ -333,9 +334,9 @@ export function LandingAggregateFlamegraph({
                   <AggregateFlamegraphTreeTable
                     recursion={null}
                     expanded={false}
-                    withoutBorders
                     frameFilter={frameFilter}
                     canvasPoolManager={canvasPoolManager}
+                    canvasScheduler={scheduler}
                     profileType={PROFILE_TYPE}
                   />
                 )}

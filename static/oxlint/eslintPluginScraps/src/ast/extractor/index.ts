@@ -1,5 +1,6 @@
-import {TSESLint, TSESTree} from '@typescript-eslint/utils';
+import type {ESTree, Context, Visitor} from '@oxlint/plugins';
 
+import {createImportTracker} from '../tracker/imports.ts';
 import {createThemeTracker} from '../tracker/theme.ts';
 
 import {createCssPropExtractor} from './cssProp.ts';
@@ -16,9 +17,7 @@ import type {ExtractorContext, StyleCollector, StyleDeclaration} from './types.t
  * Returns false if file has no emotion/styled patterns.
  * False positives are acceptable; we just want to skip clearly unrelated files.
  */
-export function shouldAnalyze(
-  context: Readonly<TSESLint.RuleContext<string, readonly unknown[]>>
-) {
+export function shouldAnalyze(context: Readonly<Context>) {
   const text = context.sourceCode.getText();
 
   // Check for emotion imports OR usage patterns
@@ -40,16 +39,19 @@ export function shouldAnalyze(
 /**
  * Merge multiple visitor objects, combining handlers for same node types.
  */
-function mergeVisitors(...visitorObjects: TSESLint.RuleListener[]) {
-  const merged: TSESLint.RuleListener = {};
+function mergeVisitors(...visitorObjects: Visitor[]) {
+  const merged: Visitor = {};
 
   for (const visitors of visitorObjects) {
     for (const [nodeType, handler] of Object.entries(visitors)) {
-      if (merged[nodeType]) {
-        const existing = merged[nodeType] as TSESLint.RuleFunction<TSESTree.Node>;
-        merged[nodeType] = (node: TSESTree.Node) => {
+      if (!handler) {
+        continue;
+      }
+      const existing = merged[nodeType] as ((node: ESTree.Node) => void) | undefined;
+      if (existing) {
+        merged[nodeType] = (node: ESTree.Node) => {
           existing(node);
-          (handler as TSESLint.RuleFunction<TSESTree.Node>)(node);
+          (handler as (node: ESTree.Node) => void)(node);
         };
       } else {
         merged[nodeType] = handler;
@@ -63,7 +65,7 @@ function mergeVisitors(...visitorObjects: TSESLint.RuleListener[]) {
 /**
  * Creates a style collector that aggregates declarations from all extractors.
  */
-export function createStyleCollector(context: TSESLint.RuleContext<string, unknown[]>) {
+export function createStyleCollector(context: Context) {
   const declarations: StyleDeclaration[] = [];
 
   const collector: StyleCollector = {
@@ -80,12 +82,14 @@ export function createStyleCollector(context: TSESLint.RuleContext<string, unkno
 
   // Create theme tracker first (extractors depend on it)
   const themeTracker = createThemeTracker();
+  const importTracker = createImportTracker(context);
 
   // Create extractors with access to collector and theme tracker
   const extractorContext: ExtractorContext = {
     collector,
     themeTracker,
     ruleContext: context,
+    importTracker,
   };
 
   const styledVisitors = createStyledExtractor(extractorContext);
@@ -94,6 +98,7 @@ export function createStyleCollector(context: TSESLint.RuleContext<string, unkno
 
   // Merge all visitors
   const visitors = mergeVisitors(
+    importTracker.visitors,
     themeTracker.visitors,
     styledVisitors,
     cssPropVisitors,

@@ -1,6 +1,7 @@
 import type React from 'react';
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import snakeCase from 'lodash/snakeCase';
 import moment from 'moment-timezone';
 
@@ -9,7 +10,6 @@ import {Flex} from '@sentry/scraps/layout';
 
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {usePrompts} from 'sentry/actionCreators/prompts';
-import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -471,6 +471,7 @@ export function PrimaryNavigationQuotaExceeded({
     }
   }, [
     exceededCategories,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     organization.id,
     hasSnoozedAllPrompts,
     overlayState,

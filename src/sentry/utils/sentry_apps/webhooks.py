@@ -14,8 +14,9 @@ from django.conf import settings
 from requests import RequestException, Response
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from rest_framework import status
+from sentry_sdk import traces
 
-from sentry import features, options
+from sentry import options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen
 from sentry.integrations.utils.metrics import EventLifecycle
@@ -49,7 +50,6 @@ from sentry.utils.circuit_breaker2 import CircuitBreaker, RateBasedTripStrategy
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.circuit_breaker import circuit_breaker_tracking
-from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
@@ -161,6 +161,7 @@ def _notify_webhook_disabled(
         return
 
     data = SentryAppWebhookDisabled(
+        organization_id=owner_org.id,
         sentry_app_slug=sentry_app.slug,
         sentry_app_name=sentry_app.name,
         webhook_url=sentry_app.webhook_url or "",
@@ -276,7 +277,7 @@ def _send_webhook_request(
         )
 
 
-@trace(name="send_and_save_webhook_request")
+@traces.trace(name="send_and_save_webhook_request")
 @ignore_unpublished_app_errors
 def send_and_save_webhook_request(
     sentry_app: SentryApp | RpcSentryApp,
@@ -334,11 +335,7 @@ def send_and_save_webhook_request(
                 include_teams=False,
             )
             owner_org = owner_context.organization if owner_context is not None else None
-            if (
-                owner_org is not None
-                and CLAUDE_ROUTINE_URL_RE.fullmatch(url)
-                and features.has("organizations:sentry-apps-claude-routine-webhooks", owner_org)
-            ):
+            if CLAUDE_ROUTINE_URL_RE.fullmatch(url):
                 app_platform_event.include_text_summary = True
             circuit_breaker = _create_circuit_breaker(sentry_app)
             if not _circuit_breaker_allows_request(circuit_breaker, sentry_app, lifecycle):

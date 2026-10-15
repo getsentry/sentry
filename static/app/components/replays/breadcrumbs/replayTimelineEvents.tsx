@@ -1,5 +1,4 @@
 import type {Theme} from '@emotion/react';
-import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
@@ -106,7 +105,6 @@ function Event({
   setActiveTab: ReturnType<typeof useActiveReplayTab>['setActiveTab'];
   startTimestampMs: number;
 }) {
-  const theme = useTheme();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const buttons = frames.map((frame, i) => (
@@ -126,35 +124,33 @@ function Event({
       onShowSnippet={() => {}}
     />
   ));
+
+  // Web vital frames render an expandable JSON block that needs more room than
+  // the default tooltip width, otherwise its content wraps to a very tall sliver.
+  const hasWebVitalFrame = frames.some(isWebVitalFrame);
+  const tooltipWidth = hasWebVitalFrame ? 400 : 291;
+  const narrowWidth = hasWebVitalFrame ? 300 : 220;
+
   // Scope the card's nested hoverable tooltips (e.g. the selector link's own
   // tooltip in a User Click crumb) to their own hover-overlay delay group.
   // Otherwise a nested tooltip opening snap-closes this card and unmounts the
   // link out from under the cursor.
   const title = (
     <HoverOverlayGroupProvider>
-      <Container maxHeight="80vh" overflow="auto">
+      <Container
+        // Cancels the overlay's own padding so the crumbs get the room instead.
+        data-tooltip-section
+        padding="xs"
+        // Viewport-based: the tooltip is portaled to the body, so it has no
+        // query container.
+        width={{zero: `${narrowWidth}px`, 'screen:sm': `${tooltipWidth}px`}}
+        maxHeight="80vh"
+        overflow="auto"
+      >
         {buttons}
       </Container>
     </HoverOverlayGroupProvider>
   );
-
-  // Web vital frames render an expandable JSON block that needs more room than
-  // the default tooltip width, otherwise its content wraps to a very tall sliver.
-  const hasWebVitalFrame = frames.some(isWebVitalFrame);
-  const tooltipWidth = hasWebVitalFrame ? 400 : 291;
-  const mobileMaxWidth = hasWebVitalFrame ? 300 : 220;
-
-  const overlayStyle = css`
-    /* We make sure to override existing styles */
-    padding: ${theme.space.xs} !important;
-    max-width: ${tooltipWidth}px !important;
-    width: ${tooltipWidth}px;
-
-    /* Viewport-based: the tooltip is portaled to the body, so it has no query container. */
-    @media screen and (max-width: ${theme.breakpoints.sm}) {
-      max-width: ${mobileMaxWidth}px !important;
-    }
-  `;
 
   const firstFrame = frames.at(0);
 
@@ -181,7 +177,7 @@ function Event({
 
   return (
     <IconPosition style={{marginLeft: `${markerWidth / 2}px`}}>
-      <Tooltip title={title} overlayStyle={overlayStyle} containerDisplayMode="grid">
+      <Tooltip title={title} maxWidth="none" containerDisplayMode="grid">
         <IconNode
           colorTokens={sortedUniqueColorTokens}
           frameCount={frameCount}

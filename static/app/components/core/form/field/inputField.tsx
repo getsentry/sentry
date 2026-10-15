@@ -10,6 +10,7 @@ export interface InputFieldProps
   onChange: (value: string) => void;
   value: string;
   disabled?: boolean | string;
+  leadingItems?: React.ReactNode;
   trailingItems?: React.ReactNode;
   type?:
     | 'button'
@@ -39,6 +40,7 @@ export interface InputFieldProps
 export function InputField({
   onChange,
   disabled,
+  leadingItems,
   trailingItems,
   ref,
   ...props
@@ -47,6 +49,9 @@ export function InputField({
     <BaseField disabled={disabled} ref={ref}>
       {(fieldProps, {indicator}) => (
         <InputGroup style={{flex: 1}}>
+          {leadingItems && (
+            <InputGroup.LeadingItems>{leadingItems}</InputGroup.LeadingItems>
+          )}
           <InputGroup.Input
             {...fieldProps}
             {...props}

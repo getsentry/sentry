@@ -3,7 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {renderHook, userEvent} from 'sentry-test/reactTestingLibrary';
+import {renderHookWithProviders, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -12,7 +12,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
-import * as useOrganization from 'sentry/utils/useOrganization';
 import {formatSpanEvidenceToMarkdown} from 'sentry/views/issueDetails/hooks/spanEvidenceMarkdown';
 import {
   issueAndEventToMarkdown,
@@ -224,6 +223,27 @@ describe('useCopyIssueDetails', () => {
       expect(result).not.toContain('## Message');
     });
 
+    it('strips ANSI codes from the title and message when they contain them', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: '\x1B[31mTypeError\x1B[0m: connection failed'}),
+        event: EventFixture({...event, message: '\x1B[33mretrying\x1B[0m in 5s'}),
+        organization,
+      });
+
+      expect(result).toContain('# TypeError: connection failed\n');
+      expect(result).toContain('## Message\n\nretrying in 5s\n');
+    });
+
+    it('omits the message when it is part of the title after stripping ANSI codes', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError: \x1B[31mconnection failed\x1B[0m'}),
+        event: EventFixture({...event, message: '\x1B[31mconnection failed\x1B[0m'}),
+        organization,
+      });
+
+      expect(result).not.toContain('## Message');
+    });
+
     it('omits the message when it is empty', () => {
       const result = issueAndEventToMarkdown({
         group: GroupFixture({title: 'TypeError'}),
@@ -297,6 +317,28 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('#### Stacktrace');
       // No mechanism on this exception, so no handled line.
       expect(result).not.toContain('**Handled:**');
+    });
+
+    it('strips ANSI codes from exception values when they contain them', () => {
+      const eventWithException = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [{type: 'ValueError', value: '\x1B[31mfailed\x1B[0m to connect'}],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithException,
+        organization,
+      });
+
+      expect(result).toContain('**Value:** failed to connect\n');
     });
 
     it('marks an unhandled exception', () => {
@@ -561,6 +603,35 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('  {"url":"/api/users","status_code":500}');
       expect(result).toContain('- **navigation** `ui.click` [info]');
       expect(result).toContain('  User clicked submit');
+    });
+
+    it('strips ANSI codes from breadcrumb messages when they contain them', () => {
+      const eventWithBreadcrumbs = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [
+                {
+                  type: 'default',
+                  category: 'console',
+                  level: 'info',
+                  message: '\x1B[32mserver started\x1B[0m',
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithBreadcrumbs,
+        organization,
+      });
+
+      expect(result).toContain('- **default** `console` [info]\n  server started\n');
     });
 
     it('truncates a single breadcrumb to the per-crumb character limit', () => {
@@ -1347,11 +1418,12 @@ LIMIT 21`;
 
       jest.spyOn(indicators, 'addSuccessMessage').mockImplementation(() => {});
       jest.spyOn(indicators, 'addErrorMessage').mockImplementation(() => {});
-      jest.spyOn(useOrganization, 'useOrganization').mockReturnValue(organization);
     });
 
     it('calls useCopyToClipboard hook', () => {
-      renderHook(() => useCopyIssueDetails(group, event));
+      renderHookWithProviders(() => useCopyIssueDetails(group, event), {
+        organization,
+      });
 
       // Check that the hook was called
       expect(copyToClipboardModule.useCopyToClipboard).toHaveBeenCalled();
@@ -1363,7 +1435,9 @@ LIMIT 21`;
         'useHotkeys'
       );
 
-      renderHook(() => useCopyIssueDetails(group, event));
+      renderHookWithProviders(() => useCopyIssueDetails(group, event), {
+        organization,
+      });
 
       expect(useHotkeysMock).toHaveBeenCalledWith([
         {
@@ -1382,7 +1456,9 @@ LIMIT 21`;
         return Promise.resolve(text);
       });
 
-      renderHook(() => useCopyIssueDetails(group, undefined));
+      renderHookWithProviders(() => useCopyIssueDetails(group, undefined), {
+        organization,
+      });
 
       await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 
@@ -1402,7 +1478,9 @@ LIMIT 21`;
         return Promise.resolve(text);
       });
 
-      renderHook(() => useCopyIssueDetails(group, event));
+      renderHookWithProviders(() => useCopyIssueDetails(group, event), {
+        organization,
+      });
 
       await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 

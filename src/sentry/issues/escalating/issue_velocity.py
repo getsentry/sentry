@@ -30,7 +30,7 @@ from sentry.tasks.post_process import locks
 from sentry.utils import metrics
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.redis import redis_clusters
+from sentry.utils.redis import load_redis_script, redis_clusters
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
@@ -48,6 +48,8 @@ FALLBACK_TTL = 10 * 60  # 10 minutes; TTL for storing temporary values while we 
 THRESHOLD_KEY = "new-issue-escalation-threshold:{project_id}"
 STALE_DATE_KEY = "new-issue-escalation-threshold-stale-date:v2:{project_id}"
 TIME_TO_USE_EXISTING_THRESHOLD = 24 * 60 * 60  # 1 day
+
+keep_stale_threshold_or_set_zero = load_redis_script("issues/escalation_threshold_fallback.lua")
 
 
 def calculate_threshold(project: Project) -> float | None:
@@ -187,7 +189,6 @@ def fallback_to_stale_or_zero(
     while TTL is maintained. Otherwise, we save a value of 0 with a stale date and TTL of ten minutes
     into the future, and return 0 (so issues in this project do not escalate during this time).
     """
-    ttl = FALLBACK_TTL
     # current datetime - the amount of time a threshold is valid for + how much time to wait before trying to query Snuba for the threshold again
     stale_date = (
         deprecated_utcnow()
@@ -195,21 +196,21 @@ def fallback_to_stale_or_zero(
         + timedelta(seconds=FALLBACK_TTL)
     )
     client = get_redis_client()
-    with client.pipeline() as p:
-        p.watch(threshold_key)
-        existing_ttl = p.ttl(threshold_key)  # get the ttl of the stale threshold
-        if stale_threshold is not None and isinstance(existing_ttl, int) and existing_ttl > 0:
-            ttl = existing_ttl
-        else:
-            # if the stale threshold doesn't exist, doesn't have an expiry, or is exactly expired
-            # in redis, don't use it; fallback to zero
-            stale_threshold = 0
-        p.multi()
+    # The script reads the TTL of the threshold and writes the threshold in one atomic step
+    stale_ttl = keep_stale_threshold_or_set_zero(
+        [threshold_key],
+        ["1" if stale_threshold is not None else "0", FALLBACK_TTL],
+        client,
+    )
+    if stale_threshold is not None and stale_ttl > 0:
+        ttl = stale_ttl
+    else:
+        # the stale threshold doesn't exist, doesn't have an expiry, or is exactly expired in
+        # redis, so the script saved a threshold of zero
+        stale_threshold = 0
+        ttl = FALLBACK_TTL
 
-        if stale_threshold == 0:
-            p.set(threshold_key, stale_threshold, ex=ttl)
-        p.set(stale_date_key, str(stale_date), ex=ttl)
-        p.execute()
+    client.set(stale_date_key, str(stale_date), ex=ttl)
     metrics.incr("issues.update_new_escalation_threshold", tags={"useFallback": True})
     return stale_threshold
 

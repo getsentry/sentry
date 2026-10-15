@@ -11,6 +11,7 @@ from typing import NamedTuple
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
+from django.db.models.functions import Now
 from django.utils import timezone
 
 from sentry.db.postgres.transactions import enforce_constraints
@@ -115,6 +116,7 @@ def _ensure_derived(group_id: int, pipeline_hash: str) -> tuple[GroupDerivedData
             derived, _created = GroupDerivedData.objects.get_or_create(
                 group_id=group_id,
                 defaults={
+                    "generated_at": Now(),
                     "cursor_date": EPOCH,
                     "cursor_id": 0,
                     "data": {},
@@ -198,17 +200,19 @@ def _process_batch(
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
         return len(entries) == batch_size
 
+    now = timezone.now()
     updated = GroupDerivedData.objects.filter(
         Q(id=derived.id, generated_at=derived.generated_at)
         & (Q(cursor_date__lt=last_date) | Q(cursor_date=last_date, cursor_id__lte=last_id))
         & (Q(pipeline_hash=derived.pipeline_hash) | Q(pipeline_hash__isnull=True))
-    ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
+    ).update(cursor_date=last_date, cursor_id=last_id, date_updated=now, **state_update)
 
     if updated:
         if derived_metrics is not None:
             derived_metrics.report_batch_processed(entries, result)
         derived.cursor_date = last_date
         derived.cursor_id = last_id
+        derived.date_updated = now
         GroupDerivedDataStore.apply_to_instance(derived, state_update)
         logger.info(
             "issues.derived.processed",
@@ -413,7 +417,7 @@ def invalidate_group_derived_data(
         # Bumping ``generated_at`` reuses ``promote_to_live``'s SUPERSEDED
         # CAS path — pre-invalidation snapshots can't win over the null-hash
         # row.
-        affected = qs.update(pipeline_hash=None, generated_at=timezone.now())
+        affected = qs.update(pipeline_hash=None, generated_at=Now(), date_updated=timezone.now())
     else:
         affected, _ = qs.delete()
 
@@ -430,7 +434,7 @@ def invalidate_group_derived_data(
             # insert fails — treat as a no-op.
             try:
                 _, created = GroupDerivedData.objects.get_or_create(
-                    group_id=group_id, defaults={"pipeline_hash": None}
+                    group_id=group_id, defaults={"pipeline_hash": None, "generated_at": Now()}
                 )
             except IntegrityError:
                 logger.info(

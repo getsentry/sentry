@@ -5,10 +5,8 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {
-  getFunctionLabel,
-  getVisualizeLabel,
-} from 'sentry/views/explore/toolbar/toolbarVisualize';
+import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
+import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
 
 /**
  * Assigns sequential labels to queries based on their type.
@@ -80,7 +78,9 @@ function parseEquationIndex(label: string): number {
 export function useStableLabels(queries: BaseMetricQuery[]) {
   const labelsRef = useRef<string[]>([]);
 
+  // oxlint-disable-next-line react/refs
   if (labelsRef.current.length !== queries.length) {
+    // oxlint-disable-next-line react/refs
     labelsRef.current = assignSequentialLabels(queries);
   }
 

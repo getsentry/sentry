@@ -146,6 +146,7 @@ class WorkflowNameTest(APITestCase):
         )
         self.create_alert_rule_trigger_action(
             target_identifier=self.og_team_table["id"],
+            target_display=self.og_team_table["team"],
             type=AlertRuleTriggerAction.Type.OPSGENIE,
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
             integration=self.opsgenie_integration,

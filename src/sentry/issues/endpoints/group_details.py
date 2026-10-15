@@ -27,7 +27,7 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.validators import GroupValidator
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupDetailsResponse
-from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -47,6 +47,7 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.read_metrics import activity_read_endpoint
 from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
@@ -54,10 +55,10 @@ from sentry.issues.constants import (
     get_issue_tsdb_group_model,
 )
 from sentry.issues.derived.check import record_status_consistency
-from sentry.issues.derived.gate import derived_should_be_correct, should_serve_action_log_activity
-from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.derived.gate import derived_should_be_correct
+from sentry.issues.derived.tasks import reconcile_group_status
+from sentry.issues.endpoints.bases.group import GroupEndpoint, GroupPermission
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
-from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
@@ -88,10 +89,19 @@ def get_group_global_count(group: Group) -> str:
     return str(group.times_seen_with_pending)
 
 
+class GroupDetailsPermission(GroupPermission):
+    scope_map = {
+        **GroupPermission.scope_map,
+        # Preserve the organization's "Let Members Delete Events" restriction.
+        "DELETE": ["event:admin"],
+    }
+
+
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class GroupDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
+    permission_classes = (GroupDetailsPermission,)
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
@@ -118,25 +128,47 @@ class GroupDetailsEndpoint(GroupEndpoint):
         }
     )
 
-    def _get_seen_by(self, request: Request, group: Group) -> list[dict[str, Any]]:
+    def _get_seen_by_and_participants(
+        self, request: Request, group: Group
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
-        return [seen for seen in serialize(seen_by, request.user) if seen is not None]
+        participant_ids = set(GroupSubscriptionManager.get_participating_user_ids(group))
+        user_ids = {seen.user_id for seen in seen_by} | participant_ids
+        users = (
+            user_service.serialize_many(
+                filter={"user_ids": sorted(user_ids)},
+                as_user=serialize_generic_user(request.user),
+            )
+            if user_ids
+            else []
+        )
+        users_by_id = {int(user["id"]): user for user in users}
+        return (
+            [
+                {**users_by_id[seen.user_id], "lastSeen": seen.last_seen}
+                for seen in seen_by
+                if seen.user_id in users_by_id
+            ],
+            [{**user, "type": "user"} for user in users if int(user["id"]) in participant_ids],
+        )
 
     def _report_status_inconsistency(self, group: Group) -> None:
         if options.get("issues.derived_data.read_path_checks.killswitch"):
             return
 
-        if not (
-            features.has("projects:issue-status-reconciliation", group.project)
-            or derived_should_be_correct(group.project)
-        ):
+        if not derived_should_be_correct(group.project):
             return
 
         derived = GroupDerivedData.objects.filter(group_id=group.id).first()
         if derived is None:
             return
 
-        record_status_consistency(group, derived, source="read_path")
+        inconsistency = record_status_consistency(group, derived, source="read_path")
+        if inconsistency is not None and options.get(
+            "issues.derived_data.status_reconciliation.enabled"
+        ):
+            # Allow transient inconsistencies to settle before checking again.
+            reconcile_group_status.apply_async(kwargs={"group_id": group.id}, countdown=5 * 60)
 
     @staticmethod
     def __group_hourly_daily_stats(
@@ -232,8 +264,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
 
             # TODO: these probably should be another endpoint
-            activity = Activity.objects.get_activities_for_group(group, 100)
-            seen_by = self._get_seen_by(request, group)
+            seen_by, participants = self._get_seen_by_and_participants(request, group)
 
             if "release" not in collapse:
                 first_release, last_release = get_first_last_release(request, group)
@@ -333,41 +364,26 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     ).count()
                     data.update({"latestEventHasAttachments": num_attachments > 0})
 
+            activity_items = get_serialized_activity_items(
+                group, request.user, endpoint=activity_read_endpoint(request)
+            )
+            if activity_items is None:
+                activity = Activity.objects.get_activities_for_group(group, 100)
+                activity_items = serialize(activity, request.user)
+
             data.update(
                 {
-                    "activity": serialize(activity, request.user),
+                    "activity": activity_items,
                     "seenBy": seen_by,
+                    "participants": participants,
                     "userReportCount": user_reports.count(),
                     "count": get_group_global_count(group),
                 }
             )
 
-            if should_serve_action_log_activity(group.project, request.user):
-                action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
-                if action_log:
-                    # swap action log data in under the activity name
-                    first_seen_entry = cast(dict[str, Any], serialize_first_seen_entry(group))
-                    data.update(
-                        {"activity": [*serialize(action_log, request.user), first_seen_entry]}
-                    )
-                else:
-                    logger.info(
-                        "group_details.groupactionlogentry.not_found", extra={"group_id": group.id}
-                    )
-
             if "stats" not in collapse:
                 hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
                 data["stats"] = {"24h": hourly_stats, "30d": daily_stats}
-
-            participants = user_service.serialize_many(
-                filter={"user_ids": GroupSubscriptionManager.get_participating_user_ids(group)},
-                as_user=serialize_generic_user(request.user),
-            )
-
-            for participant in participants:
-                participant["type"] = "user"
-
-            data.update({"participants": participants})
 
             publish_action(
                 ViewAction(),
@@ -435,7 +451,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         are modified.
         """
         try:
-            discard = request.data.get("discard")
             project = group.project
             search_fn = functools.partial(prep_search, request, project)
             response = update_groups_with_search_fn(
@@ -444,7 +459,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             # if action was discard, there isn't a group to serialize anymore
             # if response isn't 200, return the response update_groups gave us (i.e. helpful error)
             # instead of serializing the updated group
-            if discard or response.status_code != 200:
+            if response.status_code != 200 or request.data.get("discard"):
                 return response
 
             # we need to fetch the object against as the bulk mutation endpoint

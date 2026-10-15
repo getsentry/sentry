@@ -1,19 +1,25 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge, Tag} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {IconCheckmark, IconSeer, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AddOnCategory} from 'getsentry/types';
-import {getReservedBudgetCategoryForAddOn} from 'getsentry/utils/billing';
+import {
+  displayUnitPrice,
+  formatPrice,
+  getReservedBudgetCategoryForAddOn,
+} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getSingularCategoryName,
@@ -65,7 +71,7 @@ export function ProductSelect({
           addOnCategory: apiName,
         });
 
-        const priceInDollars = utils.formatPrice({
+        const priceInDollars = formatPrice({
           cents: priceInCents,
         });
 
@@ -122,7 +128,7 @@ export function ProductSelect({
                 ariaRole="checkbox"
                 topDecoration={
                   <Flex align="center" gap="lg">
-                    <IconSeer animation="waiting" size="lg" />
+                    <IconSeer animation="idle" size="lg" />
                     <Heading as="h2">
                       {t('Detect and fix issues faster with our AI agent')}
                     </Heading>
@@ -191,7 +197,7 @@ export function ProductSelect({
                               })}
                               {' - '}
                               {eventPrice &&
-                                `${utils.displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${perEventNameOverride}`}
+                                `${displayUnitPrice({cents: eventPrice, minDigits: 0, maxDigits: info.maxEventPriceDigits})}/${perEventNameOverride}`}
                             </Text>
                             <Text size="md" variant="muted">
                               {info.description}

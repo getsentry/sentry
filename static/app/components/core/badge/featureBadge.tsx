@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
+import {IconBroadcast} from '@sentry/icons/broadcast';
+import {IconBug} from '@sentry/icons/bug';
+import {IconLab} from '@sentry/icons/lab';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useIsInsideInteractiveElement} from '@sentry/scraps/useIsInsideInteractiveElement';
 
-import {IconBroadcast} from 'sentry/icons/iconBroadcast';
-import {IconBug} from 'sentry/icons/iconBug';
-import {IconLab} from 'sentry/icons/iconLab';
 import type {TagVariant} from 'sentry/utils/theme';
 
 import {Tag} from './tag';

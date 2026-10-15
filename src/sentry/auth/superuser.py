@@ -199,6 +199,7 @@ class Superuser(ElevatedMode):
         self._is_active: bool = False
         self._inactive_reason: InactiveReason = InactiveReason.NONE
         self.is_valid: bool = False
+        self._authorized_orgs: dict[str, dict[str, str]] = {}
 
         if allowed_ips is not _Unset:
             self.allowed_ips = frozenset(
@@ -240,6 +241,41 @@ class Superuser(ElevatedMode):
         if str(self.request.user.id) != self.uid:
             return False
         return self._is_active
+
+    def requires_org_auth(self, org: object) -> bool:
+        """Check if accessing the given org requires per-org authorization."""
+        if is_self_hosted() or not settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON:
+            return False
+        org_id = getattr(org, "id", None)
+        org_slug = getattr(org, "slug", None)
+        if not org or org_id == self.org_id:
+            return False
+        if not org_slug:
+            return False
+        return org_slug not in self._authorized_orgs
+
+    def authorize_org(self, org_slug: str, category: str, reason: str) -> None:
+        """Record per-org authorization in the session."""
+        self._authorized_orgs[org_slug] = {"cat": category, "reason": reason}
+        data = self.request.session.get(SESSION_KEY)
+        if data:
+            data["orgs"] = dict(self._authorized_orgs)
+            self.request.session[SESSION_KEY] = data
+            self.request.session.modified = True
+        else:
+            logger.warning(
+                "superuser.org-auth-no-session",
+                extra={"org_slug": org_slug},
+            )
+        logger.info(
+            "superuser.org-authorized",
+            extra={
+                "user_id": getattr(self.request, "user", None) and self.request.user.id,
+                "org_slug": org_slug,
+                "access_category": category,
+                "reason": reason,
+            },
+        )
 
     def is_privileged_request(self) -> tuple[bool, InactiveReason]:
         """
@@ -376,6 +412,7 @@ class Superuser(ElevatedMode):
             self._set_logged_out()
         else:
             assert user is not None
+            self._authorized_orgs = data.get("orgs", {})
             self._set_logged_in(expires=data["exp"], token=data["tok"], user=user)
 
             if not self.is_active:
@@ -424,6 +461,7 @@ class Superuser(ElevatedMode):
             "tok": self.token,
             # XXX(dcramer): do we really need the uid safety mechanism
             "uid": self.uid,
+            "orgs": self._authorized_orgs,
         }
 
     def _set_logged_out(self) -> None:
@@ -433,6 +471,7 @@ class Superuser(ElevatedMode):
         self._is_active = False
         self._inactive_reason = InactiveReason.NONE
         self.is_valid = False
+        self._authorized_orgs = {}
         self.request.session.pop(SESSION_KEY, None)
 
     def set_logged_in(

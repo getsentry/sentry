@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import type {BarSeriesOption, LegendComponentOption, SeriesOption} from 'echarts';
 
 import type {SelectValue} from '@sentry/scraps/select';
@@ -14,7 +15,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';

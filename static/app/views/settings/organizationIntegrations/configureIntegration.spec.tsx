@@ -64,7 +64,7 @@ describe('ConfigureIntegration settings tab', () => {
 
   const githubProvider = OrganizationIntegrationsFixture().provider;
 
-  it('shows the integration name as a link in the header', async () => {
+  it('shows the external domain as a settings row even without other configuration', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'sentry-demos',
       domainName: 'github.com/sentry-demos',
@@ -75,11 +75,22 @@ describe('ConfigureIntegration settings tab', () => {
 
     renderConfigure();
 
-    expect(await screen.findByRole('link', {name: 'sentry-demos'})).toHaveAttribute(
-      'href',
-      'https://github.com/sentry-demos'
+    const heading = await screen.findByRole('heading', {name: 'sentry-demos'});
+    expect(screen.getByRole('tab', {name: 'Settings'})).toHaveAttribute(
+      'aria-selected',
+      'true'
     );
-    expect(screen.queryByText('github.com/sentry-demos')).not.toBeInTheDocument();
+    expect(screen.getByText('Organization Integration Settings')).toBeInTheDocument();
+    expect(screen.getByText('Integration URL')).toBeInTheDocument();
+    const link = screen.getByRole('link', {name: 'github.com/sentry-demos'});
+    expect(link).toHaveAttribute('href', 'https://github.com/sentry-demos');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(heading).not.toContainElement(link);
+    expect(screen.queryByRole('link', {name: 'sentry-demos'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', {name: 'Code Mappings'}));
+    expect(
+      screen.queryByRole('link', {name: 'github.com/sentry-demos'})
+    ).not.toBeInTheDocument();
   });
 
   it('links the configurations crumb to the provider configurations tab', async () => {
@@ -99,7 +110,7 @@ describe('ConfigureIntegration settings tab', () => {
     );
   });
 
-  it('uses a full domain URL without adding another protocol', async () => {
+  it('keeps the protocol when the external domain is a full URL', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'Azure DevOps',
       domainName: 'https://example.visualstudio.com/',
@@ -113,10 +124,11 @@ describe('ConfigureIntegration settings tab', () => {
 
     renderConfigure('vsts');
 
-    expect(await screen.findByRole('link', {name: 'Azure DevOps'})).toHaveAttribute(
-      'href',
-      'https://example.visualstudio.com/'
-    );
+    expect(await screen.findByText('Azure DevOps')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'https://example.visualstudio.com/'})
+    ).toHaveAttribute('href', 'https://example.visualstudio.com/');
+    expect(screen.queryByRole('link', {name: 'Azure DevOps'})).not.toBeInTheDocument();
   });
 
   it('shows the PagerDuty integration name without a link for a subdomain', async () => {
@@ -134,6 +146,7 @@ describe('ConfigureIntegration settings tab', () => {
     renderConfigure('pagerduty');
 
     expect(await screen.findByText('PagerDuty')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'example-account'})).not.toBeInTheDocument();
     expect(screen.queryByRole('link', {name: 'PagerDuty'})).not.toBeInTheDocument();
   });
 
@@ -160,6 +173,7 @@ describe('ConfigureIntegration settings tab', () => {
       OrganizationIntegrationsFixture({
         provider: {...githubProvider, key: 'github'},
         configOrganization: [],
+        domainName: null,
       })
     );
 
@@ -409,7 +423,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
   }: {
     connectionStatus?: string;
     providerKey?: string;
-    verifyDelay?: number;
+    verifyDelay?: number | Promise<void>;
   } = {}) {
     const organization = OrganizationFixture({
       access: ['org:integrations', 'org:write'],
@@ -417,7 +431,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
     const provider = GitHubIntegrationProviderFixture({
       key: providerKey,
       slug: providerKey,
-      name: 'Google Cloud Platform',
+      name: 'Google Cloud Platform for Seer',
       features: [],
     });
     const integration = OrganizationIntegrationsFixture({
@@ -576,7 +590,8 @@ describe('ConfigureIntegration GCP re-verification', () => {
   });
 
   it('reports the check as running instead of the interim unverified status', async () => {
-    setup({connectionStatus: 'unverified', verifyDelay: 50});
+    const verification = Promise.withResolvers<void>();
+    setup({connectionStatus: 'unverified', verifyDelay: verification.promise});
 
     expect(await screen.findByText('Not verified')).toBeInTheDocument();
 
@@ -585,6 +600,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
     expect(await screen.findByText('Checking connection...')).toBeInTheDocument();
     expect(screen.queryByText('Not verified')).not.toBeInTheDocument();
 
+    verification.resolve();
     expect(await screen.findByText('Connected')).toBeInTheDocument();
   });
 
@@ -595,5 +611,63 @@ describe('ConfigureIntegration GCP re-verification', () => {
 
     await waitFor(() => expect(saveRequest).toHaveBeenCalled());
     expect(verifyRequest).not.toHaveBeenCalled();
+  });
+
+  it('shows an automatic verification failure and clears it after a successful re-test', async () => {
+    const {saveRequest} = setup();
+    const url = '/organizations/org-slug/monitoring-providers/gcp/verify-connection/';
+    MockApiClient.addMockResponse({url, method: 'POST', statusCode: 502});
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    expect(
+      await screen.findByText("The connection check couldn't be completed. Try again.")
+    ).toBeInTheDocument();
+    expect(saveRequest).toHaveBeenCalled();
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {connectionStatus: 'connected', projects: []},
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Re-test'}));
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Re-test'})).toBeEnabled()
+    );
+    expect(
+      screen.queryByText("The connection check couldn't be completed. Try again.")
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears a failed manual check when saved settings trigger a new check', async () => {
+    const {setStoredConfig} = setup();
+    const url = '/organizations/org-slug/monitoring-providers/gcp/verify-connection/';
+    MockApiClient.addMockResponse({url, method: 'POST', statusCode: 502});
+    await userEvent.click(await screen.findByRole('button', {name: 'Re-test'}));
+    expect(await screen.findByText('Previous verification result')).toBeInTheDocument();
+
+    const verification = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      asyncDelay: verification.promise,
+      body: () => {
+        setStoredConfig({connection_status: 'connected', project_statuses: []});
+        return {connectionStatus: 'connected', projects: []};
+      },
+    });
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+    expect(await screen.findByText('Checking connection...')).toBeInTheDocument();
+    expect(
+      screen.queryByText("The connection check couldn't be completed. Try again.")
+    ).not.toBeInTheDocument();
+    verification.resolve();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Re-test'})).toBeEnabled()
+    );
+    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.queryByText('Previous verification result')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("The connection check couldn't be completed. Try again.")
+    ).not.toBeInTheDocument();
   });
 });

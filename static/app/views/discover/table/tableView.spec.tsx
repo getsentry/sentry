@@ -48,18 +48,32 @@ describe('TableView > CellActions', () => {
   };
 
   const location = LocationFixture({
-    pathname: '/organizations/org-slug/explore/discover/results/',
+    pathname: '/organizations/org-slug/explore/errors/results/',
     query: locationQuery,
   });
 
   const eventView = EventView.fromLocation(location);
 
-  function renderComponent(
-    tableData: TableData,
-    view: EventView,
-    queryDataset = SavedQueryDatasets.TRANSACTIONS
-  ) {
-    return render(
+  const renderOptions = {
+    organization,
+    initialRouterConfig: {
+      location: {
+        pathname: location.pathname,
+        query: locationQuery,
+      },
+    },
+  };
+
+  function ExampleTableView({
+    tableData,
+    view,
+    queryDataset = SavedQueryDatasets.TRANSACTIONS,
+  }: {
+    tableData: TableData;
+    view: EventView;
+    queryDataset?: SavedQueryDatasets;
+  }) {
+    return (
       <TableView
         organization={organization}
         location={location}
@@ -73,16 +87,7 @@ describe('TableView > CellActions', () => {
         showTags={false}
         title=""
         queryDataset={queryDataset}
-      />,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: location.pathname,
-            query: locationQuery,
-          },
-        },
-      }
+      />
     );
   }
 
@@ -142,34 +147,37 @@ describe('TableView > CellActions', () => {
 
   it('updates sort order on equation fields', () => {
     const view = eventView.clone();
-    renderComponent(rows, view);
+    render(<ExampleTableView tableData={rows} view={view} />, renderOptions);
 
     const equationCell = screen.getByRole('columnheader', {name: 'count() + 100'});
     const sortLink = within(equationCell).getByRole('link');
 
     expect(sortLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
+      '/organizations/org-slug/explore/errors/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-equation%7Ccount%28%29%20%2B%20100&statsPeriod=14d&yAxis=p95'
     );
   });
 
   it('updates sort order on non-equation fields', () => {
     const view = eventView.clone();
-    renderComponent(rows, view);
+    render(<ExampleTableView tableData={rows} view={view} />, renderOptions);
 
     const transactionCell = screen.getByRole('columnheader', {name: 'transaction'});
     const sortLink = within(transactionCell).getByRole('link');
 
     expect(sortLink).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-transaction&statsPeriod=14d&yAxis=p95'
+      '/organizations/org-slug/explore/errors/results/?environment=staging&field=title&field=transaction&field=count%28%29&field=timestamp&field=release&field=equation%7Ccount%28%29%20%2B%20100&id=42&name=best%20query&project=123&query=&queryDataset=transaction-like&sort=-transaction&statsPeriod=14d&yAxis=p95'
     );
   });
 
   it('handles add cell action on null value', async () => {
     rows.data[0]!.title = null as any;
 
-    const {router} = renderComponent(rows, eventView);
+    const {router} = render(
+      <ExampleTableView tableData={rows} view={eventView} />,
+      renderOptions
+    );
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
@@ -190,7 +198,10 @@ describe('TableView > CellActions', () => {
     const view = eventView.clone();
     view.query = 'tag:value has:title';
 
-    const {router} = renderComponent(rows, view);
+    const {router} = render(
+      <ExampleTableView tableData={rows} view={view} />,
+      renderOptions
+    );
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
@@ -210,7 +221,10 @@ describe('TableView > CellActions', () => {
     const view = eventView.clone();
     view.query = 'tag:value !title:nope';
 
-    const {router} = renderComponent(rows, view);
+    const {router} = render(
+      <ExampleTableView tableData={rows} view={view} />,
+      renderOptions
+    );
     await openContextMenu(1);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
@@ -277,7 +291,10 @@ describe('TableView > CellActions', () => {
   });
 
   it('handles exclude cell action on string value', async () => {
-    const {router} = renderComponent(rows, eventView);
+    const {router} = render(
+      <ExampleTableView tableData={rows} view={eventView} />,
+      renderOptions
+    );
     await openContextMenu(1);
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
@@ -299,7 +316,10 @@ describe('TableView > CellActions', () => {
     const view = eventView.clone();
     view.query = 'tag:value title:nope';
 
-    const {router} = renderComponent(rows, view);
+    const {router} = render(
+      <ExampleTableView tableData={rows} view={view} />,
+      renderOptions
+    );
     await openContextMenu(1);
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
@@ -320,7 +340,10 @@ describe('TableView > CellActions', () => {
   it('handles exclude cell action on null value', async () => {
     rows.data[0]!.title = null as any;
 
-    const {router} = renderComponent(rows, eventView);
+    const {router} = render(
+      <ExampleTableView tableData={rows} view={eventView} />,
+      renderOptions
+    );
     await openContextMenu(1);
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
@@ -343,7 +366,10 @@ describe('TableView > CellActions', () => {
     const view = eventView.clone();
     view.query = 'tag:value !has:title';
 
-    const {router} = renderComponent(rows, view);
+    const {router} = render(
+      <ExampleTableView tableData={rows} view={view} />,
+      renderOptions
+    );
     await openContextMenu(1);
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
@@ -362,7 +388,10 @@ describe('TableView > CellActions', () => {
   });
 
   it('handles greater than cell action on number value', async () => {
-    const {router} = renderComponent(rows, eventView);
+    const {router} = render(
+      <ExampleTableView tableData={rows} view={eventView} />,
+      renderOptions
+    );
     await openContextMenu(3);
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Show values greater than'})
@@ -381,7 +410,10 @@ describe('TableView > CellActions', () => {
   });
 
   it('handles less than cell action on number value', async () => {
-    const {router} = renderComponent(rows, eventView);
+    const {router} = render(
+      <ExampleTableView tableData={rows} view={eventView} />,
+      renderOptions
+    );
     await openContextMenu(3);
     await userEvent.click(
       screen.getByRole('menuitemradio', {name: 'Show values less than'})
@@ -402,7 +434,7 @@ describe('TableView > CellActions', () => {
   it('renders transaction summary link', () => {
     rows.data[0]!.project = 'project-slug';
 
-    renderComponent(rows, eventView);
+    render(<ExampleTableView tableData={rows} view={eventView} />, renderOptions);
 
     const firstRow = screen.getAllByRole('row')[1]!;
     const link = within(firstRow).getByTestId('tableView-transaction-link');
@@ -412,83 +444,6 @@ describe('TableView > CellActions', () => {
       expect.stringMatching(
         new RegExp(
           '/organizations/org-slug/insights/summary/?.*project=2&referrer=performance-transaction-summary.*transaction=%2.*'
-        )
-      )
-    );
-  });
-
-  it('renders trace view link', () => {
-    const traceRows: TableData = {
-      meta: {
-        trace: 'string',
-        id: 'string',
-        transaction: 'string',
-        timestamp: 'date',
-        project: 'string',
-      },
-      data: [
-        {
-          trace: '7fdf8efed85a4f9092507063ced1995b',
-          id: '509663014077465b8981b65225bdec0f',
-          transaction: '/organizations/',
-          timestamp: '2019-05-23T22:12:48+00:00',
-          project: 'project-slug',
-        },
-      ],
-    };
-
-    const traceQuery = {
-      id: '42',
-      name: 'best query',
-      field: ['id', 'transaction', 'timestamp'],
-      queryDataset: 'transaction-like',
-      sort: ['transaction'],
-      query: '',
-      project: ['123'],
-      statsPeriod: '14d',
-      environment: ['staging'],
-      yAxis: 'p95',
-    };
-
-    const traceLocation = LocationFixture({
-      pathname: '/organizations/org-slug/explore/discover/results/',
-      query: traceQuery,
-    });
-
-    render(
-      <TableView
-        organization={organization}
-        location={traceLocation}
-        eventView={EventView.fromLocation(traceLocation)}
-        isLoading={false}
-        tableData={traceRows}
-        onChangeShowTags={onChangeShowTags}
-        error={null}
-        isFirstPage
-        measurementKeys={null}
-        showTags={false}
-        title=""
-        queryDataset={SavedQueryDatasets.TRANSACTIONS}
-      />,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: traceLocation.pathname,
-            query: traceQuery,
-          },
-        },
-      }
-    );
-
-    const firstRow = screen.getAllByRole('row')[1]!;
-    const link = within(firstRow).getByTestId('view-event');
-
-    expect(link).toHaveAttribute(
-      'href',
-      expect.stringMatching(
-        new RegExp(
-          '/organizations/org-slug/explore/discover/trace/7fdf8efed85a4f9092507063ced1995b/?.*'
         )
       )
     );
@@ -508,7 +463,14 @@ describe('TableView > CellActions', () => {
       'project.name': 'project-slug',
     };
 
-    renderComponent(rows, view, SavedQueryDatasets.ERRORS);
+    render(
+      <ExampleTableView
+        tableData={rows}
+        view={view}
+        queryDataset={SavedQueryDatasets.ERRORS}
+      />,
+      renderOptions
+    );
 
     const firstRow = screen.getAllByRole('row')[1]!;
     const link = within(firstRow).getByTestId('view-event');
@@ -520,7 +482,10 @@ describe('TableView > CellActions', () => {
   });
 
   it('handles go to release', async () => {
-    const {router} = renderComponent(rows, eventView);
+    const {router} = render(
+      <ExampleTableView tableData={rows} view={eventView} />,
+      renderOptions
+    );
     await openContextMenu(5);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Go to release'}));
 
@@ -541,7 +506,7 @@ describe('TableView > CellActions', () => {
 
   it('has title on integer value greater than 999', () => {
     rows.data[0]!['count()'] = 1000;
-    renderComponent(rows, eventView);
+    render(<ExampleTableView tableData={rows} view={eventView} />, renderOptions);
 
     const firstRow = screen.getAllByRole('row')[1]!;
     const emptyValueCell = within(firstRow).getAllByRole('cell')[3]!;

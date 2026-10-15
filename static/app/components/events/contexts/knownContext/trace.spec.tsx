@@ -48,15 +48,7 @@ const MOCK_REDACTION = {
 
 describe('TraceContext', () => {
   const location = LocationFixture();
-  const organization = OrganizationFixture({
-    features: ['performance-view'],
-    extraOptions: {
-      traces: {
-        checkSpanExtractionDate: false,
-        spansExtractionDate: 1,
-      },
-    },
-  });
+  const organization = OrganizationFixture({features: ['performance-view']});
 
   it('returns values and according to the parameters', () => {
     expect(

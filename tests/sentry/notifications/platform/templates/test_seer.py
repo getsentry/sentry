@@ -110,7 +110,9 @@ class SeerAgentErrorTemplateTest(TestCase):
     def test_render(self) -> None:
         from sentry.notifications.platform.templates.seer import SeerAgentErrorTemplate
 
-        data = SeerAgentError(error_message="Seer could not explore your organization.")
+        data = SeerAgentError(
+            organization_id=1, error_message="Seer could not explore your organization."
+        )
         template = SeerAgentErrorTemplate()
         rendered = template.render(data)
 
@@ -123,6 +125,7 @@ class SeerAgentErrorTemplateTest(TestCase):
         from sentry.notifications.platform.templates.seer import SeerAgentErrorTemplate
 
         data = SeerAgentError(
+            organization_id=1,
             error_message="Timeout.",
             error_title="Agent failed",
         )

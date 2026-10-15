@@ -40,9 +40,14 @@ describe('saved issue view embed', () => {
 
     renderEmbed({name: 'savedIssueView', data: {id: view.id}});
 
+    // The block's name is the collapse toggle; the link out is a separate target.
     expect(
-      await screen.findByRole('link', {name: view.name}, {timeout: 10_000})
-    ).toHaveAttribute('href', '/organizations/org-slug/issues/views/77/');
+      await screen.findByRole('button', {name: view.name}, {timeout: 10_000})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'View Issues'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/views/77/'
+    );
     expect(await screen.findByText(issue.shortId)).toBeInTheDocument();
     expect(viewRequest).toHaveBeenCalled();
     await waitFor(() =>
@@ -60,6 +65,35 @@ describe('saved issue view embed', () => {
         })
       )
     );
+  });
+
+  it('offers no retry when the issue search is rejected', async () => {
+    const view = GroupSearchViewFixture({
+      id: '77',
+      name: 'Unresolved in checkout',
+      query: 'is:unresolved level:error',
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/77/',
+      body: view,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      statusCode: 400,
+      body: {detail: 'Invalid query'},
+    });
+
+    renderEmbed({name: 'savedIssueView', data: {id: view.id}});
+
+    expect(
+      await screen.findByTestId('loading-error', {}, {timeout: 10_000})
+    ).toBeInTheDocument();
+    // A retry can't fix a query the endpoint rejects, so none is offered.
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
   });
 
   it('renders the view query as formatted search tokens', async () => {

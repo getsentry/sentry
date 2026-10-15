@@ -6,10 +6,6 @@ import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
 declare global {
   interface Window {
     /**
-     * Used in admin
-     */
-    __sendGridApiKey: string;
-    /**
      * Google analytics
      */
     ga: any;
@@ -47,7 +43,6 @@ declare module 'sentry/types/system' {
   interface Config {
     'getsentry.amplitudeApiKey'?: string;
     'getsentry.googleMapsApiKey'?: string;
-    'getsentry.sendgridApiKey'?: string;
     'getsentry.stripePublishKey'?: string;
   }
 }
@@ -176,7 +171,14 @@ export type Plan = {
   trialPlan: string | null;
   userSelectable: boolean;
   categoryDisplayNames?: Partial<
-    Record<DataCategory, {plural: string; singular: string}>
+    Record<
+      DataCategory | string,
+      {
+        plural: string;
+        singular: string;
+        unitType?: 'microCents';
+      }
+    >
   >;
 };
 
@@ -378,6 +380,8 @@ export type Subscription = {
   // Refetch usage data if Subscription is updated
   isDeleted?: boolean;
 
+  /** Admin-only marker; unavailable until the backend supports it. */
+  isTest?: boolean;
   isTrialStarted?: boolean;
   msaUpdatedForDataConsent?: boolean;
   onDemandBudgets?: SubscriptionOnDemandBudgets;
@@ -430,10 +434,6 @@ export type BillingStat = {
   ts: string;
   // TODO(chart-cleanup): Used by v1 only
   isProjected?: boolean;
-  /**
-   * Not present when user does not have the correct role
-   */
-  onDemandCostRunningTotal?: number;
 };
 export type BillingStats = BillingStat[];
 
@@ -661,6 +661,11 @@ type SubscriptionInvoiceItemType = 'subscription';
 type BalanceChangeInvoiceItemType = 'balance_change';
 
 /**
+ * An adjustment that neither the plan nor the usage of a period produces.
+ */
+type OneTimeAdjustmentInvoiceItemType = 'one_time_adjustment';
+
+/**
  * Unknown invoice item type (empty string).
  */
 type UnknownInvoiceItemType = '';
@@ -673,6 +678,7 @@ type StaticInvoiceItemType =
   | UnknownInvoiceItemType
   | SubscriptionInvoiceItemType
   | BalanceChangeInvoiceItemType
+  | OneTimeAdjustmentInvoiceItemType
   | CreditInvoiceItemType
   | FeeInvoiceItemType
   | SeerInvoiceItemType
@@ -718,6 +724,7 @@ export type BillingMetricHistory = {
   softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null;
   usage: number;
   usageExceeded: boolean;
+  isDisabled?: boolean;
   retention?: {downsampled: number | null; standard: number | null};
 };
 
@@ -842,6 +849,8 @@ export type PaymentCreateResponse = {
   clientSecret: string;
   currency: string;
   returnUrl: string;
+  paymentIntentId?: string;
+  requiresAction?: boolean;
 };
 // Response from /organizations/:orgSlug/payments/setup/
 export type PaymentSetupCreateResponse = {
@@ -910,15 +919,6 @@ export type ReservedBudget = {
 export type ReservedBudgetMetricHistory = {
   reservedCpe: number; // in cents
   reservedSpend: number;
-};
-
-export type ReservedBudgetForCategory = {
-  apiName: string;
-  freeBudget: number;
-  prepaidBudget: number;
-  reservedCpe: number; // in cents
-  reservedSpend: number;
-  totalReservedBudget: number;
 };
 
 type PolicyConsent = {

@@ -1,16 +1,19 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconFocus} from '@sentry/icons/focus';
+import {IconLock} from '@sentry/icons/lock';
+import {IconTelescope} from '@sentry/icons/telescope';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getFormat, getFormattedDate} from 'sentry/utils/dates';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getBuildNumber,
@@ -188,7 +191,7 @@ export function SizeCompareSelectedBuilds({
   onTriggerComparison,
 }: SizeCompareSelectedBuildsProps) {
   const organization = useOrganization();
-  const {project: projectId} = useLocationQuery({fields: {project: decodeScalar}});
+  const [projectId] = useQueryState('project', parseAsString.withDefault(''));
   const platform = headBuildDetails.app_info?.platform ?? null;
   const project = ProjectsStore.getById(projectId);
 
@@ -202,9 +205,9 @@ export function SizeCompareSelectedBuilds({
       width="100%"
     >
       <Container minWidth={{zero: '0', xl: 'auto'}} maxWidth={{zero: '100%', xl: 'none'}}>
-        {({className}) => (
+        {props => (
           <BuildButton
-            className={className}
+            {...props}
             buildDetails={headBuildDetails}
             icon={<IconLock size="xs" locked />}
             label={t('Head')}
@@ -220,9 +223,9 @@ export function SizeCompareSelectedBuilds({
           minWidth={{zero: '0', xl: 'auto'}}
           maxWidth={{zero: '100%', xl: 'none'}}
         >
-          {({className}) => (
+          {props => (
             <BuildButton
-              className={className}
+              {...props}
               buildDetails={baseBuildDetails}
               icon={<IconFocus size="xs" variant="accent" />}
               label={t('Base')}

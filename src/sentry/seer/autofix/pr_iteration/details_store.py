@@ -8,38 +8,9 @@ one never locks the run, and two iterations never contend with each other.
 
 from __future__ import annotations
 
-from collections import Counter
-from datetime import datetime
 from typing import Any
 
-from django.db import IntegrityError, router, transaction
-from django.utils import timezone
-
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
-from sentry.utils import metrics
-
-
-def add_iteration(seer_run: SeerRun, data: dict[str, Any]) -> SeerRunPrIteration | None:
-    """Open a row for an iteration, or reset the row left by an abandoned one.
-
-    A unique constraint allows one waiting row for each run. A conflict means
-    the feedback of the waiting row will never run, so this feedback takes the
-    row over. The row's id is the iteration's id.
-    """
-    try:
-        with transaction.atomic(using=router.db_for_write(SeerRunPrIteration)):
-            return SeerRunPrIteration.objects.create(seer_run=seer_run, data=data)
-    except IntegrityError:
-        pass
-
-    metrics.incr("autofix.pr_iteration.details.reset")
-    iteration = untriggered_iteration(seer_run)
-    if iteration is None:
-        # A drain claimed the row between the failed insert and this read.
-        return None
-
-    iteration.update(data=data, date_added=timezone.now())
-    return iteration
 
 
 def get_iteration(seer_run: SeerRun, iteration_id: int) -> SeerRunPrIteration | None:
@@ -83,20 +54,11 @@ def remove_iteration(iteration: SeerRunPrIteration) -> bool:
     return bool(deleted)
 
 
-def count_iterations_before(cutoff: datetime) -> int:
-    """How many rows are untouched since ``cutoff``."""
-    return SeerRunPrIteration.objects.filter(date_updated__lt=cutoff).count()
-
-
-def remove_iterations_before(cutoff: datetime, limit: int) -> dict[bool, int]:
-    """Delete rows untouched since ``cutoff``. Returns how many went, by ``triggered``."""
-    stale = list(
-        SeerRunPrIteration.objects.filter(date_updated__lt=cutoff)
-        .order_by("date_updated")
-        .values_list("id", "triggered")[:limit]
-    )
-    if not stale:
-        return {}
-
-    SeerRunPrIteration.objects.filter(id__in=[row_id for row_id, _ in stale]).delete()
-    return dict(Counter(triggered for _, triggered in stale))
+def remove_unchanged_iteration(iteration: SeerRunPrIteration) -> bool:
+    """Delete one row only if nothing has claimed or written to it since it was read."""
+    deleted, _ = SeerRunPrIteration.objects.filter(
+        id=iteration.id,
+        triggered=iteration.triggered,
+        date_updated=iteration.date_updated,
+    ).delete()
+    return bool(deleted)

@@ -6,7 +6,7 @@
 
 - **Language**: TypeScript
 - **Framework**: React 19
-- **Build Tool**: Rspack (Webpack alternative)
+- **Build Tool**: Rsbuild (powered by Rspack)
 - **Package management**: pnpm
 - **State Management**: Reflux, React Query (TanStack Query)
 - **Styling**: Emotion (CSS-in-JS), Less
@@ -15,7 +15,7 @@
 ## Important Files and Directories
 
 - `package.json`: Node.js dependencies and scripts
-- `rspack.config.ts`: Frontend build configuration
+- `rsbuild.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
 - `oxlint.config.ts`: Oxlint configuration
 - `stylelint.config.js`: CSS/styling linting
@@ -30,7 +30,13 @@
 ### Routing
 
 - Routes defined in `static/app/routes.tsx`
-- Use React Router v6 patterns
+- The app still runs React Router V6; follow V6 routing patterns and behavior.
+- Use V8 import paths: import router APIs and types from `react-router`, and
+  `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
+  runtime through `static/app/utils/reactRouterV6`.
+- Only the compatibility modules may import `react-router-dom` or
+  `@remix-run/router` directly. Keep using Sentry's routing helpers where required.
+  Nuqs adapters and Sentry tracing integrations remain V6.
 - Lazy load route components when possible
 
 ### Frontend API Calls
@@ -93,7 +99,7 @@ Use core primitives from `@sentry/scraps` instead of hand-rolling styled compone
 
 - **Avatars**: use `<UserAvatar/>`/`<TeamAvatar/>`/`<ProjectAvatar/>`/etc. from `static/app/components/core/avatar` (and `<AvatarList>` for lists) — never raw `<img>`.
 - **Disclosure**: use the core `<Disclosure>` component — don't hand-roll expand/collapse.
-- **Icons**: import from `sentry/icons`; keep icons in `static/app/icons`, never inline SVGs. Optimize with svgo/svgomg.
+- **Icons**: import SVG icons from explicit `@sentry/icons` subpaths (for example, `@sentry/icons/add`). Keep SvgIcon-based icons in `static/packages/icons/src`; keep app asset wrappers in `static/app/icons`. The icons package must not depend on scraps or app code. Never inline SVGs. Optimize with svgo/svgomg.
 - **Images**: import via the `sentry-images` alias (webpack loader); keep them in `static/app/images`, never reference by static path.
 
 For worked examples of all of the above, use the **`design-system`** skill.
@@ -104,18 +110,12 @@ Writing or editing frontend tests (`*.spec.tsx`, RTL, `MockApiClient`, routing/n
 
 ## Sentry SDK Instrumentation
 
-Before inventing a key for `Sentry.setTag`/`setContext`, or a span's `setAttribute`, check whether OTel or Sentry already has a standard name for it in `@sentry/conventions`. Reusing a convention name keeps the attribute queryable and consistent with what other producers (SDKs, Relay) already emit for the same concept — a bespoke name fragments the same data across two keys. This mirrors the Python-side rule in the **`backend-conventions`** skill; the two must stay in sync since a frontend and backend span can describe the same request.
+Before inventing a key for `Sentry.setTag`/`setContext`, or a span's `setAttribute`, check whether OTel or Sentry already has a standard name for it in `@sentry/conventions`. Reuse existing names so the same attribute remains queryable across producers such as SDKs and Relay.
 
-The individual name constants (e.g. `USER_AGENT_ORIGINAL`) live at the `/attributes` subpath, not the package root — the root only re-exports the metadata tables: `ATTRIBUTE_METADATA` (the full per-attribute record — brief, type, aliases, deprecation) and `ATTRIBUTE_SEARCH_METADATA` (the descriptions the search-field UI renders, see `static/app/utils/fields/`). Both are a separate concern from the name itself.
+Find attribute name constants in `@sentry/conventions/attributes/search`, where they are prefixed with `SEARCH_`. Use `span.setAttribute` to attach the value with the existing convention name:
 
 ```tsx
-import {USER_AGENT_ORIGINAL} from '@sentry/conventions/attributes';
+import {SEARCH_USER_AGENT__ORIGINAL} from '@sentry/conventions/attributes/search';
 
-// WRONG: inventing a name for a concept the conventions already cover
-span.setAttribute('request_user_agent', navigator.userAgent);
-
-// RIGHT: use the existing convention name
-span.setAttribute(USER_AGENT_ORIGINAL, navigator.userAgent);
+span.setAttribute(SEARCH_USER_AGENT__ORIGINAL, navigator.userAgent);
 ```
-
-These are generated from the OTel semantic conventions plus Sentry's own model — grep `node_modules/@sentry/conventions/dist/attributes.d.ts` for candidate keywords before adding a new one.

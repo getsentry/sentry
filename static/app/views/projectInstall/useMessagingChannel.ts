@@ -3,7 +3,6 @@ import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -48,13 +47,13 @@ type Input = {
   integration: OrganizationIntegration | undefined;
   provider: string | undefined;
   setChannel: (channel?: IntegrationChannel) => void;
-  options?: {refetchOnWindowFocus?: boolean};
   /**
-   * For project creation, identifies the SCM or legacy experience so the
-   * appropriate analytics events are emitted. Omit for flows that do not
-   * emit these events (e.g. the destination picker).
+   * Called when a channel is chosen: `list` for a pick from the loaded
+   * channel list, `typed` for a name the user entered. Clearing the field
+   * does not call it. Callers own the analytics event they fire from it.
    */
-  variant?: 'scm' | 'legacy';
+  onChannelSelected?: (source: 'list' | 'typed') => void;
+  options?: {refetchOnWindowFocus?: boolean};
 };
 
 export type UseMessagingChannelResult = {
@@ -82,7 +81,7 @@ export type UseMessagingChannelResult = {
  *     disambiguate same-named channels)
  *   - Label-upgrade effect: restores raw-id labels to human-readable once the
  *     channel list loads; never touches user-created (channel.new) entries
- *   - onChannelChange / onCreateChannel with optional variant analytics
+ *   - onChannelChange / onCreateChannel with an optional onChannelSelected hook
  *
  */
 export function useMessagingChannel({
@@ -90,7 +89,7 @@ export function useMessagingChannel({
   integration,
   provider,
   setChannel,
-  variant,
+  onChannelSelected,
   options,
 }: Input): UseMessagingChannelResult {
   const organization = useOrganization();
@@ -175,21 +174,13 @@ export function useMessagingChannel({
     onChannelChange: (option: IntegrationChannel | null) => {
       setChannel(option ? {...option, new: false} : undefined);
       clearChannelValidation();
-      if (variant) {
-        trackAnalytics('project_creation.notify_channel_changed', {
-          organization,
-          variant,
-        });
+      if (option) {
+        onChannelSelected?.('list');
       }
     },
     onCreateChannel: (newOption: string) => {
       setChannel({value: newOption, label: newOption, new: true});
-      if (variant) {
-        trackAnalytics('project_creation.notify_channel_changed', {
-          organization,
-          variant,
-        });
-      }
+      onChannelSelected?.('typed');
     },
   };
 }

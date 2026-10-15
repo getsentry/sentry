@@ -1,5 +1,6 @@
-import {useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import {
   Container,
@@ -22,11 +23,13 @@ export function ExploreControlSection({expanded, ...props}: ExploreControlSectio
   return (
     <Container
       as="aside"
+      display={{zero: expanded ? 'block' : 'none', xl: 'block'}}
       padding={expanded ? 'md xl' : '0'}
       borderBottom={expanded ? {zero: 'primary', xl: 'none'} : 'none'}
       borderRight={{zero: 'none', xl: expanded ? 'primary' : 'none'}}
       overflow={expanded ? 'visible' : 'hidden'}
       width={{zero: 'auto', xl: expanded ? '343px' : '0px'}}
+      flexShrink={0}
       {...props}
     />
   );
@@ -51,16 +54,18 @@ export function ExploreFilterSection(props: GridProps) {
   );
 }
 
-function StuckAwareExploreBodySearch(props: React.ComponentProps<typeof Layout.Body>) {
+function StuckAwareExploreBodySearch({
+  ref,
+  ...props
+}: React.ComponentProps<typeof Layout.Body>) {
   const elementRef = useRef<HTMLDivElement>(null);
+  const mergedRef = useMemo(() => mergeRefs(elementRef, ref), [ref]);
   const {pageContentTop} = useTopOffset();
   const isStuck = useIsStuck(elementRef, {
     offset: Number.parseInt(pageContentTop, 10) ?? 0,
   });
 
-  return (
-    <Layout.Body ref={elementRef} data-stuck={isStuck ? '' : undefined} {...props} />
-  );
+  return <Layout.Body ref={mergedRef} data-stuck={isStuck ? '' : undefined} {...props} />;
 }
 
 export const ExploreBodySearch = styled(StuckAwareExploreBodySearch)`

@@ -1,5 +1,4 @@
 import {Fragment, useCallback} from 'react';
-import styled from '@emotion/styled';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
@@ -8,17 +7,19 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
-import type {KeyValueDataContentProps} from 'sentry/components/keyValueData';
-import {KeyValueData} from 'sentry/components/keyValueData';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
+import {
+  KeyValueTableCard,
+  type KeyValueTableDataRowProps,
+} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {SentryAppWebhookRequest} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {decodeWebhookBody} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/decodeWebhookBody';
-import {ResponseCode} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/requestLog';
+import {ResponseCode} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/responseCode';
 
 import {WebhookSubject} from './webhookSubjects';
 
@@ -28,19 +29,22 @@ function BodySection({title, body}: {body: string; title: string}) {
   const {parsed, raw, maybeTruncated} = decodeWebhookBody(body);
 
   return (
-    <BodyCardPanel>
-      <KeyValueData.Title>
-        {title}
-        {maybeTruncated && (
-          <Text variant="muted" size="xs">{` (${t('truncated')})`}</Text>
-        )}
-      </KeyValueData.Title>
+    <KeyValueTableCard
+      title={
+        <Fragment>
+          {title}
+          {maybeTruncated && (
+            <Text variant="muted" size="xs">{` (${t('truncated')})`}</Text>
+          )}
+        </Fragment>
+      }
+    >
       {parsed === null ? (
         <CodeBlock>{raw}</CodeBlock>
       ) : (
         <JsonEventData data={parsed} showCopyButton />
       )}
-    </BodyCardPanel>
+    </KeyValueTableCard>
   );
 }
 
@@ -54,14 +58,13 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
   const {request_body, request_headers, response_body} = request;
   const timeFormat = shouldUse24Hours() ? 'MMM D, YYYY HH:mm:ss z' : 'll LTS z';
 
-  const summaryItems: KeyValueDataContentProps[] = [
+  const summaryItems: KeyValueTableDataRowProps[] = [
     {
       item: {
         key: 'date',
         subject: t('Time'),
         value: <DateTime date={request.date} format={timeFormat} />,
       },
-      disableFormattedData: true,
     },
     {
       item: {
@@ -69,24 +72,19 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
         subject: t('Status Code'),
         value: <ResponseCode code={request.responseCode} />,
       },
-      disableFormattedData: true,
     },
     {
       item: {key: 'eventType', subject: t('Event Type'), value: request.eventType},
-      disableFormattedData: true,
     },
-    ...(request.organization
-      ? [
-          {
-            item: {
-              key: 'organization',
-              subject: t('Organization'),
-              value: request.organization.name,
-            },
-            disableFormattedData: true,
+    request.organization
+      ? {
+          item: {
+            key: 'organization',
+            subject: t('Organization'),
+            value: request.organization.name,
           },
-        ]
-      : []),
+        }
+      : undefined,
     {
       item: {
         key: 'subject',
@@ -100,7 +98,6 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
           />
         ),
       },
-      disableFormattedData: true,
     },
     {
       item: {
@@ -112,11 +109,9 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
           EMPTY_VALUE
         ),
       },
-      disableFormattedData: true,
     },
     {
       item: {key: 'webhookUrl', subject: t('Webhook URL'), value: request.webhookUrl},
-      disableFormattedData: true,
     },
     {
       item: {
@@ -136,28 +131,21 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
           EMPTY_VALUE
         ),
       },
-      disableFormattedData: true,
     },
-    ...(defined(request.error_id)
-      ? [
-          {
-            item: {
-              key: 'errorId',
-              subject: t('Error ID'),
-              value: request.error_id,
-            },
-            disableFormattedData: true,
+    defined(request.error_id)
+      ? {
+          item: {
+            key: 'errorId',
+            subject: t('Error ID'),
+            value: request.error_id,
           },
-        ]
-      : []),
-  ];
+        }
+      : undefined,
+  ].filter(defined);
 
-  const headerItems: KeyValueDataContentProps[] = Object.entries(
+  const headerItems: KeyValueTableDataRowProps[] = Object.entries(
     request_headers ?? {}
-  ).map(([name, value]) => ({
-    item: {key: name, subject: name, value},
-    disableFormattedData: true,
-  }));
+  ).map(([name, value]) => ({item: {key: name, subject: name, value}}));
 
   return (
     <Fragment>
@@ -168,10 +156,18 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
       </DrawerHeader>
       <DrawerBody>
         <Stack gap="xl">
-          <KeyValueData.Card title={t('Summary')} contentItems={summaryItems} />
+          <KeyValueTableCard
+            title={t('Summary')}
+            contentItems={summaryItems}
+            itemProps={{disableFormattedData: true}}
+          />
 
           {headerItems.length > 0 && (
-            <KeyValueData.Card title={t('Request Headers')} contentItems={headerItems} />
+            <KeyValueTableCard
+              title={t('Request Headers')}
+              contentItems={headerItems}
+              itemProps={{disableFormattedData: true}}
+            />
           )}
 
           {request_body && <BodySection title={t('Request Body')} body={request_body} />}
@@ -214,11 +210,3 @@ export function useRequestLogDetailsDrawer({
     [isInternal, openDrawer, organization]
   );
 }
-
-const BodyCardPanel = styled(KeyValueData.CardPanel)`
-  display: block;
-
-  pre {
-    margin: 0;
-  }
-`;

@@ -26,6 +26,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         date_started: datetime,
         chart_url: str | None = None,
         notification_uuid: str | None = None,
+        notes: str | None = None,
     ) -> None:
         """
         Builds an incident attachment when a metric alert fires or is resolved.
@@ -42,6 +43,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self.date_started = date_started
         self.chart_url = chart_url
         self.notification_uuid = notification_uuid
+        self.notes = notes
 
     def build(self) -> SlackBody:
         data = incident_attachment_info(
@@ -56,6 +58,9 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         blocks = [
             self.get_markdown_block(text=incident_text),
         ]
+
+        if self.notes:
+            blocks.append(self.get_markdown_block(text=f"notes: {self.notes}"))
 
         if self.chart_url:
             blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))

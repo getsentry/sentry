@@ -1,8 +1,8 @@
-import {RuleTester} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {namingConvention} from './namingConvention';
 
-const ruleTester = new RuleTester();
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'ts'}}});
 
 ruleTester.run('naming-convention', namingConvention, {
   valid: [

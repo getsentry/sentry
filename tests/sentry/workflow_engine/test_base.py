@@ -126,6 +126,8 @@ class DataConditionHandlerMixin:
         """
 
         class MockDataConditionHandler(DataConditionHandler[int]):
+            comparison_json_schema = {"type": "number"}
+
             @staticmethod
             def evaluate_value(value: Any, comparison: Any) -> Any:
                 return evaluate_value(value, comparison)

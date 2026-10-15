@@ -29,6 +29,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -922,10 +923,14 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     def test_response_differs_on_bot_message(self, _mock_view_updates_open: MagicMock) -> None:
         status_action = self.get_archive_status_action()
         original_message = self.get_original_message(self.group.id)
+        workflow_id = create_notification_origin(self.rule).workflow_id
+        assert workflow_id is not None
+        callback_id = orjson.dumps({"issue": self.group.id, "workflow": workflow_id}).decode()
 
         resp = self.post_webhook_block_kit(
             action_data=[status_action],
             original_message=original_message,
+            callback_id=callback_id,
         )
         assert resp.status_code == 200, resp.content
 
@@ -940,11 +945,13 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
+        assert private_metadata["workflow"] == workflow_id
 
         resp = self.post_webhook_block_kit(
             type="view_submission",
             private_metadata=orjson.dumps(private_metadata).decode(),
             selected_option="ignored:archived_forever",
+            callback_id="",
         )
         assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
@@ -953,6 +960,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.substatus == GroupSubStatus.FOREVER
 
         blocks = self.mock_post.call_args.kwargs["blocks"]
+        assert orjson.loads(blocks[0]["block_id"])["workflow"] == workflow_id
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in blocks[1]["text"]["text"]
@@ -1228,10 +1236,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert "alert_rule_id" not in blocks[0]["text"]["text"]
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
-    def test_rule_from_same_organization_is_used(self, mock_tags: MagicMock) -> None:
-        """
-        Ensure scoping the rule lookup by organization does not break the same-org case
-        """
+    def test_rule_from_same_organization_resolves_workflow(self, mock_tags: MagicMock) -> None:
         status_action = self.get_mark_ongoing_action()
         original_message = self.get_original_message(self.group.id)
         callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
@@ -1244,7 +1249,80 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
 
         blocks = self.mock_post.call_args.kwargs["blocks"]
-        assert f"alert_rule_id={self.rule.id}" in blocks[0]["text"]["text"]
+        workflow_id = create_notification_origin(self.rule).workflow_id
+        assert workflow_id is not None
+        assert f"workflow_id={workflow_id}" in blocks[0]["text"]["text"]
+
+    @patch("sentry.utils.metrics.backend.inner.incr")
+    def test_rule_lookup_metric_without_rule(self, metrics_incr: MagicMock) -> None:
+        callback_id = orjson.dumps({"issue": self.group.id}).decode()
+
+        response = self.post_webhook_block_kit(
+            action_data=[self.get_mark_ongoing_action()],
+            original_message=self.get_original_message(self.group.id),
+            callback_id=callback_id,
+        )
+
+        assert response.status_code == 200
+        metric_call = next(
+            call
+            for call in metrics_incr.call_args_list
+            if call.args[0] == "integrations.slack.action.rule_lookup"
+        )
+        assert metric_call.args[2] == {
+            "has_rule": False,
+            "has_workflow": False,
+            "lookup_succeeded": False,
+        }
+
+    @patch("sentry.utils.metrics.backend.inner.incr")
+    def test_rule_lookup_metric_with_rule(self, metrics_incr: MagicMock) -> None:
+        callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
+
+        response = self.post_webhook_block_kit(
+            action_data=[self.get_mark_ongoing_action()],
+            original_message=self.get_original_message(self.group.id),
+            callback_id=callback_id,
+        )
+
+        assert response.status_code == 200
+        metric_call = next(
+            call
+            for call in metrics_incr.call_args_list
+            if call.args[0] == "integrations.slack.action.rule_lookup"
+        )
+        assert metric_call.args[2] == {
+            "has_rule": True,
+            "has_workflow": False,
+            "lookup_succeeded": True,
+        }
+
+    @patch("sentry.utils.metrics.backend.inner.incr")
+    def test_rule_lookup_metric_when_rule_is_missing(self, metrics_incr: MagicMock) -> None:
+        workflow_id = 123
+        callback_id = orjson.dumps(
+            {"issue": self.group.id, "rule": 999_999_999, "workflow": workflow_id}
+        ).decode()
+
+        response = self.post_webhook_block_kit(
+            action_data=[self.get_mark_ongoing_action()],
+            original_message=self.get_original_message(self.group.id),
+            callback_id=callback_id,
+        )
+
+        assert response.status_code == 200
+        metric_call = next(
+            call
+            for call in metrics_incr.call_args_list
+            if call.args[0] == "integrations.slack.action.rule_lookup"
+        )
+        assert metric_call.args[2] == {
+            "has_rule": True,
+            "has_workflow": True,
+            "lookup_succeeded": False,
+        }
+        blocks = self.mock_post.call_args.kwargs["blocks"]
+        assert orjson.loads(blocks[0]["block_id"])["workflow"] == workflow_id
 
     @patch(
         "sentry.integrations.slack.requests.SlackRequest._check_signing_secret", return_value=True

@@ -85,7 +85,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         self.evidence_data = MetricIssueEvidenceData(
             value=123.45,
             detector_id=self.detector.id,
-            data_packet_source_id=int(self.data_source.source_id),
+            data_packet_source_id=self.data_source.source_id,
             conditions=[
                 {
                     "id": 1,
@@ -120,7 +120,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         self.anomaly_detection_evidence_data = MetricIssueEvidenceData(
             value=anomaly_detection_result,
             detector_id=self.detector.id,
-            data_packet_source_id=int(self.data_source.source_id),
+            data_packet_source_id=self.data_source.source_id,
             conditions=[
                 {
                     "id": 1,
@@ -199,6 +199,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None,
         sentry_app_id: str | None = None,
         target_type: ActionTarget | None = None,
+        notes: str | None = None,
     ):
         assert asdict(notification_context) == {
             "id": notification_context.id,
@@ -208,6 +209,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "sentry_app_config": sentry_app_config,
             "sentry_app_id": sentry_app_id,
             "target_type": target_type,
+            "notes": notes,
         }
 
     def assert_alert_context(
@@ -314,6 +316,17 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
                 workflow_id=self.workflow.id,
             )
             self.handler.invoke_legacy_registry(invocation)
+
+    def test_metric_issue_context_allows_missing_metric_value(self) -> None:
+        evidence_data = MetricIssueEvidenceData(**{**asdict(self.evidence_data), "value": None})
+
+        context = MetricIssueContext.from_group_event(
+            self.group,
+            evidence_data,
+            DetectorPriorityLevel.HIGH,
+        )
+
+        assert context.metric_value is None
 
     def test_get_incident_status(self) -> None:
         # Initial priority is high -> incident is critical

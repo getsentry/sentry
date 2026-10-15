@@ -367,8 +367,7 @@ describe('rawTrackAnalyticsEvent', () => {
     );
 
     expect(trackMarketingEvent).toHaveBeenCalledWith(
-      'Growth: Onboarding Clicked Need Help',
-      {plan: 'am1_f'}
+      'Growth: Onboarding Clicked Need Help'
     );
   });
   it('sets previous_referrer', () => {

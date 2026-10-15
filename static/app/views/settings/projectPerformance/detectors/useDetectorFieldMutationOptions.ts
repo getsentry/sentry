@@ -58,18 +58,14 @@ export function useDetectorFieldMutationOptions({
       const previousData = queryClient.getQueryData(queryOptions.queryKey);
 
       queryClient.setQueryData(queryOptions.queryKey, previous =>
-        previous
-          ? {json: {...previous.json, ...variables}, headers: previous.headers}
-          : previous
+        previous ? {...previous, json: {...previous.json, ...variables}} : previous
       );
 
       return {previousData};
     },
     onSuccess: (data, variables) => {
       queryClient.setQueryData(queryOptions.queryKey, previous =>
-        previous
-          ? {json: {...previous.json, ...data}, headers: previous.headers}
-          : previous
+        previous ? {...previous, json: {...previous.json, ...data}} : previous
       );
 
       const [thresholdKey, thresholdValue] = Object.entries(variables)[0] ?? [];

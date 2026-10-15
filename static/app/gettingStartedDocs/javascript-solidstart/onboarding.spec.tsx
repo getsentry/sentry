@@ -24,7 +24,7 @@ describe('javascript-solidstart onboarding docs', () => {
       screen.getAllByText(textWithMarkupMatcher(/src\/entry-client\.tsx/)).length
     ).toBeGreaterThanOrEqual(1);
     expect(
-      screen.getAllByText(textWithMarkupMatcher(/public\/instrument\.server\.mjs/)).length
+      screen.getAllByText(textWithMarkupMatcher(/src\/instrument\.server\.ts/)).length
     ).toBeGreaterThanOrEqual(1);
   });
 

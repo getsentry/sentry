@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {AnsiText} from 'sentry/components/ansiText';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {Timeline} from 'sentry/components/timeline';
@@ -13,6 +14,7 @@ import {
   type BreadcrumbTypeNavigation,
   type RawCrumb,
 } from 'sentry/types/breadcrumbs';
+import {hasAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {defined} from 'sentry/utils/defined';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
@@ -44,7 +46,15 @@ export function BreadcrumbItemContent({
 
   const defaultMessage = defined(bc.message) ? (
     <BreadcrumbText>
-      <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
+      {!meta?.message && hasAnsi(bc.message) ? (
+        <AnsiText>{bc.message}</AnsiText>
+      ) : (
+        <StructuredData
+          value={bc.message}
+          meta={meta?.message}
+          {...structuredDataProps}
+        />
+      )}
     </BreadcrumbText>
   ) : null;
 
@@ -206,7 +216,8 @@ function ExceptionCrumbContent({
     <Fragment>
       <BreadcrumbText>
         {type ? type : null}
-        {type && hasValue ? `: ${formattedValue}` : hasValue ? formattedValue : null}
+        {type && hasValue ? ': ' : null}
+        {hasValue ? <AnsiText>{formattedValue}</AnsiText> : null}
       </BreadcrumbText>
       {children}
       {Object.keys(otherData).length > 0 ? (

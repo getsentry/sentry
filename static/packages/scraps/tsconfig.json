@@ -1,0 +1,17 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@emotion/react",
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": [],
+    "paths": {"@sentry/scraps/*": ["./src/*"]}
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.spec.tsx"]
+}

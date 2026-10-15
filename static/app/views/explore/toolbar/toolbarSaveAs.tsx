@@ -1,9 +1,12 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 import * as Sentry from '@sentry/react';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {LinkButton} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {Container, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   addErrorMessage,
@@ -12,16 +15,15 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {parseFunction, prettifyParsedFunction} from 'sentry/utils/discover/fields';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
+import {encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -292,19 +294,18 @@ export function ToolbarSaveAs() {
         <DropdownMenu
           items={items}
           trigger={triggerProps => (
-            <SaveAsButton
-              {...triggerProps}
-              variant="primary"
-              aria-label={t('Save as')}
-              onClick={e => {
-                e.stopPropagation();
-                e.preventDefault();
-
-                triggerProps.onClick?.(e);
-              }}
-            >
-              {shouldHighlightSaveButton ? t('Save') : t('Save as')}
-            </SaveAsButton>
+            <Container width="100%">
+              {containerProps => (
+                <OverlayTrigger.Button
+                  {...mergeProps(triggerProps, containerProps)}
+                  showChevron={false}
+                  variant="primary"
+                  aria-label={t('Save as')}
+                >
+                  {shouldHighlightSaveButton ? t('Save') : t('Save as')}
+                </OverlayTrigger.Button>
+              )}
+            </Container>
           )}
         />
 
@@ -355,8 +356,4 @@ const DisabledText = styled('span')`
 export const SaveStyledToolbarSection = styled(ToolbarSection)`
   border-top: 1px solid ${p => p.theme.tokens.border.primary};
   padding-top: ${p => p.theme.space['2xl']};
-`;
-
-const SaveAsButton = styled(Button)`
-  width: 100%;
 `;

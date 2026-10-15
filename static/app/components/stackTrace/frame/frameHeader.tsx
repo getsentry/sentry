@@ -202,10 +202,7 @@ function FrameLocationTooltip({
 }) {
   const externalUrl =
     frame.absPath && isValidUrl(frame.absPath) ? frame.absPath : undefined;
-  const absPath =
-    frame.absPath && frame.absPath !== frameDisplayPath && !externalUrl
-      ? frame.absPath
-      : undefined;
+  const absPath = externalUrl ? undefined : frame.absPath || frameDisplayPath;
   const sourceMap = frame.mapUrl ?? frame.map;
   const showSourceMap = !!frame.origAbsPath && !!sourceMap;
 
@@ -217,7 +214,7 @@ function FrameLocationTooltip({
         <TooltipContent>
           {absPath ? (
             <Fragment>
-              <strong>{t('Absolute Path')}</strong>
+              <strong>{frame.absPath ? t('Absolute Path') : t('Path')}</strong>
               <span>{absPath}</span>
             </Fragment>
           ) : null}

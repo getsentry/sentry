@@ -143,7 +143,9 @@ describe('Relocations', () => {
     expect(await screen.findByRole('heading', {name: 'Relocations'})).toBeInTheDocument();
 
     // UUIDs
-    expect(screen.getByText('d39f84fc-554a-4d7d-95b7-78f983bcba73')).toBeInTheDocument();
+    expect(
+      await screen.findByText('d39f84fc-554a-4d7d-95b7-78f983bcba73')
+    ).toBeInTheDocument();
     expect(screen.getByText('008e5820-31bd-45d5-83df-3a8c8b971ebc')).toBeInTheDocument();
     expect(screen.getByText('589376f2-ab6a-4476-abed-81f0a26446d6')).toBeInTheDocument();
     expect(screen.getByText('9f14e990-dd8d-4f45-b759-a8982692e530')).toBeInTheDocument();

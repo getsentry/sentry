@@ -1,5 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -7,6 +9,7 @@ import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -16,7 +19,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {ActionCell} from 'sentry/components/workflowEngine/gridCell/actionCell';
 import {AutomationTitleCell} from 'sentry/components/workflowEngine/gridCell/automationTitleCell';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
-import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -51,7 +53,7 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
           <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="action-filters">
+          <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
@@ -59,6 +61,11 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
     </Fragment>
   );
 }
+
+const AUTOMATIONS_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: '1fr'},
+  {key: 'action-filters', width: {zero: '120px', sm: '180px'}},
+];
 
 function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
   const getPaginationCaption = useGetPaginationCaption();
@@ -95,13 +102,12 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
         });
 
   const table = (
-    <SimpleTableWithColumns
+    <SimpleTable
+      columns={AUTOMATIONS_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="action-filters">
-            {t('Actions')}
-          </SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Actions')}</SimpleTable.HeaderCell>
         </SimpleTable.HeaderRow>
       }
     >
@@ -121,12 +127,12 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
             <SimpleTable.RowCell>
               <AutomationTitleCell automation={automation} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell data-column-name="action-filters">
+            <SimpleTable.RowCell>
               <ActionCell actions={getAutomationActions(automation)} />
             </SimpleTable.RowCell>
           </SimpleTable.Row>
         ))}
-    </SimpleTableWithColumns>
+    </SimpleTable>
   );
 
   return (
@@ -318,14 +324,6 @@ export function DetectorDetailsAutomations({detector}: Props) {
     </Fragment>
   );
 }
-
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 180px;
-
-  @container (max-width: ${p => p.theme.container.sm}) {
-    grid-template-columns: 1fr 120px;
-  }
-`;
 
 const InlineProjectName = styled(Flex)`
   vertical-align: bottom;

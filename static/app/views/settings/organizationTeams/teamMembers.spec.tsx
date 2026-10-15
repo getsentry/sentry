@@ -377,7 +377,9 @@ describe('TeamMembers', () => {
     expect(
       (await screen.findAllByRole('button', {name: 'Add Member'})).at(0)
     ).toBeDisabled();
-    expect((await screen.findAllByRole('button', {name: 'Remove'})).at(0)).toBeDisabled();
+    expect(
+      (await screen.findAllByRole('button', {name: 'Remove'})).at(0)
+    ).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('can add or remove members if non-idp team', async () => {

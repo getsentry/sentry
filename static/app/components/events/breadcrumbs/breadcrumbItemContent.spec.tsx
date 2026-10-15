@@ -143,6 +143,49 @@ describe('BreadcrumbItemContent', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders colored text without escape codes for ANSI messages', () => {
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.DEBUG,
+      level: BreadcrumbLevelType.INFO,
+      message: '\x1B[31mfailed\x1B[0m to connect',
+    };
+    const {container} = render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    expect(container).toHaveTextContent(/^failed to connect$/);
+    expect(screen.getByText('failed').style.color).toContain('color-mix(in srgb,');
+  });
+
+  it('renders colored text without escape codes for ANSI exception values', () => {
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.ERROR,
+      level: BreadcrumbLevelType.ERROR,
+      data: {type: 'ConnectionError', value: '\x1B[31mfailed\x1B[0m to connect'},
+    };
+    const {container} = render(<BreadcrumbItemContent breadcrumb={breadcrumb} />);
+    expect(container).toHaveTextContent(/^ConnectionError: failed to connect$/);
+    expect(screen.getByText('failed').style.color).toContain('color-mix(in srgb,');
+  });
+
+  it('renders annotated text for ANSI messages with meta', () => {
+    const breadcrumb: BreadcrumbTypeDefault = {
+      type: BreadcrumbType.DEBUG,
+      level: BreadcrumbLevelType.INFO,
+      message: '\x1B[31mfailed\x1B[0m to connect to [Filtered]',
+    };
+    const meta = {
+      message: {
+        '': {
+          chunks: [
+            {type: 'text', text: '\x1B[31mfailed\x1B[0m to connect to '},
+            {type: 'redaction', text: '[Filtered]', rule_id: '@password', remark: 's'},
+          ],
+        },
+      },
+    };
+    render(<BreadcrumbItemContent breadcrumb={breadcrumb} meta={meta} />);
+    expect(screen.getByText('[Filtered]')).toBeInTheDocument();
+    expect(screen.queryByText('failed')).not.toBeInTheDocument();
+  });
+
   it('applies item limits with fullyExpanded', () => {
     const longMessage = 'longMessage'.repeat(100);
     const breadcrumb: BreadcrumbTypeDefault = {

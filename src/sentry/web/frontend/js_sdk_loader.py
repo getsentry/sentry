@@ -285,7 +285,8 @@ class JavaScriptSdkLoader(View):
         if loader_config["userEnabledFeedback"]:
             config["autoInjectFeedback"] = True
 
-        if loader_config["userEnabledLogsAndMetrics"]:
+        # v11 removed enableLogs; logging APIs and integrations enable logs by usage.
+        if loader_config["userEnabledLogsAndMetrics"] and sdk_version.major < 11:
             config["enableLogs"] = True
 
         return (

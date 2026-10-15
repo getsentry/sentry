@@ -105,6 +105,7 @@ function useTokenValidation(
   // left the token.
   useEffect(() => {
     if (!isActive && !hasLeft) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setHasLeft(true);
     }
   }, [hasLeft, isActive]);
@@ -150,7 +151,7 @@ function FilterToken({
     <Tooltip
       disabled={!showTooltip}
       title={filter.invalid?.reason ?? filter.warning}
-      overlayStyle={{maxWidth: '350px'}}
+      maxWidth={350}
       forceVisible
       skipWrapper
     >
@@ -186,7 +187,7 @@ function FreeTextToken({
     <Tooltip
       disabled={!showTooltip}
       title={token.invalid?.reason}
-      overlayStyle={{maxWidth: '350px'}}
+      maxWidth={350}
       forceVisible
       skipWrapper
     >
@@ -210,7 +211,7 @@ function LogicalBooleanToken({
     <Tooltip
       disabled={!showTooltip}
       title={token.invalid?.reason}
-      overlayStyle={{maxWidth: '350px'}}
+      maxWidth={350}
       forceVisible
       skipWrapper
     >

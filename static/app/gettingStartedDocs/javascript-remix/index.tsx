@@ -1,9 +1,9 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/javascript/agentMonitoring';
 import {featureFlag} from 'sentry/gettingStartedDocs/javascript/featureFlag';
 import {logsFullStack} from 'sentry/gettingStartedDocs/javascript/logs';
 import {metricsFullStack} from 'sentry/gettingStartedDocs/javascript/metrics';
 import {profilingFullStack} from 'sentry/gettingStartedDocs/javascript/profiling';
+import {agentMonitoring} from 'sentry/gettingStartedDocs/node/agentMonitoring';
 
 import {crashReport} from './crashReport';
 import {feedback} from './feedback';
@@ -30,8 +30,7 @@ export const docs: Docs = {
   }),
   agentMonitoringOnboarding: agentMonitoring({
     packageName: '@sentry/remix',
-    clientConfigFileName: 'entry.client.tsx',
-    serverConfigFileName: 'instrument.server.mjs',
+    configFileName: 'instrument.server.mjs',
   }),
   logsOnboarding: logsFullStack({
     docsPlatform: 'remix',

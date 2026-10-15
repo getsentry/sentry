@@ -287,24 +287,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
       'We\u2019ll update any changes you make to your CODEOWNERS files during a release.'
     ),
   },
-  'autofix-agent.agentOption': {
-    name: 'agentOption',
-    formId: 'autofix-agent',
-    route: '/settings/:orgId/projects/:projectId/seer',
-    label: t('Handoff to Agent'),
-    hintText: t(
-      'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. Manage Coding Agents.'
-    ),
-  },
-  'autofix-agent.stoppingPoint': {
-    name: 'stoppingPoint',
-    formId: 'autofix-agent',
-    route: '/settings/:orgId/projects/:projectId/seer',
-    label: t('Automation Steps'),
-    hintText: t(
-      'Choose which steps Seer should run automatically on issues. Depending on how actionable the issue is, Seer may stop at an earlier step.'
-    ),
-  },
   'project-user-feedback.feedback:branding': {
     name: 'feedback:branding',
     formId: 'project-user-feedback',
@@ -335,13 +317,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     formId: 'project-toolbar',
     route: '/settings/:orgId/projects/:projectId/toolbar/',
     label: t('Allowed Origins'),
-    hintText: '',
-  },
-  'project-filters-settings.filters:blacklisted_ips': {
-    name: 'filters:blacklisted_ips',
-    formId: 'project-filters-settings',
-    route: '/settings/:orgId/projects/:projectId/filters/',
-    label: t('IP Addresses'),
     hintText: '',
   },
   'project-filters-settings.filters:releases': {
@@ -396,6 +371,13 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     hintText: t(
       "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
     ),
+  },
+  'project-filters-settings.filters:blacklisted_ips': {
+    name: 'filters:blacklisted_ips',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('IP Addresses'),
+    hintText: '',
   },
   'project-security-and-privacy.storeCrashReports': {
     name: 'storeCrashReports',
@@ -473,6 +455,15 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Create Hydration Error Issues'),
     hintText: t(
       'Toggles whether or not to create Session Replay Hydration Error Issues during replay ingest. Using inbound filters to filter out hydration errors does not affect this setting.'
+    ),
+  },
+  'project-logs.sentry:relay_automatic_json_expansion': {
+    name: 'sentry:relay_automatic_json_expansion',
+    formId: 'project-logs',
+    route: '/settings/:orgId/projects/:projectId/logs/',
+    label: t('Expand JSON Attributes'),
+    hintText: t(
+      'Object attributes are sent as strings. Turn this on to expand them into nested attributes you can search on. Only applies to logs received after this is enabled.'
     ),
   },
   'csp.sentry:csp_ignored_sources_defaults': {
@@ -729,6 +720,24 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Secret'),
     hintText: t(
       'Paste the signing secret given by your provider when creating the webhook.'
+    ),
+  },
+  'autofix-agent.agentOption': {
+    name: 'agentOption',
+    formId: 'autofix-agent',
+    route: '/settings/:orgId/projects/:projectId/seer',
+    label: t('Handoff to Agent'),
+    hintText: t(
+      'Select your preferred agent to create a plan, and code up an issue fix. Seer Agent will always be used for the Root Cause Analysis step. Manage Coding Agents.'
+    ),
+  },
+  'autofix-agent.stoppingPoint': {
+    name: 'stoppingPoint',
+    formId: 'autofix-agent',
+    route: '/settings/:orgId/projects/:projectId/seer',
+    label: t('Automation Steps'),
+    hintText: t(
+      'Choose which steps Seer should run automatically on issues. Depending on how actionable the issue is, Seer may stop at an earlier step.'
     ),
   },
 };

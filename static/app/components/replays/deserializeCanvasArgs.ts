@@ -2,8 +2,8 @@
  * Taken from https://github.com/rrweb-io/rrweb/blob/master/packages/rrweb/src/replay/canvas/deserialize-args.ts
  * Modified to limit support to only canvas snapshots (rather than draw commands)
  */
-import type {Replayer} from '@sentry-internal/rrweb';
-import type {CanvasArg} from '@sentry-internal/rrweb-types';
+import type {Replayer} from '@sentry/rrweb';
+import type {CanvasArg} from '@sentry/rrweb-types';
 import {decode} from 'base64-arraybuffer';
 
 // TODO: add ability to wipe this list

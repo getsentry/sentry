@@ -20,6 +20,7 @@ export function useDeferredSessionStorage<T>(key: string | null, initialValue: T
 
   const keyRef = useRef(key);
   const valueRef = useRef(value);
+  // oxlint-disable-next-line react/refs
   valueRef.current = value;
 
   // Flush to storage and update value on key change

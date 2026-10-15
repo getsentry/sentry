@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconBug} from '@sentry/icons/bug';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
@@ -12,7 +13,6 @@ import {Text} from '@sentry/scraps/text';
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconBug} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
@@ -37,13 +37,13 @@ export function AutofixStartCard({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
-  const [enableBashTools] = useForceBashMode();
+  const [enableBashMode] = useForceBashMode();
 
   const [startingRun, setStartingRun] = useState(false);
   const handleStartRootCause = async () => {
     setStartingRun(true);
     try {
-      await startStep('root_cause', {enableBashTools: enableBashTools || undefined});
+      await startStep('root_cause', {enableBashMode: enableBashMode || undefined});
     } catch {
       return;
     } finally {
@@ -94,7 +94,7 @@ export function AutofixStartCardContent() {
         justify="end"
         align="center"
         aspectRatio="9 / 16"
-        height={{'screen:2xs': '78px', 'screen:lg': '98px'}}
+        height={{zero: '78px', '4xl': '98px'}}
       >
         <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
       </ImageContainer>

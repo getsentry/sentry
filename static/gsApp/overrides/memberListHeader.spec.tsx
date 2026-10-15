@@ -6,6 +6,8 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+
 import MemberListHeader from 'getsentry/overrides/memberListHeader';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
@@ -28,9 +30,9 @@ describe('MemberListHeader', () => {
     canTrial: false,
     plan: 'am1_f',
   });
-  SubscriptionStore.set(organization.slug, sub);
 
   beforeEach(() => {
+    SubscriptionStore.set(organization.slug, sub);
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
       query: {tier: 'upsell'},
@@ -38,10 +40,33 @@ describe('MemberListHeader', () => {
     });
   });
 
+  it('does not render a loading indicator while waiting for the subscription', async () => {
+    SubscriptionStore.init();
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      body: sub,
+    });
+
+    render(
+      <MemberListHeader
+        organization={organization}
+        members={[disabledMember, enabledMember]}
+      />,
+      {additionalWrapper: SimpleTable}
+    );
+
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    expect(
+      await screen.findByText('Multiple members requires Team Plan or above')
+    ).toBeInTheDocument();
+  });
+
   it('show upgrade if disabled member', async () => {
     const members = [disabledMember, enabledMember];
 
-    render(<MemberListHeader organization={organization} members={members} />);
+    render(<MemberListHeader organization={organization} members={members} />, {
+      additionalWrapper: SimpleTable,
+    });
 
     expect(
       await screen.findByText('Multiple members requires Team Plan or above')
@@ -54,7 +79,9 @@ describe('MemberListHeader', () => {
   it('do not show upgrade if no disabled member', async () => {
     const members = [enabledMember];
 
-    render(<MemberListHeader organization={organization} members={members} />);
+    render(<MemberListHeader organization={organization} members={members} />, {
+      additionalWrapper: SimpleTable,
+    });
 
     await act(tick);
     expect(

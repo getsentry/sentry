@@ -6,6 +6,7 @@ export const DEBUG_SOURCE_LAYOUTS = {
   unified: 'Unified Symbol Server Layout',
   debuginfod: 'debuginfod',
   slashsymbols: '/symbols',
+  nxsymstore: 'Nintendo NXSymStore',
 } as const;
 
 export const DEBUG_SOURCE_CASINGS = {
@@ -40,6 +41,7 @@ export const AWS_REGIONS = [
 ] as const;
 
 export const DEBUG_SOURCE_TYPES = {
+  azure: 'Azure Blob Storage',
   gcs: 'Google Cloud Storage',
   http: 'SymbolServer (HTTP)',
   s3: 'Amazon S3',

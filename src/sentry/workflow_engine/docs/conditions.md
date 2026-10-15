@@ -249,7 +249,13 @@ placement is a convention-only invariant.
 ## Detectors
 
 A [`Detector`](../models/detector.py) represents configured detection. A runtime handler
-is selected through the detector type's [`DetectorSettings`](../types.py).
+is selected through the [`DetectorSettings`](../types.py) registered for the detector
+type in [`detector_settings_registry`](../registry.py).
+
+Handlers that inherit `DetectorHandler` without overriding `evaluate` use the
+[default stateless evaluation](adding-detectors.md#default-stateless-evaluation). It
+selects a priority the same way as the stateful path below and discards slow conditions
+the same way, but it has no dedupe or thresholds and produces no output for `OK`.
 
 The common stateful path is
 [`StatefulDetectorHandler.evaluate`](../handlers/detector/stateful.py):
@@ -282,9 +288,9 @@ Detector-specific consequences:
   `process_detectors` publishes only after handler evaluation returns. A failure after
   state commit but before publication can cause a retry to be skipped by dedupe.
 
-The output enters Issue Platform through
-[`create_issue_platform_payload`](../processors/detector.py). Workflows run later from
-the resulting issue event; they are not part of the detector state transaction.
+The default `on_complete` callback enters Issue Platform through
+[`IssuePlatformOutcomeHandler`](../handlers/detector_outcome/issue_platform.py). Workflows
+run later from the resulting issue event; they are not part of the detector state transaction.
 
 ## Workflows
 
@@ -514,13 +520,8 @@ condition handler alone cannot add detector packet data or detector-specific API
 
 These are separate decisions, not part of backend registration.
 
-For legacy issue-alert compatibility, add forward and reverse translations in:
-
-- [`migration_helpers/issue_alert_conditions.py`](../migration_helpers/issue_alert_conditions.py)
-- [`migration_helpers/rule_conditions.py`](../migration_helpers/rule_conditions.py)
-
-A native-only condition without reverse translation can disappear from a legacy
-rule-shaped response.
+For legacy issue-alert compatibility, add a forward translation in
+[`migration_helpers/issue_alert_conditions.py`](../migration_helpers/issue_alert_conditions.py).
 
 For the automation builder, add the matching frontend enum and node implementation in a
 separate frontend PR:
@@ -545,24 +546,24 @@ have explicit frontend nodes, defaults, details, and validation.
 | Add slow condition                  | `SLOW_CONDITIONS`, `event_frequency_query_handlers.py`, delayed query/result code, delayed processor tests |
 | Change API validation               | `endpoints/validators/base/data_condition.py` and group/Detector/Workflow validators                       |
 | Change availability metadata        | `endpoints/organization_data_condition_index.py` and handler serializer                                    |
-| Add legacy compatibility            | `migration_helpers/issue_alert_conditions.py`, `migration_helpers/rule_conditions.py`                      |
+| Add legacy compatibility            | `migration_helpers/issue_alert_conditions.py`                                                              |
 | Add automation UI                   | Frontend condition enum, node registry, editor/details components, frontend tests                          |
 
 ## Conventions and Invariants
 
-| Rule                                                                                       | Enforcement                                                                        |
-| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
-| Enum value, decorator key, stored `type`, and frontend enum use the same snake_case string | Convention only across backend/frontend                                            |
-| A handler is imported before validation or evaluation                                      | Enforced only by startup wiring and tests                                          |
-| Handler placement matches `handler.group`                                                  | Convention/UI discovery only; generic backend validation does not enforce it       |
-| Handler `subgroup` changes only UI organization                                            | UI serialization/rendering; evaluation does not inspect it                         |
-| Detector conditions produce valid priorities                                               | Enforced by Detector API validators; not fully enforced by direct model saves      |
-| Workflow conditions use gate-like results, conventionally stored `True`                    | Convention; runtime checks non-`None`, not boolean type                            |
-| Detector trigger conditions are fast                                                       | Convention required by `StatefulDetectorHandler`; remaining slow work is discarded |
-| Comparison and result schemas reject unknown shapes                                        | Enforced only when handlers define strict schemas and callers use API validation   |
-| Organization-owned IDs are scoped in `validate_comparison` and `render_label`              | Handler responsibility; not inferred by the framework                              |
-| Group-role records are not reused across Detector, WHEN, and IF relations                  | Convention; no cross-role database constraint                                      |
-| Slow/percent/trigger/legacy behavior is added to the corresponding manual list             | Convention plus focused tests                                                      |
-| Actions are interpreted through `.triggered`, not result truthiness                        | Runtime contract in evaluation objects                                             |
-| Handler generic input matches the value passed at its placement                            | Static annotation and convention; runtime dispatch does not check it               |
-| Direct non-boolean handler results use the expected semantic type                          | Static annotation and focused tests; runtime accepts the broader result union      |
+| Rule                                                                                       | Enforcement                                                                           |
+| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Enum value, decorator key, stored `type`, and frontend enum use the same snake_case string | Convention only across backend/frontend                                               |
+| A handler is imported before validation or evaluation                                      | Enforced only by startup wiring and tests                                             |
+| Handler placement matches `handler.group`                                                  | Convention/UI discovery only; generic backend validation does not enforce it          |
+| Handler `subgroup` changes only UI organization                                            | UI serialization/rendering; evaluation does not inspect it                            |
+| Detector conditions produce valid priorities                                               | Enforced by Detector API validators; not fully enforced by direct model saves         |
+| Workflow conditions use gate-like results, conventionally stored `True`                    | Convention; runtime checks non-`None`, not boolean type                               |
+| Detector trigger conditions are fast                                                       | Convention required by `DetectorHandler` evaluation; remaining slow work is discarded |
+| Comparison and result schemas reject unknown shapes                                        | Enforced only when handlers define strict schemas and callers use API validation      |
+| Organization-owned IDs are scoped in `validate_comparison` and `render_label`              | Handler responsibility; not inferred by the framework                                 |
+| Group-role records are not reused across Detector, WHEN, and IF relations                  | Convention; no cross-role database constraint                                         |
+| Slow/percent/trigger/legacy behavior is added to the corresponding manual list             | Convention plus focused tests                                                         |
+| Actions are interpreted through `.triggered`, not result truthiness                        | Runtime contract in evaluation objects                                                |
+| Handler generic input matches the value passed at its placement                            | Static annotation and convention; runtime dispatch does not check it                  |
+| Direct non-boolean handler results use the expected semantic type                          | Static annotation and focused tests; runtime accepts the broader result union         |

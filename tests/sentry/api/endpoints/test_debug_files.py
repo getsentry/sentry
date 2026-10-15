@@ -548,9 +548,7 @@ class SourceMapsEndpointTest(APITestCase):
         assert response.data["error"] == "You can either sort via 'date_added' or '-date_added'"
 
     def test_source_maps_delete_archive(self) -> None:
-        release = Release.objects.create(
-            organization_id=self.project.organization_id, version="1", id=1
-        )
+        release = Release.objects.create(organization_id=self.project.organization_id, version="1")
         release.add_project(self.project)
 
         ReleaseFile.objects.create(

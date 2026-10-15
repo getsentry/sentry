@@ -118,6 +118,9 @@ describe('ProfileChunkAttachmentsButton', () => {
       initialRouterConfig: routerConfig,
     });
 
-    expect(await screen.findByRole('button', {name: 'Download'})).toBeDisabled();
+    expect(await screen.findByRole('button', {name: 'Download'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 });

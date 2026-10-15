@@ -36,15 +36,19 @@ export default function GettingStarted() {
   // redirect below is only for projects that were never found.
   const lastFoundProjectRef = useRef<Project | undefined>(undefined);
   if (projectInStore) {
+    // oxlint-disable-next-line react/refs
     lastFoundProjectRef.current = projectInStore;
   }
   const project =
     projectInStore ??
+    // oxlint-disable-next-line react/refs
     (lastFoundProjectRef.current?.slug === params.projectId
-      ? lastFoundProjectRef.current
+      ? // oxlint-disable-next-line react/refs
+        lastFoundProjectRef.current
       : undefined);
 
   const currentPlatformKey = project?.platform ?? 'other';
+  // oxlint-disable-next-line react/refs
   const currentPlatform = allPlatforms.find(p => p.id === currentPlatformKey);
 
   return (

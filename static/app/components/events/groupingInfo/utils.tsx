@@ -1,9 +1,7 @@
 import type {EventGroupComponent} from 'sentry/types/event';
 
 export function shouldInlineComponentValue(component: EventGroupComponent) {
-  return (component.values as EventGroupComponent[]).every(
-    value => !value || typeof value !== 'object'
-  );
+  return component.values.every(value => !value || typeof value !== 'object');
 }
 
 export function groupingComponentFilter(

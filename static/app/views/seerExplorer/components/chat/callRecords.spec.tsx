@@ -4,6 +4,7 @@ import {
   callRecordDetail,
   callRecordLabel,
   callRecordStatus,
+  fallbackCallLabel,
 } from 'sentry/views/seerExplorer/callRecords';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {Block, CallRecord} from 'sentry/views/seerExplorer/types';
@@ -453,9 +454,9 @@ describe('callRecordStatus', () => {
 });
 
 describe('callRecordLabel', () => {
-  // Only the title. A rule in `links.tsx` may name the row instead, and where that wins over the
-  // shipped title is settled in `links.spec.tsx` — not here.
-  it('reports the shipped title verbatim, whatever the call was', () => {
+  // A rule in `links.tsx` may name the row instead, and where that wins over the shipped title is
+  // settled in `links.spec.tsx` — not here.
+  it('reports the shipped title', () => {
     expect(
       callRecordLabel({
         id: 1,
@@ -470,6 +471,18 @@ describe('callRecordLabel', () => {
     expect(callRecordLabel(apiRecord())).toBe('Retrieve an Organization');
   });
 
+  it('drops query params from titles when they render as input tags', () => {
+    expect(
+      callRecordLabel(
+        apiRecord({
+          title: 'Querying span timelines for [project, query]',
+          resolved_path:
+            '/api/0/organizations/acme/events/?project=frontend&query=span.op%3Adb',
+        })
+      )
+    ).toBe('Querying span timelines…');
+  });
+
   it('returns null rather than a raw identifier when there is nothing to show', () => {
     expect(
       callRecordLabel({id: 1, kind: 'api', method: 'GET', path: '/api/0/x/'})
@@ -478,6 +491,46 @@ describe('callRecordLabel', () => {
 
   it('treats a blank title as absent', () => {
     expect(callRecordLabel(apiRecord({title: '   '}))).toBeNull();
+  });
+});
+
+describe('fallbackCallLabel', () => {
+  it('names Sentry for a first-party call', () => {
+    expect(
+      fallbackCallLabel({id: 1, kind: 'api', method: 'GET', path: '/api/0/x/'})
+    ).toBe('Sentry API request');
+    expect(fallbackCallLabel({id: 1, kind: 'lib', name: 'code_search'})).toBe(
+      'Sentry operation'
+    );
+  });
+
+  // Seer's titles come from a lock keyed by Sentry route, so provider calls reliably reach the
+  // fallback. Claiming they were Sentry requests is the one thing it must not do.
+  it('names the provider that served the call', () => {
+    expect(
+      fallbackCallLabel({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/api/v2/logs/events',
+        provider: 'datadog',
+      })
+    ).toBe('Datadog API request');
+    expect(
+      fallbackCallLabel({id: 1, kind: 'lib', name: 'gcp.api.list_logs', provider: 'gcp'})
+    ).toBe('GCP operation');
+  });
+
+  it('names a provider it has never seen', () => {
+    expect(
+      fallbackCallLabel({
+        id: 1,
+        kind: 'api',
+        method: 'GET',
+        path: '/x/',
+        provider: 'newrelic',
+      })
+    ).toBe('newrelic API request');
   });
 });
 
@@ -513,6 +566,24 @@ describe('callRecordDetail', () => {
     );
 
     expect(detail?.body).toContain('"status": "resolved"');
+  });
+
+  it('hides a provider request body', () => {
+    // A provider POSTs because its query will not fit in a URL, so the body is pages of envelope
+    // around one query — unlike a Sentry write, where the body IS the change being made.
+    const detail = callRecordDetail(
+      apiRecord({
+        method: 'POST',
+        path: '/api/v2/query/timeseries',
+        resolved_path: '/api/v2/query/timeseries',
+        path_params: undefined,
+        provider: 'datadog',
+        body: '{\n  "data": {\n    "type": "timeseries_request"\n  }\n}',
+      })
+    );
+
+    expect(detail?.request).toBe('POST /api/v2/query/timeseries');
+    expect(detail?.body).toBeNull();
   });
 
   it('marks a truncated body', () => {

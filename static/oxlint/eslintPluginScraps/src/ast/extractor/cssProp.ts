@@ -1,3 +1,4 @@
+import type {ESTree} from '@oxlint/plugins';
 /**
  * @file Extracts style declarations from JSX css prop patterns.
  *
@@ -7,8 +8,6 @@
  * - <div css={[...]} />
  * - <div css={(theme) => { ... }} />
  */
-
-import type {TSESTree} from '@typescript-eslint/utils';
 
 import {normalizePropertyName} from '../utils/normalizePropertyName.ts';
 
@@ -27,8 +26,8 @@ export function createCssPropExtractor({
    * Process an object expression from css={{ ... }}
    */
   function processObjectExpression(
-    objNode: TSESTree.ObjectExpression,
-    sourceNode: TSESTree.Node
+    objNode: ESTree.ObjectExpression,
+    sourceNode: ESTree.Node
   ) {
     for (const prop of objNode.properties) {
       if (prop.type !== 'Property') {
@@ -74,8 +73,8 @@ export function createCssPropExtractor({
    * Process an array of styles css={[...]}
    */
   function processArrayExpression(
-    arrNode: TSESTree.ArrayExpression,
-    sourceNode: TSESTree.Node
+    arrNode: ESTree.ArrayExpression,
+    sourceNode: ESTree.Node
   ) {
     for (const element of arrNode.elements) {
       if (!element) {
@@ -93,8 +92,8 @@ export function createCssPropExtractor({
    * Process an arrow function css={(theme) => ...}
    */
   function processArrowFunction(
-    arrowNode: TSESTree.ArrowFunctionExpression,
-    sourceNode: TSESTree.Node
+    arrowNode: ESTree.ArrowFunctionExpression,
+    sourceNode: ESTree.Node
   ) {
     // Register theme parameter binding
     const themeParam = arrowNode.params[0];
@@ -111,7 +110,7 @@ export function createCssPropExtractor({
   }
 
   return {
-    JSXAttribute(node: TSESTree.JSXAttribute) {
+    JSXAttribute(node: ESTree.JSXAttribute) {
       if (node.name?.name !== 'css') {
         return;
       }

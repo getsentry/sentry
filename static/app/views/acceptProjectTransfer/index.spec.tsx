@@ -9,6 +9,7 @@ describe('AcceptProjectTransfer', () => {
   let getMock: jest.Mock;
   let postMock: jest.Mock;
   const endpoint = '/accept-transfer/';
+  const originalInitialData = window.__initialData;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -27,6 +28,10 @@ describe('AcceptProjectTransfer', () => {
       method: 'POST',
       statusCode: 204,
     });
+  });
+
+  afterEach(() => {
+    window.__initialData = originalInitialData;
   });
 
   it('renders', () => {
@@ -59,6 +64,23 @@ describe('AcceptProjectTransfer', () => {
   });
 
   it('submits', async () => {
+    window.__initialData = {
+      ...window.__initialData,
+      links: {
+        regionUrl: 'http://us.sentry.io',
+        sentryUrl: 'http://sentry.io',
+        organizationUrl: 'http://acme.sentry.io',
+      },
+    };
+    getMock = MockApiClient.addMockResponse({
+      url: '/accept-transfer/',
+      method: 'GET',
+      body: {
+        project: ProjectFixture(),
+        organizations: [OrganizationFixture()],
+      },
+      match: [(_url, options) => options.host === 'http://us.sentry.io'],
+    });
     render(<AcceptProjectTransfer />);
 
     await userEvent.click(await screen.findByRole('button', {name: 'Transfer Project'}));

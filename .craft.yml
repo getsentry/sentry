@@ -1,27 +1,54 @@
-minVersion: '2.20.0'
-releaseBranchPrefix: releases
-changelog:
-  filePath: CHANGES
-  policy: auto
-statusProvider:
-  name: github
-  config:
-    contexts:
-      - 'self-hosted-ubuntu-24.04-amd64'
-      - 'self-hosted-ubuntu-24.04-arm-arm64'
-      - 'assemble'
-artifactProvider:
-  name: none
-targets:
-  - name: github
-  - id: release
-    name: docker
-    source: ghcr.io/getsentry/sentry
-    target: ghcr.io/getsentry/sentry
-  - id: latest
-    name: docker
-    source: ghcr.io/getsentry/sentry
-    target: ghcr.io/getsentry/sentry
-    targetFormat: '{{{target}}}:latest'
-versioning:
-  policy: calver
+minVersion: '2.33.1'
+workspaces:
+  sentry:
+    preReleaseCommand: bash scripts/bump-version.sh
+    releaseBranchPrefix: releases
+    changelog:
+      filePath: CHANGES
+      policy: auto
+    statusProvider:
+      name: github
+      config:
+        contexts:
+          - 'self-hosted-ubuntu-24.04-amd64'
+          - 'self-hosted-ubuntu-24.04-arm-arm64'
+          - 'assemble'
+    artifactProvider:
+      name: none
+    targets:
+      - name: github
+      - id: release
+        name: docker
+        source: ghcr.io/getsentry/sentry
+        target: ghcr.io/getsentry/sentry
+      - id: latest
+        name: docker
+        source: ghcr.io/getsentry/sentry
+        target: ghcr.io/getsentry/sentry
+        targetFormat: '{{{target}}}:latest'
+    versioning:
+      policy: calver
+  static/packages/scraps:
+    preReleaseCommand: >-
+      sh -c 'npm --prefix static/packages/scraps --no-git-tag-version --package-lock=false version "$CRAFT_NEW_VERSION"'
+    releaseBranchPrefix: scraps/release
+    changelog:
+      policy: auto
+    statusProvider:
+      name: github
+      config:
+        contexts:
+          - scraps-package-verify
+    artifactProvider:
+      name: github
+      config:
+        artifacts:
+          Scraps package:
+            - scraps-tarball
+    targets:
+      - name: github
+        tagPrefix: scraps@
+      - name: npm
+        access: public
+    versioning:
+      policy: auto

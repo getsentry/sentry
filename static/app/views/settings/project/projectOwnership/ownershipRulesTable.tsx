@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import chunk from 'lodash/chunk';
 import isEqual from 'lodash/isEqual';
 import uniqBy from 'lodash/uniqBy';
@@ -13,7 +14,6 @@ import {Text} from '@sentry/scraps/text';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Actor} from 'sentry/types/core';
@@ -120,6 +120,7 @@ export function OwnershipRulesTable({
 
   useEffect(() => {
     if (myTeams.length > 0 && selectedActors === null) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setSelectedActors(myTeams.map(actor => `${actor.type}:${actor.id}`));
     }
   }, [myTeams, selectedActors]);
@@ -149,6 +150,7 @@ export function OwnershipRulesTable({
   useEffect(() => {
     // Reset to first page if the list of rules changes
     if (!chunkedRules[page]) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setPage(0);
     }
   }, [chunkedRules, page]);
@@ -286,12 +288,10 @@ const RulesTableWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledSimpleTable = styled(SimpleTable)`
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: 0;
 
   [role='cell'] {
     padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};

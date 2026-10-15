@@ -157,6 +157,7 @@ class NotificationContext:
     target_type: ActionTarget | None = None
     sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None
     sentry_app_id: str | None = None
+    notes: str | None = None
 
     @classmethod
     def from_alert_rule_trigger_action(cls, action: AlertRuleTriggerAction) -> NotificationContext:
@@ -203,6 +204,7 @@ class NotificationContext:
             integration_id=action.integration_id,
             target_identifier=action.config.get("target_identifier"),
             target_display=action.config.get("target_display"),
+            notes=action.data.get("notes"),
         )
 
 
@@ -250,8 +252,10 @@ class MetricIssueContext:
         snuba_query = subscription.snuba_query
         if isinstance(evidence_data.value, (int, float)):
             metric_value = float(evidence_data.value)
-        else:
+        elif isinstance(evidence_data.value, dict):
             metric_value = evidence_data.value["value"]
+        else:
+            metric_value = None
 
         return cls(
             id=group.id,

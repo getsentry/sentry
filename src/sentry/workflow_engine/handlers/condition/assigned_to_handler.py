@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from typing import Any
 
+from django.db.models import Q
 from rest_framework import serializers
 
 from sentry.models.group import Group
@@ -12,13 +13,47 @@ from sentry.notifications.types import AssigneeTargetType
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import (
+    ActionFilterPreviewBehavior,
+    ActionFilterPreviewPlan,
+    InvalidPreviewConfiguration,
+)
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionFilterDataConditionHandler,
+    DataConditionHandler,
+    WorkflowEventData,
+)
+
+
+class AssignedToPreviewBehavior(ActionFilterPreviewBehavior):
+    def filter_preview(self, plan: ActionFilterPreviewPlan, comparison: Any) -> None:
+        try:
+            target_type = AssigneeTargetType(comparison["target_type"])
+        except (KeyError, TypeError, ValueError) as error:
+            raise InvalidPreviewConfiguration("Invalid assignee target type") from error
+
+        if target_type == AssigneeTargetType.UNASSIGNED:
+            plan.add_group_filter(Q(assignee_set__isnull=True))
+            return
+
+        target_identifier = AssignedToConditionHandler._coerce_target_identifier(
+            comparison.get("target_identifier")
+        )
+        if target_identifier is None:
+            raise InvalidPreviewConfiguration("Invalid assignee target identifier")
+
+        lookup = (
+            "assignee_set__team_id"
+            if target_type == AssigneeTargetType.TEAM
+            else "assignee_set__user_id"
+        )
+        plan.add_group_filter(Q(**{lookup: target_identifier}))
 
 
 @condition_handler_registry.register(Condition.ASSIGNED_TO)
-class AssignedToConditionHandler(DataConditionHandler[WorkflowEventData]):
-    group = DataConditionHandler.Group.ACTION_FILTER
+class AssignedToConditionHandler(ActionFilterDataConditionHandler[WorkflowEventData]):
+    preview_behavior = AssignedToPreviewBehavior()
     subgroup = DataConditionHandler.Subgroup.ISSUE_ATTRIBUTES
     label_template = "The issue is assigned to {targetType}"
 

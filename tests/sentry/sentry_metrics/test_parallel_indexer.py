@@ -1,4 +1,6 @@
+from collections.abc import Iterator
 from datetime import datetime, timezone
+from typing import Any
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
@@ -25,7 +27,7 @@ counter_payload = {
 
 
 @pytest.fixture(autouse=True)
-def reset_global_metrics_state():
+def reset_global_metrics_state() -> Iterator[None]:
     # running a MetricsConsumerStrategyFactory has a side-effect of mutating
     # global metrics tags
     with global_tags(all_threads=True):
@@ -34,7 +36,9 @@ def reset_global_metrics_state():
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("force_disable_multiprocessing", [True, False])
-def test_basic(request, settings, force_disable_multiprocessing) -> None:
+def test_basic(
+    request: pytest.FixtureRequest, settings: Any, force_disable_multiprocessing: bool
+) -> None:
     """
     Integration test to verify that the parallel indexer can spawn subprocesses
     properly. The main purpose is to verify that there are no

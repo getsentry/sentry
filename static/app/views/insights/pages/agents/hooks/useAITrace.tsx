@@ -1,18 +1,13 @@
 import {useEffect, useState} from 'react';
 
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {
-  isEAPSpanNode,
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {useTrace} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
+import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 
 interface UseAITraceResult {
   error: boolean;
@@ -25,16 +20,26 @@ interface UseAITraceResult {
  */
 const AI_TRACE_BASE_ATTRIBUTES = [
   SpanFields.GEN_AI_AGENT_NAME,
+  SpanFields.GEN_AI_EMBEDDINGS_INPUT,
   SpanFields.GEN_AI_FUNCTION_ID,
+  SpanFields.GEN_AI_INPUT_MESSAGES,
+  SpanFields.GEN_AI_OUTPUT_MESSAGES,
   SpanFields.GEN_AI_REQUEST_MODEL,
+  SpanFields.GEN_AI_REQUEST_MESSAGES,
   SpanFields.GEN_AI_RESPONSE_MODEL,
+  SpanFields.GEN_AI_RESPONSE_OBJECT,
+  SpanFields.GEN_AI_RESPONSE_TEXT,
+  SpanFields.GEN_AI_USAGE_INPUT_TOKENS,
+  SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS,
   SpanFields.GEN_AI_USAGE_TOTAL_TOKENS,
   SpanFields.GEN_AI_COST_TOTAL_TOKENS,
   SpanFields.GEN_AI_TOOL_NAME,
   SpanFields.GEN_AI_OPERATION_TYPE,
   SpanFields.GEN_AI_OPERATION_NAME,
   SpanFields.GEN_AI_CONVERSATION_ID,
+  SpanFields.SENTRY_ORIGIN,
   SpanFields.SPAN_STATUS,
+  SpanFields.USER_EMAIL,
   'status',
   'gen_ai.tool.call.arguments',
   'gen_ai.tool.call.result',
@@ -42,35 +47,33 @@ const AI_TRACE_BASE_ATTRIBUTES = [
   'gen_ai.tool.output',
 ];
 
-export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceResult {
+export function useAITrace(traceSlug: string): UseAITraceResult {
   const [nodes, setNodes] = useState<AITraceSpanNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  const api = useApi();
   const organization = useOrganization();
 
   const trace = useTrace({
     traceSlug,
-    timestamp,
     additionalAttributes: AI_TRACE_BASE_ATTRIBUTES,
   });
 
   useEffect(() => {
     if (trace.status !== 'success' || !trace.data) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setError(trace.status === 'error');
       setIsLoading(trace.status === 'pending');
       return;
     }
 
-    const loadAllSpans = async () => {
+    const loadAllSpans = () => {
       setIsLoading(true);
       setError(false);
       setNodes([]);
 
       try {
         const tree = TraceTree.FromTrace(trace.data, {
-          meta: null,
           replay: null,
           preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
           organization,
@@ -78,31 +81,8 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
 
         tree.build();
 
-        const fetchableNodes = tree.root.findAllChildren(node => node.canFetchChildren);
-
-        const uniqueTransactions = fetchableNodes.filter(
-          (node, index, array) => index === array.findIndex(n => n.id === node.id)
-        );
-
-        const zoomPromises = uniqueTransactions.map(node =>
-          tree.fetchNodeSubTree(true, node, {
-            api,
-            organization,
-            preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
-          })
-        );
-
-        await Promise.all(zoomPromises);
-
-        // Keep only transactions that include AI spans and the AI spans themselves
         const flattenedNodes = tree.root.findAllChildren<AITraceSpanNode>(
-          (node): node is AITraceSpanNode => {
-            if (!isTransactionNode(node) && !isSpanNode(node) && !isEAPSpanNode(node)) {
-              return false;
-            }
-
-            return getIsAiNode(node);
-          }
+          (node): node is AITraceSpanNode => isEAPSpanNode(node) && getIsAiNode(node)
         );
 
         setNodes(flattenedNodes);
@@ -114,7 +94,7 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
     };
 
     loadAllSpans();
-  }, [trace.status, trace.data, organization, api]);
+  }, [trace.status, trace.data, organization]);
 
   return {
     nodes,

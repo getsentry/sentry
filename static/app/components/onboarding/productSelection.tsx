@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconQuestion} from '@sentry/icons/question';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -12,7 +13,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {FeatureDisabledModal} from 'sentry/components/acl/featureDisabledModal';
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useOnboardingQueryParams} from 'sentry/components/onboarding/useOnboardingQueryParams';
-import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -93,8 +93,17 @@ export function getDisabledProducts(organization: Organization): DisabledProduct
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  bun: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  deno: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   dotnet: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -301,6 +310,12 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  'node-eve': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   'node-express': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -308,6 +323,12 @@ export const platformProductAvailability = {
     ProductSolution.METRICS,
   ],
   'node-fastify': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'node-flue': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
@@ -332,6 +353,12 @@ export const platformProductAvailability = {
     ProductSolution.METRICS,
   ],
   'node-koa': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'node-mastra': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,

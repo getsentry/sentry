@@ -1,5 +1,10 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconSearch} from '@sentry/icons/search';
+import {IconTimer} from '@sentry/icons/timer';
+import {IconWarning} from '@sentry/icons/warning';
 import type {BarSeriesOption} from 'echarts';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -8,9 +13,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
 import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
-import {IconSearch, IconTimer, IconWarning} from 'sentry/icons';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconMegaphone} from 'sentry/icons/iconMegaphone';
 import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {RequestError} from 'sentry/utils/requestError/requestError';

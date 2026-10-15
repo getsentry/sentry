@@ -1,12 +1,25 @@
 import {
+  ensureSearchFilterArgument,
+  escapeConditionalFilter,
+} from 'sentry/components/arithmeticBuilder/conditionalFilter';
+import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
+import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
+import {
   parseQueryBuilderValue,
   queryIsValid,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
-import {parseFunction, type ParsedFunction} from 'sentry/utils/discover/fields';
+import {
+  generateFieldAsString,
+  isEquation,
+  stripEquationPrefix,
+  type AggregationKeyWithAlias,
+  type QueryFieldValue,
+} from 'sentry/utils/discover/fields';
 import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   AggregationKey,
+  EXPLORE_FILTERABLE_AGGREGATES,
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {prettifyQueryConditions} from 'sentry/views/dashboards/utils/prettifyQueryConditions';
@@ -14,8 +27,10 @@ import {
   isVisualizeEquation,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
-
-const IF_SUFFIX = '_if';
+import {
+  IF_SUFFIX,
+  parseConditionalAggregate,
+} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 /**
  * Shown when a visualize aggregate is used as a key in a series `_if` filter.
@@ -63,28 +78,6 @@ export function getConditionalFilterInvalidSeriesMessageForVisualizes(
 }
 
 /**
- * Span aggregates that the EAP `_if` combinator is generated for. Everything else
- * offered by the visualize dropdown (epm, eps, failure_rate, failure_count and the
- * score formulas) is a formula rather than an aggregate, and formulas do not get an
- * `_if` variant. See `SPAN_AGGREGATE_COMBINATORS` in
- * `src/sentry/search/eap/spans/aggregates.py`.
- */
-const FILTERABLE_AGGREGATES: string[] = [
-  AggregationKey.COUNT,
-  AggregationKey.COUNT_UNIQUE,
-  AggregationKey.SUM,
-  AggregationKey.AVG,
-  AggregationKey.MIN,
-  AggregationKey.MAX,
-  AggregationKey.P50,
-  AggregationKey.P75,
-  AggregationKey.P90,
-  AggregationKey.P95,
-  AggregationKey.P99,
-  AggregationKey.P100,
-];
-
-/**
  * Matches visualize aggregates used as search keys, with or without args
  * (`p95:`, `p95(span.duration):`, `count():`).
  */
@@ -92,44 +85,32 @@ const VISUALIZE_AGGREGATE_KEY_PATTERN = new RegExp(
   `(^|[\\s(!])(?:${ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.join('|')})(?:\\([^)]*\\))?:`
 );
 
-export type ConditionalAggregate = ParsedFunction;
-
 /**
- * Remove backticks so the filter can be safely wrapped in them.
+ * Normalize an exploded QueryFieldValue so Explore-style `_if` names
+ * (e.g. `count_unique_if`) become the base aggregate for column filtering.
  *
- * The backtick delimiter has no escape sequence anywhere in the stack: the arithmetic
- * grammar matches `` "`" [^`]* "`" ``, the backend argument tokenizer ends the filter at
- * the first backtick it sees, and the resolver recovers the query by slicing off the
- * outer characters. A backtick in the middle of a filter therefore truncates the query
- * and can swallow the remaining aggregate arguments, so it is dropped instead. Backticks
- * carry no meaning in the search syntax, so nothing searchable is lost.
+ * Discover-style forms like `count_if(column,equals,value)` are left unchanged.
  */
-export function escapeConditionalFilter(filter: string): string {
-  return filter.replace(/`/g, '').trim();
-}
-
-/**
- * Split a visualize yAxis into its base aggregate and its `_if` filter.
- *
- * `avg_if(\`span.op:db\`,span.duration)` → `{name: 'avg', arguments: ['span.duration'], filter: 'span.op:db'}`
- * `avg(span.duration)` → `{name: 'avg', arguments: ['span.duration']}`
- */
-export function parseConditionalAggregate(yAxis: string): ConditionalAggregate | null {
-  const parsed = parseFunction(yAxis);
-  if (!parsed) {
-    return null;
-  }
-  if (parsed.filter === undefined) {
-    return parsed;
+export function withBaseConditionalAggregateField(
+  field: QueryFieldValue
+): QueryFieldValue {
+  if (field.kind !== 'function') {
+    return field;
   }
 
-  const [, ...restArguments] = parsed.arguments;
+  const parsed = parseConditionalAggregate(generateFieldAsString(field));
+  if (!parsed || parsed.name === field.function[0]) {
+    return field;
+  }
+
   return {
-    name: parsed.name.endsWith(IF_SUFFIX)
-      ? parsed.name.slice(0, -IF_SUFFIX.length)
-      : parsed.name,
-    arguments: restArguments,
-    filter: parsed.filter,
+    ...field,
+    function: [
+      parsed.name as AggregationKeyWithAlias,
+      parsed.arguments[0] ?? '',
+      parsed.arguments[1],
+      parsed.arguments[2],
+    ],
   };
 }
 
@@ -145,11 +126,12 @@ export function buildConditionalAggregate({
   filter: string;
   name: string;
 }): string {
-  const escapedFilter = escapeConditionalFilter(filter);
-  if (!escapedFilter) {
+  if (!escapeConditionalFilter(filter)) {
     return `${name}(${args.join(',')})`;
   }
-  return `${name}${IF_SUFFIX}(\`${escapedFilter}\`${args.map(arg => `,${arg}`).join('')})`;
+  return `${name}${IF_SUFFIX}(${ensureSearchFilterArgument(filter)}${args
+    .map(arg => `,${arg}`)
+    .join('')})`;
 }
 
 /**
@@ -195,7 +177,7 @@ export function withReadableConditionalFilter(yAxis: string): string {
  * Whether an aggregate can carry an `_if` search filter.
  */
 export function supportsConditionalAggregateFilter(aggregateName: string): boolean {
-  return FILTERABLE_AGGREGATES.includes(aggregateName);
+  return EXPLORE_FILTERABLE_AGGREGATES.includes(aggregateName as AggregationKey);
 }
 
 /**
@@ -245,13 +227,50 @@ export function isConditionalAggregateFilterValid(filter: string): boolean {
 
 /**
  * Whether a visualize yAxis's `_if` filter (if any) is valid for querying.
+ *
+ * Plain aggregates (no `_if`) are always valid here. An `_if` with an empty
+ * filter (`avg_if(\`\`,span.duration)`) is invalid: the backend combinator rejects
+ * empty queries and falls back to the deprecated Discover-style condition args.
  */
 export function isConditionalAggregateYAxisValid(yAxis: string): boolean {
   const conditional = parseConditionalAggregate(yAxis);
-  if (!conditional?.filter) {
+  if (!conditional) {
     return true;
   }
+  // `filter === undefined` → no `_if` combinator. `filter === ''` → empty backticks.
+  if (conditional.filter === undefined) {
+    return true;
+  }
+  if (!conditional.filter.trim()) {
+    return false;
+  }
   return isConditionalAggregateFilterValid(conditional.filter);
+}
+
+function getInvalidConditionalAggregateTokenText(expression: string): string | undefined {
+  const tokens = tokenizeExpression(stripEquationPrefix(expression));
+  for (const token of tokens) {
+    if (
+      isTokenFunction(token) &&
+      token.function.endsWith(IF_SUFFIX) &&
+      !isConditionalAggregateYAxisValid(token.text)
+    ) {
+      return token.text;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Validate every `_if(...)` call inside an equation (or any free-form expression).
+ *
+ * Equation yAxes are not themselves a single aggregate, so
+ * {@link isConditionalAggregateYAxisValid} alone is not enough.
+ */
+export function areConditionalAggregateFiltersInExpressionValid(
+  expression: string
+): boolean {
+  return getInvalidConditionalAggregateTokenText(expression) === undefined;
 }
 
 /**
@@ -271,4 +290,50 @@ export function areAllVisualizesInvalidConditionalFilters(
       !isVisualizeEquation(visualize) &&
       !isConditionalAggregateYAxisValid(visualize.yAxis)
   );
+}
+
+/**
+ * Error message for the first invalid `_if` aggregate in a dashboard widget
+ * query, including nested `_if` filters inside equations. Falls back to the
+ * generic series-filter message.
+ */
+export function getConditionalFilterInvalidSeriesMessageForAggregates(
+  aggregates: readonly string[]
+): string {
+  for (const yAxis of aggregates) {
+    if (isEquation(yAxis)) {
+      const invalidTokenText = getInvalidConditionalAggregateTokenText(yAxis);
+      if (invalidTokenText) {
+        return getConditionalFilterInvalidSeriesMessageForYAxis(invalidTokenText);
+      }
+      continue;
+    }
+    if (!isConditionalAggregateYAxisValid(yAxis)) {
+      return getConditionalFilterInvalidSeriesMessageForYAxis(yAxis);
+    }
+  }
+  return CONDITIONAL_FILTER_INVALID_SERIES_MESSAGE;
+}
+
+/**
+ * Keep aggregates that are safe to send in a series/table request. Invalid `_if`
+ * filters are dropped; equations keep prior Explore behavior (include only when
+ * every nested `_if` is valid).
+ */
+export function getValidAggregatesForRequest(aggregates: readonly string[]): string[] {
+  return aggregates.filter(yAxis => {
+    if (isEquation(yAxis)) {
+      return areConditionalAggregateFiltersInExpressionValid(yAxis);
+    }
+    return isConditionalAggregateYAxisValid(yAxis);
+  });
+}
+
+/**
+ * True when the query has aggregates but none survive `_if` validation. Dashboards
+ * use this to skip requests and surface a config error (Explore injects a default
+ * visualization instead).
+ */
+export function hasNoValidAggregatesForRequest(aggregates: readonly string[]): boolean {
+  return aggregates.length > 0 && getValidAggregatesForRequest(aggregates).length === 0;
 }

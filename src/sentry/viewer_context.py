@@ -14,6 +14,8 @@ import jwt as pyjwt
 import sentry_sdk
 from django.conf import settings
 
+from sentry.silo.base import SiloMode
+
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
@@ -265,10 +267,33 @@ def encode_viewer_context(
         "exp": now + ttl,
         "iss": "sentry",
     }
+    if viewer_context.organization_id is not None and _organization_is_early_adopter(
+        viewer_context.organization_id
+    ):
+        payload["organization_is_early_adopter"] = True
 
     return pyjwt.encode(
         payload, secret, algorithm="HS256", headers={_JWT_KEY_ID_HEADER: _key_id(secret)}
     )
+
+
+def _organization_is_early_adopter(organization_id: int) -> bool:
+    if SiloMode.get_current_mode() == SiloMode.CONTROL:
+        from sentry.models.organizationmapping import OrganizationMapping
+
+        try:
+            mapping = OrganizationMapping.objects.get_from_cache(organization_id=organization_id)
+        except OrganizationMapping.DoesNotExist:
+            return False
+        return mapping.early_adopter
+
+    from sentry.models.organization import Organization
+
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return False
+    return bool(organization.flags.early_adopter)
 
 
 def decode_viewer_context(

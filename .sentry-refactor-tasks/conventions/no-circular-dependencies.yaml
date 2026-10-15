@@ -1,0 +1,45 @@
+name: no-circular-dependencies
+severity: warning
+tags: [typescript, dependencies, refactoring]
+
+why: |
+  Circular runtime dependencies make module initialization depend on import
+  order. They can expose values before initialization and make modules harder
+  to test and change on their own.
+
+detect: |
+  Run Knip's cycle analysis with the repository's existing knip.config.ts.
+  The custom reporter converts Knip's structured cycle data to the scanner's
+  per-file JSON format. No LLM or prefilter is needed: cycle detection requires
+  the full dependency graph, not a list of candidate files.
+
+  Report one finding per root import location, with every cycle through that
+  location in the message. This matches the scanner's Sentry fingerprint
+  (convention, file, line). Sort files, locations, and cycle paths so repeated
+  scans of the same checkout produce the same output.
+
+fix: |
+  Read each dependency path in the finding and break the runtime cycle while
+  preserving behavior. The reported line is one edge of the cycle; the best
+  place to fix it may be another module in the path.
+
+  Prefer a small change that makes dependencies flow in one direction:
+    1. Move shared constants, types, or helpers into a module that does not
+       import either of its consumers.
+    2. Import from the defining module when a barrel re-export creates the cycle.
+       If a folder exposes its exports through an index.ts or index.tsx barrel,
+       files within that folder should use relative imports to the defining
+       files, rather than importing through the barrel. A relative import to
+       ./index still goes through the barrel and does not break the cycle.
+    3. Use import type when an import is used only as a TypeScript type.
+
+  Do not hide the cycle with a Knip allowlist, ignore rule, or dynamic import.
+  Keep public exports and runtime initialization behavior intact. Run the
+  relevant tests and check the dependency graph again from the repo root:
+    pnpm exec knip --cycles --reporter cycles
+
+  Confirm that the reported paths are gone and that no new cycles were added.
+
+# Dependencies are installed by the scheduled workflow's setup-node-pnpm action.
+# --no-exit-code permits findings; Knip still exits nonzero on execution errors.
+detect_command: 'pnpm exec knip --directory {repo_path} --cycles --no-progress --no-exit-code --reporter {convention_dir}/knip-cycles-reporter.ts'

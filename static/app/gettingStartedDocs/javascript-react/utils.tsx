@@ -64,15 +64,7 @@ const getIntegrations = (params: DocsParams): string[] => {
 export function getSdkSetupSnippet(params: DocsParams) {
   const config = buildSdkConfig({
     params,
-    staticParts: [
-      `dsn: "${params.dsn.public}"`,
-      `dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/react/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: []
-  }`,
-    ],
+    staticParts: [`dsn: "${params.dsn.public}"`],
     getIntegrations,
     getDynamicParts,
   });

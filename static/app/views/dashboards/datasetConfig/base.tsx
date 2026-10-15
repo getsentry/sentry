@@ -1,5 +1,3 @@
-import trimStart from 'lodash/trimStart';
-
 import type {SelectValue} from '@sentry/scraps/select';
 
 import type {Client} from 'sentry/api';
@@ -18,10 +16,7 @@ import type {
   DataUnit,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {
   DashboardFilters,
   DisplayType,
@@ -29,7 +24,6 @@ import type {
   WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {getNumEquations} from 'sentry/views/dashboards/utils';
 import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
@@ -37,7 +31,6 @@ import type {FieldValue} from 'sentry/views/discover/table/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {ErrorsConfig} from './errors';
-import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {LogsConfig} from './logs';
 import {MobileAppSizeConfig} from './mobileAppSize';
@@ -104,14 +97,6 @@ export type WidgetQueryParams = {
    * Optional result limit.
    */
   limit?: number;
-  /**
-   * MEP (Metrics Enhanced Performance) setting.
-   */
-  mepSetting?: MEPState | null;
-  /**
-   * On-demand control context for query optimization.
-   */
-  onDemandControlContext?: OnDemandControlContext;
   /**
    * Sampling mode for the queries.
    */
@@ -367,12 +352,11 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
               ? typeof TraceMetricsConfig
               : T extends WidgetType.PREPROD_APP_SIZE
                 ? typeof MobileAppSizeConfig
-                : typeof ErrorsAndTransactionsConfig;
+                : typeof ErrorsConfig;
 
 export function getDatasetConfig(widgetType?: WidgetType):
   | typeof IssuesConfig
   | typeof ReleasesConfig
-  | typeof ErrorsAndTransactionsConfig
   /* eslint-disable @typescript-eslint/no-duplicate-type-constituents */
   | typeof ErrorsConfig
   | typeof TransactionsConfig
@@ -386,8 +370,6 @@ export function getDatasetConfig(widgetType?: WidgetType):
       return IssuesConfig;
     case WidgetType.RELEASE:
       return ReleasesConfig;
-    case WidgetType.ERRORS:
-      return ErrorsConfig;
     case WidgetType.TRANSACTIONS:
       return TransactionsConfig;
     case WidgetType.LOGS:
@@ -398,37 +380,10 @@ export function getDatasetConfig(widgetType?: WidgetType):
       return TraceMetricsConfig;
     case WidgetType.PREPROD_APP_SIZE:
       return MobileAppSizeConfig;
-    case WidgetType.DISCOVER:
+    case WidgetType.ERRORS:
+    case undefined:
+      return ErrorsConfig;
     default:
-      return ErrorsAndTransactionsConfig;
+      throw new Error(`Unsupported widget type: ${widgetType}`);
   }
-}
-
-/**
- * A generic orderby reset helper function that updates the query's
- * orderby based on new selected fields.
- */
-export function handleOrderByReset(
-  widgetQuery: WidgetQuery,
-  newFields: string[]
-): WidgetQuery {
-  const rawOrderby = trimStart(widgetQuery.orderby, '-');
-  const isDescending = widgetQuery.orderby.startsWith('-');
-  const orderbyPrefix = isDescending ? '-' : '';
-
-  if (!newFields.includes(rawOrderby) && widgetQuery.orderby !== '') {
-    const isFromAggregates = widgetQuery.aggregates.includes(rawOrderby);
-    const isCustomEquation = isEquation(rawOrderby);
-    const isUsedInGrouping = widgetQuery.columns.includes(rawOrderby);
-
-    const keepCurrentOrderby = isFromAggregates || isCustomEquation || isUsedInGrouping;
-    const firstAggregateAlias = isEquation(widgetQuery.aggregates[0] ?? '')
-      ? `equation[${getNumEquations(widgetQuery.aggregates) - 1}]`
-      : newFields[0];
-
-    widgetQuery.orderby =
-      (keepCurrentOrderby && widgetQuery.orderby) ||
-      `${orderbyPrefix}${firstAggregateAlias}`;
-  }
-  return widgetQuery;
 }

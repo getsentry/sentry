@@ -1,13 +1,17 @@
+import logging
+import re
 from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from django.db import connections
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
-from sentry import analytics, features
+from sentry import analytics, features, quotas
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -16,20 +20,25 @@ from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERR
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
     INGESTION_DELAY,
-    INGESTION_DELAY_MESSAGE,
+    BucketBoundaries,
     Row,
     SeriesMeta,
     StatsMeta,
     StatsResponse,
     TimeSeries,
 )
-from sentry.api.helpers.data_annotations import get_dropped_data_annotations
+from sentry.api.helpers.ingestion_delay import (
+    get_ingestion_delay_status,
+    serialize_ingestion_status,
+)
+from sentry.api.helpers.timeseries_processing import Transformation, parse_transformation
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_TOP_EVENTS
+from sentry.ingestion_delay.status import IngestionDelayStatus
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
@@ -52,13 +61,14 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import SnubaTSResult
-from sentry.utils.tracing import set_span_data, start_span
 
 TOP_EVENTS_DATASETS = {
     discover,
@@ -73,6 +83,20 @@ TOP_EVENTS_DATASETS = {
     errors,
     transactions,
 }
+
+logger = logging.getLogger(__name__)
+
+INGESTION_DELAY_TIMEOUT = 1.0  # p99 returns in less than 1 second
+
+
+def _get_ingestion_delay_status_in_thread(
+    dataset: type[RPCBase], snuba_params: SnubaParams
+) -> IngestionDelayStatus | None:
+    with sentry_sdk.new_scope():
+        try:
+            return get_ingestion_delay_status(dataset, snuba_params)
+        finally:
+            connections.close_all()
 
 
 def null_zero(value: float) -> float | None:
@@ -131,6 +155,26 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         else:
             return None
 
+    def get_transformations(self, request: Request) -> dict[int, list[Transformation]]:
+        """Parse ordered transformations by zero-based request yAxis position."""
+        transformations: dict[int, list[Transformation]] = {}
+        axis_count = len(request.GET.getlist("yAxis", ["count()"]))
+        for key, values in request.GET.lists():
+            if key != "transformations" and not key.startswith("transformations["):
+                continue
+            match = re.fullmatch(r"transformations\[(0|[1-9][0-9]*)\]", key)
+            if match is None:
+                raise ParseError(detail="Invalid transformations index")
+            try:
+                index = int(match.group(1))
+            except ValueError:
+                raise ParseError(detail="Invalid transformations index")
+            if index >= axis_count:
+                raise ParseError(detail="transformations index must match a yAxis position")
+            with handle_query_errors():
+                transformations[index] = [parse_transformation(value) for value in values]
+        return transformations
+
     @extend_schema(
         operation_id="listOrganizationEventsTimeseries",
         summary="Query Explore Events in Timeseries Format",
@@ -148,7 +192,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.SORT,
             VisibilityParams.GROUP_BY,
             VisibilityParams.Y_AXIS,
-            VisibilityParams.QUERY,
+            VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.DISABLE_AGGREGATE_EXTRAPOLATION,
             VisibilityParams.PREVENT_METRIC_AGGREGATES,
             VisibilityParams.EXCLUDE_OTHER,
@@ -174,11 +218,21 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         fields (such as `query=user.id:bc`) will not return accurate results. Use these queries for rough
         estimation only.
         """
-        with start_span(op="discover.endpoint", name="filter_params") as span:
-            set_span_data(span, "organization", organization)
-
+        with traces.start_span(
+            name="filter_params",
+            attributes={
+                "sentry.op": "discover.endpoint",
+                "organization": repr(organization),
+            },
+        ):
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
+            if features.has(
+                "organizations:explore-interpolation-and-smoothing",
+                organization,
+                actor=request.user,
+            ):
+                self.get_transformations(request)
 
             dataset = self.get_dataset(request, organization)
             # Add more here until top events is supported on all the datasets
@@ -208,19 +262,44 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
             snuba_params.granularity_secs = rollup
             axes = request.GET.getlist("yAxis", ["count()"])
-            events_stats = self.get_event_stats(
-                request,
+            include_measured_ingestion_delay_metadata = features.has(
+                "organizations:measured-ingestion-delay-metadata",
                 organization,
-                top_events,
-                dataset,
-                axes,
-                request.GET.get("query", ""),
-                snuba_params,
-                rollup,
-                comparison_delta,
-                additional_queries,
+                actor=request.user,
             )
-            include_annotations = request.GET.get("includeAnnotations") is not None
+            # Only the EAP RPC datasets allow measured ingestion delay metadata.
+            pool = ContextPropagatingThreadPoolExecutor(max_workers=1)
+            try:
+                ingestion_delay_future = (
+                    pool.submit(_get_ingestion_delay_status_in_thread, dataset, snuba_params)
+                    if include_measured_ingestion_delay_metadata
+                    and isinstance(dataset, type)
+                    and issubclass(dataset, RPCBase)
+                    else None
+                )
+                events_stats = self.get_event_stats(
+                    request,
+                    organization,
+                    top_events,
+                    dataset,
+                    axes,
+                    request.GET.get("query", ""),
+                    snuba_params,
+                    rollup,
+                    comparison_delta,
+                    additional_queries,
+                )
+                ingestion_delay_status = None
+                if ingestion_delay_future is not None:
+                    # Ingestion delay is non-critical, so don't fail the request if it fails.
+                    try:
+                        ingestion_delay_status = ingestion_delay_future.result(
+                            timeout=INGESTION_DELAY_TIMEOUT
+                        )
+                    except Exception:
+                        logger.warning("Failed to fetch ingestion delay status", exc_info=True)
+            finally:
+                pool.shutdown(wait=False)
             return Response(
                 self.serialize_stats_data(
                     events_stats,
@@ -229,7 +308,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     rollup,
                     dataset,
                     organization,
-                    include_annotations,
+                    ingestion_delay_status,
                 ),
                 status=200,
             )
@@ -275,6 +354,14 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
                 disable_array_attributes=disable_array_attributes,
+                disable_deprecated_functions=(
+                    dataset == Spans
+                    and features.has(
+                        "organizations:explore-disable-deprecated-if-functions",
+                        organization,
+                        actor=request.user,
+                    )
+                ),
             )
 
     def get_event_stats(
@@ -412,10 +499,11 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         rollup: int,
         dataset,
         organization: Organization,
-        include_annotations: bool = False,
+        ingestion_delay_status: IngestionDelayStatus | None = None,
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
         now = datetime.now().timestamp()
+        complete_through = now - INGESTION_DELAY
         stats_meta = StatsMeta(
             dataset=DATASET_LABELS[dataset],
             start=snuba_params.start_date.timestamp() * 1000,
@@ -432,21 +520,23 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         debug_info[key] = keyed_result.data["meta"]["debug_info"]
             # ignore typing here cause we don't want the openapi docs to include debug_info
             stats_meta["debug_info"] = debug_info  #  type: ignore[typeddict-unknown-key]
-        # Opt-in and flag-gated; enrichment must never break the primary response.
-        should_annotate = include_annotations and features.has(
-            "organizations:explore-data-fidelity-annotations", organization
+        if ingestion_delay_status is not None:
+            stats_meta["ingestion"] = serialize_ingestion_status(ingestion_delay_status)
+            if ingestion_delay_status.complete_through is not None:
+                complete_through = ingestion_delay_status.complete_through.timestamp()
+
+        retention_days = quotas.backend.get_event_retention(organization=organization)
+        boundaries = BucketBoundaries(
+            now=now,
+            complete_through=complete_through,
+            retention_start=now - timedelta(days=retention_days).total_seconds()
+            if retention_days
+            else None,
         )
-        if should_annotate:
-            try:
-                stats_meta["annotations"] = get_dropped_data_annotations(
-                    dataset, snuba_params, rollup
-                )
-            except Exception:
-                sentry_sdk.capture_exception()
-                stats_meta["annotations"] = []
+
         response = StatsResponse(
             meta=stats_meta,
-            timeSeries=self.serialize_result(result, axes, rollup, now),
+            timeSeries=self.serialize_result(result, axes, rollup, boundaries),
         )
         return response
 
@@ -455,20 +545,24 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         result: SnubaTSResult | dict[str, SnubaTSResult],
         axes: list[str],
         rollup: int,
-        now: float,
+        boundaries: BucketBoundaries,
     ) -> list[TimeSeries]:
         serialized_result = []
         if isinstance(result, SnubaTSResult):
             for axis in axes:
-                serialized_result.append(self.serialize_timeseries(result, axis, rollup, now))
+                serialized_result.append(
+                    self.serialize_timeseries(result, axis, rollup, boundaries)
+                )
         else:
             for key, value in result.items():
                 for axis in axes:
-                    serialized_result.append(self.serialize_timeseries(value, axis, rollup, now))
+                    serialized_result.append(
+                        self.serialize_timeseries(value, axis, rollup, boundaries)
+                    )
         return serialized_result
 
     def serialize_timeseries(
-        self, result: SnubaTSResult, axis: str, rollup: int, now: float
+        self, result: SnubaTSResult, axis: str, rollup: int, boundaries: BucketBoundaries
     ) -> TimeSeries:
         unit, field_type = self.get_unit_and_type(axis, result.data["meta"]["fields"][axis])
         series_meta = SeriesMeta(
@@ -493,9 +587,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         for row in result.data["data"]:
             value_row = Row(timestamp=row["time"] * 1000, value=row.get(axis, 0), incomplete=False)
 
-            if incomplete := self.check_incomplete(row, now, rollup):
+            if reason := boundaries.incomplete_reason(row["time"], rollup):
                 value_row["incomplete"] = True
-                value_row["incompleteReason"] = incomplete
+                value_row["incompleteReason"] = reason
             if "comparisonCount" in row:
                 value_row["comparisonValue"] = row["comparisonCount"]
             timeseries_values.append(value_row)
@@ -519,12 +613,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         timeseries["values"] = timeseries_values
 
         return timeseries
-
-    def check_incomplete(self, row: dict[str, Any], now: float, rollup: int) -> str | None:
-        if row["time"] + rollup >= now - INGESTION_DELAY:
-            return INGESTION_DELAY_MESSAGE
-        else:
-            return None
 
     def _emit_analytics_event(self, organization: Organization, referrer: str) -> None:
         if "agent-monitoring" not in referrer:

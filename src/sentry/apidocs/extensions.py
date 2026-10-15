@@ -11,6 +11,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import Direction
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint
+from sentry.conf.server import GRANULAR_SCOPES
 
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):
@@ -28,8 +29,7 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
             for s in permission.scope_map.get(auto_schema.method, []):
                 scopes.add(s)
 
-        scope_list = list(scopes)
-        scope_list.sort()
+        scope_list = sorted(scopes - GRANULAR_SCOPES)
         return {self.name: scope_list}
 
     def get_security_definition(
@@ -75,6 +75,17 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
         return resolve_type_hint(self.target.typeSchema)
+
+
+class SentryAppIssueActionSerializerExtension(OpenApiSerializerExtension):
+    target_class = "sentry.sentry_apps.api.endpoints.installation_external_issue_actions.SentryAppInstallationExternalIssueActionsSerializer"
+
+    def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> dict[str, Any]:
+        schema = auto_schema._map_serializer(self.target, direction, bypass_extensions=True)
+        schema["properties"]["action"]["enum"] = ["link", "create"]
+        # Apps define additional form fields at the top level of the request.
+        schema["additionalProperties"] = True
+        return schema
 
 
 class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):

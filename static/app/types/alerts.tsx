@@ -30,16 +30,8 @@ export const enum IssueAlertActionType {
 }
 
 export const enum IssueAlertConditionType {
-  EVERY_EVENT = 'sentry.rules.conditions.every_event.EveryEventCondition',
-  FIRST_SEEN_EVENT = 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-  REGRESSION_EVENT = 'sentry.rules.conditions.regression_event.RegressionEventCondition',
-  REAPPEARED_EVENT = 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
   EVENT_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventFrequencyCondition',
   EVENT_UNIQUE_USER_FREQUENCY = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition',
-  EVENT_UNIQUE_USER_FREQUENCY_WITH_CONDITIONS = 'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyConditionWithConditions',
-  EVENT_FREQUENCY_PERCENT = 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
-  NEW_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition',
-  EXISTING_HIGH_PRIORITY_ISSUE = 'sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition',
 }
 
 /**

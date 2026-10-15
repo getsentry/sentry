@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSubtract} from '@sentry/icons/subtract';
 import {mat3, vec2} from 'gl-matrix';
 
 import {Button} from '@sentry/scraps/button';
@@ -12,7 +14,6 @@ import {
   getHierarchyDimensions,
   useResizeCanvasObserver,
 } from 'sentry/components/events/viewHierarchy/utils';
-import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
@@ -312,6 +313,7 @@ function Wireframe({
   }, [
     transformationMatrix,
     canvasRef,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     scale,
     overlayRef,
     hierarchyData.nodes,

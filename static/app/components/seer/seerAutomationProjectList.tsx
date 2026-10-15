@@ -1,10 +1,12 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
@@ -14,7 +16,6 @@ import {
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useProjectSeerPreferences} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -25,7 +26,6 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

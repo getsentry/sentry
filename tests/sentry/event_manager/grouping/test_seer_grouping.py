@@ -194,7 +194,7 @@ class StoredSeerMetadataTest(TestCase):
     def test_group_with_no_seer_match(self, _: MagicMock) -> None:
         with patch(
             "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-            return_value=([], "v1"),
+            return_value=([], "v2.1"),
         ) as mock_get_similarity_data_from_seer:
             event = save_new_event(get_event_data(), self.project)
 
@@ -211,7 +211,7 @@ class StoredSeerMetadataTest(TestCase):
                 event_grouphash,
                 event_grouphash.metadata.date_added,
                 event.event_id,
-                GroupingVersion.V1.value,
+                GroupingVersion.V2_1.value,
                 None,
                 None,
             )
@@ -254,15 +254,14 @@ class StoredSeerMetadataTest(TestCase):
                 new_event_grouphash,
                 new_event_grouphash.metadata.date_added,
                 new_event.event_id,
-                GroupingVersion.V1.value,
+                GroupingVersion.V2_1.value,
                 existing_event_grouphash,
                 seer_result_data.stacktrace_distance,
             )
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
-    def test_seer_model_fallback_recorded_separately(self, _: MagicMock) -> None:
-        """When Seer falls back to a different model, seer_model reflects what Seer actually
-        used while seer_latest_training_model reflects what we requested."""
+    def test_seer_model_used_recorded_separately(self, _: MagicMock) -> None:
+        """Record the returned model even if an older Seer reports a different version."""
         existing_event = save_new_event(get_event_data(), self.project)
         existing_event_grouphash = GroupHash.objects.filter(
             hash=existing_event.get_primary_hash(), project_id=self.project.id
@@ -277,15 +276,9 @@ class StoredSeerMetadataTest(TestCase):
         )
 
         # Mock Seer responding with v1 even though we'd request v2.1
-        with (
-            patch(
-                "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
-                return_value=([seer_result_data], "v1"),
-            ),
-            patch(
-                "sentry.grouping.ingest.seer.get_grouping_model_version",
-                return_value=GroupingVersion.V2_1,
-            ),
+        with patch(
+            "sentry.grouping.ingest.seer.get_similarity_data_from_seer",
+            return_value=([seer_result_data], "v1"),
         ):
             new_event = save_new_event(get_event_data(dog="Maisey"), self.project)
 

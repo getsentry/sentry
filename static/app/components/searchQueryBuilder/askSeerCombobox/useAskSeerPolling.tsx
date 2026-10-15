@@ -10,7 +10,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {
   AskSeerPollingResponse,
+  AskSeerReferrer,
   AskSeerStartResponse,
+  AskSeerStrategy,
   QueryTokensProps,
 } from './types';
 
@@ -58,11 +60,14 @@ const makeInitialAskSeerData = <
   session: null,
 });
 
-interface UseAskSeerPollingOptions<T extends QueryTokensProps> {
+interface UseAskSeerPollingOptions {
   projectIds: number[];
-  strategy: string;
+  /**
+   * Which surface started the run, used to pick the Seer referrer.
+   */
+  referrer: AskSeerReferrer;
+  strategy: AskSeerStrategy;
   onError?: (error: Error) => void;
-  onSuccess?: (result: T) => void;
   options?: Record<string, unknown>;
 }
 
@@ -75,7 +80,7 @@ interface UseAskSeerPollingOptions<T extends QueryTokensProps> {
  * 3. Stop polling when status is completed or error
  */
 export function useAskSeerPolling<T extends QueryTokensProps>(
-  options: UseAskSeerPollingOptions<T>
+  options: UseAskSeerPollingOptions
 ) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -130,6 +135,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
               natural_language_query: query,
               project_ids: options.projectIds,
               strategy: options.strategy,
+              referrer: options.referrer,
               options: {
                 ...options.options,
                 code_mode: codeModeToggle,
@@ -174,13 +180,11 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
       const isStillProcessing =
         sessionData.status === 'processing' || !!sessionData.current_step;
       if (!isStillProcessing) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setWaitingForResponse(false);
-        if (sessionData.status === 'completed' && sessionData.final_response) {
-          options.onSuccess?.(sessionData.final_response);
-        }
       }
     }
-  }, [waitingForResponse, sessionData, options]);
+  }, [waitingForResponse, sessionData]);
 
   // Reset function
   const reset = useCallback(() => {

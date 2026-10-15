@@ -86,21 +86,16 @@ describe('RowSubtitle', () => {
     'installing',
     'choose-destination',
   ])('%s state', visualState => {
-    it('shows the provider description', () => {
-      renderSubtitle(visualState);
-      expect(
-        screen.getByText(/Get real-time alerts and triage issues without leaving Slack/)
-      ).toBeInTheDocument();
+    it('renders nothing', () => {
+      const {container} = renderSubtitle(visualState);
+      expect(container).toBeEmptyDOMElement();
     });
   });
 
   describe('install-forbidden state', () => {
-    it('shows the provider description and admin copy', () => {
+    it('shows the admin copy', () => {
       renderSubtitle('install-forbidden');
 
-      expect(
-        screen.getByText(/Get real-time alerts and triage issues without leaving Slack/)
-      ).toBeInTheDocument();
       expect(
         screen.getByText('Ask an organization admin to connect Slack.')
       ).toBeInTheDocument();
@@ -126,11 +121,12 @@ describe('RowSubtitle', () => {
   });
 
   describe('configured state', () => {
-    it('shows workspace name and channel name', () => {
+    it('shows channel name in workspace format', () => {
       renderSubtitle('configured', connectedSlack, selectedSlackSetup);
 
-      expect(screen.getByText('test-workspace')).toBeInTheDocument();
       expect(screen.getByText('#alerts')).toBeInTheDocument();
+      expect(screen.getByText('in')).toBeInTheDocument();
+      expect(screen.getByText('test-workspace')).toBeInTheDocument();
     });
   });
 
@@ -138,21 +134,29 @@ describe('RowSubtitle', () => {
     it('shows the removal explanation', () => {
       renderSubtitle('removing', connectedSlack, selectedSlackSetup);
 
-      expect(
-        screen.getByText(
-          'This removes the destination from project setup. The integration stays connected to your organization.'
-        )
-      ).toBeInTheDocument();
+      expect(screen.getByText('You can reconnect at any time')).toBeInTheDocument();
     });
   });
 
-  describe.each<RowVisualState>(['install-error', 'configuring'])(
-    '%s state',
-    visualState => {
-      it('renders nothing', () => {
-        const {container} = renderSubtitle(visualState);
-        expect(container).toBeEmptyDOMElement();
-      });
-    }
-  );
+  describe('configuring state', () => {
+    it('shows Connected to and the workspace name when there is one eligible integration', () => {
+      renderSubtitle('configuring', connectedSlack);
+
+      expect(screen.getByText('Connected to')).toBeInTheDocument();
+      expect(screen.getByText('test-workspace')).toBeInTheDocument();
+    });
+
+    it('shows Choose where to send copy when there are multiple eligible integrations', () => {
+      const connectedSlackMulti: ScmMessagingResolvedProvider = {
+        ...connectedSlack,
+        eligibleIntegrations: [
+          slackIntegration,
+          OrganizationIntegrationsFixture({id: 'slack-2', name: 'second-workspace'}),
+        ],
+      };
+      renderSubtitle('configuring', connectedSlackMulti);
+
+      expect(screen.getByText('Choose where to send your alerts')).toBeInTheDocument();
+    });
+  });
 });

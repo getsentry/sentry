@@ -3,8 +3,11 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from unittest import mock
 
+import orjson
 import pytest
 from django.db.models import F
+from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.issues.grouptype import (
@@ -22,14 +25,20 @@ from sentry.models.statistical_detectors import (
     get_regression_groups,
 )
 from sentry.seer.breakpoints import BreakpointData
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.statistical_detectors.algorithm import MovingAverageDetectorState
 from sentry.statistical_detectors.base import DetectorPayload, TrendType
 from sentry.statistical_detectors.detector import TrendBundle, generate_fingerprint
+from sentry.statistical_detectors.redis import (
+    FUNCTION_CHANGE_POINT_LEASE_DURATION,
+    FunctionChangePointQueue,
+)
 from sentry.tasks.statistical_detectors import (
     FunctionRegressionDetector,
     detect_function_change_points,
     detect_function_trends,
     emit_function_regression_issue,
+    process_function_change_points,
     query_functions,
     run_detection,
 )
@@ -39,6 +48,13 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+)
 
 
 @pytest.fixture
@@ -438,10 +454,10 @@ def test_get_regression_versions_active(
     [(100, True), (10, False)],
 )
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
-@mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
+@mock.patch("sentry.tasks.statistical_detectors.FunctionChangePointQueue")
 @django_db_all
 def test_detect_function_trends(
-    detect_function_change_points,
+    change_point_queue,
     query_functions,
     timestamp,
     project,
@@ -473,19 +489,16 @@ def test_detect_function_trends(
         for ts in timestamps:
             detect_function_trends([project.id], ts.isoformat())
 
-    if should_emit:
-        assert detect_function_change_points.apply_async.called
-    else:
-        assert not detect_function_change_points.apply_async.called
+    assert change_point_queue.return_value.enqueue_many.called == should_emit
 
 
 @mock.patch("sentry.tasks.statistical_detectors.functions.query")
-@mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
+@mock.patch("sentry.tasks.statistical_detectors.FunctionChangePointQueue")
 @mock.patch("sentry.statistical_detectors.detector.produce_occurrence_to_kafka")
 @django_db_all
 def test_detect_function_trends_auto_resolution(
     produce_occurrence_to_kafka,
-    detect_function_change_points,
+    change_point_queue,
     functions_query,
     timestamp,
     project,
@@ -516,7 +529,7 @@ def test_detect_function_trends_auto_resolution(
         for ts in timestamps[:50]:
             detect_function_trends([project.id], ts.isoformat())
 
-    assert detect_function_change_points.apply_async.called
+    assert change_point_queue.return_value.enqueue_many.called
 
     with override_options(options):
         RegressionGroup.objects.create(
@@ -540,10 +553,10 @@ def test_detect_function_trends_auto_resolution(
     [(-1, 3), (0, 0), (1, 1), (2, 2), (3, 3)],
 )
 @mock.patch("sentry.tasks.statistical_detectors.query_functions")
-@mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points")
+@mock.patch("sentry.tasks.statistical_detectors.FunctionChangePointQueue")
 @django_db_all
 def test_detect_function_trends_ratelimit(
-    detect_function_change_points,
+    change_point_queue,
     query_functions,
     ratelimit,
     expected_calls,
@@ -592,30 +605,293 @@ def test_detect_function_trends_ratelimit(
         for ts in timestamps:
             detect_function_trends([project.id], ts.isoformat())
 
-    if expected_calls > 0:
-        assert detect_function_change_points.apply_async.call_count == 1
-        detect_function_change_points.apply_async.assert_has_calls(
-            [
-                mock.call(
-                    args=[
-                        [(project.id, 1), (project.id, 2), (project.id, 3)][-expected_calls:],
-                        mock.ANY,
-                    ],
-                    countdown=12 * 60 * 60,
-                ),
-            ],
+    assert (
+        sum(
+            len(call.args[0])
+            for call in change_point_queue.return_value.enqueue_many.call_args_list
         )
-    else:
-        assert detect_function_change_points.apply_async.call_count == 0
+        == expected_calls
+    )
+
+
+def isolated_function_change_point_queue() -> FunctionChangePointQueue:
+    queue = FunctionChangePointQueue()
+    slot = uuid.uuid4().hex
+    queue.ready_key = f"sd:fncp:{{{slot}}}:ready"
+    return queue
+
+
+def test_function_change_point_queue_claims_and_acknowledges_due_candidates():
+    queue = isolated_function_change_point_queue()
+
+    now = datetime.now(UTC)
+    first_start = now - timedelta(hours=1)
+    next_start = now + timedelta(hours=1)
+    try:
+        queue.enqueue(1, 123, first_start)
+        queue.enqueue(1, 123, first_start)
+        queue.enqueue(1, 123, next_start)
+
+        candidates = queue.claim_due(now)
+        assert candidates == [(1, "123", first_start)]
+        assert queue.claim_due(now) == []
+        queue.acknowledge(candidates)
+        queue.acknowledge(candidates)
+        assert queue.claim_due(now + timedelta(seconds=FUNCTION_CHANGE_POINT_LEASE_DURATION)) == []
+        queue.enqueue(1, 123, first_start)
+        candidates = queue.claim_due(now)
+        assert candidates == [(1, "123", first_start)]
+        queue.acknowledge(candidates)
+        candidates = queue.claim_due(next_start)
+        assert candidates == [(1, "123", next_start)]
+        queue.acknowledge(candidates)
+        assert queue.claim_due(next_start) == []
+    finally:
+        for day in {first_start.date(), next_start.date()}:
+            queue.client.delete(queue.key_for(day))
+
+
+def test_function_change_point_queue_recovers_expired_leases():
+    queue = isolated_function_change_point_queue()
+    now = datetime.now(UTC)
+    ready_at = now - timedelta(days=1)
+    lease_end = now + timedelta(seconds=FUNCTION_CHANGE_POINT_LEASE_DURATION)
+
+    try:
+        queue.enqueue(1, 123, ready_at)
+        assert queue.claim_due(now) == [(1, "123", ready_at)]
+        queue.enqueue(1, 123, ready_at)
+        assert queue.claim_due(lease_end - timedelta(microseconds=1)) == []
+        assert queue.claim_due(lease_end) == [(1, "123", ready_at)]
+        assert queue.claim_due(lease_end) == []
+    finally:
+        queue.client.delete(queue.key_for(ready_at.date()))
+
+
+def test_function_change_point_queue_competing_claimers():
+    queue = isolated_function_change_point_queue()
+    other_queue = FunctionChangePointQueue(client=queue.client)
+    other_queue.ready_key = queue.ready_key
+    now = datetime.now(UTC)
+    ready_at = now - timedelta(hours=1)
+
+    try:
+        queue.enqueue(1, 123, ready_at)
+        with ContextPropagatingThreadPoolExecutor(max_workers=2) as executor:
+            first, second = executor.map(lambda q: q.claim_due(now), [queue, other_queue])
+        assert sorted([len(first), len(second)]) == [0, 1]
+        assert first + second == [(1, "123", ready_at)]
+    finally:
+        queue.client.delete(queue.key_for(ready_at.date()))
+
+
+def test_function_change_point_queue_key_has_fixed_expiration():
+    queue = isolated_function_change_point_queue()
+
+    now = datetime.now(UTC)
+    ready_at = now - timedelta(minutes=1)
+    day = ready_at.date()
+    ready_key = queue.key_for(day)
+    expiration = queue.expires_at(day)
+
+    try:
+        queue.enqueue(1, 123, ready_at)
+        queue.claim_due(now)
+        queue.enqueue(2, 456, ready_at)
+        expected_ttl = expiration - datetime.now(UTC).timestamp()
+        assert abs(queue.client.ttl(ready_key) - expected_ttl) < 2
+    finally:
+        queue.client.delete(ready_key)
+
+
+def test_function_change_point_queue_claims_bounded_batches():
+    queue = isolated_function_change_point_queue()
+
+    now = datetime.now(UTC)
+    ready_at = now - timedelta(hours=2)
+    ready_key = queue.key_for(ready_at.date())
+    try:
+        queue.enqueue_many([(1, function, ready_at) for function in range(5)])
+
+        with mock.patch("sentry.statistical_detectors.redis.FUNCTION_CHANGE_POINT_BATCH_SIZE", 2):
+            first = queue.claim_due(now)
+            second = queue.claim_due(now)
+            third = queue.claim_due(now)
+            assert [len(first), len(second), len(third)] == [2, 2, 1]
+            assert queue.client.zcard(ready_key) == 5
+            assert queue.claim_due(now) == []
+            queue.acknowledge(first)
+            assert queue.client.zcard(ready_key) == 3
+            queue.acknowledge(second)
+            assert queue.client.zcard(ready_key) == 1
+            queue.acknowledge(third)
+            assert queue.client.zcard(ready_key) == 0
+    finally:
+        queue.client.delete(ready_key)
+
+
+@mock.patch("sentry.tasks.statistical_detectors.process_function_change_points")
+@mock.patch("sentry.tasks.statistical_detectors.FunctionChangePointQueue")
+def test_scheduled_function_change_points_pauses_when_disabled(queue_cls, process, timestamp):
+    due = [(1, "123", timestamp)]
+    queue_cls.return_value.claim_due.return_value = due
+
+    with override_options({"statistical_detectors.enable": False}):
+        detect_function_change_points()
+
+    queue_cls.assert_not_called()
+    process.apply_async.assert_not_called()
+
+    with override_options({"statistical_detectors.enable": True}):
+        detect_function_change_points()
+
+    queue_cls.return_value.claim_due.assert_called_once()
+    process.apply_async.assert_called_once_with(args=[[(1, "123", timestamp.isoformat())]])
+    queue_cls.return_value.acknowledge.assert_called_once_with(due)
+
+
+@mock.patch("sentry.tasks.statistical_detectors.process_function_change_points")
+@mock.patch("sentry.tasks.statistical_detectors.FunctionChangePointQueue")
+def test_scheduled_function_change_points_dispatches_bounded_batches(queue_cls, process, timestamp):
+    due = [(1, str(function), timestamp) for function in range(25)]
+    queue_cls.return_value.claim_due.return_value = due
+
+    with override_options({"statistical_detectors.enable": True}):
+        detect_function_change_points()
+
+    assert process.apply_async.call_count == 3
+    assert queue_cls.return_value.acknowledge.call_args_list == [
+        mock.call(due[:10]),
+        mock.call(due[10:20]),
+        mock.call(due[20:]),
+    ]
+    assert [len(call.kwargs["args"][0]) for call in process.apply_async.call_args_list] == [
+        10,
+        10,
+        5,
+    ]
+    assert process.apply_async.call_args_list[0].kwargs["args"][0][0] == (
+        1,
+        "0",
+        timestamp.isoformat(),
+    )
+
+
+@pytest.mark.parametrize(
+    ("candidate_count", "expected_continuations"), [(0, 0), (999, 0), (1000, 1)]
+)
+@mock.patch("sentry.tasks.statistical_detectors.detect_function_change_points.apply_async")
+@mock.patch("sentry.tasks.statistical_detectors.process_function_change_points")
+@mock.patch("sentry.tasks.statistical_detectors.FunctionChangePointQueue")
+def test_scheduled_function_change_points_continues_full_batches(
+    queue_cls, process, continuation, timestamp, candidate_count, expected_continuations
+):
+    queue_cls.return_value.claim_due.return_value = [
+        (1, str(function), timestamp) for function in range(candidate_count)
+    ]
+
+    with override_options({"statistical_detectors.enable": True}):
+        detect_function_change_points()
+
+    assert queue_cls.return_value.claim_due.call_count == 1
+    assert (
+        sum(len(call.kwargs["args"][0]) for call in process.apply_async.call_args_list)
+        == candidate_count
+    )
+    assert continuation.call_args_list == [mock.call()] * expected_continuations
+
+
+@pytest.mark.parametrize(
+    ("dispatch_results", "expected_remaining"),
+    [([RuntimeError("dispatch failed")], 25), ([None, RuntimeError("dispatch failed")], 15)],
+)
+@mock.patch("sentry.tasks.statistical_detectors.process_function_change_points")
+def test_scheduled_function_change_points_recovers_dispatch_failure(
+    process, dispatch_results, expected_remaining
+):
+    queue = isolated_function_change_point_queue()
+    now = datetime.now(UTC)
+    ready_at = now - timedelta(hours=1)
+    queue.enqueue_many([(1, function, ready_at) for function in range(25)])
+    process.apply_async.side_effect = dispatch_results
+
+    try:
+        with (
+            override_options({"statistical_detectors.enable": True}),
+            mock.patch(
+                "sentry.tasks.statistical_detectors.FunctionChangePointQueue", return_value=queue
+            ),
+            mock.patch("sentry.tasks.statistical_detectors.django_timezone.now", return_value=now),
+        ):
+            with pytest.raises(RuntimeError, match="dispatch failed"):
+                detect_function_change_points()
+        assert queue.client.zcard(queue.key_for(ready_at.date())) == expected_remaining
+        assert queue.claim_due(now) == []
+        recovered = queue.claim_due(now + timedelta(seconds=FUNCTION_CHANGE_POINT_LEASE_DURATION))
+        assert len(recovered) == expected_remaining
+        assert {candidate_start for _, _, candidate_start in recovered} == {ready_at}
+    finally:
+        queue.client.delete(queue.key_for(ready_at.date()))
+
+
+@mock.patch("sentry.tasks.statistical_detectors.process_function_change_points")
+def test_scheduled_function_change_points_recovers_acknowledgement_failure(process):
+    queue = isolated_function_change_point_queue()
+    now = datetime.now(UTC)
+    ready_at = now - timedelta(hours=1)
+    queue.enqueue(1, 123, ready_at)
+
+    try:
+        with (
+            override_options({"statistical_detectors.enable": True}),
+            mock.patch(
+                "sentry.tasks.statistical_detectors.FunctionChangePointQueue", return_value=queue
+            ),
+            mock.patch("sentry.tasks.statistical_detectors.django_timezone.now", return_value=now),
+            mock.patch.object(
+                queue, "acknowledge", side_effect=RuntimeError("acknowledgement failed")
+            ),
+        ):
+            with pytest.raises(RuntimeError, match="acknowledgement failed"):
+                detect_function_change_points()
+        process.apply_async.assert_called_once_with(args=[[(1, "123", ready_at.isoformat())]])
+        assert queue.claim_due(now) == []
+        assert queue.claim_due(now + timedelta(seconds=FUNCTION_CHANGE_POINT_LEASE_DURATION)) == [
+            (1, "123", ready_at)
+        ]
+    finally:
+        queue.client.delete(queue.key_for(ready_at.date()))
+
+
+def test_process_function_change_points_waits_for_delivery():
+    assert process_function_change_points.wait_for_delivery is True
+
+
+@mock.patch("sentry.tasks.statistical_detectors._detect_function_change_points")
+def test_process_function_change_points_groups_by_start(detect, timestamp):
+    next_start = timestamp + timedelta(hours=1)
+    process_function_change_points(
+        [
+            (1, "123", timestamp.isoformat()),
+            (1, "456", timestamp.isoformat()),
+            (2, "789", next_start.isoformat()),
+        ]
+    )
+
+    assert detect.call_args_list == [
+        mock.call([(1, "123"), (1, "456")], timestamp),
+        mock.call([(2, "789")], next_start),
+    ]
 
 
 @mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")
-@mock.patch("sentry.statistical_detectors.detector.detect_breakpoints")
+@mock.patch("sentry.seer.breakpoints.seer_breakpoint_connection_pool.urlopen")
 @mock.patch("sentry.search.events.builder.base.raw_snql_query")
+@override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
 @django_db_all
 def test_detect_function_change_points(
     mock_raw_snql_query,
-    mock_detect_breakpoints,
+    mock_urlopen,
     mock_emit_function_regression_issue,
     timestamp,
     project,
@@ -643,23 +919,28 @@ def test_detect_function_change_points(
         ],
     }
 
-    mock_detect_breakpoints.return_value = {
-        "data": [
+    mock_urlopen.return_value = HTTPResponse(
+        orjson.dumps(
             {
-                "absolute_percentage_change": 5.0,
-                "aggregate_range_1": 100000000.0,
-                "aggregate_range_2": 500000000.0,
-                "breakpoint": 1687323600,
-                "change": "regression",
-                "project": str(project.id),
-                "transaction": str(fingerprint),
-                "trend_difference": 400000000.0,
-                "trend_percentage": 5.0,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": -float("inf"),
-            },
-        ]
-    }
+                "data": [
+                    {
+                        "absolute_percentage_change": 5.0,
+                        "aggregate_range_1": 100000000.0,
+                        "aggregate_range_2": 500000000.0,
+                        "breakpoint": 1687323600,
+                        "change": "regression",
+                        "project": str(project.id),
+                        "transaction": str(fingerprint),
+                        "trend_difference": 400000000.0,
+                        "trend_percentage": 5.0,
+                        "unweighted_p_value": 0.0,
+                        "unweighted_t_value": -float("inf"),
+                    },
+                ]
+            }
+        ),
+        status=200,
+    )
 
     options = {
         "statistical_detectors.enable": True,
@@ -669,6 +950,76 @@ def test_detect_function_change_points(
         detect_function_change_points([(project.id, fingerprint)], timestamp.isoformat())
 
     assert mock_emit_function_regression_issue.called
+    viewer_context = decode_viewer_context(
+        mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+        key="viewer-context-test-secret",
+    )
+    assert viewer_context == ViewerContext(
+        organization_id=project.organization_id,
+        actor_type=ActorType.SYSTEM,
+    )
+
+
+@mock.patch.object(FunctionRegressionDetector, "detect_regressions")
+@django_db_all
+def test_detect_function_change_points_groups_viewer_context_by_organization(
+    mock_detect_regressions: mock.MagicMock,
+    timestamp: datetime,
+    project: Project,
+) -> None:
+    other_project = Project(
+        id=project.id + 1,
+        organization_id=project.organization_id + 1,
+    )
+    observed_calls: list[tuple[list[int], ViewerContext | None, SeerViewerContext | None]] = []
+
+    def detect_regressions(
+        function_pairs: list[tuple[Project, int | str]],
+        start: datetime,
+        function: str,
+        timeseries_per_batch: int,
+        viewer_context: SeerViewerContext | None = None,
+    ) -> list[BreakpointData]:
+        observed_calls.append(
+            (
+                [function_project.id for function_project, _ in function_pairs],
+                get_viewer_context(),
+                viewer_context,
+            )
+        )
+        return []
+
+    mock_detect_regressions.side_effect = detect_regressions
+
+    with (
+        mock.patch(
+            "sentry.tasks.statistical_detectors.get_detector_enabled_projects",
+            return_value=[project, other_project],
+        ),
+        override_options({"statistical_detectors.enable": True}),
+    ):
+        detect_function_change_points(
+            [(project.id, 12345), (other_project.id, 67890)], timestamp.isoformat()
+        )
+
+    assert observed_calls == [
+        (
+            [project.id],
+            ViewerContext(
+                organization_id=project.organization_id,
+                actor_type=ActorType.SYSTEM,
+            ),
+            SeerViewerContext(organization_id=project.organization_id),
+        ),
+        (
+            [other_project.id],
+            ViewerContext(
+                organization_id=other_project.organization_id,
+                actor_type=ActorType.SYSTEM,
+            ),
+            SeerViewerContext(organization_id=other_project.organization_id),
+        ),
+    ]
 
 
 @pytest.mark.parametrize(

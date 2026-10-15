@@ -13,6 +13,14 @@ describe('LLMCosts', () => {
     expect(screen.getByText('<$0.01')).toBeInTheDocument();
   });
 
+  it('shows the full-precision cost in a tooltip', async () => {
+    render(<LLMCosts cost={0.00123456} />);
+
+    await userEvent.hover(screen.getByText('<$0.01'));
+
+    expect(await screen.findByText('$0.00123456')).toBeInTheDocument();
+  });
+
   it('renders a dash with an explanatory tooltip when the cost is zero', async () => {
     render(<LLMCosts cost={0} />);
 

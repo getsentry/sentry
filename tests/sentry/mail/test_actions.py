@@ -4,16 +4,12 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail.actions import NotifyEmailAction
-from sentry.mail.forms.notify_email import NotifyEmailForm
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
 from sentry.tasks.post_process import post_process_group
-from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from sentry.workflow_engine.typings.notification_action import (
@@ -24,109 +20,6 @@ from sentry.workflow_engine.typings.notification_action import (
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 pytestmark = requires_snuba
-
-
-class NotifyEmailFormTest(TestCase):
-    TARGET_TYPE_KEY = "targetType"
-    FALLTHROUGH_CHOICE_KEY = "fallthroughChoice"
-    TARGET_IDENTIFIER_KEY = "targetIdentifier"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.user = self.create_user(email="foo@example.com", is_active=True)
-        self.user2 = self.create_user(email="baz@example.com", is_active=True)
-        self.inactive_user = self.create_user(email="totallynotabot@149.com", is_active=False)
-
-        organization = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=organization)
-        self.team_not_in_project = self.create_team(organization=organization)
-
-        self.project = self.create_project(name="Test", teams=[self.team])
-        OrganizationMemberTeam.objects.create(
-            organizationmember=OrganizationMember.objects.get(
-                user_id=self.user.id, organization=organization
-            ),
-            team=self.team,
-        )
-        self.create_member(user_id=self.user2.id, organization=organization, teams=[self.team])
-        self.create_member(
-            user_id=self.inactive_user.id,
-            organization=organization,
-            teams=[self.team, self.team_not_in_project],
-        )
-
-    def form_from_json(self, json):
-        return NotifyEmailForm(self.project, json)
-
-    def form_from_values(self, target_type_value, target_id=None, fallthroughChoice=None):
-        json = {self.TARGET_TYPE_KEY: target_type_value, "fallthroughChoice": fallthroughChoice}
-        if target_id:
-            json[self.TARGET_IDENTIFIER_KEY] = target_id
-        return self.form_from_json(json)
-
-    def test_validate_empty_fail(self) -> None:
-        form = self.form_from_json({})
-        assert not form.is_valid()
-
-    def test_validate_none_fail(self) -> None:
-        form = self.form_from_json(None)
-        assert not form.is_valid()
-
-    def test_validate_malformed_json_fail(self) -> None:
-        form = self.form_from_json({"notTheRightK3yName": ActionTargetType.ISSUE_OWNERS.value})
-        assert not form.is_valid()
-
-    def test_validate_invalid_target_type_fail(self) -> None:
-        form = self.form_from_values("TheLegend27")
-        assert not form.is_valid()
-
-    def test_validate_issue_owners(self) -> None:
-        form = self.form_from_values(ActionTargetType.ISSUE_OWNERS.value)
-        assert form.is_valid()
-
-    def test_validate_fallthrough_choice(self) -> None:
-        form = self.form_from_values(
-            ActionTargetType.ISSUE_OWNERS.value,
-            fallthroughChoice=FallthroughChoiceType.NO_ONE.value,
-        )
-        assert form.is_valid()
-
-        form = self.form_from_values(
-            ActionTargetType.ISSUE_OWNERS.value,
-            fallthroughChoice=FallthroughChoiceType.ALL_MEMBERS.value,
-        )
-        assert form.is_valid()
-
-    def test_validate_invalid_fallthrough_choice(self) -> None:
-        # FallthroughChoice is only set for ActionTargetType.ISSUE_OWNERS
-        form = self.form_from_values(
-            ActionTargetType.TEAM.value,
-            fallthroughChoice=FallthroughChoiceType.ACTIVE_MEMBERS.value,
-        )
-        assert not form.is_valid()
-
-    def test_validate_team(self) -> None:
-        form = self.form_from_values(ActionTargetType.TEAM.value, self.team.id)
-        assert form.is_valid()
-
-    def test_validate_team_not_in_project_fail(self) -> None:
-        form = self.form_from_values(ActionTargetType.TEAM.value, self.team_not_in_project.id)
-        assert not form.is_valid()
-
-    def test_validate_user(self) -> None:
-        for u in [self.user, self.user2]:
-            form = self.form_from_values(ActionTargetType.MEMBER.value, u.id)
-            assert form.is_valid()
-
-    def test_validate_inactive_user_fail(self) -> None:
-        form = self.form_from_values(ActionTargetType.MEMBER.value, self.inactive_user)
-        assert not form.is_valid()
-
-    def test_none_target_identifier(self) -> None:
-        json = {self.TARGET_TYPE_KEY: ActionTargetType.ISSUE_OWNERS.value}
-        json[self.TARGET_IDENTIFIER_KEY] = "None"
-        form = self.form_from_json(json)
-        assert form.is_valid()
 
 
 class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
@@ -181,8 +74,8 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -204,8 +97,8 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -227,8 +120,8 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -244,8 +137,8 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -286,8 +179,8 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -334,8 +227,8 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -363,8 +256,8 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -392,8 +285,8 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -417,8 +310,8 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )
@@ -454,7 +347,6 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(event),
                 occurrence_id=event.occurrence_id,
                 project_id=event.group.project_id,
                 group_id=event.group_id,
@@ -495,8 +387,8 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
                 is_new=True,
                 is_regression=False,
                 is_new_group_environment=False,
-                cache_key=write_event_to_cache(self.event),
                 group_id=self.event.group_id,
+                event_id=self.event.event_id,
                 project_id=self.project.id,
                 eventstream_type=EventStreamEventType.Error.value,
             )

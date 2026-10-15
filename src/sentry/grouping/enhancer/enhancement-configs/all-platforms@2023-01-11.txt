@@ -1,4 +1,4 @@
-## * The default configuration of stacktrace grouping enhancers
+## Note: This is a legacy configuration. Do not modify!
 
 # iOS known apps
 family:native package:/var/containers/Bundle/Application/**          +app

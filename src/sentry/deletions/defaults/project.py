@@ -33,7 +33,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.groupemailthread import GroupEmailThread
         from sentry.models.groupopenperiod import GroupOpenPeriod
         from sentry.models.grouprelease import GroupRelease
-        from sentry.models.grouprulestatus import GroupRuleStatus
         from sentry.models.groupseen import GroupSeen
         from sentry.models.groupshare import GroupShare
         from sentry.models.groupsubscription import GroupSubscription
@@ -72,7 +71,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             GroupBookmark,
             GroupEmailThread,
             GroupRelease,
-            GroupRuleStatus,
             GroupSeen,
             GroupShare,
             GroupSubscription,

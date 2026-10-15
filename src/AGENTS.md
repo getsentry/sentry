@@ -68,6 +68,10 @@ NEVER query the database in `serialize()` for bulk requests. `serialize()` runs 
 
 ## Common Patterns
 
+### Viewer/Organization Context
+
+Viewer identity is wired through the app via the `ViewerContext` contextvar; use `sentry.viewer_context.get_viewer_context()` instead of explicitly threading org/user identity when the current viewer is in scope.
+
 ### Feature Flags
 
 See the **feature-flags** skill (`.agents/skills/feature-flags/`) for registration, the `features.has(...)` check, and test usage.
@@ -100,8 +104,15 @@ Logging (`logger.info/exception`, `LOG005`/`LOG011`), tracing/spans (`sentry.uti
 ### Database Guidelines
 
 1. Migrations must be backwards compatible → use the **`generate-migration`** skill.
-2. Add indexes for queries on 1M+ row tables (`db_index=True` or `db_index_together`).
-3. **Composite indexes**: any query filtering multiple columns (e.g. `foreign_key_id__in=... AND id__gt=...`, or FK + timestamp range, or cursor pagination combining filters) needs an explicit `Index(fields=[...])` in `Meta.indexes`, ordered most-selective-first. A single FK auto-index does NOT cover multi-column filters. See **`django-perf-review`** for validation.
+2. Data migrations using `apps.get_model()` operate on historical model classes: custom `save()` methods are absent, and signals scoped to the live model class do not run. Identify and explicitly perform required side effects such as cache invalidation; see the **`generate-migration`** skill.
+3. Add indexes for queries on 1M+ row tables (`db_index=True` or `db_index_together`).
+4. **Composite indexes**: any query filtering multiple columns (e.g. `foreign_key_id__in=... AND id__gt=...`, or FK + timestamp range, or cursor pagination combining filters) needs an explicit `Index(fields=[...])` in `Meta.indexes`, ordered most-selective-first. A single FK auto-index does NOT cover multi-column filters. See **`django-perf-review`** for validation.
+
+### Redis TTLs
+
+**Every new Redis key sets a TTL, or is registered with Infrastructure Engineering as accepted durable data.** `CommonRedisCache.set` and `RedisKVStorage.set` raise `MissingTTL` rather than write a key with no expiry. There is no opt-out argument: the exemption is granted by Infrastructure Engineering, not at the callsite.
+
+A bare `SET` or `GETSET` over an existing key clears its TTL; `SETEX` replaces it with the supplied expiry. `SADD`, `ZADD`, `HSET`, `HINCRBY` and `INCR` preserve an existing TTL. A TTL refreshed on every write does not bound the key's lifetime — shard by time window and give each shard a fixed TTL instead. Full rules: https://develop.sentry.dev/backend/application-domains/redis/.
 
 ## Anti-Patterns (NEVER DO)
 

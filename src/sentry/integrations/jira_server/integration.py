@@ -39,6 +39,8 @@ from sentry.integrations.types import (
     IntegrationProviderSlug,
 )
 from sentry.integrations.utils.external_issue_key import PROVIDER_ISSUE_ID_KEY
+from sentry.integrations.utils.issue_url import parse_issue_url
+from sentry.integrations.utils.jira import parse_jira_issue_key
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -609,6 +611,14 @@ class JiraServerIntegration(IssueSyncIntegration):
         if body:
             output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
+
+    def get_issue_link_data(self, url: str) -> dict[str, str]:
+        base_url = self.model.metadata["base_url"]
+        parse_issue_url(url)
+        key = parse_jira_issue_key(url, base_url)
+        if key is None:
+            raise IntegrationFormError({"externalIssue": "Invalid Jira issue URL"})
+        return {"externalIssue": key.upper()}
 
     def get_issue(self, issue_id, **kwargs):
         """

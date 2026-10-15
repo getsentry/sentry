@@ -2,8 +2,10 @@ from datetime import timedelta
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.test import APIClient
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -15,6 +17,8 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -41,8 +45,64 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
+
+AGENT_TOKEN_SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
+
+
+@cell_silo_test
+class OrganizationDetectorWorkflowAccessTest(APITestCase, ProjectAccessTestMixin):
+    endpoint = "sentry-api-0-organization-detector-details"
+    method = "PUT"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.setup_project_access_test_data()
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(self.limited_user)
+        self.detector = self.create_detector(
+            project=self.user_project, type=MonitorIncidentType.slug
+        )
+        self.connection = self.create_detector_workflow(
+            detector=self.detector, workflow=self.user_workflow
+        )
+
+    def test_workflow_attachment_permissions(self) -> None:
+        workflow_url = (
+            f"/api/0/organizations/{self.organization.slug}/workflows/{self.other_workflow.id}/"
+        )
+        assert self.client.get(workflow_url).status_code == 403
+        original_name = self.detector.name
+
+        self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            name="Unauthorized change",
+            workflowIds=[self.unattached_workflow.id, self.other_workflow.id],
+            status_code=403,
+        )
+
+        self.detector.refresh_from_db()
+        assert self.detector.name == original_name
+        assert list(
+            DetectorWorkflow.objects.filter(detector=self.detector).values_list("id", flat=True)
+        ) == [self.connection.id]
+        assert self.client.get(workflow_url).status_code == 403
+
+        # An authorized replacement still succeeds after the rejected update.
+        self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            workflowIds=[self.unattached_workflow.id],
+        )
+
+        assert list(
+            DetectorWorkflow.objects.filter(detector=self.detector).values_list(
+                "workflow_id", flat=True
+            )
+        ) == [self.unattached_workflow.id]
 
 
 @pytest.mark.snuba_ci
@@ -216,16 +276,11 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data["alertRuleId"] is None
         assert response.data["ruleId"] is None
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_get_success(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
         response = self.get_success_response(self.organization.slug, all_projects_detector.id)
         assert response.data["id"] == str(all_projects_detector.id)
         assert response.data["projectId"] is None
-
-    def test_all_projects_detector_get_error_without_flag(self) -> None:
-        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
-        self.get_error_response(self.organization.slug, all_projects_detector.id, status_code=403)
 
 
 @cell_silo_test
@@ -637,6 +692,48 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
             assert audit_entries.count() == 2
             assert audit_entries[0].target_object == detector_workflows[0].id
             assert audit_entries[1].target_object == detector_workflows[1].id
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_agent_token_advertises_org_write_for_all_projects_workflow(self) -> None:
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.create_detector_workflow(detector=all_projects_detector, workflow=workflow)
+
+        def create_agent_client(scopes: list[str]) -> APIClient:
+            token, _ = agent_token.encode_agent_token(
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                scopes=scopes,
+                session_id="detector-workflow-update",
+            )
+            client = APIClient()
+            client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+            return client
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = create_agent_client(["alerts:write"]).put(
+                f"/api/0/organizations/{self.organization.slug}/detectors/{self.detector.id}/",
+                data={"workflowIds": [workflow.id]},
+                format="json",
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
+        )
+        assert not DetectorWorkflow.objects.filter(
+            detector=self.detector, workflow=workflow
+        ).exists()
+
+        with self.feature(agent_token.FEATURE_FLAG), outbox_runner():
+            retry_response = create_agent_client(["org:write"]).put(
+                f"/api/0/organizations/{self.organization.slug}/detectors/{self.detector.id}/",
+                data={"workflowIds": [workflow.id]},
+                format="json",
+            )
+
+        assert retry_response.status_code == 200, retry_response.content
+        assert DetectorWorkflow.objects.filter(detector=self.detector, workflow=workflow).exists()
 
     def test_update_workflows_replace_workflows(self) -> None:
         """Test replacing existing workflows with new ones"""
@@ -1062,50 +1159,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert snuba_query.query_snapshot is not None
         assert snuba_query.query_snapshot.get("user_updated") is True
 
-    def test_update_generic_metrics_dataset_to_transactions(self) -> None:
-        data = {**self.valid_data}
-        data["dataSources"] = [
-            {
-                "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                "dataset": Dataset.PerformanceMetrics.value,
-                "query": "event.type:transaction",
-                "aggregate": "count()",
-                "timeWindow": 60,  # 60 seconds — below the 300-second EAP floor
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-            }
-        ]
-
-        with self.tasks():
-            response = self.get_success_response(
-                self.organization.slug,
-                self.detector.id,
-                **data,
-                status_code=200,
-            )
-
-        assert (
-            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["dataset"]
-            == Dataset.Transactions.value
-        )
-        assert (
-            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["query"]
-            == "event.type:transaction"
-        )
-        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["aggregate"] == "count()"
-        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["eventTypes"] == [
-            SnubaQueryEventType.EventType.TRANSACTION.name.lower()
-        ]
-
-        detector = Detector.objects.get(id=response.data["id"])
-        data_source = DataSource.objects.get(detector=detector)
-        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
-        assert query_sub.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
-        assert query_sub.snuba_query.dataset == Dataset.Transactions.value
-        assert query_sub.snuba_query.query == "event.type:transaction"
-        assert query_sub.snuba_query.aggregate == "count()"
-        assert query_sub.snuba_query.event_types == [SnubaQueryEventType.EventType.TRANSACTION]
-
     def test_cannot_update_issue_stream_detector(self) -> None:
         issue_stream_detector = ensure_default_detectors(self.project)[IssueStreamGroupType.slug]
         self.get_error_response(
@@ -1148,6 +1201,22 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         self.detector.refresh_from_db()
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         mock_schedule_update_project_config.assert_called_once_with(self.detector)
+
+    def test_delete_denied_without_alert_write_access(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        self.get_error_response(self.organization.slug, self.detector.id, status_code=403)
+
+        self.detector.refresh_from_db()
+        assert self.detector.status != ObjectStatus.PENDING_DELETION
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
 
     def test_delete_allowed_without_metric_subscription_feature(self) -> None:
         with outbox_runner():

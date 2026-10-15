@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DEEMPHASIS_VARIANT} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import type {

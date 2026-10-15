@@ -1,6 +1,10 @@
 import {useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconSearch} from '@sentry/icons/search';
+import {IconTimer} from '@sentry/icons/timer';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -24,7 +28,6 @@ import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import {IconClock, IconEllipsis, IconSearch, IconTimer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -208,7 +211,7 @@ const ViewAllContainer = styled('div')`
     width: 1px;
     top: -${p => p.theme.space.md};
     height: ${p => p.theme.space.md};
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;

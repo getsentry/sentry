@@ -1,3 +1,4 @@
+import type {ESTree, Visitor} from '@oxlint/plugins';
 /**
  * @file Extracts style declarations from styled-components/emotion patterns.
  *
@@ -10,11 +11,10 @@
  * - css`...`
  */
 
-import type {TSESLint, TSESTree} from '@typescript-eslint/utils';
-
 import {normalizePropertyName} from '../utils/normalizePropertyName.ts';
 import {getStyledCallInfo} from '../utils/styled.ts';
 
+import {parseCssTemplate} from './css.ts';
 import type {ExtractorContext, StyleDeclaration} from './types.ts';
 import {decomposeValue} from './valueDecomposer.ts';
 
@@ -25,24 +25,13 @@ export function createStyledExtractor({
   collector,
   themeTracker,
   ruleContext,
-}: ExtractorContext): TSESLint.RuleListener {
-  /**
-   * Extract CSS property from template literal quasi text.
-   * Must correctly handle nested selectors (a:hover) and only match actual properties.
-   */
-  function extractCssProperty(cssText: string) {
-    // Match a CSS property declaration: property-name: value
-    // The property must appear after {, ;, or at line start (with optional whitespace)
-    // This avoids matching pseudo-selectors like a:hover
-    const match = cssText.match(/(?:^|[{;])\s*([a-z-]+)\s*:\s*[^;{]*$/i);
-    return match?.[1] ?? null;
-  }
-
+  importTracker,
+}: ExtractorContext): Visitor {
   /**
    * Check if we're in a lookup table pattern that should be excluded.
    * e.g., ({ none: theme.tokens.content.primary })[status]
    */
-  function isLookupTablePattern(node: TSESTree.Node) {
+  function isLookupTablePattern(node: ESTree.Node) {
     let current = node;
     while (current?.parent) {
       current = current.parent;
@@ -61,56 +50,64 @@ export function createStyledExtractor({
    * Process a template literal and extract style declarations.
    */
   function processTemplateLiteral(
-    templateNode: TSESTree.TemplateLiteral,
-    sourceNode: TSESTree.Node
+    templateNode: ESTree.TemplateLiteral,
+    sourceNode: ESTree.Node
   ) {
-    templateNode.expressions?.forEach((expr, index) => {
-      const precedingQuasi = templateNode.quasis[index];
-      if (!precedingQuasi) {
-        return;
+    const parsed = parseCssTemplate(
+      templateNode,
+      ruleContext.sourceCode.getText(templateNode)
+    );
+    if (!parsed) {
+      return;
+    }
+
+    for (const declaration of parsed) {
+      let disabled = false;
+      let disabledLine = false;
+      for (const directive of declaration.directives) {
+        if (directive.rules.length > 0 && !directive.rules.includes(ruleContext.id)) {
+          continue;
+        }
+        if (directive.action === 'disable-next-line') {
+          disabledLine ||= declaration.line === (directive.endLine ?? -2) + 1;
+        } else if (directive.action === 'disable-line') {
+          disabledLine ||= declaration.line === directive.line;
+        } else if (
+          declaration.sourceRange &&
+          directive.offset < declaration.sourceRange[0]
+        ) {
+          disabled = directive.action === 'disable';
+        }
       }
-
-      const cssText = precedingQuasi.value.cooked || precedingQuasi.value.raw;
-      if (!cssText) {
-        return;
+      if (disabled || disabledLine) {
+        continue;
       }
-
-      const property = extractCssProperty(cssText);
-      if (!property) {
-        return;
+      for (const {expression, index} of declaration.interpolations) {
+        const precedingQuasi = templateNode.quasis[index];
+        if (!precedingQuasi) {
+          continue;
+        }
+        collector.add({
+          kind: 'styled',
+          property: {name: declaration.name, node: precedingQuasi},
+          values: decomposeValue(expression, themeTracker),
+          context: {
+            file: ruleContext.filename,
+            scopeId: themeTracker.getCurrentScopeId(),
+            themeBinding: themeTracker.getActiveBinding(),
+          },
+          raw: {containerNode: templateNode, sourceNode},
+        });
       }
-
-      // Decompose the expression into possible values
-      const values = decomposeValue(expr, themeTracker);
-
-      const declaration: StyleDeclaration = {
-        kind: 'styled',
-        property: {
-          name: normalizePropertyName(property),
-          node: precedingQuasi,
-        },
-        values,
-        context: {
-          file: ruleContext.filename,
-          scopeId: themeTracker.getCurrentScopeId(),
-          themeBinding: themeTracker.getActiveBinding(),
-        },
-        raw: {
-          containerNode: templateNode,
-          sourceNode,
-        },
-      };
-
-      collector.add(declaration);
-    });
+    }
   }
 
   /**
    * Process an object expression from styled.div({ ... }) syntax.
    */
   function processObjectExpression(
-    objNode: TSESTree.ObjectExpression,
-    sourceNode: TSESTree.Node
+    objNode: ESTree.ObjectExpression,
+    sourceNode: ESTree.Node
   ) {
     // Skip lookup table patterns
     if (isLookupTablePattern(objNode)) {
@@ -158,16 +155,16 @@ export function createStyledExtractor({
   }
 
   return {
-    TaggedTemplateExpression(node: TSESTree.TaggedTemplateExpression) {
-      if (!getStyledCallInfo(node)) {
+    TaggedTemplateExpression(node: ESTree.TaggedTemplateExpression) {
+      if (!getStyledCallInfo(node, importTracker)) {
         return;
       }
       processTemplateLiteral(node.quasi, node);
     },
 
     // Handle styled.div({ ... }) object syntax
-    CallExpression(node: TSESTree.CallExpression) {
-      if (!getStyledCallInfo(node)) {
+    CallExpression(node: ESTree.CallExpression) {
+      if (!getStyledCallInfo(node, importTracker)) {
         return;
       }
 

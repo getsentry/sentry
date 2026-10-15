@@ -30,6 +30,7 @@ type Results = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
+  timeseriesInterval?: string;
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
@@ -57,7 +58,6 @@ type Props = {
       | 'sampleCount'
     >
   ) => void;
-  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   tableItemLimit?: number;
   widgetInterval?: string;
   // Number of buckets for a non-time axis. Used by heat maps for the Y-axis
@@ -72,7 +72,6 @@ export function WidgetCardDataLoader({
   dashboardFilters,
   tableItemLimit,
   onDataFetched,
-  onWidgetSplitDecision,
   onDataFetchStart,
   widgetInterval,
   yBuckets,
@@ -124,9 +123,21 @@ export function WidgetCardDataLoader({
         onDataFetchStart={onDataFetchStart}
         widgetInterval={widgetInterval}
       >
-        {({tableResults, timeseriesResults, errorMessage, loading}) => (
+        {({
+          tableResults,
+          timeseriesResults,
+          timeseriesInterval,
+          errorMessage,
+          loading,
+        }) => (
           <Fragment>
-            {children({tableResults, timeseriesResults, errorMessage, loading})}
+            {children({
+              tableResults,
+              timeseriesResults,
+              timeseriesInterval,
+              errorMessage,
+              loading,
+            })}
           </Fragment>
         )}
       </ReleaseWidgetQueries>
@@ -203,7 +214,6 @@ export function WidgetCardDataLoader({
       onDataFetched={onDataFetched}
       onDataFetchStart={onDataFetchStart}
       dashboardFilters={dashboardFilters}
-      onWidgetSplitDecision={onWidgetSplitDecision}
       widgetInterval={widgetInterval}
     >
       {({

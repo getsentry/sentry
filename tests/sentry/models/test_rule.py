@@ -3,6 +3,34 @@ from uuid import uuid4
 from sentry.testutils.cases import TestCase
 
 
+class RuleSaveTest(TestCase):
+    def test_save_cleans_condition_and_action_names(self) -> None:
+        condition = {
+            "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
+        }
+        action = {
+            "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
+            "service": "webhooks",
+        }
+        rule = self.create_project_rule(
+            project=self.project,
+            condition_data=[{**condition, "name": "A new issue is created"}],
+            action_data=[{**action, "name": "Send a notification via webhooks"}],
+            include_legacy_rule_id=False,
+            include_workflow_id=False,
+        )
+        rule.refresh_from_db()
+        assert rule.data["conditions"] == [condition]
+        assert rule.data["actions"] == [action]
+
+        rule.data["conditions"] = [{**condition, "name": "Updated condition"}]
+        rule.data["actions"] = [{**action, "name": "Updated action"}]
+        expected_data = {**rule.data, "conditions": [condition], "actions": [action]}
+        rule.save()
+        rule.refresh_from_db()
+        assert rule.data == expected_data
+
+
 class TestRule_GetRuleActionDetailsByUuid(TestCase):
     def setUp(self) -> None:
         self.action_uuid = str(uuid4())

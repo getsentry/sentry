@@ -6,8 +6,6 @@ from drf_spectacular.utils import OpenApiParameter
 
 from sentry import constants
 from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
-from sentry.search.eap.types import SupportedTraceItemType
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.sessions import STATS_PERIODS
 
 # NOTE: Please add new params by path vs query, then in alphabetical order
@@ -15,6 +13,30 @@ from sentry.snuba.sessions import STATS_PERIODS
 # Some Sentry IDs are 32-char hex, rather than the UUID dashed form.
 # Those cases match this pattern with OpenApiTypes.STR
 SENTRY_HEX_ID_PATTERN = r"^[0-9a-f]{32}$"
+
+# Prepended to a parameter description. The docs badge `x-sentry-experimental` only on
+# a whole operation, so this notice is what a reader sees on the parameter itself.
+EXPERIMENTAL_PARAMETER_NOTICE = (
+    "**Experimental:** This parameter is under active development and may change."
+)
+
+
+def mark_parameter_experimental(parameter: OpenApiParameter) -> OpenApiParameter:
+    """Flag one parameter as experimental without marking the whole operation.
+
+    Sets ``x-sentry-experimental`` and prepends ``EXPERIMENTAL_PARAMETER_NOTICE``
+    to the description.
+    """
+    extensions = dict(parameter.extensions or {})
+    extensions["x-sentry-experimental"] = True
+    parameter.extensions = extensions
+
+    description = parameter.description
+    text = description if isinstance(description, str) else str(description or "")
+    parameter.description = (
+        f"{EXPERIMENTAL_PARAMETER_NOTICE}\n\n{text}" if text else EXPERIMENTAL_PARAMETER_NOTICE
+    )
+    return parameter
 
 
 def build_typed_list(type: Any):
@@ -329,7 +351,7 @@ class ReleaseParams:
         required=False,
         type=str,
         description="The field used to sort results by. By default, this is `date`.",
-        enum=["date", "sessions", "users", "crash_free_users", "crash_free_sessions"],
+        enum=["date"],
     )
     STATUS_FILTER = OpenApiParameter(
         name="status",
@@ -370,7 +392,7 @@ class IssueParams:
         location="query",
         required=False,
         type=str,
-        description="Sort order of the resulting tag values. Prefix with '-' for descending order. Default is '-id'.",
+        description="Sort order of the resulting tag values. Default is `id`.",
         enum=["id", "date", "age", "count"],
     )
 
@@ -581,6 +603,14 @@ Prefix with `-` to sort in descending order.
         description="Filter by monitor type(s). Can be specified multiple times.",
     )
 
+    ENABLED = OpenApiParameter(
+        name="enabled",
+        location="query",
+        required=False,
+        type=bool,
+        description="Filter by whether monitors are enabled.",
+    )
+
 
 class WorkflowParams:
     WORKFLOW_ID = OpenApiParameter(
@@ -647,16 +677,6 @@ class DetectorWorkflowParams:
     )
 
 
-class IssueAlertParams:
-    ISSUE_RULE_ID = OpenApiParameter(
-        name="rule_id",
-        location="path",
-        required=True,
-        type=int,
-        description="The ID of the rule you'd like to query.",
-    )
-
-
 class DataForwarderParams:
     DATA_FORWARDER_ID = OpenApiParameter(
         name="data_forwarder_id",
@@ -664,6 +684,51 @@ class DataForwarderParams:
         required=True,
         type=int,
         description="The ID of the data forwarder you'd like to query.",
+    )
+
+
+class FlagParams:
+    FLAG_LOG_ID = OpenApiParameter(
+        name="flag_log_id",
+        location="path",
+        required=True,
+        type=int,
+        description="The ID of the flag log entry you'd like to retrieve.",
+    )
+    FLAG = OpenApiParameter(
+        name="flag",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="The name of a feature flag to filter by. Repeat the parameter to match multiple flags.",
+    )
+    PROVIDER = OpenApiParameter(
+        name="provider",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        enum=["generic", "flagpole", "launchdarkly", "unleash", "statsig", "unknown"],
+        description="The flag provider to filter by. Use `unknown` to match logs without a provider. Repeat the parameter to match multiple providers.",
+    )
+    SORT = OpenApiParameter(
+        name="sort",
+        location="query",
+        required=False,
+        type=str,
+        description="""The field to sort results by.
+
+Available fields are:
+- `action`
+- `createdAt`
+- `createdBy`
+- `createdByType`
+- `flag`
+- `provider`
+
+Prefix with `-` to sort in descending order.
+""",
     )
 
 
@@ -713,6 +778,23 @@ class VisibilityParams:
         description="""Filters results by using [query syntax](/product/sentry-basics/search/).
 
 Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
+""",
+    )
+    EXPLORE_QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="""Filters results by using [query syntax](/concepts/search/).
+
+Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
+
+With the `logs` dataset, a string attribute can also be matched against a regular expression written as `key://pattern//`, and excluded with `!key://pattern//`.
+Patterns use [RE2 syntax](https://github.com/google/re2/wiki/Syntax), match anywhere in the value unless anchored with `^` or `$`, are case sensitive unless they start with `(?i)`, and are limited to 64 characters.
+To search for a literal value that starts with `//`, quote it: `key:"//value"`.
+See [regular expressions](/concepts/search/#regular-expressions-logs-only) for more details.
+
+Example: `query=message://^Timeout after \\d+ms//`
 """,
     )
     FIELD = OpenApiParameter(
@@ -990,6 +1072,14 @@ class EventParams:
 
 
 class ProjectParams:
+    CUSTOM_INBOUND_FILTER_ID = OpenApiParameter(
+        name="filter_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of the custom inbound filter.",
+    )
+
     FILTER_ID = OpenApiParameter(
         name="filter_id",
         location="path",
@@ -1102,27 +1192,6 @@ class ReplayParams:
         required=True,
         type=OpenApiTypes.INT,
         description="""The ID of the replay deletion job you'd like to retrieve.""",
-    )
-
-    DATA_SOURCE = OpenApiParameter(
-        name="data_source",
-        location="query",
-        required=True,
-        type=OpenApiTypes.STR,
-        enum=[
-            Dataset.Events.value,
-            Dataset.IssuePlatform.value,
-            SupportedTraceItemType.SPANS.value,
-        ],
-        description="The data source to query replays from.",
-    )
-
-    RETURN_IDS = OpenApiParameter(
-        name="returnIds",
-        location="query",
-        required=False,
-        type=OpenApiTypes.BOOL,
-        description="If true, return issue IDs rather than counts.",
     )
 
 

@@ -162,7 +162,7 @@ describe('TransactionsList', () => {
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
       expect(
         screen.getByRole('button', {
-          name: 'Open in Discover',
+          name: 'Open in Explore',
         })
       ).toBeInTheDocument();
 
@@ -177,14 +177,10 @@ describe('TransactionsList', () => {
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
     });
 
-    it('links "Open in Explore" to Explore > Traces when Discover is deprecated', async () => {
+    it('links "Open in Explore" to Explore > Traces', async () => {
       initialize({
         organization: {
-          features: [
-            'discover-basic',
-            'deprecate-discover',
-            'discover-saved-queries-deprecation',
-          ],
+          features: ['discover-basic'],
         },
       });
       MockApiClient.addMockResponse({
@@ -273,7 +269,7 @@ describe('TransactionsList', () => {
 
       expect(
         screen.queryByRole('button', {
-          name: 'Open in Discover',
+          name: 'Open in Explore',
         })
       ).not.toBeInTheDocument();
 
@@ -410,7 +406,7 @@ describe('TransactionsList', () => {
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-      const links = screen.getAllByRole('link');
+      const links = await screen.findAllByRole('link');
       expect(links).toHaveLength(2);
       expect(links[0]).toHaveAttribute(
         'href',
@@ -451,9 +447,9 @@ describe('TransactionsList', () => {
       );
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
+      const gridCells = await screen.findAllByTestId('grid-cell');
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-      const gridCells = screen.getAllByTestId('grid-cell');
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
     });
   });

@@ -1,6 +1,8 @@
 import {Activity, Fragment, useEffect, useRef, useState} from 'react';
 import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
+import {IconClock} from '@sentry/icons/clock';
+import {IconGraph} from '@sentry/icons/graph';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -11,7 +13,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconClock, IconGraph} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   ChartIntervalUnspecifiedStrategy,
@@ -141,6 +142,7 @@ export function MetricPanel({
 
   useEffect(() => {
     if (isVisualizeEquation(visualize)) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setTitle(
         visualize.internalExpression ??
           unresolveExpression(visualize.expression.text, referenceMap)
@@ -313,6 +315,7 @@ export function MetricPanel({
               {isAnyDragging ? (
                 <DnDPlaceholder
                   isDragging={isDragging}
+                  // oxlint-disable-next-line react/refs
                   contentHeight={contentHeightRef.current}
                 />
               ) : null}
@@ -354,7 +357,10 @@ export function MetricPanel({
                             {mode === Mode.AGGREGATE ? (
                               <MetricsAggregateExportModalButton
                                 isError={metricAggregatesTableResult.result.isError}
-                                isLoading={metricAggregatesTableResult.result.isPending}
+                                isLoading={
+                                  areQueriesEnabled &&
+                                  metricAggregatesTableResult.result.isPending
+                                }
                                 pageLinks={metricAggregatesTableResult.result.pageLinks}
                                 tableData={metricAggregatesTableResult.result.data ?? []}
                                 traceMetric={traceMetric}

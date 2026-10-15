@@ -140,6 +140,21 @@ FEATURES = [
         """,
         IntegrationFeatures.TICKET_RULES,
     ),
+    FeatureDescription(
+        """
+        Get automated code reviews from Seer on your GitHub pull requests,
+        surfacing bugs and issues before they reach production.
+        """,
+        IntegrationFeatures.SEER_CONTEXT,
+    ),
+    FeatureDescription(
+        """
+        Let Seer's Autofix find the root cause of your Sentry issues and open a
+        pull request with the fix, iterating on review comments and CI feedback
+        until the PR is ready to merge.
+        """,
+        IntegrationFeatures.SEER_CONTEXT,
+    ),
 ]
 
 metadata = IntegrationMetadata(

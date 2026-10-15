@@ -1,23 +1,21 @@
 import styled from '@emotion/styled';
+import {IconCode} from '@sentry/icons/code';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconJson} from '@sentry/icons/json';
+import {IconMobile} from '@sentry/icons/mobile';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {PlatformIcon} from 'platformicons';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {
-  IconCode,
-  IconDownload,
-  IconEllipsis,
-  IconJson,
-  IconMobile,
-  IconRefresh,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -180,16 +178,14 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
             return (
               <DropdownMenu
                 items={menuItems}
-                trigger={(triggerProps, _isOpen) => (
-                  <DropdownButton
+                trigger={triggerProps => (
+                  <OverlayTrigger.IconButton
+                    icon={<IconEllipsis />}
                     {...triggerProps}
                     size="sm"
                     aria-label="More actions"
-                    showChevron={false}
                     disabled={isRerunning}
-                  >
-                    <IconEllipsis />
-                  </DropdownButton>
+                  />
                 )}
               />
             );

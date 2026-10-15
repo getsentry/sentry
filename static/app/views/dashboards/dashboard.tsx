@@ -6,16 +6,16 @@ import {Responsive, WidthProvider} from 'react-grid-layout';
 import {forceCheck} from 'react-lazyload';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconResize} from '@sentry/icons/resize';
 import * as Sentry from '@sentry/react';
+import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {connect} from 'echarts/core';
 import cloneDeep from 'lodash/cloneDeep';
-import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -24,7 +24,11 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
-import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
+import {
+  NUM_DESKTOP_COLS,
+  DRAG_HANDLE_CLASS,
+  DASHBOARD_CHART_GROUP,
+} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
@@ -57,7 +61,6 @@ import {DashboardFilterKeys} from './types';
 import {getMergedDashboardFilters} from './utils';
 import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
-export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
 const DESKTOP = 'desktop';
 const MOBILE = 'mobile';
@@ -74,7 +77,6 @@ const BREAKPOINTS = (theme: Theme) => ({
   [DESKTOP]: MOBILE_BREAKPOINT(theme),
 });
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
-export const DASHBOARD_CHART_GROUP = 'dashboard-group';
 
 type Props = {
   dashboard: DashboardDetails;
@@ -153,20 +155,19 @@ function DashboardInner({
   const forceCheckTimeout = useRef<number | undefined>(undefined);
   const isGeneratedDashboard = location.query.seerRunId !== undefined;
 
-  const debouncedHandleResize = useMemo(
-    () =>
-      debounce(() => {
-        const start = performance.now();
-        setWindowWidth(window.innerWidth);
-        scheduleMicroTask(() => {
-          const duration = performance.now() - start;
-          Sentry.metrics.distribution('dashboards.widget.onResize', duration, {
-            unit: 'millisecond',
-            attributes: {page: 'dashboard'},
-          });
+  const debouncedHandleResize = useDebouncedCallback(
+    () => {
+      const start = performance.now();
+      setWindowWidth(window.innerWidth);
+      scheduleMicroTask(() => {
+        const duration = performance.now() - start;
+        Sentry.metrics.distribution('dashboards.widget.onResize', duration, {
+          unit: 'millisecond',
+          attributes: {page: 'dashboard'},
         });
-      }, 250),
-    []
+      });
+    },
+    {wait: 250}
   );
 
   useEffect(() => {

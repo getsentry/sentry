@@ -39,9 +39,7 @@ class OrganizationInvestigationsDuplicateEndpoint(OrganizationInvestigationEndpo
             serialize(
                 duplicate,
                 request.user,
-                InvestigationDetailsSerializer(
-                    accessible_project_ids=request.access.accessible_project_ids
-                ),
+                InvestigationDetailsSerializer(),
             ),
             status=status.HTTP_201_CREATED,
         )

@@ -3,6 +3,8 @@ from typing import Any, NotRequired, TypedDict
 
 from sentry import features, options
 from sentry.constants import DataCategory
+from sentry.investigations.models import Investigation
+from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
 from sentry.models.activity import Activity
@@ -29,6 +31,7 @@ from sentry.seer.entrypoints.types import (
     SeerAgentEntrypoint,
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
+    SeerInvestigationEntrypoint,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
@@ -180,11 +183,11 @@ class SeerAutofixOperator[CachePayloadT]:
         run_id: int | None = None,
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
-            NoSeerQuotaException,
             get_autofix_agent_state,
             trigger_autofix_agent,
             trigger_push_changes,
         )
+        from sentry.seer.autofix.exceptions import NoSeerQuotaException
         from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
@@ -596,6 +599,28 @@ class SeerAgentOperator[CachePayloadT]:
             return run_id
 
 
+class SeerInvestigationOperator[CachePayloadT]:
+    """
+    Connects entrypoint implementations to investigations, so all entrypoints behave the same.
+    """
+
+    def __init__(self, entrypoint: SeerInvestigationEntrypoint[CachePayloadT]):
+        self.entrypoint = entrypoint
+
+    @classmethod
+    def has_access(cls, *, organization: Organization, entrypoint_key: SeerEntrypointKey) -> bool:
+        return False
+
+    def trigger_investigation(
+        self,
+        *,
+        organization: Organization,
+        user_id: int,
+        resolved_source: BreachedMetricSource,
+    ) -> tuple[Investigation, bool] | None:
+        return None
+
+
 def _create_seer_activity(
     group: Group,
     event_type: SentryAppEventType,
@@ -615,10 +640,11 @@ def _create_seer_activity(
     if run_id is not None:
         activity_data["run_id"] = run_id
 
-    actor_user_id: int | None = None
+    actor_user_id = (
+        activity_attribution.get("actor_user_id") if activity_attribution is not None else None
+    )
     if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution is not None:
         activity_data["referrer"] = activity_attribution["referrer"].value
-        actor_user_id = activity_attribution.get("actor_user_id")
     elif event_type == SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED:
         root_cause = event_payload.get("root_cause")
         if root_cause:
@@ -661,31 +687,31 @@ def record_seer_activity(
     event_payload: dict[str, Any],
     activity_attribution: SeerActivityAttribution | None = None,
 ) -> None:
-    iteration_attribution: SeerActivityAttribution | None = None
-    if event_type == SentryAppEventType.SEER_ITERATION_STARTED and activity_attribution:
+    normalized_attribution: SeerActivityAttribution | None = None
+    if activity_attribution:
         try:
             referrer = AutofixReferrer(activity_attribution["referrer"])
         except ValueError:
             pass
         else:
-            iteration_attribution = {"referrer": referrer}
+            normalized_attribution = {"referrer": referrer}
             actor_user_id = activity_attribution.get("actor_user_id")
             if actor_user_id is not None:
-                iteration_attribution["actor_user_id"] = actor_user_id
+                normalized_attribution["actor_user_id"] = actor_user_id
 
     action_source = ActionSource.SEER_EXPLORER
     action_actor = SYSTEM_ACTOR
-    if iteration_attribution is not None:
+    if normalized_attribution is not None:
         action_source = ITERATION_REFERRER_TO_ACTION_SOURCE.get(
-            iteration_attribution["referrer"], ActionSource.SEER_EXPLORER
+            normalized_attribution["referrer"], ActionSource.SEER_EXPLORER
         )
-        actor_user_id = iteration_attribution.get("actor_user_id")
+        actor_user_id = normalized_attribution.get("actor_user_id")
         if actor_user_id is not None:
             action_actor = GroupActionActor.user(actor_user_id)
 
     try:
         with action_context_scope(action_source, action_actor):
-            _create_seer_activity(group, event_type, event_payload, iteration_attribution)
+            _create_seer_activity(group, event_type, event_payload, normalized_attribution)
     except Exception:
         logger.exception(
             "seer.activity_creation_failed",

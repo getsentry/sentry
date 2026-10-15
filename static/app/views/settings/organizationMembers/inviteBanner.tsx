@@ -1,11 +1,18 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconCommit} from '@sentry/icons/commit';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconGithub} from '@sentry/icons/github';
+import {IconMail} from '@sentry/icons/mail';
 import * as qs from 'query-string';
 
 import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
@@ -13,10 +20,7 @@ import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Card} from 'sentry/components/card';
 import {Carousel} from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
-import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {MissingMember, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -96,6 +100,7 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
     if (!isEligibleForBanner) {
       return;
     }
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchMissingMembers();
     promptsCheck(api, {
       organization,
@@ -197,12 +202,14 @@ export function InviteBanner({allowedRoles, onSendInvite, onModalClose}: Props) 
             </Button>
             <DropdownMenu
               items={menuItems}
-              triggerProps={{
-                size: 'xs',
-                showChevron: false,
-                icon: <IconEllipsis direction="down" size="sm" />,
-                'aria-label': t('Actions'),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  size="xs"
+                  icon={<IconEllipsis direction="down" size="sm" />}
+                  aria-label={t('Actions')}
+                />
+              )}
             />
           </Grid>
         </Flex>

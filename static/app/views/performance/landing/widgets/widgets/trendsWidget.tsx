@@ -114,27 +114,28 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
   );
 
   const assembleAccordionItems = (provided: ComponentData) =>
-    getItems(provided).map(item => ({header: item, content: getChart(provided)}));
-
-  const getChart = (provided: ComponentData) => (
-    <TrendsChart
-      {...provided}
-      {...rest}
-      isLoading={provided.widgetData.chart.isLoading || !!isCardinalityCheckLoading}
-      statsData={provided.widgetData.chart.statsData}
-      query={eventView.query}
-      project={eventView.project}
-      environment={eventView.environment}
-      start={eventView.start}
-      end={eventView.end}
-      statsPeriod={eventView.statsPeriod}
-      transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
-      trendChangeType={derivedTrendChangeType}
-      trendFunctionField={trendFunctionField}
-      disableXAxis
-      disableLegend
-    />
-  );
+    getItems(provided).map(item => ({
+      header: item,
+      content: (
+        <TrendsChart
+          {...provided}
+          {...rest}
+          isLoading={provided.widgetData.chart.isLoading || !!isCardinalityCheckLoading}
+          statsData={provided.widgetData.chart.statsData}
+          query={eventView.query}
+          project={eventView.project}
+          environment={eventView.environment}
+          start={eventView.start}
+          end={eventView.end}
+          statsPeriod={eventView.statsPeriod}
+          transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
+          trendChangeType={derivedTrendChangeType}
+          trendFunctionField={trendFunctionField}
+          disableXAxis
+          disableLegend
+        />
+      ),
+    }));
 
   const getItems = (provided: ComponentData) =>
     provided.widgetData.chart.transactionsList.map((listItem, i) => {

@@ -94,5 +94,8 @@ export function useUndoableReducer<
       dispatch,
       {previousState: state.previous?.current, nextState: state.next?.current},
     ] as const;
+    // `state.current` is a reducer field rather than a ref, but React Compiler reads
+    // the `.current` access as one and cannot reconcile it with `state` here.
+    // oxlint-disable-next-line react/preserve-manual-memoization
   }, [state, dispatch]);
 }

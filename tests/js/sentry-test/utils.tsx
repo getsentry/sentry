@@ -4,6 +4,7 @@ import MockDate from 'mockdate';
  * Emotion injects its styles through the CSSOM (`insertRule`), so they are not
  * reflected in `getComputedStyle` under jsdom. Read the generated rules for an
  * element directly off `document.styleSheets` instead.
+ * @deprecated if you have to inspect the styles, use a visual regression (snapshot) test instead.
  */
 export function getEmotionRules(element: HTMLElement): string[] {
   const classes = element.className.split(' ').filter(cls => cls.startsWith('css-'));
@@ -17,7 +18,9 @@ export function getEmotionRules(element: HTMLElement): string[] {
     }
     for (const rule of Array.from(sheetRules)) {
       if (classes.some(cls => rule.cssText.includes(cls))) {
-        rules.push(rule.cssText);
+        // CSSOM formatting varies between DOM implementations. Tests care about
+        // the generated declarations, not whether an at-rule contains newlines.
+        rules.push(rule.cssText.replace(/\s+/g, ' '));
       }
     }
   }

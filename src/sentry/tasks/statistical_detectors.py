@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import contextlib
 import logging
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -39,7 +40,11 @@ from sentry.statistical_detectors.algorithm import (
 )
 from sentry.statistical_detectors.base import DetectorPayload
 from sentry.statistical_detectors.detector import RegressionDetector
-from sentry.statistical_detectors.redis import RedisDetectorStore
+from sentry.statistical_detectors.redis import (
+    FUNCTION_CHANGE_POINT_BATCH_SIZE,
+    FunctionChangePointQueue,
+    RedisDetectorStore,
+)
 from sentry.statistical_detectors.store import DetectorStore
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.utils import compute_delay
@@ -49,12 +54,19 @@ from sentry.utils.iterators import chunked
 from sentry.utils.math import ExponentialMovingAverage
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import SnubaTSResult, raw_snql_query
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
 
 FUNCTIONS_PER_PROJECT = 50
 FUNCTIONS_PER_BATCH = 1_000
+CHANGE_POINTS_PER_BATCH = 10
 PROJECTS_PER_BATCH = 1_000
 TIMESERIES_PER_BATCH = 10
 
@@ -212,36 +224,75 @@ def detect_function_trends(project_ids: list[int], start: str, *args, **kwargs) 
     trends = FunctionRegressionDetector.redirect_escalations(trends, start_time)
     trends = FunctionRegressionDetector.limit_regressions_by_project(trends)
 
-    delay = 12  # hours
-    delayed_start = start_time + timedelta(hours=delay)
+    delayed_start = start_time + timedelta(hours=12)
+    queue = FunctionChangePointQueue()
 
     for regression_chunk in chunked(trends, FUNCTIONS_PER_BATCH):
-        detect_function_change_points.apply_async(
-            args=[
-                [(bundle.payload.project_id, bundle.payload.group) for bundle in regression_chunk],
-                delayed_start.isoformat(),
-            ],
-            # delay the check by delay hours because we want to make sure there
-            # will be enough data after the potential change point to be confident
-            # that a change has occurred
-            countdown=delay * 60 * 60,
+        queue.enqueue_many(
+            [
+                (bundle.payload.project_id, bundle.payload.group, delayed_start)
+                for bundle in regression_chunk
+            ]
         )
 
 
 @instrumented_task(
     name="sentry.tasks.statistical_detectors.detect_function_change_points",
     namespace=profiling_tasks,
+    processing_deadline_duration=60,
 )
 def detect_function_change_points(
-    functions_list: list[tuple[int, int]], start: str, *args, **kwargs
+    functions_list: list[tuple[int, int]] | None = None,
+    start: str | None = None,
+    *args,
+    **kwargs,
 ) -> None:
-    start_time = datetime.fromisoformat(start)
+    if not options.get("statistical_detectors.enable"):
+        return
 
-    _detect_function_change_points(functions_list, start_time, *args, **kwargs)
+    # Legacy version of this job.
+    if functions_list is not None and start is not None:
+        _detect_function_change_points(
+            functions_list, datetime.fromisoformat(start), *args, **kwargs
+        )
+        return
+
+    queue = FunctionChangePointQueue()
+    due = queue.claim_due(django_timezone.now())
+    for candidates in chunked(due, CHANGE_POINTS_PER_BATCH):
+        process_function_change_points.apply_async(
+            args=[
+                [
+                    (project_id, function, candidate_start.isoformat())
+                    for project_id, function, candidate_start in candidates
+                ]
+            ]
+        )
+        queue.acknowledge(candidates)
+
+    if len(due) == FUNCTION_CHANGE_POINT_BATCH_SIZE:
+        detect_function_change_points.apply_async()
+
+
+@instrumented_task(
+    name="sentry.tasks.statistical_detectors.process_function_change_points",
+    namespace=profiling_tasks,
+    processing_deadline_duration=5 * 60,
+    wait_for_delivery=True,
+)
+def process_function_change_points(candidates: list[tuple[int, str, str]]) -> None:
+    candidates_by_start: dict[datetime, list[tuple[int, str]]] = {}
+    for project_id, function, candidate_start in candidates:
+        candidates_by_start.setdefault(datetime.fromisoformat(candidate_start), []).append(
+            (project_id, function)
+        )
+
+    for start_time, functions_list in candidates_by_start.items():
+        _detect_function_change_points(functions_list, start_time)
 
 
 def _detect_function_change_points(
-    functions_list: list[tuple[int, int]], start: datetime, *args, **kwargs
+    functions_list: Sequence[tuple[int, int | str]], start: datetime, *args, **kwargs
 ) -> None:
     if not options.get("statistical_detectors.enable"):
         return
@@ -259,15 +310,38 @@ def _detect_function_change_points(
         (projects_by_id[item[0]], item[1]) for item in functions_list if item[0] in projects_by_id
     ]
 
-    viewer_context = None
-    if function_pairs:
-        project = function_pairs[0][0]
-        viewer_context = SeerViewerContext(organization_id=project.organization_id)
+    function_pairs_by_organization: dict[int, list[tuple[Project, int | str]]] = {}
+    for function_pair in function_pairs:
+        function_pairs_by_organization.setdefault(function_pair[0].organization_id, []).append(
+            function_pair
+        )
 
-    regressions = FunctionRegressionDetector.detect_regressions(
-        function_pairs, start, "p95()", TIMESERIES_PER_BATCH, viewer_context=viewer_context
+    def detect_regressions_with_viewer_context() -> Generator[BreakpointData]:
+        for organization_id, organization_function_pairs in function_pairs_by_organization.items():
+            viewer_context = SeerViewerContext(organization_id=organization_id)
+            viewer_context_manager: contextlib.AbstractContextManager[None] = (
+                contextlib.nullcontext()
+            )
+            if get_viewer_context() is None:
+                viewer_context_manager = viewer_context_scope(
+                    ViewerContext(
+                        organization_id=organization_id,
+                        actor_type=ActorType.SYSTEM,
+                    )
+                )
+
+            with viewer_context_manager:
+                yield from FunctionRegressionDetector.detect_regressions(
+                    organization_function_pairs,
+                    start,
+                    "p95()",
+                    TIMESERIES_PER_BATCH,
+                    viewer_context=viewer_context,
+                )
+
+    regressions = FunctionRegressionDetector.save_regressions_with_versions(
+        detect_regressions_with_viewer_context()
     )
-    regressions = FunctionRegressionDetector.save_regressions_with_versions(regressions)
 
     breakpoint_count = 0
     emitted_count = 0

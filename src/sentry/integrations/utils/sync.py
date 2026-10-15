@@ -71,9 +71,11 @@ def _get_user_id(projects_by_user: dict[int, set[int]], group: Group) -> int | N
 
 
 def _get_affected_groups(
-    integration: RpcIntegration | Integration, external_issue_key: str | None
+    integration: RpcIntegration | Integration,
+    external_issue_key: str | None,
+    organization_id: int | None = None,
 ) -> QuerySet[Group]:
-    orgs_with_sync_enabled = where_should_sync(integration, "inbound_assignee")
+    orgs_with_sync_enabled = where_should_sync(integration, "inbound_assignee", organization_id)
     return Group.objects.get_groups_by_external_issue(
         integration,
         orgs_with_sync_enabled,
@@ -257,14 +259,21 @@ def sync_group_assignee_inbound_by_external_actor(
     assign: bool = True,
     external_user_id: str | int | None = None,
     provider_event_updated_at: str | None = None,
+    organization_id: int | None = None,
 ) -> QuerySet[Group] | list[Group]:
+    """
+    Pass `organization_id` to sync only that organization; by default every organization
+    on the integration is synced.
+    """
     logger = logging.getLogger(f"sentry.integrations.{integration.provider}")
     event_updated_at = parse_provider_event_time(provider_event_updated_at)
 
     with ProjectManagementEvent(
         action_type=ProjectManagementActionType.INBOUND_ASSIGNMENT_SYNC, integration=integration
     ).capture() as lifecycle:
-        affected_groups = list(_get_affected_groups(integration, external_issue_key))
+        affected_groups = list(
+            _get_affected_groups(integration, external_issue_key, organization_id)
+        )
         external_user_id_str = str(external_user_id) if external_user_id is not None else None
         log_context = {
             "integration_id": integration.id,

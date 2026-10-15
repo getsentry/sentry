@@ -23,9 +23,6 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import HashDiscarded
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
-from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType
-from sentry.incidents.models.incident import IncidentType
 from sentry.ingest.consumer.processors import (
     process_attachment_chunk,
     process_individual_attachment,
@@ -173,54 +170,6 @@ def generate_tombstones(project, user):
         prev_group_id += 1
 
 
-def create_system_time_series():
-    now = datetime.now(timezone.utc)
-
-    for _ in range(60):
-        count = randint(1, 10)
-        tsdb.backend.incr_multi(
-            (
-                (TSDBModel.internal, "client-api.all-versions.responses.2xx"),
-                (TSDBModel.internal, "client-api.all-versions.requests"),
-            ),
-            now,
-            int(count * 0.9),
-        )
-        tsdb.backend.incr_multi(
-            ((TSDBModel.internal, "client-api.all-versions.responses.4xx"),),
-            now,
-            int(count * 0.05),
-        )
-        tsdb.backend.incr_multi(
-            ((TSDBModel.internal, "client-api.all-versions.responses.5xx"),),
-            now,
-            int(count * 0.1),
-        )
-        now = now - timedelta(seconds=1)
-
-    for _ in range(24 * 30):
-        count = randint(100, 1000)
-        tsdb.backend.incr_multi(
-            (
-                (TSDBModel.internal, "client-api.all-versions.responses.2xx"),
-                (TSDBModel.internal, "client-api.all-versions.requests"),
-            ),
-            now,
-            int(count * 4.9),
-        )
-        tsdb.backend.incr_multi(
-            ((TSDBModel.internal, "client-api.all-versions.responses.4xx"),),
-            now,
-            int(count * 0.05),
-        )
-        tsdb.backend.incr_multi(
-            ((TSDBModel.internal, "client-api.all-versions.responses.5xx"),),
-            now,
-            int(count * 0.1),
-        )
-        now = now - timedelta(hours=1)
-
-
 def create_sample_time_series(event, release=None):
     if event is None:
         return
@@ -258,12 +207,6 @@ def create_sample_time_series(event, release=None):
                 (TSDBModel.project_total_received, project.id),
                 (TSDBModel.key_total_received, key.id),
             ),
-            now,
-            int(count * 1.1),
-        )
-        tsdb.backend.incr(
-            TSDBModel.project_total_forwarded,
-            project.id,
             now,
             int(count * 1.1),
         )
@@ -716,29 +659,6 @@ def generate_events(
         )
 
     return generated_events
-
-
-def create_metric_alert_rule(organization: Organization, project: Project) -> None:
-    # Metric alerts
-    alert_rule = create_alert_rule(
-        organization,
-        [project],
-        "My Alert Rule",
-        "level:error",
-        "count()",
-        10,
-        AlertRuleThresholdType.ABOVE,
-        1,
-    )
-    create_alert_rule_trigger(alert_rule, "critical", 10)
-    create_incident(
-        organization,
-        incident_type=IncidentType.ALERT_TRIGGERED,
-        title="My Incident",
-        date_started=datetime.now(timezone.utc),
-        alert_rule=alert_rule,
-        projects=[project],
-    )
 
 
 def create_mock_transactions(
@@ -1332,7 +1252,6 @@ def main(
                 user=user,
                 commits=raw_commits,
             )
-            create_metric_alert_rule(organization, project)
             events = generate_events(
                 project=project,
                 release=release,
@@ -1352,4 +1271,3 @@ def main(
 
     create_mock_user_feedback(project_map["Wind"])
     create_mock_transactions(project_map, load_trends, load_performance_issues, slow)
-    create_system_time_series()

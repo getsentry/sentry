@@ -120,6 +120,7 @@ function SidebarContent() {
     // we'll only ever select an unsupportedProject if they do not have a supported project in their organization
     if (supportedProjects.length === 0 && unsupportedProjects.length > 0) {
       if (pageFilters.selection.projects[0] === ALL_ACCESS_PROJECTS) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setCurrentProject(unsupportedProjects[0]);
         return;
       }

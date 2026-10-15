@@ -8,13 +8,13 @@ import type {
   AggregationKeyWithAlias,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {sortSelectedFirst} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
-import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {AggregateCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/utils';
+import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {
   buildTraceMetricAggregate,
   getTraceMetricAggregateActionType,
-  getTraceMetricAggregateSource,
+  getTraceMetricDisplayFields,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -32,7 +32,7 @@ export function AggregateSelector({
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
 
-  const aggregateSource = getTraceMetricAggregateSource(
+  const displayFields = getTraceMetricDisplayFields(
     state.displayType,
     state.yAxis,
     state.fields
@@ -45,10 +45,10 @@ export function AggregateSelector({
   );
 
   const aggregateValue = useMemo(() => {
-    return aggregateSource?.[index]?.kind === 'function'
-      ? (aggregateSource?.[index]?.function?.[0] ?? '')
+    return displayFields?.[index]?.kind === 'function'
+      ? (displayFields?.[index]?.function?.[0] ?? '')
       : '';
-  }, [aggregateSource, index]);
+  }, [displayFields, index]);
 
   return (
     <AggregateCompactSelect
@@ -60,7 +60,7 @@ export function AggregateSelector({
       position="bottom-start"
       onChange={option => {
         if (field.kind === 'function') {
-          const newAggregates = cloneDeep(aggregateSource) ?? [];
+          const newAggregates = cloneDeep(displayFields) ?? [];
           newAggregates[index] = buildTraceMetricAggregate(
             option.value as AggregationKeyWithAlias,
             traceMetric

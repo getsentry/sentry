@@ -1,14 +1,19 @@
+from datetime import timedelta
+
 from sentry.incidents.grouptype import (
     MetricIssueDetectorHandler,
     SessionsAggregate,
     get_alert_type_from_aggregate_dataset,
 )
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    ProcessedSubscriptionUpdate,
+)
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.workflow_engine.models import DataCondition
+from sentry.workflow_engine.models import DataCondition, DataPacket, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.data_packet import process_data_packet
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
@@ -356,28 +361,6 @@ class TestGetAnomalyDetectionIssueTitle(TestCase):
             == "crash_free_users"
         )
 
-    def test_defaults_to_custom(self) -> None:
-        assert (
-            get_alert_type_from_aggregate_dataset(
-                "count_unique(tags[sentry:user])", Dataset.Transactions
-            )
-            == "custom_transactions"
-        )
-        assert (
-            get_alert_type_from_aggregate_dataset("p95(measurements.fp)", Dataset.Transactions)
-            == "custom_transactions"
-        )
-        assert (
-            get_alert_type_from_aggregate_dataset("p95(measurements.ttfb)", Dataset.Transactions)
-            == "custom_transactions"
-        )
-        assert (
-            get_alert_type_from_aggregate_dataset(
-                "count(d:transaction/measurement@seconds)", Dataset.PerformanceMetrics
-            )
-            == "custom_transactions"
-        )
-
     def test_extract_eap_metrics_alert(self) -> None:
         assert (
             get_alert_type_from_aggregate_dataset(
@@ -407,3 +390,68 @@ class TestGetAnomalyDetectionIssueTitle(TestCase):
             )
             == "eap_metrics"
         )
+
+
+class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):
+    def firing_packet(self, time_jump: int) -> DataPacket[ProcessedSubscriptionUpdate]:
+        value = self.critical_detector_trigger.comparison + 1
+
+        return self.create_subscription_packet(value, time_jump)
+
+    def resolution_packet(self, time_jump: int) -> DataPacket[ProcessedSubscriptionUpdate]:
+        value = self.resolve_detector_trigger.comparison - 1
+
+        return self.create_subscription_packet(value, time_jump)
+
+    def fingerprint(self, packet: DataPacket[ProcessedSubscriptionUpdate]) -> list[str]:
+        detector_result = self.process_packet_and_return_result(packet)
+
+        assert detector_result is not None
+        return list(detector_result.fingerprint)
+
+    def activation_id(self) -> int | None:
+        return DetectorState.objects.get(detector=self.detector).activation_id
+
+    def stable_fingerprint(self) -> list[str]:
+        return [f"detector:{self.detector.id}"]
+
+    def activation_fingerprint(self, activation_id: int | None) -> list[str]:
+        return [f"detector:{self.detector.id}:activation:{activation_id}"]
+
+    def test_detector_each_activation_gets_its_own_fingerprint(self) -> None:
+        with (
+            self.feature("organizations:workflow-engine-rotate-activation-id"),
+            freeze_time() as frozen_time,
+        ):
+            firing_update_fingerprint = self.fingerprint(self.firing_packet(1))
+
+            initial_activation_id = self.activation_id()
+
+            resolution_update_fingerprint = self.fingerprint(self.resolution_packet(2))
+
+            frozen_time.shift(timedelta(seconds=1))
+
+            next_firing_update_fingerprint = self.fingerprint(self.firing_packet(3))
+
+            assert firing_update_fingerprint == self.activation_fingerprint(initial_activation_id)
+
+            # The resolve has to match the firing it closes, or the issue is stranded open.
+            assert resolution_update_fingerprint == firing_update_fingerprint
+
+            assert next_firing_update_fingerprint != firing_update_fingerprint
+
+    def test_detector_with_flag_off_keeps_stable_fingerprint(self) -> None:
+        with self.feature({"organizations:workflow-engine-rotate-activation-id": False}):
+            firing_update_fingerprint = self.fingerprint(self.firing_packet(1))
+
+            resolution_update_fingerprint = self.fingerprint(self.resolution_packet(2))
+
+            next_firing_update_fingerprint = self.fingerprint(self.firing_packet(3))
+
+            assert self.activation_id() is None
+
+            assert firing_update_fingerprint == self.stable_fingerprint()
+
+            assert resolution_update_fingerprint == self.stable_fingerprint()
+
+            assert next_firing_update_fingerprint == self.stable_fingerprint()

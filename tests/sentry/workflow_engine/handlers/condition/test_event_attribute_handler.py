@@ -5,10 +5,11 @@ import pytest
 from jsonschema import ValidationError
 
 from sentry.eventstream.base import GroupState
-from sentry.rules.conditions.event_attribute import EventAttributeCondition, attribute_registry
+from sentry.rules.conditions.event_attribute import EventAttributeCondition
 from sentry.rules.filters.event_attribute import EventAttributeFilter
-from sentry.rules.match import MatchType
 from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.handlers.condition.utils.event_attribute import attribute_registry
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -180,6 +181,12 @@ class TestEventAttributeCondition(ConditionTestCase):
             {"match": MatchType.EQUAL, "attribute": "platform", "value": "php"}
         )
         self.dc.save()
+
+        self.dc.comparison.update(
+            {"match": MatchType.GREATER_OR_EQUAL, "attribute": "platform", "value": "php"}
+        )
+        with pytest.raises(ValidationError):
+            self.dc.save()
 
         self.dc.comparison.update(
             {"match": "invalid_match", "attribute": "platform", "value": "php"}

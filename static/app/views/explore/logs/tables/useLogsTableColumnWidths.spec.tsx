@@ -33,6 +33,7 @@ describe('useLogsTableColumnWidths', () => {
         isPending: false,
         isScrolling: false,
         dataLength: 10,
+        tableWidth: 1000,
       })
     );
 
@@ -50,6 +51,7 @@ describe('useLogsTableColumnWidths', () => {
         isPending: false,
         isScrolling: false,
         dataLength: 10,
+        tableWidth: 1000,
       })
     );
 
@@ -68,6 +70,7 @@ describe('useLogsTableColumnWidths', () => {
         isPending: false,
         isScrolling: true,
         dataLength: 10,
+        tableWidth: 1000,
       })
     );
 
@@ -89,6 +92,7 @@ describe('useLogsTableColumnWidths', () => {
         isPending: false,
         isScrolling: true,
         dataLength: 10,
+        tableWidth: 1000,
       })
     );
 
@@ -109,6 +113,7 @@ describe('useLogsTableColumnWidths', () => {
         isPending: true,
         isScrolling: true,
         dataLength: 10,
+        tableWidth: 1000,
       })
     );
 
@@ -127,6 +132,7 @@ describe('useLogsTableColumnWidths', () => {
         isPending: false,
         isScrolling: true,
         dataLength: 10,
+        tableWidth: 1000,
       })
     );
 
@@ -145,6 +151,7 @@ describe('useLogsTableColumnWidths', () => {
         isPending: false,
         isScrolling: true,
         dataLength: 10,
+        tableWidth: 1000,
       })
     );
 
@@ -162,6 +169,7 @@ describe('useLogsTableColumnWidths', () => {
           isPending: false,
           isScrolling: true,
           dataLength: 10,
+          tableWidth: 1000,
         }),
       {initialProps: {fields: ['timestamp', 'code.file.path', MESSAGE]}}
     );
@@ -195,6 +203,7 @@ describe('useLogsTableColumnWidths', () => {
           isPending: false,
           isScrolling: true,
           dataLength: 10,
+          tableWidth: 1000,
         }),
       {initialProps: {fields: ['timestamp', 'code.file.path', MESSAGE]}}
     );
@@ -213,6 +222,35 @@ describe('useLogsTableColumnWidths', () => {
     expect(result.current).toEqual({
       timestamp: 200,
       'server.address': 600,
+      [MESSAGE]: FLEX,
+    });
+  });
+
+  it('re-locks with fresh measurements after the table width changes', () => {
+    const tableRef = mockGridTemplateColumns('60px 175px 500px 800px');
+    const fields = ['timestamp', 'code.file.path', MESSAGE];
+
+    const {result, rerender} = renderHook(
+      ({tableWidth}) =>
+        useLogsTableColumnWidths({
+          fields,
+          tableRef,
+          isPending: false,
+          isScrolling: true,
+          dataLength: 10,
+          tableWidth,
+        }),
+      {initialProps: {tableWidth: 1535}}
+    );
+
+    jest
+      .spyOn(window, 'getComputedStyle')
+      .mockReturnValue(styleWith('60px 175px 300px 600px'));
+    rerender({tableWidth: 1135});
+
+    expect(result.current).toEqual({
+      timestamp: 175,
+      'code.file.path': 300,
       [MESSAGE]: FLEX,
     });
   });

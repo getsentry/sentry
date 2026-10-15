@@ -3,12 +3,13 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {ReleaseDropdownFilter} from 'sentry/components/replays/releaseDropdownFilter';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import {Version} from 'sentry/components/version';
@@ -108,22 +109,25 @@ export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   }, [name, values, generateUrl, organization]);
 
   return (
-    <KeyValueTableRow
-      keyName={
+    <Fragment>
+      <DescriptionList.Term>
         <StyledTooltip title={name} showOnlyOnOverflow>
           {name}
         </StyledTooltip>
-      }
-      value={
+      </DescriptionList.Term>
+      <DescriptionList.Details>
         <ErrorBoundary mini>
           <ValueContainer>
             <StyledTooltip
               disabled={releaseKeys.includes(name)}
-              overlayStyle={
-                expandedViewKeys.includes(name) ? {textAlign: 'left'} : undefined
-              }
               title={
-                expandedViewKeys.includes(name) ? renderValueList(values) : renderTagValue
+                expandedViewKeys.includes(name) ? (
+                  <Text as="div" align="left">
+                    {renderValueList(values)}
+                  </Text>
+                ) : (
+                  renderTagValue
+                )
               }
               showOnlyOnOverflow
             >
@@ -131,8 +135,8 @@ export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
             </StyledTooltip>
           </ValueContainer>
         </ErrorBoundary>
-      }
-    />
+      </DescriptionList.Details>
+    </Fragment>
   );
 }
 

@@ -1,13 +1,15 @@
+import {useMatches} from 'react-router';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {IssueCategory, IssueType, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {
   LLMContextProvider,
   useLLMContext,
@@ -17,12 +19,30 @@ import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmCon
 import {AutofixSection} from './autofixSection';
 
 jest.mock('sentry/utils/cells');
+jest.mock('react-router', () => ({
+  ...jest.requireActual('react-router'),
+  useMatches: jest.fn(),
+}));
+
+const mockUseMatches = jest.mocked(useMatches);
+
+/** The route match shape `useCurrentTab` reads, for whichever tab is on screen. */
+function matchesForTab(tab: Tab) {
+  return [
+    {
+      id: '0',
+      pathname: '/organizations/org-slug/issues/1/',
+      params: {orgId: 'org-slug', groupId: '1'},
+      data: null,
+      handle: {path: TabPaths[tab]},
+    },
+  ];
+}
 
 describe('AutofixSection', () => {
   const mockProject = DetailedProjectFixture();
   const organization = OrganizationFixture({
     hideAiFeatures: false,
-    features: ['gen-ai-features'],
   });
 
   let mockGroup: ReturnType<typeof GroupFixture>;
@@ -30,6 +50,7 @@ describe('AutofixSection', () => {
   beforeEach(() => {
     mockGroup = GroupFixture();
     MockApiClient.clearMockResponses();
+    mockUseMatches.mockImplementation(() => matchesForTab(Tab.DETAILS));
 
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
@@ -71,7 +92,6 @@ describe('AutofixSection', () => {
   it('renders Resources section when AI features are disabled', () => {
     const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
-      features: ['gen-ai-features'],
     });
 
     const performanceGroup: Group = {
@@ -124,7 +144,6 @@ describe('AutofixSection', () => {
   it('returns null when AI features are disabled and no resources exist', () => {
     const customOrganization = OrganizationFixture({
       hideAiFeatures: true,
-      features: ['gen-ai-features'],
     });
 
     const {container} = render(
@@ -176,6 +195,72 @@ describe('AutofixSection', () => {
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
+  });
+
+  it('starts collapsed on the autofix tab even when saved as open', async () => {
+    mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
+    localStorage.setItem('issue-details-fold-section-collapse:seer', 'false');
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    expect(await screen.findByRole('button', {name: 'View Section'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(localStorage.getItem('issue-details-fold-section-collapse:seer')).toBe(
+      'false'
+    );
+    localStorage.clear();
+  });
+
+  it('drops the open button on the autofix tab but keeps the previews', async () => {
+    mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'completed',
+          updated_at: new Date().toISOString(),
+          blocks: [
+            {
+              id: 'block-1',
+              message: {
+                content: 'Found root cause',
+                role: 'assistant',
+                metadata: {step: 'root_cause'},
+              },
+              timestamp: new Date().toISOString(),
+              artifacts: [
+                {
+                  key: 'root_cause',
+                  reason: 'Identified the issue',
+                  data: {
+                    one_line_description: 'Null pointer in user handler',
+                    five_whys: ['why1'],
+                    reproduction_steps: ['step1'],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization,
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'View Section'}));
+
+    // The previews still earn their place as a table of contents; only the
+    // button, which would navigate to the page already on screen, goes.
+    expect(await screen.findByText('Root Cause')).toBeInTheDocument();
+    expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Open Autofix'})).not.toBeInTheDocument();
   });
 
   it('renders solution artifact', async () => {
@@ -446,7 +531,7 @@ describe('AutofixSection', () => {
   it('shows org setup UI when SCM integration is missing', async () => {
     const seatBasedOrg = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['gen-ai-features', 'seat-based-seer-enabled'],
+      features: ['seat-based-seer-enabled'],
     });
 
     MockApiClient.addMockResponse({
@@ -479,7 +564,7 @@ describe('AutofixSection', () => {
   it('shows project setup UI when repos are not linked', async () => {
     const seatBasedOrg = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['gen-ai-features', 'seat-based-seer-enabled'],
+      features: ['seat-based-seer-enabled'],
     });
 
     MockApiClient.addMockResponse({
@@ -509,10 +594,34 @@ describe('AutofixSection', () => {
     );
   });
 
+  it('skips setup UI when the onboarding check fails', async () => {
+    const seatBasedOrg = OrganizationFixture({
+      hideAiFeatures: false,
+      features: ['seat-based-seer-enabled'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${seatBasedOrg.slug}/seer/onboarding-check/`,
+      statusCode: 500,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization: seatBasedOrg,
+    });
+
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
+    expect(screen.queryByText('Finish Configuring Seer')).not.toBeInTheDocument();
+  });
+
   it('skips setup UI for legacy seer plan orgs without SCM integration', async () => {
     const legacyOrg = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['gen-ai-features', 'seer-added'],
+      features: ['seer-added'],
     });
 
     MockApiClient.addMockResponse({

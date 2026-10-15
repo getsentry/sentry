@@ -364,6 +364,46 @@ describe('SecondFactorAuth', () => {
     await waitFor(() => expect(onBack).toHaveBeenCalledTimes(1));
   });
 
+  it('keeps showing the WebAuthn waiting state while cancellation is pending', async () => {
+    Object.defineProperty(window, 'PublicKeyCredential', {
+      configurable: true,
+      value: function PublicKeyCredential() {},
+    });
+    const assertion = Promise.withResolvers<string | null>();
+    jest.spyOn(webAuthnHandlers, 'handleSign').mockReturnValue(assertion.promise);
+    MockApiClient.addMockResponse({
+      url: '/auth/2fa/challenge/',
+      method: 'POST',
+      body: {
+        method: 'u2f',
+        challenge: {webAuthnAuthenticationData: 'challenge'},
+      },
+    });
+    const cancellation = Promise.withResolvers<undefined>();
+    MockApiClient.addMockResponse({
+      url: '/auth/2fa/',
+      method: 'DELETE',
+      statusCode: 204,
+      body: () => cancellation.promise,
+    });
+
+    render(
+      <SecondFactorAuth
+        methods={[{id: 'u2f'}]}
+        onBack={jest.fn()}
+        onComplete={jest.fn()}
+      />
+    );
+
+    await waitFor(() => expect(webAuthnHandlers.handleSign).toHaveBeenCalledTimes(1));
+    await userEvent.click(screen.getByRole('button', {name: 'Back to Login'}));
+
+    expect(
+      screen.getByText('Waiting for passkey, biometric, or hardware key')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Authorizing...')).not.toBeInTheDocument();
+  });
+
   it('disables WebAuthn retry while cancellation is pending', async () => {
     Object.defineProperty(window, 'PublicKeyCredential', {
       configurable: true,

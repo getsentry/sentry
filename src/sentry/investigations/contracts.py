@@ -394,6 +394,21 @@ class OptionalStrictCharField(StrictCharField):
         super().__init__(max_length=max_length, **kwargs)
 
 
+class TimingTimestampField(StrictCharField):
+    def __init__(self) -> None:
+        super().__init__(max_length=64, required=False, allow_null=True)
+
+    def to_internal_value(self, data: Any) -> str:
+        value = super().to_internal_value(data)
+        try:
+            parsed = parse_datetime(value)
+        except ValueError:
+            parsed = None
+        if parsed is None or not timezone.is_aware(parsed):
+            raise serializers.ValidationError("Must be a timezone-aware timestamp.")
+        return value
+
+
 class ProjectionErrorSerializer(RelaxedContractSerializer):
     code = StrictCharField(max_length=128)
     message = StrictCharField(max_length=10_000)
@@ -480,7 +495,7 @@ class VerificationStepSerializer(RelaxedContractSerializer):
     title = StrictCharField(max_length=500)
     objective = StrictCharField(max_length=5_000)
     method = StrictCharField(max_length=5_000)
-    status = serializers.ChoiceField(choices=sorted(WORK_STATUSES))
+    status = serializers.ChoiceField(choices=sorted(WORK_STATUSES | {"skipped"}))
     result = OptionalStrictCharField(20_000)
     evidence = serializers.ListField(
         child=EvidenceSerializer(), required=False, max_length=MAX_EVIDENCE_ITEMS
@@ -687,6 +702,10 @@ class OrchestrationProjectionSerializer(RelaxedContractSerializer):
     )
     heartbeatAt = StrictCharField(max_length=64)
     updatedAt = OptionalStrictCharField(64)
+    startedAt = TimingTimestampField()
+    finishedAt = TimingTimestampField()
+    activeSince = TimingTimestampField()
+    activeTimeElapsedSeconds = StrictFloatField(required=False, allow_null=True, min_value=0)
 
     def validate_heartbeatAt(self, value: str) -> str:
         parsed = parse_datetime(value)

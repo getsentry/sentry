@@ -17,6 +17,8 @@ import {
 
 export const NONE_UNIT = 'none';
 
+export const METRICS_CHART_GROUP = 'metrics-charts-group';
+
 const AlwaysHiddenTraceMetricFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.ID,
   TraceMetricKnownFieldKey.ORGANIZATION_ID,
@@ -42,7 +44,6 @@ export const AlwaysPresentTraceMetricFields: TraceMetricFieldKey[] = [
  */
 export const HiddenTraceMetricDetailFields: TraceMetricFieldKey[] = [
   ...AlwaysHiddenTraceMetricFields,
-  TraceMetricKnownFieldKey.SPAN_ID,
 
   // deprecated/otel fields that clutter the UI
   TraceMetricKnownFieldKey.TIMESTAMP_NANOS,

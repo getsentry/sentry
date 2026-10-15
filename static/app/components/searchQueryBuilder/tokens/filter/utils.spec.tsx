@@ -155,7 +155,48 @@ describe('getValidOpsForFilter', () => {
   });
 });
 
+describe('getValidOpsForFilter regex operators', () => {
+  it('allows regex operators for string fields only when allowRegexOperators is true', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    };
+    const filterToken = parseFilterToken('message:hello');
+
+    const allowed = getValidOpsForFilter({
+      filterToken,
+      fieldDefinition,
+      allowRegexOperators: true,
+    });
+    const notAllowed = getValidOpsForFilter({filterToken, fieldDefinition});
+
+    expect(allowed).toEqual(
+      expect.arrayContaining([TermOperator.MATCHES, TermOperator.DOES_NOT_MATCH])
+    );
+    expect(notAllowed).not.toEqual(expect.arrayContaining([TermOperator.MATCHES]));
+  });
+
+  it('does not allow regex operators for non-string effective value types', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NUMBER,
+    };
+
+    expect(
+      getValidOpsForFilter({
+        filterToken: parseFilterToken('timesSeen:10'),
+        fieldDefinition,
+        allowRegexOperators: true,
+      })
+    ).not.toEqual(expect.arrayContaining([TermOperator.MATCHES]));
+  });
+});
+
 describe('escapeTagValueForSearch', () => {
+  it('quotes a value that starts with the regex delimiter', () => {
+    expect(escapeTagValueForSearch('//a//')).toBe('"//a//"');
+  });
+
   it('escapes unescaped asterisks', () => {
     expect(escapeTagValueForSearch('foo*bar')).toBe('foo\\*bar');
   });
