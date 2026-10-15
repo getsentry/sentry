@@ -26,6 +26,7 @@ import {
   toRequest,
   type FormulaDraft,
 } from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
+import {ParametersSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/parametersSection';
 
 const DATASET_OPTIONS: Array<{label: string; value: FormulaDataset}> = [
   {value: 'spans', label: t('Spans')},
@@ -120,6 +121,11 @@ export function FormulaBuilder({
             />
           </Flex>
         </BuilderSection>
+
+        <ParametersSection
+          params={draft.params}
+          onChange={params => setDraft({...draft, params})}
+        />
 
         <BuilderSection
           title={t('Formula')}
