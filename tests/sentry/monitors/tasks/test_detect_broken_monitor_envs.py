@@ -97,7 +97,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         first_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
             date_added=timezone.now() - timedelta(days=14),
         )
@@ -112,7 +111,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.ERROR,
                 date_added=timezone.now() - timedelta(days=i),
             )
@@ -212,7 +210,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         first_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
             date_added=timezone.now() - timedelta(days=10),
         )
@@ -228,7 +225,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.ERROR,
                 date_added=timezone.now() - timedelta(days=1),
             )
@@ -242,7 +238,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         first_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
             date_added=timezone.now() - timedelta(days=14),
         )
@@ -258,7 +253,6 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
             MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.ERROR,
                 date_added=timezone.now() - timedelta(days=i),
             )

@@ -102,8 +102,13 @@ function cleanupCalls(
         );
         continue;
       }
+      if (statement.type === 'VariableDeclaration') {
+        for (const declaration of statement.declarations) {
+          calls.push(...cleanupCalls(declaration.init));
+        }
+        continue;
+      }
       if (
-        statement.type === 'VariableDeclaration' ||
         statement.type === 'FunctionDeclaration' ||
         statement.type === 'EmptyStatement'
       ) {
@@ -149,15 +154,42 @@ function cleanupCalls(
   return [];
 }
 
+function hasProtectedCleanup(callback: Callback): boolean {
+  if (callback.body?.type !== 'BlockStatement') {
+    return false;
+  }
+  const first = callback.body.body.find(
+    statement =>
+      statement.type !== 'EmptyStatement' &&
+      statement.type !== 'FunctionDeclaration' &&
+      !(
+        statement.type === 'VariableDeclaration' &&
+        statement.declarations.every(declaration => !declaration.init)
+      )
+  );
+  const restore = first?.type === 'TryStatement' ? first.finalizer?.body[0] : null;
+  return (
+    first?.type === 'TryStatement' &&
+    restore?.type === 'ExpressionStatement' &&
+    restore.expression.type === 'CallExpression' &&
+    isJestMethod(restore.expression, 'useRealTimers') &&
+    cleanupCalls(first.block).some(call => !isJestMethod(call, 'useRealTimers')) &&
+    cleanupCalls(callback.body).filter(call => isJestMethod(call, 'useRealTimers'))
+      .length === 1
+  );
+}
+
 export const requireFakeTimerCleanup = defineRule({
   meta: {
     type: 'problem',
     docs: {
       description:
-        'Require fake timers in setup hooks or tests to have matching teardown that flushes pending timers before restoring real timers.',
+        'Require fake timers in setup hooks or tests to have matching teardown that flushes pending timers in try and restores real timers first in finally.',
     },
     schema: [],
     messages: {
+      missingFinally:
+        'Protect cleanup and pending timer flushing with try/finally, calling jest.useRealTimers() first in finally before other cleanup.',
       useFakeTimersNotInHook:
         'Call jest.useFakeTimers() directly inside beforeEach(), beforeAll(), it(), or test().',
       missingCleanup:
@@ -217,6 +249,17 @@ export const requireFakeTimerCleanup = defineRule({
             context.report({node: call, messageId: 'missingCleanup'});
           } else if (restores.some(flushed => !flushed)) {
             context.report({node: call, messageId: 'missingRunOnlyPendingTimers'});
+          } else if (
+            name &&
+            (SETUP_HOOKS.has(name) || TEST_FUNCTIONS.has(name)) &&
+            applicable.some(
+              hook =>
+                cleanupCalls(hook.callback.body).some(cleanup =>
+                  isJestMethod(cleanup, 'useRealTimers')
+                ) && !hasProtectedCleanup(hook.callback)
+            )
+          ) {
+            context.report({node: call, messageId: 'missingFinally'});
           }
         }
       },

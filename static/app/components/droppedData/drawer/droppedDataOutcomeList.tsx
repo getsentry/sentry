@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {useDrawer, useDrawerContentContext} from '@sentry/scraps/drawer';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
@@ -85,9 +86,15 @@ function FixThisMenu({
       usePortal
       portalContainerRef={panelRef}
       trigger={(triggerProps, isOpen) => (
-        <Button {...triggerProps} variant="primary" size="sm" aria-expanded={isOpen}>
+        <OverlayTrigger.Button
+          {...triggerProps}
+          showChevron={false}
+          variant="primary"
+          size="sm"
+          aria-expanded={isOpen}
+        >
           {t('Learn more')}
-        </Button>
+        </OverlayTrigger.Button>
       )}
     />
   );

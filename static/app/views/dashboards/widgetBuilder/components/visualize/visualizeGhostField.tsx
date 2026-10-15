@@ -11,6 +11,7 @@ import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {AggregateParameterField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/aggregateParameterField';
 import {
   AggregateCompactSelect,
+  ColumnCompactSelect,
   FieldBar,
   FieldExtras,
   FieldRow,
@@ -18,10 +19,9 @@ import {
   ParameterRefinements,
   PrimarySelectRow,
   StyledArithmeticInput,
-} from 'sentry/views/dashboards/widgetBuilder/components/visualize/index';
-import {ColumnCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
+} from 'sentry/views/dashboards/widgetBuilder/components/visualize/utils';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 type VisualizeGhostFieldProps = {
   activeId: number;

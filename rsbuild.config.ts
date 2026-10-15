@@ -239,10 +239,7 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
       tsx: true,
     },
     transform: {
-      // TODO: Enable in production
-      reactCompiler:
-        options.reactCompiler &&
-        (IS_DEPLOY_PREVIEW || IS_ACCEPTANCE_TEST || IS_UI_DEV_ONLY),
+      reactCompiler: options.reactCompiler,
       react: {
         runtime: 'automatic',
         development: DEV_MODE,

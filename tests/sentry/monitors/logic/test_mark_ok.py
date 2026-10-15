@@ -54,7 +54,6 @@ class MarkOkTestCase(TestCase):
         success_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
             date_added=now,
         )
@@ -97,7 +96,6 @@ class MarkOkTestCase(TestCase):
         success_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
             date_added=now,
         )
@@ -137,7 +135,6 @@ class MarkOkTestCase(TestCase):
         first_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
             date_added=now,
         )
@@ -154,7 +151,6 @@ class MarkOkTestCase(TestCase):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.OK,
                 date_added=now,
             )
@@ -165,7 +161,6 @@ class MarkOkTestCase(TestCase):
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=now,
         )
@@ -189,7 +184,6 @@ class MarkOkTestCase(TestCase):
         last_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
             date_added=now,
         )
@@ -205,7 +199,6 @@ class MarkOkTestCase(TestCase):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.OK,
                 date_added=now,
             )
@@ -271,7 +264,6 @@ class MarkOkTestCase(TestCase):
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
             date_added=timezone.now() - timedelta(days=14),
         )
@@ -289,7 +281,6 @@ class MarkOkTestCase(TestCase):
         success_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
             date_added=now,
         )

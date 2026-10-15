@@ -945,11 +945,6 @@
       "count": 1
     }
   },
-  "static/app/components/profiling/flamegraph/callTreeTable.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "static/app/components/profiling/flamegraph/collapsibleTimeline.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -962,7 +957,7 @@
   },
   "static/app/components/profiling/flamegraph/flamegraphDrawer/flamegraphDrawer.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 3
+      "count": 2
     }
   },
   "static/app/components/profiling/flamegraph/flamegraphLayout.tsx": {
@@ -1383,11 +1378,6 @@
       "count": 1
     }
   },
-  "static/app/components/sidebarSection.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/components/slider/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1435,7 +1425,7 @@
   },
   "static/app/components/stream/group.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 4
+      "count": 3
     }
   },
   "static/app/components/tables/keyValueTable/keyValueTable.stories.tsx": {
@@ -1883,7 +1873,7 @@
   },
   "static/app/views/dashboards/widgetBuilder/components/newWidgetBuilder.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 4
+      "count": 1
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/queryFilterBuilder.tsx": {
@@ -1893,7 +1883,7 @@
   },
   "static/app/views/dashboards/widgetBuilder/components/visualize/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 4
+      "count": 1
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/widgetTemplatesList.tsx": {
@@ -2291,7 +2281,7 @@
   },
   "static/app/views/explore/releases/list/releaseCard/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 5
+      "count": 4
     }
   },
   "static/app/views/explore/releases/list/releaseCard/releaseCardCommits.tsx": {
@@ -2524,11 +2514,6 @@
       "count": 1
     }
   },
-  "static/app/views/insights/crons/components/overviewTimeline/overviewRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 7
-    }
-  },
   "static/app/views/insights/crons/components/processingErrors/monitorProcessingErrors.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -2581,11 +2566,6 @@
   },
   "static/app/views/insights/pages/transactionNameSearchBar.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
-  "static/app/views/insights/uptime/components/overviewTimeline/overviewRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
@@ -2751,11 +2731,6 @@
   },
   "static/app/views/issueDetails/useEngagedViewTracking.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
-  "static/app/views/issueList/actions/index.tsx": {
-    "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
@@ -3800,11 +3775,6 @@
   "static/gsApp/components/dataConsentModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
-    }
-  },
-  "static/gsApp/components/features/disabledCustomInboundFilters.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
     }
   },
   "static/gsApp/components/features/disabledDataForwarding.tsx": {

@@ -4,10 +4,10 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import type {Location, Query} from 'history';
 import moment from 'moment-timezone';
 
-import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import Feature from 'sentry/components/acl/feature';
@@ -149,12 +149,6 @@ function HamburgerDropdown({items}: {items: MenuItemProps[]}) {
           aria-label={t('Query actions')}
           size="xs"
           variant="transparent"
-          onClick={e => {
-            e.stopPropagation();
-            e.preventDefault();
-
-            triggerProps.onClick?.(e);
-          }}
           icon={<IconEllipsis direction="down" size="sm" />}
           data-test-id="menu-trigger"
         />
@@ -423,7 +417,7 @@ const PaginationRow = styled(Pagination)`
   margin-bottom: 20px;
 `;
 
-const DropdownTrigger = styled(Button)`
+const DropdownTrigger = styled(OverlayTrigger.IconButton)`
   transform: translateX(${p => p.theme.space.md});
 `;
 

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from unittest.mock import patch
 
 import orjson
@@ -32,6 +33,9 @@ def call_endpoint(client, relay, private_key):
 
 
 @pytest.mark.django_db
+@pytest.mark.parametrize(
+    "inbound_filters_custom_error_values", [[], [("MyError", "Mixed CASE message *")]]
+)
 @override_options(
     {
         # Set options to Relay's non-default values to avoid Relay skipping deserialization
@@ -56,16 +60,31 @@ def call_endpoint(client, relay, private_key):
         "relay.upload-max-chunk.size": 123,
     }
 )
-def test_global_config() -> None:
+def test_global_config(settings, inbound_filters_custom_error_values) -> None:
+    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = inbound_filters_custom_error_values
     config = get_global_config()
 
     normalized = normalize_global_config(config)
+    expected = deepcopy(config)
+    # Relay serializes case-insensitive glob patterns lowercased.
+    _lowercase_glob_values(expected["filters"])
 
     # It is not allowed to specify `None` as default for an option.
-    if not config["options"]["relay.span-normalization.allowed_hosts"]:
-        del config["options"]["relay.span-normalization.allowed_hosts"]
+    if not expected["options"]["relay.span-normalization.allowed_hosts"]:
+        del expected["options"]["relay.span-normalization.allowed_hosts"]
 
-    assert normalized == config
+    assert normalized == expected
+
+
+def _lowercase_glob_values(node: object) -> None:
+    if isinstance(node, dict):
+        if node.get("op") == "glob":
+            node["value"] = [value.lower() for value in node["value"]]
+        for child in node.values():
+            _lowercase_glob_values(child)
+    elif isinstance(node, list):
+        for child in node:
+            _lowercase_glob_values(child)
 
 
 @patch(
@@ -103,7 +122,7 @@ def test_return_global_config_on_right_version(
         "filters": [
             {
                 "id": "test-id",
-                "isEnabled": True,
+                "isEnabled": False,
                 "condition": {
                     "op": "not",
                     "inner": {

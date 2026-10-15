@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "main": "./index.tsx",
+  "scripts": {
+    "test": "sentry-test --watch --config jest.config.mjs"
+  },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
     "@dnd-kit/modifiers": "7.0.0",
