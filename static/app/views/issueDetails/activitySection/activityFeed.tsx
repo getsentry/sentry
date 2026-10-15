@@ -4,6 +4,10 @@ import type {Group, GroupActivityNote} from 'sentry/types/group';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import type {DisplayedActivityFeedItem} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
+import {
+  ActivityLineImpact,
+  isImpactActivity,
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/impact';
 import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
@@ -51,6 +55,17 @@ export function ActivityFeed({
           inputVariant={inputVariant}
           onDelete={() => onCommentDelete(activity)}
           onUpdate={data => onCommentUpdate(activity, data)}
+          timestampUnitStyle={timestampUnitStyle}
+        />
+      );
+    }
+
+    if (isImpactActivity(activity)) {
+      return (
+        <ActivityLineImpact
+          key={key}
+          activity={activity}
+          group={group}
           timestampUnitStyle={timestampUnitStyle}
         />
       );

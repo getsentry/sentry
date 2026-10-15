@@ -2333,4 +2333,61 @@ describe('ActivitySection', () => {
       pullRequest.externalUrl
     );
   });
+
+  it('renders Impact assessment details', async () => {
+    const impactGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.IMPACT_ASSESSMENT,
+          id: 'impact-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            score: 73.5,
+            level: 'high',
+            description: 'Users cannot submit an order.',
+            citations: [
+              {
+                source: 'event',
+                reference: 'entire-event:event-id',
+                claim: 'The request failed before order creation.',
+              },
+            ],
+            sourceEventId: '7f4b9a95abc449a8a5afc3d1d2683a8b',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
+        <ActivitySection group={impactGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Impact assessed as High (73.5)');
+    expect(timeline).toHaveTextContent('Users cannot submit an order.');
+    expect(timeline).toHaveTextContent('Citations:');
+    expect(screen.getByTestId('impact-activity-details')).toBeInTheDocument();
+
+    const alphaBadge = screen.getByLabelText('alpha');
+    expect(alphaBadge).toBeInTheDocument();
+    await userEvent.hover(alphaBadge);
+    expect(
+      await screen.findByText('This feature is internal and available for QA purposes')
+    ).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('event'));
+    expect(await screen.findByText('Source Event')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '7f4b9a95'})).toHaveAttribute(
+      'href',
+      `/organizations/org-slug/issues/${impactGroup.id}/events/7f4b9a95abc449a8a5afc3d1d2683a8b/`
+    );
+    expect(
+      await screen.findByText('The request failed before order creation.')
+    ).toBeInTheDocument();
+  });
 });

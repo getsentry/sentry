@@ -676,6 +676,7 @@ export enum GroupActivityType {
   PULL_REQUEST_MERGED = 'pull_request_merged',
   PULL_REQUEST_UNLINKED = 'pull_request_unlinked',
   TRIGGER_AUTOFIX = 'trigger_autofix',
+  IMPACT_ASSESSMENT = 'IMPACT_ASSESSMENT',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -1133,6 +1134,27 @@ interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
   type: GroupActivityType.SEER_ITERATION_COMPLETED;
 }
 
+type ImpactLevel = 'super_low' | 'low' | 'moderate' | 'high' | 'super_high';
+
+interface ImpactCitation {
+  claim: string;
+  reference: string;
+  source: string;
+}
+
+interface ImpactAssessment {
+  citations: ImpactCitation[];
+  description: string;
+  level: ImpactLevel | null;
+  score: number | null;
+  sourceEventId: string;
+}
+
+export interface GroupActivityImpactAssessment extends GroupActivityBase {
+  data: ImpactAssessment;
+  type: GroupActivityType.IMPACT_ASSESSMENT;
+}
+
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
@@ -1176,7 +1198,8 @@ export type GroupActivity =
   | GroupActivityPullRequestReopened
   | GroupActivityPullRequestMerged
   | GroupActivityPullRequestUnlinked
-  | GroupActivityTriggerAutofix;
+  | GroupActivityTriggerAutofix
+  | GroupActivityImpactAssessment;
 
 export type Activity = GroupActivity;
 
@@ -1300,6 +1323,7 @@ interface GroupDerivedData {
   progress: ProgressState;
   status: 'open' | 'closed';
   viewCount: number;
+  impact?: ImpactAssessment | null;
 }
 
 // TODO(ts): incomplete
