@@ -345,6 +345,7 @@ def update_investigation_alert_message(
     message_ts: str,
     data: SeerInvestigationStarted,
 ) -> None:
+    # Unlike update_existing_message, metric alerts keep blocks in legacy attachments and we swap the button rather than remove it.
     from sentry.integrations.slack.message_builder.types import SlackAction
 
     link_decorator = NotificationLinkDecorator(data=data, provider=NotificationProviderKey.SLACK)
