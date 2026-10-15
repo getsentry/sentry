@@ -9,6 +9,8 @@ const BASE_SUPPORTED_PROVIDERS = [
   'integrations:github',
   'github_enterprise',
   'integrations:github_enterprise',
+  'gitlab',
+  'integrations:gitlab',
 ];
 
 /**
@@ -19,10 +21,6 @@ const FEATURE_GATED_PROVIDERS: Array<{
   flag: string;
   providerIds: string[];
 }> = [
-  {
-    flag: 'seer-gitlab-support',
-    providerIds: ['gitlab', 'integrations:gitlab'],
-  },
   {
     flag: 'seer-cursor-origin-support',
     providerIds: ['cursor_origin', 'integrations:cursor_origin'],

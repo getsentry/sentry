@@ -12,7 +12,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AddOnCategory} from 'getsentry/types';
 import {
@@ -50,8 +49,6 @@ export function ProductSelect({
   onUpdate,
   subscription,
 }: Pick<StepProps, 'activePlan' | 'onUpdate' | 'formData' | 'subscription'>) {
-  const organization = useOrganization();
-
   const availableAddOns = Object.values(activePlan.addOnCategories).filter(
     addOnInfo =>
       // if the add-on is not available, don't show it
@@ -215,7 +212,6 @@ export function ProductSelect({
         }
 
         if (apiName === AddOnCategory.SEER) {
-          const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
           return (
             <Stack gap="xl" key={apiName}>
               <Flex gap="sm" align="start">
@@ -258,13 +254,9 @@ export function ProductSelect({
                 optionDescription={
                   <Stack gap="lg" data-test-id="product-option-description">
                     <Text variant="muted">
-                      {hasGitLabSupport
-                        ? t(
-                            'An active contributor is anyone who opens 2 or more PRs in a connected GitHub or GitLab repository. Count resets each month.'
-                          )
-                        : t(
-                            'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
-                          )}
+                      {t(
+                        'An active contributor is anyone who opens 2 or more PRs in a connected GitHub or GitLab repository. Count resets each month.'
+                      )}
                     </Text>
                     <Stack gap="xs">
                       <Text variant="muted">
