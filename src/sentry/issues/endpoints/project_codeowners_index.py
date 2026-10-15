@@ -92,6 +92,13 @@ class ProjectCodeOwnersEndpoint(ProjectCodeOwnersBase):
     @extend_schema(
         operation_id="createProjectCodeOwners",
         summary="Create a CODEOWNERS Configuration for a Project",
+        description=(
+            "Imports the supplied CODEOWNERS contents using an existing code mapping for this "
+            "project. Rules with external handles that cannot be resolved, or owners without "
+            "project access, are omitted from the generated schema and reported in the response's "
+            "`errors` object. A successful response does not necessarily mean every rule was "
+            "imported; inspect `errors` and retry after fixing the mappings."
+        ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=ProjectCodeOwnersCreateRequestSerializer,
         responses={

@@ -1,4 +1,7 @@
+from typing import TypedDict
+
 from django.http import Http404
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
@@ -8,11 +11,20 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.shared_integrations.exceptions import ApiError
+
+
+class CodeOwnerFileResponse(TypedDict):
+    filepath: str
+    html_url: str
+    raw: str
 
 
 def get_codeowner_contents(config):
@@ -31,11 +43,12 @@ def get_codeowner_contents(config):
         return install.get_codeowner_file(repository, ref=config.default_branch)
 
 
+@extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationIntegrationsPermission,)
 
@@ -58,7 +71,29 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
 
         return (args, kwargs)
 
-    def get(self, request: Request, config_id, organization, config) -> Response:
+    @extend_schema(
+        operation_id="getOrganizationCodeMappingCodeowners",
+        summary="Get a Code Mapping's CODEOWNERS File",
+        description="Fetch the CODEOWNERS file associated with a repository path mapping.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                "config_id",
+                type=int,
+                location=OpenApiParameter.PATH,
+                description="The ID of the code mapping.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer("CodeOwnerFileResponse", CodeOwnerFileResponse),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, config_id: int, organization, config
+    ) -> Response[CodeOwnerFileResponse]:
         project = config.project_repository.project
         if not request.access.has_project_access(project):
             return self.respond(status=status.HTTP_403_FORBIDDEN)
