@@ -22,7 +22,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
-import {NavigationMenuHeader} from './navigationMenuHeader';
+import {UserMenuHeader} from './navigationMenuHeader';
 
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
 function PassthroughWrapper({children}: {children: React.ReactNode}) {
@@ -97,7 +97,7 @@ export function UserDropdown() {
             }}
           />
         )}
-        menuTitle={<NavigationMenuHeader user={user} />}
+        menuTitle={<UserMenuHeader user={user} />}
         items={[
           {
             key: 'settings',

@@ -34,7 +34,7 @@ import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
-import {NavigationMenuHeader} from './navigationMenuHeader';
+import {OrganizationMenuHeader} from './navigationMenuHeader';
 
 interface OrganizationDropdownProps {
   /**
@@ -105,7 +105,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         trigger={trigger}
         minMenuWidth={258}
         menuTitle={
-          <NavigationMenuHeader
+          <OrganizationMenuHeader
             organization={organization}
             projectCount={projects.length}
           />

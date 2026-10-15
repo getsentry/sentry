@@ -11,21 +11,7 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
-type NavigationMenuHeaderProps =
-  | {organization: OrganizationSummary; projectCount: number; user?: never}
-  | {user: User; organization?: never; projectCount?: never};
-
-export function NavigationMenuHeader({
-  organization,
-  projectCount,
-  user,
-}: NavigationMenuHeaderProps) {
-  if (organization) {
-    return (
-      <OrganizationMenuHeader organization={organization} projectCount={projectCount} />
-    );
-  }
-
+export function UserMenuHeader({user}: {user: User}) {
   return (
     <MenuHeader
       title={t('User')}
@@ -36,7 +22,7 @@ export function NavigationMenuHeader({
   );
 }
 
-function OrganizationMenuHeader({
+export function OrganizationMenuHeader({
   organization,
   projectCount,
 }: {
