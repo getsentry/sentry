@@ -68,7 +68,7 @@ describe('AgentSelector', () => {
   });
 
   it('clears the filter with the All Agents checkbox', async () => {
-    const {router} = renderSelector({agent: ['Alpha', 'Bravo']});
+    const {router} = renderSelector({agent: 'Alpha,Bravo'});
     await openMenu();
 
     const allAgents = screen.getByRole('checkbox', {
@@ -91,5 +91,26 @@ describe('AgentSelector', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
 
     await waitFor(() => expect(router.location.query.agent).toBeUndefined());
+  });
+
+  it('does not touch the URL when the menu is dismissed without changes', async () => {
+    const {router} = renderSelector({agent: 'Alpha', tableCursor: 'abc'});
+    await openMenu();
+
+    await userEvent.click(document.body);
+
+    expect(router.location.query.tableCursor).toBe('abc');
+    expect(router.location.query.agent).toBe('Alpha');
+  });
+
+  it('keeps the committed label on the trigger while changes are staged', async () => {
+    renderSelector({agent: 'Alpha,Bravo'});
+    await openMenu();
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select All Agents'}));
+
+    const trigger = screen.getByRole('button', {name: /Agent/, expanded: true});
+    expect(trigger).toHaveTextContent('Alpha');
+    expect(trigger).toHaveTextContent('+1');
   });
 });

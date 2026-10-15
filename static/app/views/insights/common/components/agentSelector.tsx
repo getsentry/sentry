@@ -3,6 +3,7 @@ import {isAppleDevice} from '@react-aria/utils';
 import sortBy from 'lodash/sortBy';
 import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 
+import {Badge} from '@sentry/scraps/badge';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
@@ -133,6 +134,11 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
   const handleChange = useCallback(
     (newValue: string[]) => {
       const values = newValue.includes(ALL_AGENTS_VALUE) ? [] : newValue.filter(Boolean);
+      // The staged select commits on outside clicks and Escape even when nothing
+      // changed. Skip those so dismissing the menu doesn't reset table pagination.
+      if (new Set(values).symmetricDifference(new Set(selectedAgents)).size === 0) {
+        return;
+      }
       setQueryStates({
         [FilterUrlParams.AGENT]: values.length > 0 ? values : null,
         [TableUrlParams.CURSOR]: null,
@@ -142,7 +148,7 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
         filter: 'agent',
       });
     },
-    [organization, setQueryStates]
+    [organization, selectedAgents, setQueryStates]
   );
 
   const handleStagedValueChange = useCallback((staged: string[]) => {
@@ -238,7 +244,18 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
           tooltipProps={{title: disabledReason}}
           prefix={selectedAgents.length === 0 ? undefined : t('Agent')}
         >
-          {selectedAgents.length === 0 ? t('All Agents') : triggerProps.children}
+          {/* Label from the committed selection, not CompactSelect's staged value,
+              so the trigger only changes once the selection is applied. */}
+          {selectedAgents.length === 0 ? (
+            t('All Agents')
+          ) : (
+            <Flex align="center" gap="xs" minWidth="0">
+              <Text ellipsis>{selectedAgents[0]}</Text>
+              {selectedAgents.length > 1 && (
+                <Badge variant="muted">{`+${selectedAgents.length - 1}`}</Badge>
+              )}
+            </Flex>
+          )}
         </OverlayTrigger.Button>
       )}
     />
