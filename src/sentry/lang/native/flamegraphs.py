@@ -11,8 +11,6 @@ from sentry.attachments import (
     store_attachments_for_event,
 )
 from sentry.ingest.consumer import CACHE_TIMEOUT
-from sentry.lang.native.frames import get_frames_for_symbolication, merge_frame
-from sentry.lang.native.utils import is_native_image
 from sentry.models.project import Project
 
 MAX_FLAMEGRAPH_SIZE = 10 * 1024 * 1024
@@ -87,7 +85,7 @@ def _is_valid_flamegraph(payload: Any) -> bool:
     return True
 
 
-def _expand_inline_frames(
+def expand_inline_frames(
     trees: list[dict[str, Any]], chains: dict[int, list[int]]
 ) -> list[dict[str, Any]]:
     output = [{**tree, "roots": []} for tree in trees]
@@ -109,73 +107,6 @@ def _expand_inline_frames(
         if children is not None:
             current["children"] = []
             nodes.extend((child, current["children"]) for child in reversed(children))
-    return output
-
-
-def get_flamegraph_stacktraces(payload: dict[str, Any]) -> tuple[list[int], list[dict[str, Any]]]:
-    frame_ids = []
-    stacktraces = []
-    original_modules = payload.get("debug_meta", {}).get("images", [])
-    module_indices: dict[int, int] = {}
-    for index, image in enumerate(original_modules):
-        if is_native_image(image):
-            module_indices[index] = len(module_indices)
-    for frame_id, frame in enumerate(payload["frames"][:MAX_SYMBOLICATION_FRAMES]):
-        frames = get_frames_for_symbolication([frame], payload, original_modules, adjustment="none")
-        if not frames:
-            continue
-        # Resolve against the captured image table before remapping to the filtered request.
-        addr_mode = frames[0].get("addr_mode")
-        if frame.get("addr_mode", "").startswith("rel:") and addr_mode is None:
-            continue
-        if addr_mode is not None:
-            module_index = module_indices.get(int(addr_mode[4:]))
-            if module_index is None:
-                continue
-            frames[0]["addr_mode"] = f"rel:{module_index}"
-        frame_ids.append(frame_id)
-        stacktraces.append({"frames": frames})
-    return frame_ids, stacktraces
-
-
-def _merge_symbolicated_frames(
-    payload: dict[str, Any], frame_ids: list[int], stacktraces: list[dict[str, Any]]
-) -> dict[str, Any]:
-    output = {**payload, "frames": list(payload["frames"])}
-    chains = {}
-    for frame_id, stacktrace in zip(frame_ids, stacktraces):
-        original = payload["frames"][frame_id]
-        resolved = stacktrace.get("frames", [])
-        if not resolved or any(
-            frame.get("status") not in (None, "symbolicated") for frame in resolved
-        ):
-            continue
-        chain = []
-        for position, frame in enumerate(resolved):
-            merged = dict(original)
-            if "data" in merged:
-                merged["data"] = dict(merged["data"])
-            merge_frame(merged, frame, original.get("platform", payload["platform"]))
-            # Symbolicator may adjust addresses or normalize relative addressing modes.
-            # The diagnostic must retain its captured symbolication inputs.
-            merged["instruction_addr"] = original["instruction_addr"]
-            if "addr_mode" in original:
-                merged["addr_mode"] = original["addr_mode"]
-            else:
-                merged.pop("addr_mode", None)
-            if position == 0:
-                output["frames"][frame_id] = merged
-                chain.append(frame_id)
-            else:
-                chain.append(len(output["frames"]))
-                output["frames"].append(merged)
-        chains[frame_id] = chain
-    output["trees"] = _expand_inline_frames(payload["trees"], chains)
-    output["_symbolication"] = {
-        "status": "completed",
-        "frames": payload["frames"],
-        "trees": payload["trees"],
-    }
     return output
 
 
@@ -206,28 +137,13 @@ class Flamegraphs:
             if not isinstance(payload, dict):
                 continue
             state = payload.get("_symbolication")
-            if isinstance(state, dict):
-                if state.get("status") == "completed":
-                    continue
-                payload["frames"] = state.get("frames", payload.get("frames"))
-                payload["trees"] = state.get("trees", payload.get("trees"))
+            if isinstance(state, dict) and state.get("status") == "completed":
+                continue
             if _is_valid_flamegraph(payload):
                 yield index, payload
 
-    def apply_response_and_save(
-        self,
-        attachment_index: int,
-        payload: dict[str, Any],
-        frame_ids: list[int],
-        response: Any,
-    ) -> bool:
-        if not response or response.get("status") != "completed":
-            return False
-        stacktraces = response.get("stacktraces", [])
-        if len(stacktraces) != len(frame_ids):
-            return False
-        output = _merge_symbolicated_frames(payload, frame_ids, stacktraces)
-        serialized = rapidjson.dumps(output, ensure_ascii=False, allow_nan=False).encode()
+    def save(self, attachment_index: int, payload: dict[str, Any]) -> bool:
+        serialized = rapidjson.dumps(payload, ensure_ascii=False, allow_nan=False).encode()
         if len(serialized) > MAX_FLAMEGRAPH_SIZE:
             return False
         attachment = self._attachments[attachment_index]

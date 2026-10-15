@@ -20,15 +20,13 @@ from sentry.attachments import (
     get_attachments_for_event,
     store_attachments_for_event,
 )
-from sentry.lang.native.flamegraphs import (
-    _is_valid_flamegraph,
-    _merge_symbolicated_frames,
-    get_flamegraph_stacktraces,
-)
-from sentry.lang.native.frames import get_frames_for_symbolication
+from sentry.lang.native.flamegraphs import _is_valid_flamegraph
 from sentry.lang.native.processing import (
     ELECTRON_FIRST_MODULE_REWRITE_RULES,
+    _get_flamegraph_stacktraces,
+    _merge_flamegraph_frames,
     _merge_image,
+    get_frames_for_symbolication,
     get_native_symbolication_functions,
     process_native_stacktraces,
 )
@@ -232,8 +230,6 @@ def test_process_native_flamegraph(cached_flamegraph) -> None:
     assert recursive["children"][0]["children"] == [{"frame_id": 1, "sample_count": 4}]
     assert processed["debug_meta"] == original["debug_meta"]
     assert processed["custom"] == "retained"
-    assert processed["_symbolication"]["frames"] == original["frames"]
-    assert processed["_symbolication"]["trees"] == original["trees"]
 
 
 @django_db_all
@@ -413,9 +409,6 @@ def test_flamegraph_deep_inline_expansion(cached_flamegraph, depth) -> None:
         "custom": "retained",
         "children": [{"frame_id": 1, "sample_count": 10}],
     }
-    assert rapidjson.dumps(processed["_symbolication"]["trees"]) == rapidjson.dumps(
-        payload["trees"]
-    )
 
 
 @django_db_all
@@ -441,10 +434,11 @@ def test_flamegraph_relative_address_uses_filtered_module_index(
     flamegraph_payload["debug_meta"]["images"].insert(0, {"type": "macho", "image_addr": "0x2000"})
     flamegraph_payload["frames"][0]["addr_mode"] = addr_mode
     original = deepcopy(flamegraph_payload)
-    frame_ids, stacktraces = get_flamegraph_stacktraces(flamegraph_payload)
+    modules, frame_ids, stacktraces = _get_flamegraph_stacktraces(flamegraph_payload)
+    assert modules == original["debug_meta"]["images"][1:]
     assert frame_ids == [0]
     assert stacktraces[0]["frames"][0]["addr_mode"] == "rel:0"
-    processed = _merge_symbolicated_frames(
+    processed = _merge_flamegraph_frames(
         flamegraph_payload,
         frame_ids,
         [{"frames": [{"status": "symbolicated", "function": "main"}]}],
@@ -465,7 +459,10 @@ def test_flamegraph_relative_address_without_matching_image_is_preserved(
     flamegraph_payload["debug_meta"]["images"].insert(0, {"type": "macho", "image_addr": "0x2000"})
     flamegraph_payload["frames"][0]["addr_mode"] = addr_mode
     original = deepcopy(flamegraph_payload)
-    assert get_flamegraph_stacktraces(flamegraph_payload) == ([], [])
+    modules, frame_ids, stacktraces = _get_flamegraph_stacktraces(flamegraph_payload)
+    assert modules == original["debug_meta"]["images"][1:]
+    assert frame_ids == []
+    assert stacktraces == []
     assert flamegraph_payload == original
 
 
@@ -564,41 +561,27 @@ def test_flamegraph_invalid_tree_is_not_symbolicated(cached_flamegraph, root) ->
 
 
 @django_db_all
-def test_flamegraph_retry_uses_original_tables(cached_flamegraph) -> None:
+def test_flamegraph_large_payload_is_not_duplicated(cached_flamegraph) -> None:
     data, payload, symbolicator = cached_flamegraph
-    with Feature({"organizations:flamegraph-attachments": True}):
-        process_native_stacktraces(symbolicator, data)
-    processed = orjson.loads(next(get_attachments_for_event(data)).load_data(symbolicator.project))
-    processed["_symbolication"]["status"] = "pending"
+    payload["frames"][0]["custom"] = "x" * (6 * 1024 * 1024)
     store_attachments_for_event(
         symbolicator.project,
         data,
-        [
-            CachedAttachment(
-                type="event.flamegraph",
-                data=orjson.dumps(processed),
-            )
-        ],
+        [CachedAttachment(type="event.flamegraph", data=orjson.dumps(payload))],
         timeout=60,
     )
+    symbolicator.process_payload.return_value = {
+        "status": "completed",
+        "stacktraces": [{"frames": [{"status": "symbolicated", "function": "main"}]}],
+    }
     with Feature({"organizations:flamegraph-attachments": True}):
-        process_native_stacktraces(symbolicator, data)
-    processed = orjson.loads(next(get_attachments_for_event(data)).load_data(symbolicator.project))
-    assert len(processed["frames"]) == 2
-    assert processed["trees"] == [
-        {
-            "roots": [
-                {
-                    "frame_id": 0,
-                    "sample_count": 10,
-                    "children": [{"frame_id": 1, "sample_count": 10}],
-                }
-            ]
-        }
-    ]
-    assert processed["_symbolication"]["frames"] == payload["frames"]
-    assert processed["_symbolication"]["trees"] == payload["trees"]
-    assert symbolicator.process_payload.call_count == 2
+        assert process_native_stacktraces(symbolicator, data) is data
+    attachment = next(get_attachments_for_event(data))
+    processed = orjson.loads(attachment.load_data(symbolicator.project))
+    assert processed["frames"][0]["function"] == "main"
+    assert processed["frames"][0]["custom"] == payload["frames"][0]["custom"]
+    assert processed["trees"] == payload["trees"]
+    assert attachment.size <= 10 * 1024 * 1024
 
 
 @django_db_all
