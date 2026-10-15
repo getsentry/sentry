@@ -825,6 +825,9 @@ function getSpanEvidenceValue(span: Span | null) {
 }
 
 const StyledCodeSnippet = styled(CodeBlock)`
+  /* Lets the card's row striping show through instead of a box on unstriped rows */
+  --prism-block-background: transparent;
+
   pre[class*='language-'] {
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;
