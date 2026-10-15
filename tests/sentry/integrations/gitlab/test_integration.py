@@ -12,6 +12,7 @@ from django.urls import reverse
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.integrations.gitlab.client import GitLabApiClient, GitLabSetupApiClient
 from sentry.integrations.gitlab.integration import GitlabIntegration, GitlabIntegrationProvider
 from sentry.integrations.gitlab.metrics import GitLabWebhookUpdateHaltReason
@@ -35,6 +36,7 @@ from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.models.identity import Identity
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import json
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
@@ -1154,6 +1156,21 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         pipeline_signature = self._get_pipeline_signature(resp)
         return self._advance_step({"code": "gitlab-auth-code", "state": pipeline_signature})
 
+    def _schedule_installation_deletion(
+        self, status: int, *, in_progress: bool = False
+    ) -> tuple[Integration, OrganizationIntegration]:
+        self._run_pipeline()
+        integration = Integration.objects.get(provider="gitlab")
+        organization_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration=integration,
+        )
+        organization_integration.update(status=status)
+        deletion = ScheduledDeletion.schedule(organization_integration, days=0)
+        if in_progress:
+            deletion.update(in_progress=True)
+        return integration, organization_integration
+
     @responses.activate
     def test_initialize_pipeline(self) -> None:
         resp = self._initialize_pipeline()
@@ -1507,9 +1524,12 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         )
 
     @responses.activate
-    def test_failed_install_does_not_schedule_repo_sync_or_webhook_update(self) -> None:
+    def test_failed_reinstall_preserves_pending_deletion(self) -> None:
+        _, organization_integration = self._schedule_installation_deletion(
+            ObjectStatus.PENDING_DELETION
+        )
         with (
-            patch.object(Integration, "add_organization", side_effect=IntegrationError("Deleting")),
+            patch.object(Integration, "add_organization", return_value=None),
             patch("sentry.integrations.gitlab.tasks.update_all_project_webhooks.delay") as schedule,
             patch(
                 "sentry.integrations.source_code_management.sync_repos.sync_repos_for_org.delay"
@@ -1520,6 +1540,12 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         assert resp.data["status"] == "error"
         schedule.assert_not_called()
         sync.assert_not_called()
+        organization_integration.refresh_from_db()
+        assert organization_integration.status == ObjectStatus.PENDING_DELETION
+        assert ScheduledDeletion.objects.filter(
+            model_name="OrganizationIntegration",
+            object_id=organization_integration.id,
+        ).exists()
 
     @responses.activate
     def test_reinstall_preserves_webhook_secret(self) -> None:
@@ -1535,6 +1561,75 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         assert integration.metadata["webhook_secret"] == secret
         assert integration.metadata["verify_ssl"] is False
         assert integration.metadata["scopes"] == ["api"]
+
+    @responses.activate
+    def test_reinstall_preserves_disabled_organization_integration(self) -> None:
+        self._run_pipeline()
+        organization_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration__provider="gitlab",
+        )
+        organization_integration.update(status=ObjectStatus.DISABLED)
+
+        resp = self._run_pipeline()
+
+        assert resp.data["status"] == "complete"
+        organization_integration.refresh_from_db()
+        assert organization_integration.status == ObjectStatus.DISABLED
+
+    @responses.activate
+    def test_reinstall_rejects_pending_deletion(self) -> None:
+        integration, organization_integration = self._schedule_installation_deletion(
+            ObjectStatus.PENDING_DELETION
+        )
+        metadata = integration.metadata
+
+        resp = self._run_pipeline()
+
+        assert resp.data["status"] == "error"
+        assert "being removed" in resp.data["data"]["detail"]
+        organization_integration.refresh_from_db()
+        assert organization_integration.status == ObjectStatus.PENDING_DELETION
+        assert ScheduledDeletion.objects.filter(
+            model_name="OrganizationIntegration",
+            object_id=organization_integration.id,
+        ).exists()
+        integration.refresh_from_db()
+        assert integration.metadata == metadata
+
+    def _assert_reinstall_rejects_deletion(self, status: int, *, in_progress: bool) -> None:
+        integration, organization_integration = self._schedule_installation_deletion(
+            status,
+            in_progress=in_progress,
+        )
+        metadata = integration.metadata
+        identity = Identity.objects.get(id=organization_integration.default_auth_id)
+        identity_data = identity.data
+
+        resp = self._run_pipeline(clientId="app-id-def456", verifySsl=False)
+
+        assert resp.data["status"] == "error"
+        assert "being removed" in resp.data["data"]["detail"]
+        organization_integration.refresh_from_db()
+        assert organization_integration.status == status
+        integration.refresh_from_db()
+        assert integration.metadata == metadata
+        identity.refresh_from_db()
+        assert identity.data == identity_data
+
+    @responses.activate
+    def test_reinstall_rejects_selected_deletion(self) -> None:
+        self._assert_reinstall_rejects_deletion(
+            ObjectStatus.PENDING_DELETION,
+            in_progress=True,
+        )
+
+    @responses.activate
+    def test_reinstall_rejects_deletion_in_progress(self) -> None:
+        self._assert_reinstall_rejects_deletion(
+            ObjectStatus.DELETION_IN_PROGRESS,
+            in_progress=True,
+        )
 
     @responses.activate
     def test_reinstall_preserves_webhook_secret_shared_with_another_org(self) -> None:
