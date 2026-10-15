@@ -346,11 +346,14 @@ describe('SimpleTable component', () => {
     expect(headerRowRules).toContain('min-height: 26px');
   });
 
-  it('pads cells more when comfortable', () => {
+  it('pads cells more and drops row dividers when comfortable', () => {
     render(
       <SimpleTable density="comfortable">
         <SimpleTable.Row>
           <SimpleTable.RowCell>One</SimpleTable.RowCell>
+        </SimpleTable.Row>
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>Two</SimpleTable.RowCell>
         </SimpleTable.Row>
       </SimpleTable>
     );
@@ -358,6 +361,9 @@ describe('SimpleTable component', () => {
     expect(getEmotionRules(screen.getByRole('cell', {name: 'One'})).join('')).toContain(
       'padding: 16px'
     );
+    expect(
+      getEmotionRules(screen.getByRole('row', {name: 'One'})).join('')
+    ).not.toContain('border-bottom');
   });
 
   it('passes the row element to a ref when given a callback ref', () => {

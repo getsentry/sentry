@@ -2,6 +2,7 @@ import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {useQueries} from '@tanstack/react-query';
 
+import {NODE_ENV} from 'sentry/constants/env';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -15,7 +16,9 @@ import {findSeriesDifferences} from 'sentry/views/dashboards/widgetCard/hooks/ut
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 
 const {warn} = Sentry.logger;
-const SAMPLE_RATE = 0.1;
+// Never sampled in tests, since the extra request would otherwise be unmocked in
+// every widget test. Tests opt in by mocking `Math.random` to return less than 0.
+const SAMPLE_RATE = NODE_ENV === 'test' ? 0 : 0.1;
 
 type SpotCheckQuery = {
   // Same request the widget would send to `/events-timeseries/`
@@ -57,10 +60,7 @@ export function useEventsTimeseriesSpotCheck({
       )}`
     : undefined;
   const isSpotCheckEnabled =
-    enabled &&
-    isSampled &&
-    !shouldUseEventsTimeseries(organization) &&
-    organization.features.includes('dashboards-widgets-events-timeseries-spot-check');
+    enabled && isSampled && !shouldUseEventsTimeseries(organization);
 
   const activeTimeSeriesQueries = timeSeriesQueries.flatMap(
     (query, originalQueryIndex) => (query ? [{...query, originalQueryIndex}] : [])
