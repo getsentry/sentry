@@ -193,8 +193,10 @@ export default function UptimeAlertDetails() {
               </Alert>
             </Alert.Container>
           )}
-          <DetailsTimeline uptimeDetector={detector} onStatsLoaded={checkHasUnknown} />
-          <UptimeIssues project={project} uptimeDetector={detector} />
+          <Stack gap="xl">
+            <DetailsTimeline uptimeDetector={detector} onStatsLoaded={checkHasUnknown} />
+            <UptimeIssues project={project} uptimeDetector={detector} />
+          </Stack>
           <SectionHeading>{t('Checks List')}</SectionHeading>
           <UptimeChecksTable
             detectorId={detector.id}

@@ -52,7 +52,12 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    mark_parameter_experimental,
+)
 from sentry.apidocs.response_types import (
     DetailResponse,
     ValidationErrorResponse,
@@ -218,21 +223,21 @@ VALUE_SUBSTRING_MATCH_QUERY_PARAM = OpenApiParameter(
     description="Restrict results to attribute values containing this substring.",
 )
 
-EXPAND_QUERY_PARAM = OpenApiParameter(
-    name="expand",
-    location="query",
-    required=False,
-    many=True,
-    type=str,
-    enum=["context"],
-    # Withheld from the public OpenAPI spec because the context shape it returns
-    # is still evolving. The matching half is ``omit_from_public_schema`` on
-    # ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
-    exclude=True,
-    description=(
-        "Optional fields to expand. Pass `context` to include attribute metadata "
-        "(brief, examples, deprecation, etc.)."
-    ),
+# The endpoint is PUBLIC, but the context shape is still evolving, so only this
+# parameter is flagged experimental.
+EXPAND_QUERY_PARAM = mark_parameter_experimental(
+    OpenApiParameter(
+        name="expand",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        enum=["context"],
+        description=(
+            "Optional fields to expand. Pass `context` to include attribute metadata "
+            "(brief, examples, deprecation, etc.)."
+        ),
+    )
 )
 
 
@@ -728,6 +733,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         """
         List the attribute keys available on a given trace item dataset (spans, logs,
         trace metrics, etc.), with optional substring and structured filtering.
+
+        Pass `expand=context` (experimental) to include each attribute's metadata:
+        a brief description, examples, and deprecation details.
         """
         if not self.has_feature(organization, request):
             return Response(status=404)

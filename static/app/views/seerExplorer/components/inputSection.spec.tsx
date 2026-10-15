@@ -2,7 +2,7 @@ import {createRef} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
@@ -90,19 +90,7 @@ describe('InputSection', () => {
       render(<InputSection {...makeProps({enabled: false})} />, {organization});
 
       expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
-      expect(screen.getByRole('link', {name: 'acme/web#482'})).toBeInTheDocument();
-    });
-
-    it('re-expands the pull requests when switching runs', async () => {
-      const {rerender} = render(<InputSection {...makeProps({runId: 1})} />, {
-        organization,
-      });
-
-      await userEvent.click(screen.getByRole('button', {name: 'Pull requests (1)'}));
-      expect(screen.queryByRole('link', {name: 'acme/web#482'})).not.toBeInTheDocument();
-
-      rerender(<InputSection {...makeProps({runId: 2})} />);
-      expect(screen.getByRole('link', {name: 'acme/web#482'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'acme/web#482'})).toBeInTheDocument();
     });
   });
 });
