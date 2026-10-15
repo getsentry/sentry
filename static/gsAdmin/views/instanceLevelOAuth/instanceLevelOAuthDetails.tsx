@@ -10,10 +10,10 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getFormattedDate} from 'sentry/utils/dates';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useParams} from 'sentry/utils/useParams';
@@ -91,12 +91,13 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof clientSchema>) =>
-      fetchMutation({
-        url: getApiUrl('/_admin/instance-level-oauth/$clientId/', {
-          path: {clientId: clientDetails.clientID ?? ''},
-        }),
-        method: 'PUT',
-        data,
+      apiFetch({
+        queryKey: [
+          getApiUrl('/_admin/instance-level-oauth/$clientId/', {
+            path: {clientId: clientDetails.clientID ?? ''},
+          }),
+          {method: 'PUT', data},
+        ],
       }),
     onSuccess: () =>
       queryClient.invalidateQueries({

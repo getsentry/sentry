@@ -10,8 +10,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 const DEFAULT_PARALLEL_LIMIT = 20;
 const PARALLEL_LIMIT_ERROR = 'Parallel limit must be at least 1';
@@ -42,12 +42,13 @@ function ChangeDashboardsParallelLimitModal({
 
   const mutation = useMutation({
     mutationFn: (data: {dashboardsAsyncQueueParallelLimit: number}) =>
-      fetchMutation<Organization>({
-        method: 'PUT',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        data,
+      apiFetch<Organization>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {method: 'PUT', data},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage('Dashboard parallel query limit updated.');

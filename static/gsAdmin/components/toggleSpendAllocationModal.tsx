@@ -7,8 +7,8 @@ import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = {
   onUpdated: (data: any) => void;
@@ -31,18 +31,22 @@ function SpendAllocationModal({
   const method = spendAllocationEnabled ? 'POST' : 'DELETE';
   const mutation = useMutation({
     mutationFn: async () => {
-      await fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/toggle/', {
-          path: {organizationIdOrSlug: orgId},
-        }),
-        method,
+      await apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/toggle/', {
+            path: {organizationIdOrSlug: orgId},
+          }),
+          {method},
+        ],
       });
       // Create root allocations
-      await fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/index/', {
-          path: {organizationIdOrSlug: orgId},
-        }),
-        method,
+      await apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/index/', {
+            path: {organizationIdOrSlug: orgId},
+          }),
+          {method},
+        ],
       });
     },
     onSuccess: () => {

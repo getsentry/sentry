@@ -10,8 +10,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Props = ModalRenderProps & {
   onSubmit: (user: User) => void;
@@ -67,25 +68,30 @@ export function UserPermissionsModal({
       const removedPerms = permissions.filter(perm => !selectedPerms.has(perm));
 
       await Promise.all([
-        fetchMutation({
-          url: getApiUrl('/users/$userId/', {path: {userId: user.id}}),
-          method: 'PUT',
-          data: {isSuperuser: data.isSuperuser, isStaff: data.isStaff},
+        apiFetch({
+          queryKey: [
+            getApiUrl('/users/$userId/', {path: {userId: user.id}}),
+            {method: 'PUT', data: {isSuperuser: data.isSuperuser, isStaff: data.isStaff}},
+          ],
         }),
         ...addedPerms.map(perm =>
-          fetchMutation({
-            url: getApiUrl('/users/$userId/permissions/$permissionName/', {
-              path: {userId: user.id, permissionName: perm},
-            }),
-            method: 'POST',
+          apiFetch({
+            queryKey: [
+              getApiUrl('/users/$userId/permissions/$permissionName/', {
+                path: {userId: user.id, permissionName: perm},
+              }),
+              {method: 'POST'},
+            ],
           })
         ),
         ...removedPerms.map(perm =>
-          fetchMutation({
-            url: getApiUrl('/users/$userId/permissions/$permissionName/', {
-              path: {userId: user.id, permissionName: perm},
-            }),
-            method: 'DELETE',
+          apiFetch({
+            queryKey: [
+              getApiUrl('/users/$userId/permissions/$permissionName/', {
+                path: {userId: user.id, permissionName: perm},
+              }),
+              {method: 'DELETE'},
+            ],
           })
         ),
       ]);

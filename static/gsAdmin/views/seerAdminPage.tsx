@@ -9,9 +9,9 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {Region} from 'sentry/types/system';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getLocalities} from 'sentry/utils/cells';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
@@ -74,15 +74,23 @@ function NightShiftForm() {
 
   const mutation = useMutation({
     mutationFn: (data: NightShiftFormData) => {
-      return fetchMutation({
-        url: getApiUrl('/internal/seer/night-shift/trigger/'),
-        method: 'POST',
-        data: {
-          ...(data.organizationId === null ? {} : {organization_id: data.organizationId}),
-          dry_run: data.dryRun,
-          ...(data.maxCandidates === null ? {} : {max_candidates: data.maxCandidates}),
-        },
-        options: {host: data.locality},
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/internal/seer/night-shift/trigger/'),
+          {
+            method: 'POST',
+            data: {
+              ...(data.organizationId === null
+                ? {}
+                : {organization_id: data.organizationId}),
+              dry_run: data.dryRun,
+              ...(data.maxCandidates === null
+                ? {}
+                : {max_candidates: data.maxCandidates}),
+            },
+            host: data.locality,
+          },
+        ],
       });
     },
     onSuccess: (_data, variables) => {
@@ -190,16 +198,20 @@ function AutofixRetryForm() {
 
   const mutation = useMutation({
     mutationFn: (data: z.output<typeof retryFormSchema>) => {
-      return fetchMutation<AutofixRetryResponse>({
-        url: getApiUrl('/internal/seer/autofix/retry/'),
-        method: 'POST',
-        data: {run_ids: parseRunIds(data.runIds)},
-        options: {host: data.locality},
+      return apiFetch<AutofixRetryResponse>({
+        queryKey: [
+          getApiUrl('/internal/seer/autofix/retry/'),
+          {
+            method: 'POST',
+            data: {run_ids: parseRunIds(data.runIds)},
+            host: data.locality,
+          },
+        ],
       });
     },
-    onSuccess: data => {
-      const retried = data.results.filter(result => result.retried).length;
-      addSuccessMessage(`Retried ${retried} of ${data.results.length} autofix runs`);
+    onSuccess: ({json}) => {
+      const retried = json.results.filter(result => result.retried).length;
+      addSuccessMessage(`Retried ${retried} of ${json.results.length} autofix runs`);
     },
     onError: () => {
       addErrorMessage('Failed to retry autofix runs');
@@ -266,7 +278,7 @@ function AutofixRetryForm() {
                 </SimpleTable.HeaderRow>
               }
             >
-              {mutation.data.results.map(result => (
+              {mutation.data.json.results.map(result => (
                 <SimpleTable.Row key={result.run_id}>
                   <SimpleTable.RowCell>{result.run_id}</SimpleTable.RowCell>
                   <SimpleTable.RowCell>

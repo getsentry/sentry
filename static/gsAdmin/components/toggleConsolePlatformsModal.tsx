@@ -26,8 +26,8 @@ import {
   type ConsolePlatform,
 } from 'sentry/constants/consolePlatforms';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   useConsoleSdkInvites,
   useRevokeConsoleSdkPlatformInvite,
@@ -175,20 +175,27 @@ function ToggleConsolePlatformsModal({
   const {isPending: isUpdatePending, mutateAsync: updateConsolePlatforms} = useMutation({
     mutationFn: (data: Record<string, boolean | number | string>) => {
       const {newConsoleSdkInviteQuota, ...platforms} = data;
-      return fetchMutation({
-        method: 'PUT',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        data: {
-          enabledConsolePlatforms: Object.keys(platforms).reduce<string[]>((acc, key) => {
-            if (platforms[key]) {
-              acc.push(key);
-            }
-            return acc;
-          }, []),
-          consoleSdkInviteQuota: Number(newConsoleSdkInviteQuota),
-        },
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'PUT',
+            data: {
+              enabledConsolePlatforms: Object.keys(platforms).reduce<string[]>(
+                (acc, key) => {
+                  if (platforms[key]) {
+                    acc.push(key);
+                  }
+                  return acc;
+                },
+                []
+              ),
+              consoleSdkInviteQuota: Number(newConsoleSdkInviteQuota),
+            },
+          },
+        ],
       });
     },
   });

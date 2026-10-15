@@ -11,8 +11,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {Subscription} from 'getsentry/types';
 import {getPlanCategoryName} from 'getsentry/utils/dataCategory';
@@ -50,20 +50,24 @@ function AddGiftBudgetModal({
         budget => budget.id === value.selectedBudgetId
       );
 
-      return fetchMutation({
-        url: getApiUrl('/customers/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'PUT',
-        data: {
-          freeReservedBudget: {
-            id: value.selectedBudgetId,
-            freeBudget: value.giftAmount * 100,
-            categories: Object.keys(selectedBudget?.categories ?? []),
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/customers/$organizationIdOrSlug/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'PUT',
+            data: {
+              freeReservedBudget: {
+                id: value.selectedBudgetId,
+                freeBudget: value.giftAmount * 100,
+                categories: Object.keys(selectedBudget?.categories ?? []),
+              },
+              ticketUrl: value.ticketUrl || null,
+              notes: value.notes,
+            },
           },
-          ticketUrl: value.ticketUrl || null,
-          notes: value.notes,
-        },
+        ],
       });
     },
     onSuccess: () => {

@@ -9,8 +9,8 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {Subscription} from 'getsentry/types';
@@ -44,12 +44,13 @@ function RefundVercelRequestModal({
 
   const mutation = useMutation({
     mutationFn: (data: RefundVercelApiRequest) =>
-      fetchMutation({
-        url: getApiUrl('/customers/$organizationIdOrSlug/refund-vercel/', {
-          path: {organizationIdOrSlug: orgSlug},
-        }),
-        method: 'POST',
-        data,
+      apiFetch({
+        queryKey: [
+          getApiUrl('/customers/$organizationIdOrSlug/refund-vercel/', {
+            path: {organizationIdOrSlug: orgSlug},
+          }),
+          {method: 'POST', data},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage('Sent request to Vercel API.');
