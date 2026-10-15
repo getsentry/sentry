@@ -100,7 +100,11 @@ const config: KnipConfig = {
     },
     'static/gsApp': {
       ...frontendWorkspace,
-      entry: [...frontendWorkspace.entry, '**/*.snapshots.tsx'],
+      entry: [
+        ...frontendWorkspace.entry,
+        '**/*.snapshots.tsx',
+        '**/*.stories.{js,ts,tsx}',
+      ],
     },
     'static/gsAdmin': {
       ...frontendWorkspace,
