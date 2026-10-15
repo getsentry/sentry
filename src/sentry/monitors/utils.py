@@ -89,10 +89,6 @@ def signal_monitor_created(project: Project, user, from_upsert: bool, monitor: M
 
 
 def get_monitor_environment_ids(monitor: Monitor, environments: Sequence[Environment]) -> list[int]:
-    """
-    Check-in reads filter on these ids so they can use the
-    monitor_environment check-in indexes.
-    """
     monitor_environments = MonitorEnvironment.objects.filter(monitor_id=monitor.id)
     if environments:
         monitor_environments = monitor_environments.filter(
