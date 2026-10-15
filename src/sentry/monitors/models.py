@@ -455,10 +455,6 @@ class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
-    project_id = BoundedBigIntegerField(db_index=True, null=True)
-    """
-    No longer written. The monitor already holds the project; this column is being removed.
-    """
     monitor = FlexibleForeignKey("monitors.Monitor", db_index=False)
     monitor_environment = FlexibleForeignKey("monitors.MonitorEnvironment", db_index=False)
     """
