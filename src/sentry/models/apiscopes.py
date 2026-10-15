@@ -45,6 +45,8 @@ class ApiScopes(Sequence[str]):
         ("dashboard:delete"),
     )
 
+    seer = (("seer:read"), ("seer:write"))
+
     def __init__(self) -> None:
         self.scopes = (
             self.__class__.project
@@ -54,6 +56,7 @@ class ApiScopes(Sequence[str]):
             + self.__class__.member
             + self.__class__.alerts
             + self.__class__.dashboard
+            + self.__class__.seer
         )
 
     @overload
