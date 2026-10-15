@@ -12,9 +12,9 @@ import type {
   Integration,
 } from 'sentry/types/integrations';
 import type {Team} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -70,18 +70,20 @@ export function IntegrationExternalTeamMappings(props: Props) {
       if (!team) {
         throw new Error('Cannot find correct team slug.');
       }
-      return fetchMutation({
-        url: getApiUrl(
-          '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/$externalTeamId/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              teamIdOrSlug: team.slug,
-              externalTeamId: mapping.id,
-            },
-          }
-        ),
-        method: 'DELETE',
+      return apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/$externalTeamId/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                teamIdOrSlug: team.slug,
+                externalTeamId: mapping.id,
+              },
+            }
+          ),
+          {method: 'DELETE'},
+        ],
       });
     },
     onSuccess: () => {

@@ -14,9 +14,9 @@ import type {
   Integration,
 } from 'sentry/types/integrations';
 import type {Member} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -91,12 +91,14 @@ export function IntegrationExternalUserMappings(props: Props) {
 
   const deleteMutation = useMutation({
     mutationFn: (mapping: ExternalActorMapping) =>
-      fetchMutation({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/external-users/$externalUserId/',
-          {path: {organizationIdOrSlug: organization.slug, externalUserId: mapping.id}}
-        ),
-        method: 'DELETE',
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/external-users/$externalUserId/',
+            {path: {organizationIdOrSlug: organization.slug, externalUserId: mapping.id}}
+          ),
+          {method: 'DELETE'},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage(t('Deletion successful'));

@@ -16,8 +16,9 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {NotificationSettingsType} from 'sentry/views/settings/account/notifications/constants';
 import {
   NOTIFICATION_SETTINGS_PATHNAMES,
@@ -78,11 +79,7 @@ export function NotificationSettings() {
 
   const notificationMutationOptions = mutationOptions({
     mutationFn: (data: Partial<NotificationFields>) => {
-      return fetchMutation({
-        method: 'PUT',
-        url: NOTIFICATIONS_ENDPOINT,
-        data,
-      });
+      return apiFetch({queryKey: [NOTIFICATIONS_ENDPOINT, {method: 'PUT', data}]});
     },
     onSuccess: (_, variables) => {
       addSuccessMessage(t('Notification preferences saved'));

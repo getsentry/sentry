@@ -24,6 +24,7 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {MembershipSettingsProps} from 'sentry/types/overrides';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   getLocalityDataFromOrganization,
@@ -34,7 +35,6 @@ import {
   selectUsersFromMembers,
 } from 'sentry/utils/members/shared';
 import {useMembers} from 'sentry/utils/members/useMembers';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {slugify} from 'sentry/utils/slugify';
@@ -100,12 +100,16 @@ export function ReplayAccessMembersField({
 
   const replayMutationOpts = mutationOptions({
     mutationFn: (data: {replayAccessMembers: string[]}) =>
-      fetchMutation<Organization>({
-        method: 'PUT',
-        url: endpoint,
-        data: {replayAccessMembers: data.replayAccessMembers.map(Number)},
+      apiFetch<Organization>({
+        queryKey: [
+          endpoint,
+          {
+            method: 'PUT',
+            data: {replayAccessMembers: data.replayAccessMembers.map(Number)},
+          },
+        ],
       }),
-    onSuccess: updated => onSave(organization, updated),
+    onSuccess: ({json: updated}) => onSave(organization, updated),
   });
 
   return (
@@ -168,8 +172,8 @@ function OrganizationMembershipSettingsBase({
 
   const mutationOpts = mutationOptions({
     mutationFn: (data: Partial<MembershipSchema>) =>
-      fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
-    onSuccess: updated => onSave(organization, updated),
+      apiFetch<Organization>({queryKey: [endpoint, {method: 'PUT', data}]}),
+    onSuccess: ({json: updated}) => onSave(organization, updated),
   });
 
   return (
@@ -447,8 +451,8 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
   // Shared mutation options for most general fields
   const orgMutationOptions = mutationOptions({
     mutationFn: (data: Partial<GeneralSchema> | Partial<SlugSchema>) =>
-      fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
-    onSuccess: updated => {
+      apiFetch<Organization>({queryKey: [endpoint, {method: 'PUT', data}]}),
+    onSuccess: ({json: updated}) => {
       onSave(initialData, updated);
     },
     onError: () => addErrorMessage(t('Unable to save change')),
@@ -624,13 +628,17 @@ export function OrganizationSettingsForm({initialData, onSave}: Props) {
             initialValue={aiEnabled}
             mutationOptions={mutationOptions({
               mutationFn: (data: Partial<GeneralSchema>) =>
-                fetchMutation<Organization>({
-                  method: 'PUT',
-                  url: endpoint,
-                  // Invert: form true (AI shown) → API hideAiFeatures: false
-                  data: {hideAiFeatures: !data.hideAiFeatures},
+                apiFetch<Organization>({
+                  queryKey: [
+                    endpoint,
+                    {
+                      method: 'PUT',
+                      // Invert: form true (AI shown) → API hideAiFeatures: false
+                      data: {hideAiFeatures: !data.hideAiFeatures},
+                    },
+                  ],
                 }),
-              onSuccess: updated => {
+              onSuccess: ({json: updated}) => {
                 onSave(initialData, updated);
               },
               onError: () => {

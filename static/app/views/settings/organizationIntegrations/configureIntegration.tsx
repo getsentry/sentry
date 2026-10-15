@@ -33,11 +33,12 @@ import type {
   OrganizationIntegration,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -212,13 +213,14 @@ function IntegrationMainTab({
       return;
     }
 
-    await fetchMutation({
-      method: 'POST',
-      url: getApiUrl(
-        '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
-        {path: {organizationIdOrSlug: organization.slug}}
-      ),
-      data: payload,
+    await apiFetch({
+      queryKey: [
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        ),
+        {method: 'POST', data: payload},
+      ],
     });
   };
 
@@ -232,10 +234,8 @@ function IntegrationMainTab({
         );
       }
 
-      return fetchMutation({
-        method: 'POST',
-        url: integrationEndpoint,
-        data: requestData,
+      return apiFetch({
+        queryKey: [integrationEndpoint, {method: 'POST', data: requestData}],
       });
     },
     onSuccess: async () => {

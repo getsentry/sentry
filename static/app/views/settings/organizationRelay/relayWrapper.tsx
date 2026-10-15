@@ -17,8 +17,9 @@ import {t, tct} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay, RelayActivity} from 'sentry/types/relay';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
@@ -128,19 +129,23 @@ export function RelayWrapper() {
           }
           mutationOptions={{
             mutationFn: data =>
-              fetchMutation<Organization>({
-                url: getApiUrl('/organizations/$organizationIdOrSlug/', {
-                  path: {organizationIdOrSlug: organization.slug},
-                }),
-                method: 'PUT',
-                data: {
-                  ingestThroughTrustedRelaysOnly: data.ingestThroughTrustedRelaysOnly
-                    ? 'enabled'
-                    : 'disabled',
-                },
+              apiFetch<Organization>({
+                queryKey: [
+                  getApiUrl('/organizations/$organizationIdOrSlug/', {
+                    path: {organizationIdOrSlug: organization.slug},
+                  }),
+                  {
+                    method: 'PUT',
+                    data: {
+                      ingestThroughTrustedRelaysOnly: data.ingestThroughTrustedRelaysOnly
+                        ? 'enabled'
+                        : 'disabled',
+                    },
+                  },
+                ],
               }),
-            onSuccess: updatedOrg => {
-              OrganizationStore.onUpdate(updatedOrg);
+            onSuccess: response => {
+              OrganizationStore.onUpdate(response.json);
             },
           }}
         >
@@ -165,15 +170,16 @@ export function RelayWrapper() {
           initialValue={organization.relayDsnEndpoint ?? ''}
           mutationOptions={{
             mutationFn: data =>
-              fetchMutation<Organization>({
-                url: getApiUrl('/organizations/$organizationIdOrSlug/', {
-                  path: {organizationIdOrSlug: organization.slug},
-                }),
-                method: 'PUT',
-                data: {relayDsnEndpoint: data.relayDsnEndpoint},
+              apiFetch<Organization>({
+                queryKey: [
+                  getApiUrl('/organizations/$organizationIdOrSlug/', {
+                    path: {organizationIdOrSlug: organization.slug},
+                  }),
+                  {method: 'PUT', data: {relayDsnEndpoint: data.relayDsnEndpoint}},
+                ],
               }),
-            onSuccess: updatedOrg => {
-              OrganizationStore.onUpdate(updatedOrg);
+            onSuccess: response => {
+              OrganizationStore.onUpdate(response.json);
             },
           }}
         >
@@ -247,17 +253,18 @@ function RelayUsageList({
       const trustedRelays = currentRelays
         .filter(relay => relay.publicKey !== publicKey)
         .map(relay => omit(relay, ['created', 'lastModified']));
-      return fetchMutation<Organization>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: orgSlug},
-        }),
-        method: 'PUT',
-        data: {trustedRelays},
+      return apiFetch<Organization>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/', {
+            path: {organizationIdOrSlug: orgSlug},
+          }),
+          {method: 'PUT', data: {trustedRelays}},
+        ],
       });
     },
     onSuccess: response => {
       addSuccessMessage(t('Successfully deleted Relay public key'));
-      onRelaysChange(response.trustedRelays ?? []);
+      onRelaysChange(response.json.trustedRelays ?? []);
     },
     onError: () => {
       addErrorMessage(t('An unknown error occurred while deleting Relay public key'));

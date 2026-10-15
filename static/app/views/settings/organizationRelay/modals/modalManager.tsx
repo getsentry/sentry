@@ -7,8 +7,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Relay} from 'sentry/types/relay';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 import {createTrustedRelaysResponseError} from './createTrustedRelaysResponseError';
 import {Form} from './form';
@@ -53,15 +53,16 @@ export function ModalManager({
 
   const {mutate: save} = useMutation({
     mutationFn: (trustedRelays: Array<Omit<Relay, 'created' | 'lastModified'>>) =>
-      fetchMutation<Organization>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: orgSlug},
-        }),
-        method: 'PUT',
-        data: {trustedRelays},
+      apiFetch<Organization>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/', {
+            path: {organizationIdOrSlug: orgSlug},
+          }),
+          {method: 'PUT', data: {trustedRelays}},
+        ],
       }),
     onSuccess: response => {
-      onSubmitSuccess(response);
+      onSubmitSuccess(response.json);
       modalProps.closeModal();
     },
     onError: (error: any) => {

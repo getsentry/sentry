@@ -15,8 +15,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
@@ -110,10 +111,11 @@ function AccountSubscriptions() {
                 .map((subscription, i) => {
                   const subMutationOptions = mutationOptions({
                     mutationFn: (data: z.infer<typeof subscriptionSchema>) =>
-                      fetchMutation({
-                        url: ENDPOINT,
-                        method: 'PUT',
-                        data: {...subscription, ...data},
+                      apiFetch({
+                        queryKey: [
+                          ENDPOINT,
+                          {method: 'PUT', data: {...subscription, ...data}},
+                        ],
                       }),
                     onSuccess: (_, variables) => {
                       addSuccessMessage(

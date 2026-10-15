@@ -34,9 +34,9 @@ import {t, tn} from 'sentry/locale';
 import type {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 import type {
@@ -434,10 +434,11 @@ export function CustomFilters({project}: {project: Project}) {
 
   const toggleMutation = useMutation({
     mutationFn: (filter: CustomInboundFilter) =>
-      fetchMutation<CustomInboundFilter>({
-        method: 'PUT',
-        url: getCustomFilterUrl(organization, project, filter.id),
-        data: {active: !filter.active},
+      apiFetch<CustomInboundFilter>({
+        queryKey: [
+          getCustomFilterUrl(organization, project, filter.id),
+          {method: 'PUT', data: {active: !filter.active}},
+        ],
       }),
     onSuccess: () => invalidate(),
     onError: error => {
@@ -447,9 +448,8 @@ export function CustomFilters({project}: {project: Project}) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      fetchMutation({
-        method: 'DELETE',
-        url: getCustomFilterUrl(organization, project, id),
+      apiFetch({
+        queryKey: [getCustomFilterUrl(organization, project, id), {method: 'DELETE'}],
       }),
     onSuccess: () => {
       addSuccessMessage(t('Filter deleted'));

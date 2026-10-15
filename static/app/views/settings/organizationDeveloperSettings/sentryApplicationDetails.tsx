@@ -49,8 +49,8 @@ import type {
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -397,17 +397,18 @@ function useSaveSentryApp({
 
   const saveSentryAppMutation = useMutation({
     mutationFn: (data: SaveSentryAppPayload) =>
-      fetchMutation<SentryApp>({
-        url: app
-          ? getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
-              path: {sentryAppIdOrSlug: app.slug},
-            })
-          : getApiUrl('/sentry-apps/'),
-        method: app ? 'PUT' : 'POST',
-        data,
+      apiFetch<SentryApp>({
+        queryKey: [
+          app
+            ? getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+                path: {sentryAppIdOrSlug: app.slug},
+              })
+            : getApiUrl('/sentry-apps/'),
+          {method: app ? 'PUT' : 'POST', data},
+        ],
       }),
     onMutate: () => setScopeErrors({permissions: {}}),
-    onSuccess: data => {
+    onSuccess: ({json: data}) => {
       const type = isInternal ? 'internal' : 'public';
       const baseUrl = `/settings/${organization.slug}/developer-settings/`;
       const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
@@ -837,11 +838,13 @@ function SentryAppEditForm({
 
   const addTokenMutation = useMutation({
     mutationFn: (sentryAppSlug: string) =>
-      fetchMutation<NewInternalAppApiToken>({
-        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/', {
-          path: {sentryAppIdOrSlug: sentryAppSlug},
-        }),
-        method: 'POST',
+      apiFetch<NewInternalAppApiToken>({
+        queryKey: [
+          getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/', {
+            path: {sentryAppIdOrSlug: sentryAppSlug},
+          }),
+          {method: 'POST'},
+        ],
       }),
     onMutate: () => {
       addLoadingMessage(t('Adding token...'));
@@ -856,11 +859,13 @@ function SentryAppEditForm({
 
   const removeTokenMutation = useMutation({
     mutationFn: ({sentryAppSlug, tokenId}: {sentryAppSlug: string; tokenId: string}) =>
-      fetchMutation({
-        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/$apiTokenId/', {
-          path: {sentryAppIdOrSlug: sentryAppSlug, apiTokenId: tokenId},
-        }),
-        method: 'DELETE',
+      apiFetch({
+        queryKey: [
+          getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/$apiTokenId/', {
+            path: {sentryAppIdOrSlug: sentryAppSlug, apiTokenId: tokenId},
+          }),
+          {method: 'DELETE'},
+        ],
       }),
     onMutate: () => {
       addLoadingMessage(t('Removing token...'));
@@ -875,11 +880,13 @@ function SentryAppEditForm({
 
   const rotateClientSecretMutation = useMutation({
     mutationFn: (sentryAppSlug: string) =>
-      fetchMutation<RotateSecretResponse>({
-        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/rotate-secret/', {
-          path: {sentryAppIdOrSlug: sentryAppSlug},
-        }),
-        method: 'POST',
+      apiFetch<RotateSecretResponse>({
+        queryKey: [
+          getApiUrl('/sentry-apps/$sentryAppIdOrSlug/rotate-secret/', {
+            path: {sentryAppIdOrSlug: sentryAppSlug},
+          }),
+          {method: 'POST'},
+        ],
       }),
   });
 
@@ -893,7 +900,7 @@ function SentryAppEditForm({
 
   const onAddToken = async (event: MouseEvent<HTMLButtonElement>): Promise<void> => {
     event.preventDefault();
-    const token = await addTokenMutation.mutateAsync(app.slug);
+    const {json: token} = await addTokenMutation.mutateAsync(app.slug);
     const updatedNewTokens = newTokens.concat(token);
     setNewTokens(updatedNewTokens);
     displayNewToken(token.token, () => handleFinishNewToken(token));
@@ -946,7 +953,7 @@ function SentryAppEditForm({
   };
 
   const rotateClientSecret = async () => {
-    const rotateResponse = await rotateClientSecretMutation.mutateAsync(app.slug);
+    const {json: rotateResponse} = await rotateClientSecretMutation.mutateAsync(app.slug);
 
     requestAnimationFrame(() => {
       openModal(({Body, Header}) => (

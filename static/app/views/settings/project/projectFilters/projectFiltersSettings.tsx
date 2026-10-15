@@ -34,11 +34,11 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectApiOptions} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CustomFilters} from './customFilters';
@@ -580,19 +580,20 @@ function StandardFilter({
             filter: filter.id,
             new_state: data[name] ? 'enabled' : 'disabled',
           });
-          return fetchMutation({
-            url: getApiUrl(
-              '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/$filterId/',
-              {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                  filterId: filter.id,
-                },
-              }
-            ),
-            method: 'PUT',
-            data: {active: data[name]},
+          return apiFetch({
+            queryKey: [
+              getApiUrl(
+                '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/$filterId/',
+                {
+                  path: {
+                    organizationIdOrSlug: organization.slug,
+                    projectIdOrSlug: project.slug,
+                    filterId: filter.id,
+                  },
+                }
+              ),
+              {method: 'PUT', data: {active: data[name]}},
+            ],
           });
         },
         onMutate: data => ({
@@ -719,19 +720,20 @@ export function ProjectFiltersSettings({project, params}: Props) {
                             filter: filter.id,
                             new_state: newSubfilters.toSorted().join(','),
                           });
-                          return fetchMutation({
-                            url: getApiUrl(
-                              '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/$filterId/',
-                              {
-                                path: {
-                                  organizationIdOrSlug: organization.slug,
-                                  projectIdOrSlug: projectSlug,
-                                  filterId: filter.id,
-                                },
-                              }
-                            ),
-                            method: 'PUT',
-                            data: {subfilters: newSubfilters},
+                          return apiFetch({
+                            queryKey: [
+                              getApiUrl(
+                                '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/$filterId/',
+                                {
+                                  path: {
+                                    organizationIdOrSlug: organization.slug,
+                                    projectIdOrSlug: projectSlug,
+                                    filterId: filter.id,
+                                  },
+                                }
+                              ),
+                              {method: 'PUT', data: {subfilters: newSubfilters}},
+                            ],
                           });
                         },
                         onMutate: data => ({

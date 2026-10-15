@@ -1,9 +1,9 @@
 import {useQueryClient} from '@tanstack/react-query';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -30,13 +30,14 @@ function updateThresholdSettings(
   projectSlug: string,
   data: TransactionThresholdUpdate
 ) {
-  return fetchMutation<ProjectThreshold>({
-    url: getApiUrl(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
-      {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug}}
-    ),
-    method: 'POST',
-    data,
+  return apiFetch<ProjectThreshold>({
+    queryKey: [
+      getApiUrl(
+        '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
+        {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug}}
+      ),
+      {method: 'POST', data},
+    ],
   });
 }
 
@@ -63,14 +64,14 @@ export function useThresholdSettingsMutationOptions(threshold: ProjectThreshold)
       scope: mutationScope,
       mutationFn: (data: {metric: ThresholdMetric}) =>
         updateThresholdSettings(organization.slug, projectSlug, data),
-      onSuccess: (data: ProjectThreshold) => {
+      onSuccess: ({json: updated}: ApiResponse<ProjectThreshold>) => {
         trackAnalytics('performance_views.project_transaction_threshold.change', {
           organization,
           from: threshold.metric,
-          to: data.metric,
+          to: updated.metric,
           key: 'metric',
         });
-        cacheThreshold(data);
+        cacheThreshold(updated);
       },
     },
     thresholdMutationOptions: {
@@ -78,14 +79,14 @@ export function useThresholdSettingsMutationOptions(threshold: ProjectThreshold)
       scope: mutationScope,
       mutationFn: (data: {threshold: string}) =>
         updateThresholdSettings(organization.slug, projectSlug, data),
-      onSuccess: (data: ProjectThreshold) => {
+      onSuccess: ({json: updated}: ApiResponse<ProjectThreshold>) => {
         trackAnalytics('performance_views.project_transaction_threshold.change', {
           organization,
           from: threshold.threshold,
-          to: data.threshold,
+          to: updated.threshold,
           key: 'threshold',
         });
-        cacheThreshold(data);
+        cacheThreshold(updated);
       },
     },
   };

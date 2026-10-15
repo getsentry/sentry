@@ -23,8 +23,8 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {slugify} from 'sentry/utils/slugify';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -44,22 +44,23 @@ export default function TeamSettings() {
   const api = useApi();
   const {team} = useTeamDetailsOutlet();
 
-  const mutation = useMutation<Team, Error, {slug: string}>({
+  const mutation = useMutation<ApiResponse<Team>, Error, {slug: string}>({
     mutationFn: (data: {slug: string}) =>
-      fetchMutation<Team>({
-        method: 'PUT',
-        url: getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            teamIdOrSlug: team.slug,
-          },
-        }),
-        data,
+      apiFetch<Team>({
+        queryKey: [
+          getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/', {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              teamIdOrSlug: team.slug,
+            },
+          }),
+          {method: 'PUT', data},
+        ],
       }),
-    onSuccess: (resp: Team) => {
-      updateTeamSuccess(team.slug, resp);
+    onSuccess: ({json: updatedTeam}) => {
+      updateTeamSuccess(team.slug, updatedTeam);
       addSuccessMessage(t('Team name changed'));
-      navigate(`/settings/${organization.slug}/teams/${resp.slug}/settings/`, {
+      navigate(`/settings/${organization.slug}/teams/${updatedTeam.slug}/settings/`, {
         replace: true,
       });
     },

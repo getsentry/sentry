@@ -9,9 +9,9 @@ import {Link} from '@sentry/scraps/link';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -45,12 +45,16 @@ export default function ProjectAlertSettings() {
   const maxDelayMutationOptions = {
     ...projectMutationOptions,
     mutationFn: (data: Partial<DetailedProject>) =>
-      fetchMutation<DetailedProject>({
-        method: 'PUT',
-        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-        }),
-        data,
+      apiFetch<DetailedProject>({
+        queryKey: [
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          }),
+          {method: 'PUT', data},
+        ],
       }).catch((error: unknown) => {
         if (
           error instanceof RequestError &&

@@ -20,13 +20,14 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthProvider} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   formatStoreCrashReports,
   getStoreCrashReportsValues,
   SettingScope,
 } from 'sentry/utils/crashReports';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
 import {DataSecrecy} from 'sentry/views/settings/components/dataSecrecy/index';
@@ -65,8 +66,8 @@ function getOrgMutationOptions(organization: Organization) {
 
   return mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
-      fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
-    onSuccess: handleUpdateOrganization,
+      apiFetch<Organization>({queryKey: [orgEndpoint, {method: 'PUT', data}]}),
+    onSuccess: response => handleUpdateOrganization(response.json),
   });
 }
 

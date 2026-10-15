@@ -25,9 +25,10 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {ApiApplication} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -118,14 +119,16 @@ function ApiApplicationsDetails() {
   });
 
   const onSaveError = () => addErrorMessage(t('Unable to save change'));
-  const onSaveSuccess = (updated: ApiApplication) => {
-    setApiQueryData<ApiApplication>(queryClient, getAppQueryKey(appId), updated);
+  const onSaveSuccess = ({json}: ApiResponse<ApiApplication>) => {
+    setApiQueryData<ApiApplication>(queryClient, getAppQueryKey(appId), json);
     addSuccessMessage(t('Changes applied.'));
   };
 
   const stringFieldMutationOptions = {
     mutationFn: (data: Partial<ApiApplication>) =>
-      fetchMutation<ApiApplication>({url: apiApplicationEndpoint, method: 'PUT', data}),
+      apiFetch<ApiApplication>({
+        queryKey: [apiApplicationEndpoint, {method: 'PUT', data}],
+      }),
     onSuccess: onSaveSuccess,
     onError: onSaveError,
   };
@@ -238,10 +241,14 @@ function ApiApplicationsDetails() {
             initialValue={convertMultilineFieldValue(app.redirectUris)}
             mutationOptions={{
               mutationFn: (data: {redirectUris: string}) =>
-                fetchMutation<ApiApplication>({
-                  url: apiApplicationEndpoint,
-                  method: 'PUT',
-                  data: {redirectUris: extractMultilineFields(data.redirectUris)},
+                apiFetch<ApiApplication>({
+                  queryKey: [
+                    apiApplicationEndpoint,
+                    {
+                      method: 'PUT',
+                      data: {redirectUris: extractMultilineFields(data.redirectUris)},
+                    },
+                  ],
                 }),
               onSuccess: onSaveSuccess,
               onError: onSaveError,
@@ -268,10 +275,14 @@ function ApiApplicationsDetails() {
             initialValue={convertMultilineFieldValue(app.allowedOrigins)}
             mutationOptions={{
               mutationFn: (data: {allowedOrigins: string}) =>
-                fetchMutation<ApiApplication>({
-                  url: apiApplicationEndpoint,
-                  method: 'PUT',
-                  data: {allowedOrigins: extractMultilineFields(data.allowedOrigins)},
+                apiFetch<ApiApplication>({
+                  queryKey: [
+                    apiApplicationEndpoint,
+                    {
+                      method: 'PUT',
+                      data: {allowedOrigins: extractMultilineFields(data.allowedOrigins)},
+                    },
+                  ],
                 }),
               onSuccess: onSaveSuccess,
               onError: onSaveError,
