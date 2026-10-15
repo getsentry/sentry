@@ -38,7 +38,6 @@ from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPer
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.exceptions import InvalidSearchQuery
 from sentry.ingestion_delay.status import IngestionDelayStatus
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -172,10 +171,8 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 raise ParseError(detail="Invalid transformations index")
             if index >= axis_count:
                 raise ParseError(detail="transformations index must match a yAxis position")
-            try:
+            with handle_query_errors():
                 transformations[index] = [parse_transformation(value) for value in values]
-            except InvalidSearchQuery as error:
-                raise ParseError(detail=f"{key}: {error}") from error
         return transformations
 
     @extend_schema(

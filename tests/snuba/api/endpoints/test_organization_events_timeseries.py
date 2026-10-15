@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from typing import Any
 from unittest import mock
@@ -92,14 +93,31 @@ def test_decode_transformations_index_out_of_range(query: str) -> None:
         OrganizationEventsTimeseriesEndpoint().get_transformations(request)
 
 
-@pytest.mark.parametrize("value", ["", "[fill(locf), smooth(sma)]", "fill(sma)"])
-def test_decode_transformations_invalid_value(value: str) -> None:
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("", " is not a valid transformation"),
+        ("[fill(locf), smooth(sma)]", "[fill(locf), smooth(sma)] is not a valid transformation"),
+        (
+            "fill(sma)",
+            "fill(sma): mode argument invalid: expected one of ['locf', 'zero', 'linear']",
+        ),
+    ],
+)
+def test_decode_transformations_invalid_value(
+    value: str, expected: str, caplog: pytest.LogCaptureFixture
+) -> None:
     request = Request(
         RequestFactory().get("/events-timeseries/", {"transformations[0]": ["fill(locf)", value]})
     )
 
-    with pytest.raises(ParseError, match=r"transformations\[0\]:"):
-        OrganizationEventsTimeseriesEndpoint().get_transformations(request)
+    with caplog.at_level(logging.INFO, logger="sentry.api.utils"):
+        with pytest.raises(ParseError) as error:
+            OrganizationEventsTimeseriesEndpoint().get_transformations(request)
+
+    assert error.value.detail == expected
+    assert caplog.record_tuples == [("sentry.api.utils", logging.INFO, "A query error was handled")]
+    assert getattr(caplog.records[0], "query.error_reason") == expected
 
 
 class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
@@ -135,7 +153,7 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             )
 
         assert response.data == {
-            "detail": "transformations[0]: smooth(linear): mode argument invalid: expected one of ['sma']"
+            "detail": "smooth(linear): mode argument invalid: expected one of ['sma']"
         }
 
     def test_transformations_ignored_when_feature_disabled(self) -> None:
