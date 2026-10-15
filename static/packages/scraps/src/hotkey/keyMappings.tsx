@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {isMac} from '@react-aria/utils';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconCommand} from '@sentry/icons/command';
@@ -7,8 +8,6 @@ import {IconReturn} from '@sentry/icons/return';
 import {IconShift} from '@sentry/icons/shift';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import * as Sentry from '@sentry/react';
-
-import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 // All non-canonical key names map to their canonical form here
 const aliases: Record<string, string> = {
@@ -202,5 +201,10 @@ export function resolveKeyGlyph(keyName: string): KeyGlyph {
     Sentry.logger.warn('Missing key glyph mapping', {keyName});
   }
 
-  return {label: toTitleCase(keyName, {allowInnerUpperCase: true})};
+  return {
+    label: keyName.replace(
+      /\w\S*/g,
+      word => word.charAt(0).toUpperCase() + word.substring(1)
+    ),
+  };
 }

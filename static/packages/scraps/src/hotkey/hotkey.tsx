@@ -2,8 +2,6 @@ import styled from '@emotion/styled';
 
 import {Kbd} from '@sentry/scraps/hotkey/kbd';
 
-import {toArray} from 'sentry/utils/array/toArray';
-
 import {resolveKeyGlyph} from './keyMappings';
 
 interface HotkeyProps {
@@ -28,7 +26,7 @@ interface HotkeyProps {
 }
 
 export function Hotkey({value, variant}: HotkeyProps) {
-  const keySets = toArray(value).map(v => v.trim().split('+'));
+  const keySets = (Array.isArray(value) ? value : [value]).map(v => v.trim().split('+'));
 
   // Resolve glyphs for each key set
   const resolved = keySets.map(keys => keys.map(key => resolveKeyGlyph(key)));

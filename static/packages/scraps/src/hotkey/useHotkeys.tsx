@@ -1,7 +1,5 @@
 import {useEffect, useRef} from 'react';
 
-import {toArray} from 'sentry/utils/array/toArray';
-
 import {canonicalize, matchesKey, MODIFIER_KEYS} from './keyMappings';
 
 type Hotkey = {
@@ -49,7 +47,7 @@ export function matchesHotkey(match: string[] | string, event: KeyboardEvent): b
     return false;
   }
 
-  return toArray(match).some(keyset => {
+  return (Array.isArray(match) ? match : [match]).some(keyset => {
     const keys = keyset
       .toLowerCase()
       .split('+')

@@ -1,4 +1,4 @@
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from '@testing-library/react';
 
 import {matchesHotkey, useHotkeys} from '@sentry/scraps/hotkey';
 

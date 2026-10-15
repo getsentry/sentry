@@ -1,6 +1,7 @@
+import type * as React from 'react';
 import styled from '@emotion/styled';
 
-import {inlineCodeStyles} from '@sentry/scraps/code';
+import {inlineCodeStyles} from '@sentry/scraps/code/inlineCode';
 import {kbdStyles} from '@sentry/scraps/hotkey/kbd';
 
 type ProsePropsWithChildren<T extends keyof HTMLElementTagNameMap = 'div'> = {
