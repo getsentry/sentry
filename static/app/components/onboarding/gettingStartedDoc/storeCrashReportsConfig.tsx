@@ -11,6 +11,7 @@ import {t, tct} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   formatStoreCrashReports,
@@ -21,7 +22,6 @@ import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
 } from 'sentry/utils/project/useDetailedProject';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 interface StoreCrashReportsConfigProps {
   organization: Organization;
@@ -67,21 +67,22 @@ export function StoreCrashReportsConfig({
       initialValue={project.storeCrashReports}
       mutationOptions={{
         mutationFn: (data: Partial<DetailedProject>) =>
-          fetchMutation<DetailedProject>({
-            method: 'PUT',
-            url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                projectIdOrSlug: projectSlug,
-              },
-            }),
-            data,
+          apiFetch<DetailedProject>({
+            queryKey: [
+              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: projectSlug,
+                },
+              }),
+              {method: 'PUT', data},
+            ],
           }),
-        onSuccess: data => {
-          ProjectsStore.onUpdateSuccess(data);
+        onSuccess: ({json}) => {
+          ProjectsStore.onUpdateSuccess(json);
           queryClient.setQueryData(
             makeDetailedProjectQueryKey({orgSlug: organization.slug, projectSlug}),
-            prev => ({headers: prev?.headers ?? {}, json: data})
+            prev => ({headers: prev?.headers ?? {}, json})
           );
         },
         onError: () => addErrorMessage(t('Unable to save change')),

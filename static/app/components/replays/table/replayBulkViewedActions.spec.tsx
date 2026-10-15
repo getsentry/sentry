@@ -13,12 +13,12 @@ jest.mock('sentry/utils/analytics');
 
 const mockTrackAnalytics = jest.mocked(trackAnalytics);
 
-const mockFetchMutation = jest.fn().mockResolvedValue({});
+const mockApiFetch = jest.fn().mockResolvedValue({json: {}, headers: {}});
 
-jest.mock('sentry/utils/queryClient', () => ({
-  ...jest.requireActual('sentry/utils/queryClient'),
-  get fetchMutation() {
-    return mockFetchMutation;
+jest.mock('sentry/utils/api/apiFetch', () => ({
+  ...jest.requireActual('sentry/utils/api/apiFetch'),
+  get apiFetch() {
+    return mockApiFetch;
   },
 }));
 
@@ -129,8 +129,8 @@ describe('ReplayBulkViewedActions', () => {
   });
 
   it('shows a partial-failure toast when one viewed-by request fails and one succeeds', async () => {
-    mockFetchMutation
-      .mockImplementationOnce(() => Promise.resolve({}))
+    mockApiFetch
+      .mockImplementationOnce(() => Promise.resolve({json: {}, headers: {}}))
       .mockImplementationOnce(() => Promise.reject(new Error('Oh no!')));
 
     const replay1 = createReplay({id: 'r1'});
@@ -158,7 +158,7 @@ describe('ReplayBulkViewedActions', () => {
   });
 
   it('shows a total-failure toast when the viewed-by request is rejected', async () => {
-    mockFetchMutation.mockImplementation(() => Promise.reject(new Error('Oh no!')));
+    mockApiFetch.mockImplementation(() => Promise.reject(new Error('Oh no!')));
 
     renderWithOrganization();
 

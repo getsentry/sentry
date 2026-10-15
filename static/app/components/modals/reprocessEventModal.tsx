@@ -15,8 +15,8 @@ import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -43,13 +43,14 @@ export function ReprocessingEventModal({
 }: ModalRenderProps & ReprocessEventModalOptions) {
   const mutation = useMutation({
     mutationFn: (data: FormValues) => {
-      return fetchMutation({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/issues/$issueId/reprocessing/',
-          {path: {organizationIdOrSlug: organization.slug, issueId: groupId}}
-        ),
-        method: 'POST',
-        data,
+      return apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/issues/$issueId/reprocessing/',
+            {path: {organizationIdOrSlug: organization.slug, issueId: groupId}}
+          ),
+          {method: 'POST', data},
+        ],
       });
     },
   });

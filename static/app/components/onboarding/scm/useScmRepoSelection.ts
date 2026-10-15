@@ -10,9 +10,9 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 import {RepositoryStatus} from 'sentry/types/integrations';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseScmRepoSelectionOptions {
@@ -96,16 +96,20 @@ export function useScmRepoSelection({
       }
 
       // Repo not yet registered (link_all_repos may still be running).
-      const created = await fetchMutation<Repository>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data: {
-          installation: integration.id,
-          identifier: repo.identifier,
-          provider: `integrations:${integration.provider.key}`,
-        },
+      const {json: created} = await apiFetch<Repository>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/repos/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              installation: integration.id,
+              identifier: repo.identifier,
+              provider: `integrations:${integration.provider.key}`,
+            },
+          },
+        ],
       });
       onSelect({...optimistic, ...created});
     } catch (error) {

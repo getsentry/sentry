@@ -13,9 +13,9 @@ import {
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -64,7 +64,7 @@ export function CreateSampleEventButton({
           path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project!.slug},
         }
       );
-      return fetchMutation<{groupID: string}>({method: 'POST', url});
+      return apiFetch<{groupID: string}>({queryKey: [url, {method: 'POST'}]});
     },
     onMutate() {
       if (!project) {
@@ -87,7 +87,7 @@ export function CreateSampleEventButton({
         duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,
       });
     },
-    onSuccess({groupID}) {
+    onSuccess({json: {groupID}}) {
       pollingAbortRef.current?.abort();
       const abortController = new AbortController();
       pollingAbortRef.current = abortController;

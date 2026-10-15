@@ -8,12 +8,12 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
-const mockFetchMutation = jest.fn().mockResolvedValue({});
+const mockApiFetch = jest.fn().mockResolvedValue({json: {}, headers: {}});
 
-jest.mock('sentry/utils/queryClient', () => ({
-  ...jest.requireActual('sentry/utils/queryClient'),
-  get fetchMutation() {
-    return mockFetchMutation;
+jest.mock('sentry/utils/api/apiFetch', () => ({
+  ...jest.requireActual('sentry/utils/api/apiFetch'),
+  get apiFetch() {
+    return mockApiFetch;
   },
 }));
 
@@ -40,7 +40,7 @@ function createReplay(overrides?: Partial<ReplayListRecord>): ReplayListRecord {
 }
 
 function rejectWith(responseJSON: Record<string, unknown>) {
-  mockFetchMutation.mockRejectedValue(
+  mockApiFetch.mockRejectedValue(
     new RequestError('POST', '/delete/', new Error('Bad Request'), {
       getResponseHeader: () => null,
       responseJSON,
@@ -58,7 +58,7 @@ describe('DeleteReplays', () => {
   beforeEach(() => {
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([ProjectFixture({id: '2', slug: 'proj-a'})]);
-    mockFetchMutation.mockReset().mockResolvedValue({});
+    mockApiFetch.mockReset().mockResolvedValue({json: {}, headers: {}});
   });
 
   const renderDeleteReplays = () =>

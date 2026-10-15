@@ -14,8 +14,8 @@ import {INTEGRATION_CATEGORIES} from 'sentry/components/modals/sentryAppPublishR
 import {t, tct} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {safeURL} from 'sentry/utils/url/safeURL';
 
@@ -93,12 +93,13 @@ export function SentryAppPublishRequestModal({
 }: Props) {
   const {mutateAsync: submitPublishRequest} = useMutation({
     mutationFn: (data: {questionnaire: Array<{answer: string; question: string}>}) =>
-      fetchMutation({
-        method: 'POST',
-        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/publish-request/', {
-          path: {sentryAppIdOrSlug: app.slug},
-        }),
-        data,
+      apiFetch({
+        queryKey: [
+          getApiUrl('/sentry-apps/$sentryAppIdOrSlug/publish-request/', {
+            path: {sentryAppIdOrSlug: app.slug},
+          }),
+          {method: 'POST', data},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage(t('Request to publish %s successful.', app.slug));

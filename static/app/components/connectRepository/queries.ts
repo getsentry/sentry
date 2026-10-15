@@ -25,11 +25,10 @@ import type {
   RepositoryProjectPathConfig,
 } from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
-import {QUERY_API_CLIENT, useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {apiFetch, QUERY_API_CLIENT, useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -403,29 +402,34 @@ export async function saveProjectRepoConnection({
   project: Pick<Project, 'id' | 'slug'>;
   repositoryId: string;
 }) {
-  await fetchMutation({
-    url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/repo/', {
-      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: project.slug},
-    }),
-    method: 'POST',
-    data: {repositoryId},
+  await apiFetch({
+    queryKey: [
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/repo/', {
+        path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: project.slug},
+      }),
+      {method: 'POST', data: {repositoryId}},
+    ],
   });
 
   const results = await Promise.allSettled(
     pathMappings.map(mapping =>
-      fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
-          path: {organizationIdOrSlug: orgSlug},
-        }),
-        method: 'POST',
-        data: {
-          integrationId,
-          repositoryId,
-          projectId: project.id,
-          stackRoot: mapping.stackRoot,
-          sourceRoot: mapping.sourceRoot,
-          defaultBranch: mapping.branch,
-        },
+      apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
+            path: {organizationIdOrSlug: orgSlug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              integrationId,
+              repositoryId,
+              projectId: project.id,
+              stackRoot: mapping.stackRoot,
+              sourceRoot: mapping.sourceRoot,
+              defaultBranch: mapping.branch,
+            },
+          },
+        ],
       })
     )
   );
@@ -505,12 +509,13 @@ export async function editProjectRepoMappings({
   await Promise.all(
     toDelete.map(async m => {
       try {
-        await fetchMutation({
-          url: getApiUrl(
-            '/organizations/$organizationIdOrSlug/code-mappings/$configId/',
-            {path: {organizationIdOrSlug: orgSlug, configId: m.id}}
-          ),
-          method: 'DELETE',
+        await apiFetch({
+          queryKey: [
+            getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/$configId/', {
+              path: {organizationIdOrSlug: orgSlug, configId: m.id},
+            }),
+            {method: 'DELETE'},
+          ],
         });
       } catch (error) {
         if (error instanceof RequestError && error.status === 404) {
@@ -524,19 +529,23 @@ export async function editProjectRepoMappings({
   // 2. Updates
   await Promise.all(
     toUpdate.map(m =>
-      fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/$configId/', {
-          path: {organizationIdOrSlug: orgSlug, configId: m.id!},
-        }),
-        method: 'PUT',
-        data: {
-          integrationId,
-          repositoryId,
-          projectId: project.id,
-          stackRoot: m.stackRoot,
-          sourceRoot: m.sourceRoot,
-          defaultBranch: m.branch,
-        },
+      apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/$configId/', {
+            path: {organizationIdOrSlug: orgSlug, configId: m.id!},
+          }),
+          {
+            method: 'PUT',
+            data: {
+              integrationId,
+              repositoryId,
+              projectId: project.id,
+              stackRoot: m.stackRoot,
+              sourceRoot: m.sourceRoot,
+              defaultBranch: m.branch,
+            },
+          },
+        ],
       })
     )
   );
@@ -544,19 +553,23 @@ export async function editProjectRepoMappings({
   // 3. Creates — same duplicate-ignore logic as saveProjectRepoConnection
   const createResults = await Promise.allSettled(
     toCreate.map(m =>
-      fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
-          path: {organizationIdOrSlug: orgSlug},
-        }),
-        method: 'POST',
-        data: {
-          integrationId,
-          repositoryId,
-          projectId: project.id,
-          stackRoot: m.stackRoot,
-          sourceRoot: m.sourceRoot,
-          defaultBranch: m.branch,
-        },
+      apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
+            path: {organizationIdOrSlug: orgSlug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              integrationId,
+              repositoryId,
+              projectId: project.id,
+              stackRoot: m.stackRoot,
+              sourceRoot: m.sourceRoot,
+              defaultBranch: m.branch,
+            },
+          },
+        ],
       })
     )
   );
