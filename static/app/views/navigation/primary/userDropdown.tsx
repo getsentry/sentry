@@ -185,42 +185,6 @@ export function UserDropdown() {
     );
   }
 
-  const legacyItems = [
-    {
-      key: 'user',
-      label: (
-        <Flex align="center" gap="md">
-          <UserAvatar user={user} size={32} />
-          <Stack gap="xs">
-            <Text size="sm" bold uppercase variant="primary">
-              {user.name === user.email
-                ? user.email.split('@')[0]?.split('.').join(' ')
-                : user.name}
-            </Text>
-            <Text size="xs" variant="muted">
-              {user.email}
-            </Text>
-          </Stack>
-        </Flex>
-      ),
-      textValue: t('User Summary'),
-      children: [
-        {
-          key: 'user-settings',
-          label: t('User Settings'),
-          to: '/settings/account/',
-        },
-        {
-          key: 'admin',
-          label: t('Admin'),
-          to: '/manage/',
-          hidden: !isActiveSuperuser(),
-        },
-        {key: 'signout', label: t('Sign Out'), onAction: handleLogout},
-      ],
-    },
-  ];
-
   return (
     <DropdownMenu
       usePortal
@@ -241,7 +205,41 @@ export function UserDropdown() {
           }}
         />
       )}
-      items={legacyItems}
+      items={[
+        {
+          key: 'user',
+          label: (
+            <Flex align="center" gap="md">
+              <UserAvatar user={user} size={32} />
+              <Stack gap="xs">
+                <Text size="sm" bold uppercase variant="primary">
+                  {user.name === user.email
+                    ? user.email.split('@')[0]?.split('.').join(' ')
+                    : user.name}
+                </Text>
+                <Text size="xs" variant="muted">
+                  {user.email}
+                </Text>
+              </Stack>
+            </Flex>
+          ),
+          textValue: t('User Summary'),
+          children: [
+            {
+              key: 'user-settings',
+              label: t('User Settings'),
+              to: '/settings/account/',
+            },
+            {
+              key: 'admin',
+              label: t('Admin'),
+              to: '/manage/',
+              hidden: !isActiveSuperuser(),
+            },
+            {key: 'signout', label: t('Sign Out'), onAction: handleLogout},
+          ],
+        },
+      ]}
     />
   );
 }
