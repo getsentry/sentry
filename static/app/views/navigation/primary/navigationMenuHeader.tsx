@@ -1,7 +1,12 @@
 import type {ReactNode} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 
-import {getUserAvatarProps, OrganizationAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {
+  getUserAvatarProps,
+  OrganizationAvatar,
+  UserAvatar,
+  type BaseAvatarProps,
+} from '@sentry/scraps/avatar';
 import {useAvatarColors} from '@sentry/scraps/avatarButton';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -20,28 +25,25 @@ export function NavigationMenuHeader({
   projectCount,
   user,
 }: NavigationMenuHeaderProps) {
-  const avatar = organization?.avatar;
-  const avatarIdentity = {
-    identifier: organization?.slug ?? '',
-    name: organization?.name || organization?.slug || '',
-  };
-  const avatarProps = organization
-    ? avatar?.avatarType === 'upload' && avatar.avatarUrl
-      ? {type: 'upload' as const, uploadUrl: avatar.avatarUrl, ...avatarIdentity}
-      : avatar?.avatarType === 'gravatar' && avatar.avatarUrl
-        ? {type: 'gravatar' as const, gravatarId: avatar.avatarUrl, ...avatarIdentity}
-        : undefined
-    : getUserAvatarProps(user);
-  const avatarColors = useAvatarColors(avatarProps);
-  const backgroundColor = avatarColors.type === 'image' ? avatarColors.chonk : undefined;
-
   if (organization) {
+    const avatar = organization.avatar;
+    const avatarIdentity = {
+      identifier: organization.slug,
+      name: organization.name || organization.slug,
+    };
+    const avatarProps =
+      avatar?.avatarType === 'upload' && avatar.avatarUrl
+        ? {type: 'upload' as const, uploadUrl: avatar.avatarUrl, ...avatarIdentity}
+        : avatar?.avatarType === 'gravatar' && avatar.avatarUrl
+          ? {type: 'gravatar' as const, gravatarId: avatar.avatarUrl, ...avatarIdentity}
+          : undefined;
+
     return (
       <MenuHeader
         title={t('Organization')}
         name={organization.name || organization.slug}
         subtitle={tn('%s Project', '%s Projects', projectCount)}
-        backgroundColor={backgroundColor}
+        avatarProps={avatarProps}
         avatar={<OrganizationHeaderAvatar organization={organization} />}
       />
     );
@@ -52,7 +54,7 @@ export function NavigationMenuHeader({
       title={t('User')}
       name={user.name || user.username || user.email}
       subtitle={user.email}
-      backgroundColor={backgroundColor}
+      avatarProps={getUserAvatarProps(user)}
       avatar={<UserAvatar user={user} size={32} />}
     />
   );
@@ -84,16 +86,18 @@ function MenuHeader({
   name,
   subtitle,
   avatar,
-  backgroundColor,
+  avatarProps,
 }: {
   avatar: ReactNode;
   name: string;
   subtitle: string;
   title: string;
-  backgroundColor?: string;
+  avatarProps?: BaseAvatarProps;
 }) {
   const currentTheme = useTheme();
   const invertedTheme = useInvertedTheme();
+  const avatarColors = useAvatarColors(avatarProps);
+  const backgroundColor = avatarColors.type === 'image' ? avatarColors.chonk : undefined;
 
   return (
     <ThemeProvider theme={currentTheme.type === 'dark' ? currentTheme : invertedTheme}>
