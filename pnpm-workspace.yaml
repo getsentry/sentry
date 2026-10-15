@@ -15,6 +15,7 @@ minimumReleaseAge: 720
 minimumReleaseAgeExclude:
   - '@sentry/*'
   - '@sentry-internal/*'
+  - jsdom@30.1.3
   - solid-js@1.9.16
 overrides:
   '@isaacs/brace-expansion': 5.0.1
