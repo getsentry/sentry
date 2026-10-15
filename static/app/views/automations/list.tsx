@@ -76,7 +76,7 @@ function AutomationsListInner() {
   const navigate = useNavigate();
 
   const {queryOptions, enabled, cursor, sort, query} = useAutomationListQueryOptions();
-  const {data, isLoading, isPending, isError, isSuccess} = useQuery({
+  const {data, isLoading, isError, isSuccess} = useQuery({
     ...queryOptions,
     select: selectJsonWithHeaders,
     enabled,
@@ -108,19 +108,16 @@ function AutomationsListInner() {
 
   const selectedProjects = useSelectedProjectsForLLMContext();
 
-  useLLMContext(
-    {
-      contextHint: CONTEXT_HINT,
-      query,
-      sort: sort ? `${sort.kind === 'asc' ? '' : '-'}${sort.field}` : '',
-      alertCount: hits,
-      cursor,
-      isLoading,
-      ...toLLMContextProjectFields(selectedProjects),
-      displayedAlerts: formatAutomationRows(automations ?? []),
-    },
-    {isLoading: isPending}
-  );
+  useLLMContext({
+    contextHint: CONTEXT_HINT,
+    query,
+    sort: sort ? `${sort.kind === 'asc' ? '' : '-'}${sort.field}` : '',
+    alertCount: hits,
+    cursor,
+    isLoading,
+    ...toLLMContextProjectFields(selectedProjects),
+    displayedAlerts: formatAutomationRows(automations ?? []),
+  });
 
   return (
     <SentryDocumentTitle title={t('Alerts')}>
