@@ -12,7 +12,7 @@ import {
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/content';
+import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/constants';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
 const TRACE_EXPLORER_DATASET = 'spans';

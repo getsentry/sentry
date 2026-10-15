@@ -105,66 +105,7 @@ def fetch_environment_name(rule_env: int) -> str | None:
         return env.name
 
 
-def get_rule_environment_param_from_rule(rule_environment_id: int | None) -> dict[str, str]:
-    params = {}
-    if (
-        rule_environment_id is not None
-        and (environment_name := fetch_environment_name(rule_environment_id)) is not None
-    ):
-        params["environment"] = environment_name
-    return params
-
-
 def get_title_link(
-    group: Group,
-    event: Event | GroupEvent | None,
-    link_to_event: bool,
-    issue_details: bool,
-    notification: BaseNotification | None,
-    provider: ExternalProviders,
-    rule_id: int | None = None,
-    rule_environment_id: int | None = None,
-    notification_uuid: str | None = None,
-) -> str:
-    other_params = {}
-    # add in rule id if we have it
-    if rule_id:
-        other_params.update(get_rule_environment_param_from_rule(rule_environment_id))
-        # hard code for issue alerts
-        other_params["alert_rule_id"] = str(rule_id)
-        other_params["alert_type"] = "issue"
-
-    if event and link_to_event:
-        url = group.get_absolute_url(
-            params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params},
-            event_id=event.event_id,
-        )
-
-    elif issue_details and notification:
-        referrer = notification.get_referrer(provider)
-        notification_uuid = notification.notification_uuid
-        event_id = getattr(notification, "regression_event_id", None)
-        url = group.get_absolute_url(
-            params={"referrer": referrer, "notification_uuid": notification_uuid, **other_params},
-            event_id=event_id,
-        )
-    elif notification_uuid:
-        url = group.get_absolute_url(
-            params={
-                "referrer": EXTERNAL_PROVIDERS[provider],
-                "notification_uuid": notification_uuid,
-                **other_params,
-            }
-        )
-    else:
-        url = group.get_absolute_url(
-            params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params}
-        )
-
-    return url
-
-
-def get_title_link_workflow_engine_ui(
     group: Group,
     event: Event | GroupEvent | None,
     link_to_event: bool,

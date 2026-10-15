@@ -1,5 +1,3 @@
-import trimStart from 'lodash/trimStart';
-
 import type {SelectValue} from '@sentry/scraps/select';
 
 import type {Client} from 'sentry/api';
@@ -18,7 +16,6 @@ import type {
   DataUnit,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {isEquation} from 'sentry/utils/discover/fields';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {
   DashboardFilters,
@@ -27,7 +24,6 @@ import type {
   WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {getNumEquations} from 'sentry/views/dashboards/utils';
 import type {AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
@@ -390,33 +386,4 @@ export function getDatasetConfig(widgetType?: WidgetType):
     default:
       throw new Error(`Unsupported widget type: ${widgetType}`);
   }
-}
-
-/**
- * A generic orderby reset helper function that updates the query's
- * orderby based on new selected fields.
- */
-export function handleOrderByReset(
-  widgetQuery: WidgetQuery,
-  newFields: string[]
-): WidgetQuery {
-  const rawOrderby = trimStart(widgetQuery.orderby, '-');
-  const isDescending = widgetQuery.orderby.startsWith('-');
-  const orderbyPrefix = isDescending ? '-' : '';
-
-  if (!newFields.includes(rawOrderby) && widgetQuery.orderby !== '') {
-    const isFromAggregates = widgetQuery.aggregates.includes(rawOrderby);
-    const isCustomEquation = isEquation(rawOrderby);
-    const isUsedInGrouping = widgetQuery.columns.includes(rawOrderby);
-
-    const keepCurrentOrderby = isFromAggregates || isCustomEquation || isUsedInGrouping;
-    const firstAggregateAlias = isEquation(widgetQuery.aggregates[0] ?? '')
-      ? `equation[${getNumEquations(widgetQuery.aggregates) - 1}]`
-      : newFields[0];
-
-    widgetQuery.orderby =
-      (keepCurrentOrderby && widgetQuery.orderby) ||
-      `${orderbyPrefix}${firstAggregateAlias}`;
-  }
-  return widgetQuery;
 }

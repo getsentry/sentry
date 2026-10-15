@@ -1,15 +1,16 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconWarning} from '@sentry/icons/warning';
 import * as Sentry from '@sentry/react';
+import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 import type {Location, LocationDescriptor} from 'history';
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import type {Tag, TagSegment} from 'sentry/actionCreators/events';
-import {fetchTagFacets} from 'sentry/actionCreators/events';
-import type {Client} from 'sentry/api';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {deviceNameMapper} from 'sentry/components/deviceName';
@@ -19,13 +20,12 @@ import {TagFacetsDistributionMeter} from 'sentry/components/group/tagFacets/tagF
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {withApi} from 'sentry/utils/withApi';
+import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type Props = {
-  api: Client;
   eventView: EventView;
   generateUrl: (key: string, value: string) => LocationDescriptor;
   location: Location;
@@ -34,191 +34,143 @@ type Props = {
   confirmedQuery?: boolean;
 };
 
-type State = {
-  error: string;
-  hasLoaded: boolean;
-  hasMore: boolean;
-  loading: boolean;
-  tags: Tag[];
-  totalValues: null | number;
-  nextCursor?: string;
-};
-
-class Tags extends Component<Props, State> {
-  state: State = {
-    loading: true,
-    tags: [],
-    totalValues: null,
-    error: '',
-    hasMore: false,
-    hasLoaded: false,
+export function Tags({
+  eventView,
+  generateUrl,
+  location,
+  organization,
+  totalValues,
+  confirmedQuery,
+}: Props) {
+  const eventsPayload = eventView.getEventsAPIPayload(location);
+  const query = {
+    ...pick(eventsPayload, PERFORMANCE_URL_PARAM),
+    query: eventsPayload.query,
   };
 
-  componentDidMount() {
-    this.fetchData(true);
+  // The parent pulses confirmedQuery once a potentially expensive query is
+  // allowed to run, so hold new params until that pulse. Params seen at mount
+  // count as confirmed because the panel can be opened after the pulse happened.
+  const [confirmedParams, setConfirmedParams] = useState(query);
+  if (confirmedQuery && !isEqual(confirmedParams, query)) {
+    setConfirmedParams(query);
   }
+  const isConfirmed = isEqual(confirmedParams, query);
 
-  componentDidUpdate(prevProps: Props) {
+  const {data, error, isPending, hasNextPage, fetchNextPage, isFetchingNextPage} =
+    useInfiniteQuery(
+      apiOptions.asInfinite<Tag[]>()(
+        '/organizations/$organizationIdOrSlug/events-facets/',
+        {
+          path: isConfirmed ? {organizationIdOrSlug: organization.slug} : skipToken,
+          query,
+          staleTime: 0,
+        }
+      )
+    );
+
+  useEffect(() => {
     if (
-      this.shouldRefetchData(prevProps) ||
-      prevProps.confirmedQuery !== this.props.confirmedQuery
+      error &&
+      !(error instanceof RequestError && [400, 404, 429].includes(error.status ?? 0))
     ) {
-      this.fetchData();
+      Sentry.captureException(error);
     }
-  }
+  }, [error]);
 
-  shouldRefetchData = (prevProps: Props): boolean => {
-    const thisAPIPayload = this.props.eventView.getFacetsAPIPayload(this.props.location);
-    const otherAPIPayload = prevProps.eventView.getFacetsAPIPayload(prevProps.location);
+  const tags = data?.pages.flatMap(page => page.json) ?? [];
 
-    return !isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
-  };
-
-  fetchData = async (
-    forceFetchData = false,
-    nextCursor?: string,
-    appendTags?: boolean
-  ) => {
-    const {api, organization, eventView, location, confirmedQuery} = this.props;
-
-    this.setState({loading: true, error: ''});
-    if (!appendTags) {
-      this.setState({hasLoaded: false, tags: []});
-    }
-
-    // Fetch should be forced after mounting as confirmedQuery isn't guaranteed
-    // since this component can mount/unmount via show/hide tags separate from
-    // data being loaded for the rest of the page.
-    if (!forceFetchData && confirmedQuery === false) {
-      return;
-    }
-
-    try {
-      const [data, , resp] = await fetchTagFacets(api, organization.slug, {
-        ...eventView.getFacetsAPIPayload(location),
-        cursor: nextCursor,
-      });
-
-      const pageLinks = resp?.getResponseHeader('Link') ?? undefined;
-      let hasMore = false;
-      let cursor: string | undefined;
-      if (pageLinks) {
-        const paginationObject = parseLinkHeader(pageLinks);
-        hasMore = paginationObject?.next?.results ?? false;
-        cursor = paginationObject.next?.cursor;
-      }
-
-      let tags = data;
-      if (appendTags) {
-        tags = [...this.state.tags, ...tags];
-      }
-      this.setState({loading: false, hasLoaded: true, tags, hasMore, nextCursor: cursor});
-    } catch (err: any) {
-      if (
-        err.status !== 400 &&
-        err.responseJSON?.detail !==
-          'Invalid date range. Please try a more recent date range.'
-      ) {
-        Sentry.captureException(err);
-      }
-      this.setState({loading: false, error: err});
-    }
-  };
-
-  renderTag(tag: Tag, index: number) {
-    const {generateUrl, totalValues} = this.props;
-
-    const segments: TagSegment[] = tag.topValues.map(segment => {
-      return {
-        ...segment,
-        name: formatTag(tag.key, segment.value),
-        url: generateUrl(tag.key, segment.value),
-      };
-    });
-    // Ensure we don't show >100% if there's a slight mismatch between the facets
-    // endpoint and the totals endpoint
-    const maxTotalValues =
-      segments.length > 0
-        ? Math.max(Number(totalValues), segments[0]!.count)
-        : totalValues;
-    return (
-      <li key={tag.key} aria-label={tag.key}>
-        <TagFacetsDistributionMeter
-          title={tag.key}
-          segments={segments}
-          totalValues={Number(maxTotalValues)}
-          expandByDefault={index === 0}
-        />
-      </li>
-    );
-  }
-
-  renderPlaceholders() {
-    return (
-      <Fragment>
-        <StyledPlaceholderTitle key="title-1" />
-        <StyledPlaceholder key="bar-1" />
-        <StyledPlaceholderTitle key="title-2" />
-        <StyledPlaceholder key="bar-2" />
-        <StyledPlaceholderTitle key="title-3" />
-        <StyledPlaceholder key="bar-3" />
-      </Fragment>
-    );
-  }
-
-  renderBody = () => {
-    const {loading, hasLoaded, error, tags, hasMore, nextCursor} = this.state;
-    if (loading && !hasLoaded) {
-      return this.renderPlaceholders();
-    }
-    if (error) {
-      return (
+  return (
+    <Fragment>
+      <SectionHeading>{t('Tag Summary')}</SectionHeading>
+      {isPending ? (
+        <Placeholders />
+      ) : error ? (
         <ErrorPanel height="132px">
           <IconWarning variant="muted" size="lg" />
         </ErrorPanel>
-      );
-    }
-
-    if (tags.length > 0) {
-      return (
+      ) : tags.length > 0 ? (
         <Fragment>
           {/* sentry-discover-tags-chromext depends on a stable id */}
           <StyledTagFacetList id="tag-facet-list">
-            {tags.map((tag, index) => this.renderTag(tag, index))}
+            {tags.map((tag, index) => (
+              <TagFacet
+                key={tag.key}
+                tag={tag}
+                expandByDefault={index === 0}
+                generateUrl={generateUrl}
+                totalValues={totalValues}
+              />
+            ))}
           </StyledTagFacetList>
-          {hasMore &&
-            (loading ? (
-              this.renderPlaceholders()
+          {hasNextPage &&
+            (isFetchingNextPage ? (
+              <Placeholders />
             ) : (
               <Stack align="center">
                 <Button
                   size="xs"
                   variant="primary"
-                  disabled={loading}
                   aria-label={t('Show More')}
-                  onClick={() => {
-                    this.fetchData(true, nextCursor, true);
-                  }}
+                  onClick={() => fetchNextPage()}
                 >
                   {t('Show More')}
                 </Button>
               </Stack>
             ))}
         </Fragment>
-      );
-    }
+      ) : (
+        <StyledEmptyStateWarning small>{t('No tags found')}</StyledEmptyStateWarning>
+      )}
+    </Fragment>
+  );
+}
 
-    return <StyledEmptyStateWarning small>{t('No tags found')}</StyledEmptyStateWarning>;
-  };
+function TagFacet({
+  tag,
+  expandByDefault,
+  generateUrl,
+  totalValues,
+}: {
+  expandByDefault: boolean;
+  generateUrl: Props['generateUrl'];
+  tag: Tag;
+  totalValues: Props['totalValues'];
+}) {
+  const segments: TagSegment[] = tag.topValues.map(segment => {
+    return {
+      ...segment,
+      name: formatTag(tag.key, segment.value),
+      url: generateUrl(tag.key, segment.value),
+    };
+  });
+  // Ensure we don't show >100% if there's a slight mismatch between the facets
+  // endpoint and the totals endpoint
+  const maxTotalValues =
+    segments.length > 0 ? Math.max(Number(totalValues), segments[0]!.count) : totalValues;
+  return (
+    <li aria-label={tag.key}>
+      <TagFacetsDistributionMeter
+        title={tag.key}
+        segments={segments}
+        totalValues={Number(maxTotalValues)}
+        expandByDefault={expandByDefault}
+      />
+    </li>
+  );
+}
 
-  render() {
-    return (
-      <Fragment>
-        <SectionHeading>{t('Tag Summary')}</SectionHeading>
-        {this.renderBody()}
-      </Fragment>
-    );
-  }
+function Placeholders() {
+  return (
+    <Fragment>
+      <StyledPlaceholderTitle />
+      <StyledPlaceholder />
+      <StyledPlaceholderTitle />
+      <StyledPlaceholder />
+      <StyledPlaceholderTitle />
+      <StyledPlaceholder />
+    </Fragment>
+  );
 }
 
 function formatTag(key: string, value: string): string {
@@ -249,6 +201,3 @@ const StyledTagFacetList = styled(TagFacetsList)`
   margin-bottom: 0;
   width: 100%;
 `;
-
-export {Tags};
-export default withApi(Tags);

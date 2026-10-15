@@ -12,7 +12,8 @@ import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
+import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/datasetConfig/utils/releaseQueryFields';
+import {releasesResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/releasesResponseTransforms';
 import {getWidgetInterval} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -20,7 +21,6 @@ import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/gen
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 import {getReleasesRequestData} from './utils/releases';
@@ -152,7 +152,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
       const responseData = q.data.json;
 
-      const transformedResult = ReleasesConfig.transformSeries?.(
+      const transformedResult = releasesResponseTransforms.transformSeries?.(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -306,7 +306,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
       const responseData = q.data.json;
 
-      const tableData = ReleasesConfig.transformTable?.(
+      const tableData = releasesResponseTransforms.transformTable?.(
         responseData,
         filteredWidget.queries[i]!,
         organization,

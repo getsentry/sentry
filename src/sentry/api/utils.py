@@ -434,6 +434,10 @@ def handle_query_errors() -> Iterator[None]:
     except SnubaRPCError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
+        if getattr(arg, "code", None) == 408:
+            sentry_sdk.set_tag("query.error_reason", "Timeout")
+            sentry_sdk.set_attribute("query.error_reason", "Timeout")
+            raise ParseError(detail=TIMEOUT_RPC_ERROR_MESSAGE)
         if isinstance(arg, TimeoutError):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
             sentry_sdk.set_attribute("query.error_reason", "Timeout")

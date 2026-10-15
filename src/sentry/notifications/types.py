@@ -9,7 +9,6 @@ from sentry.hybridcloud.rpc import ValueEqualityEnum
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.models.rule import Rule
 
 
 @dataclass(eq=False, frozen=True)
@@ -24,15 +23,6 @@ class NotificationOrigin:
     def is_test_notification(self) -> bool:
         return (
             self.workflow_id == TEST_NOTIFICATION_ID or self.legacy_rule_id == TEST_NOTIFICATION_ID
-        )
-
-    @classmethod
-    def from_legacy_rule(cls, rule: Rule) -> NotificationOrigin:
-        return cls.from_legacy_data(
-            label=rule.label,
-            environment_id=rule.environment_id,
-            data=rule.data,
-            fallback_legacy_rule_id=rule.id,
         )
 
     @classmethod
@@ -103,14 +93,6 @@ class NotificationActionContext:
     origin: NotificationOrigin
     action_id: int
     project: Project
-
-    @classmethod
-    def from_legacy_rule(cls, rule: Rule) -> NotificationActionContext:
-        return cls(
-            origin=NotificationOrigin.from_legacy_rule(rule),
-            action_id=rule.id,
-            project=rule.project,
-        )
 
 
 class RuleFuture(NamedTuple):

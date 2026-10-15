@@ -79,9 +79,6 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
                 "actionType": action_type,
                 "groupId": self.group.id,
                 "eventId": self.event.event_id if self.event else None,
-                "rules": [
-                    rule.legacy_rule_id for rule in self.rules if rule.legacy_rule_id is not None
-                ],
                 "workflows": list(dict.fromkeys([*workflow_ids, *self.workflow_ids])),
                 "integrationId": self.integration.id,
             }

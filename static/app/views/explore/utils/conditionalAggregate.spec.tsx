@@ -18,11 +18,11 @@ import {
   hasNoValidAggregatesForRequest,
   isConditionalAggregateFilterValid,
   isConditionalAggregateYAxisValid,
-  parseConditionalAggregate,
   supportsConditionalAggregateFilter,
   withBaseConditionalAggregateField,
   withReadableConditionalFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 describe('escapeConditionalFilter', () => {
   it('leaves filters without backticks alone', () => {

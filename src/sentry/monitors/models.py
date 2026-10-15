@@ -23,6 +23,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    DefaultFieldsModel,
     FlexibleForeignKey,
     LegacyTextJSONField,
     Model,
@@ -473,6 +474,35 @@ def check_organization_monitor_limits_on_save(sender, instance, **kwargs):
 
 
 @cell_silo_model
+class MonitorCheckInConfig(DefaultFieldsModel):
+    """
+    A deduplicated, immutable snapshot of a monitor configuration, referenced
+    by check-ins. Rows are content-addressed by `hash`.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    hash = models.CharField(max_length=64)
+    config = models.JSONField()
+
+    # Rows never change, so they can stay cached for a long time
+    objects: ClassVar[BaseManager[Self]] = BaseManager(
+        cache_fields=("hash",), cache_ttl=60 * 60 * 24
+    )
+
+    class Meta:
+        app_label = "monitors"
+        db_table = "sentry_monitorcheckinconfig"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["hash"], name="sentry_monitorcheckinconfig_hash_unique"
+            ),
+        ]
+
+    __repr__ = sane_repr("hash")
+
+
+@cell_silo_model
 class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -548,7 +578,18 @@ class MonitorCheckIn(Model):
 
     monitor_config = LegacyTextJSONField(null=True)
     """
-    A snapshot of the monitor configuration at the time of the check-in.
+    Legacy snapshot of the monitor configuration at the time of the check-in.
+    No longer written; replaced by `checkin_config`.
+    """
+
+    checkin_config = FlexibleForeignKey(
+        "monitors.MonitorCheckInConfig",
+        null=True,
+        on_delete=models.PROTECT,
+    )
+    """
+    References the MonitorCheckInConfig holding a snapshot of the monitor
+    configuration at the time of the check-in.
     """
 
     trace_id = UUIDField(null=True)
@@ -567,12 +608,6 @@ class MonitorCheckIn(Model):
             # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
             # column
             models.Index(fields=["monitor", "date_added", "status"]),
-            # used for latest on api endpoints
-            models.Index(
-                fields=["monitor", "-date_added"],
-                condition=Q(status=CheckInStatus.IN_PROGRESS),
-                name="api_latest",
-            ),
             # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
             # column
             models.Index(fields=["monitor", "status", "date_added"]),
@@ -644,6 +679,8 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
                 "is_muted": lambda: is_monitor_muted(monitor),
             },
         )
+        # Avoid re-fetching the monitor when following the relation
+        monitor_env.monitor = monitor
 
         # recompute per-project monitor check-in rate limit quota
         if created:

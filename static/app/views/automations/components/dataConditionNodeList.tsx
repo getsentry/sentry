@@ -201,7 +201,15 @@ function Node() {
   const node = dataConditionNodesMap.get(condition.type);
 
   const Component = node?.dataCondition;
-  return Component ? <Component /> : node?.label;
+  return Component ? (
+    <Component getDefaultComparison={getDefaultComparison} />
+  ) : (
+    node?.label
+  );
+}
+
+function getDefaultComparison(type: DataConditionType) {
+  return dataConditionNodesMap.get(type)?.defaultComparison;
 }
 
 /**
