@@ -450,7 +450,7 @@ describe('entity links added for Code Mode API coverage', () => {
     ).toEqual({pathname: '/organizations/org-slug/monitors/alerts/881/'});
   });
 
-  it('leaves an org-level cron monitor unlinked without a project to pin', () => {
+  it('links a classic cron monitor to the modern cron monitors list', () => {
     expect(
       resolveLink(
         {
@@ -461,7 +461,16 @@ describe('entity links added for Code Mode API coverage', () => {
         },
         ctx
       )
-    ).toBeNull();
+    ).toEqual({
+      id: 'get_cron_monitor_details',
+      label: 'View cron monitors',
+      url: {pathname: '/organizations/org-slug/monitors/crons/'},
+    });
+
+    expect(resolveLink(LINK_RULE_EXAMPLES.get_cron_monitor_details!, ctx)?.url).toEqual({
+      pathname: '/organizations/org-slug/monitors/crons/',
+      query: {project: '2'},
+    });
   });
 
   it('treats nested team membership as the member, not the team page', () => {
