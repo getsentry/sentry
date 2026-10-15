@@ -45,6 +45,20 @@ describe('transformTimeSeriesResponse', () => {
     expect(result.every(item => item.queryIndex === 0)).toBe(true);
   });
 
+  it('uses a custom series name', () => {
+    const [result] = transformTimeSeriesResponse(
+      {timeSeries: [makeTimeSeries('count()')]},
+      WidgetFixture({queries: [WidgetQueryFixture({name: 'Alias'})]}),
+      0,
+      {
+        getSeriesName: (timeSeries, widgetQuery) =>
+          `${widgetQuery.name}-${timeSeries.yAxis}`,
+      }
+    );
+
+    expect(result!.seriesName).toBe('Alias-count()');
+  });
+
   it('returns nothing for a missing query', () => {
     expect(
       transformTimeSeriesResponse(

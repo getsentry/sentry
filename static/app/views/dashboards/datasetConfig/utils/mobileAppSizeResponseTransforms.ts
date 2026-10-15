@@ -10,12 +10,16 @@ import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields
 import {SizeUnit} from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import type {WidgetQuery} from 'sentry/views/dashboards/types';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {
   isEventsStats,
   isEventsTimeSeriesResponse,
   isMultiSeriesEventsStats,
 } from 'sentry/views/dashboards/utils/isEventsStats';
+import {
+  transformTimeSeriesResponse,
+  type WidgetTimeSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {
   transformTimeSeriesResponseToSeries,
   type WidgetSeries,
@@ -41,7 +45,8 @@ function buildSeriesResultMap<T extends AggregationOutputType | DataUnit>(
   return result;
 }
 
-function transformTimeSeriesResponse(
+// TODO: Delete once we start using transformTimeSeries
+function transformTimeSeriesResponseToLegacySeries(
   data: EventsTimeSeriesResponse,
   widgetQuery: WidgetQuery
 ): WidgetSeries[] {
@@ -55,6 +60,30 @@ function transformTimeSeriesResponse(
   }
 
   return series.map(removeEmptyBuckets);
+}
+
+function transformTimeSeries(
+  data: EventsTimeSeriesResponse,
+  widget: Widget,
+  queryIndex: number
+): WidgetTimeSeries[] {
+  const widgetQuery = widget.queries[queryIndex];
+  const aggregate =
+    widgetQuery?.aggregates?.[0] || widgetQuery?.fields?.[0] || 'App Size';
+  const series = transformTimeSeriesResponse(data, widget, queryIndex, {
+    meta: {valueType: 'size', valueUnit: SizeUnit.BYTE},
+  });
+
+  return series.map(item => {
+    const seriesName =
+      series.length === 1 && !item.timeSeries.groupBy?.length
+        ? widgetQuery?.name || aggregate
+        : item.seriesName;
+    const values = item.timeSeries.values.filter(
+      ({value}) => value !== null && value !== undefined && value !== 0
+    );
+    return {...item, seriesName, timeSeries: {...item.timeSeries, values}};
+  });
 }
 
 function removeEmptyBuckets(series: WidgetSeries): WidgetSeries {
@@ -74,7 +103,11 @@ export const mobileAppSizeResponseTransforms: Pick<
     EventsStats | MultiSeriesEventsStats | EventsTimeSeriesResponse,
     TableData
   >,
-  'transformTable' | 'transformSeries' | 'getSeriesResultType' | 'getSeriesResultUnit'
+  | 'transformTable'
+  | 'transformSeries'
+  | 'transformTimeSeries'
+  | 'getSeriesResultType'
+  | 'getSeriesResultUnit'
 > = {
   transformTable: (
     data: TableData,
@@ -84,6 +117,7 @@ export const mobileAppSizeResponseTransforms: Pick<
   ): TableData => {
     return data;
   },
+  transformTimeSeries,
   transformSeries: (
     data: EventsStats | MultiSeriesEventsStats | EventsTimeSeriesResponse,
     widgetQuery: WidgetQuery,
@@ -94,7 +128,7 @@ export const mobileAppSizeResponseTransforms: Pick<
     }
 
     if (isEventsTimeSeriesResponse(data)) {
-      return transformTimeSeriesResponse(data, widgetQuery);
+      return transformTimeSeriesResponseToLegacySeries(data, widgetQuery);
     }
 
     const aggregate =
