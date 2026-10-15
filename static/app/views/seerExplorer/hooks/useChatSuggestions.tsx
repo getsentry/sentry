@@ -152,9 +152,6 @@ export function useChatSuggestions({
         },
       });
     },
-    // Generating from a half-loaded page gives generic suggestions, so hold the
-    // request until the page has reported its context. If it never did in time,
-    // don't send the request at all.
     enabled: enabled && hasLlmChatSuggestions && isPageReady && !hasTimedOut,
     staleTime: 10 * 60 * 1000,
     retry: false,
