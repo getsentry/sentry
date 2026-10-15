@@ -216,13 +216,15 @@ def smooth_timeseries(
             Missing buckets stay None and are excluded from the average. Each available
             value has equal weight, regardless of timestamp spacing. window_size must
             be provided and positive.
-        ema: Exponential moving average seeded with the first observed value. Each
-            later observation updates the average as smoothing_factor * value +
-            (1 - smoothing_factor) * previous_average. Missing buckets stay None and
-            leave the average unchanged. Weighting depends on observations, regardless
-            of timestamp spacing. window_size determines the factor as
-            2 / (window_size + 1), without cutting off older observations. An explicit
-            smoothing_factor in (0, 1] overrides it and is only supported for ema.
+        ema: Exponential moving average. The average starts at the first observed
+            value, and each later observation blends into it using this formula:
+            `smoothing_factor * value + (1 - smoothing_factor) * previous_average`.
+            Missing buckets stay None and don't move the average. Weights depend on
+            how many observations have passed, not on the time between them.
+
+            Unlike sma, window_size doesn't drop older values; it only sets how quickly
+            their influence fades. Set smoothing_factor in (0, 1] to set it directly
+            instead. smoothing_factor is only supported by ema configs.
     """
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
