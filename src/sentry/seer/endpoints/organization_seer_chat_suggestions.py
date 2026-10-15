@@ -9,7 +9,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from urllib3.exceptions import MaxRetryError, TimeoutError
+from urllib3.exceptions import HTTPError
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -141,13 +141,23 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 user_id=request.user.id,
                 timeout=3.5,
             )
-        except Exception as e:
-            if isinstance(e, (TimeoutError, MaxRetryError)) or (
-                isinstance(e, SeerApiError) and e.status >= 500
-            ):
-                logger.warning("seer.chat_suggestions.request_failed", exc_info=True)
+        except HTTPError:
+            logger.warning("seer.chat_suggestions.request_failed", exc_info=True)
+            metrics.incr("seer.chat_suggestions", tags={"result": "request_error"})
+            return Response({"detail": "Failed to generate suggestions"}, status=502)
+        except SeerApiError as e:
+            if e.status >= 500:
+                logger.warning(
+                    "seer.chat_suggestions.request_failed",
+                    exc_info=True,
+                    extra={"status": e.status},
+                )
             else:
-                logger.exception("seer.chat_suggestions.failed")
+                logger.exception("seer.chat_suggestions.failed", extra={"status": e.status})
+            metrics.incr("seer.chat_suggestions", tags={"result": "request_error"})
+            return Response({"detail": "Failed to generate suggestions"}, status=502)
+        except Exception:
+            logger.exception("seer.chat_suggestions.failed")
             metrics.incr("seer.chat_suggestions", tags={"result": "request_error"})
             return Response({"detail": "Failed to generate suggestions"}, status=502)
 
