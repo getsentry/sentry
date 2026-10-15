@@ -744,11 +744,11 @@ importers:
         specifier: 2.2.4
         version: 2.2.4(marked@18.0.2)
       mobx:
-        specifier: 6.13.7
-        version: 6.13.7
+        specifier: 7.0.6
+        version: 7.0.6
       mobx-react-lite:
         specifier: 4.1.0
-        version: 4.1.0(mobx@6.13.7)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 4.1.0(mobx@7.0.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       moment:
         specifier: 2.31.0
         version: 2.31.0
@@ -7670,8 +7670,8 @@ packages:
       react-native:
         optional: true
 
-  mobx@6.13.7:
-    resolution: {integrity: sha512-aChaVU/DO5aRPmk1GX8L+whocagUUpBQqoPtJk+cm7UOXUk87J4PeWCh6nNmTTIfEhiR9DI/+FnA8dln/hTK7g==}
+  mobx@7.0.6:
+    resolution: {integrity: sha512-VJwjVS5K/rojqPSOoDYlXaYl38Lj+gDfLOFeJ/3Pbdh5ITbAO4ks9RgL0TeRI0bydRZ7b/7WrtPPb9Onuj/pcA==}
 
   mockdate@3.0.5:
     resolution: {integrity: sha512-iniQP4rj1FhBdBYS/+eQv7j1tadJ9lJtdzgOpvsOHng/GbcDh2Fhdeq+ZRldrPYdXvCyfFUmFeEwEGXZB5I/AQ==}
@@ -16240,15 +16240,15 @@ snapshots:
 
   mitt@3.0.1: {}
 
-  mobx-react-lite@4.1.0(mobx@6.13.7)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+  mobx-react-lite@4.1.0(mobx@7.0.6)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
-      mobx: 6.13.7
+      mobx: 7.0.6
       react: 19.3.0
       use-sync-external-store: 1.6.0(react@19.3.0)
     optionalDependencies:
       react-dom: 19.3.0(react@19.3.0)
 
-  mobx@6.13.7: {}
+  mobx@7.0.6: {}
 
   mockdate@3.0.5: {}
 
