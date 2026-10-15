@@ -181,6 +181,14 @@ class NotificationProviderKey(StrEnum):
     DISCORD = ExternalProviderEnum.DISCORD
 
 
+SHADOW_PROVIDERS: dict[str, NotificationProviderKey] = {
+    "slack": NotificationProviderKey.SLACK,
+    "slack_staging": NotificationProviderKey.SLACK_STAGING,
+    "discord": NotificationProviderKey.DISCORD,
+    "msteams": NotificationProviderKey.MSTEAMS,
+}
+
+
 class NotificationTargetResourceType(StrEnum):
     """
     Avenues for a notification to be sent to that can be understood by a provider.

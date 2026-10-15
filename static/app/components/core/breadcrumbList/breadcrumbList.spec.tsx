@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
@@ -300,6 +301,7 @@ describe('BreadcrumbList rich page-title items', () => {
           label: 'JAVASCRIPT-2X9',
           trailingActions: {
             type: 'menu',
+            triggerIcon: <IconEllipsis />,
             triggerLabel: 'More actions',
             items: [],
           },
@@ -326,6 +328,7 @@ describe('BreadcrumbList rich page-title items', () => {
             isPublic
               ? {
                   type: 'menu',
+                  triggerIcon: <IconEllipsis />,
                   triggerLabel: 'More actions',
                   items: [],
                 }
@@ -352,6 +355,7 @@ describe('BreadcrumbList rich page-title items', () => {
                 : null,
               {
                 type: 'menu',
+                triggerIcon: <IconEllipsis />,
                 triggerLabel: 'More actions',
                 items: [{key: 'delete', label: 'Delete'}],
               },

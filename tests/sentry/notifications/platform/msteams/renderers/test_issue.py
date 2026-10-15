@@ -163,7 +163,6 @@ class IssueMSTeamsRendererTest(TestCase):
                     "actionType": action_type,
                     "groupId": group.id,
                     "eventId": event.event_id,
-                    "rules": [],
                     "workflows": [1],
                 }
             }

@@ -4,7 +4,10 @@ from unittest.mock import patch
 
 import pytest
 
-from fixtures.sdk_crash_detection.crash_event_dart import get_crash_event
+from fixtures.sdk_crash_detection.crash_event_dart import (
+    get_crash_event,
+    get_crash_event_with_frames,
+)
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
@@ -317,6 +320,107 @@ def test_ignore_handle_draw_frame(
     )
 
     assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@pytest.mark.parametrize(
+    "sdk_function",
+    [
+        "SentryWidgetsBindingMixin.drawFrame",
+        "SentryWidgetsBindingMixin.attachToBuildOwner",
+    ],
+)
+@decorators
+def test_ignore_binding_pass_through_frames(
+    mock_sdk_crash_reporter, mock_random, store_event, configs, sdk_function
+) -> None:
+    event_data = get_crash_event(sdk_function=sdk_function)
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+def _flutter_frame(function: str, path: str) -> dict[str, str]:
+    return {
+        "function": function,
+        "package": "flutter",
+        "filename": path.rsplit("/", 1)[-1],
+        "abs_path": f"package:flutter/src/{path}",
+    }
+
+
+def _sentry_flutter_frame(function: str, path: str) -> dict[str, str]:
+    return {
+        "function": function,
+        "package": "sentry_flutter",
+        "filename": path.rsplit("/", 1)[-1],
+        "abs_path": f"package:sentry_flutter/src/{path}",
+    }
+
+
+# Frames are ordered from oldest to newest, mirroring a Flutter layout assertion thrown while
+# drawing a frame on sentry_flutter 10.x, where both handleDrawFrame and drawFrame are wrapped.
+FLUTTER_DRAW_FRAME_ASSERTION_FRAMES = [
+    _flutter_frame("SchedulerBinding._handleDrawFrame", "scheduler/binding.dart"),
+    _sentry_flutter_frame(
+        "SentryWidgetsBindingMixin.handleDrawFrame", "bindings/binding_wrapper.dart"
+    ),
+    _flutter_frame("SchedulerBinding.handleDrawFrame", "scheduler/binding.dart"),
+    _flutter_frame("SchedulerBinding._invokeFrameCallback", "scheduler/binding.dart"),
+    _flutter_frame("RendererBinding._handlePersistentFrameCallback", "rendering/binding.dart"),
+    _sentry_flutter_frame("SentryWidgetsBindingMixin.drawFrame", "bindings/binding_wrapper.dart"),
+    _flutter_frame("WidgetsBinding.drawFrame", "widgets/binding.dart"),
+    _flutter_frame("RendererBinding.drawFrame", "rendering/binding.dart"),
+    _flutter_frame("RenderObject.layout", "rendering/object.dart"),
+    _flutter_frame("BoxConstraints.debugAssertIsValid", "rendering/box.dart"),
+]
+
+
+@decorators
+def test_flutter_error_during_draw_frame_not_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
+    event_data = get_crash_event_with_frames(FLUTTER_DRAW_FRAME_ASSERTION_FRAMES)
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_sdk_error_inside_draw_frame_detected(
+    mock_sdk_crash_reporter, mock_random, store_event, configs
+) -> None:
+    # A crash in the SDK's own app start recorder must still be detected, even though
+    # it's called from the ignored drawFrame wrapper.
+    frames = FLUTTER_DRAW_FRAME_ASSERTION_FRAMES[:6] + [
+        _sentry_flutter_frame(
+            "AppStartRecorder.endFrameBuild", "app_start/app_start_recorder.dart"
+        ),
+    ]
+    event_data = get_crash_event_with_frames(frames)
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 1
 
 
 @decorators

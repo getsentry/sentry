@@ -49,7 +49,6 @@ class MarkFailedTestCase(TestCase):
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
             trace_id=trace_id,
             date_added=last_checkin,
@@ -94,7 +93,6 @@ class MarkFailedTestCase(TestCase):
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.UNKNOWN,
         )
         assert mark_failed(checkin, failed_at=checkin.date_added)
@@ -133,7 +131,6 @@ class MarkFailedTestCase(TestCase):
         MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
         )
 
@@ -144,7 +141,6 @@ class MarkFailedTestCase(TestCase):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=status,
             )
             mark_failed(checkin, failed_at=checkin.date_added)
@@ -157,7 +153,6 @@ class MarkFailedTestCase(TestCase):
         MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
         )
 
@@ -166,7 +161,6 @@ class MarkFailedTestCase(TestCase):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=status,
             )
             if _ == 0:
@@ -192,7 +186,6 @@ class MarkFailedTestCase(TestCase):
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=status,
         )
         mark_failed(checkin, failed_at=checkin.date_added)
@@ -211,7 +204,6 @@ class MarkFailedTestCase(TestCase):
         ok_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=MonitorStatus.OK,
         )
         monitor_incident.resolving_checkin = ok_checkin
@@ -226,7 +218,6 @@ class MarkFailedTestCase(TestCase):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=status,
             )
             mark_failed(checkin, failed_at=checkin.date_added)
@@ -262,7 +253,6 @@ class MarkFailedTestCase(TestCase):
         MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
         )
 
@@ -272,7 +262,6 @@ class MarkFailedTestCase(TestCase):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.IN_PROGRESS,
             )
             checkins.append(checkin)
@@ -336,7 +325,6 @@ class MarkFailedTestCase(TestCase):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.UNKNOWN,
             )
             mark_failed(checkin, failed_at=checkin.date_added)
@@ -376,7 +364,6 @@ class MarkFailedTestCase(TestCase):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.ERROR,
             )
             assert not mark_failed(checkin, failed_at=checkin.date_added)
@@ -389,7 +376,6 @@ class MarkFailedTestCase(TestCase):
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
         )
         assert mark_failed(checkin, failed_at=checkin.date_added)
@@ -421,14 +407,12 @@ class MarkFailedTestCase(TestCase):
         MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
         )
 
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.IN_PROGRESS,
         )
         mark_failed(checkin, failed_at=checkin.date_added)
@@ -478,7 +462,6 @@ class MarkFailedTestCase(TestCase):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.ERROR,
             )
             mark_failed(checkin, failed_at=checkin.date_added)
@@ -489,7 +472,6 @@ class MarkFailedTestCase(TestCase):
         ok_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
         )
 
@@ -507,7 +489,6 @@ class MarkFailedTestCase(TestCase):
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.ERROR,
             )
             mark_failed(checkin, failed_at=checkin.date_added)
