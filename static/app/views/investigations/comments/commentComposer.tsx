@@ -1,13 +1,17 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Composer, type ComposerValue} from '@sentry/scraps/composer';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useCreateInvestigationCommentMutation} from 'sentry/views/investigations/api';
+import {
+  useCreateInvestigationCommentMutation,
+  useUpdateInvestigationCommentMutation,
+} from 'sentry/views/investigations/api';
+import type {InvestigationComment} from 'sentry/views/investigations/types';
 
 const EMPTY_VALUE: ComposerValue = {text: '', mentions: []};
 
@@ -72,6 +76,88 @@ export function CommentComposer({
           </Button>
         </Flex>
       ) : null}
+    </Stack>
+  );
+}
+
+export function EditCommentForm({
+  comment,
+  investigationId,
+  onDone,
+}: {
+  comment: InvestigationComment;
+  investigationId: string;
+  onDone: () => void;
+}) {
+  const organization = useOrganization();
+  const inputRef = useRef<HTMLDivElement>(null);
+  const [value, setValue] = useState<ComposerValue>({text: comment.body, mentions: []});
+  const {isPending, mutate} = useUpdateInvestigationCommentMutation(
+    organization.slug,
+    investigationId
+  );
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (input) {
+      input.focus();
+      window.getSelection()?.selectAllChildren(input);
+      window.getSelection()?.collapseToEnd();
+    }
+  }, []);
+
+  const body = value.text.trim();
+  const canSave = !!body && body !== comment.body.trim() && !isPending;
+
+  const save = () => {
+    if (!canSave) {
+      return;
+    }
+    mutate(
+      {commentId: comment.id, body},
+      {
+        onSuccess: () => {
+          addSuccessMessage(t('Comment updated.'));
+          onDone();
+        },
+        onError: () => addErrorMessage(t('Unable to save comment.')),
+      }
+    );
+  };
+
+  return (
+    <Stack gap="sm" marginTop="xs">
+      <Composer
+        ref={inputRef}
+        aria-label={t('Edit comment')}
+        value={value}
+        onChange={setValue}
+        plugins={[]}
+        onKeyDown={event => {
+          if (event.key === 'Escape') {
+            if (!isPending) {
+              onDone();
+            }
+          } else if (isSubmitKey(event)) {
+            event.preventDefault();
+            save();
+          }
+        }}
+      />
+      <Flex gap="sm" justify="end">
+        <Button size="xs" disabled={isPending} onClick={onDone}>
+          {t('Cancel')}
+        </Button>
+        <Button
+          size="xs"
+          variant="primary"
+          busy={isPending}
+          disabled={!canSave}
+          onClick={save}
+        >
+          {t('Save')}
+        </Button>
+      </Flex>
     </Stack>
   );
 }
