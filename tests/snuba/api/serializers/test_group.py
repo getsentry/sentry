@@ -25,6 +25,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import PriorityLevel
 from sentry.users.models.user_option import UserOption
+from sentry.utils.cache import cache
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -561,6 +562,41 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, self.user, serializer=GroupSerializerSnuba())
 
         assert result["issueCategory"] == GroupCategory.DB_QUERY.name.lower()
+
+    def test_unhandled_flag_is_cached(self) -> None:
+        def store_error(*, handled: bool, fingerprint: str) -> Group:
+            event = self.store_event(
+                data={
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "ValueError",
+                                "value": "boom",
+                                "mechanism": {"type": "generic", "handled": handled},
+                            }
+                        ]
+                    },
+                    "fingerprint": [fingerprint],
+                    "timestamp": self.min_ago.isoformat(),
+                },
+                project_id=self.project.id,
+            )
+            assert event.group is not None
+            return event.group
+
+        unhandled_group = store_error(handled=False, fingerprint="unhandled")
+        handled_group = store_error(handled=True, fingerprint="handled")
+
+        result = serialize(
+            [unhandled_group, handled_group], self.user, serializer=GroupSerializerSnuba()
+        )
+
+        assert [item["isUnhandled"] for item in result] == [True, False]
+        unhandled_key = f"group-mechanism-handled:{unhandled_group.id}"
+        handled_key = f"group-mechanism-handled:{handled_group.id}"
+        cached = cache.get_many([unhandled_key, handled_key])
+        assert cached[unhandled_key]
+        assert cached[handled_key] == 0
 
 
 class PerformanceGroupSerializerSnubaTest(
