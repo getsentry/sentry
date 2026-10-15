@@ -203,39 +203,38 @@ def test_global_generic_filters_omit_custom_error_without_values(settings) -> No
 
 
 @django_db_all
-def test_custom_error_filter_reference_emitted_without_custom_values(
-    default_project: Project,
+@pytest.mark.parametrize("inbound_filters_custom_error_values", [[], CUSTOM_PATTERNS])
+def test_shared_filter_references(
+    default_project: Project, settings, inbound_filters_custom_error_values
 ) -> None:
-    # The project toggle is independent from the global condition, which is omitted
-    # when no custom values are configured.
-    assert default_project.get_option("filters:custom-error") == "1"
+    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = inbound_filters_custom_error_values
 
-    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
-        generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
+    generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
 
-    assert generic_filters is not None
-    assert {
-        "id": "custom-error",
-        "isEnabled": True,
-        "condition": None,
-    } in generic_filters["filters"]
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {"id": "chunk-load-error", "isEnabled": True, "condition": None},
+            {"id": "react-hydration-errors", "isEnabled": True, "condition": None},
+            {"id": "custom-error", "isEnabled": True, "condition": None},
+        ],
+    }
 
 
 @django_db_all
-def test_custom_error_filter_reference_emitted_with_custom_values(
-    default_project: Project,
-) -> None:
-    assert default_project.get_option("filters:custom-error") == "1"
+def test_disabled_custom_error_filter_reference_omitted(default_project: Project, settings) -> None:
+    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = CUSTOM_PATTERNS
+    default_project.update_option("filters:custom-error", "0")
 
-    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
-        generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
+    generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
 
-    assert generic_filters is not None
-    assert {
-        "id": "custom-error",
-        "isEnabled": True,
-        "condition": None,
-    } in generic_filters["filters"]
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {"id": "chunk-load-error", "isEnabled": True, "condition": None},
+            {"id": "react-hydration-errors", "isEnabled": True, "condition": None},
+        ],
+    }
 
 
 @pytest.mark.parametrize(
