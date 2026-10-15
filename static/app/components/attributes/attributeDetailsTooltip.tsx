@@ -44,7 +44,7 @@ export interface AttributeDetailsTooltipProps {
  *
  * Unwrapping user attributes could cause collisions with Sentry aliases. E.g.
  * `tags[message,string]` could be unwrapped as `message`, and then the tooltip
- * would wrongly apply the Sentry definition for `message` or `payload_size`.
+ * would wrongly apply the Sentry definition for `message`.
  *
  */
 const TYPED_TAG_KEY_RE = /^tags\[\S*,\S*\]$/;
