@@ -356,6 +356,23 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_event is None
         assert next_event is None
 
+    def test_get_adjacent_event_ids_with_excluded_group(self) -> None:
+        event = self.event2
+        event_filter = Filter(
+            project_ids=[event.project_id],
+            group_ids=[event.group_id],
+            conditions=[["group_id", "!=", event.group_id]],
+        )
+
+        with mock.patch("sentry.utils.snuba.bulk_raw_query") as bulk_raw_query:
+            prev_event, next_event = self.eventstore.get_adjacent_event_ids(
+                event, filter=event_filter
+            )
+
+        assert prev_event is None
+        assert next_event is None
+        bulk_raw_query.assert_not_called()
+
     def test_adjacent_event_ids_same_timestamp(self) -> None:
         project = self.create_project()
 
