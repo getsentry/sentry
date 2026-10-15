@@ -825,6 +825,8 @@ function getSpanEvidenceValue(span: Span | null) {
 }
 
 const StyledCodeSnippet = styled(CodeBlock)`
+  --prism-block-background: transparent;
+
   pre[class*='language-'] {
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;
@@ -946,5 +948,6 @@ const QueryCard = styled('div')`
   pre {
     margin: 0 !important;
     padding-top: ${p => p.theme.space.md} !important;
+    padding-inline: ${p => p.theme.space.lg} !important;
   }
 `;
