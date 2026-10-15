@@ -1,7 +1,7 @@
 import {useMemo, useRef, useState} from 'react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 
-import {Select} from '@sentry/scraps/select';
+import {Select, components} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
@@ -10,6 +10,21 @@ import {t, tct} from 'sentry/locale';
 
 import {normalizeRoot} from './normalization';
 import type {PathPrefixOption} from './type';
+
+function PrefixComboboxInput({
+  selectProps,
+  ...props
+}: React.ComponentProps<typeof components.Input> & {
+  selectProps?: {'aria-describedby'?: string; 'aria-invalid'?: boolean};
+}) {
+  return (
+    <components.Input
+      {...props}
+      aria-invalid={selectProps?.['aria-invalid']}
+      aria-describedby={selectProps?.['aria-describedby']}
+    />
+  );
+}
 
 const CATCH_ALL_VALUE = '';
 const CATCH_ALL_OPTION: SelectValue<string> = {
@@ -50,12 +65,17 @@ export interface PathPrefixComboboxProps {
   onChange: (value: string) => void;
   options: PathPrefixOption[];
   value: string;
+  'aria-describedby'?: string;
+  'aria-invalid'?: boolean;
   'aria-label'?: string;
   disabled?: boolean;
+  id?: string;
   isLoading?: boolean;
   maxMenuHeight?: number;
   menuAlign?: 'start' | 'end';
   menuWidth?: string;
+  name?: string;
+  onBlur?: () => void;
   placeholder?: string;
 }
 
@@ -67,12 +87,17 @@ export function PathPrefixCombobox({
   onChange,
   options: rawOptions,
   value,
+  'aria-describedby': ariaDescribedby,
+  'aria-invalid': ariaInvalid,
   'aria-label': ariaLabel,
   disabled,
+  id,
   isLoading,
   maxMenuHeight,
   menuAlign = 'start',
   menuWidth,
+  name,
+  onBlur,
   placeholder,
 }: PathPrefixComboboxProps) {
   const [inputValue, setInputValue] = useState('');
@@ -119,6 +144,7 @@ export function PathPrefixCombobox({
         onChange(normalizeRoot(typedTextRef.current));
       }
       setTypedText('');
+      onBlur?.();
     }
   }
 
@@ -137,6 +163,10 @@ export function PathPrefixCombobox({
   return (
     <Select
       aria-label={ariaLabel ?? t('Path prefix')}
+      aria-invalid={ariaInvalid}
+      aria-describedby={ariaDescribedby}
+      inputId={id}
+      name={name}
       creatable
       searchable
       isInsideModal
@@ -151,7 +181,7 @@ export function PathPrefixCombobox({
       // Options are filtered on the debounced input above.
       filterOption={null}
       formatCreateLabel={(input: string) => tct('Use "[path]"', {path: input})}
-      components={{MenuList: ScmVirtualizedMenuList}}
+      components={{MenuList: ScmVirtualizedMenuList, Input: PrefixComboboxInput}}
       maxMenuHeight={maxMenuHeight}
       styles={prefixMenuStyles(menuWidth, menuAlign)}
     />

@@ -106,17 +106,23 @@ export const PathMappingEdit = withFieldGroup({
                   }
                   hintText={t('The start of the paths in your stack traces.')}
                 >
-                  <PathPrefixCombobox
-                    aria-label={t('Stack trace prefix')}
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    options={stackPrefixes.data?.prefixes ?? []}
-                    isLoading={stackPrefixes.isLoading}
-                    placeholder={STACK_ROOT_PLACEHOLDER}
-                    disabled={hasCodeOwner}
-                    menuWidth={PREFIX_MENU_WIDTH}
-                    maxMenuHeight={PREFIX_MENU_MAX_HEIGHT}
-                  />
+                  <field.Base<HTMLInputElement> disabled={hasCodeOwner}>
+                    {({ref: _ref, ...baseProps}) => (
+                      <Container flex={1} minWidth={0}>
+                        <PathPrefixCombobox
+                          {...baseProps}
+                          aria-label={t('Stack trace prefix')}
+                          value={field.state.value}
+                          onChange={field.handleChange}
+                          options={stackPrefixes.data?.prefixes ?? []}
+                          isLoading={stackPrefixes.isLoading}
+                          placeholder={STACK_ROOT_PLACEHOLDER}
+                          menuWidth={PREFIX_MENU_WIDTH}
+                          maxMenuHeight={PREFIX_MENU_MAX_HEIGHT}
+                        />
+                      </Container>
+                    )}
+                  </field.Base>
                 </field.Layout.Stack>
               )}
             </group.AppField>
