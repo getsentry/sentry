@@ -90,6 +90,7 @@ def smooth_timeseries(
     values: Sequence[float | None],
     *,
     mode: Literal["asap"],
+    max_window_size: int | None = None,
 ) -> list[float | None]: ...
 
 
@@ -121,6 +122,7 @@ def smooth_timeseries(
     mode: Literal["sma", "ema", "asap"],
     window_size: int = 3,
     smoothing_factor: float | None = None,
+    max_window_size: int | None = None,
 ) -> list[float | None]:
     """Smooth values using the selected mode.
 
@@ -148,13 +150,15 @@ def smooth_timeseries(
             of observations. Minimize the variance of adjacent differences without
             decreasing Pearson kurtosis, scoring complete windows as in Stanford's
             Python smooth_simple reference. Search windows from two through
-            run_length // 5, preferring smaller windows when roughness ties. Retain
-            the original values when no window improves the objective.
+            max_window_size, defaulting to run_length // 5. An explicit limit must
+            be positive and is capped at run_length - 1 to leave at least two
+            complete windows for scoring. Prefer smaller windows when roughness
+            ties. Retain the original values when no window improves the objective.
             Return partial windows at the start to preserve bucket alignment. The
             kurtosis constraint applies only to complete windows, excluding startup
             averages. Missing buckets stay None and separate independent runs. Only
             non-None values must be finite. window_size and smoothing_factor do not
-            apply to asap.
+            apply to asap. max_window_size applies only to asap.
     """
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
@@ -203,13 +207,20 @@ def smooth_timeseries(
 
         return ema_values
     elif mode == SMOOTH_MODE_ASAP:
+        if max_window_size is not None and max_window_size < 1:
+            raise ValueError("Maximum window size must be positive.")
         if any(value is not None and not isfinite(value) for value in values):
             raise ValueError("ASAP observations must be finite.")
 
         asap_values: list[float | None] = []
         for observed, group in groupby(values, key=lambda value: value is not None):
             if observed:
-                asap_values.extend(_smooth_asap([value for value in group if value is not None]))
+                asap_values.extend(
+                    _smooth_asap(
+                        [value for value in group if value is not None],
+                        max_window_size=max_window_size,
+                    )
+                )
             else:
                 asap_values.extend(group)
         return asap_values
@@ -217,7 +228,7 @@ def smooth_timeseries(
         raise ValueError(f"Unsupported smoothing mode: {mode}")
 
 
-def _smooth_asap(values: Sequence[float]) -> list[float]:
+def _smooth_asap(values: Sequence[float], *, max_window_size: int | None = None) -> list[float]:
     """Smooth one observed run using Stanford's Python smooth_simple window search.
 
     Reference implementation and its Apache-2.0 license at the revision used:
@@ -226,7 +237,9 @@ def _smooth_asap(values: Sequence[float]) -> list[float]:
     Paper:
         https://arxiv.org/abs/1703.00983
     """
-    max_window = len(values) // 5
+    max_window = (
+        len(values) // 5 if max_window_size is None else min(max_window_size, len(values) - 1)
+    )
     if max_window < 2 or min(values) == max(values):
         return list(values)
 

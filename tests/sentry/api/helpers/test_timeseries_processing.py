@@ -463,6 +463,54 @@ def test_smooth_timeseries_asap(
 
 
 @pytest.mark.parametrize(
+    "max_window_size, expected",
+    [
+        pytest.param(1, [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 8, id="one-disables-smoothing"),
+        pytest.param(2, [4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 15, id="restrict-default-search"),
+    ],
+)
+def test_smooth_timeseries_asap_respects_max_window_size(
+    max_window_size: int, expected: list[float | None]
+) -> None:
+    values = [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 8
+
+    result = smooth_timeseries(
+        list(range(20)), values, mode="asap", max_window_size=max_window_size
+    )
+
+    assert result == pytest.approx(expected)
+
+
+def test_smooth_timeseries_asap_expands_search_across_gaps() -> None:
+    values = [None] + [0.0, 2.0] * 3 + [0.0, 5.0, None, 0.0, 0.0, 1.0, None]
+
+    result = smooth_timeseries(list(range(len(values))), values, mode="asap", max_window_size=2)
+
+    assert result == pytest.approx([None, 0.0] + [1.0] * 6 + [2.5, None, 0.0, 0.0, 1.0, None])
+
+
+@pytest.mark.parametrize("values", [[], [None], [1.0], [1.0, 2.0], [0.0, 0.0, 1.0]])
+def test_smooth_timeseries_asap_caps_max_window_to_run_length(
+    values: list[float | None],
+) -> None:
+    result = smooth_timeseries(list(range(len(values))), values, mode="asap", max_window_size=100)
+
+    assert result == values
+    assert result is not values
+
+
+@pytest.mark.parametrize("values", [[], [None], [1.0]])
+@pytest.mark.parametrize("max_window_size", [0, -1])
+def test_smooth_timeseries_asap_rejects_nonpositive_max_window_size(
+    values: list[float | None], max_window_size: int
+) -> None:
+    with pytest.raises(ValueError, match="Maximum window size must be positive"):
+        smooth_timeseries(
+            list(range(len(values))), values, mode="asap", max_window_size=max_window_size
+        )
+
+
+@pytest.mark.parametrize(
     "offset, scale",
     [(0.0, 1e-300), (0.0, 1.0), (0.0, 1e300), (1e308, 1e307), (-1e308, 1e307), (1e16, 4.0)],
 )
