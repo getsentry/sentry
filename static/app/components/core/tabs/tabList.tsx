@@ -22,7 +22,6 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {tabsShouldForwardProp} from '@sentry/scraps/tabs/utils';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -32,6 +31,7 @@ import {TabListItem} from './item';
 import {Tab} from './tab';
 import type {TabProps} from './tab';
 import {TabsContext} from './tabs';
+import {tabsShouldForwardProp} from './utils';
 
 const StyledTabListWrap = styled('ul', {
   shouldForwardProp: tabsShouldForwardProp,

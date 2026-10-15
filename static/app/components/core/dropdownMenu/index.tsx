@@ -4,4 +4,4 @@ export type {DropdownButtonProps} from './dropdownButton';
 export {DropdownMenu} from './dropdownMenu';
 export type {DropdownMenuProps, MenuItemProps} from './dropdownMenu';
 
-export {DropdownMenuFooter} from '@sentry/scraps/dropdownMenu/footer';
+export {DropdownMenuFooter} from './footer';

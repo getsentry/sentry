@@ -4,7 +4,8 @@ import color from 'color';
 
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {useAvatar} from '@sentry/scraps/avatar';
-import {resolveImageAvatarColors} from '@sentry/scraps/avatarButton/avatarImageAnalysis';
+
+import {resolveImageAvatarColors} from './avatarImageAnalysis';
 
 export type AvatarColorsResult =
   | {chonk: string; style: 'padded' | 'fill'; type: 'image'}

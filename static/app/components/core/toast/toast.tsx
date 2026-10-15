@@ -6,12 +6,13 @@ import {IconWarning} from '@sentry/icons/warning';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import type {ToastAction, ToastVariant} from '@sentry/scraps/toast/types';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Theme} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
+
+import type {ToastAction, ToastVariant} from './types';
 
 interface ToastProps {
   message: React.ReactNode;

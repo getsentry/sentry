@@ -1,8 +1,9 @@
-import {BreadcrumbLeadingSlot} from '@sentry/scraps/breadcrumbList/items/breadcrumbLeadingSlot';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+
+import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
 export type BreadcrumbItemLinkProps = {
   label: string;

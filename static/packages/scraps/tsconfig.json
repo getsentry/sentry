@@ -15,7 +15,7 @@
     }
   },
   "include": ["src"],
-  "exclude": ["src/**/*.spec.ts", "src/**/*.spec.tsx"],
+  "exclude": ["src/**/*.spec.tsx"],
   "references": [
     {
       "path": "../icons"

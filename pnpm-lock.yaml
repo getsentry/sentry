@@ -737,6 +737,12 @@ importers:
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
+      marked:
+        specifier: 18.0.2
+        version: 18.0.2
+      marked-highlight:
+        specifier: 2.2.4
+        version: 2.2.4(marked@18.0.2)
       mobx:
         specifier: 6.13.7
         version: 6.13.7
@@ -1202,54 +1208,18 @@ importers:
       '@sentry/react':
         specifier: 11.6.0
         version: 11.6.0(react-router@6.30.6(react@19.3.0))(react@19.3.0)
-      '@tanstack/react-form':
-        specifier: 1.28.6
-        version: 1.28.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
-      '@types/react-select':
-        specifier: 4.0.18
-        version: 4.0.18
-      '@types/trusted-types':
-        specifier: ^2.0.7
-        version: 2.0.7
-      color:
-        specifier: 5.0.2
-        version: 5.0.2
-      dompurify:
-        specifier: 3.4.16
-        version: 3.4.16
       framer-motion:
         specifier: 12.38.0
         version: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      marked:
-        specifier: 18.0.2
-        version: 18.0.2
-      marked-highlight:
-        specifier: 2.2.4
-        version: 2.2.4(marked@18.0.2)
-      platformicons:
-        specifier: ^9.8.0
-        version: 9.8.0(react@19.3.0)
-      prismjs:
-        specifier: ^1.30.0
-        version: 1.30.0
       react:
         specifier: ^19.0.0
         version: 19.3.0
       react-dom:
         specifier: ^19.0.0
         version: 19.3.0(react@19.3.0)
-      react-select:
-        specifier: 4.3.1
-        version: 4.3.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
-      sonner:
-        specifier: 2.0.8
-        version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      type-fest:
-        specifier: ^5.8.0
-        version: 5.8.0
     devDependencies:
       '@jest/environment':
         specifier: 30.5.1
@@ -1287,9 +1257,6 @@ importers:
       '@types/node':
         specifier: 26.6.4
         version: 26.6.4
-      '@types/prismjs':
-        specifier: ^1.26.0
-        version: 1.26.0
       '@types/react-dom':
         specifier: 19.3.0
         version: 19.3.0(@types/react@19.3.0)

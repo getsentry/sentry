@@ -6,11 +6,10 @@ import {useQuery} from '@tanstack/react-query';
 import * as qs from 'query-string';
 import type {Tagged} from 'type-fest';
 
-import type {LetterAvatarProps} from '@sentry/scraps/avatar/letterAvatar/letterAvatar';
-
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import type {ImageAvatarProps} from './imageAvatar/imageAvatar';
+import type {LetterAvatarProps} from './letterAvatar/letterAvatar';
 
 type GravatarDefinition = {gravatarId: string; type: 'gravatar'};
 type UploadDefinition = {type: 'upload'; uploadUrl: string};

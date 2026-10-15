@@ -10,14 +10,6 @@ export {
   sanitizedMarked,
   singleLineRenderer,
   splitTags,
-} from '@sentry/scraps/markdown/marked';
-export type {
-  ExtendedToken,
-  MarkedToken,
-  TagSegment,
-  Token,
-} from '@sentry/scraps/markdown/marked';
-export {
-  streamingAnimationStyles,
-  useTextDecodeAnimation,
-} from '@sentry/scraps/markdown/useStreamingAnimation';
+} from './marked';
+export type {ExtendedToken, MarkedToken, TagSegment, Token} from './marked';
+export {streamingAnimationStyles, useTextDecodeAnimation} from './useStreamingAnimation';

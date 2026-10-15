@@ -5,24 +5,6 @@ import {mergeProps} from '@react-aria/utils';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {QueryStatus} from '@tanstack/react-query';
 
-import {
-  type EditorSelection,
-  getDOMPoint,
-  getEditorSelection,
-  readEditorValue,
-  setEditorSelection,
-  writeEditorValue,
-} from '@sentry/scraps/composer/dom';
-import {
-  findActiveTrigger,
-  getRequestKey,
-  type ActiveTrigger,
-} from '@sentry/scraps/composer/matching';
-import {
-  type Mention,
-  type ComposerValue,
-  reconcileMentions,
-} from '@sentry/scraps/composer/model';
 import {Container} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
@@ -30,6 +12,16 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {useStableMergeRef} from 'sentry/utils/useStableMergeRef';
 
+import {
+  type EditorSelection,
+  getDOMPoint,
+  getEditorSelection,
+  readEditorValue,
+  setEditorSelection,
+  writeEditorValue,
+} from './dom';
+import {findActiveTrigger, getRequestKey, type ActiveTrigger} from './matching';
+import {type Mention, type ComposerValue, reconcileMentions} from './model';
 import {CaretAnchor, ComposerEditor, SuggestionListBox, SuggestionStatus} from './styles';
 import type {ComposerProps} from './types';
 import {useComposerSuggestions} from './useComposerSuggestions';

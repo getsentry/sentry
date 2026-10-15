@@ -1,14 +1,14 @@
 import {createContext, useContext, useId} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {useLabelId} from '@sentry/scraps/form/field/fieldIds';
-import {GroupProvider} from '@sentry/scraps/form/field/groupContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
 import {useAutoSaveIndicator} from './baseField';
+import {useLabelId} from './fieldIds';
+import {GroupProvider} from './groupContext';
 import {FieldMeta} from './meta';
 
 // Context for Radio.Group -> Radio.Item communication

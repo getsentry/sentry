@@ -13,7 +13,7 @@ export {CompositeSelect} from './composite';
 
 export {ControlContext} from './controlContext';
 
-export {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
+export {HighlightText} from './highlightText';
 
 export {MenuComponents} from './menuComponents';
 

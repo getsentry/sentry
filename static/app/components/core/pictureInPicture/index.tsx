@@ -1,5 +1,2 @@
-export {
-  PictureInPictureProvider,
-  usePictureInPicture,
-} from '@sentry/scraps/pictureInPicture/pictureInPicture';
+export {PictureInPictureProvider, usePictureInPicture} from './pictureInPicture';
 export {PictureInPicturePortal} from './pictureInPicturePortal';

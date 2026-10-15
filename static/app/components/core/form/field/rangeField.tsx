@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import type {DistributedOmit} from 'type-fest';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {useLabelId} from '@sentry/scraps/form/field/fieldIds';
 import {Flex} from '@sentry/scraps/layout';
 import {Slider, type SliderProps} from '@sentry/scraps/slider';
 
 import {BaseField, type BaseFieldProps} from './baseField';
+import {useLabelId} from './fieldIds';
 
 export function RangeField({
   onChange,

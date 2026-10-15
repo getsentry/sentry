@@ -1,4 +1,3 @@
-import {BreadcrumbDividerCombo} from '@sentry/scraps/breadcrumbList/breadcrumbDividerCombo';
 import {Container, Flex, useHasContainerQuery} from '@sentry/scraps/layout';
 
 import {unreachable} from 'sentry/utils/unreachable';
@@ -12,6 +11,7 @@ import type {BreadcrumbItemPageTitleEditableProps} from './items/breadcrumbItemP
 import {BreadcrumbItemPageTitleEditable} from './items/breadcrumbItemPageTitleEditable';
 import type {BreadcrumbItemSelectProps} from './items/breadcrumbItemSelect';
 import {BreadcrumbItemSelect} from './items/breadcrumbItemSelect';
+import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
 
 type LinkBreadcrumbItem = {type: 'link'} & BreadcrumbItemLinkProps;
 type PageTitleBreadcrumbItem = {

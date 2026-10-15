@@ -4,8 +4,7 @@ import {Item} from '@react-stately/collections';
 import {useListState} from '@react-stately/list';
 import {skipToken, useQueries} from '@tanstack/react-query';
 
-import type {ActiveTrigger} from '@sentry/scraps/composer/matching';
-
+import type {ActiveTrigger} from './matching';
 import type {ComposerSource} from './types';
 
 interface SuggestionListItem {

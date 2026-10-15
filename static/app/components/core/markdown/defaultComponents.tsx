@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 import {CodeBlock, InlineCode} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {isSafeHref, isInternalHref} from '@sentry/scraps/markdown/marked';
 import {Quote} from '@sentry/scraps/quote';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
+
+import {isSafeHref, isInternalHref} from './marked';
 
 export function DefaultParagraph({children}: {children: ReactNode}) {
   return (
