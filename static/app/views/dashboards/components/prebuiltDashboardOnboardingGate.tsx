@@ -171,4 +171,7 @@ function DashboardOnboardingInner({
   return children;
 }
 
-const DashboardOnboarding = registerLLMContext('dashboard', DashboardOnboardingInner);
+const DashboardOnboarding = registerLLMContext(
+  'dashboard-onboarding',
+  DashboardOnboardingInner
+);

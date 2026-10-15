@@ -52,20 +52,23 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
 ]);
 
 /**
- * Routes whose page context is only complete once the page node has loaded,
- * mapped to that node. If the node registers before its data loads, also pass
- * `isLoading` to useLLMContext.
+ * Routes whose page context is only complete once the page node(s) has loaded,
+ * mapped to that node(s). If the node(s) registers before its data loads,
+ * also pass `isLoading` to useLLMContext.
  */
-const PAGE_CONTEXT_READY_NODES = new Map<string, LLMContextNodeType>([
-  ['/dashboard/:dashboardId/', 'dashboard'],
-  ['/explore/replays/:replaySlug/', 'replay-detail'],
-  ['/issues/:groupId/', 'issue-detail'],
-  ['/issues/:groupId/events/', 'issue-detail'],
-  ['/issues/:groupId/events/:eventId/', 'issue-detail'],
-  ['/issues/:groupId/replays/', 'issue-detail'],
-  ['/issues/:groupId/attachments/', 'issue-detail'],
-  ['/issues/:groupId/distributions/', 'issue-detail'],
-  ['/issues/:groupId/distributions/:tagKey/', 'issue-detail'],
+const PAGE_CONTEXT_READY_NODES = new Map<string, LLMContextNodeType[]>([
+  // The dashboard node registers before its widgets, which mount lazily.
+  // Prebuilt dashboards showing onboarding have no widgets, so use a separate node
+  // type for them.
+  ['/dashboard/:dashboardId/', ['widget', 'dashboard-onboarding']],
+  ['/explore/replays/:replaySlug/', ['replay-detail']],
+  ['/issues/:groupId/', ['issue-detail']],
+  ['/issues/:groupId/events/', ['issue-detail']],
+  ['/issues/:groupId/events/:eventId/', ['issue-detail']],
+  ['/issues/:groupId/replays/', ['issue-detail']],
+  ['/issues/:groupId/attachments/', ['issue-detail']],
+  ['/issues/:groupId/distributions/', ['issue-detail']],
+  ['/issues/:groupId/distributions/:tagKey/', ['issue-detail']],
 ]);
 
 type CapturedPageContext = {
@@ -119,9 +122,9 @@ export function usePageContextCapture() {
  */
 export function usePageContextReady(route: string): boolean {
   const {subscribe, isNodeReady} = useLLMContextRegistry();
-  const expectedNodeType = PAGE_CONTEXT_READY_NODES.get(route);
+  const expectedNodeTypes = PAGE_CONTEXT_READY_NODES.get(route);
   return useSyncExternalStore(
     subscribe,
-    () => expectedNodeType === undefined || isNodeReady(expectedNodeType)
+    () => expectedNodeTypes === undefined || expectedNodeTypes.some(isNodeReady)
   );
 }
