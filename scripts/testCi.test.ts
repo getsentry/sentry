@@ -33,7 +33,15 @@ function fixture(t: {after: (cleanup: () => void) => void}) {
     copyFileSync(path.join(root, file), path.join(directory, file));
   };
   write('package.json', '{"private":true,"type":"module"}');
-  symlinkSync(path.join(root, 'node_modules'), path.join(directory, 'node_modules'));
+  for (const dependency of [
+    '@swc-contrib/mut-cjs-exports',
+    '@swc/jest',
+    'jest-canvas-mock',
+  ]) {
+    const target = path.join(directory, 'node_modules', dependency);
+    mkdirSync(path.dirname(target), {recursive: true});
+    symlinkSync(path.join(root, 'node_modules', dependency), target);
+  }
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     CI: '',

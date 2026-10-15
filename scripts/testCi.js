@@ -37,7 +37,7 @@ if (
         ? (Array.isArray(value) ? value : [value]).map(item => `--${name}=${item}`)
         : []
     );
-    args.push('--', ...parsed._.map(file => resolve(String(file))));
+    args.push('--', ...Array.from(parsed._, file => resolve(String(file))));
   }
 }
 
