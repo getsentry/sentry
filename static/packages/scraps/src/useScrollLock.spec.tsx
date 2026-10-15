@@ -187,7 +187,7 @@ describe('useScrollLock', () => {
 
     result.current.acquire();
 
-    expect(document.documentElement).toHaveStyle({overflow: ''});
+    expect(document.documentElement).not.toHaveStyle({overflow: 'hidden'});
     expect(document.body).toHaveStyle({
       position: 'fixed',
       top: `-${scrollY}px`,
