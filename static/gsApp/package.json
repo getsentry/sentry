@@ -28,7 +28,7 @@
     "moment-timezone": "0.6.2",
     "query-string": "7.0.1",
     "react": "19.3.0",
-    "react-router": "6.30.6",
+    "react-router": "7.18.2",
     "reflux": "0.4.1",
     "sentry": "workspace:@sentry-internal/app@*",
     "zod": "4.3.5"
