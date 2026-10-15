@@ -4,7 +4,12 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
 import {InvestigationsPage} from 'sentry/views/investigations';
+import {
+  commentedInvestigation,
+  commentedInvestigationComments,
+} from 'sentry/views/investigations/__stories__/commentStoryFixtures';
 import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
+import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
   InvestigationBlockFixture,
@@ -259,6 +264,49 @@ describe('InvestigationFixtureApi', () => {
       expect(await screen.findByText('Verifying…')).toBeInTheDocument();
       expect(screen.getByText('Inspect session and middleware spans')).toBeVisible();
       expect(screen.queryByRole('listitem', {current: 'step'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('comments', () => {
+    it('serves no comments by default, so detail stories render the Activity section', async () => {
+      const investigation = InvestigationDetailFixture({
+        id: 'no-comments',
+        blocks: [],
+      });
+
+      render(
+        <InvestigationFixtureApi
+          organizationSlug="storybook-comments-default-test"
+          details={[investigation]}
+        >
+          <InvestigationActivity investigation={investigation} />
+        </InvestigationFixtureApi>,
+        {organization}
+      );
+
+      expect(await screen.findByText('Investigation first created')).toBeInTheDocument();
+      expect(screen.queryByText(/error/i)).not.toBeInTheDocument();
+    });
+
+    it('serves the Activity story comments newest first', async () => {
+      render(
+        <InvestigationFixtureApi
+          organizationSlug="storybook-comments-test"
+          details={[commentedInvestigation]}
+          comments={{
+            [commentedInvestigation.id]: commentedInvestigationComments.toReversed(),
+          }}
+        >
+          <InvestigationActivity investigation={commentedInvestigation} />
+        </InvestigationFixtureApi>,
+        {organization}
+      );
+
+      const rows = await screen.findAllByRole('listitem');
+      expect(rows[0]).toHaveTextContent('Grace Hopper commented');
+      expect(rows[1]).toHaveTextContent('on Invoice generation duration');
+      expect(screen.getByText('on a deleted block')).toBeInTheDocument();
+      expect(screen.getByText('Unknown user commented')).toBeInTheDocument();
     });
   });
 });

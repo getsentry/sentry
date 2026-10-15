@@ -17,6 +17,7 @@ import {
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
 import type {
+  InvestigationComment,
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationHypothesis,
@@ -31,6 +32,10 @@ type FixtureApiMode = 'success' | 'loading' | 'error';
 type InvestigationFixtureApiProps = {
   children: ReactNode;
   organizationSlug: string;
+  /** `Link` header for an investigation's comments, keyed by investigation id. */
+  commentPageLinks?: Record<string, string>;
+  /** Page-level and block comments, keyed by investigation id. */
+  comments?: Record<string, InvestigationComment[]>;
   details?: InvestigationDetail[];
   executions?: Record<string, InvestigationExecutionDetail>;
   featureEnabled?: boolean;
@@ -69,6 +74,8 @@ export function investigationExecutionFixtureKey(blockId: string, executionId: s
 export function InvestigationFixtureApi({
   children,
   organizationSlug,
+  commentPageLinks = {},
+  comments = {},
   details = [],
   executions = {},
   featureEnabled = true,
@@ -96,6 +103,8 @@ export function InvestigationFixtureApi({
   const [handler] = useState(() =>
     createFixtureHandler({
       organizationSlug,
+      commentPageLinks,
+      comments,
       details,
       executions,
       featureEnabled,
@@ -219,6 +228,8 @@ function createFixtureHandler(config: FixtureApiConfig): FixtureHandler {
 type FixtureState = {
   allocatedBlockIds: Set<string>;
   allocatedInvestigationIds: Set<string>;
+  commentPageLinks: Record<string, string>;
+  comments: Map<string, InvestigationComment[]>;
   details: Map<string, InvestigationDetail>;
   executions: Map<string, InvestigationExecutionDetail>;
   list: InvestigationListItem[];
@@ -245,6 +256,13 @@ function createFixtureState(config: FixtureApiConfig): FixtureState {
       ...details.keys(),
       ...list.map(investigation => investigation.id),
     ]),
+    commentPageLinks: {...config.commentPageLinks},
+    comments: new Map(
+      Object.entries(config.comments ?? {}).map(([key, comments]) => [
+        key,
+        cloneFixture(comments),
+      ])
+    ),
     details,
     list,
     orchestration: new Map(
@@ -409,6 +427,14 @@ function handleFixtureRequest(
           preview: null,
         }
       ),
+    };
+  }
+
+  if (parts[1] === 'comments' && parts.length === 2 && method === 'GET') {
+    const link = state.commentPageLinks[investigationId];
+    return {
+      body: cloneFixture(getFixtureComments(state, investigationId)),
+      headers: link ? {Link: link} : undefined,
     };
   }
 
@@ -600,6 +626,13 @@ function getFixtureDetail(state: FixtureState, investigationId: string) {
   const generatedDetail = InvestigationDetailFixture({...listItem, blocks: []});
   state.details.set(investigationId, generatedDetail);
   return generatedDetail;
+}
+
+/** Newest first, like the endpoint. */
+function getFixtureComments(state: FixtureState, investigationId: string) {
+  return (state.comments.get(investigationId) ?? []).toSorted((a, b) =>
+    b.dateCreated.localeCompare(a.dateCreated)
+  );
 }
 
 function getFixtureOrchestration(state: FixtureState, investigationId: string) {
