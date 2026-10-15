@@ -348,6 +348,32 @@ class TestTriggerAutofixFeature(TestCase):
         assert agent_run_options["enable_coding"] is True
         assert agent_run_options["enable_pr_context_tools"] is False
 
+    def test_code_mode_flag_runs_autofix_with_only_code_mode_tools(self) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+
+        for enabled in (False, True):
+            with (
+                self.feature({"organizations:seer-autofix-code-mode": enabled}),
+                patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+                patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+            ):
+                mock_quotas.backend.check_seer_quota.return_value = True
+                mock_client_cls.return_value.start_feature_run.return_value = fake_run
+
+                trigger_autofix_feature(
+                    self.group,
+                    AutofixFeatureArgs(
+                        referrer=AutofixReferrer.UNKNOWN,
+                        step=AutofixStep.ROOT_CAUSE,
+                        step_args=RCAStepArgs(),
+                    ),
+                )
+
+            agent_run_options = mock_client_cls.return_value.start_feature_run.call_args.kwargs[
+                "agent_run_options"
+            ]
+            assert agent_run_options.get("enable_code_mode_tools") == ("only" if enabled else None)
+
     def test_pr_iteration_enables_coding_and_sends_its_step_args(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
         self.create_seer_agent_run(
