@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.13"
 resolution-markers = [
     "(python_full_version < '3.14' and sys_platform == 'darwin') or (python_full_version < '3.14' and sys_platform == 'linux')",
@@ -2460,7 +2460,7 @@ requires-dist = [
     { name = "statsd", specifier = ">=3.3.0" },
     { name = "stripe", specifier = ">=6.7.0" },
     { name = "structlog", specifier = ">=22.1.0" },
-    { name = "symbolic", specifier = ">=13.1.1" },
+    { name = "symbolic", specifier = ">=14.0.0a4" },
     { name = "taskbroker-client", specifier = ">=0.20.29" },
     { name = "tiktoken", specifier = ">=0.8.0" },
     { name = "tldextract", specifier = ">=5.1.2" },
@@ -2827,15 +2827,15 @@ wheels = [
 
 [[package]]
 name = "symbolic"
-version = "13.1.1"
+version = "14.0.0a4"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "milksnake" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/symbolic-13.1.1-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:fac90575bcb24db4f8cfcbd0fd39402c61efe79c929e30f8d8c922c56c3f7565" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/symbolic-13.1.1-py2.py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:8b5d749d3fe0860547cefcf1e6b2909a328cb3c05a2ad33b58bba8075b71c0ca" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/symbolic-13.1.1-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:d93c4e6f9ec40ab5454230e5e9fe59b6f53f1662cb3ba06b02e4ad0882f5f829" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/symbolic-14.0.0a4-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:2698dc7886519fd279452f176d97b9ed5741938d9bd29987f6a7c75bdb9b857f" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/symbolic-14.0.0a4-py2.py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:970eadb17fd96f56aa5f0de7fa3eeb85298ff187473e42a9fb309c94af30c1e9" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/symbolic-14.0.0a4-py2.py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:ed910ba559406370f80c5a24ce42137153b65f44cf14e0b20e62c8c77bf00c88" },
 ]
 
 [[package]]
