@@ -491,7 +491,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         # Explore has prebuilt formulas that are created lazily on read.
         try:
             lock = locks.get(
-                f"explore:sync_prebuilt_formulas:{organization.id}:{request.user.id}",
+                f"explore:sync_prebuilt_formulas:{organization.id}",
                 duration=10,
                 name="sync_prebuilt_formulas",
             )
@@ -499,6 +499,9 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
                 sync_prebuilt_formulas(organization)
         except UnableToAcquireLock:
             pass
+        except IntegrityError as err:
+            if "explore_exploresavedformula_unique_name_per_organization" not in str(err):
+                sentry_sdk.capture_exception(err)
         except Exception as err:
             sentry_sdk.capture_exception(err)
 
