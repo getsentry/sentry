@@ -354,19 +354,158 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
 
   const rowIndex = useMemo(() => buildRowIndex(rows), [rows]);
 
-  useLayoutEffect(() => {
-    scrollRef.current?.querySelectorAll<HTMLElement>('[data-index]').forEach(node => {
-      const index = Number(node.dataset.index);
-      if (rows[index]?.kind === 'card') {
-        virtualizer.resizeItem(index, node.offsetHeight);
+  const previousRows = useRef(rows);
+  const [viewedAnchorGroup, setViewedAnchorGroup] = useState<string | null>(null);
+  const viewedScrollAnchor = useRef<{
+    id: string;
+    imageBaseUrl: string;
+    items: SidebarItem[];
+    offset: number;
+  } | null>(null);
+  const anchorFrame = useRef<number | null>(null);
+  const cancelViewedScroll = useCallback(() => {
+    if (anchorFrame.current !== null) {
+      cancelAnimationFrame(anchorFrame.current);
+      anchorFrame.current = null;
+    }
+    viewedScrollAnchor.current = null;
+    setViewedAnchorGroup(null);
+    // This is the virtualizer's imperative scroll-adjustment API, not React state.
+    // oxlint-disable-next-line react/immutability
+    virtualizer.shouldAdjustScrollPositionOnItemSizeChange = undefined;
+  }, [virtualizer]);
+
+  const handleSetViewed = useCallback(
+    (keys: string[], isViewed: boolean) => {
+      cancelViewedScroll();
+      const el = scrollRef.current;
+      if (el) {
+        const paddingTop = parseFloat(getComputedStyle(el).paddingTop) || 0;
+        const top = el.scrollTop - paddingTop;
+        const visible = virtualizer.getVirtualItems();
+        const first = visible.find(item => item.end > top);
+        const firstRow = first && rows[first.index];
+        const headerIsVisible = firstRow?.kind === 'header' && first!.start >= top;
+        const stickyHeight =
+          firstRow && isGroupedRow(firstRow) ? SNAPSHOT_GROUP_HEADER_HEIGHT : 0;
+        const anchor = headerIsVisible
+          ? first
+          : visible.find(
+              item => item.end > top + stickyHeight && rows[item.index]?.kind === 'card'
+            );
+        if (anchor) {
+          const anchorRow = rows[anchor.index]!;
+          viewedScrollAnchor.current = {
+            id: anchorRow.id,
+            offset: anchor.start - top,
+            items,
+            imageBaseUrl,
+          };
+          // Keep the sticky checkbox mounted while the virtual range catches up.
+          if (el.scrollTop > 0 && isGroupedRow(anchorRow)) {
+            setViewedAnchorGroup(anchorRow.itemKey);
+          }
+          // One explicit anchor correction replaces per-row scroll adjustments.
+          // oxlint-disable-next-line react/immutability
+          virtualizer.shouldAdjustScrollPositionOnItemSizeChange = () => false;
+        }
       }
-    });
-  }, [rows, virtualizer]);
+      setViewed(keys, isViewed);
+    },
+    [cancelViewedScroll, virtualizer, rows, items, imageBaseUrl, setViewed]
+  );
+
+  const restoreViewedScroll = useCallback(() => {
+    const anchor = viewedScrollAnchor.current;
+    const el = scrollRef.current;
+    if (!anchor || !el) {
+      return;
+    }
+    const index = rows.findIndex(row => row.id === anchor.id);
+    if (anchor.items !== items || anchor.imageBaseUrl !== imageBaseUrl || index === -1) {
+      cancelViewedScroll();
+      return;
+    }
+    const row = rows[index]!;
+    virtualizer.getTotalSize();
+    const measurement = virtualizer.measurementsCache[index]!;
+    const paddingTop = parseFloat(getComputedStyle(el).paddingTop) || 0;
+    // An offset into a removed image cannot survive collapse. Reveal its header.
+    const offset =
+      row.kind === 'card' && row.isViewed
+        ? Math.max(anchor.offset, row.isUngrouped ? 0 : SNAPSHOT_GROUP_HEADER_HEIGHT)
+        : anchor.offset;
+    const target = Math.max(
+      0,
+      Math.min(measurement.start + paddingTop - offset, el.scrollHeight - el.clientHeight)
+    );
+    if (Math.abs(el.scrollTop - target) > 1) {
+      virtualizer.scrollToOffset(target, {behavior: 'auto'});
+    }
+    setScrollTop(el.scrollTop);
+  }, [rows, items, imageBaseUrl, cancelViewedScroll, virtualizer]);
+
+  useLayoutEffect(() => {
+    if (previousRows.current !== rows) {
+      const previous = new Map(previousRows.current.map(row => [row.id, row]));
+      rows.forEach((row, index) => {
+        const before = previous.get(row.id);
+        if (row.kind === 'card' && before && before.isViewed !== row.isViewed) {
+          // Off-screen measured rows otherwise retain their old size indefinitely.
+          virtualizer.resizeItem(index, row.estimatedHeight);
+        }
+      });
+      previousRows.current = rows;
+    }
+    for (const item of virtualItems) {
+      const node = virtualizer.elementsCache.get(item.key);
+      if (node instanceof HTMLElement && node.isConnected) {
+        virtualizer.resizeItem(item.index, node.offsetHeight);
+      }
+    }
+    // Let React commit the new spacer height before scrolling (especially on expand).
+    if (totalSize !== virtualizer.getTotalSize()) {
+      return;
+    }
+    restoreViewedScroll();
+    if (viewedScrollAnchor.current && anchorFrame.current === null) {
+      anchorFrame.current = requestAnimationFrame(() => {
+        restoreViewedScroll();
+        cancelViewedScroll();
+      });
+    }
+  }, [
+    rows,
+    virtualItems,
+    totalSize,
+    virtualizer,
+    restoreViewedScroll,
+    cancelViewedScroll,
+  ]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || items.length === 0) {
+      return;
+    }
+    // Cancel only on user input, not the scroll event generated by restoration.
+    const events = ['wheel', 'touchstart', 'pointerdown', 'keydown'] as const;
+    for (const event of events) {
+      el.addEventListener(event, cancelViewedScroll, {passive: true});
+    }
+    return () => {
+      for (const event of events) {
+        el.removeEventListener(event, cancelViewedScroll);
+      }
+      cancelViewedScroll();
+    };
+  }, [cancelViewedScroll, items.length]);
 
   useImperativeHandle(
     ref,
     () => ({
       scrollToGroup(itemKey: string) {
+        cancelViewedScroll();
         const rowIdx = rowIndex.firstRowByItemKey.get(itemKey);
         if (rowIdx === undefined) {
           return;
@@ -374,7 +513,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
         virtualizer.scrollToIndex(rowIdx, {align: 'start'});
       },
     }),
-    [rowIndex, virtualizer]
+    [rowIndex, virtualizer, cancelViewedScroll]
   );
 
   const rafId = useRef(0);
@@ -622,7 +761,9 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
     return scrollTop > 0 && activeGroupThreshold < virtualItem.end;
   });
   const activeRow = activeRowItem ? rows[activeRowItem.index] : undefined;
-  const activeItemKey = activeRow && isGroupedRow(activeRow) ? activeRow.itemKey : null;
+  const activeItemKey =
+    viewedAnchorGroup ??
+    (activeRow && isGroupedRow(activeRow) ? activeRow.itemKey : null);
   const activeHeaderRowIdx =
     activeItemKey === null ? undefined : rowIndex.firstRowByItemKey.get(activeItemKey);
   const activeHeaderRow =
@@ -691,7 +832,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
           data-detached-frame={stickyHeaderHasDetachedFrame ? '' : undefined}
           style={stickyHeaderStyle}
         >
-          <GroupHeaderRow row={activeHeaderRow} onSetViewed={setViewed} />
+          <GroupHeaderRow row={activeHeaderRow} onSetViewed={handleSetViewed} />
         </StickyGroupHeader>
       ) : null}
       <Container position="relative" width="100%" style={{height: totalSize}}>
@@ -713,7 +854,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
                 data-separator={separator ? '' : undefined}
               >
                 {row.kind === 'header' ? (
-                  <GroupHeaderRow row={row} onSetViewed={setViewed} />
+                  <GroupHeaderRow row={row} onSetViewed={handleSetViewed} />
                 ) : (
                   <CardRow
                     row={row}
@@ -726,7 +867,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
                     overlayColor={overlayColor}
                     overlayOpacity={overlayOpacity}
                     diffImageBaseUrl={diffImageBaseUrl}
-                    onSetViewed={setViewed}
+                    onSetViewed={handleSetViewed}
                   />
                 )}
               </RowFrame>
@@ -865,6 +1006,7 @@ function GroupHeaderRow({
 }
 
 const ScrollContainer = styled(Container)`
+  overflow-anchor: none;
   scroll-padding-top: ${p => p.theme.space.md};
   scroll-padding-bottom: ${p => p.theme.space.md};
 `;
