@@ -43,7 +43,7 @@ export function NavigationMenuHeader({
       label={t('User')}
       title={
         user.name === user.email
-          ? user.email.split('@')[0]?.split('.').join(' ')
+          ? user.email.split('@', 1).join('').split('.').join(' ')
           : user.name || user.username || user.email
       }
       subtitle={user.email}
