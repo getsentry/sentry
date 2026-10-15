@@ -15,7 +15,7 @@ minimumReleaseAge: 720
 minimumReleaseAgeExclude:
   - '@sentry/*'
   - '@sentry-internal/*'
-  - solid-js@1.9.16
+  - platformicons
 overrides:
   '@isaacs/brace-expansion': 5.0.1
   '@testing-library/jest-dom>aria-query': 5.3.0
