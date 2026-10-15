@@ -2629,7 +2629,7 @@ class Factories:
         """Payload used by Explore saved-formula API and resolver tests."""
         return copy.deepcopy(
             {
-                "name": "formula.apdex",
+                "name": "formula.custom_apdex",
                 "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
                 "unit": None,
                 "dataset": "spans",
