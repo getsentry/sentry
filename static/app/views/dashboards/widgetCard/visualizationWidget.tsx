@@ -15,6 +15,7 @@ import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -31,7 +32,6 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
-import {getIngestionCompleteThrough} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
@@ -148,6 +148,7 @@ function VisualizationWidgetComponent({
         dataScanned,
         isSampled,
         sampleCount,
+        ingestion,
       }) => {
         if (errorMessage && onWidgetError) {
           onWidgetError(widget, errorMessage);
@@ -170,6 +171,7 @@ function VisualizationWidgetComponent({
             dataScanned={dataScanned}
             isSampled={isSampled}
             sampleCount={sampleCount}
+            ingestion={ingestion}
             onZoom={onZoom}
             legendSelection={decodedLegendSelection}
             onLegendSelectionChange={handleLegendSelectionChange}
@@ -210,6 +212,7 @@ interface VisualizationWidgetContentProps {
   dashboardFilters?: DashboardFilters;
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
+  ingestion?: IngestionMeta;
   isFullScreen?: boolean;
   isSampled?: boolean | null;
   legendSelection?: LegendSelection;
@@ -239,6 +242,7 @@ function VisualizationWidgetContent({
   dataScanned,
   isSampled,
   sampleCount,
+  ingestion,
   onZoom,
   legendSelection,
   onLegendSelectionChange,
@@ -292,7 +296,7 @@ function VisualizationWidgetContent({
 
   const renderTooltipSeriesDetails = useIncompleteBucketTooltipDetails(
     timeSeriesWithPlottable.map(([timeSeries]) => timeSeries),
-    getIngestionCompleteThrough(timeseriesResults)
+    ingestion?.completeThrough
   );
 
   const plottableWithNeedsColor = timeSeriesWithPlottable.filter(
