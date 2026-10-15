@@ -4,8 +4,7 @@ import {ListBox} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-
-import type {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from '@sentry/scraps/theme';
 
 // Emotion retains Input's ref type after changing the rendered element.
 const InputDiv = Input.withComponent('div') as React.ComponentType<

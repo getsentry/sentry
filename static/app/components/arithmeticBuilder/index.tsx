@@ -56,7 +56,7 @@ interface ArithmeticBuilderProps {
   setExpression?: (expression: Expression) => void;
 }
 
-const VALID_REFERENCE_PATTERN = /^[A-Z]$/;
+export const VALID_REFERENCE_PATTERN = /^[\w.]+$/;
 
 export function ArithmeticBuilder({
   'data-test-id': dataTestId,

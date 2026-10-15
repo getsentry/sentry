@@ -132,6 +132,10 @@ describe('ConnectRepositoryModal', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/code-mapping-prefixes/stack/`,
+      body: {prefixes: []},
+    });
   });
 
   it('renders initial modal state', async () => {
@@ -418,6 +422,56 @@ describe('ConnectRepositoryModal', () => {
 
     expect(await screen.findByText('Repository does not exist')).toBeInTheDocument();
     expect(closeModal).not.toHaveBeenCalled();
+  });
+
+  describe('stack trace prefix autocomplete', () => {
+    it('picks a suggestion from the API and persists it', async () => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/code-mapping-prefixes/stack/`,
+        body: {prefixes: [{path: 'src/'}]},
+      });
+
+      renderModal();
+      await selectRepository('getsentry/sentry');
+
+      await userEvent.click(screen.getByRole('textbox', {name: /stack trace prefix/i}));
+      await userEvent.click(await screen.findByText('src/'));
+
+      // Picked value shows as the selected label and in the path preview.
+      expect(screen.getAllByText('src/')).not.toHaveLength(0);
+    });
+
+    it('persists a custom typed value on blur', async () => {
+      renderModal();
+      await selectRepository('getsentry/sentry');
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'custom/'
+      );
+      await userEvent.tab();
+
+      expect(screen.getAllByText('custom/')).not.toHaveLength(0);
+    });
+
+    it('still renders a usable field when the prefix query fails', async () => {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/code-mapping-prefixes/stack/`,
+        statusCode: 500,
+        body: {},
+      });
+
+      renderModal();
+      await selectRepository('getsentry/sentry');
+
+      const stackField = screen.getByRole('textbox', {name: /stack trace prefix/i});
+      expect(stackField).toBeInTheDocument();
+
+      await userEvent.type(stackField, 'fallback/');
+      await userEvent.tab();
+
+      expect(screen.getAllByText('fallback/')).not.toHaveLength(0);
+    });
   });
 
   describe('edit mode', () => {

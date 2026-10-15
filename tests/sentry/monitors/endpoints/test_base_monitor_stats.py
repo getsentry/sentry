@@ -20,7 +20,6 @@ class BaseMonitorStatsTest(MonitorTestCase):
         MonitorCheckIn.objects.create(
             monitor=self.monitor,
             monitor_environment=env,
-            project_id=self.project.id,
             duration=duration,
             date_added=self.monitor.date_added + timedelta(**offset),
             status=status,

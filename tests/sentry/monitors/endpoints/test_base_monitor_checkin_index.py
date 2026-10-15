@@ -40,7 +40,6 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
@@ -62,14 +61,12 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
         )
@@ -77,7 +74,6 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         checkin3 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
         )
@@ -99,7 +95,6 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor_environment = self._create_monitor_environment(monitor)
 
         checkin = MonitorCheckIn.objects.create(
-            project_id=self.project.id,
             monitor_id=monitor.id,
             monitor_environment_id=monitor_environment.id,
             status=MonitorStatus.OK,
@@ -138,14 +133,12 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
         MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment_2,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
         )
@@ -166,14 +159,12 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
         MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
         )
@@ -200,7 +191,6 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
             trace_id=trace_id,
@@ -208,7 +198,6 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
         )
@@ -239,7 +228,6 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         self.create_monitor_checkin(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
             monitor_config=config,
