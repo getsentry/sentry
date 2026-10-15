@@ -17,6 +17,7 @@ from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
+    MonitorCheckInConfig,
     MonitorEnvironment,
     MonitorStatus,
     ScheduleType,
@@ -97,7 +98,11 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert missed_checkin.date_added == next_checkin
         assert missed_checkin.date_updated == next_checkin
         assert missed_checkin.expected_time == next_checkin
-        assert missed_checkin.monitor_config == monitor.config
+        assert missed_checkin.monitor_config is None
+        assert (
+            MonitorCheckInConfig.objects.get(id=missed_checkin.checkin_config_id).config
+            == monitor.config
+        )
 
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
     def test_missing_checkin_with_timezone(self, mock_produce_task: mock.MagicMock) -> None:
@@ -258,7 +263,11 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert missed_checkin.date_added == checkin_date
         assert missed_checkin.date_updated == checkin_date
         assert missed_checkin.expected_time == checkin_date
-        assert missed_checkin.monitor_config == monitor.config
+        assert missed_checkin.monitor_config is None
+        assert (
+            MonitorCheckInConfig.objects.get(id=missed_checkin.checkin_config_id).config
+            == monitor.config
+        )
 
         monitor_env = MonitorEnvironment.objects.get(id=monitor_environment.id)
 

@@ -1,7 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
-import {useDroppedDataEnabled} from 'sentry/components/droppedData/useDroppedDataEnabled';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -50,11 +49,13 @@ export function useDroppedData(
   {dataset, interval}: UseDroppedDataParams,
   {enabled = true}: UseDroppedDataQueryOptions = {}
 ) {
-  const droppedDataEnabled = useDroppedDataEnabled();
   const organization = useOrganization();
+  const droppedDataEnabled = organization.features.includes(
+    'explore-data-fidelity-annotations'
+  );
   const {isReady: arePageFiltersReady, selection} = usePageFilters();
 
-  const {data, isPending} = useQuery({
+  const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<DroppedEventsResponse>()(
       '/organizations/$organizationIdOrSlug/events-dropped/',
       {
@@ -80,5 +81,7 @@ export function useDroppedData(
     droppedEvents: data?.droppedEvents,
     acceptedEvents: data?.acceptedEvents,
     isPending,
+    isError,
+    refetch,
   };
 }

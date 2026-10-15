@@ -13,8 +13,8 @@ import {
   TraceMetaDataHeader,
   type TraceMetadataHeaderProps,
 } from 'sentry/views/performance/traceDetails/traceHeader';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {Projects} from 'sentry/views/performance/traceDetails/traceHeader/projects';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {RootNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/rootNode';
 import {TraceNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/traceNode';

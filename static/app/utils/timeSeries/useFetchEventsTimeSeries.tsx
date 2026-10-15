@@ -191,7 +191,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
-interface IngestionMeta {
+export interface IngestionMeta {
   status: 'healthy' | 'stalled' | 'idle' | 'unknown';
   completeThrough?: number;
   delaySeconds?: number;

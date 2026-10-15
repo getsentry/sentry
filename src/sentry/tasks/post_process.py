@@ -467,6 +467,7 @@ def update_existing_attachments(job: PostProcessJob) -> None:
 
     1) ingested prior to the event via the standalone attachment endpoint.
     2) part of a different group before reprocessing started.
+    3) part of a group that was created via `save_issue_occurrence`.
 
     Also makes a second attempt at promoting pending attachments.
     """
@@ -475,23 +476,11 @@ def update_existing_attachments(job: PostProcessJob) -> None:
 
     event = job["event"]
 
-    # NOTE: This update can probably be removed (need to verify post_processing behavior). See INGEST-1173.
-    changed = (
-        EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id)
-        .exclude(group_id=event.group_id)
-        .update(group_id=event.group_id)
-    )
-    if changed:
-        metrics.incr(
-            "sentry.tasks.post_process.change_group_id",
-            amount=changed,
-            sample_rate=1,
-            tags={
-                "is_reprocessed": job["is_reprocessed"],
-                "issue_category": job["event"].group.issue_category.name.lower(),
-                "is_new": job["group_state"]["is_new"],
-            },
-        )
+    # Update attachments from reprocessed events or feedback events,
+    # which get their group ID after `save_generic_event`.
+    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).exclude(
+        group_id=event.group_id
+    ).update(group_id=event.group_id)
 
     # `process_individual_attachment` decides whether an attachment is "pending" by asking
     # eventstore -- i.e. Snuba -- whether the event exists yet. Snuba lags, so an
@@ -1497,6 +1486,10 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
         user_reports_without_group = UserReport.objects.filter(
             project_id=project.id, event_id=event.event_id, group_id__isnull=True
         )
+        # Almost no events have a user report, so skip the update and environment lookup.
+        # Reports saved after this read are linked later by the update_user_reports task.
+        if not user_reports_without_group:
+            return
         for report in user_reports_without_group:
             if report.environment_id is None:
                 shim_to_feedback(

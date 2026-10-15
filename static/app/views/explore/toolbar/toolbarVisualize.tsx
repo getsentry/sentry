@@ -1,12 +1,12 @@
 import type {MouseEventHandler, ReactNode} from 'react';
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconHide} from '@sentry/icons/hide';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import cloneDeep from 'lodash/cloneDeep';
 
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 
-import {IconHide} from 'sentry/icons/iconHide';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
@@ -42,9 +42,10 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
-  parseConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 interface ToolbarVisualizeProps {
   allowEquations: boolean;
@@ -315,10 +316,6 @@ interface VisualizeLabelProps {
   index: number;
   onClick: MouseEventHandler<HTMLDivElement>;
   visualize: Visualize;
-}
-
-export function getFunctionLabel(index: number) {
-  return String.fromCharCode('A'.charCodeAt(0) + index);
 }
 
 function getEquationLabel(index: number) {

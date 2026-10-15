@@ -1,13 +1,12 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconChat} from '@sentry/icons/chat';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {TimeSince} from 'sentry/components/timeSince';
-import {IconChat, IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
@@ -15,83 +14,15 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
-import {
-  buildActivityFeedItems,
-  type DisplayedActivityFeedItem,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
-import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
-import {
-  ActivityLineNote,
-  isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
+import {ActivityFeed} from 'sentry/views/issueDetails/activitySection/activityFeed';
+import {buildActivityFeedItems} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {useMutateActivity} from 'sentry/views/issueDetails/activitySection/useMutateActivity';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-
-interface ActivityFeedRowProps {
-  group: Group;
-  inputVariant: 'compact' | 'full';
-  item: DisplayedActivityFeedItem;
-  onCommentDelete: (item: GroupActivityNote) => Promise<void>;
-  onCommentUpdate: (item: GroupActivityNote, data: NoteType) => Promise<void>;
-  timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
-}
-
-function getActivityKey(activity: GroupActivity): string {
-  return isActivityNote(activity)
-    ? `comment:${activity.commentId}`
-    : `activity:${activity.id}`;
-}
-
-function ActivityFeedRow({
-  item,
-  onCommentDelete,
-  onCommentUpdate,
-  group,
-  inputVariant,
-  timestampUnitStyle,
-}: ActivityFeedRowProps) {
-  if (item.type === 'collapsed_status_activities') {
-    return (
-      <CollapsedStatusActivityRow eventCount={item.activities.length}>
-        {item.activities.map(activity => (
-          <ActivityFeedRow
-            item={activity}
-            onCommentDelete={onCommentDelete}
-            onCommentUpdate={onCommentUpdate}
-            group={group}
-            key={getActivityKey(activity.activity)}
-            inputVariant={inputVariant}
-            timestampUnitStyle={timestampUnitStyle}
-          />
-        ))}
-      </CollapsedStatusActivityRow>
-    );
-  }
-
-  const {activity} = item;
-
-  if (!isActivityNote(activity)) {
-    return (
-      <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle} />
-    );
-  }
-
-  return (
-    <ActivityLineNote
-      activity={activity}
-      inputVariant={inputVariant}
-      onDelete={() => onCommentDelete(activity)}
-      onUpdate={data => onCommentUpdate(activity, data)}
-      timestampUnitStyle={timestampUnitStyle}
-    />
-  );
-}
 
 interface ActivitySectionProps {
   group: Group;
@@ -204,17 +135,6 @@ export function ActivitySection({
   const inputVariant = isStandalone ? 'full' : 'compact';
   const timestampUnitStyle = isStandalone ? undefined : 'short';
 
-  const renderActivityItem = (item: DisplayedActivityFeedItem) => (
-    <ActivityFeedRow
-      item={item}
-      onCommentDelete={handleDelete}
-      onCommentUpdate={handleUpdate}
-      group={group}
-      key={getActivityKey(item.activity)}
-      inputVariant={inputVariant}
-      timestampUnitStyle={timestampUnitStyle}
-    />
-  );
   const noteInput = (
     <ActivityNoteInput
       storageKey="groupinput:latest"
@@ -227,17 +147,40 @@ export function ActivitySection({
   );
 
   const timeline = (
-    <ActivityLineList data-test-id="activity-timeline">
-      {displayedActivities.map(renderActivityItem)}
-    </ActivityLineList>
+    <ActivityFeed
+      group={group}
+      items={displayedActivities}
+      inputVariant={inputVariant}
+      timestampUnitStyle={timestampUnitStyle}
+      onCommentDelete={handleDelete}
+      onCommentUpdate={handleUpdate}
+    />
   );
-  const hiddenActivityCount =
-    displayedActivities.length >= 5 ? displayedActivities.length - 3 : 0;
-  const sidebarVisibleActivities =
-    hiddenActivityCount > 0 ? displayedActivities.slice(0, 3) : displayedActivities;
+  const shouldCollapseSidebar = displayedActivities.length >= 5;
+  const sidebarVisibleActivities = shouldCollapseSidebar
+    ? displayedActivities.slice(0, 3)
+    : displayedActivities;
+  // Count the events inside status-flapping rollups so the label reflects how much
+  // activity is actually hidden, not how many rows it collapses into.
+  const hiddenActivityCount = shouldCollapseSidebar
+    ? displayedActivities
+        .slice(3)
+        .reduce(
+          (count, item) =>
+            count +
+            (item.type === 'collapsed_status_activities' ? item.activities.length : 1),
+          0
+        )
+    : 0;
   const sidebarActivityItems = (
-    <Fragment>
-      {sidebarVisibleActivities.map(renderActivityItem)}
+    <ActivityFeed
+      group={group}
+      items={sidebarVisibleActivities}
+      inputVariant={inputVariant}
+      timestampUnitStyle={timestampUnitStyle}
+      onCommentDelete={handleDelete}
+      onCommentUpdate={handleUpdate}
+    >
       <MoreActivityRow>
         <MoreActivityIcon>
           <RotatedEllipsisIcon direction="up" />
@@ -261,7 +204,7 @@ export function ActivitySection({
           </LinkButton>
         </Container>
       </MoreActivityRow>
-    </Fragment>
+    </ActivityFeed>
   );
 
   if (isStandalone) {
@@ -299,9 +242,7 @@ export function ActivitySection({
     >
       <Grid gap="lg">
         {noteInput}
-        <ActivityLineList data-test-id="activity-timeline">
-          {sidebarActivityItems}
-        </ActivityLineList>
+        {sidebarActivityItems}
       </Grid>
     </SidebarFoldSection>
   );

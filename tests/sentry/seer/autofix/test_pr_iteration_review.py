@@ -201,6 +201,8 @@ class _ScmStub:
 
     def create_review_comment_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
 
+    def create_pull_request_review_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
+
 
 class TriggerPrIterationFromReviewTest(TestCase):
     mock_get_state: MagicMock
@@ -457,7 +459,10 @@ class TriggerPrIterationFromReviewTest(TestCase):
         )
         self.mock_consume.assert_called_once()
 
-        # Each inline comment is acked with :eyes: (the body has no reaction target).
+        # Each inline comment and the review body is acked with :eyes:.
+        self.mock_actions.create_pull_request_review_reaction.assert_called_once_with(
+            self.mock_make_scm.return_value, "7", "500", "eyes"
+        )
         assert self.mock_actions.create_review_comment_reaction.call_count == 2
         reacted_ids = {
             c.args[2] for c in self.mock_actions.create_review_comment_reaction.call_args_list
@@ -541,7 +546,10 @@ class TriggerPrIterationFromReviewTest(TestCase):
         # The GitHub id rides along so commit attribution can build the noreply email.
         assert source.user.id == "999"
 
-        # A body-only review has no inline comment to react to.
+        # The review body is acked with :eyes:; there is no inline comment to react to.
+        self.mock_actions.create_pull_request_review_reaction.assert_called_once_with(
+            self.mock_make_scm.return_value, "7", "500", "eyes"
+        )
         self.mock_actions.create_review_comment_reaction.assert_not_called()
 
     def test_body_author_read_from_review_not_gate_actor(self) -> None:
@@ -706,6 +714,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_enqueue.assert_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
+        self.mock_actions.create_pull_request_review_reaction.assert_not_called()
 
     def test_bot_review_capped_when_prior_iterations_recorded_bot_feedback(self) -> None:
         # Bot reviews recorded as automated feedback trip the cap, so bot-vs-agent

@@ -2,7 +2,7 @@ import math
 import re
 from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime
-from typing import Callable, Literal, Protocol
+from typing import Literal, Protocol
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_conventions.attributes import ATTRIBUTE_METADATA as ATTRIBUTE_METADATA
@@ -57,6 +57,7 @@ from sentry.search.eap.profile_functions.attributes import (
     PROFILE_FUNCTIONS_REPLACEMENT_MAP,
 )
 from sentry.search.eap.profile_functions.definitions import PROFILE_FUNCTIONS_DEFINITIONS
+from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import (
     SPAN_ATTRIBUTE_DEFINITIONS,
     SPAN_INTERNAL_TO_SECONDARY_ALIASES_MAPPING,
@@ -154,14 +155,24 @@ SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS: dict[SupportedTraceItemType, dict[str, 
 
 
 SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP: dict[SupportedTraceItemType, dict[str, set[str]]] = {}
+# Same as above, but excluding deprecated sources with `backfill` status. Backfilled
+# attributes are intentionally stored under both the deprecated and the replacement
+# name, so the presence of the deprecated name does not supersede the replacement.
+SENTRY_CONVENTIONS_REVERSE_NON_BACKFILL_REPLACEMENT_MAP: dict[
+    SupportedTraceItemType, dict[str, set[str]]
+] = {}
 for _item_type, _replacement_map in SENTRY_CONVENTIONS_REPLACEMENT_MAPPINGS.items():
     _internal_mapping = PUBLIC_ALIAS_TO_INTERNAL_MAPPING.get(_item_type, {})
     _reverse: dict[str, set[str]] = {}
+    _reverse_non_backfill: dict[str, set[str]] = {}
     for _deprecated_alias, _replacement in _replacement_map.items():
         _resolved = _internal_mapping.get(_deprecated_alias)
         _internal_name = _resolved.internal_name if _resolved else _deprecated_alias
         _reverse.setdefault(_replacement, set()).add(_internal_name)
+        if _resolved is None or _resolved.deprecation_status != "backfill":
+            _reverse_non_backfill.setdefault(_replacement, set()).add(_internal_name)
     SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP[_item_type] = _reverse
+    SENTRY_CONVENTIONS_REVERSE_NON_BACKFILL_REPLACEMENT_MAP[_item_type] = _reverse_non_backfill
 
 
 INTERNAL_TO_SECONDARY_ALIASES: dict[SupportedTraceItemType, dict[str, set[str]]] = {
@@ -378,6 +389,16 @@ def get_deprecated_source_internal_names(
     return SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP.get(item_type, {}).get(replacement, set())
 
 
+def get_non_backfill_deprecated_source_internal_names(
+    replacement: str, item_type: SupportedTraceItemType
+) -> set[str]:
+    """Like `get_deprecated_source_internal_names`, but excludes deprecated sources
+    with `backfill` status, which are stored alongside their replacement."""
+    return SENTRY_CONVENTIONS_REVERSE_NON_BACKFILL_REPLACEMENT_MAP.get(item_type, {}).get(
+        replacement, set()
+    )
+
+
 # We want to limit the number of threads to avoid overwhelming the RPC server.
 MAX_ATTRIBUTE_VALIDATION_THREADS = 3
 ATTRIBUTE_NAME_LIMIT = 10_000
@@ -518,7 +539,8 @@ def check_attribute_names_exist(
     return found
 
 
-FORMAT_RE = r"\{((?:\w|\.)+)\}"
+FORMULA_FORMAT_RE = r"\{((?:\w|\.)+)\}"
+FORMULA_EMPTY_FORMAT_RE = r"\{\}"
 
 
 class FormulaParam(Protocol):
@@ -534,7 +556,7 @@ class FormulaTerm(Protocol):
 def resolve_and_parse_formula(
     saved_formula: ExploreSavedFormula,
     arguments: list[str],
-    resolve_column: Callable[[str], object],
+    resolver: SearchResolver,
 ) -> str:
     """Given a formula, parse its parameters and create its rpc definition"""
     saved_variables = sorted(
@@ -554,8 +576,22 @@ def resolve_and_parse_formula(
         saved_args,
         saved_calculations,
         saved_references,
-        resolve_column,
+        resolver,
     )
+
+
+def check_unmatched(label: str, value: str, saved_columns: list[str] | None = None) -> None:
+    """Raises an error if the formula value has any unmatched format strings"""
+    if unmatched := re.findall(FORMULA_FORMAT_RE, value):
+        if saved_columns is not None:
+            for field in unmatched:
+                if field in saved_columns:
+                    raise InvalidSearchQuery("Columns cannot be used in calculations")
+        raise InvalidSearchQuery(f"Missing parameters for {label}; {', '.join(unmatched)}")
+    elif re.findall(FORMULA_EMPTY_FORMAT_RE, value):
+        raise InvalidSearchQuery(
+            "Formula either has empty format strings or resolved to empty format strings"
+        )
 
 
 def parse_formula(
@@ -564,10 +600,11 @@ def parse_formula(
     saved_args: Iterable[FormulaParam],
     saved_calculations: Iterable[FormulaTerm],
     saved_references: Iterable[FormulaTerm],
-    resolve_column: Callable[[str], object],
+    resolver: SearchResolver,
 ) -> str:
     # Create a dict of param name -> the arg the user passed
     variables = {}
+    saved_columns = []
     for saved_arg, arg in zip(saved_args, arguments):
         if saved_arg.param_type == ParamItemTypes.NUMBER:
             # Ensure that the user arg is a valid number
@@ -587,8 +624,9 @@ def parse_formula(
                     f"{saved_arg.name} resolved to {arg}, which is outside the supported number range"
                 )
         elif saved_arg.param_type == ParamItemTypes.COLUMN:
+            saved_columns.append(saved_arg.name)
             try:
-                resolve_column(arg)
+                resolver.resolve_column(arg)
             except InvalidSearchQuery:
                 raise InvalidSearchQuery(
                     f"{saved_arg.name} expected a valid column but got '{arg}'"
@@ -600,13 +638,13 @@ def parse_formula(
     for calculation in saved_calculations:
         value = calculation.value
         for param_name, user_arg in variables.items():
+            # Don't sub columns since they aren't possible, ie. can't multiply a column if its used in a condition
+            if param_name in saved_columns:
+                continue
             value = value.replace(f"{{{param_name}}}", user_arg)
-        if unmatched := re.findall(FORMAT_RE, value):
-            raise InvalidSearchQuery(
-                f"Missing parameters for {calculation.name}; {', '.join(unmatched)}"
-            )
+        check_unmatched(calculation.name, value, saved_columns=saved_columns)
         try:
-            parsed, _, _ = parse_arithmetic(value)
+            parsed, _, _ = parse_arithmetic(value, definitions=resolver.definitions)
         except ArithmeticError as e:
             raise InvalidSearchQuery(e)
         calculations[calculation.name] = resolve_arithmetic(parsed)
@@ -619,17 +657,17 @@ def parse_formula(
         value = reference.value
         for param_name, user_arg in variables.items():
             value = value.replace(f"{{{param_name}}}", str(user_arg))
-        if unmatched := re.findall(FORMAT_RE, value):
-            raise InvalidSearchQuery(
-                f"Missing parameters for {reference.name}; {', '.join(unmatched)}"
-            )
+        check_unmatched(reference.name, value)
         references[reference.name] = value
     variables.update(references)
 
     final_equation = formula_definition[:]
     for param_name, user_arg in variables.items():
         final_equation = final_equation.replace(f"{{{param_name}}}", str(user_arg))
-    if unmatched := re.findall(FORMAT_RE, final_equation):
-        raise InvalidSearchQuery(f"Missing parameters for formula; {', '.join(unmatched)}")
+    check_unmatched("formula", final_equation)
+    try:
+        _, _, _ = parse_arithmetic(final_equation, definitions=resolver.definitions)
+    except ArithmeticError as e:
+        raise InvalidSearchQuery(e)
 
     return f"{final_equation}"

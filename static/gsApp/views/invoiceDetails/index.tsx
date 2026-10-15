@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconSentry} from '@sentry/icons/sentry';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Grid} from '@sentry/scraps/layout';
@@ -11,7 +12,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -23,8 +23,8 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {InvoiceStatus} from 'getsentry/types';
 import type {BillingDetails, Invoice, InvoiceBase} from 'getsentry/types';
+import {displayPriceWithCents} from 'getsentry/utils/billing';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
 import {InvoiceDetailsActions} from './actions';

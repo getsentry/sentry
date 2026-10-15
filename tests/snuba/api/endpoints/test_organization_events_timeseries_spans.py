@@ -6,7 +6,7 @@ import pytest
 from django.urls import reverse
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.snuba_rpc import _make_rpc_requests
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 from tests.snuba.api.endpoints.test_organization_events_span_indexed import KNOWN_PREFLIGHT_ID
@@ -218,21 +218,27 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
         )
         seven_days_ago = self.two_days_ago - timedelta(days=5)
 
-        response = self._do_request(
-            data={
-                "groupBy": ["span.description", "p50(measurements.lcp)", "avg(measurements.lcp)"],
-                "yAxis": ["p50(measurements.lcp)", "avg(measurements.lcp)"],
-                "project": self.project.id,
-                "dataset": "spans",
-                "excludeOther": 0,
-                "topEvents": 1,
-                "per_page": 50,
-                "interval": "1d",
-                "start": seven_days_ago,
-                "end": self.end,
-                "orderby": "-avg(measurements.lcp)",
-            },
-        )
+        # The last 1d bucket ends at today's midnight; just after it, the bucket is incomplete.
+        with freeze_time(self.day_ago + timedelta(days=1, hours=2)):
+            response = self._do_request(
+                data={
+                    "groupBy": [
+                        "span.description",
+                        "p50(measurements.lcp)",
+                        "avg(measurements.lcp)",
+                    ],
+                    "yAxis": ["p50(measurements.lcp)", "avg(measurements.lcp)"],
+                    "project": self.project.id,
+                    "dataset": "spans",
+                    "excludeOther": 0,
+                    "topEvents": 1,
+                    "per_page": 50,
+                    "interval": "1d",
+                    "start": seven_days_ago,
+                    "end": self.end,
+                    "orderby": "-avg(measurements.lcp)",
+                },
+            )
         interval = 24 * 60 * 60 * 1000
         assert response.status_code == 200, response.content
 

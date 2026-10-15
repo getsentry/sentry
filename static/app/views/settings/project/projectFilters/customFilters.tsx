@@ -1,6 +1,10 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconSearch} from '@sentry/icons/search';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 import {z} from 'zod';
@@ -21,6 +25,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {Confirm} from 'sentry/components/confirm';
@@ -50,7 +56,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {android, gaming, sourceMaps} from 'sentry/data/platformCategories';
-import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {DataCategoryExact} from 'sentry/types/core';
 import type {TagCollection} from 'sentry/types/group';
@@ -101,6 +106,19 @@ type CustomInboundFilter = {
   name: string | null;
   // Absent until the API stores the data type on the filter.
   dataType?: FilterDataType;
+};
+
+// The body of the validate endpoint: a filter without its name, which is what the
+// name suggestion fills in. `id` names the stored filter an edit replaces.
+type CustomInboundFilterDraft = {
+  conditions: CustomInboundFilterCondition[];
+  dataType: FilterDataType;
+  id?: string;
+};
+
+type CustomInboundFilterValidation = {
+  errors: Record<string, unknown>;
+  suggestedName: string | null;
 };
 
 type PropertyOption = {label: string; value: ConditionType};
@@ -508,6 +526,20 @@ function formValuesToConditions(
   return parseConditionQuery(values.query, values.dataType) ?? [];
 }
 
+// The draft a name suggestion describes, or undefined while the query does not
+// translate to conditions yet: the API refuses such a draft, so there is nothing to
+// describe.
+function getCompleteDraft(
+  values: FilterFormValues,
+  filterId: string | undefined
+): CustomInboundFilterDraft | undefined {
+  const conditions = parseConditionQuery(values.query, values.dataType);
+  if (!conditions) {
+    return undefined;
+  }
+  return {id: filterId, dataType: values.dataType, conditions};
+}
+
 // The API answers with either `{detail: string}` or a DRF validation error, which
 // nests messages under field names and list indexes, e.g.
 // `{conditions: [{}, {value: ['... is not an IP address or CIDR range.']}]}`. Both
@@ -684,6 +716,7 @@ function CustomFilterModal({
   Body,
   Footer,
   closeModal,
+  organization,
   project,
   filter,
   dataTypeOptions,
@@ -691,6 +724,7 @@ function CustomFilterModal({
 }: ModalRenderProps & {
   dataTypeOptions: DataTypeOption[];
   onSave: (values: FilterFormValues) => Promise<unknown>;
+  organization: Organization;
   project: Project;
   filter?: CustomInboundFilter;
 }) {
@@ -702,10 +736,61 @@ function CustomFilterModal({
     filter ? defaultValues.dataType : undefined
   );
 
+  const canSuggestName =
+    organization.features.includes('inbound-filters-name-suggestion') &&
+    !organization.hideAiFeatures;
+  const validateUrl = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/validate/',
+    {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
+  );
+  const suggestNameMutation = useMutation({
+    mutationFn: (draft: CustomInboundFilterDraft) =>
+      fetchMutation<CustomInboundFilterValidation>({
+        method: 'POST',
+        url: validateUrl,
+        data: draft,
+      }),
+  });
+  // The last draft asked about and the name its answer filled in. A draft is asked
+  // about once, so clearing its suggestion does not bring it back. A suggestion
+  // replaces an empty name or the previous suggestion, never a name the user typed.
+  const lastSuggestion = useRef({draftKey: '', name: ''});
+
+  const suggestName = (values: FilterFormValues) => {
+    const draft = getCompleteDraft(values, filter?.id);
+    const draftKey = JSON.stringify(draft);
+    const nameIsOpen =
+      values.name.trim() === '' || values.name === lastSuggestion.current.name;
+    if (
+      !canSuggestName ||
+      !draft ||
+      !nameIsOpen ||
+      draftKey === lastSuggestion.current.draftKey
+    ) {
+      return;
+    }
+    lastSuggestion.current.draftKey = draftKey;
+    // A later request supersedes this one: its callbacks are skipped.
+    suggestNameMutation.mutate(draft, {
+      onSuccess: ({suggestedName}) => {
+        const name = form.getFieldValue('name');
+        const stillOpen = name.trim() === '' || name === lastSuggestion.current.name;
+        if (!suggestedName || !stillOpen) {
+          return;
+        }
+        lastSuggestion.current.name = suggestedName;
+        form.setFieldValue('name', suggestedName);
+      },
+    });
+  };
+
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: filterSchema},
+    listeners: {
+      onBlur: ({formApi}) => suggestName(formApi.state.values),
+    },
     onSubmit: ({value}) =>
       onSave(value)
         .then(() => closeModal())
@@ -735,7 +820,11 @@ function CustomFilterModal({
                   <field.Input
                     value={field.state.value}
                     onChange={field.handleChange}
-                    placeholder={t('e.g. Ignore flaky connection errors')}
+                    placeholder={
+                      suggestNameMutation.isPending
+                        ? t('Suggesting a name…')
+                        : t('e.g. Ignore flaky connection errors')
+                    }
                   />
                 </field.Layout.Stack>
               )}
@@ -781,6 +870,7 @@ function CustomFilterModal({
                       fieldDefinitionGetter={getFieldDefinitionGetter(dataType)}
                       getTagValues={getNoTagValues}
                       onChange={value => queryField.handleChange(value)}
+                      onBlur={() => queryField.handleBlur()}
                       searchSource="custom_inbound_filter"
                       placeholder={t('e.g. error_message:*timeout* !release:1.0')}
                       invalidMessages={CONDITION_QUERY_MESSAGES}
@@ -1066,15 +1156,59 @@ function matchesQuery(filter: CustomInboundFilter, query: string) {
   return haystack.some(field => field.toLowerCase().includes(needle));
 }
 
+// Says why the filters are not applied. On SaaS the getsentry override names the
+// plan that includes them and offers an upgrade; elsewhere the generic alert shows.
+// Renders nothing while the project has the plan feature.
+function PlanAlert({project}: {project: Project}) {
+  return (
+    <Feature
+      features="projects:custom-inbound-filters"
+      overrideName="feature-disabled:custom-inbound-filters"
+      project={project}
+      renderDisabled={({children, ...props}) => {
+        if (typeof children === 'function') {
+          return children({
+            ...props,
+            renderDisabled: p => (
+              <FeatureDisabled
+                alert
+                featureName={t('Custom Inbound Filters')}
+                features={p.features}
+                message={t(
+                  'Custom inbound filters are not enabled on your Sentry installation. Saved filters are kept but not applied.'
+                )}
+              />
+            ),
+          });
+        }
+        return null;
+      }}
+    >
+      {({hasFeature, renderDisabled, ...props}) =>
+        !hasFeature && typeof renderDisabled === 'function'
+          ? renderDisabled({...props, hasFeature, children: null})
+          : null
+      }
+    </Feature>
+  );
+}
+
 export function CustomFilters({project}: {project: Project}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
 
-  const hasWriteAccess = hasEveryAccess(['project:write'], {
-    organization,
-    project,
-  });
+  // Relay applies the filters only with the plan feature, and the API refuses
+  // writes without it. The table still lists the filters, marked as not applied,
+  // so an organization that left the plan sees what comes back on upgrade.
+  const hasPlanFeature = project.features.includes('custom-inbound-filters');
+  let writeDisabledReason: string | undefined;
+  if (!hasPlanFeature) {
+    writeDisabledReason = t('Your plan does not include custom inbound filters.');
+  } else if (!hasEveryAccess(['project:write'], {organization, project})) {
+    writeDisabledReason = t('You need project write access to add filters.');
+  }
+  const canWrite = writeDisabledReason === undefined;
   const dataTypeOptions = getAvailableDataTypeOptions(organization);
 
   const queryOptions = apiOptions.as<CustomInboundFilter[]>()(
@@ -1215,6 +1349,7 @@ export function CustomFilters({project}: {project: Project}) {
       <Heading as="h2" size="md">
         {t('Filter Rules')}
       </Heading>
+      <PlanAlert project={project} />
       <Flex gap="md" align="center">
         <Flex flex={1}>
           <InputGroup style={{width: '100%'}}>
@@ -1234,17 +1369,14 @@ export function CustomFilters({project}: {project: Project}) {
           size="sm"
           variant="primary"
           icon={<IconAdd />}
-          disabled={!hasWriteAccess}
-          tooltipProps={
-            hasWriteAccess
-              ? undefined
-              : {title: t('You need project write access to add filters.')}
-          }
+          disabled={!canWrite}
+          tooltipProps={canWrite ? undefined : {title: writeDisabledReason}}
           onClick={() =>
             openModal(
               deps => (
                 <CustomFilterModal
                   {...deps}
+                  organization={organization}
                   project={project}
                   dataTypeOptions={dataTypeOptions}
                   onSave={handleCreate}
@@ -1307,7 +1439,7 @@ export function CustomFilters({project}: {project: Project}) {
               {visibleFilters.map(filter => (
                 <SimpleTable.Row
                   key={filter.id}
-                  variant={filter.active ? 'default' : 'faded'}
+                  variant={filter.active && hasPlanFeature ? 'default' : 'faded'}
                 >
                   <SimpleTable.RowCell>
                     <Switch
@@ -1315,7 +1447,7 @@ export function CustomFilters({project}: {project: Project}) {
                         filter.active ? t('Disable filter') : t('Enable filter')
                       }
                       checked={filter.active}
-                      disabled={!hasWriteAccess}
+                      disabled={!canWrite}
                       onChange={() => handleToggleActive(filter)}
                     />
                   </SimpleTable.RowCell>
@@ -1357,12 +1489,13 @@ export function CustomFilters({project}: {project: Project}) {
                         variant="transparent"
                         icon={<IconEdit />}
                         aria-label={t('Edit filter')}
-                        disabled={!hasWriteAccess}
+                        disabled={!canWrite}
                         onClick={() =>
                           openModal(
                             deps => (
                               <CustomFilterModal
                                 {...deps}
+                                organization={organization}
                                 project={project}
                                 filter={filter}
                                 dataTypeOptions={dataTypeOptions}
@@ -1375,7 +1508,7 @@ export function CustomFilters({project}: {project: Project}) {
                       />
                       <Confirm
                         priority="danger"
-                        disabled={!hasWriteAccess}
+                        disabled={!canWrite}
                         message={t('Are you sure you want to delete this filter?')}
                         onConfirm={() => handleDelete(filter.id)}
                       >
