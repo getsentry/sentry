@@ -1,6 +1,7 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import type {ExceptionValue, Frame} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {defined} from 'sentry/utils/defined';
 
 function getJavaScriptFrame(
@@ -386,7 +387,7 @@ export function displayRawContent({
   );
 
   if (exception) {
-    frames.push(getExceptionSummary(exception, platform, isMinified));
+    frames.push(stripAnsi(getExceptionSummary(exception, platform, isMinified)));
   }
 
   // For the raw stacktrace view on the issue details page, ignore newestFirst and order frames based on default platform behavior

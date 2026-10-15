@@ -13,7 +13,5 @@ export {
   emptyCellStyle,
   fullWidthCellStyle,
   statusCellStyle,
-  TABLE_HEAD_ROW_HEIGHT,
-  TableResizer,
   TableStatusCell,
 } from './styles';

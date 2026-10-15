@@ -16,9 +16,28 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.types import NotificationActionContext, NotificationOrigin
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
+
+
+def create_notification_origin(rule: Rule) -> NotificationOrigin:
+    return NotificationOrigin.from_legacy_data(
+        label=rule.label,
+        environment_id=rule.environment_id,
+        data=rule.data,
+        fallback_legacy_rule_id=rule.id,
+    )
+
+
+def create_notification_action_context(rule: Rule) -> NotificationActionContext:
+    return NotificationActionContext(
+        origin=create_notification_origin(rule),
+        action_id=rule.id,
+        project=rule.project,
+    )
 
 
 class DummyNotification(BaseNotification):

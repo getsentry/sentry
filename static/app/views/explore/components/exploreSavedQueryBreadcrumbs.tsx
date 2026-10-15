@@ -1,7 +1,12 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconInput} from '@sentry/icons/input';
+import {IconStar} from '@sentry/icons/star';
 
 import {ProjectsBadge} from '@sentry/scraps/badge';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import type {LinkProps} from '@sentry/scraps/link';
@@ -13,7 +18,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCopy, IconDelete, IconEllipsis, IconInput, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -58,7 +62,7 @@ export type ExploreSurface =
   | 'replays'
   | 'agents';
 
-type BreadcrumbItems = React.ComponentProps<typeof BreadcrumbList>['items'];
+type BreadcrumbItems = BreadcrumbListProps['items'];
 
 interface SurfaceConfig {
   /**
@@ -310,8 +314,9 @@ function SavedQueryTitle({
   const starLabel = isStarred ? t('Unstar') : t('Star');
 
   return (
-    <BreadcrumbList.Title
-      item={{
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
         type: 'page-title',
         label: savedQuery.name,
         leadingGraphic: (
@@ -349,6 +354,7 @@ function SavedQueryTitle({
           },
         ],
       }}
+      items={config.items}
     />
   );
 }
@@ -376,28 +382,21 @@ export function ExploreSavedQueryBreadcrumbs({
   const config = useSurfaceConfig(surface);
   const {data: savedQuery} = useGetSavedQuery(savedQueryId);
 
-  return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList items={config.items} />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        {savedQuery ? (
-          <SavedQueryTitle
-            savedQuery={savedQuery}
-            savedQueryId={savedQueryId}
-            config={config}
-          />
-        ) : (
-          <BreadcrumbList.Title
-            item={{
-              type: 'page-title',
-              label: title ?? t('Saved Query'),
-              leadingGraphic: <Placeholder width="16px" height="16px" />,
-            }}
-          />
-        )}
-      </TopBar.Slot>
-    </Fragment>
+  return savedQuery ? (
+    <SavedQueryTitle
+      savedQuery={savedQuery}
+      savedQueryId={savedQueryId}
+      config={config}
+    />
+  ) : (
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: title ?? t('Saved Query'),
+        leadingGraphic: <Placeholder width="16px" height="16px" />,
+      }}
+      items={config.items}
+    />
   );
 }

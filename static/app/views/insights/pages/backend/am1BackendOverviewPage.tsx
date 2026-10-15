@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -15,16 +16,15 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar as TransactionNameSearchBar} from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
+import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {
   canUseMetricsData,
   useMEPSettingContext,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {PageAlert, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
-import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -71,17 +71,17 @@ const APDEX_TOOLTIP = tct(
 );
 
 const BACKEND_COLUMN_TITLES = [
-  {title: 'http method'},
-  {title: 'transaction'},
-  {title: 'operation'},
-  {title: 'project'},
-  {title: 'tpm'},
+  {title: 'HTTP method'},
+  {title: 'Transaction'},
+  {title: 'Operation'},
+  {title: 'Project'},
+  {title: 'TPM'},
   {title: 'p50()'},
   {title: 'p95()'},
-  {title: 'failure rate'},
-  {title: 'apdex', tooltip: APDEX_TOOLTIP},
-  {title: 'users'},
-  {title: 'user misery', tooltip: USER_MISERY_TOOLTIP},
+  {title: 'Failure rate'},
+  {title: 'Apdex', tooltip: APDEX_TOOLTIP},
+  {title: 'Users'},
+  {title: 'User misery', tooltip: USER_MISERY_TOOLTIP},
 ];
 
 interface AM1BackendOverviewPageProps {

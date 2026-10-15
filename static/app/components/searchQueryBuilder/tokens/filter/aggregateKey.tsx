@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect, useRef, useState} from 'react';
+import {useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -11,15 +11,18 @@ import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
+import {
+  AggregateKeyVisual,
+  Parameters,
+} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKeyVisual';
 import {SearchQueryBuilderParametersCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/parametersCombobox';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
-import {useAggregateParamVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import type {
   AggregateFilter,
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 
 type AggregateKeyProps = {
@@ -29,20 +32,6 @@ type AggregateKeyProps = {
   state: ListState<ParseResultToken>;
   token: AggregateFilter;
 };
-
-export function AggregateKeyVisual({token}: {token: AggregateFilter}) {
-  const fnName = getKeyName(token.key);
-  const fnParams = useAggregateParamVisual({token});
-
-  return (
-    <Fragment>
-      <FnName>{fnName}</FnName>
-      {'('}
-      <Parameters>{fnParams}</Parameters>
-      {')'}
-    </Fragment>
-  );
-}
 
 export function AggregateKey({
   item,
@@ -151,16 +140,8 @@ const KeyButton = styled(UnstyledButton)`
   }
 `;
 
-const FnName = styled('span')`
-  color: ${p => p.theme.colors.green500};
-`;
-
 const UnfocusedText = styled('span')`
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const Parameters = styled('span')`
-  height: 100%;
 `;
 
 const KeyEditing = styled('div')`

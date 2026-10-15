@@ -144,7 +144,128 @@ class TestFormulas(BaseFormulaTest):
                 data=data,
             )
             assert response.status_code == 400, response.content
+        assert "params" in response.data
         assert "200 characters" in str(response.data["params"]["value"][0])
+
+    def test_create_explore_formula_rejects_calculations_on_columns(self) -> None:
+        data = self.formula_object.copy()
+        data["params"].append(
+            {
+                "name": "calc_column",
+                "type": "calculation",
+                "order": 0,
+                "value": "{duration} * 4",
+            }
+        )
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=data,
+            )
+            assert response.status_code == 400, response.content
+        assert "non_field_errors" in response.data
+        assert "Columns cannot be used in calculations" in str(response.data["non_field_errors"][0])
+
+    def test_calculation_without_value(self) -> None:
+        self.formula_object["params"].append(
+            {
+                "name": "nothreshold",
+                "type": "calculation",
+                "order": 3,
+                "value": "",
+            }
+        )
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "params" in response.data
+        assert "value" in response.data["params"]
+        assert "Calculations must have a value" in str(response.data["params"]["value"][0])
+
+    def test_reference_without_value(self) -> None:
+        self.formula_object["references"].append(
+            {
+                "name": "noreference",
+                "value": "",
+            }
+        )
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "references" in response.data
+        assert "value" in response.data["references"]
+        assert "References must have a value" in str(response.data["references"]["value"][0])
+
+    def test_empty_reference(self) -> None:
+        """As in the value is just {}, so it still has a value but its not representing anything"""
+        self.formula_object["references"].append(
+            {
+                "name": "noreference",
+                "value": "{}",
+            }
+        )
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "non_field_errors" in response.data
+        assert "Formula either has empty format strings" in str(
+            response.data["non_field_errors"][0]
+        )
+
+    def test_formula_without_value(self) -> None:
+        self.formula_object["formula"] = ""
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "formula" in response.data
+        assert "This field may not be blank" in str(response.data["formula"][0])
+
+    def test_formula_validation(self) -> None:
+        self.formula_object["formula"] = "{count_satisfied} + + {count_satisfied}"
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "non_field_errors" in response.data
+        assert "Unable to parse your equation" in str(response.data["non_field_errors"][0])
+
+    def test_calculation_validation(self) -> None:
+        self.formula_object["params"][2]["value"] = "{prossh} * 5"
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "non_field_errors" in response.data
+        error_msg = str(response.data["non_field_errors"][0])
+        assert "Missing parameters for 4threshold; prossh" == error_msg
+
+    def test_parameter_existence_validation(self) -> None:
+        self.formula_object["formula"] = "count_if(`{duration}:<{prossh} or {2.threshold}`)"
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "non_field_errors" in response.data
+        error_msg = str(response.data["non_field_errors"][0])
+        assert "Missing parameters for formula; prossh, 2.threshold" in error_msg
 
     def test_create_explore_formula_without_unit(self) -> None:
         data = self.formula_object.copy()

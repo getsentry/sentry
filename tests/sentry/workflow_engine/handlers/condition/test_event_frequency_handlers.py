@@ -2,9 +2,6 @@ import pytest
 from jsonschema import ValidationError
 
 from sentry.rules.conditions.event_frequency import (
-    PERCENT_INTERVALS,
-    STANDARD_INTERVALS,
-    ComparisonType,
     EventFrequencyCondition,
     EventFrequencyPercentCondition,
     EventUniqueUserFrequencyCondition,
@@ -13,7 +10,12 @@ from sentry.rules.conditions.event_frequency import (
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
 from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
-from sentry.rules.match import MatchType
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import (
+    PERCENT_INTERVALS,
+    STANDARD_INTERVALS,
+    ComparisonType,
+)
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
     create_event_unique_user_frequency_condition_with_conditions,
 )

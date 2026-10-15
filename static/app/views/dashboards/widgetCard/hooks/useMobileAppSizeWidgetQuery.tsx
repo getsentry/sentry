@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
@@ -11,11 +11,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {MobileAppSizeConfig} from 'sentry/views/dashboards/datasetConfig/mobileAppSize';
 import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {mobileAppSizeResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/mobileAppSizeResponseTransforms';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -24,6 +24,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {combineWidgetQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
@@ -54,7 +55,6 @@ export function useMobileAppSizeSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<MobileAppSizeSeriesResponse[] | undefined>(undefined);
   const isEventsTimeseriesEnabled = shouldUseEventsTimeseries(organization);
 
   const filteredWidget = useMemo(
@@ -81,7 +81,7 @@ export function useMobileAppSizeSeriesQuery(
     return requestData;
   });
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: seriesRequestData.map(requestData => {
       if (!isEventsTimeseriesEnabled) {
         const {
@@ -97,6 +97,7 @@ export function useMobileAppSizeSeriesQuery(
           ...restParams,
           ...(period ? {statsPeriod: period} : {}),
           excludeOther: restParams.excludeOther ? '1' : undefined,
+          partial: restParams.partial ? '1' : undefined,
         };
 
         if (queryParams.start) {
@@ -143,10 +144,11 @@ export function useMobileAppSizeSeriesQuery(
         query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
       });
     }),
+    combine: combineWidgetQueryResults,
   });
 
   useEventsTimeseriesSpotCheck({
-    config: MobileAppSizeConfig,
+    config: mobileAppSizeResponseTransforms,
     enabled,
     statsQueryResults: queryResults,
     organization,
@@ -176,7 +178,6 @@ export function useMobileAppSizeSeriesQuery(
     const timeseriesResults: Series[] = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
-    const rawData: MobileAppSizeSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data) {
@@ -184,9 +185,8 @@ export function useMobileAppSizeSeriesQuery(
       }
 
       const responseData = q.data;
-      rawData[requestIndex] = responseData;
 
-      const transformedResult = MobileAppSizeConfig.transformSeries!(
+      const transformedResult = mobileAppSizeResponseTransforms.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -203,7 +203,7 @@ export function useMobileAppSizeSeriesQuery(
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      const resultTypes = MobileAppSizeConfig.getSeriesResultType?.(
+      const resultTypes = mobileAppSizeResponseTransforms.getSeriesResultType?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
@@ -212,7 +212,7 @@ export function useMobileAppSizeSeriesQuery(
         Object.assign(timeseriesResultsTypes, resultTypes);
       }
 
-      const resultUnits = MobileAppSizeConfig.getSeriesResultUnit?.(
+      const resultUnits = mobileAppSizeResponseTransforms.getSeriesResultUnit?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
@@ -222,30 +222,13 @@ export function useMobileAppSizeSeriesQuery(
       }
     });
 
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 

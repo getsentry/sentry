@@ -35,6 +35,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.models.releases.constants import (
     DB_VERSION_LENGTH,
     ERR_RELEASE_HEALTH_DATA,
@@ -47,7 +48,6 @@ from sentry.models.releases.util import (
     SemverFilter,
     SemverVersion,
     release_order_date,
-    reserve_ids,
 )
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -247,8 +247,6 @@ class Release(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    # Shadow column for widening `id` to int8. Every write keeps it equal to `id`.
-    new_id = BoundedBigIntegerField()
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
@@ -344,6 +342,10 @@ class Release(Model):
             models.Index(fields=("organization", "build_number")),
             models.Index(fields=("organization", "date_added")),
             models.Index(fields=("organization", "status")),
+            IndexWithPostgresNameLimits(
+                fields=["id", "organization"],
+                name="sentry_release_id_organization_id",
+            ),
         ]
 
     __repr__ = sane_repr("organization_id", "version")
@@ -377,17 +379,6 @@ class Release(Model):
     def __hash__(self):
         # https://code.djangoproject.com/ticket/30333
         return super().__hash__()
-
-    def save(self, **kwds: Any) -> None:
-        if self.id is None:
-            using = kwds.get("using")
-            if using is None:
-                using = router.db_for_write(type(self), instance=self)
-            self.id = reserve_ids(type(self), 1, using)[0]
-            self.new_id = self.id
-            # A freshly claimed pk cannot exist yet, so skip Django's UPDATE probe.
-            kwds["force_insert"] = True
-        super().save(**kwds)
 
     @staticmethod
     def is_valid_version(value):
@@ -500,9 +491,12 @@ class Release(Model):
         return release
 
     @classmethod
-    def get_or_create(cls, project, version, date_added=None, *, create=True):
-        with metrics.timer("models.release.get_or_create") as metric_tags:
-            return cls._get_or_create_impl(project, version, date_added, metric_tags, create)
+    def get_or_create(cls, project, version, date_added=None, *, create=True, metrics_tags=None):
+        with metrics.timer("models.release.get_or_create") as timer_tags:
+            release = cls._get_or_create_impl(project, version, date_added, timer_tags, create)
+            if metrics_tags is not None:
+                metrics_tags.update(timer_tags)
+            return release
 
     @classmethod
     def _get_or_create_impl(cls, project, version, date_added, metric_tags, create=True):
@@ -518,6 +512,7 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
+            created = False
             project_version = (f"{project.slug}-{version}")[:DB_VERSION_LENGTH]
             releases = list(
                 cls.objects.filter(
@@ -546,6 +541,7 @@ class Release(Model):
                 ).first()
                 if release is None:
                     metric_tags["cache_hit"] = "false"
+                    metric_tags[DATA_ACCESS_TAG] = DataAccessTagValues.DB_READ.value
                     return None
 
                 # NOTE: `add_project` creates a ReleaseProject instance
@@ -563,6 +559,7 @@ class Release(Model):
                             total_deploys=0,
                         )
 
+                    created = True
                     metric_tags["created"] = "true"
                 except IntegrityError:
                     metric_tags["created"] = "false"
@@ -580,8 +577,14 @@ class Release(Model):
             # the new "latest release" for this project
             cache.set(cache_key, release, 3600)
             metric_tags["cache_hit"] = "false"
+            metric_tags[DATA_ACCESS_TAG] = (
+                DataAccessTagValues.DB_CREATE.value
+                if created
+                else DataAccessTagValues.DB_READ.value
+            )
         else:
             metric_tags["cache_hit"] = "true"
+            metric_tags[DATA_ACCESS_TAG] = DataAccessTagValues.CACHE_HIT.value
 
         return release
 

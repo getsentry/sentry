@@ -9,12 +9,14 @@ from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.monitors.models import (
     MONITOR_ENVIRONMENT_ORDERING,
     Monitor,
     MonitorCheckIn,
+    MonitorCheckInConfig,
     MonitorEnvBrokenDetection,
     MonitorEnvironment,
     MonitorIncident,
@@ -175,6 +177,11 @@ class MonitorSerializerResponseOptional(TypedDict, total=False):
     alertRule: MonitorAlertRuleSerializerResponse
 
 
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "alertRule": "Deprecated issue alert configuration; use the dedicated Workflow APIs.",
+    }
+)
 class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     id: str
     name: str
@@ -364,6 +371,12 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
             env.id: env
             for env in Environment.objects.filter(id__in=[me.environment_id for me in monitor_envs])
         }
+        checkin_configs = dict(
+            MonitorCheckInConfig.objects.filter(
+                id__in={c.checkin_config_id for c in item_list if c.checkin_config_id}
+            ).values_list("id", "config")
+        )
+
         for checkin in item_list:
             env_name = None
             if checkin.monitor_environment:
@@ -371,6 +384,9 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
                 env_name = env.name if env else "[removed]"
 
             attrs[checkin]["environment_name"] = env_name
+            attrs[checkin]["monitor_config"] = checkin_configs.get(
+                checkin.checkin_config_id, checkin.monitor_config
+            )
 
         if self._expand("groups") and self.start and self.end:
             # aggregate all the trace_ids in the given set of check-ins
@@ -394,7 +410,8 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs) -> MonitorCheckInSerializerResponse:
-        config = obj.monitor_config.copy() if obj.monitor_config else {}
+        monitor_config = attrs["monitor_config"]
+        config = monitor_config.copy() if monitor_config else {}
         if "schedule_type" in config:
             # XXX: We don't use monitor.get_schedule_type_display() in case it differs from the
             # config saved on the check-in

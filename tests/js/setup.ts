@@ -5,7 +5,7 @@ import '@testing-library/jest-dom';
 import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
 
-import {type ReactElement} from 'react';
+import React, {type ReactElement} from 'react';
 import {act, configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
@@ -16,7 +16,6 @@ import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
 import type {Client} from 'sentry/__mocks__/api';
-import {closeModal} from 'sentry/actionCreators/modal';
 // eslint-disable-next-line no-restricted-imports
 import {DEFAULT_LOCALE_DATA, setLocale} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -44,11 +43,17 @@ SVGElement.prototype.getTotalLength ??= () => 1;
 MotionGlobalConfig.skipAnimations = true;
 
 /**
- * React Testing Library configuration to override the default test id attribute
+ * React Testing Library configuration
  *
- * See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
+ * - Override the default test id attribute.
+ *   See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
+ * - Raise the `findBy*` / `waitFor` timeout from the 1000ms default. The first
+ *   render in a file routinely takes 600-800ms on an idle machine, which leaves
+ *   too little headroom on contended CI runners and causes intermittent
+ *   "Unable to find an element" failures. Passing tests are not slowed down.
+ *   See: https://testing-library.com/docs/dom-testing-library/api-configuration/#asyncutiltimeout
  */
-configureRtl({testIdAttribute: 'data-test-id'});
+configureRtl({testIdAttribute: 'data-test-id', asyncUtilTimeout: 2000});
 
 /**
  * Mock (current) date to always be National Pasta Day
@@ -112,132 +117,6 @@ jest.mock('@sentry-internal/global-search', () => ({
   })),
 }));
 
-jest.mock('@stripe/stripe-js', () => ({
-  loadStripe: jest.fn(() =>
-    Promise.resolve({
-      createToken: jest.fn(() => Promise.resolve({token: {id: 'test-token'}})),
-      confirmCardPayment: jest.fn(() =>
-        Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        })
-      ),
-      confirmCardSetup: jest.fn((secretKey: string) => {
-        if (secretKey === 'ERROR') {
-          return Promise.resolve({error: {message: 'card invalid'}});
-        }
-        return Promise.resolve({
-          error: undefined,
-          setupIntent: {payment_method: 'test-pm'},
-        });
-      }),
-      handleCardAction: jest.fn(() =>
-        Promise.resolve({setupIntent: {payment_method: 'test-pm'}})
-      ),
-      elements: jest.fn(() => ({
-        create: jest.fn(() => ({
-          mount: jest.fn(),
-          on: jest.fn(),
-          update: jest.fn(),
-        })),
-      })),
-    })
-  ),
-}));
-jest.mock('@stripe/react-stripe-js', () => {
-  const {useEffect} = jest.requireActual('react');
-  return {
-    Elements: jest.fn(({children}: {children: any}) => children),
-    AddressElement: jest.fn(({onReady}: any) => {
-      // Simulate AddressElement loading by calling onReady after mount
-      useEffect(() => {
-        if (onReady) {
-          // Use setTimeout to allow initial render assertions to run
-          setTimeout(() => onReady(), 0);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
-      return null;
-    }),
-    CardElement: jest.fn(() => null),
-    PaymentElement: jest.fn(({onChange, onReady}: any) => {
-      // Simulate a completed Stripe form by calling onChange and onReady after mount
-      useEffect(() => {
-        // Use setTimeout to allow initial render assertions to run
-        setTimeout(() => {
-          if (onReady) {
-            onReady();
-          }
-          if (onChange) {
-            onChange({complete: true});
-          }
-        }, 0);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, []);
-      return null;
-    }),
-    useStripe: jest.fn(() => ({
-      confirmCardPayment: jest.fn(() =>
-        Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        })
-      ),
-      // Used to run a 3D Secure challenge on an intent created with
-      // confirmation_method=manual, which the server then confirms.
-      handleCardAction: jest.fn((clientSecret: string) => {
-        if (clientSecret === 'ERROR') {
-          return Promise.resolve({error: {message: 'authentication failed'}});
-        }
-        // Stripe rejects outright on some failures rather than resolving with
-        // an error, and callers have to survive both.
-        if (clientSecret === 'REJECT') {
-          return Promise.reject(new Error('authentication failed'));
-        }
-        return Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        });
-      }),
-      confirmCardSetup: jest.fn((secretKey: string) => {
-        if (secretKey === 'ERROR') {
-          return Promise.resolve({error: {message: 'card invalid'}});
-        }
-        return Promise.resolve({
-          error: undefined,
-          setupIntent: {payment_method: 'test-pm'},
-        });
-      }),
-      confirmSetup: jest.fn((options: any) => {
-        if (options?.clientSecret === 'ERROR') {
-          return Promise.resolve({error: {message: 'card invalid'}});
-        }
-        return Promise.resolve({
-          error: undefined,
-          setupIntent: {payment_method: 'test-pm'},
-        });
-      }),
-      confirmPayment: jest.fn((options: any) => {
-        if (options?.clientSecret === 'ERROR') {
-          return Promise.resolve({error: {message: 'payment failed'}});
-        }
-        return Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        });
-      }),
-    })),
-    useElements: jest.fn(() => ({
-      getElement: jest.fn(() => ({})),
-      submit: jest.fn(() => Promise.resolve({error: undefined})),
-    })),
-  };
-});
-jest.mock('getsentry/utils/trackMarketingEvent');
-jest.mock('getsentry/utils/trackAmplitudeEvent');
-jest.mock('getsentry/utils/trackReloadEvent');
-jest.mock('getsentry/utils/trackMetric');
-
 jest.mock('sentry/utils/testableWindowLocation', () => ({
   /**
    * Prefer using {@link import('sentry-test/utils').setWindowLocation} to change test location
@@ -251,12 +130,25 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
   },
 }));
 
+// The hooks below reset state only when its module is already loaded. Check
+// require.cache to avoid loading the module and its imports into every spec.
 // Close any open modals before each test
-beforeEach(closeModal);
+beforeEach(() => {
+  if (require.resolve('sentry/stores/modalStore') in require.cache) {
+    jest
+      .requireActual<typeof import('sentry/stores/modalStore')>(
+        'sentry/stores/modalStore'
+      )
+      .ModalStore.closeModal();
+  }
+});
 afterEach(() => {
-  const {toast} =
-    jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
-  act(() => void toast.dismiss());
+  // Toasts are held by sonner, so there are none to dismiss until it is loaded.
+  if (require.resolve('sonner') in require.cache) {
+    const {toast} =
+      jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
+    act(() => void toast.dismiss());
+  }
   resetResizeObservers();
 });
 
@@ -380,6 +272,33 @@ Object.defineProperty(window, 'getComputedStyle', {
   configurable: true,
   writable: true,
 });
+
+// React's development build captures an `Error` for every element it creates so
+// warnings can show owner stacks. In CI that is roughly 7% of test CPU for stacks
+// nobody reads, so pin React's per-render budget above any cap there and
+// elements skip the capture. Warnings still fire; locally the full stacks stay
+// on. If React's internals change shape, warn so the slowdown doesn't go unnoticed.
+if (process.env.CI) {
+  const internals = (
+    React as unknown as {
+      __CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE?: {
+        recentlyCreatedOwnerStacks?: number;
+      };
+    }
+  ).__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+  if (internals && 'recentlyCreatedOwnerStacks' in internals) {
+    Object.defineProperty(internals, 'recentlyCreatedOwnerStacks', {
+      configurable: true,
+      get: () => Infinity,
+      set: () => {},
+    });
+  } else {
+    // eslint-disable-next-line no-console
+    console.warn(
+      'tests/js/setup.ts: React internals changed shape, so owner stacks are no longer skipped in CI. Update or remove the override.'
+    );
+  }
+}
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

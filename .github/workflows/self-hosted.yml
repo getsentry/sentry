@@ -65,14 +65,17 @@ jobs:
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ${{ steps.config.outputs.webpack-path }}
-          key: ${{ runner.os }}-self-hosted-webpack-cache-${{ hashFiles('rspack.config.ts', 'pnpm-lock.yaml', 'package.json') }}
+          key: ${{ runner.os }}-self-hosted-webpack-cache-${{ hashFiles('rsbuild.config.ts', 'pnpm-lock.yaml', 'package.json') }}
+
+      - uses: ./.github/actions/node-modules-cache-paths
+        id: workspace-cache
 
       - name: node_modules cache
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         id: nodemodulescache
         with:
-          path: node_modules
-          key: ${{ runner.os }}-self-hosted-node-modules-${{ hashFiles('pnpm-lock.yaml', '.node-version') }}
+          path: ${{ steps.workspace-cache.outputs.paths }}
+          key: ${{ runner.os }}-${{ runner.arch }}-self-hosted-node-modules-${{ hashFiles('pnpm-lock.yaml', 'pnpm-workspace.yaml', 'package.json', '.node-version') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'
@@ -82,7 +85,7 @@ jobs:
           python3 -m tools.fast_editable --path .
           python3 -m sentry.build.main
 
-      - uses: getsentry/action-build-and-push-images@07a1c835f7a78e0f438fc766cc6024ed0ca1bf03
+      - uses: getsentry/action-build-and-push-images@3714f354c0bc912a95221f193c9643cdba966e34
         if: github.event_name == 'push' || github.event_name == 'pull_request'
         with:
           image_name: 'sentry'
@@ -95,11 +98,17 @@ jobs:
           ghcr: true
           tag_nightly: false
           tag_latest: false
+          # Restoring cached layers is slower than rebuilding them here.
+          cache_from: ''
+          cache_to: ''
 
       # getsentry/action-build-and-push-images only publishes on push, so the
       # daily and manual distroless builds use the Docker actions directly.
       - uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        with:
+          # Mirrored via getsentry/image-mirror to avoid Docker Hub rate limits.
+          driver-opts: image=ghcr.io/getsentry/image-mirror-moby-buildkit:v0.33.1
 
       - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
         if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref_name == 'master'
@@ -119,7 +128,6 @@ jobs:
             SOURCE_COMMIT=${{ github.sha }}
             TARGETARCH=${{ matrix.platform }}
           tags: ghcr.io/getsentry/sentry:${{ github.sha }}-distroless-${{ matrix.platform }}
-          cache-from: type=gha,scope=buildcache
           push: ${{ github.ref_name == 'master' }}
 
   assemble:
@@ -137,6 +145,9 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+        with:
+          # Mirrored via getsentry/image-mirror to avoid Docker Hub rate limits.
+          driver-opts: image=ghcr.io/getsentry/image-mirror-moby-buildkit:v0.33.1
 
       - name: Create multiplatform manifests
         if: github.event_name == 'push'

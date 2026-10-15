@@ -370,7 +370,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             {"url": "https://example.com/browse/api-123", "displayName": "api-123"}
         ]
         mock_integration_service.get_integrations.assert_called_once_with(
-            organization_id=group.organization.id
+            organization_id=group.organization.id, integration_ids=[integration.id]
         )
 
     def test_permalink_superuser(self) -> None:
@@ -739,6 +739,37 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
 
 class GroupUpdateTest(APITestCase):
+    def test_invalid_request_body(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        for url in (
+            f"/api/0/issues/{group.id}/",
+            f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/",
+        ):
+            for data in ("null", "[]", '"invalid"', "0", "false"):
+                response = self.client.put(url, data=data, content_type="application/json")
+
+                assert response.status_code == 400, response.content
+                assert "non_field_errors" in response.data
+                group.refresh_from_db()
+                assert group.status == GroupStatus.UNRESOLVED
+
+    def test_empty_request_body(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        for url in (
+            f"/api/0/issues/{group.id}/",
+            f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/",
+        ):
+            for data in ("", "{}"):
+                response = self.client.put(url, data=data, content_type="application/json")
+
+                assert response.status_code == 200, response.content
+                group.refresh_from_db()
+                assert group.status == GroupStatus.UNRESOLVED
+
     def test_resolve(self) -> None:
         self.login_as(user=self.user)
 
@@ -1133,11 +1164,21 @@ class GroupUpdateTest(APITestCase):
             user_id=self.user.id, group=group, is_active=True
         ).exists()
 
+        resp = self.client.get(url)
+        assert resp.status_code == 200, resp.content
+        assert [(user["id"], user["type"]) for user in resp.data["participants"]] == [
+            (str(self.user.id), "user")
+        ]
+
         resp = self.client.put(url, data={"isSubscribed": "false"})
         assert resp.status_code == 200, resp.content
         assert GroupSubscription.objects.filter(
             user_id=self.user.id, group=group, is_active=False
         ).exists()
+
+        resp = self.client.get(url)
+        assert resp.status_code == 200, resp.content
+        assert resp.data["participants"] == []
 
     def test_discard(self) -> None:
         self.login_as(user=self.user)

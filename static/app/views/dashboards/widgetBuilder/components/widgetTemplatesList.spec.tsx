@@ -1,4 +1,11 @@
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {WidgetTemplatesList} from 'sentry/views/dashboards/widgetBuilder/components/widgetTemplatesList';
@@ -38,9 +45,13 @@ describe('WidgetTemplatesList', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
-    act(() => jest.runOnlyPendingTimers());
-    jest.useRealTimers();
+    try {
+      cleanup();
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+      jest.clearAllMocks();
+    }
   });
 
   it('should render the widget templates list', async () => {

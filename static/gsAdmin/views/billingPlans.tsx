@@ -1,5 +1,6 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconDownload} from '@sentry/icons/download';
 import {useQuery} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
@@ -8,12 +9,11 @@ import {Container} from '@sentry/scraps/layout';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {ResultTable} from 'sentry/components/resultTable';
-import {IconDownload} from 'sentry/icons';
 import type {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
+import {displayUnitPrice} from 'getsentry/utils/billing';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
-import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
 export interface BillingPlansResponse {
   data: Plans;

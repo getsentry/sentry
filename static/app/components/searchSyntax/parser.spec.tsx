@@ -245,6 +245,62 @@ describe('searchSyntax/parser', () => {
     });
   });
 
+  it('returns the matched text for keys, values, and aggregate params', () => {
+    const result = parseSearch(
+      'tags[foo:bar]:baz browser.name-1:"Fire \\"fox\\"" device.family: count_if(user.email,equals,"I, got \\"quotes\\""):>100 firstSeen:+7d'
+    );
+
+    const filters = result!.filter(
+      (token): token is TokenResult<Token.FILTER> => token.type === Token.FILTER
+    );
+    expect(filters).toHaveLength(5);
+
+    expect(filters[0]).toMatchObject({
+      key: {
+        type: Token.KEY_EXPLICIT_TAG,
+        key: {type: Token.KEY_SIMPLE, value: 'foo:bar', quoted: false},
+      },
+      value: {type: Token.VALUE_TEXT, value: 'baz', quoted: false},
+    });
+    expect(filters[1]).toMatchObject({
+      key: {type: Token.KEY_SIMPLE, value: 'browser.name-1', quoted: false},
+      value: {type: Token.VALUE_TEXT, value: 'Fire \\"fox\\"', quoted: true},
+    });
+    expect(filters[2]).toMatchObject({
+      key: {type: Token.KEY_SIMPLE, value: 'device.family'},
+      value: {type: Token.VALUE_TEXT, value: '', quoted: false},
+    });
+    expect(filters[3]).toMatchObject({
+      key: {
+        type: Token.KEY_AGGREGATE,
+        name: {type: Token.KEY_SIMPLE, value: 'count_if'},
+        args: {
+          args: [
+            {
+              value: {
+                type: Token.KEY_AGGREGATE_PARAMS,
+                value: 'user.email',
+                quoted: false,
+              },
+            },
+            {value: {type: Token.KEY_AGGREGATE_PARAMS, value: 'equals', quoted: false}},
+            {
+              value: {
+                type: Token.KEY_AGGREGATE_PARAMS,
+                value: '"I, got \\"quotes\\""',
+                quoted: true,
+              },
+            },
+          ],
+        },
+      },
+    });
+    expect(filters[4]).toMatchObject({
+      key: {type: Token.KEY_SIMPLE, value: 'firstSeen'},
+      value: {type: Token.VALUE_RELATIVE_DATE, value: '7', sign: '+', unit: 'd'},
+    });
+  });
+
   it('returns token warnings', () => {
     const result = parseSearch('foo:bar bar:baz tags[foo]:bar tags[bar]:baz', {
       getFilterTokenWarning: key => (key === 'foo' ? 'foo warning' : null),
@@ -498,8 +554,8 @@ describe('searchSyntax/parser', () => {
   });
 
   describe('array membership filters', () => {
-    it('parses an explicit array typed tag with the [*] membership suffix', () => {
-      const result = parseSearch('tags[csv_headers,array][*]:foo');
+    it('parses an explicit array typed tag with the [*] membership operator', () => {
+      const result = parseSearch('tags[csv_headers[*],array]:foo');
 
       if (result === null) {
         throw new Error('Parsed result as null');
@@ -536,9 +592,9 @@ describe('searchSyntax/parser', () => {
       // label prettifies to the root name; the query text carries the `[*]`.
       expect(getKeyName(filter.key)).toBe('tags[csv_headers,array]');
       expect(getKeyLabel(filter.key)).toBe('csv_headers');
-      expect(stringifyToken(filter.key)).toBe('tags[csv_headers,array][*]');
+      expect(stringifyToken(filter.key)).toBe('tags[csv_headers[*],array]');
       // The whole filter round-trips without an operator sentinel.
-      expect(stringifyToken(filter)).toBe('tags[csv_headers,array][*]:foo');
+      expect(stringifyToken(filter)).toBe('tags[csv_headers[*],array]:foo');
     });
 
     it('does not treat the tags[...,array] form without [*] as membership', () => {
@@ -656,7 +712,7 @@ describe('searchSyntax/parser', () => {
     });
 
     it('parses a regex filter on an array membership key', () => {
-      const filter = parseRegexFilter('tags[csv_headers,array][*]://^a b//');
+      const filter = parseRegexFilter('tags[csv_headers[*],array]://^a b//');
 
       expect(filter).toEqual(
         expect.objectContaining({
@@ -682,7 +738,7 @@ describe('searchSyntax/parser', () => {
     });
 
     it('flags an empty pattern on an array membership key as missing a value', () => {
-      const filter = parseRegexFilter('tags[csv_headers,array][*]:////');
+      const filter = parseRegexFilter('tags[csv_headers[*],array]:////');
 
       expect(filter.invalid).toEqual(
         expect.objectContaining({type: InvalidReason.FILTER_MUST_HAVE_VALUE})
@@ -690,7 +746,7 @@ describe('searchSyntax/parser', () => {
     });
 
     it('does not flag a pattern on an array membership key when it has a value', () => {
-      const filter = parseRegexFilter('tags[csv_headers,array][*]://^a b//');
+      const filter = parseRegexFilter('tags[csv_headers[*],array]://^a b//');
 
       expect(filter.invalid).toBeNull();
     });

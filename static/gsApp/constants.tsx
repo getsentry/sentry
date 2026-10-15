@@ -18,6 +18,7 @@ export const RESERVED_BUDGET_QUOTA = -2;
 export const CPE_MULTIPLIER_TO_CENTS = 0.000001;
 
 export const GIGABYTE = 10 ** 9;
+export const MILLISECONDS_IN_HOUR = 3_600_000;
 
 /**
  * Pseudo-tiers accepted by the customer billing-config endpoint as its `tier`

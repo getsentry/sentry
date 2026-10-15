@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -22,7 +22,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
+import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
 import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
@@ -36,6 +36,10 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
@@ -64,7 +68,6 @@ export function useErrorsSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<ErrorsSeriesResponse[] | undefined>(undefined);
   const isEventsTimeseriesEnabled = shouldUseEventsTimeseries(organization);
 
   const filteredWidget = useMemo(
@@ -85,7 +88,7 @@ export function useErrorsSeriesQuery(
     )
   );
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: seriesRequestData.map(requestData => {
       if (!isEventsTimeseriesEnabled) {
         const {
@@ -101,6 +104,7 @@ export function useErrorsSeriesQuery(
           ...restParams,
           ...(period ? {statsPeriod: period} : {}),
           excludeOther: restParams.excludeOther ? '1' : undefined,
+          partial: restParams.partial ? '1' : undefined,
         };
 
         if (queryParams.start) {
@@ -147,10 +151,11 @@ export function useErrorsSeriesQuery(
         query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
       });
     }),
+    combine: combineWidgetQueryResults,
   });
 
   useEventsTimeseriesSpotCheck({
-    config: ErrorsConfig,
+    config: eventsResponseTransforms,
     enabled,
     statsQueryResults: queryResults,
     organization,
@@ -179,7 +184,6 @@ export function useErrorsSeriesQuery(
     const timeseriesResults: Series[] = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
-    const rawData: ErrorsSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data) {
@@ -187,9 +191,8 @@ export function useErrorsSeriesQuery(
       }
 
       const responseData = q.data;
-      rawData[requestIndex] = responseData;
 
-      const transformedResult = ErrorsConfig.transformSeries!(
+      const transformedResult = eventsResponseTransforms.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -206,11 +209,11 @@ export function useErrorsSeriesQuery(
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      const resultTypes = ErrorsConfig.getSeriesResultType?.(
+      const resultTypes = eventsResponseTransforms.getSeriesResultType?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
-      const resultUnits = ErrorsConfig.getSeriesResultUnit?.(
+      const resultUnits = eventsResponseTransforms.getSeriesResultUnit?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
@@ -223,30 +226,13 @@ export function useErrorsSeriesQuery(
       }
     });
 
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
@@ -268,7 +254,6 @@ export function useErrorsTableQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<ErrorsTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -276,7 +261,7 @@ export function useErrorsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map(query => {
       const modifiedQuery = cloneDeep(query);
 
@@ -343,6 +328,7 @@ export function useErrorsTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
+    combine: combineWidgetJsonQueryResults,
   });
 
   const transformedData = (() => {
@@ -360,7 +346,6 @@ export function useErrorsTableQuery(
     }
 
     const tableResults: TableDataWithTitle[] = [];
-    const rawData: ErrorsTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
@@ -369,10 +354,9 @@ export function useErrorsTableQuery(
       }
 
       const responseData = q.data.json;
-      rawData[i] = responseData;
 
       const transformedDataItem: TableDataWithTitle = {
-        ...ErrorsConfig.transformTable(
+        ...eventsResponseTransforms.transformTable(
           responseData,
           filteredWidget.queries[i]!,
           organization,
@@ -386,29 +370,12 @@ export function useErrorsTableQuery(
       responsePageLinks = q.data.headers.Link;
     });
 
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
