@@ -1,6 +1,5 @@
 import React, {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
-import {IconLogOut} from '@sentry/icons/logOut';
 import {IconSentry} from '@sentry/icons/sentry';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import lowerFirst from 'lodash/lowerFirst';
@@ -35,7 +34,6 @@ type TIcon = {
   id: string;
   name: string;
   additionalProps?: string[];
-  component?: React.ComponentType<SVGIconProps>;
   defaultProps?: Record<string, unknown>;
   groups?: string[];
   keywords?: string[];
@@ -811,7 +809,6 @@ const SECTIONS: TSection[] = [
     icons: [
       {
         id: 'logOut',
-        component: IconLogOut,
         groups: ['action'],
         keywords: ['sign out', 'logout', 'exit'],
         name: 'LogOut',
@@ -1862,7 +1859,7 @@ function IdentityIconsSection({searchTerm}: {searchTerm: string}) {
 function CoreSection({section, searchTerm}: {searchTerm: string; section: TSection}) {
   const renderIcon = (icon: TIcon) => {
     const name = icon.name.startsWith('Icon') ? icon.name : `Icon${icon.name}`;
-    const Component = icon.component ?? Icons[name];
+    const Component = Icons[name];
 
     if (!Component) {
       // The definition is not type safe, so lets log the icon instead of throwing an error
