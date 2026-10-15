@@ -352,8 +352,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-infra-telemetry", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable user-level (personal identity) monitoring provider auth
     manager.add("organizations:seer-infra-telemetry-user-level-auth", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable GitLab as a supported SCM provider for Seer
-    manager.add("organizations:seer-gitlab-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Cursor Origin as a supported SCM provider for Seer
     manager.add("organizations:seer-cursor-origin-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer XRay Mode, the overlay that highlights LLM-context-registered DOM nodes
