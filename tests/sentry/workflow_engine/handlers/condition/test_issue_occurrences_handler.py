@@ -1,10 +1,7 @@
-from typing import Any, Mapping
-
 import pytest
 from jsonschema import ValidationError
 
 from sentry.models.group import Group
-from sentry.rules.filters.issue_occurrences import IssueOccurrencesFilter
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
@@ -13,10 +10,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestIssueOccurrencesCondition(ConditionTestCase):
     condition = Condition.ISSUE_OCCURRENCES
-    payload: Mapping[str, Any] = {
-        "id": IssueOccurrencesFilter.id,
-        "value": "10",
-    }
 
     def setUp(self) -> None:
         super().setUp()
@@ -29,30 +22,6 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
             },
             condition_result=True,
         )
-
-    def test_dual_write(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "value": 10,
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
-
-    def test_dual_write__min_zero(self) -> None:
-        dcg = self.create_data_condition_group()
-        local_payload = dict(self.payload)
-        local_payload["value"] = "-10"
-        dc = self.translate_to_data_condition(local_payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "value": 0,
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_json_schema(self) -> None:
         self.dc.comparison.update({"value": 2000})

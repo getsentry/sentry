@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase, UnknownEnvironments
@@ -230,7 +231,14 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             return self.serialize_response(response)
 
         config = (
-            SearchResolverConfig(fields_acl=FieldsACL(attributes={"sentry.links"}))
+            SearchResolverConfig(
+                fields_acl=FieldsACL(attributes={"sentry.links"}),
+                disable_deprecated_functions=features.has(
+                    "organizations:explore-disable-deprecated-if-functions",
+                    organization,
+                    actor=request.user,
+                ),
+            )
             if dataset == Spans
             else SearchResolverConfig()
         )

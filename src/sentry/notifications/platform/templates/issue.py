@@ -4,7 +4,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from sentry.models.rule import Rule
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -30,16 +29,6 @@ class SerializableRuleProxy(BaseModel):
     project_id: int
     workflow_id: int | None = None
     legacy_rule_id: int | None = None
-
-    @classmethod
-    def from_rule(cls, rule: Rule) -> SerializableRuleProxy:
-        origin = NotificationOrigin.from_legacy_rule(rule)
-        return cls.from_origin(
-            origin,
-            action_id=rule.id,
-            data=rule.data,
-            project_id=rule.project.id,
-        )
 
     @classmethod
     def from_origin(

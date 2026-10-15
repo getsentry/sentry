@@ -30,7 +30,7 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {getTabCrumbs} from 'sentry/views/performance/breadcrumb';
-import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/pageLayout';
+import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/tabAnalytics';
 import {TransactionBreadcrumbs} from 'sentry/views/performance/transactionSummary/transactionBreadcrumbs';
 import {eventsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';

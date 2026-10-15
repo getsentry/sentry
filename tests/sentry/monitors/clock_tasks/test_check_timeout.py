@@ -56,7 +56,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=ts,
             date_updated=ts,
@@ -150,7 +149,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=checkin1_start,
             date_updated=checkin1_start,
@@ -162,7 +160,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=ts,
             date_updated=ts,
@@ -252,7 +249,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=checkin_start_time,
             date_updated=checkin_start_time,
@@ -319,7 +315,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=ts,
             date_updated=ts,
@@ -394,7 +389,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=check_in_24hr_ago,
             date_updated=check_in_24hr_ago,
@@ -403,7 +397,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=project.id,
             status=CheckInStatus.OK,
             date_added=ts,
             date_updated=ts,
@@ -481,7 +474,6 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=ts,
             date_updated=ts,

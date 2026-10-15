@@ -12,11 +12,11 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from '@sentry/scraps/modal';
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 
 import {ListLink} from 'sentry/components/links/listLink';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
 
