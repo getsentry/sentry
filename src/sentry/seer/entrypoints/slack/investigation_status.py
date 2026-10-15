@@ -14,13 +14,20 @@ from sentry.api.event_search import (
     parse_search_query,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.investigations.models import Investigation
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationBlock,
+    InvestigationBlockKind,
+    InvestigationOrchestrationRun,
+)
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
+from sentry.investigations.services.orchestration_events import _report_revision
 from sentry.issues.issue_search import issue_search_config
 from sentry.notifications.platform.templates.seer import (
+    SeerInvestigationConclusion,
     SeerInvestigationHypothesis,
     SeerInvestigationProgress,
     SeerInvestigationStatus,
@@ -40,6 +47,8 @@ STEP_DETAIL_PREFIXES = {
 }
 # Alert queries can use AND and OR, which the issue search config rejects.
 ENDPOINT_SEARCH_CONFIG = SearchConfig.create_from(issue_search_config, allow_boolean=True)
+MAX_CONCLUSION_MARKDOWN_LENGTH = 11_000
+CONCLUSION_TRUNCATED_NOTE = "_The rest of the report is in the full investigation._"
 
 HYPOTHESIS_LABELS = {
     "pending": VERIFYING_LABEL,
@@ -276,3 +285,45 @@ def build_investigation_status(
         orjson.dumps([data.title, data.subtitle, fingerprint_hypotheses, progress])
     ).hexdigest()
     return data, fingerprint
+
+
+def _cut_at_paragraph(text: str, limit: int) -> str:
+    cut = text.rfind("\n\n", 0, limit + 1)
+    return text[:cut].rstrip() if cut > 0 else ""
+
+
+def build_investigation_conclusion(
+    run: InvestigationOrchestrationRun,
+) -> SeerInvestigationConclusion | None:
+    """Builds the conclusion from the text of the current report, or None if there is no text."""
+    investigation = run.investigation
+    contents = (
+        InvestigationBlock.objects.filter(
+            investigation_id=investigation.id,
+            report_revision=_report_revision(run),
+            kind=InvestigationBlockKind.TEXT,
+            deleted_at__isnull=True,
+        )
+        .order_by("position", "id")
+        .values_list("content", flat=True)
+    )
+    sections: list[str] = []
+    remaining = MAX_CONCLUSION_MARKDOWN_LENGTH
+    for content in contents:
+        content = content.strip()
+        if not content:
+            continue
+        if len(content) > remaining:
+            if cut := _cut_at_paragraph(content, remaining):
+                sections.append(cut)
+            sections.append(CONCLUSION_TRUNCATED_NOTE)
+            break
+        sections.append(content)
+        remaining -= len(content)
+    if not sections:
+        return None
+    return SeerInvestigationConclusion(
+        organization_id=investigation.organization_id,
+        sections=sections,
+        investigation_url=investigation.get_absolute_url(),
+    )
