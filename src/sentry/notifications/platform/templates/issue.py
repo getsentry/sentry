@@ -27,7 +27,9 @@ class SerializableRuleProxy(BaseModel):
     environment_id: int | None = None
     workflow_id: int | None = None
     legacy_rule_id: int | None = None
-    # Unread; still populated because workers on the previous release require them.
+    # Nothing reads these, but producers still set them: during a deploy, task workers
+    # on the previous release declare them required and would fail to parse payloads
+    # that omit them. Stop setting and remove them once this release is fully rolled out.
     id: int | None = None
     data: dict[str, Any] = {}
     project_id: int | None = None
