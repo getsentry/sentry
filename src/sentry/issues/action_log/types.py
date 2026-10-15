@@ -8,12 +8,29 @@ import abc
 import dataclasses
 from datetime import datetime
 from enum import IntEnum, StrEnum
-from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, TypedDict
+from typing import Any, ClassVar, Literal, NotRequired, Optional, TypedDict
 
 import orjson
 from pydantic import BaseModel
 
-SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, str | int]]
+
+class SeerPullRequestDetails(BaseModel):
+    """Identifies a single PR opened by Seer."""
+
+    pr_number: int
+    pr_url: str
+
+
+class SeerPullRequestItem(BaseModel):
+    """
+    Stable stored representation of a PR opened by Seer. This is intentionally
+    independent of the Seer webhook payload: activity_translator normalizes the
+    payload into this shape and drops entries that don't identify a PR.
+    """
+
+    provider: str
+    repo_name: str
+    pull_request: SeerPullRequestDetails
 
 
 class GroupActorType(IntEnum):
