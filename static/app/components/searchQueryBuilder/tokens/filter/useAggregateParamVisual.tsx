@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
-import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
+import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/getKeyLabel';
 import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 
 interface UseAggregateParamVisualOptions {

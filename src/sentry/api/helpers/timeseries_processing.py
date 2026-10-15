@@ -3,7 +3,19 @@ from dataclasses import dataclass
 from itertools import groupby, pairwise
 from math import fsum, isfinite
 from statistics import fmean, pvariance
-from typing import Final, Literal, overload
+from typing import Final, Literal
+
+from pydantic import BaseModel, ValidationError, validator
+
+from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.constants import FUNCTION_PATTERN
+from sentry.search.events.fields import (
+    FunctionArg,
+    IntArg,
+    InvalidFunctionArgument,
+    NumberRange,
+    parse_arguments,
+)
 
 FILL_MODE_LOCF: Final = "locf"
 FILL_MODE_ZERO: Final = "zero"
@@ -12,6 +24,148 @@ FILL_MODE_LINEAR: Final = "linear"
 SMOOTH_MODE_SMA: Final = "sma"
 SMOOTH_MODE_EMA: Final = "ema"
 SMOOTH_MODE_ASAP: Final = "asap"
+
+
+class FillTransformation(BaseModel):
+    mode: Literal["locf", "zero", "linear"]
+
+    class Config:
+        extra = "forbid"
+        frozen = True
+        validate_all = True
+
+
+class BaseSmoothTransformation(BaseModel):
+    mode: Literal["sma", "ema"]
+    window_size: int
+
+    class Config:
+        extra = "forbid"
+        frozen = True
+        validate_all = True
+
+    @validator("window_size", pre=True)
+    def validate_window_size(cls, value: object) -> int:
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError("Window size must be an integer.")
+        if value < 1:
+            raise ValueError("Window size must be positive.")
+        return value
+
+
+class SmaSmoothTransformation(BaseSmoothTransformation):
+    mode: Literal["sma"]
+
+
+class EmaSmoothTransformation(BaseSmoothTransformation):
+    mode: Literal["ema"]
+    smoothing_factor: float | None = None
+
+    @validator("smoothing_factor", pre=True)
+    def validate_smoothing_factor(cls, value: object) -> float | None:
+        if value is None:
+            return None
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            raise ValueError("Smoothing factor must be a number.")
+        if not 0 < value <= 1:
+            raise ValueError("Smoothing factor must be greater than zero and at most one.")
+        return float(value)
+
+
+class AsapSmoothTransformation(BaseModel):
+    mode: Literal["asap"]
+    max_window_size: int | None = None
+
+    class Config:
+        extra = "forbid"
+        frozen = True
+        validate_all = True
+
+    @validator("max_window_size", pre=True)
+    def validate_max_window_size(cls, value: object) -> int | None:
+        if value is None:
+            return None
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError("Maximum window size must be an integer.")
+        if value < 1:
+            raise ValueError("Maximum window size must be positive.")
+        return value
+
+
+Transformation = (
+    FillTransformation
+    | SmaSmoothTransformation
+    | EmaSmoothTransformation
+    | AsapSmoothTransformation
+)
+
+_TRANSFORMATIONS: dict[
+    str,
+    tuple[
+        type[FillTransformation]
+        | type[SmaSmoothTransformation]
+        | type[EmaSmoothTransformation]
+        | type[AsapSmoothTransformation],
+        tuple[FunctionArg, ...],
+    ],
+] = {
+    "fill": (FillTransformation, (FunctionArg("mode"),)),
+    "smooth": (
+        SmaSmoothTransformation,
+        (FunctionArg("mode"), IntArg("window_size", negative=True)),
+    ),
+}
+
+
+def parse_transformation(value: str) -> Transformation:
+    match = FUNCTION_PATTERN.fullmatch(value)
+    if match is None or match.group("alias") is not None:
+        raise InvalidSearchQuery(f"{value} is not a valid transformation")
+
+    function = match.group("function")
+    definition = _TRANSFORMATIONS.get(function)
+    if definition is None:
+        raise InvalidSearchQuery(f"{function} is not a valid transformation function")
+
+    model, argument_definitions = definition
+    arguments = parse_arguments(function, match.group("columns"))
+    if function == "fill" and len(arguments) != 1:
+        raise InvalidSearchQuery(f"{value}: argument count must be 1")
+    if function == "smooth":
+        if arguments and arguments[0] == SMOOTH_MODE_ASAP:
+            if len(arguments) not in (1, 2):
+                raise InvalidSearchQuery(f"{value}: argument count must be 1 or 2")
+            model = AsapSmoothTransformation
+            argument_definitions = (
+                FunctionArg("mode"),
+                IntArg("max_window_size", negative=True),
+            )
+        elif arguments and arguments[0] == SMOOTH_MODE_EMA:
+            if len(arguments) not in (2, 3):
+                raise InvalidSearchQuery(f"{value}: argument count must be 2 or 3")
+            model = EmaSmoothTransformation
+            argument_definitions += (NumberRange("smoothing_factor", None, None),)
+        elif len(arguments) != 2:
+            raise InvalidSearchQuery(f"{value}: argument count must be 2")
+
+    config: dict[str, object] = {}
+    for argument, raw_value in zip(argument_definitions, arguments):
+        try:
+            config[argument.name] = argument.normalize(raw_value, {}, None)
+        except InvalidFunctionArgument as error:
+            raise InvalidSearchQuery(f"{value}: {argument.name} argument invalid: {error}")
+
+    try:
+        return model.parse_obj(config)
+    except ValidationError as error:
+        detail = error.errors()[0]
+        message = detail["msg"]
+        if detail["type"] == "value_error.const":
+            permitted = detail["ctx"]["permitted"]
+            if function == "smooth":
+                permitted = (SMOOTH_MODE_SMA, SMOOTH_MODE_EMA, SMOOTH_MODE_ASAP)
+            message = f"expected one of {', '.join(permitted)}"
+        raise InvalidSearchQuery(f"{value}: {detail['loc'][0]} argument invalid: {message}")
 
 
 @dataclass(frozen=True)
@@ -24,7 +178,7 @@ def fill_timeseries(
     timestamps: Sequence[float],
     values: Sequence[float | None],
     *,
-    mode: Literal["locf", "zero", "linear"],
+    config: FillTransformation,
 ) -> FilledTimeseries:
     """Fill missing values using the selected mode.
 
@@ -42,6 +196,7 @@ def fill_timeseries(
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
 
+    mode = config.mode
     if mode == FILL_MODE_ZERO:
         return FilledTimeseries(
             values=[0.0 if value is None else value for value in values],
@@ -80,49 +235,13 @@ def fill_timeseries(
             filled_values.append(last_observed_value)
 
         return FilledTimeseries(values=filled_values, filled=filled)
-    else:
-        raise ValueError(f"Unsupported fill mode: {mode}")
-
-
-@overload
-def smooth_timeseries(
-    timestamps: Sequence[float],
-    values: Sequence[float | None],
-    *,
-    mode: Literal["asap"],
-    max_window_size: int | None = None,
-) -> list[float | None]: ...
-
-
-@overload
-def smooth_timeseries(
-    timestamps: Sequence[float],
-    values: Sequence[float | None],
-    *,
-    mode: Literal["sma"],
-    window_size: int = 3,
-) -> list[float | None]: ...
-
-
-@overload
-def smooth_timeseries(
-    timestamps: Sequence[float],
-    values: Sequence[float | None],
-    *,
-    mode: Literal["ema"],
-    window_size: int = 3,
-    smoothing_factor: float | None = None,
-) -> list[float | None]: ...
 
 
 def smooth_timeseries(
     timestamps: Sequence[float],
     values: Sequence[float | None],
     *,
-    mode: Literal["sma", "ema", "asap"],
-    window_size: int = 3,
-    smoothing_factor: float | None = None,
-    max_window_size: int | None = None,
+    config: SmaSmoothTransformation | EmaSmoothTransformation | AsapSmoothTransformation,
 ) -> list[float | None]:
     """Smooth values using the selected mode.
 
@@ -136,16 +255,16 @@ def smooth_timeseries(
             window_size - 1 buckets. Use smaller windows at the start of the series.
             Missing buckets stay None and are excluded from the average. Each available
             value has equal weight, regardless of timestamp spacing. window_size must
-            be positive and defaults to three buckets.
-        ema: Exponential moving average seeded with the first observed value. Each
-            later observation updates the average as smoothing_factor * value +
-            (1 - smoothing_factor) * previous_average. Missing buckets stay None and
-            leave the average unchanged. Weighting depends on observations, regardless
-            of timestamp spacing. window_size is a positive span that determines the
-            factor as 2 / (window_size + 1), without cutting off older observations.
-            An explicit smoothing_factor in (0, 1] overrides the span-derived factor.
-            The default span of three gives a factor of 0.5. smoothing_factor applies
-            only to ema.
+            be provided and positive.
+        ema: Exponential moving average. The average starts at the first observed
+            value, and each later observation blends into it using this formula:
+            `smoothing_factor * value + (1 - smoothing_factor) * previous_average`.
+            Missing buckets stay None and don't move the average. Weights depend on
+            how many observations have passed, not on the time between them.
+
+            Unlike sma, window_size doesn't drop older values; it only sets how quickly
+            their influence fades. Set smoothing_factor in (0, 1] to set it directly
+            instead. smoothing_factor is only supported by ema configs.
         asap: Automatically select a moving-average window for each contiguous run
             of observations. Minimize the variance of adjacent differences without
             decreasing Pearson kurtosis, scoring complete windows as in Stanford's
@@ -163,34 +282,10 @@ def smooth_timeseries(
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
 
-    if mode == SMOOTH_MODE_SMA:
-        if window_size < 1:
-            raise ValueError("Window size must be positive.")
-
-        smoothed_values: list[float | None] = []
-        window_sum = 0.0
-        window_count = 0
-        for index, value in enumerate(values):
-            if index >= window_size:
-                expired_value = values[index - window_size]
-                if expired_value is not None:
-                    window_sum -= expired_value
-                    window_count -= 1
-            if value is None:
-                smoothed_values.append(None)
-            else:
-                window_sum += value
-                window_count += 1
-                smoothed_values.append(window_sum / window_count)
-
-        return smoothed_values
-    elif mode == SMOOTH_MODE_EMA:
-        if window_size < 1:
-            raise ValueError("Window size must be positive.")
+    if isinstance(config, EmaSmoothTransformation):
+        smoothing_factor = config.smoothing_factor
         if smoothing_factor is None:
-            smoothing_factor = 2 / (window_size + 1)
-        if not 0 < smoothing_factor <= 1:
-            raise ValueError("Smoothing factor must be greater than zero and at most one.")
+            smoothing_factor = 2 / (config.window_size + 1)
 
         ema_values: list[float | None] = []
         average: float | None = None
@@ -206,9 +301,8 @@ def smooth_timeseries(
                 ema_values.append(average)
 
         return ema_values
-    elif mode == SMOOTH_MODE_ASAP:
-        if max_window_size is not None and max_window_size < 1:
-            raise ValueError("Maximum window size must be positive.")
+
+    if isinstance(config, AsapSmoothTransformation):
         if any(value is not None and not isfinite(value) for value in values):
             raise ValueError("ASAP observations must be finite.")
 
@@ -218,14 +312,30 @@ def smooth_timeseries(
                 asap_values.extend(
                     _smooth_asap(
                         [value for value in group if value is not None],
-                        max_window_size=max_window_size,
+                        max_window_size=config.max_window_size,
                     )
                 )
             else:
                 asap_values.extend(group)
         return asap_values
-    else:
-        raise ValueError(f"Unsupported smoothing mode: {mode}")
+
+    smoothed_values: list[float | None] = []
+    window_sum = 0.0
+    window_count = 0
+    for index, value in enumerate(values):
+        if index >= config.window_size:
+            expired_value = values[index - config.window_size]
+            if expired_value is not None:
+                window_sum -= expired_value
+                window_count -= 1
+        if value is None:
+            smoothed_values.append(None)
+        else:
+            window_sum += value
+            window_count += 1
+            smoothed_values.append(window_sum / window_count)
+
+    return smoothed_values
 
 
 def _smooth_asap(values: Sequence[float], *, max_window_size: int | None = None) -> list[float]:

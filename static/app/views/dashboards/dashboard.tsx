@@ -24,7 +24,11 @@ import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
-import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
+import {
+  NUM_DESKTOP_COLS,
+  DRAG_HANDLE_CLASS,
+  DASHBOARD_CHART_GROUP,
+} from 'sentry/views/dashboards/constants';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {trackEngagementAnalytics} from 'sentry/views/dashboards/widgetBuilder/utils/trackEngagementAnalytics';
@@ -57,7 +61,6 @@ import {DashboardFilterKeys} from './types';
 import {getMergedDashboardFilters} from './utils';
 import type {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
-export const DRAG_HANDLE_CLASS = 'widget-drag';
 const DRAG_RESIZE_CLASS = 'widget-resize';
 const DESKTOP = 'desktop';
 const MOBILE = 'mobile';
@@ -74,7 +77,6 @@ const BREAKPOINTS = (theme: Theme) => ({
   [DESKTOP]: MOBILE_BREAKPOINT(theme),
 });
 const COLUMNS = {[MOBILE]: NUM_MOBILE_COLS, [DESKTOP]: NUM_DESKTOP_COLS};
-export const DASHBOARD_CHART_GROUP = 'dashboard-group';
 
 type Props = {
   dashboard: DashboardDetails;

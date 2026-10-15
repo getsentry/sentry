@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {
   addErrorMessage,
@@ -35,14 +36,13 @@ import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widget
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
+import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/constants';
 import {
   useAddQuery,
   useReadQueriesFromLocation,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-
-export const MAX_QUERIES_ALLOWED = 5;
 
 interface ContentProps {
   datePageFilterProps: DatePageFilterProps;
@@ -160,19 +160,14 @@ function Content({datePageFilterProps}: ContentProps) {
               },
             ]}
             trigger={triggerProps => (
-              <Button
+              <OverlayTrigger.Button
+                showChevron={false}
                 {...triggerProps}
                 variant={shouldHighlightSaveButton ? 'primary' : 'secondary'}
                 aria-label={t('Save')}
-                onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
-
-                  triggerProps.onClick?.(e);
-                }}
               >
                 {shouldHighlightSaveButton ? t('Save') : `${t('Save as')}\u2026`}
-              </Button>
+              </OverlayTrigger.Button>
             )}
           />
         </Flex>

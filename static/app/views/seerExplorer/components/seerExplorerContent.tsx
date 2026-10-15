@@ -34,6 +34,7 @@ import {
   integrationRequiresUpgrade,
 } from 'sentry/utils/integrationUtil';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -62,6 +63,7 @@ import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/components/reauthMonitoringProviderBlock';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
+import {useChatSuggestions} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
 import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/hooks/useCopySessionDataToClipboard';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
@@ -71,6 +73,7 @@ import {
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {
   Block,
+  ChatSuggestion,
   PendingUserInput,
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
@@ -319,6 +322,27 @@ export function SeerExplorerContent({
   // Only when the error empty state is what's on screen. A live conversation that hits a
   // transient poll error still has its transcript and must keep its composer.
   const showLoadError = isEmptyState && (isError || hasSessionLoadError);
+
+  const suggestions = useChatSuggestions({
+    enabled: isEmptyState && !chatPrompt && !showLoadError && !isPolling && !readOnly,
+    allowStructuredContext: overrideCtxEngEnable,
+  });
+  const handleSuggestionClick = useCallback(
+    (suggestion: ChatSuggestion, position: number) => {
+      if (!suggestions.isLoading) {
+        trackAnalytics('seer.explorer.suggestion_clicked', {
+          organization,
+          referrer: getPageReferrer(),
+          source: suggestions.source,
+          position,
+          kind: suggestion.kind,
+          action_type: suggestion.action_type ?? undefined,
+        });
+      }
+      sendMessage(suggestion.text);
+    },
+    [suggestions, organization, getPageReferrer, sendMessage]
+  );
 
   // A question can't be answered in a run that won't take a reply (someone else's, or one
   // that failed to load), so it moves to a new chat instead of being lost.
@@ -665,13 +689,14 @@ export function SeerExplorerContent({
     revealChatPrompt();
   }, [chatPrompt, revealChatPrompt]);
 
-  // Auto-scroll to bottom when new blocks are added, but only if user hasn't scrolled up
+  // Auto-scroll to bottom when blocks are added or the transcript resizes, unless scrolled up
+  const {height: transcriptHeight} = useDimensions({elementRef: scrollContainerRef});
   useEffect(() => {
     if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [blocks]);
+  }, [blocks, transcriptHeight]);
 
   // Track scroll position to detect if user scrolled up
   useEffect(() => {
@@ -784,7 +809,8 @@ export function SeerExplorerContent({
               onStartNewChat={showLoadError ? handleStartNewChat : undefined}
               runId={runId}
               displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
-              onSuggestionClick={readOnly ? undefined : sendMessage}
+              onSuggestionClick={readOnly ? undefined : handleSuggestionClick}
+              suggestions={suggestions}
             />
           ) : (
             <Fragment>
@@ -876,6 +902,7 @@ export function SeerExplorerContent({
           onPRWidgetClick={openPRWidget}
           prWidgetButtonRef={prWidgetButtonRef}
           repoPRStates={repoPRStates}
+          runId={runId}
           composerRef={composerRef}
           fileApprovalActions={
             isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches

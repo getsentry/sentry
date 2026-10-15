@@ -227,11 +227,19 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      # Overlaps the per-worker ClickHouse bootstrap with devservices up.
+      - name: Start per-worker Snuba bootstrap in the background
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        env:
+          DEVSERVICES_STATUS_FILE: ${{ runner.temp }}/devservices-ci/up.exit
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --start
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           mode: backend-ci
+          early-devservices: 'true'
 
       # Restart postgres with a Unix socket mount. Django's postgres driver uses TCP by
       # default, and each ORM call is multiple round-trips — switching to a Unix socket
@@ -272,7 +280,7 @@ jobs:
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
-        run: python3 .github/workflows/scripts/bootstrap-snuba.py
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
 
       - name: Download selected tests artifact
         if: needs.select-tests.outputs.has-selected-tests == 'true'

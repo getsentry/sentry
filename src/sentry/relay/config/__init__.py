@@ -69,6 +69,7 @@ EXPOSABLE_FEATURES = [
     "projects:relay-playstation-uploads",
     "projects:relay-nintendo-event-rewrite",
     "projects:relay-upload-multipart",
+    "projects:resumable-uploads",
 ]
 
 EXTRACT_METRICS_VERSION = 1
