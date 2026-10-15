@@ -1217,9 +1217,6 @@ importers:
       '@react-stately/slider':
         specifier: 3.8.1
         version: 3.8.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-types/shared':
-        specifier: 3.36.0
-        version: 3.36.0(react@19.3.0)
       '@sentry/icons':
         specifier: workspace:*
         version: link:../icons

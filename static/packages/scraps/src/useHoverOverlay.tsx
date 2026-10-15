@@ -565,22 +565,22 @@ function useHoverOverlay({
       // (type=function or object). Because we can't rely on the child element
       // implementing forwardRefs we wrap it with a span tag for the ref
       if (
-        isValidElement(triggerChildren) &&
+        isValidElement<
+          React.HTMLAttributes<HTMLElement> & React.RefAttributes<HTMLElement>
+        >(triggerChildren) &&
         (skipWrapper || typeof triggerChildren.type === 'string')
       ) {
-        const triggerRef = mergeTriggerRef(
-          (triggerChildren.props as any).ref as React.Ref<HTMLElement> | null | undefined
-        );
+        const triggerRef = mergeTriggerRef(triggerChildren.props.ref);
 
         if (showUnderline) {
           const triggerStyle = {
-            ...(triggerChildren.props as any).style,
+            ...triggerChildren.props.style,
             ...tooltipUnderline(theme, underlineColor),
           };
 
-          return cloneElement<any>(
+          return cloneElement(
             triggerChildren,
-            Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
+            Object.assign(mergeProps(triggerChildren.props, providedProps), {
               ref: triggerRef,
               style: triggerStyle,
             })
@@ -588,11 +588,11 @@ function useHoverOverlay({
         }
 
         // Basic DOM nodes can be cloned and have more props applied.
-        return cloneElement<any>(
+        return cloneElement(
           triggerChildren,
-          Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
+          Object.assign(mergeProps(triggerChildren.props, providedProps), {
             ref: triggerRef,
-            style: (triggerChildren.props as any).style,
+            style: triggerChildren.props.style,
           })
         );
       }

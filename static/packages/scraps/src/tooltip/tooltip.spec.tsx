@@ -506,8 +506,6 @@ describe('Tooltip', () => {
         {wrapper: ThemeWrapper}
       );
       const referenceClassName =
-        // These assertions verify the generated CSS targets and section DOM structure.
-        // oxlint-disable-next-line testing-library/no-node-access
         screen.getByText('reference cell').parentElement?.className;
       reference.unmount();
 
@@ -529,8 +527,6 @@ describe('Tooltip', () => {
       await userEvent.hover(screen.getByText('My Button'));
 
       expect(referenceClassName).toBeTruthy();
-      // These assertions verify the generated CSS targets and section DOM structure.
-      // oxlint-disable-next-line testing-library/no-node-access
       expect(screen.getByText('row cell').parentElement?.className).toBe(
         referenceClassName
       );
