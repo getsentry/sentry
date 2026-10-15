@@ -257,14 +257,13 @@ class BaseIssueAlertHandler(ABC):
                 rule_id__isnull=False,
             ).first()
             if alert_rule_workflow:
-                try:
-                    Rule.objects.get(
-                        id=alert_rule_workflow.rule_id,
-                        project__organization_id=detector.linked_project.organization_id,
-                    )
+                if Rule.objects.filter(
+                    id=alert_rule_workflow.rule_id,
+                    project__organization_id=detector.linked_project.organization_id,
+                ).exists():
                     legacy_rule_id = alert_rule_workflow.rule_id
-                except Rule.DoesNotExist:
-                    logger.exception(
+                else:
+                    logger.error(
                         "Rule not found when querying for AlertRuleWorkflow",
                         extra={"rule_id": alert_rule_workflow.rule_id},
                     )
@@ -457,11 +456,20 @@ class BaseMetricAlertHandler(ABC):
 
     @classmethod
     def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
+        from sentry.notifications.notification_action.platform_dispatch import (
+            get_platform_provider,
+            send_metric_alert,
+        )
         from sentry.notifications.notification_action.utils import (
             metric_alert_notification_data_factory,
         )
 
         issue_notification_context = IssueNotificationContext(invocation)
+        provider = get_platform_provider(invocation, NotificationSource.METRIC_ALERT)
+        if provider is not None:
+            send_metric_alert(issue_notification_context, provider)
+            return
+
         with shadow_read(
             invocation,
             NotificationSource.METRIC_ALERT,

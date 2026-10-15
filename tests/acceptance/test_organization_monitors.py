@@ -125,7 +125,6 @@ class OrganizationMonitorsTest(AcceptanceTestCase):
         MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
             date_added=ts,
         )

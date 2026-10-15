@@ -1,6 +1,6 @@
 import upperFirst from 'lodash/upperFirst';
 
-import {getContextKeys} from 'sentry/components/events/contexts/utils';
+import {getContextKeys} from 'sentry/components/events/contexts/dataUtils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 

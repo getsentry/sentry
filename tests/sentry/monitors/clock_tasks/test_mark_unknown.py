@@ -53,7 +53,6 @@ class MonitorClockTasksMarkUnknownTest(TestCase):
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=ts,
             date_updated=ts,

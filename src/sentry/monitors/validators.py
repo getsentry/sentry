@@ -14,7 +14,7 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.fields import empty
 
-from sentry import audit_log, features, quotas
+from sentry import audit_log, quotas
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
@@ -25,9 +25,6 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.models.environment import Environment
-from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.models.project import Project
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.logic.monitor_environment import update_monitor_environment
 from sentry.monitors.models import (
@@ -45,16 +42,12 @@ from sentry.monitors.models import (
 from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
 from sentry.monitors.types import CrontabSchedule, slugify_monitor_slug
 from sentry.monitors.utils import (
-    create_issue_alert_rule,
     ensure_cron_detector,
     get_checkin_margin,
     get_max_runtime,
     get_request_attribution,
     signal_monitor_created,
-    update_issue_alert_rule,
 )
-from sentry.users.services.user.service import user_service
-from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 from sentry.utils.outcomes import Outcome
@@ -131,66 +124,6 @@ class ScheduleField(ObjectField):
             return [count, values[1]]
 
         return super().get_value(dictionary)
-
-
-class MonitorAlertRuleTargetValidator(serializers.Serializer):
-    target_identifier = serializers.IntegerField(help_text="ID of target object")
-    target_type = serializers.ChoiceField(
-        choices=("Member", "Team"), help_text="One of [Member, Team]"
-    )
-
-
-class MonitorAlertRuleValidator(serializers.Serializer):
-    environment = serializers.CharField(
-        max_length=64, required=False, allow_null=True, help_text="Name of the environment"
-    )
-    targets = MonitorAlertRuleTargetValidator(
-        many=True,
-        help_text="Array of dictionaries with information of the user or team to be notified",
-    )
-
-    def validate_environment(self, environment: str | None) -> int | None:
-        if environment is None:
-            return None
-
-        try:
-            return Environment.get_for_organization_id(
-                self.context["organization"].id, environment
-            ).id
-        except Environment.DoesNotExist:
-            raise serializers.ValidationError("This environment has not been created.")
-
-    @staticmethod
-    def validate_targets_for_project(attrs, project: Project) -> None:
-        for index, target in enumerate(attrs.get("targets", [])):
-            target_identifier = target["target_identifier"]
-            target_type = target["target_type"]
-
-            if (
-                target_type == "Team"
-                and not Project.objects.filter(teams__id=target_identifier, id=project.id).exists()
-            ):
-                errors: list[dict[str, str]] = [{} for _ in attrs["targets"]]
-                errors[index] = {"target_identifier": "This team is not part of the project."}
-                raise serializers.ValidationError({"targets": errors})
-
-            if target_type == "Member":
-                is_active_team_member = OrganizationMemberTeam.objects.filter(
-                    is_active=True,
-                    organizationmember__user_id=target_identifier,
-                    organizationmember__teams__projectteam__project_id=project.id,
-                ).exists()
-                if is_active_team_member:
-                    is_active_team_member = bool(
-                        user_service.get_many(
-                            filter={"user_ids": [target_identifier], "is_active": True}
-                        )
-                    )
-
-                if not is_active_team_member:
-                    errors = [{} for _ in attrs["targets"]]
-                    errors[index] = {"target_identifier": "This user is not part of the project."}
-                    raise serializers.ValidationError({"targets": errors})
 
 
 class MissedMarginField(EmptyIntegerField):
@@ -403,9 +336,9 @@ class MonitorValidator(CamelSnakeSerializer):
         help_text="Disable creation of monitor incidents",
     )
     config = ConfigValidator(help_text="The configuration for the monitor.")
-    alert_rule = MonitorAlertRuleValidator(
+    alert_rule = ObjectField(
         required=False,
-        help_text="Alert rule configuration created alongside the monitor.",
+        help_text="Deprecated alert rule configuration.",
     )
 
     def validate(self, attrs):
@@ -421,33 +354,17 @@ class MonitorValidator(CamelSnakeSerializer):
         if alert_rule is not None:
             organization = self.context["organization"]
             request = self.context["request"]
-            if features.has(
-                "organizations:crons-disable-alert-rule",
-                organization,
-                actor=request.user,
-            ):
-                logger.info(
-                    "monitors.validator.alert_rule_rejected",
-                    extra={
-                        "organization_id": organization.id,
-                        "operation": "update" if self.instance else "create",
-                        **get_request_attribution(request),
-                    },
-                )
-                raise serializers.ValidationError(
-                    {"alert_rule": "Cron monitor alert rules are disabled for this organization."}
-                )
-
-            project = attrs.get("project")
-            if project is None:
-                project_id = (
-                    self.instance.project_id if self.instance else self.context["project"].id
-                )
-                project = Project.objects.get(id=project_id)
-            try:
-                MonitorAlertRuleValidator.validate_targets_for_project(alert_rule, project)
-            except serializers.ValidationError as error:
-                raise serializers.ValidationError({"alert_rule": error.detail})
+            logger.info(
+                "monitors.validator.alert_rule_rejected",
+                extra={
+                    "organization_id": organization.id,
+                    "operation": "update" if self.instance else "create",
+                    **get_request_attribution(request),
+                },
+            )
+            raise serializers.ValidationError(
+                {"alert_rule": "Cron monitor alert rules are disabled for this organization."}
+            )
 
         return attrs
 
@@ -522,29 +439,6 @@ class MonitorValidator(CamelSnakeSerializer):
 
         request = self.context["request"]
         signal_monitor_created(project, request.user, False, monitor, request)
-        validated_issue_alert_rule = validated_data.get("alert_rule")
-        if validated_issue_alert_rule:
-            metrics.incr(
-                "monitors.validator.alert_rule",
-                tags={"operation": "create"},
-                sample_rate=1.0,
-            )
-            logger.info(
-                "monitors.validator.alert_rule",
-                extra={
-                    "organization_id": organization.id,
-                    "operation": "create",
-                    **get_request_attribution(request),
-                },
-            )
-            issue_alert_rule_id = create_issue_alert_rule(
-                request, project, monitor, validated_issue_alert_rule
-            )
-
-            if issue_alert_rule_id:
-                config = monitor.config
-                config["alert_rule_id"] = issue_alert_rule_id
-                monitor.update(config=config)
         return monitor
 
     def update(self, instance, validated_data):
@@ -654,48 +548,6 @@ class MonitorValidator(CamelSnakeSerializer):
                     # Use last_checkin if available, otherwise use current time
                     last_checkin = monitor_env.last_checkin or now
                     update_monitor_environment(monitor_env, last_checkin, now)
-
-        # Update alert rule after in case slug or name changed
-        if "alert_rule" in validated_data:
-            metrics.incr(
-                "monitors.validator.alert_rule",
-                tags={"operation": "update"},
-                sample_rate=1.0,
-            )
-            alert_rule_data = validated_data["alert_rule"]
-            request = self.context.get("request")
-            if not request:
-                return instance
-            logger.info(
-                "monitors.validator.alert_rule",
-                extra={
-                    "organization_id": instance.organization_id,
-                    "operation": "update",
-                    **get_request_attribution(request),
-                },
-            )
-
-            project = Project.objects.get(id=instance.project_id)
-
-            # Check to see if rule exists
-            issue_alert_rule = instance.get_issue_alert_rule()
-            # If rule exists, update as necessary
-            if issue_alert_rule:
-                issue_alert_rule_id = update_issue_alert_rule(
-                    request, project, instance, issue_alert_rule, alert_rule_data
-                )
-            # If rule does not exist, create
-            else:
-                # Type assertion for mypy - create_issue_alert_rule expects AuthenticatedHttpRequest
-                # but in tests we might have a regular Request object
-                issue_alert_rule_id = create_issue_alert_rule(
-                    request, project, instance, alert_rule_data
-                )
-
-            if issue_alert_rule_id:
-                # If config is not sent, use existing config to update alert_rule_id
-                instance.config["alert_rule_id"] = issue_alert_rule_id
-                instance.update(config=instance.config)
 
         return instance
 

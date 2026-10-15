@@ -7,7 +7,7 @@ sentry_frontend_snapshots_workflow_file: &sentry_frontend_snapshots_workflow_fil
   - added|modified: '.github/workflows/frontend-snapshots.yml'
 
 # Provides list of changed files to test (jest)
-# getsentry/sentry does not use the list directly, instead we shard tests inside jest.config.js
+# getsentry/sentry does not use the list directly, instead we shard tests inside tests/js/createJestConfig.ts
 testable_modified: &testable_modified
   - added|modified: 'package.json'
   - added|deleted|modified: 'static/**/!(*.generated).{ts,tsx,js,jsx,mjs,pegjs}'
@@ -18,7 +18,10 @@ testable_modified: &testable_modified
 testable_rules_changed: &testable_rules_changed
   - *sentry_frontend_workflow_file
   - added|modified: '.github/file-filters.yml'
-  - added|modified: 'jest.config.ts'
+  - added|deleted|modified: 'tests/js/jest.config.mjs'
+  - added|deleted|modified: 'tests/js/jest.config.ci.mjs'
+  - added|deleted|modified: 'tests/js/createJestConfig.ts'
+  - added|deleted|modified: 'tests/js/bin/test.mjs'
   - added|deleted|modified: 'scripts/{test,testCi}.js'
   - added|deleted|modified: 'static/packages/**/package.json'
   - added|deleted|modified: 'pnpm-lock.yaml'
@@ -174,6 +177,8 @@ migration_tests:
   - 'Makefile'
   - 'src/**/migrations/**'
   - 'tests/**/migrations/**'
+  - 'src/sentry/new_migrations/**'
+  - 'src/sentry/testutils/cases.py'
 
 # These files will trigger our workflow to check if lockfile
 # updates are needed

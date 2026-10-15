@@ -257,4 +257,52 @@ describe('useVirtualizedTree', () => {
       stableKeys[stableKeys.length - 1]! + 1
     );
   });
+
+  it('scrolls to a node after expanding its ancestors', () => {
+    const scrollContainer = document.createElement('div');
+    scrollContainer.scrollTo = jest.fn();
+    const onScrollToNode = jest.fn();
+
+    const {result} = renderHook(useVirtualizedTree, {
+      initialProps: {
+        rowHeight: 10,
+        scrollContainer,
+        overscroll: 0,
+        tree: [chain('child', 20)],
+        onScrollToNode,
+      },
+    });
+
+    act(() => {
+      result.current.handleScrollTo(node => node.id === 'child-15');
+    });
+
+    expect(result.current.tree.flattened).toHaveLength(16);
+    expect(result.current.selectedNodeIndex).toBe(15);
+    expect(scrollContainer.scrollTo).toHaveBeenCalledWith({top: 160});
+    expect(onScrollToNode).toHaveBeenCalledTimes(1);
+    expect(onScrollToNode.mock.calls[0]?.slice(1)).toEqual([
+      scrollContainer,
+      {top: 160, depth: 15},
+    ]);
+  });
+
+  it('keeps the first row selected when it is expanded', () => {
+    const {result} = renderHook(useVirtualizedTree, {
+      initialProps: {
+        rowHeight: 10,
+        scrollContainer: makeScrollContainerMock({height: 100}),
+        overscroll: 0,
+        tree: [chain('child', 3)],
+        initialSelectedNodeIndex: 0,
+      },
+    });
+
+    act(() => {
+      result.current.handleExpandTreeNode(result.current.tree.roots[0]!, true);
+    });
+
+    expect(result.current.tree.flattened).toHaveLength(2);
+    expect(result.current.selectedNodeIndex).toBe(0);
+  });
 });
