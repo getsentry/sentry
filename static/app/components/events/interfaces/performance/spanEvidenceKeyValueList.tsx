@@ -825,7 +825,6 @@ function getSpanEvidenceValue(span: Span | null) {
 }
 
 const StyledCodeSnippet = styled(CodeBlock)`
-  /* Lets the card's row striping show through instead of a box on unstriped rows */
   --prism-block-background: transparent;
 
   pre[class*='language-'] {
