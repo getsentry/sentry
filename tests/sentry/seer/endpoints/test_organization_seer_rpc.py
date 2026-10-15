@@ -550,6 +550,23 @@ class TestOrganizationSeerRpcTeamRestrictedMember(APITestCase):
         mock_get.assert_not_called()
 
     @with_feature("organizations:seer-public-rpc")
+    def test_get_issues_stats_hides_inaccessible_issues(self) -> None:
+        group = self.create_group(project=self.restricted_project)
+
+        response = self._post(
+            "get_issues_stats",
+            {
+                "issue_ids": [str(group.id)],
+                "project_ids": [self.visible_project.id],
+                "query": "is:unresolved",
+                "stats_period": "24h",
+            },
+        )
+
+        assert response.status_code == 200
+        assert response.data == []
+
+    @with_feature("organizations:seer-public-rpc")
     def test_get_latest_issue_event_hides_inaccessible_issue(self) -> None:
         group = self.create_group(project=self.restricted_project)
 

@@ -6,6 +6,7 @@ from sentry.api.client import ApiClient, ApiError
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.issues.grouptype import registry as group_type_registry
 from sentry.models.apikey import ApiKey
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.release import Release
@@ -809,6 +810,25 @@ def get_issues_stats(
     if scoped.blocked:
         return IssuesStatsResponse(__root__=[])
     project_ids = scoped.project_ids or []
+
+    # issues-stats 400s when none of the groups are in `project`. A restricted
+    # caller asking about issues outside their projects should get an empty
+    # result, the same as the other scoped methods.
+    if public_caller_restricted():
+        numeric_ids: list[int] = []
+        for issue_id in issue_ids:
+            try:
+                numeric_ids.append(int(issue_id))
+            except (TypeError, ValueError):
+                continue
+        visible_ids = set(
+            Group.objects.filter(id__in=numeric_ids, project_id__in=project_ids).values_list(
+                "id", flat=True
+            )
+        )
+        issue_ids = [str(issue_id) for issue_id in numeric_ids if issue_id in visible_ids]
+        if not issue_ids:
+            return IssuesStatsResponse(__root__=[])
 
     api_key = ApiKey(organization_id=organization.id, scope_list=API_KEY_SCOPES)
 
