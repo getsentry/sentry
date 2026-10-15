@@ -17,6 +17,7 @@ import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
+import {useInvertedTheme} from '@sentry/scraps/theme';
 
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
@@ -27,7 +28,6 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
-import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';

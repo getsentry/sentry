@@ -1,5 +1,6 @@
-import {render, screen} from '../../test/env';
-import {SizeProvider, useSizeContext} from '../sizeContext';
+import {render, screen} from '@testing-library/react';
+
+import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
 
 import {slot} from './index';
 

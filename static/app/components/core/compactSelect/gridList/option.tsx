@@ -18,8 +18,7 @@ import {
   MenuListItem,
   type MenuListItemProps,
 } from '@sentry/scraps/menuListItem';
-
-import type {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from '@sentry/scraps/theme';
 
 export interface GridListOptionProps<
   T extends ListItemBase,

@@ -1,7 +1,14 @@
-import {act, renderHook} from '../test/env';
+import {ThemeProvider} from '@emotion/react';
+import {act, renderHook} from '@testing-library/react';
+
+import {lightTheme} from '@sentry/scraps/theme';
 
 import {useRenderToString} from './renderToString';
 import {Text} from './text';
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
 
 describe('renderToString', () => {
   it('should render a simple component to string', async () => {
@@ -9,7 +16,7 @@ describe('renderToString', () => {
       return <div>Hello, World!</div>;
     }
 
-    const {result} = renderHook(useRenderToString);
+    const {result} = renderHook(useRenderToString, {wrapper: ThemeWrapper});
 
     const string = await act(() => result.current(<SimpleComponent />));
 
@@ -24,7 +31,7 @@ describe('renderToString', () => {
       );
     }
 
-    const {result} = renderHook(useRenderToString);
+    const {result} = renderHook(useRenderToString, {wrapper: ThemeWrapper});
 
     const string = await act(() => result.current(<ScrapsComponent />));
 

@@ -1,6 +1,14 @@
-import {render, screen, userEvent} from '../../test/env';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+
+import {lightTheme} from '@sentry/scraps/theme';
 
 import {RevealOnHover} from './index';
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
 
 describe('RevealOnHover', () => {
   it('renders children and action', () => {
@@ -10,7 +18,8 @@ describe('RevealOnHover', () => {
         <RevealOnHover.Action>
           <button>Copy</button>
         </RevealOnHover.Action>
-      </RevealOnHover>
+      </RevealOnHover>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByText('Label')).toBeInTheDocument();
@@ -24,10 +33,12 @@ describe('RevealOnHover', () => {
         <RevealOnHover.Action>
           <button>Copy</button>
         </RevealOnHover.Action>
-      </RevealOnHover>
+      </RevealOnHover>,
+      {wrapper: ThemeWrapper}
     );
 
     const button = screen.getByRole('button', {name: 'Copy'});
+    // eslint-disable-next-line testing-library/no-node-access -- The CSS reveal marker is on the action's wrapper.
     expect(button.closest('[data-reveal-on-hover]')).toBeInTheDocument();
   });
 
@@ -38,10 +49,12 @@ describe('RevealOnHover', () => {
         <RevealOnHover.Action visible>
           <button>Copy</button>
         </RevealOnHover.Action>
-      </RevealOnHover>
+      </RevealOnHover>,
+      {wrapper: ThemeWrapper}
     );
 
     const button = screen.getByRole('button', {name: 'Copy'});
+    // eslint-disable-next-line testing-library/no-node-access -- The CSS reveal marker is on the action's wrapper.
     expect(button.closest('[data-reveal-on-hover]')).toHaveAttribute(
       'data-reveal-on-hover-visible',
       ''
@@ -55,7 +68,8 @@ describe('RevealOnHover', () => {
         <RevealOnHover.Action>
           <button>Copy</button>
         </RevealOnHover.Action>
-      </RevealOnHover>
+      </RevealOnHover>,
+      {wrapper: ThemeWrapper}
     );
 
     const button = screen.getByRole('button', {name: 'Copy'});
@@ -79,7 +93,8 @@ describe('RevealOnHover', () => {
         <RevealOnHover.Action>
           <button>Copy</button>
         </RevealOnHover.Action>
-      </RevealOnHover>
+      </RevealOnHover>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByTestId('hover-root')).toBeInTheDocument();
@@ -94,7 +109,8 @@ describe('RevealOnHover', () => {
         <RevealOnHover.Action>
           <button onClick={onClick}>Copy</button>
         </RevealOnHover.Action>
-      </RevealOnHover>
+      </RevealOnHover>,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Copy'}));
@@ -111,12 +127,15 @@ describe('RevealOnHover', () => {
         <RevealOnHover.Action>
           <button aria-label="Delete">Delete</button>
         </RevealOnHover.Action>
-      </RevealOnHover>
+      </RevealOnHover>,
+      {wrapper: ThemeWrapper}
     );
 
     const copyButton = screen.getByRole('button', {name: 'Copy'});
     const deleteButton = screen.getByRole('button', {name: 'Delete'});
+    // eslint-disable-next-line testing-library/no-node-access -- The CSS reveal marker is on the action's wrapper.
     expect(copyButton.closest('[data-reveal-on-hover]')).toBeInTheDocument();
+    // eslint-disable-next-line testing-library/no-node-access -- The CSS reveal marker is on the action's wrapper.
     expect(deleteButton.closest('[data-reveal-on-hover]')).toBeInTheDocument();
   });
 
@@ -127,7 +146,8 @@ describe('RevealOnHover', () => {
         <RevealOnHover.Action>
           <button>Copy</button>
         </RevealOnHover.Action>
-      </RevealOnHover>
+      </RevealOnHover>,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.tab();
@@ -145,12 +165,14 @@ describe('RevealOnHover', () => {
             </RevealOnHover.Action>
           </div>
         )}
-      </RevealOnHover>
+      </RevealOnHover>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByTestId('custom-root')).toBeInTheDocument();
     expect(screen.getByText('Grid content')).toBeInTheDocument();
     const button = screen.getByRole('button', {name: 'Copy'});
+    // eslint-disable-next-line testing-library/no-node-access -- The CSS reveal marker is on the action's wrapper.
     expect(button.closest('[data-reveal-on-hover]')).toBeInTheDocument();
   });
 
@@ -167,7 +189,8 @@ describe('RevealOnHover', () => {
             </RevealOnHover.Action>
           </div>
         )}
-      </RevealOnHover>
+      </RevealOnHover>,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Copy'}));

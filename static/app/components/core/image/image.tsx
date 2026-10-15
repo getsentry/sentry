@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {Responsive} from '@sentry/scraps/layout';
 import {getRadius, rc} from '@sentry/scraps/layout';
-
-import type {RadiusSize} from 'sentry/utils/theme';
+import type {RadiusSize} from '@sentry/scraps/theme';
 
 export interface ImageProps extends Omit<
   React.ImgHTMLAttributes<HTMLImageElement>,

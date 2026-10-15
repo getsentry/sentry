@@ -3,12 +3,13 @@ import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
+
 import {printConsoleBanner} from 'sentry/bootstrap/printConsoleBanner';
 import {NODE_ENV} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {GlobalStyles} from 'sentry/styles/global';
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 const SentryComponentInspector =
   NODE_ENV === 'development'

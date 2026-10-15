@@ -12,8 +12,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import type {InputProps} from '@sentry/scraps/input';
-
-import type {FormSize, StrictCSSObject, Theme} from 'sentry/utils/theme';
+import type {FormSize, StrictCSSObject, Theme} from '@sentry/scraps/theme';
 
 // There is a cycle here if we import textarea from scraps.
 // eslint-disable-next-line @sentry/no-relative-import-paths

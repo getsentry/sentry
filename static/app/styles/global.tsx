@@ -1,7 +1,7 @@
 import type {Theme} from '@emotion/react';
 import {css, Global} from '@emotion/react';
 
-import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
+import {useInvertedTheme} from '@sentry/scraps/theme';
 
 const generateThemePrismVariables = (theme: Theme, blockBackground: string) => ({
   '--prism-base': theme.tokens.syntax.base,

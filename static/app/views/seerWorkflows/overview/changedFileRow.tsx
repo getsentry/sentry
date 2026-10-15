@@ -6,8 +6,8 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import type {TagVariant} from '@sentry/scraps/theme';
 
-import type {TagVariant} from 'sentry/utils/theme';
 import {OpenFileButton} from 'sentry/views/seerExplorer/components/openFileButton';
 
 export interface FileChangeTag {

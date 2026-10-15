@@ -5,8 +5,9 @@ import type {AriaListBoxOptions} from '@react-aria/listbox';
 import type {ListProps} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 
+import type {FormSize} from '@sentry/scraps/theme';
+
 import {defined} from 'sentry/utils/defined';
-import type {FormSize} from 'sentry/utils/theme';
 
 import {ControlContext} from './controlContext';
 import {GridList} from './gridList';

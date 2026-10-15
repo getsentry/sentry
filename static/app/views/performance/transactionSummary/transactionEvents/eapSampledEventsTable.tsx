@@ -10,6 +10,7 @@ import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
+import type {Theme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Duration} from 'sentry/components/duration';
@@ -33,7 +34,6 @@ import {toPercent} from 'sentry/utils/number/toPercent';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
-import type {Theme} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';

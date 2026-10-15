@@ -2,10 +2,10 @@ import {css, ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, Container} from '@sentry/scraps/layout';
+import {useInvertedTheme} from '@sentry/scraps/theme';
 
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
 import {t} from 'sentry/locale';
-import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 interface StartTourModalProps {
   closeModal: () => void;

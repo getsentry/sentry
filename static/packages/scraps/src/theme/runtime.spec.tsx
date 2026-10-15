@@ -19,3 +19,33 @@ it('can disable Framer transitions without changing the CSS motion tokens', () =
     type: false,
   });
 });
+
+it.each([
+  ['production', undefined, false],
+  ['development', undefined, false],
+  ['test', undefined, true],
+  ['production', '1', true],
+  ['development', '1', true],
+] as const)(
+  'configures motion for NODE_ENV=%s and IS_ACCEPTANCE_TEST=%s',
+  async (nodeEnv, acceptanceTest, disabled) => {
+    const environment = jest.replaceProperty(process, 'env', {
+      ...process.env,
+      NODE_ENV: nodeEnv,
+      IS_ACCEPTANCE_TEST: acceptanceTest,
+    });
+
+    try {
+      await jest.isolateModulesAsync(async () => {
+        const {darkTheme, lightTheme} = await import('./theme');
+
+        for (const theme of [lightTheme, darkTheme]) {
+          expect(theme.motion.framer.smooth.fast.duration).toBe(disabled ? 0 : 0.12);
+          expect(theme.motion.smooth.fast).toBe('120ms cubic-bezier(0.72, 0, 0.16, 1)');
+        }
+      });
+    } finally {
+      environment.restore();
+    }
+  }
+);

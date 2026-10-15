@@ -1,4 +1,4 @@
-import {render, screen} from '../test/env';
+import {render, screen} from '@testing-library/react';
 
 import {DateTimeProvider, useClockDisplay, useTimezone} from './datetime';
 

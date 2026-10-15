@@ -8,6 +8,7 @@ import {IconClose} from '@sentry/icons/close';
 import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {useInvertedTheme} from '@sentry/scraps/theme';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {
@@ -21,7 +22,6 @@ import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconClose} from '@sentry/icons/close';
 
-import {Container, Flex} from '../layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 export interface SwitchProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,

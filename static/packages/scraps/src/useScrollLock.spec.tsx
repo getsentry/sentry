@@ -1,4 +1,4 @@
-import {renderHook} from '../test/env';
+import {renderHook} from '@testing-library/react';
 
 import {useScrollLock} from './useScrollLock';
 

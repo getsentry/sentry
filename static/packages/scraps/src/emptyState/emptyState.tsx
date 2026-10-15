@@ -1,5 +1,6 @@
-import {Flex, Stack, type FlexProps} from '../layout';
-import {Heading, Text, type TextProps} from '../text';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text/heading';
+import {Text, type TextProps} from '@sentry/scraps/text/text';
 
 interface EmptyStateProps extends Omit<
   FlexProps,

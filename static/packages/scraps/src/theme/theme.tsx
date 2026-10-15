@@ -4,7 +4,7 @@
 import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 
-import {color, typography} from '../tokens';
+import {color, typography} from '@sentry/scraps/tokens';
 
 import {darkTheme as baseDarkTheme} from './dark';
 import {lightTheme as baseLightTheme} from './light';
@@ -34,7 +34,9 @@ type Colors = typeof lightColors;
  * Values shared between light and dark theme
  */
 const commonTheme = {
-  motion: generateMotion(),
+  motion: generateMotion(
+    !!process.env.IS_ACCEPTANCE_TEST || process.env.NODE_ENV === 'test'
+  ),
 
   zIndex,
 

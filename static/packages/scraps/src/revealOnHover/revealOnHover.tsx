@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {Flex, type FlexProps} from '../layout';
-import type {ContainerElement} from '../layout/container';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import type {ContainerElement} from '@sentry/scraps/layout/container';
 
 interface RevealOnHoverRenderProps {
   className: string;

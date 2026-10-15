@@ -9,6 +9,7 @@ import {Alert, type AlertProps} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import {useInvertedTheme} from '@sentry/scraps/theme';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -23,7 +24,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {showIntercom} from 'sentry/utils/intercom';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {withApi} from 'sentry/utils/withApi';
