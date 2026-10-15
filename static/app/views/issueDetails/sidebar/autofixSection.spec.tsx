@@ -689,7 +689,9 @@ describe('AutofixSection', () => {
 
     await waitFor(() => expect(startRequest).toHaveBeenCalled());
     expect(screen.getByText('Have Seer...')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeDisabled();
+    const startButton = screen.getByRole('button', {name: 'Start Analysis'});
+    expect(startButton).toBeDisabled();
+    expect(startButton).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
   });
 

@@ -12,7 +12,6 @@ import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
@@ -58,13 +57,14 @@ export function AutofixStartCard({
       <AutofixStartCardContent />
       <Button
         size="md"
-        icon={isStarting ? <LoadingIndicator size={16} /> : <IconBug />}
+        icon={<IconBug />}
         aria-label={t('Start Analysis')}
         variant="primary"
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
+        busy={isStarting}
         disabled={isStarting}
       >
         {t('Start Analysis')}
