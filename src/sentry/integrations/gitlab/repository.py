@@ -4,13 +4,18 @@ import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from sentry.integrations.gitlab.commits import (
+    format_api_commit,
+    format_sentry_commit,
+    transform_api_patch_set,
+)
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.plugins.providers.integration_repository import RepositoryConfig
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration  # NOQA
@@ -157,18 +162,25 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
 
     def _format_commits(self, client, repo, commit_list):
         """Convert GitLab commits into our internal format"""
-        return [
-            {
-                "id": c["id"],
-                "repository": repo.name,
-                "author_email": c["author_email"],
-                "author_name": c["author_name"],
-                "message": c.get("message") or c["title"],
-                "timestamp": self.format_date(c["created_at"]),
-                "patch_set": self._get_patchset(client, repo, c["id"]),
-            }
-            for c in commit_list
-        ]
+        commits = []
+        for commit in commit_list:
+            commit_id = commit["id"]
+            if "message" not in commit or commit["message"] is None:
+                commit = client.get_commit(repo.config["project_id"], commit_id)
+            if not commit or "message" not in commit or commit["message"] is None:
+                raise IntegrationError(
+                    f"GitLab did not return a complete message for commit {commit_id}"
+                )
+            commits.append(
+                format_sentry_commit(
+                    repository=repo.name,
+                    commit=format_api_commit(
+                        commit=commit,
+                        patch_set=self._get_patchset(client, repo, commit_id),
+                    ),
+                )
+            )
+        return commits
 
     def _get_patchset(self, client, repo, sha):
         """GitLab commit lists don't come with diffs so we have
@@ -178,19 +190,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         return self._transform_patchset(diffs)
 
     def _transform_patchset(self, patch_set):
-        file_changes = []
-        for changed_file in patch_set:
-            if changed_file["new_file"]:
-                file_changes.append({"path": changed_file["new_path"], "type": "A"})
-            elif changed_file["deleted_file"]:
-                file_changes.append({"path": changed_file["old_path"], "type": "D"})
-            elif changed_file["renamed_file"]:
-                file_changes.append({"path": changed_file["old_path"], "type": "D"})
-                file_changes.append({"path": changed_file["new_path"], "type": "A"})
-            else:
-                file_changes.append({"path": changed_file["new_path"], "type": "M"})
-
-        return file_changes
+        return transform_api_patch_set(patch_set)
 
     def pull_request_url(self, repo, pull_request) -> str:
         return f"{repo.url}/merge_requests/{pull_request.key}"
