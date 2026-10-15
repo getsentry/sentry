@@ -10,6 +10,7 @@ from sentry.ai_monitoring.issues.llm_cache_detection import query as query_modul
 from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
     AgentLabelSource,
     DetectionWindow,
+    ReuseBoundary,
 )
 from sentry.ai_monitoring.issues.llm_cache_detection.query import (
     AGENT_NAME,
@@ -18,9 +19,9 @@ from sentry.ai_monitoring.issues.llm_cache_detection.query import (
     CACHE_READ_TOKENS,
     CACHEABLE_CALL_FILTER,
     CALL_SITE_GROUPS_LIMIT,
+    CONVERSATION_FILTER,
     COUNT,
     COUNT_SAMPLE,
-    COUNT_UNIQUE_TRACE,
     INPUT_TOKENS,
     MODEL,
     SAMPLE_CALLS_LIMIT,
@@ -28,8 +29,10 @@ from sentry.ai_monitoring.issues.llm_cache_detection.query import (
     SUM_CACHE_CREATION_TOKENS,
     SUM_CACHE_READ_TOKENS,
     SUM_INPUT_TOKENS,
+    TRACE_FALLBACK_FILTER,
     DroppedRowReason,
     _build_group_filter,
+    _count_unique,
     _to_call_sites,
     count_spans_with_cache_attributes,
     fetch_call_site_stats,
@@ -49,7 +52,8 @@ def make_row(**changes: object) -> SnubaRow:
         MODEL: "model-x",
         COUNT: 100,
         COUNT_SAMPLE: 10,
-        COUNT_UNIQUE_TRACE: 5,
+        _count_unique(ReuseBoundary.CONVERSATION): 5,
+        _count_unique(ReuseBoundary.TRACE): 5,
         SUM_INPUT_TOKENS: 10_000,
         SUM_CACHE_READ_TOKENS: 2_000,
         SUM_CACHE_CREATION_TOKENS: 1_000,
@@ -83,7 +87,7 @@ def test_to_call_sites_combines_duplicate_rows() -> None:
     assert stats.agent_label_source is AgentLabelSource.AGENT_NAME
     assert stats.call_count == 400
     assert stats.sampled_call_count == 30
-    assert stats.unique_trace_count == 10
+    assert stats.unique_reuse_count == 10
     assert stats.repeated_sampled_call_count == 20
     assert stats.sum_input_tokens == 100_000
     assert stats.sum_cache_read_tokens == 10_000
@@ -123,30 +127,56 @@ def test_fetch_call_site_stats(row_count: int, truncated: bool) -> None:
 
     assert len(result.call_sites) == 1
     assert result.call_sites[0].call_count == row_count * 100
+    assert result.call_sites[0].reuse_boundary is ReuseBoundary.CONVERSATION
     assert result.dropped_calls == {}
     assert result.truncated is truncated
-    kwargs = run_query.call_args.kwargs
-    assert kwargs["params"].start == window.start
-    assert kwargs["params"].end == window.end
-    assert kwargs["params"].projects == [project]
-    assert kwargs["query_string"].endswith('has:gen_ai.agent.name !gen_ai.agent.name:""')
-    assert kwargs["selected_columns"] == [
+    conversation, trace = (call.kwargs for call in run_query.call_args_list)
+    assert conversation["params"].start == window.start
+    assert conversation["params"].end == window.end
+    assert conversation["params"].projects == [project]
+    assert CONVERSATION_FILTER in conversation["query_string"]
+    assert TRACE_FALLBACK_FILTER in trace["query_string"]
+    assert conversation["selected_columns"] == [
         AGENT_NAME,
         SPAN_NAME,
         MODEL,
         COUNT,
         COUNT_SAMPLE,
-        COUNT_UNIQUE_TRACE,
+        _count_unique(ReuseBoundary.CONVERSATION),
         SUM_INPUT_TOKENS,
         SUM_CACHE_READ_TOKENS,
         SUM_CACHE_CREATION_TOKENS,
         AVG_INPUT_TOKENS,
     ]
-    assert CACHEABLE_CALL_FILTER in kwargs["query_string"]
-    assert kwargs["orderby"] == [f"-{SUM_INPUT_TOKENS}"]
-    assert kwargs["limit"] == CALL_SITE_GROUPS_LIMIT
-    assert kwargs["referrer"] == Referrer.ISSUES_LLM_CACHE_DETECTION.value
-    assert kwargs["sampling_mode"] == "HIGHEST_ACCURACY"
+    assert _count_unique(ReuseBoundary.TRACE) in trace["selected_columns"]
+    assert CACHEABLE_CALL_FILTER in conversation["query_string"]
+    assert conversation["orderby"] == [f"-{SUM_INPUT_TOKENS}"]
+    assert conversation["limit"] == CALL_SITE_GROUPS_LIMIT
+    assert conversation["referrer"] == Referrer.ISSUES_LLM_CACHE_DETECTION.value
+    assert conversation["sampling_mode"] == "HIGHEST_ACCURACY"
+
+
+def test_fetch_call_site_stats_keeps_uncovered_trace_fallbacks() -> None:
+    project = mock.Mock(spec=Project)
+    project.organization = mock.Mock()
+    window = DetectionWindow(
+        start=datetime(2026, 1, 1, tzinfo=UTC),
+        end=datetime(2026, 1, 8, tzinfo=UTC),
+    )
+    conversation = [make_row(**{MODEL: "covered"})]
+    trace = [make_row(**{MODEL: "covered"}), make_row(**{MODEL: "fallback"})]
+
+    with mock.patch.object(
+        Spans,
+        "run_table_query",
+        side_effect=[{"data": conversation}, {"data": trace}],
+    ):
+        result = fetch_call_site_stats(project, window)
+
+    assert [(stats.model, stats.reuse_boundary) for stats in result.call_sites] == [
+        ("covered", ReuseBoundary.CONVERSATION),
+        ("fallback", ReuseBoundary.TRACE),
+    ]
 
 
 def test_fetch_call_site_stats_applies_global_limit() -> None:
@@ -180,6 +210,7 @@ def test_build_group_filter() -> None:
         "!gen_ai.operation.name:embeddings "
         "has:gen_ai.usage.input_tokens "
         "gen_ai.usage.input_tokens:>=4096 "
+        'has:gen_ai.conversation.id !gen_ai.conversation.id:"" '
         'gen_ai.agent.name:"Reviewer" '
         'span.name:"generate_content" '
         'gen_ai.request.model:"model-x"'
@@ -195,10 +226,11 @@ def test_fetch_call_site_warmth() -> None:
         end=datetime(2026, 1, 8, tzinfo=UTC),
     )
     stats = _to_call_sites([make_row()])[0][0]
+    unique_count = _count_unique(ReuseBoundary.CONVERSATION)
     processed = mock.Mock(
         timeseries=[
-            {"time": 0, COUNT: 10, COUNT_UNIQUE_TRACE: 1},
-            {"time": 300, COUNT: 0, COUNT_UNIQUE_TRACE: 0},
+            {"time": 0, COUNT: 10, unique_count: 1},
+            {"time": 300, COUNT: 0, unique_count: 0},
         ],
         sample_count=[{COUNT: 2}],
     )
@@ -213,7 +245,7 @@ def test_fetch_call_site_warmth() -> None:
     assert warmth.warm_call_count == 5
     kwargs = run_query.call_args.kwargs
     assert kwargs["params"].granularity_secs == 300
-    assert kwargs["y_axes"] == [COUNT, COUNT_UNIQUE_TRACE]
+    assert kwargs["y_axes"] == [COUNT, unique_count]
     assert kwargs["referrer"] == Referrer.ISSUES_LLM_CACHE_DETECTION.value
 
 

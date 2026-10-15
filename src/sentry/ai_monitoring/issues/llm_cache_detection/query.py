@@ -14,6 +14,7 @@ from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
     CallSiteStats,
     CallSiteWarmth,
     DetectionWindow,
+    ReuseBoundary,
     WarmthBucket,
 )
 from sentry.exceptions import InvalidSearchQuery
@@ -36,6 +37,7 @@ GEN_AI_CALL_FILTER = (
 INPUT_TOKENS = "gen_ai.usage.input_tokens"
 MODEL = "gen_ai.request.model"
 SPAN_NAME = "span.name"
+CONVERSATION_ID = ReuseBoundary.CONVERSATION.value
 CACHEABLE_CALL_FILTER = f"{GEN_AI_CALL_FILTER} {INPUT_TOKENS}:>={MIN_CACHEABLE_PREFIX_TOKENS}"
 
 # The span name is usually the SDK wrapper; the agent name is what a reader
@@ -43,6 +45,8 @@ CACHEABLE_CALL_FILTER = f"{GEN_AI_CALL_FILTER} {INPUT_TOKENS}:>={MIN_CACHEABLE_P
 AGENT_NAME = AgentLabelSource.AGENT_NAME.value
 EMPTY_AGENT_NAME = f'{AGENT_NAME}:""'
 NAMED_AGENT_FILTER = f"has:{AGENT_NAME} !{EMPTY_AGENT_NAME}"
+CONVERSATION_FILTER = f'has:{CONVERSATION_ID} !{CONVERSATION_ID}:""'
+TRACE_FALLBACK_FILTER = f'(!has:{CONVERSATION_ID} OR {CONVERSATION_ID}:"")'
 
 # Deprecated SDK aliases are backfilled onto these attributes at ingestion.
 CACHE_READ_TOKENS = "gen_ai.usage.cache_read.input_tokens"
@@ -54,7 +58,6 @@ AVG_INPUT_TOKENS = f"avg({INPUT_TOKENS})"
 SUM_CACHE_READ_TOKENS = f"sum({CACHE_READ_TOKENS})"
 SUM_CACHE_CREATION_TOKENS = f"sum({CACHE_CREATION_TOKENS})"
 COUNT = "count()"
-COUNT_UNIQUE_TRACE = "count_unique(trace)"
 
 # Unlike count(), this records stored spans instead of extrapolated calls.
 COUNT_SAMPLE = "count_sample()"
@@ -80,6 +83,10 @@ class CallSiteQueryResult:
     truncated: bool
 
 
+def _count_unique(boundary: ReuseBoundary) -> str:
+    return f"count_unique({boundary.value})"
+
+
 @dataclass(frozen=True)
 class SampleCall:
     """Trace metadata and token counts for one example call."""
@@ -100,7 +107,12 @@ def _build_group_filter(stats: CallSiteStats) -> str | None:
         model_term = build_escaped_term_filter(MODEL, [stats.model])
     except InvalidSearchQuery:
         return None
-    return f"{CACHEABLE_CALL_FILTER} {agent_term} {span_term} {model_term}"
+    reuse_filter = (
+        CONVERSATION_FILTER
+        if stats.reuse_boundary is ReuseBoundary.CONVERSATION
+        else TRACE_FALLBACK_FILTER
+    )
+    return f"{CACHEABLE_CALL_FILTER} {reuse_filter} {agent_term} {span_term} {model_term}"
 
 
 def _run_spans_query(
@@ -146,7 +158,7 @@ def _combine(left: CallSiteStats, right: CallSiteStats) -> CallSiteStats:
         left,
         call_count=call_count,
         sampled_call_count=left.sampled_call_count + right.sampled_call_count,
-        unique_trace_count=left.unique_trace_count + right.unique_trace_count,
+        unique_reuse_count=left.unique_reuse_count + right.unique_reuse_count,
         sum_input_tokens=left.sum_input_tokens + right.sum_input_tokens,
         sum_cache_read_tokens=left.sum_cache_read_tokens + right.sum_cache_read_tokens,
         sum_cache_creation_tokens=(
@@ -158,6 +170,7 @@ def _combine(left: CallSiteStats, right: CallSiteStats) -> CallSiteStats:
 
 def _to_call_sites(
     rows: Iterable[SnubaRow],
+    reuse_boundary: ReuseBoundary = ReuseBoundary.CONVERSATION,
 ) -> tuple[list[CallSiteStats], Counter[DroppedRowReason]]:
     """Fold aggregate rows into call sites and count rows with incomplete keys."""
     call_sites: dict[tuple[str, str, str, str], CallSiteStats] = {}
@@ -179,11 +192,12 @@ def _to_call_sites(
         stats = CallSiteStats(
             agent_label=agent_name,
             agent_label_source=AgentLabelSource.AGENT_NAME,
+            reuse_boundary=reuse_boundary,
             span_name=span_name,
             model=model,
             call_count=call_count,
             sampled_call_count=int(row.get(COUNT_SAMPLE) or 0),
-            unique_trace_count=int(row.get(COUNT_UNIQUE_TRACE) or 0),
+            unique_reuse_count=int(row.get(_count_unique(reuse_boundary)) or 0),
             sum_input_tokens=_token_count(row, SUM_INPUT_TOKENS),
             sum_cache_read_tokens=_token_count(row, SUM_CACHE_READ_TOKENS),
             sum_cache_creation_tokens=_token_count(row, SUM_CACHE_CREATION_TOKENS),
@@ -196,31 +210,52 @@ def _to_call_sites(
 
 def fetch_call_site_stats(project: Project, window: DetectionWindow) -> CallSiteQueryResult:
     """Aggregate cache-sized LLM calls by label, span name, and model."""
-    aggregate_columns = [
-        COUNT,
-        COUNT_SAMPLE,
-        COUNT_UNIQUE_TRACE,
-        SUM_INPUT_TOKENS,
-        SUM_CACHE_READ_TOKENS,
-        SUM_CACHE_CREATION_TOKENS,
-        AVG_INPUT_TOKENS,
+    sites_by_boundary: dict[ReuseBoundary, list[CallSiteStats]] = {}
+    dropped_calls: Counter[DroppedRowReason] = Counter()
+    truncated = False
+    for boundary, boundary_filter in (
+        (ReuseBoundary.CONVERSATION, CONVERSATION_FILTER),
+        (ReuseBoundary.TRACE, TRACE_FALLBACK_FILTER),
+    ):
+        rows = _run_spans_query(
+            project,
+            window,
+            query_string=f"{CACHEABLE_CALL_FILTER} {NAMED_AGENT_FILTER} {boundary_filter}",
+            selected_columns=[
+                AGENT_NAME,
+                SPAN_NAME,
+                MODEL,
+                COUNT,
+                COUNT_SAMPLE,
+                _count_unique(boundary),
+                SUM_INPUT_TOKENS,
+                SUM_CACHE_READ_TOKENS,
+                SUM_CACHE_CREATION_TOKENS,
+                AVG_INPUT_TOKENS,
+            ],
+            orderby=[f"-{SUM_INPUT_TOKENS}"],
+            limit=CALL_SITE_GROUPS_LIMIT,
+            sampling_mode="HIGHEST_ACCURACY",
+        ).get("data", [])
+        sites_by_boundary[boundary], dropped = _to_call_sites(rows, boundary)
+        dropped_calls.update(dropped)
+        truncated |= len(rows) >= CALL_SITE_GROUPS_LIMIT
+
+    conversation_sites = sites_by_boundary[ReuseBoundary.CONVERSATION]
+    covered = {stats.group_key for stats in conversation_sites}
+    call_sites = [
+        *conversation_sites,
+        *(
+            stats
+            for stats in sites_by_boundary[ReuseBoundary.TRACE]
+            if stats.group_key not in covered
+        ),
     ]
-    result = _run_spans_query(
-        project,
-        window,
-        query_string=f"{CACHEABLE_CALL_FILTER} {NAMED_AGENT_FILTER}",
-        selected_columns=[AGENT_NAME, SPAN_NAME, MODEL, *aggregate_columns],
-        orderby=[f"-{SUM_INPUT_TOKENS}"],
-        limit=CALL_SITE_GROUPS_LIMIT,
-        sampling_mode="HIGHEST_ACCURACY",
-    )
-    rows = result.get("data", [])
-    call_sites, dropped_calls = _to_call_sites(rows)
     call_sites.sort(key=lambda stats: stats.sum_input_tokens, reverse=True)
     return CallSiteQueryResult(
         call_sites=call_sites[:CALL_SITE_GROUPS_LIMIT],
         dropped_calls=dropped_calls,
-        truncated=(len(call_sites) > CALL_SITE_GROUPS_LIMIT or len(rows) >= CALL_SITE_GROUPS_LIMIT),
+        truncated=truncated or len(call_sites) > CALL_SITE_GROUPS_LIMIT,
     )
 
 
@@ -231,6 +266,7 @@ def fetch_call_site_warmth(
     group_filter = _build_group_filter(stats)
     if group_filter is None:
         return None
+    unique_count = _count_unique(stats.reuse_boundary)
     result = Spans.run_timeseries_query(
         params=SnubaParams(
             start=window.start,
@@ -240,15 +276,15 @@ def fetch_call_site_warmth(
             granularity_secs=CACHE_TTL_MINUTES * 60,
         ),
         query_string=group_filter,
-        y_axes=[COUNT, COUNT_UNIQUE_TRACE],
+        y_axes=[COUNT, unique_count],
         referrer=Referrer.ISSUES_LLM_CACHE_DETECTION.value,
         config=SearchResolverConfig(auto_fields=True),
         sampling_mode="NORMAL",
     )
-    return CallSiteWarmth.from_buckets(_warmth_buckets(result))
+    return CallSiteWarmth.from_buckets(_warmth_buckets(result, unique_count))
 
 
-def _warmth_buckets(result: SnubaTSResult) -> list[WarmthBucket]:
+def _warmth_buckets(result: SnubaTSResult, unique_count: str) -> list[WarmthBucket]:
     """Pair extrapolated calls with stored-span counts in each time bucket."""
     processed = result.data.get("processed_timeseries")
     if processed is None:
@@ -261,7 +297,7 @@ def _warmth_buckets(result: SnubaTSResult) -> list[WarmthBucket]:
             sample_count=(
                 float(sample_counts[index].get(COUNT) or 0) if index < len(sample_counts) else 0.0
             ),
-            unique_trace_count=float(point.get(COUNT_UNIQUE_TRACE) or 0),
+            unique_reuse_count=float(point.get(unique_count) or 0),
         )
         for index, point in enumerate(processed.timeseries)
     ]

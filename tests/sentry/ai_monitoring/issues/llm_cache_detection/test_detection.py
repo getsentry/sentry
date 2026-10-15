@@ -20,6 +20,7 @@ from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
     DetectionWindow,
     OutcomeReason,
     ProbeGap,
+    ReuseBoundary,
     WarmthBucket,
     classify_call_site,
     resolve_with_cache_presence,
@@ -31,11 +32,12 @@ def make_stats() -> CallSiteStats:
     return CallSiteStats(
         agent_label="Reviewer",
         agent_label_source=AgentLabelSource.AGENT_NAME,
+        reuse_boundary=ReuseBoundary.CONVERSATION,
         span_name="generate_content",
         model="model-x",
         call_count=1_000,
         sampled_call_count=500,
-        unique_trace_count=100,
+        unique_reuse_count=100,
         sum_input_tokens=1_000_000,
         sum_cache_read_tokens=100_000,
         sum_cache_creation_tokens=150_000,
@@ -100,6 +102,16 @@ def test_token_derived_properties() -> None:
             id="not-caching",
         ),
         pytest.param(
+            replace(
+                make_stats(),
+                reuse_boundary=ReuseBoundary.TRACE,
+                sum_cache_read_tokens=1_000,
+                sum_cache_creation_tokens=0,
+            ),
+            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TRACE_FALLBACK),
+            id="trace-fallback-not-caching",
+        ),
+        pytest.param(
             replace(make_stats(), sum_cache_read_tokens=0, sum_cache_creation_tokens=0),
             Classification(CacheOutcome.NOT_CACHING, OutcomeReason.ZERO_CACHE_TOKENS),
             id="ambiguous-zero",
@@ -117,11 +129,33 @@ def test_token_derived_properties() -> None:
         pytest.param(
             replace(
                 make_stats(),
+                unique_reuse_count=300,
                 sum_cache_read_tokens=80_000,
                 sum_cache_creation_tokens=400_000,
             ),
             Classification(CacheOutcome.THRASH, OutcomeReason.CACHE_ACTIVITY),
-            id="thrash",
+            id="conversation-thrash-with-low-repeated-call-share",
+        ),
+        pytest.param(
+            replace(
+                make_stats(),
+                unique_reuse_count=500 - MIN_SAMPLED_CALLS + 1,
+                sum_cache_read_tokens=80_000,
+                sum_cache_creation_tokens=400_000,
+            ),
+            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TOO_FEW_REPEATED_CALLS),
+            id="thrash-with-too-few-repeated-calls",
+        ),
+        pytest.param(
+            replace(
+                make_stats(),
+                reuse_boundary=ReuseBoundary.TRACE,
+                unique_reuse_count=300,
+                sum_cache_read_tokens=80_000,
+                sum_cache_creation_tokens=400_000,
+            ),
+            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_REPEATED_CALL_SHARE),
+            id="trace-thrash-with-low-repeated-call-share",
         ),
         pytest.param(
             replace(
@@ -144,7 +178,7 @@ def test_token_derived_properties() -> None:
         pytest.param(
             replace(
                 make_stats(),
-                unique_trace_count=500 - MIN_SAMPLED_CALLS + 1,
+                unique_reuse_count=500 - MIN_SAMPLED_CALLS + 1,
                 sum_cache_read_tokens=1_000,
                 sum_cache_creation_tokens=0,
             ),
@@ -154,7 +188,7 @@ def test_token_derived_properties() -> None:
         pytest.param(
             replace(
                 make_stats(),
-                unique_trace_count=300,
+                unique_reuse_count=300,
                 sum_cache_read_tokens=1_000,
                 sum_cache_creation_tokens=0,
             ),
@@ -175,7 +209,7 @@ def test_token_derived_properties() -> None:
             replace(
                 make_stats(),
                 sampled_call_count=MIN_SAMPLED_CALLS - 1,
-                unique_trace_count=0,
+                unique_reuse_count=0,
             ),
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.FEW_STORED_SPANS),
             id="few-stored-spans",
@@ -190,20 +224,20 @@ def bucket(
     index: int,
     calls: float,
     samples: float | None = None,
-    unique_traces: float | None = None,
+    unique_reuse: float | None = None,
 ) -> WarmthBucket:
-    if unique_traces is None:
-        unique_traces = float(calls > 0)
+    if unique_reuse is None:
+        unique_reuse = float(calls > 0)
     return WarmthBucket(
         start=index * CACHE_TTL_MINUTES * 60,
         call_count=calls,
         sample_count=calls if samples is None else samples,
-        unique_trace_count=unique_traces,
+        unique_reuse_count=unique_reuse,
     )
 
 
 def test_warmth_requires_repeated_trace_within_bucket() -> None:
-    warmth = CallSiteWarmth.from_buckets([bucket(0, 10, 2, unique_traces=2)])
+    warmth = CallSiteWarmth.from_buckets([bucket(0, 10, 2, unique_reuse=2)])
 
     assert warmth.warm_call_count == 0
 
@@ -242,7 +276,17 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
     ],
 )
 def test_resolve_with_warmth(warmth: CallSiteWarmth | ProbeGap, expected: Classification) -> None:
-    assert resolve_with_warmth(NOT_CACHING, warmth) == expected
+    assert resolve_with_warmth(NOT_CACHING, warmth, ReuseBoundary.CONVERSATION) == expected
+
+
+def test_thrash_only_requires_warm_share_for_trace_fallback() -> None:
+    thrash = Classification(CacheOutcome.THRASH, OutcomeReason.CACHE_ACTIVITY)
+    warmth = CallSiteWarmth(1_000, 1_000, 250)
+
+    assert resolve_with_warmth(thrash, warmth, ReuseBoundary.CONVERSATION) == thrash
+    assert resolve_with_warmth(thrash, warmth, ReuseBoundary.TRACE) == Classification(
+        CacheOutcome.INELIGIBLE, OutcomeReason.LOW_CACHEABLE_SHARE
+    )
 
 
 AMBIGUOUS_ZERO = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.ZERO_CACHE_TOKENS)
