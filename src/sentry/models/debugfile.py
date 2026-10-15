@@ -778,7 +778,7 @@ class DifMeta:
 
         legacy_code_id = None
         legacy_debug_id = None
-        if obj.file_format == "wasm" and len(obj.code_id) == 32:
+        if obj.file_format == "wasm" and obj.code_id and len(obj.code_id) == 32:
             # (INGEST-1282) For WASM files, the "legacy" code ID is the actual
             # code ID with its length prepended as a varuint32. In the common
             # case that the code ID is a UUID, that means that the legacy code
