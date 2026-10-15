@@ -581,7 +581,7 @@ class PullRequestUnlinkedAction(GroupAction):
 
 
 class ImpactAssessmentAction(GroupAction):
-    user_visible = False
+    user_visible = True
 
     score: float | None = Field(default=None, ge=0, le=100)
     description: str

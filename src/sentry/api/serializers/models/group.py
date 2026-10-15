@@ -13,7 +13,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 from sentry_sdk import traces
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.constants import LOG_LEVELS
@@ -374,6 +374,11 @@ class GroupSerializerBase(Serializer, ABC):
             if self._expand("derivedData")
             else {}
         )
+        if features.has(
+            "organizations:seer-impact-assessment", organization=item_list[0].organization
+        ):
+            for derived_data in derived_data_by_group_id.values():
+                derived_data.pop("impact", None)
 
         result = {}
         for item in item_list:

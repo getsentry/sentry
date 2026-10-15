@@ -52,7 +52,11 @@ from sentry.issues.derived.framework import (
     aggregator,
     emit,
 )
-from sentry.issues.impact.types import ImpactCitationData, ImpactDerivedData, ImpactLevel
+from sentry.issues.impact.types import (
+    ImpactCitationData,
+    ImpactDerivedData,
+    get_impact_level,
+)
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.progress_state import IssueProgressState
 from sentry.types.group import IssueAutofixStep, IssueBlocker
@@ -213,20 +217,6 @@ def track_open_fix_prs(state: StateView, entry: GroupActionLogEntry) -> Aggregat
     return None
 
 
-def _impact_level(score: float | None) -> ImpactLevel | None:
-    if score is None:
-        return None
-    if score < 20:
-        return "super_low"
-    if score < 40:
-        return "low"
-    if score < 60:
-        return "moderate"
-    if score < 80:
-        return "high"
-    return "super_high"
-
-
 @aggregator((IMPACT,), scope=(ImpactAssessmentAction,))
 def track_impact(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     # Ignore impact assessments pre-merge, if this is a merged group
@@ -246,7 +236,7 @@ def track_impact(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
         citations.append(citation_data)
     impact = ImpactDerivedData(
         score=action.score,
-        level=_impact_level(action.score),
+        level=get_impact_level(action.score),
         description=action.description,
         citations=citations,
         sourceEventId=action.source_event_id,
