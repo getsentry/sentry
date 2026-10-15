@@ -14,8 +14,11 @@ type NavigationMenuHeaderProps =
   | {organization: OrganizationSummary; projectCount: number; user?: never}
   | {user: User; organization?: never; projectCount?: never};
 
-export function NavigationMenuHeader(props: NavigationMenuHeaderProps) {
-  const {organization} = props;
+export function NavigationMenuHeader({
+  organization,
+  projectCount,
+  user,
+}: NavigationMenuHeaderProps) {
   const avatar = organization?.avatar;
   const avatarIdentity = {
     identifier: organization?.slug ?? '',
@@ -33,10 +36,10 @@ export function NavigationMenuHeader(props: NavigationMenuHeaderProps) {
   const title = organization ? t('Organization') : t('User');
   const name = organization
     ? organization.name || organization.slug
-    : props.user.name || props.user.username || props.user.email;
+    : user.name || user.username || user.email;
   const subtitle = organization
-    ? tn('%s Project', '%s Projects', props.projectCount)
-    : props.user.email;
+    ? tn('%s Project', '%s Projects', projectCount)
+    : user.email;
 
   return (
     <Container
@@ -79,7 +82,7 @@ export function NavigationMenuHeader(props: NavigationMenuHeaderProps) {
               <OrganizationAvatar organization={organization} size={30} />
             </Flex>
           ) : (
-            <UserAvatar user={props.user} size={32} />
+            <UserAvatar user={user} size={32} />
           )}
           <Stack gap="0">
             <Text size="md" density="comfortable" bold variant="inherit">
