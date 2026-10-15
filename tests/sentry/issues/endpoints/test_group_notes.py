@@ -48,12 +48,15 @@ class GroupNoteTest(APITestCase):
             ):
                 with (
                     self.feature({"projects:issue-action-log-activity": flag_enabled}),
-                    patch("sentry.issues.derived.gate.is_backfilled", return_value=False),
+                    patch(
+                        "sentry.issues.endpoints.group_notes.should_serve_action_log_activity"
+                    ) as read_gate,
                     patch(
                         "sentry.issues.endpoints.group_notes.record_activity_read"
                     ) as record_read,
                 ):
                     response = self.client.get(url, format="json")
+                read_gate.assert_not_called()
                 assert response.status_code == 200, response.content
                 assert len(response.data) == 1
                 assert response.data[0]["id"] == str(activity.id)

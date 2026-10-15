@@ -68,8 +68,8 @@ class GroupNotesEndpoint(GroupEndpoint):
     def get(self, request: Request, group: Group) -> Response:
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 
-        def serialize_notes(notes: list[Activity]) -> list[GroupNoteSerializerResponse]:
-            if not notes:
+        def serialize_notes(page: list[Activity]) -> list[GroupNoteSerializerResponse]:
+            if not page:
                 return []
 
             # Activity owns current comment state. GAL only enriches this page
@@ -79,10 +79,10 @@ class GroupNotesEndpoint(GroupEndpoint):
                     group_id=group.id,
                     project_id=group.project_id,
                     type=GroupActionType.COMMENT.value,
-                    idempotency_key__in=[activity_action_idempotency_key(note) for note in notes],
+                    idempotency_key__in=[activity_action_idempotency_key(note) for note in page],
                 ).values_list("idempotency_key", "source")
             )
-            serialized_notes: list[ActivitySerializerResponse] = serialize(notes, request.user)
+            serialized_notes: list[ActivitySerializerResponse] = serialize(page, request.user)
             return [
                 {
                     **item,
@@ -90,7 +90,7 @@ class GroupNotesEndpoint(GroupEndpoint):
                     "data": {**item["data"], "comment_id": note.id},
                     "source": sources.get(activity_action_idempotency_key(note)),
                 }
-                for note, item in zip(notes, serialized_notes)
+                for note, item in zip(page, serialized_notes)
             ]
 
         response = self.paginate(
