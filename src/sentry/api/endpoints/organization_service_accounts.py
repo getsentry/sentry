@@ -42,7 +42,7 @@ FEATURE_FLAG = "organizations:service-accounts"
 
 _MOCK_DATE_CREATED = "2026-10-14T00:00:00Z"
 _MOCK_SERVICE_ACCOUNT_ID = "1"
-_MOCK_SERVICE_ACCOUNT_NAME = "seer-night-shift"
+_MOCK_SERVICE_ACCOUNT_NAME = "seer-autofix"
 _MOCK_SERVICE_ACCOUNT_SCOPES = ["event:read", "org:read", "project:read"]
 
 SERVICE_ACCOUNT_ID = OpenApiParameter(

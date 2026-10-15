@@ -34,7 +34,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
         assert response.data == [
             {
                 "id": "1",
-                "name": "seer-night-shift",
+                "name": "seer-autofix",
                 "scopes": ["event:read", "org:read", "project:read"],
                 "isActive": True,
                 "dateCreated": "2026-10-14T00:00:00Z",
