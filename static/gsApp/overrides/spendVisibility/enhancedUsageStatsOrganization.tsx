@@ -243,12 +243,11 @@ function EnhancedUsageStatsOrganization({
     () =>
       getEndpointQuery({
         dataDatetime,
-        organization,
         projectIds,
         dataCategoryApiName,
         endpointQueryDatetime,
       }),
-    [dataDatetime, organization, projectIds, dataCategoryApiName, endpointQueryDatetime]
+    [dataDatetime, projectIds, dataCategoryApiName, endpointQueryDatetime]
   );
 
   const dataCategoryInfo = Object.values(DATA_CATEGORY_INFO).find(
