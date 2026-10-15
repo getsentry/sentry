@@ -4,6 +4,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {AgenticProgress} from 'sentry/components/onboarding/agenticProgress/agenticProgressList';
 import type {AgenticProgressRun} from 'sentry/components/onboarding/agenticProgress/types';
@@ -256,7 +257,7 @@ function InteractiveProgressStory() {
               },
             ]}
             trigger={props => (
-              <Button
+              <OverlayTrigger.IconButton
                 {...props}
                 aria-label="More progress options"
                 disabled={isComplete}

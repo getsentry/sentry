@@ -61,6 +61,8 @@ def _candidate_fields(report: CandidateReport) -> dict[str, Any]:
         **asdict(stats),
         "hit_rate": stats.hit_rate,
         "write_read_ratio": stats.write_read_ratio,
+        "repeated_sampled_call_count": stats.repeated_sampled_call_count,
+        "repeated_sampled_call_share": stats.repeated_sampled_call_share,
         "uncached_tokens": stats.uncached_tokens,
         "unrecouped_cache_write_tokens": stats.unrecouped_cache_write_tokens,
         "cache_exceeds_input": stats.cache_exceeds_input,
@@ -80,7 +82,6 @@ def _candidate_fields(report: CandidateReport) -> dict[str, Any]:
         fields.update(
             asdict(finding.warmth),
             cacheable_share=finding.warmth.cacheable_share,
-            long_ttl_cacheable_share=finding.warmth.long_ttl_cacheable_share,
         )
     if isinstance(finding.spans_with_cache_attributes, int):
         fields["spans_with_cache_attributes"] = finding.spans_with_cache_attributes
