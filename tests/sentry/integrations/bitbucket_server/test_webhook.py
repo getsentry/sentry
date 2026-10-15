@@ -1,9 +1,12 @@
+import hashlib
+import hmac
 from time import time
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
 import responses
+from django.urls import reverse
 from requests.exceptions import ConnectionError
 
 from fixtures.bitbucket_server import EXAMPLE_PRIVATE_KEY
@@ -75,6 +78,7 @@ class WebhookTestBase(APITestCase):
                     external_id=self.external_id,
                     provider=PROVIDER_NAME,
                     name="maxbittker/newsdiffs",
+                    integration_id=self.integration.id,
                 ),
                 **kwargs,
             }
@@ -119,6 +123,29 @@ class WebhookPostTest(WebhookTestBase):
 
 class RefsChangedWebhookTest(WebhookTestBase):
     method = "post"
+
+    def test_missing_repository_in_payload(self) -> None:
+        self.get_error_response(
+            self.organization.id,
+            self.integration.id,
+            raw_data=b'{"changes": []}',
+            extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
+            status_code=400,
+        )
+
+    def test_repository_on_other_integration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
+            other = self.create_provider_integration(provider=PROVIDER, external_id="other")
+
+        self.create_repository(integration_id=other.id)
+        self.get_error_response(
+            self.organization.id,
+            self.integration.id,
+            raw_data=REFS_CHANGED_EXAMPLE,
+            extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
+            status_code=404,
+        )
 
     def test_missing_integration(self) -> None:
         self.create_repository()
@@ -277,3 +304,130 @@ class RefsChangedWebhookTest(WebhookTestBase):
             extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
             status_code=400,
         )
+
+
+ENFORCE_SIGNATURES = {"bitbucket_server.webhook.signature-enforcement.enabled": True}
+
+
+@patch("sentry.integrations.bitbucket_server.webhook.metrics")
+class WebhookSignatureTest(WebhookTestBase):
+    method = "post"
+    secret = "webhook-secret"
+
+    def setUp(self) -> None:
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
+
+    def sign(self, secret: str = secret, method: str = "sha256") -> str:
+        digest = hmac.new(secret.encode(), REFS_CHANGED_EXAMPLE, hashlib.sha256).hexdigest()
+        return f"{method}={digest}"
+
+    def post_webhook(self, status_code: int, signature: str | None = None) -> None:
+        headers: dict[str, Any] = {"HTTP_X_EVENT_KEY": "repo:refs_changed"}
+        if signature is not None:
+            headers["HTTP_X_HUB_SIGNATURE"] = signature
+        # posted directly so the body is sent byte-for-byte as signed
+        response = self.client.post(
+            reverse(self.endpoint, args=[self.organization.id, self.integration.id]),
+            data=REFS_CHANGED_EXAMPLE,
+            content_type="application/json",
+            **headers,
+        )
+        assert response.status_code == status_code
+
+    def assert_signature_result(self, mock_metrics: MagicMock, result: str) -> None:
+        mock_metrics.incr.assert_any_call(
+            "bitbucket_server.webhook.signature", tags={"result": result}, sample_rate=1.0
+        )
+
+    def test_valid_signature(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        self.post_webhook(204, signature=self.sign())
+
+        self.assert_signature_result(mock_metrics, "valid")
+
+    def test_valid_signature_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(204, signature=self.sign())
+
+        self.assert_signature_result(mock_metrics, "valid")
+
+    def test_invalid_signature(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        self.post_webhook(204, signature=self.sign(secret="wrong-secret"))
+
+        self.assert_signature_result(mock_metrics, "invalid")
+
+    def test_invalid_signature_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401, signature=self.sign(secret="wrong-secret"))
+
+        self.assert_signature_result(mock_metrics, "invalid")
+
+    def test_unsupported_signature_method_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401, signature=self.sign(method="sha1"))
+
+        self.assert_signature_result(mock_metrics, "invalid")
+
+    def test_non_ascii_signature_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401, signature="sha256=é")
+
+        self.assert_signature_result(mock_metrics, "invalid")
+
+    def test_missing_signature(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        self.post_webhook(204)
+
+        self.assert_signature_result(mock_metrics, "missing")
+
+    def test_missing_signature_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository(config={"webhook_secret": self.secret})
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401)
+
+        self.assert_signature_result(mock_metrics, "missing")
+
+    def test_unsigned(self, mock_metrics: MagicMock) -> None:
+        self.create_repository()
+
+        self.post_webhook(204)
+
+        self.assert_signature_result(mock_metrics, "unsigned")
+
+    def test_unsigned_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository()
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401)
+
+        self.assert_signature_result(mock_metrics, "unsigned")
+
+    def test_unverifiable(self, mock_metrics: MagicMock) -> None:
+        self.create_repository()
+
+        self.post_webhook(204, signature=self.sign())
+
+        self.assert_signature_result(mock_metrics, "unverifiable")
+
+    def test_unverifiable_with_enforcement(self, mock_metrics: MagicMock) -> None:
+        self.create_repository()
+
+        with self.options(ENFORCE_SIGNATURES):
+            self.post_webhook(401, signature=self.sign())
+
+        self.assert_signature_result(mock_metrics, "unverifiable")
