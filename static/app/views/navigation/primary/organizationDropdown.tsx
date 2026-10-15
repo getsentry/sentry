@@ -6,7 +6,7 @@ import {IconSettings} from '@sentry/icons/settings';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
-import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {getOrganizationAvatarProps, OrganizationAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {
   DropdownMenu,
@@ -65,30 +65,13 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const {projects} = useProjects();
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
-  const letterAvatarProps = {
-    identifier: organization.slug,
-    name: organization.name || organization.slug,
-  };
+  const avatarProps = getOrganizationAvatarProps(organization);
 
   const size = useSizeContext();
 
   const trigger: DropdownMenuProps['trigger'] = triggerProps => (
     <AvatarButton
-      avatar={
-        organization.avatar.avatarType === 'upload' && organization.avatar.avatarUrl
-          ? {
-              type: 'upload',
-              uploadUrl: organization.avatar.avatarUrl,
-              ...letterAvatarProps,
-            }
-          : organization.avatar.avatarType === 'gravatar' && organization.avatar.avatarUrl
-            ? {
-                type: 'gravatar',
-                gravatarId: organization.avatar.avatarUrl,
-                ...letterAvatarProps,
-              }
-            : {type: 'letter_avatar', ...letterAvatarProps}
-      }
+      avatar={avatarProps}
       size={size}
       aria-label={t('Toggle organization menu')}
       {...triggerProps}
