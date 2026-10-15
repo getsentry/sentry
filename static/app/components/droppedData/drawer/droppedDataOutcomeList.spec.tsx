@@ -4,6 +4,7 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
+import type {ReasonRow} from 'sentry/components/droppedData/drawer/outcomeSections';
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 
 function OutcomeList({
@@ -13,7 +14,7 @@ function OutcomeList({
 }: {
   acceptedEvents: DroppedEventsBucket[];
   droppedEvents: DroppedEventsBucket[];
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }) {
   return (
     <DroppedDataOutcomeList
@@ -209,20 +210,45 @@ describe('DroppedDataOutcomeList', () => {
     );
 
     // The fix-this affordance is hidden until the reason chevron is clicked.
-    expect(screen.queryByRole('button', {name: 'Fix this'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Learn more'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
 
-    expect(screen.getByRole('button', {name: 'Fix this'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Learn more'})).toBeInTheDocument();
 
     // Collapsing hides it again.
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    expect(screen.queryByRole('button', {name: 'Fix this'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Learn more'})).not.toBeInTheDocument();
 
     // The toggle is reachable from the keyboard.
     act(() => screen.getByRole('button', {name: 'Toggle fix options'}).focus());
     await userEvent.keyboard('{Enter}');
-    expect(screen.getByRole('button', {name: 'Fix this'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Learn more'})).toBeInTheDocument();
+  });
+
+  it('shows the long description when a reason row is expanded', async () => {
+    render(
+      <OutcomeList
+        droppedEvents={[
+          DroppedEventFixture({
+            outcome: 'client_discard',
+            reason: 'send_error',
+            start: 0,
+            end: 60_000,
+            count: 10,
+          }),
+        ]}
+        acceptedEvents={[]}
+      />
+    );
+
+    const longDescription =
+      'The event reached Sentry but was rejected with an error code.';
+    expect(screen.queryByText(longDescription)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
+
+    expect(screen.getByText(longDescription)).toBeInTheDocument();
   });
 
   it('opens the fix-this menu with investigate, settings, and docs entries', async () => {
@@ -245,7 +271,7 @@ describe('DroppedDataOutcomeList', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Fix this'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Learn more'}));
 
     // Project settings deep-links to the usage stats page scoped to the
     // reason's data category.
@@ -260,7 +286,9 @@ describe('DroppedDataOutcomeList', () => {
     );
 
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigate'}));
-    expect(onInvestigate).toHaveBeenCalledTimes(1);
+    expect(onInvestigate).toHaveBeenCalledWith(
+      expect.objectContaining({outcome: 'rate_limited', reason: 'smart_rate_limit'})
+    );
   });
 
   it('hides investigate when there is no Seer hand-off', async () => {
@@ -281,7 +309,7 @@ describe('DroppedDataOutcomeList', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Fix this'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Learn more'}));
 
     expect(
       screen.getByRole('menuitemradio', {name: 'Project Settings'})

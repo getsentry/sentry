@@ -7,7 +7,10 @@ import {Text} from '@sentry/scraps/text';
 
 import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
-import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
+import {
+  droppedEventsToOutcomeSections,
+  type ReasonRow,
+} from 'sentry/components/droppedData/drawer/outcomeSections';
 import {
   getOutcomeColors,
   isOutcomeSelected,
@@ -19,16 +22,14 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
-import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 interface DroppedDataDrawerProps {
   dataset: DiscoverDatasets;
   interval?: string;
-  onInvestigate?: () => void;
+  onInvestigate?: (row: ReasonRow) => void;
 }
 
-function DroppedDataDrawerInner({
+export function DroppedDataDrawer({
   dataset,
   interval,
   onInvestigate,
@@ -59,15 +60,6 @@ function DroppedDataDrawerInner({
       sections.filter(section => isOutcomeSelected(outcomeSelection, section.outcome)),
     [sections, outcomeSelection]
   );
-
-  useLLMContext({
-    contextHint:
-      'Sentry dropped-data panel. drops are the events Sentry dropped for this ' +
-      'dataset over the current date range, grouped by outcome then reason, each ' +
-      'with its event count and share of total (accepted + dropped) events.',
-    dataset,
-    drops: sections,
-  });
 
   return (
     <Fragment>
@@ -103,8 +95,3 @@ function DroppedDataDrawerInner({
     </Fragment>
   );
 }
-
-export const DroppedDataDrawer = registerLLMContext(
-  'dropped-data',
-  DroppedDataDrawerInner
-);

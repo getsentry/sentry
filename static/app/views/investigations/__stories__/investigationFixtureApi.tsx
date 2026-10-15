@@ -3,8 +3,8 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import type {RequestOptions} from 'sentry/api';
 import type {ResponseMeta} from 'sentry/types/api';
+import {QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {QUERY_API_CLIENT} from 'sentry/utils/queryClient';
 import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';

@@ -11,10 +11,9 @@ import type {CollectionChildren, Node} from '@react-types/shared';
 import {LayoutGroup} from 'framer-motion';
 
 import {DO_NOT_USE_getButtonStyles} from '@sentry/scraps/button';
+import type {FormSize, Theme} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-import type {FormSize, Theme} from 'sentry/utils/theme';
 
 type Priority = 'default' | 'primary' | 'secondary';
 

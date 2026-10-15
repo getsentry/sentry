@@ -28,9 +28,13 @@ from sentry.notifications.notification_action.utils import (
     issue_notification_data_factory,
     metric_alert_notification_data_factory,
 )
-from sentry.notifications.platform.shadow.capture import SHADOW_PROVIDERS, _variant
+from sentry.notifications.platform.shadow.capture import _variant
 from sentry.notifications.platform.shadow.compare import ShadowOutcome
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.notifications.platform.types import (
+    SHADOW_PROVIDERS,
+    NotificationProviderKey,
+    NotificationSource,
+)
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.snuba.dataset import Dataset
@@ -66,7 +70,7 @@ DISCORD_METRIC_CLIENT = "sentry.integrations.discord.actions.metric_alert.Discor
 MSTEAMS_METRIC_SEND = (
     "sentry.integrations.msteams.utils.integration_service.send_msteams_incident_alert_notification"
 )
-SLACK_METRIC_HANDLER = "sentry.notifications.notification_action.metric_alert_registry.handlers.slack_metric_alert_handler"
+PLATFORM_DISPATCH = "sentry.notifications.notification_action.platform_dispatch"
 
 CLIENTS = {
     "issue": {
@@ -723,6 +727,21 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         action = self.create_shadow_action("slack", {"notes": "Check the runbook"})
         self.assert_match(self.resolution_invocation(action), execute_via_metric_alert_handler)
 
+    def test_slack_workflow_footer_matches(self) -> None:
+        self.workflow.update(name="Page | the on-call")
+        action = self.create_shadow_action("slack")
+
+        client = self.assert_match(self.invocation(action))
+
+        attachments = orjson.loads(
+            client.return_value.chat_postMessage.call_args.kwargs["attachments"]
+        )
+        footer = attachments[0]["blocks"][-1]
+        assert footer["type"] == "context"
+        assert footer["elements"][0]["text"].endswith(
+            f"/monitors/alerts/{self.workflow.id}/|Page \u2223 the on-call>"
+        )
+
     @with_feature("organizations:metric-alert-chartcuterie")
     @mock.patch(
         "sentry.integrations.slack.utils.notifications.build_metric_alert_chart",
@@ -747,8 +766,9 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
 
         self.assert_match(self.invocation(action))
 
-    @mock.patch(f"{SLACK_METRIC_HANDLER}._send_via_notification_platform")
-    @mock.patch(f"{SLACK_METRIC_HANDLER}.NotificationService.has_access", return_value=True)
+    @override_options({"notifications.platform.alert-providers": {"metric-alert": ["slack"]}})
+    @mock.patch(f"{PLATFORM_DISPATCH}.send_metric_alert")
+    @mock.patch(f"{PLATFORM_DISPATCH}.NotificationService.has_access", return_value=True)
     @mock.patch(f"{COMPARE_PATH}.NotificationService.render_template")
     def test_slack_sent_by_platform_is_not_compared(
         self,
@@ -767,7 +787,7 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         mock_legacy_build.assert_not_called()
         client.return_value.chat_postMessage.assert_not_called()
         mock_render.assert_not_called()
-        assert observation.outcome == ShadowOutcome.LEGACY_NOT_CAPTURED
+        assert observation.results == []
 
     def test_discord_matches(self) -> None:
         action = self.create_shadow_action("discord")

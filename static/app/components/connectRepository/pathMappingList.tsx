@@ -53,6 +53,7 @@ export const PathMappingList = withForm({
     existingMappings?: RepositoryProjectPathConfig[];
     projectSlug?: string;
     providerKey?: string;
+    repositoryId?: string;
     seededById?: Map<string, RepositoryProjectPathConfig>;
   },
   render: function PathMappingListRender({
@@ -61,6 +62,7 @@ export const PathMappingList = withForm({
     defaultBranch,
     existingMappings,
     projectSlug,
+    repositoryId,
     seededById,
   }) {
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
@@ -153,6 +155,7 @@ export const PathMappingList = withForm({
                               warning={warnings[i]}
                               providerKey={providerKey}
                               projectSlug={projectSlug}
+                              repositoryId={repositoryId}
                               defaultBranch={defaultBranch}
                               onDelete={() => handleDelete(i)}
                               onExpandToggle={() => toggle(meta.id)}

@@ -11,6 +11,7 @@ import type {
   InvestigationCandidate,
   InvestigationBlock,
   InvestigationBlockExecutionStart,
+  InvestigationComment,
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationListItem,
@@ -55,6 +56,24 @@ export function getInvestigationDetailQueryOptions(
         investigationId,
       },
       staleTime: 30_000,
+    }
+  );
+}
+
+/** Newest first, page-level and block comments together. */
+export function investigationCommentsQueryOptions({
+  organizationSlug,
+  investigationId,
+}: {
+  investigationId: string;
+  organizationSlug: string;
+}) {
+  return apiOptions.as<InvestigationComment[]>()(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/comments/',
+    {
+      path: {organizationIdOrSlug: organizationSlug, investigationId},
+      query: {per_page: 100},
+      staleTime: 0,
     }
   );
 }
@@ -440,8 +459,7 @@ export function useDeleteInvestigationBlockMutation(
 
 export function useRunInvestigationBlockMutation(
   organizationSlug: string,
-  investigationId: string,
-  options?: MutationOptions<InvestigationBlockExecutionStart, RunBlockVariables>
+  investigationId: string
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -450,8 +468,7 @@ export function useRunInvestigationBlockMutation(
   );
 
   return useMutation({
-    ...options,
-    mutationFn: ({block, investigationVersion}) =>
+    mutationFn: ({block, investigationVersion}: RunBlockVariables) =>
       fetchMutation<InvestigationBlockExecutionStart>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/',
@@ -469,7 +486,7 @@ export function useRunInvestigationBlockMutation(
           version: block.version,
         },
       }),
-    onSuccess: async (execution, variables, onMutateResult, context) => {
+    onSuccess: async (execution, variables) => {
       queryClient.setQueryData(detailOptions.queryKey, current =>
         current
           ? {
@@ -496,11 +513,9 @@ export function useRunInvestigationBlockMutation(
           : current
       );
       await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-      await options?.onSuccess?.(execution, variables, onMutateResult, context);
     },
-    onError: async (error, variables, onMutateResult, context) => {
+    onError: async () => {
       await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-      await options?.onError?.(error, variables, onMutateResult, context);
     },
   });
 }

@@ -510,6 +510,12 @@ class ExploreSavedFormula(DefaultFieldsModel):
     dataset = BoundedPositiveIntegerField(
         choices=ExploreSavedQueryDataset.as_choices(), db_default=ExploreSavedQueryDataset.SPANS
     )
+    # The corresponding prebuilt_id found in hardcoded prebuilt formulas from
+    # src/sentry/explore/endpoints/organization_explore_formulas.py
+    # If the saved query is not a prebuilt query, this will be None
+    prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
+    # Tombstone for prebuilts so we don't recreate them if a user decides to delete it
+    prebuilt_deleted = models.BooleanField(db_default=False)
 
     class Meta:
         app_label = "explore"
@@ -518,6 +524,10 @@ class ExploreSavedFormula(DefaultFieldsModel):
             UniqueConstraint(
                 fields=["organization_id", "name"],
                 name="explore_exploresavedformula_unique_name_per_organization",
+            ),
+            CheckConstraint(
+                condition=Q(prebuilt_id__isnull=False) | Q(prebuilt_deleted=False),
+                name="explore_exploresavedformula_prebuilt_deleted_requires_prebuilt",
             ),
         ]
 
@@ -529,6 +539,15 @@ class ExploreSavedFormula(DefaultFieldsModel):
             return "size"
         else:
             return "number"
+
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
+        if self.prebuilt_id is not None:
+            self.prebuilt_deleted = True
+            self.save(using=using)
+            return (1, {self._meta.label: 1})
+        return super().delete(using=using, keep_parents=keep_parents)
 
 
 class ParamItemTypes(TypesClass):

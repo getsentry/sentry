@@ -1,6 +1,8 @@
 import logging
 
+from sentry import features
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
@@ -196,6 +198,13 @@ def metric_alert_notification_data_factory(
         notification_uuid=notification_uuid,
         referrer=f"metric_alert_{action_type}",
     )
+    show_investigation_button = (
+        action_type == Action.Type.SLACK
+        and metric_issue_context.group is not None
+        and metric_issue_context.new_status != IncidentStatus.CLOSED
+        and features.has("organizations:investigations", organization)
+        and features.has("organizations:investigations-slack", organization)
+    )
 
     workflow_link = None
     if notification_context.workflow_id is not None:
@@ -215,6 +224,7 @@ def metric_alert_notification_data_factory(
         notes=notification_context.notes,
         workflow_name=notification_context.workflow_name,
         workflow_link=workflow_link,
+        show_investigation_button=show_investigation_button,
     )
 
 

@@ -1,14 +1,14 @@
 import type {LocationRange} from 'peggy';
 
+import type {TokenResult} from './parser';
 import {
   regexOperators,
   TermOperator,
   Token,
   wildcardOperators,
   type RegexOperator,
-  type TokenResult,
   type WildcardOperator,
-} from './parser';
+} from './tokens';
 
 /**
  * Used internally within treeResultLocator to stop recursion once we've

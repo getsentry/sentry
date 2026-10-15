@@ -41,8 +41,8 @@ import {
   useReleaseBubbles,
 } from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
+import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/constants';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {EVENT_GRAPH_WIDGET_ID} from 'sentry/views/issueDetails/eventGraphWidget';
 import {useCurrentEventMarklineSeries} from 'sentry/views/issueDetails/hooks/useEventMarkLineSeries';
 import {
   useIssueDetailsDiscoverQuery,
