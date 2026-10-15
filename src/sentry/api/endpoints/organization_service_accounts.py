@@ -41,9 +41,9 @@ from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_contex
 FEATURE_FLAG = "organizations:service-accounts"
 
 _MOCK_DATE_CREATED = "2026-10-14T00:00:00Z"
-_MOCK_ACCOUNT_ID = "1"
-_MOCK_ACCOUNT_NAME = "seer-night-shift"
-_MOCK_ACCOUNT_SCOPES = ["event:read", "org:read", "project:read"]
+_MOCK_SERVICE_ACCOUNT_ID = "1"
+_MOCK_SERVICE_ACCOUNT_NAME = "seer-night-shift"
+_MOCK_SERVICE_ACCOUNT_SCOPES = ["event:read", "org:read", "project:read"]
 
 SERVICE_ACCOUNT_ID = OpenApiParameter(
     name="service_account_id",
@@ -67,16 +67,16 @@ class ServiceAccountViewerContextResponse(TypedDict):
     expiresAt: str
 
 
-def _mock_account(
-    account_id: str = _MOCK_ACCOUNT_ID,
-    name: str = _MOCK_ACCOUNT_NAME,
+def _mock_service_account(
+    service_account_id: str = _MOCK_SERVICE_ACCOUNT_ID,
+    name: str = _MOCK_SERVICE_ACCOUNT_NAME,
     scopes: list[str] | None = None,
     is_active: bool = True,
 ) -> ServiceAccountResponse:
     return {
-        "id": account_id,
+        "id": service_account_id,
         "name": name,
-        "scopes": scopes if scopes is not None else _MOCK_ACCOUNT_SCOPES,
+        "scopes": scopes if scopes is not None else _MOCK_SERVICE_ACCOUNT_SCOPES,
         "isActive": is_active,
         "dateCreated": _MOCK_DATE_CREATED,
     }
@@ -144,11 +144,11 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         },
     )
     def get(self, request: Request, organization: Organization) -> Response:
-        accounts = [_mock_account()]
+        service_accounts = [_mock_service_account()]
         return self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(
-                data_fn=lambda offset, limit: accounts[offset : offset + limit]
+                data_fn=lambda offset, limit: service_accounts[offset : offset + limit]
             ),
         )
 
@@ -172,7 +172,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
             return Response({"detail": serializer.errors}, status=400)
         data = serializer.validated_data
         return Response(
-            _mock_account(
+            _mock_service_account(
                 name=data["name"],
                 scopes=data["scopes"],
                 is_active=data.get("isActive", True),
@@ -204,7 +204,7 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
     def get(
         self, request: Request, organization: Organization, service_account_id: str
     ) -> Response:
-        return Response(_mock_account(account_id=service_account_id))
+        return Response(_mock_service_account(service_account_id=service_account_id))
 
     @extend_schema(
         operation_id="Update a Service Account",
@@ -230,9 +230,9 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
             return Response({"detail": serializer.errors}, status=400)
         data = serializer.validated_data
         return Response(
-            _mock_account(
-                account_id=service_account_id,
-                name=data.get("name", _MOCK_ACCOUNT_NAME),
+            _mock_service_account(
+                service_account_id=service_account_id,
+                name=data.get("name", _MOCK_SERVICE_ACCOUNT_NAME),
                 scopes=data.get("scopes"),
                 is_active=data.get("isActive", True),
             )
