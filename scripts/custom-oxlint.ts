@@ -27,7 +27,15 @@ import type {OxlintConfig} from 'oxlint';
 
 // Native suppression counts deliberately allow replacements within one file/rule.
 type Suppressions = Record<string, Record<string, {count: number}>>;
-type Lease = {pid: number; token: string; original?: string | null; policy?: string};
+type Assets = Record<string, string | null>;
+type Lease = {
+  pid: number;
+  token: string;
+  assets?: Assets;
+  original?: string | null;
+  policies?: string[];
+  policy?: string;
+};
 type Finding = {
   column: number;
   file: string;
@@ -35,8 +43,10 @@ type Finding = {
   message: string;
   rule: string;
 };
-const root = process.cwd();
-const asset = path.join(root, 'oxlint-suppressions.json');
+const root = realpathSync(process.cwd());
+const assetName = 'oxlint-suppressions.json';
+const asset = path.join(root, assetName);
+let projects: string[] = [];
 const stateDirectory = path.join(root, '.artifacts/lint-incubator/transactions');
 const lock = path.join(stateDirectory, 'owner.json');
 const require = createRequire(path.join(root, 'package.json'));
@@ -122,6 +132,23 @@ function alive(pid: number) {
   }
 }
 
+function assetPath(file: string) {
+  assert(
+    validPath(file) && path.basename(file) === assetName,
+    'Invalid suppression asset path'
+  );
+  const target = path.join(root, file);
+  assert(
+    realpathSync(path.dirname(target)) === path.dirname(target),
+    'Suppression asset directory must not be a symlink'
+  );
+  assert(
+    !existsSync(target) || realpathSync(target) === target,
+    'Suppression asset must not be a symlink'
+  );
+  return target;
+}
+
 function readLease(file: string): Lease {
   const lease = JSON.parse(readFileSync(file, 'utf8')) as Lease;
   assert(typeof lease.token === 'string' && /^[\da-f-]+$/.test(lease.token));
@@ -139,6 +166,28 @@ function readLease(file: string): Lease {
       Buffer.from(lease.original, 'base64').toString('base64') === lease.original,
     `Corrupt lint transaction backup ${file}. Repair it before retrying.`
   );
+  if (lease.policies !== undefined) {
+    assert(Array.isArray(lease.policies));
+    for (const policy of lease.policies) {
+      assert(
+        validPath(policy) &&
+          /^\.oxlint-incubator-[\da-f-]+\.json$/.test(path.basename(policy)),
+        'Invalid transaction policy'
+      );
+    }
+  }
+  if (lease.assets !== undefined) {
+    assert(record(lease.assets), 'Invalid lint transaction assets');
+    for (const [name, bytes] of Object.entries(lease.assets)) {
+      assetPath(name);
+      assert(
+        bytes === null ||
+          (typeof bytes === 'string' &&
+            Buffer.from(bytes, 'base64').toString('base64') === bytes),
+        'Corrupt lint transaction asset'
+      );
+    }
+  }
   alive(lease.pid);
   return lease;
 }
@@ -157,6 +206,58 @@ function claim(file: string, lease: Lease) {
   } finally {
     rmSync(candidate, {force: true});
   }
+}
+
+function restoreAssets(assets: Assets) {
+  for (const [name, original] of Object.entries(assets)) {
+    const target = assetPath(name);
+    if (original === null) {
+      rmSync(target, {force: true});
+    } else {
+      atomicWrite(target, Buffer.from(original, 'base64'));
+    }
+  }
+}
+
+function flatten(assets: Assets, allowed?: Set<string>) {
+  const result: Suppressions = Object.create(null);
+  for (const [name, bytes] of Object.entries(assets)) {
+    if (bytes === null) {
+      continue;
+    }
+    const prefix = path.dirname(name);
+    for (const [file, rules] of Object.entries(
+      parseSuppressions(Buffer.from(bytes, 'base64').toString('utf8'), allowed)
+    )) {
+      const key = prefix === '.' ? file : prefix + '/' + file;
+      assert(!Object.hasOwn(result, key), 'Overlapping suppression ownership for ' + key);
+      result[key] = rules;
+    }
+  }
+  return result;
+}
+
+function partition(counts: Suppressions): Assets {
+  const result = Object.fromEntries(
+    projects.map(project => [
+      project ? project + '/' + assetName : assetName,
+      Object.create(null) as Suppressions,
+    ])
+  );
+  for (const [file, rules] of Object.entries(counts)) {
+    const project = projects.find(
+      prefix => prefix === '' || file.startsWith(prefix + '/')
+    )!;
+    result[project ? project + '/' + assetName : assetName]![
+      project ? file.slice(project.length + 1) : file
+    ] = rules;
+  }
+  return Object.fromEntries(
+    Object.entries(result).map(([name, budgets]) => [
+      name,
+      Buffer.from(serialize(budgets)).toString('base64'),
+    ])
+  );
 }
 
 function restore(original: string | null | undefined) {
@@ -186,7 +287,14 @@ async function acquire() {
             if (latest.token !== abandoned.token) {
               break;
             }
-            restore(latest.original);
+            if (latest.assets) {
+              restoreAssets(latest.assets);
+            } else {
+              restore(latest.original);
+            }
+            for (const policy of latest.policies ?? []) {
+              rmSync(path.join(root, policy), {force: true});
+            }
             if (latest.policy) {
               rmSync(path.join(root, latest.policy), {force: true});
             }
@@ -208,22 +316,36 @@ async function acquire() {
 
 async function transaction<T>(
   operation: (
-    original: string | null,
-    updateLease: (patch: Pick<Lease, 'original' | 'policy'>) => void
+    originals: Assets,
+    updateLease: (patch: Pick<Lease, 'assets' | 'policy' | 'policies'>) => void
   ) => Promise<T>
 ) {
   const lease = await acquire();
-  const updateLease = (patch: Pick<Lease, 'original' | 'policy'>) => {
+  const updateLease = (patch: Pick<Lease, 'assets' | 'policy' | 'policies'>) => {
     const next = {...lease, ...patch};
     atomicWrite(lock, JSON.stringify(next));
     Object.assign(lease, next);
   };
   try {
-    const original = existsSync(asset) ? readFileSync(asset).toString('base64') : null;
-    updateLease({original});
-    return await operation(original, updateLease);
+    const originals = Object.fromEntries(
+      projects.map(project => {
+        const name = project ? project + '/' + assetName : assetName;
+        const target = assetPath(name);
+        return [
+          name,
+          existsSync(target) ? readFileSync(target).toString('base64') : null,
+        ];
+      })
+    );
+    updateLease({assets: originals});
+    return await operation(originals, updateLease);
   } finally {
-    restore(lease.original);
+    if (lease.assets) {
+      restoreAssets(lease.assets);
+    }
+    for (const policy of lease.policies ?? []) {
+      rmSync(path.join(root, policy), {force: true});
+    }
     if (lease.policy) {
       rmSync(path.join(root, lease.policy), {force: true});
     }
@@ -244,7 +366,7 @@ function revision(ref: string) {
   return git(root, ['rev-parse', '--verify', '--end-of-options', `${ref}^{commit}`]);
 }
 
-async function rawScan(directory: string, allowed: Set<string>, policy: string) {
+async function nativeScan(directory: string, allowed: Set<string>, policy: string) {
   const result = await new Promise<{
     status: number | null;
     stderr: string;
@@ -327,6 +449,96 @@ async function rawScan(directory: string, allowed: Set<string>, policy: string) 
   return {counts, findings};
 }
 
+async function rawScan(directory: string, allowed: Set<string>, policy: string) {
+  const configured = projects.filter(
+    project => project && existsSync(path.join(root, project, 'oxlint.config.ts'))
+  );
+  const scanned = await nativeScan(directory, allowed, policy);
+  const counts: Suppressions = Object.create(null);
+  const findings = scanned.findings.filter(
+    finding => !configured.some(project => finding.file.startsWith(project + '/'))
+  );
+  for (const [file, rules] of Object.entries(scanned.counts)) {
+    if (!configured.some(project => file.startsWith(project + '/'))) {
+      counts[file] = rules;
+    }
+  }
+  const template: OxlintConfig = JSON.parse(readFileSync(policy, 'utf8'));
+  for (const project of configured) {
+    const projectRoot = path.join(directory, project);
+    if (!existsSync(projectRoot)) {
+      continue;
+    }
+    const {default: config}: {default: OxlintConfig} = await import(
+      pathToFileURL(path.join(root, project, 'oxlint.config.ts')).href
+    );
+    const projectRequire = createRequire(path.join(root, project, 'package.json'));
+    const enrolledRules = (rules: OxlintConfig['rules']) =>
+      Object.fromEntries(
+        Object.entries(rules ?? {})
+          .filter(([rule]) => allowed.has(canonicalRule(rule)))
+          .map(([rule, value]) => {
+            const severity = Array.isArray(value) ? value[0] : value;
+            return [
+              rule,
+              severity === 'off' || severity === 0
+                ? value
+                : Array.isArray(value)
+                  ? ['error', ...value.slice(1)]
+                  : 'error',
+            ];
+          })
+      );
+    const projectPolicy = path.join(projectRoot, path.basename(policy));
+    atomicWrite(
+      projectPolicy,
+      JSON.stringify({
+        ...config,
+        options: template.options,
+        categories: template.categories,
+        rules: enrolledRules(config.rules),
+        overrides: config.overrides?.map(({rules, ...context}) => ({
+          ...context,
+          rules: enrolledRules(rules),
+        })),
+        jsPlugins: config.jsPlugins?.map(plugin =>
+          typeof plugin === 'string'
+            ? projectRequire.resolve(plugin)
+            : {...plugin, specifier: projectRequire.resolve(plugin.specifier)}
+        ),
+      })
+    );
+    try {
+      const current = await nativeScan(projectRoot, allowed, projectPolicy);
+      for (const [file, rules] of Object.entries(current.counts)) {
+        const full = project + '/' + file;
+        if (
+          !configured.some(
+            child => child.startsWith(project + '/') && full.startsWith(child + '/')
+          )
+        ) {
+          counts[full] = rules;
+        }
+      }
+      findings.push(
+        ...current.findings
+          .filter(
+            finding =>
+              !configured.some(
+                child =>
+                  child.startsWith(project + '/') &&
+                  (project + '/' + finding.file).startsWith(child + '/')
+              )
+          )
+          .map(finding => ({...finding, file: project + '/' + finding.file}))
+      );
+    } finally {
+      rmSync(projectPolicy, {force: true});
+    }
+  }
+  return {counts, findings};
+}
+
 function fits(current: Suppressions, baseline: Suppressions, findings: Finding[] = []) {
   const increases: string[] = [];
   for (const [file, rules] of Object.entries(current)) {
@@ -387,11 +599,19 @@ function changedFiles(base: string) {
 }
 
 function committedBudgets(base: string, allowed?: Set<string>) {
-  if (!git(root, ['ls-tree', '--name-only', base, '--', 'oxlint-suppressions.json'])) {
+  const names = git(root, ['ls-tree', '-r', '--name-only', '-z', base])
+    .split('\0')
+    .filter(file => path.basename(file) === assetName);
+  if (names.length === 0) {
     return;
   }
-  return parseSuppressions(
-    git(root, ['show', `${base}:oxlint-suppressions.json`]),
+  return flatten(
+    Object.fromEntries(
+      names.map(name => [
+        name,
+        Buffer.from(git(root, ['show', base + ':' + name])).toString('base64'),
+      ])
+    ),
     allowed
   );
 }
@@ -446,12 +666,14 @@ async function ciBaseline(base: string, allowed: Set<string>, policy: string) {
     file =>
       [
         'oxlint.config.ts',
+        'oxlint.base.ts',
         'scripts/custom-oxlint.ts',
         'pnpm-lock.yaml',
         'pnpm-workspace.yaml',
         '.node-version',
       ].includes(file) ||
       file.startsWith('static/oxlint/') ||
+      /(^|\/)oxlint\.(?:config|base)\.[cm]?[jt]s$/.test(file) ||
       /(^|\/)(?:package\.json|tsconfig[^/]*\.json|\.(?:git|eslint|oxlint)ignore)$/.test(
         file
       )
@@ -530,7 +752,9 @@ async function baseScan(base: string, allowed: Set<string>, policy: string) {
         });
       }
     }
-    rmSync(path.join(directory, 'oxlint-suppressions.json'), {force: true});
+    for (const file of tracked(base).filter(name => path.basename(name) === assetName)) {
+      rmSync(path.join(directory, file), {force: true});
+    }
     const basePolicy = path.join(directory, '.oxlint-incubator-policy.json');
     cpSync(policy, basePolicy);
     const {counts} = await rawScan(directory, allowed, basePolicy);
@@ -613,6 +837,37 @@ Native oxlint options:
       'Use the committed lint policy. Use --enroll or --prune for suppression changes.'
     );
   }
+  const workspaces: unknown = JSON.parse(
+    execFileSync('pnpm', ['list', '--recursive', '--depth', '-1', '--json'], {
+      cwd: root,
+      encoding: 'utf8',
+    })
+  );
+  assert(Array.isArray(workspaces), 'Invalid pnpm workspace list');
+  projects = [
+    ...new Set([
+      '',
+      ...workspaces.map(workspace => {
+        assert(record(workspace) && typeof workspace.path === 'string');
+        const relative = path.relative(root, workspace.path);
+        assert(relative === '' || validPath(relative), 'Invalid workspace path');
+        return relative;
+      }),
+    ]),
+  ].sort((a, b) => b.length - a.length);
+  const knownAssets = new Set(
+    projects.map(project => (project ? project + '/' + assetName : assetName))
+  );
+  for (const file of existsSync(path.join(root, '.git'))
+    ? git(root, ['ls-files', '--cached', '--others', '--exclude-standard', '-z']).split(
+        '\0'
+      )
+    : []) {
+    assert(
+      path.basename(file) !== assetName || knownAssets.has(file),
+      'Suppression asset is outside a pnpm workspace: ' + file
+    );
+  }
   process.env.SENTRY_OXLINT_ENFORCE = 'true';
   const {default: config, incubator}: {default: OxlintConfig; incubator: OxlintConfig} =
     await import(pathToFileURL(path.join(root, 'oxlint.config.ts')).href);
@@ -647,15 +902,16 @@ Native oxlint options:
     }
   }
   if (!command) {
-    await transaction(async (original, updateLease) => {
+    await transaction(async (originals, updateLease) => {
       assert(
-        original !== null,
+        Object.values(originals).some(bytes => bytes !== null),
         'Missing oxlint-suppressions.json. Run pnpm run lint:js --enroll --base REF with trusted source.'
       );
-      const committed = parseSuppressions(
-        Buffer.from(original, 'base64').toString('utf8'),
-        allowed
-      );
+      const committed = flatten(originals, allowed);
+      for (const name of Object.keys(originals)) {
+        rmSync(assetPath(name), {force: true});
+      }
+      atomicWrite(asset, serialize(committed));
       // The pinned CLI uses this process, so a killed transaction has no orphan writer.
       process.argv = [process.execPath, nativeCLI, '--prune-suppressions', ...args];
       await import(pathToFileURL(nativeCLI).href);
@@ -665,6 +921,15 @@ Native oxlint options:
       }
       const candidate = parseSuppressions(readFileSync(asset, 'utf8'), allowed);
       fits(candidate, committed);
+      // Root lint does not own project policies; maintenance prunes their budgets.
+      const isolated = projects.filter(
+        project => project && existsSync(path.join(root, project, 'oxlint.config.ts'))
+      );
+      for (const [file, rules] of Object.entries(committed)) {
+        if (isolated.some(project => file.startsWith(project + '/'))) {
+          candidate[file] = rules;
+        }
+      }
       // Oxlint 1.85 puts every type-aware rule in this namespace, so fast fixes retain it.
       if (config.options?.typeAware !== true) {
         for (const [file, rules] of Object.entries(committed)) {
@@ -677,7 +942,7 @@ Native oxlint options:
       }
       const bytes = serialize(candidate);
       if (bytes !== serialize(committed)) {
-        updateLease({original: Buffer.from(bytes).toString('base64')});
+        updateLease({assets: partition(candidate)});
       }
     });
     return;
@@ -689,17 +954,22 @@ Native oxlint options:
     );
   }
   let replacement: Suppressions | undefined;
-  await transaction(async (original, updateLease) => {
-    const committed =
-      original === null
-        ? undefined
-        : parseSuppressions(
-            Buffer.from(original, 'base64').toString('utf8'),
-            ['prune', 'enroll'].includes(command) ? undefined : allowed
-          );
-    rmSync(asset, {force: true});
+  await transaction(async (originals, updateLease) => {
+    const committed = Object.values(originals).every(bytes => bytes === null)
+      ? undefined
+      : flatten(originals, ['prune', 'enroll'].includes(command) ? undefined : allowed);
+    for (const name of Object.keys(originals)) {
+      rmSync(assetPath(name), {force: true});
+    }
     const policy = path.join(root, `.oxlint-incubator-${randomUUID()}.json`);
-    updateLease({policy: path.basename(policy)});
+    updateLease({
+      policy: path.basename(policy),
+      policies: projects
+        .filter(
+          project => project && existsSync(path.join(root, project, 'oxlint.config.ts'))
+        )
+        .map(project => project + '/' + path.basename(policy)),
+    });
     const absolutePlugin = (specifier: string) => require.resolve(specifier);
     atomicWrite(
       policy,
@@ -815,7 +1085,7 @@ Native oxlint options:
       }
       if (replacement) {
         // Updating the durable original makes a completed maintenance write recoverable too.
-        updateLease({original: Buffer.from(serialize(replacement)).toString('base64')});
+        updateLease({assets: partition(replacement)});
       }
     } finally {
       rmSync(policy, {force: true});
