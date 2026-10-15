@@ -1,7 +1,6 @@
 import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
-import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
@@ -181,14 +180,6 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
           show: ({isSelfHosted}) => isSelfHosted || false,
           id: 'early-features',
           recordAnalytics: true,
-        },
-        {
-          path: `${organizationSettingsPathPrefix}/dynamic-sampling/`,
-          title: t('Dynamic Sampling'),
-          description: t('Manage your sampling rate'),
-          badge: () => 'alpha',
-          show: ({organization}) =>
-            !!organization && hasDynamicSamplingCustomFeature(organization),
         },
         {
           path: `${organizationSettingsPathPrefix}/feature-flags/`,

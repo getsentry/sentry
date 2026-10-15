@@ -129,19 +129,6 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ---
 
-### `formatPercent(value)` (dynamic sampling)
-
-[formatPercent.tsx](../../views/settings/dynamicSampling/utils/formatPercent.tsx) · Input is already a **percentage (0–100)**. Uses `Math.round(value * 100 * 100) / 100` as a guard against floating-point drift (e.g. `89.9999 → 90`), then `formatFloat` which **truncates** (not rounds) to **2 decimal places**.
-
-| Input     | Output                     |
-| --------- | -------------------------- |
-| `50`      | `"50"`                     |
-| `12.345`  | `"12.34"`                  |
-| `89.9999` | `"90"` (round guard fires) |
-| `0.1`     | `"0.1"`                    |
-
----
-
 ### `formatYAxisValue(value, 'percentage', ...)` / `formatTooltipValue(value, 'percentage', ...)`
 
 [formatYAxisValue.tsx](../../views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue.tsx) · Y-axis uses **3 dp** (`formatPercentage(value, 3)`); tooltip uses **2 dp** (`formatPercentage(value, 2)`).
@@ -347,14 +334,11 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 | Method                                      | Used In                                                                  | Behavior                                        |
 | ------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------- |
 | `lodash/round`                              | `formatPercentage`, `getExactDuration`, `formatSecondsToClock`           | Round half-away from zero                       |
-| `Math.round`                                | `formatPercent` (pre-truncation guard)                                   | Round half-up                                   |
 | `Math.floor` + `parseInt` truncation        | `formatFloat`, `formatAbbreviatedNumber`, `formatDuration` clock/ISO     | Truncate toward zero (floor for positives)      |
 | `.toFixed(n)`                               | `formatTraceDuration`, `axisDuration`, `getDuration`, `formatBytesBase2` | JS spec: round half-up; forces exactly n digits |
 | `Intl roundingMode: 'trunc'`                | `formatApdex`                                                            | Explicit truncation via `Intl`                  |
 | `toLocaleString` w/ `maximumFractionDigits` | Most formatters                                                          | Browser-defined (usually round half-even)       |
 | `notation: 'compact'`                       | `formatRate`, `formatYAxisValue` for rates                               | Compact SI with significant digit control       |
-
-> **Gotcha:** `formatPercent` uses `Math.round` as a pre-truncation guard (to avoid `89.9999 → 89.99`), but the final step is still `formatFloat` which **truncates**, not rounds.
 
 ---
 
@@ -496,19 +480,6 @@ Plus always via `formatDollars`. The dedicated function is barely used directly 
 
 ---
 
-## `formatPercent` (dynamic sampling variant) — 4 call sites
-
-All in `static/app/views/settings/dynamicSampling/`:
-
-- `projectsPreviewTable.tsx`
-- `samplingModeSwitchModal.tsx`
-- `samplingBreakdown.tsx`
-- `projectsEditTable.tsx`
-
-Entirely contained in that one feature area. The truncation-after-rounding behavior (unique to this formatter) is invisible to the rest of the app.
-
----
-
 ## `formatNumberWithDynamicDecimalPoints` — internal-only
 
 Not called directly from UI components — always via `formatBytesBase10`, `formatBytesBase2(x, false)` (unused), or `formatMetricUsingUnit`. One exception: `preprodBuildsDistributionTable.tsx:54` passes `(downloadCount, 0)` — which is essentially `toLocaleString()` with commas. That's the only direct UI usage.
@@ -566,7 +537,7 @@ The same data (a span duration in ms) gets formatted **at least four ways** acro
 ### The "optional parameters that nobody passes" list
 
 - `formatPercentage`: `nullValue` (0 real call sites)
-- `formatAbbreviatedNumber`: `includeDecimals` (only via `formatAbbreviatedNumberWithDynamicPrecision`), `maximumSignificantDigits` (only dynamic sampling, n=2)
+- `formatAbbreviatedNumber`: `includeDecimals` (only via `formatAbbreviatedNumberWithDynamicPrecision`), `maximumSignificantDigits` (0 real call sites)
 - `formatRate`: `significantDigits` (0 real call sites)
 - `formatBytesBase2`: `fixPoints: false` dynamic mode (0 real call sites)
 - `getDuration`: `absolute` (0 real call sites), `minimumUnit` (0 real call sites)
@@ -577,7 +548,6 @@ The same data (a span duration in ms) gets formatted **at least four ways** acro
 - `formatSecondsToClock` — 2 call sites (replay share)
 - `axisDuration` — 1 call site (discover y-axis)
 - `formatTraceDuration` — 3 call sites (trace view only)
-- `formatPercent` — 4 call sites (dynamic sampling only)
 - `formatAbbreviatedNumberWithDynamicPrecision` (direct) — 2 call sites
 
 ### The two "default-only" champions

@@ -90,13 +90,11 @@ export interface Organization extends OrganizationSummary {
   replayAccessMembers: number[];
   requiresSso: boolean;
   safeFields: string[];
-  samplingMode: 'organization' | 'project';
   scrapeJavaScript: boolean;
   scrubIPAddresses: boolean;
   sensitiveFields: string[];
   storeCrashReports: number;
   streamlineOnly: boolean | null;
-  targetSampleRate: number;
   teamRoleList: TeamRole[];
   consoleSdkInviteQuota?: number;
   dashboardsAsyncQueueParallelLimit?: number;

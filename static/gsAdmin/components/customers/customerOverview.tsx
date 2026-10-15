@@ -912,9 +912,6 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
           <DetailLabel title="Payment Source">
             {customer.paymentSource ? `··· ${customer.paymentSource.last4}` : 'n/a'}{' '}
           </DetailLabel>
-          <DetailLabel title="Dynamic Sampling Mode">
-            {organization.samplingMode ?? 'n/a'}
-          </DetailLabel>
           <DynamicSampling organization={organization} />
         </DescriptionList>
 
