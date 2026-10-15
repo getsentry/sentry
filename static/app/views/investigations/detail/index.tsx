@@ -25,6 +25,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct, tn} from 'sentry/locale';
+import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -150,6 +151,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const composerRef = useRef<HTMLDivElement>(null);
   const {data: comments} = useInvestigationComments(investigation.id);
   const commentCount = comments?.json.length ?? 0;
+  const hasMoreComments =
+    parseLinkHeader(comments?.headers.Link ?? null).next?.results === true;
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
   const titleGenerationSettledFor = useRef<string | null>(null);
@@ -362,6 +365,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
           <Button
             icon={<IconChat />}
             disabled={investigation.status === 'archived'}
+            tooltipProps={{
+              title:
+                investigation.status === 'archived'
+                  ? t("Archived investigations can't be commented on")
+                  : undefined,
+            }}
             onClick={() => {
               composerRef.current?.scrollIntoView?.({
                 block: 'center',
@@ -370,9 +379,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               composerRef.current?.focus({preventScroll: true});
             }}
           >
-            {commentCount > 0
-              ? tn('%s comment', '%s comments', commentCount)
-              : t('Comment')}
+            {hasMoreComments
+              ? t('%s+ comments', commentCount)
+              : commentCount > 0
+                ? tn('%s comment', '%s comments', commentCount)
+                : t('Comment')}
           </Button>
         </TopBar.Slot>
         <Container as="header" width="100%" padding="xl xl 3xl">

@@ -29,7 +29,8 @@ export function CommentComposer({
     organization.slug,
     investigationId,
     {
-      onSuccess: () => setValue(EMPTY_VALUE),
+      onSuccess: (_comment, {body: submitted}) =>
+        setValue(current => (current.text.trim() === submitted ? EMPTY_VALUE : current)),
       onError: () => addErrorMessage(t('Unable to post comment')),
     }
   );
