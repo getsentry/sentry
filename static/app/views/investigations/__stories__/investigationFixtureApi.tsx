@@ -475,6 +475,16 @@ function handleFixtureRequest(
     };
   }
 
+  if (parts[1] === 'comment-counts' && parts.length === 2 && method === 'GET') {
+    const counts: Record<string, number> = {};
+    for (const comment of state.comments.get(investigationId) ?? []) {
+      if (comment.blockId) {
+        counts[comment.blockId] = (counts[comment.blockId] ?? 0) + 1;
+      }
+    }
+    return {body: counts};
+  }
+
   if (parts[1] === 'comments' && parts.length === 2 && method === 'POST') {
     const comments = state.comments.get(investigationId) ?? [];
     const now = new Date().toISOString();

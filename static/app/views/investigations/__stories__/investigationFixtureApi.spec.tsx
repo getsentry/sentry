@@ -422,5 +422,29 @@ describe('InvestigationFixtureApi', () => {
         expect.stringContaining('Reverting the minimum instance count'),
       ]);
     });
+
+    it('counts comments per block', async () => {
+      render(
+        <InvestigationFixtureApi
+          organizationSlug="storybook-comment-counts-test"
+          details={[commentedInvestigation]}
+          comments={{[commentedInvestigation.id]: commentedInvestigationComments}}
+        >
+          <div>Fixture ready</div>
+        </InvestigationFixtureApi>,
+        {organization}
+      );
+
+      expect(await screen.findByText('Fixture ready')).toBeInTheDocument();
+      expect(
+        await QUERY_API_CLIENT.requestPromise(
+          `/organizations/storybook-comment-counts-test/investigations/${commentedInvestigation.id}/comment-counts/`
+        )
+      ).toEqual({
+        'commented-query': 3,
+        'commented-notes': 1,
+        'deleted-cdn-check': 1,
+      });
+    });
   });
 });
