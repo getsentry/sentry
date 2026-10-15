@@ -4,6 +4,8 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -109,8 +111,49 @@ export function OrganizationSampling() {
                     period={period}
                     targetSampleRate={field.state.value}
                     savedTargetSampleRate={savedTargetSampleRate}
-                    onTargetSampleRateChange={field.handleChange}
-                    targetSampleRateError={field.state.meta.errors[0]?.message}
+                    targetSampleRateInput={
+                      <Container borderBottom="muted">
+                        <field.Layout.Row
+                          padding="lg xl"
+                          label={t('Target Sample Rate')}
+                          hintText={t(
+                            'Set a global sample rate for your entire organization. This will determine how much incoming traffic should be stored across all your projects.'
+                          )}
+                        >
+                          <Stack gap="xs" align="end">
+                            <field.Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step="any"
+                              size="sm"
+                              width="120px"
+                              value={field.state.value}
+                              onChange={field.handleChange}
+                              disabled={
+                                hasAccess
+                                  ? undefined
+                                  : t(
+                                      'You do not have permission to change the sample rate.'
+                                    )
+                              }
+                              trailingItems="%"
+                            />
+                            {field.state.value !== savedTargetSampleRate && (
+                              <Text size="xs" variant="muted">
+                                {t('previous: %f%%', savedTargetSampleRate)}
+                              </Text>
+                            )}
+                            {field.state.value === savedTargetSampleRate &&
+                              field.state.value === '100' && (
+                                <Text size="xs" variant="muted">
+                                  {t('All spans are stored')}
+                                </Text>
+                              )}
+                          </Stack>
+                        </field.Layout.Row>
+                      </Container>
+                    }
                     actions={
                       <Fragment>
                         <form.ResetButton disabled={isPending}>

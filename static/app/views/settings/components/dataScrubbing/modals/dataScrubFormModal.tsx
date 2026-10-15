@@ -7,7 +7,6 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {
   defaultFormOptions,
   setFieldErrors,
@@ -15,7 +14,6 @@ import {
   useStore,
 } from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -381,10 +379,15 @@ export function DataScrubFormModal({
                     </RegularExpressionWrapper>
                     <form.AppField name="replaceCaptured">
                       {replaceCapturedField => (
-                        <ReplaceCapturedCheckbox
-                          pattern={patternField.state.value}
+                        <replaceCapturedField.Checkbox
+                          label={t('Only replace first capture match')}
+                          disabled={
+                            hasCaptureGroups(patternField.state.value)
+                              ? undefined
+                              : t('This rule does not contain capture groups')
+                          }
                           checked={replaceCapturedField.state.value}
-                          onChange={val => replaceCapturedField.handleChange(val)}
+                          onChange={replaceCapturedField.handleChange}
                         />
                       )}
                     </form.AppField>
@@ -542,37 +545,6 @@ export function DataScrubFormModal({
   );
 }
 
-function ReplaceCapturedCheckbox({
-  pattern,
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  pattern: string;
-}) {
-  const disabled = !hasCaptureGroups(pattern);
-  return (
-    <Tooltip
-      title={disabled ? t('This rule does not contain capture groups') : undefined}
-      disabled={!disabled}
-    >
-      <Flex gap="xs" align="center">
-        <Checkbox
-          id="replace-captured"
-          name="replaceCaptured"
-          checked={checked}
-          disabled={disabled}
-          onChange={e => onChange(e.target.checked)}
-        />
-        <ReplaceCapturedLabel htmlFor="replace-captured" disabled={disabled}>
-          {t('Only replace first capture match')}
-        </ReplaceCapturedLabel>
-      </Flex>
-    </Tooltip>
-  );
-}
-
 const SourceGroupContainer = styled('div')<{isExpanded?: boolean}>`
   transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
   transition-property: height;
@@ -617,15 +589,4 @@ const Toggle = styled(Button)`
     grid-template-columns: repeat(2, max-content);
     align-items: center;
   }
-`;
-
-const ReplaceCapturedLabel = styled('label')<{disabled: boolean}>`
-  font-weight: normal;
-  margin-bottom: 0;
-  line-height: 1rem;
-  ${p =>
-    p.disabled &&
-    css`
-      color: ${p.theme.tokens.content.disabled};
-    `}
 `;
