@@ -29,7 +29,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import create_legacy_notification_origin
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -923,7 +923,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     def test_response_differs_on_bot_message(self, _mock_view_updates_open: MagicMock) -> None:
         status_action = self.get_archive_status_action()
         original_message = self.get_original_message(self.group.id)
-        workflow_id = create_notification_origin(self.rule).workflow_id
+        workflow_id = create_legacy_notification_origin(self.rule).workflow_id
         assert workflow_id is not None
         callback_id = orjson.dumps({"issue": self.group.id, "workflow": workflow_id}).decode()
 
@@ -1249,7 +1249,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
 
         blocks = self.mock_post.call_args.kwargs["blocks"]
-        workflow_id = create_notification_origin(self.rule).workflow_id
+        workflow_id = create_legacy_notification_origin(self.rule).workflow_id
         assert workflow_id is not None
         assert f"workflow_id={workflow_id}" in blocks[0]["text"]["text"]
 
