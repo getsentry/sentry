@@ -30,7 +30,6 @@ import type {
   Subscription,
 } from 'getsentry/types';
 import {
-  displayPriceWithCents,
   getReservedBudgetCategoryForAddOn,
   getSlot,
   hasPartnerMigrationFeature,
@@ -47,29 +46,11 @@ import type {
   CheckoutFormData,
   PlanContent,
 } from 'getsentry/views/amCheckout/types';
-import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 import {
   normalizeOnDemandBudget,
   parseOnDemandBudgetsFromSubscription,
   trackOnDemandBudgetAnalytics,
 } from 'getsentry/views/spendLimits/utils';
-
-export {displayPriceWithCents};
-
-const CURRENCY_LOCALE = 'en-US';
-
-/**
- * Includes $, and cents in the price when needed.
- *
- * 100.01 => $100.01
- * 100.00 => $100
- * 100.30 => $100.30
- * -100 => -$100
- */
-type DisplayPriceTypes = {
-  cents: number;
-  formatBigNum?: boolean;
-};
 
 // Intent details returned by CustomerSubscriptionEndpoint
 // when there is an error and customer card actions are
@@ -88,60 +69,6 @@ type APIDataProps = {
   referrer?: string;
   shouldUpdateOnDemand?: boolean;
 };
-
-export function displayPrice({cents, formatBigNum = false}: DisplayPriceTypes): string {
-  const dollars = cents / 100;
-  const prefix = dollars >= 0 ? '$' : '-$';
-
-  if (formatBigNum) {
-    return prefix + bigNumFormatter(Math.abs(dollars));
-  }
-  const hasCents = dollars % 1 !== 0;
-  if (hasCents) {
-    return displayPriceWithCents({cents});
-  }
-  return prefix + Math.abs(dollars).toLocaleString(CURRENCY_LOCALE);
-}
-
-type UnitPriceProps = {
-  cents: number;
-  maxDigits?: number;
-  minDigits?: number;
-};
-
-/**
- * Includes cents in the price when needed and excludes $ for separate formatting.
- * Note: Use `displayPrice` if prices can be negative (ex: credits)
- *
- * 100.01 => 100.01
- * 100.00 => 100
- * 100.30 => 100.30
- * -100 => -100
- */
-export function formatPrice({cents}: {cents: number}): string {
-  return displayPrice({cents}).replace('$', '');
-}
-
-/**
- * Format per unit price for events,
- * where errors and transactions default to 5 digits
- * and attachments should use 2 digits.
- */
-export function displayUnitPrice({
-  cents,
-  minDigits = 5,
-  maxDigits = 7,
-}: UnitPriceProps): string {
-  const dollars = cents / 100;
-
-  return (
-    '$' +
-    dollars.toLocaleString(CURRENCY_LOCALE, {
-      minimumFractionDigits: minDigits,
-      maximumFractionDigits: maxDigits,
-    })
-  );
-}
 
 export function getBucket({
   buckets,
