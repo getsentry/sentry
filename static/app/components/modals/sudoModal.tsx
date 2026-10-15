@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import trimEnd from 'lodash/trimEnd';
 import {z} from 'zod';
@@ -29,8 +29,6 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -59,11 +57,7 @@ type DefaultProps = {
 type Props = DefaultProps &
   Pick<ModalRenderProps, 'Body' | 'Footer' | 'Header'> & {
     closeModal: () => void;
-    /**
-     * User is a superuser without an active su session
-     */
-    isSuperuser?: boolean;
-    needsReload?: boolean;
+    accessMode?: 'sudo' | 'superuser' | 'staff';
     /**
      * Org slug for per-org authorization. When set, the modal shows a
      * lightweight category + reason form instead of the full U2F flow.
@@ -106,11 +100,10 @@ function getErrorType(err: RequestError): ErrorCodes {
   }
 }
 
-function SudoModal({
+export function SudoModal({
   closeModal,
-  isSuperuser,
+  accessMode = 'sudo',
   orgSlug: targetOrgSlug,
-  needsReload,
   retryRequest,
   Header,
   Body,
@@ -118,11 +111,11 @@ function SudoModal({
   closeButton,
 }: Props) {
   const user = useUser();
-  const navigate = useNavigate();
   const params = useParams<{orgId?: string}>();
-  const location = useLocation();
   const api = useApi();
   const isOrgAuth = !!targetOrgSlug;
+  const isSuperuser = accessMode === 'superuser';
+  const isStaff = accessMode === 'staff';
 
   const [errorType, setErrorType] = useState<ErrorCodes>();
   const [superuserStep, setSuperuserStep] = useState<SuperuserStep>({
@@ -160,7 +153,7 @@ function SudoModal({
   } = useQuery({
     ...apiOptions.as<Authenticator[]>()('/authenticators/', {staleTime: 0}),
     // Fetch authenticators after preload requests to avoid overwriting session cookie
-    enabled: !bootstrapIsPending,
+    enabled: !bootstrapIsPending && !(isStaff && disableU2FForSUForm),
     retry: false,
     // Immeditealy refetch authenticators on window / tab focus. If a user had
     // multiple tabs open and required authentication in any other tabs we may
@@ -170,21 +163,9 @@ function SudoModal({
   });
 
   const handleSuccess = useCallback(() => {
-    if (isOrgAuth) {
-      // Always do a full reload for org-auth: multiple parallel queries
-      // will have 403'd, and retrying just one leaves the rest broken.
+    if (isOrgAuth || isSuperuser || isStaff) {
+      // Elevated sessions change bootstrap permissions and the available cells.
       testableWindowLocation.reload();
-      return;
-    }
-
-    if (isSuperuser) {
-      navigate(
-        {pathname: location.pathname, state: {forceUpdate: new Date()}},
-        {replace: true}
-      );
-      if (needsReload) {
-        testableWindowLocation.reload();
-      }
       return;
     }
 
@@ -194,15 +175,7 @@ function SudoModal({
     }
 
     retryRequest().then(closeModal);
-  }, [
-    closeModal,
-    isOrgAuth,
-    isSuperuser,
-    location.pathname,
-    navigate,
-    needsReload,
-    retryRequest,
-  ]);
+  }, [closeModal, isOrgAuth, isStaff, isSuperuser, retryRequest]);
 
   const handleError = useCallback((err: unknown) => {
     setErrorType(
@@ -216,7 +189,11 @@ function SudoModal({
 
   const {mutateAsync: authenticate} = useMutation({
     mutationFn: (data: AuthPayload) =>
-      fetchMutation({method: 'PUT', url: getApiUrl('/auth/'), data}),
+      fetchMutation({
+        method: 'PUT',
+        url: isStaff ? getApiUrl('/staff-auth/') : getApiUrl('/auth/'),
+        data,
+      }),
     onSuccess: handleSuccess,
     onError: handleError,
   });
@@ -286,6 +263,21 @@ function SudoModal({
   const webAuthnAccess =
     superuserStep.step === 'webauthn' ? superuserStep.access : undefined;
 
+  const staffAutoSubmitted = useRef(false);
+  useEffect(() => {
+    if (
+      !isStaff ||
+      !disableU2FForSUForm ||
+      bootstrapIsPending ||
+      staffAutoSubmitted.current
+    ) {
+      return;
+    }
+
+    staffAutoSubmitted.current = true;
+    authenticate({}).catch(() => {});
+  }, [authenticate, bootstrapIsPending, disableU2FForSUForm, isStaff]);
+
   const handleWebAuthn = useCallback(
     async (data: {challenge: string; response: string}) => {
       const payload: AuthPayload = {...data, isSuperuserModal: isSuperuser};
@@ -310,7 +302,10 @@ function SudoModal({
 
   // Resolved at render time so it reports even when validation blocks submission.
   const noAuthenticator =
-    isSuperuser && !disableU2FForSUForm && authenticatorsLoaded && !authenticators.length;
+    (isStaff || isSuperuser) &&
+    !disableU2FForSUForm &&
+    authenticatorsLoaded &&
+    !authenticators.length;
   const resolvedErrorType =
     errorType ?? (noAuthenticator ? ErrorCodes.NO_AUTHENTICATOR : undefined);
 
@@ -327,7 +322,9 @@ function SudoModal({
   const validateSUForm = ConfigStore.get('validateSUForm');
   const header = (
     <Header closeButton={closeButton}>
-      <Heading as="h4">{t('Confirm Password to Continue')}</Heading>
+      <Heading as="h4">
+        {isStaff ? t('Admin access') : t('Confirm Password to Continue')}
+      </Heading>
     </Header>
   );
 
@@ -336,6 +333,38 @@ function SudoModal({
       <Fragment>
         {header}
         <Body />
+      </Fragment>
+    );
+  }
+
+  if (isStaff) {
+    return (
+      <Fragment>
+        {header}
+        <Body>
+          <Stack gap="xl">
+            {resolvedErrorType && <Alert variant="danger">{resolvedErrorType}</Alert>}
+            {disableU2FForSUForm ? (
+              errorType ? (
+                <Button onClick={() => authenticate({}).catch(() => {})}>
+                  {t('Try again')}
+                </Button>
+              ) : (
+                <LoadingIndicator />
+              )
+            ) : authenticatorsLoaded ? (
+              authenticators.length > 0 ? (
+                <WebAuthn
+                  mode="sudo"
+                  authenticators={authenticators}
+                  onWebAuthn={handleWebAuthn}
+                />
+              ) : null
+            ) : (
+              <LoadingIndicator />
+            )}
+          </Stack>
+        </Body>
       </Fragment>
     );
   }
@@ -518,5 +547,3 @@ function SudoModal({
     </passwordForm.AppForm>
   );
 }
-
-export default SudoModal;

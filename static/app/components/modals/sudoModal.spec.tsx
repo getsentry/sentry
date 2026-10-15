@@ -1,14 +1,15 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {makeClosableHeader, ModalBody, ModalFooter} from '@sentry/scraps/modal';
 
-import SudoModal from 'sentry/components/modals/sudoModal';
+import {SudoModal} from 'sentry/components/modals/sudoModal';
 import {registerOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {SuperuserAccessCategoryProps} from 'sentry/types/overrides';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {App} from 'sentry/views/app';
 
 function TestAccessCategory({RadioItem}: SuperuserAccessCategoryProps) {
@@ -155,6 +156,82 @@ describe('Sudo Modal', () => {
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
   });
 
+  it('authenticates staff through the staff endpoint and reloads bootstrap', async () => {
+    ConfigStore.set('disableU2FForSUForm', true);
+    const authenticate = MockApiClient.addMockResponse({
+      url: '/staff-auth/',
+      method: 'PUT',
+    });
+    render(
+      <SudoModal
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        accessMode="staff"
+      />
+    );
+
+    await waitFor(() =>
+      expect(authenticate).toHaveBeenCalledWith(
+        '/staff-auth/',
+        expect.objectContaining({method: 'PUT', data: {}})
+      )
+    );
+    expect(testableWindowLocation.reload).toHaveBeenCalled();
+  });
+
+  it('waits for bootstrap requests before authenticating staff', async () => {
+    ConfigStore.set('disableU2FForSUForm', true);
+    const {promise, resolve} = Promise.withResolvers<void>();
+    const organization = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      body: OrganizationFixture(),
+      asyncDelay: promise,
+    });
+    const authenticate = MockApiClient.addMockResponse({
+      url: '/staff-auth/',
+      method: 'PUT',
+    });
+    render(
+      <SudoModal
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        accessMode="staff"
+      />,
+      {
+        initialRouterConfig: {
+          route: '/organizations/:orgId/',
+          location: {pathname: '/organizations/org-slug/'},
+        },
+      }
+    );
+
+    await waitFor(() => expect(organization).toHaveBeenCalled());
+    expect(authenticate).not.toHaveBeenCalled();
+    act(() => resolve());
+    await waitFor(() => expect(authenticate).toHaveBeenCalledTimes(1));
+  });
+
+  it('requires a security key for staff authentication', async () => {
+    ConfigStore.set('disableU2FForSUForm', false);
+    render(
+      <SudoModal
+        Header={makeClosableHeader(jest.fn())}
+        Body={ModalBody}
+        Footer={ModalFooter}
+        closeModal={jest.fn()}
+        accessMode="staff"
+      />
+    );
+
+    expect(
+      await screen.findByText('Please add a U2F authenticator to your Sentry account')
+    ).toBeInTheDocument();
+  });
+
   describe('superuser', () => {
     beforeEach(() => {
       registerOverride('component:superuser-access-category', TestAccessCategory);
@@ -171,7 +248,7 @@ describe('Sudo Modal', () => {
           Body={ModalBody}
           Footer={ModalFooter}
           closeModal={jest.fn()}
-          isSuperuser
+          accessMode="superuser"
         />
       );
     }
