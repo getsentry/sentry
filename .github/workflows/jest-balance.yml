@@ -81,6 +81,7 @@ jobs:
         with:
           name: jest-balance-${{ matrix.index }}
           path: .artifacts/jest-balance/*.json
+          include-hidden-files: true
 
   combine-balance:
     needs: jest-balance
