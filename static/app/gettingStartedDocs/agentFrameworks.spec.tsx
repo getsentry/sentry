@@ -4,6 +4,8 @@ import {docs as flueDocs} from 'sentry/gettingStartedDocs/node-flue';
 import {onboarding as flueOnboarding} from 'sentry/gettingStartedDocs/node-flue/onboarding';
 import {docs as mastraDocs} from 'sentry/gettingStartedDocs/node-mastra';
 import {onboarding as mastraOnboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
+import {docs as piDocs} from 'sentry/gettingStartedDocs/pi';
+import {onboarding as piOnboarding} from 'sentry/gettingStartedDocs/pi/onboarding';
 
 describe('agent framework getting started docs', () => {
   it.each([
@@ -20,4 +22,12 @@ describe('agent framework getting started docs', () => {
       expect(docs.agentMonitoringOnboarding).toBeDefined();
     }
   );
+
+  it('uses dedicated Pi setup without Node SDK product docs', () => {
+    expect(piDocs.onboarding).toBe(piOnboarding);
+    expect(piDocs.agentMonitoringOnboarding).toBeDefined();
+    expect(piDocs.logsOnboarding).toBeUndefined();
+    expect(piDocs.metricsOnboarding).toBeUndefined();
+    expect(piDocs.profilingOnboarding).toBeUndefined();
+  });
 });

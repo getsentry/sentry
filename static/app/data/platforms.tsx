@@ -560,6 +560,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/php/guides/symfony/',
   },
   {
+    id: 'pi',
+    name: 'Pi',
+    type: 'framework',
+    language: 'pi',
+    link: 'https://github.com/getsentry/sentry-agent-tracing/tree/main/packages/pi#readme',
+  },
+  {
     id: 'playstation',
     name: 'PlayStation',
     type: 'console',

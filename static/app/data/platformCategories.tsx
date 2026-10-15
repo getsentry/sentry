@@ -889,6 +889,7 @@ export const agentMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([
   'deno',
   'bun',
   'php-laravel',
+  'pi',
 ]);
 
 export const mcpMonitoringPlatforms: ReadonlySet<PlatformKey> = new Set([

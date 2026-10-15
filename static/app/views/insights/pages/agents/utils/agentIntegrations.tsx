@@ -17,6 +17,9 @@ export enum AgentIntegration {
   // Node-only: Vercel's filesystem-first framework for durable backend AI
   // agents, built on top of the Vercel AI SDK.
   EVE = 'eve',
+  // Pi is a coding agent, not a library. The `@sentry/pi` extension from
+  // sentry-agent-tracing sends its sessions without the Sentry SDK.
+  PI = 'pi',
   // Cloudflare-only: the Workers AI binding (env.AI) auto-instruments once the
   // Worker is wrapped with Sentry.
   WORKERS_AI = 'workers_ai',
@@ -38,6 +41,7 @@ export const AGENT_INTEGRATION_LABELS: Record<AgentIntegration, string> = {
   [AgentIntegration.PYDANTIC_AI]: 'Pydantic AI',
   [AgentIntegration.VERCEL_AI]: 'Vercel AI SDK',
   [AgentIntegration.EVE]: 'Eve',
+  [AgentIntegration.PI]: 'Pi',
   [AgentIntegration.WORKERS_AI]: 'Workers AI',
   [AgentIntegration.CLOUDFLARE_AGENTS]: 'Cloudflare Agents SDK',
   [AgentIntegration.MANUAL]: 'Other',
@@ -57,6 +61,7 @@ export const AGENT_INTEGRATION_ICONS: Record<AgentIntegration, string> = {
   [AgentIntegration.VERCEL_AI]: 'vercel',
   // Eve is a Vercel framework, so it reuses the Vercel icon.
   [AgentIntegration.EVE]: 'vercel',
+  [AgentIntegration.PI]: 'pi',
   [AgentIntegration.WORKERS_AI]: 'cloudflare',
   [AgentIntegration.CLOUDFLARE_AGENTS]: 'cloudflare',
   [AgentIntegration.MANUAL]: 'default',
@@ -92,6 +97,7 @@ export const NODE_AGENT_INTEGRATIONS = [
   AgentIntegration.LANGGRAPH,
   AgentIntegration.MASTRA,
   AgentIntegration.OPENAI,
+  AgentIntegration.PI,
   AgentIntegration.MANUAL,
 ];
 
@@ -128,6 +134,7 @@ const DEFAULT_AGENT_INTEGRATION_BY_PROJECT_PLATFORM: Partial<
   'node-eve': AgentIntegration.EVE,
   'node-flue': AgentIntegration.FLUE,
   'node-mastra': AgentIntegration.MASTRA,
+  pi: AgentIntegration.PI,
 };
 
 export function getDefaultAgentIntegration(
@@ -146,6 +153,7 @@ export function getDefaultAgentIntegration(
  * - Mastra's `@mastra/sentry` exporter is not part of the Cloudflare `withSentry`
  *   flow, so it is Node-only.
  * - Eve is a Vercel backend framework that runs on Node, so it is Node-only.
+ * - Pi is a coding agent whose extensions run on Node, so it is Node-only.
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/
  */
@@ -156,6 +164,7 @@ const INTEGRATION_DEPLOYMENT_TARGETS: Partial<
   [AgentIntegration.CLOUDFLARE_AGENTS]: DeploymentTarget.CLOUDFLARE,
   [AgentIntegration.MASTRA]: DeploymentTarget.NODE,
   [AgentIntegration.EVE]: DeploymentTarget.NODE,
+  [AgentIntegration.PI]: DeploymentTarget.NODE,
 };
 
 /**

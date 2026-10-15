@@ -15,6 +15,7 @@ import {
 import {onboarding as eveFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-eve/onboarding';
 import {onboarding as flueFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-flue/onboarding';
 import {onboarding as mastraFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
+import {onboarding as piFrameworkOnboarding} from 'sentry/gettingStartedDocs/pi/onboarding';
 import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
@@ -94,10 +95,11 @@ function getGenAiDataCollectionSnippet(params: DocsParams): string {
 
 /**
  * The data collection step for agent monitoring, leading with generative AI
- * content. Returns no step for Eve, which never configures the Sentry SDK.
+ * content. Returns no step for Eve and Pi, which never configure the Sentry SDK.
  */
 export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[] {
-  if (getAgentIntegration(params) === AgentIntegration.EVE) {
+  const selected = getAgentIntegration(params);
+  if (selected === AgentIntegration.EVE || selected === AgentIntegration.PI) {
     return [];
   }
 
@@ -798,6 +800,10 @@ export function getInstallStep(
     return eveFrameworkOnboarding.install(params);
   }
 
+  if (selected === AgentIntegration.PI) {
+    return piFrameworkOnboarding.install(params);
+  }
+
   const resolvedPackageName =
     getDeploymentTarget(params) === DeploymentTarget.CLOUDFLARE
       ? '@sentry/cloudflare'
@@ -1022,6 +1028,10 @@ function getVerifyStep(params: DocsParams): OnboardingStep[] {
     return eveFrameworkOnboarding.verify(params);
   }
 
+  if (selected === AgentIntegration.PI) {
+    return piFrameworkOnboarding.verify(params);
+  }
+
   // The Agents SDK only produces spans once the wrapped agent runs, so there's
   // no standalone snippet to verify - trigger the agent instead.
   if (selected === AgentIntegration.CLOUDFLARE_AGENTS) {
@@ -1234,6 +1244,10 @@ function getAgentConfigureSteps(
 
   if (selected === AgentIntegration.EVE) {
     return eveFrameworkOnboarding.configure(params);
+  }
+
+  if (selected === AgentIntegration.PI) {
+    return piFrameworkOnboarding.configure(params);
   }
 
   return getConfigureStep({

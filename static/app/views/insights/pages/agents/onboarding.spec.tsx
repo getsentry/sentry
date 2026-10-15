@@ -160,6 +160,7 @@ describe('Onboarding deployment target', () => {
     ['node-mastra', 'Mastra', /@mastra\/observability/],
     ['node-flue', 'Flue', /flue add tooling sentry/],
     ['node-eve', 'Eve', /Install the Sentry Node SDK in your Eve project/],
+    ['pi', 'Pi', /pi install npm:@sentry\/pi/],
   ] as const)(
     'uses the %s project integration without showing a selector',
     async (platform, integration, setupCode) => {
@@ -174,7 +175,7 @@ describe('Onboarding deployment target', () => {
     }
   );
 
-  it.each(['node-mastra', 'node-flue', 'node-eve'] as const)(
+  it.each(['node-mastra', 'node-flue', 'node-eve', 'pi'] as const)(
     'hides generic Conversations guidance for %s projects',
     async platform => {
       const {organization} = setupProject(platform);

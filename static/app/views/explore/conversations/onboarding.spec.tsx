@@ -269,6 +269,22 @@ describe('ConversationOnboarding', () => {
     expect(screen.getByText('Identify Users (optional)')).toBeInTheDocument();
   });
 
+  it('hides the conversation ID and user steps for Pi', async () => {
+    const {organization} = setupProject('node');
+
+    render(<ConversationOnboarding onDismiss={jest.fn()} />, {organization});
+    await userEvent.click(await screen.findByRole('tab', {name: 'For you'}));
+
+    expect(await screen.findByText('Set Conversation ID')).toBeInTheDocument();
+
+    // Pi sets the conversation ID and the user without the Sentry SDK.
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Pi'}));
+
+    expect(screen.queryByText('Set Conversation ID')).not.toBeInTheDocument();
+    expect(screen.queryByText('Identify Users (optional)')).not.toBeInTheDocument();
+  });
+
   it('does not track setup instructions as an AI prompt copy', async () => {
     const {organization} = setupProject('node');
 
