@@ -64,7 +64,7 @@ export function UserDropdown() {
       trigger={triggerProps => (
         <AvatarButton
           {...triggerProps}
-          aria-label={user.email}
+          aria-label={t('Account')}
           avatar={avatarProps}
           analyticsEventKey="navigation.primary_item_clicked"
           analyticsEventName="Navigation: Primary Item Clicked"
