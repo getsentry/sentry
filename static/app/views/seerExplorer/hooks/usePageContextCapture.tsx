@@ -1,6 +1,7 @@
-import {useCallback, useSyncExternalStore} from 'react';
+import {useCallback, useEffect, useState, useSyncExternalStore} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   useLLMContext,
   useLLMContextRegistry,
@@ -57,10 +58,10 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
  * also pass `isLoading` to useLLMContext.
  */
 const PAGE_CONTEXT_READY_NODES = new Map<string, LLMContextNodeType[]>([
-  // The dashboard node registers before its widgets, which mount lazily.
-  // Prebuilt dashboards showing onboarding have no widgets, so use a separate node
-  // type for them.
-  ['/dashboard/:dashboardId/', ['widget', 'dashboard-onboarding']],
+  // The "dashboard" node registers before its widgets, which mount lazily,
+  // so at least one "widget" node must be ready. Prebuilt dashboards showing
+  // onboarding have no widgets, so "dashboard" node being ready is enough.
+  ['/dashboard/:dashboardId/', ['dashboard', 'widget']],
   ['/explore/replays/:replaySlug/', ['replay-detail']],
   ['/issues/:groupId/', ['issue-detail']],
   ['/issues/:groupId/events/', ['issue-detail']],
@@ -122,9 +123,20 @@ export function usePageContextCapture() {
  */
 export function usePageContextReady(route: string): boolean {
   const {subscribe, isNodeReady} = useLLMContextRegistry();
+  const {pathname} = useLocation();
   const expectedNodeTypes = PAGE_CONTEXT_READY_NODES.get(route);
-  return useSyncExternalStore(
+  const isReady = useSyncExternalStore(
     subscribe,
     () => expectedNodeTypes === undefined || expectedNodeTypes.some(isNodeReady)
   );
+
+  // On navigation, the first render still sees the previous page's nodes, which
+  // unregister when it commits. Only trust readiness once it holds after that.
+  const [readyPathname, setReadyPathname] = useState<string | null>(null);
+  useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect -- the re-render after commit is the point.
+    setReadyPathname(isReady ? pathname : null);
+  }, [isReady, pathname]);
+
+  return expectedNodeTypes === undefined || (isReady && readyPathname === pathname);
 }
