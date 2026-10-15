@@ -40,8 +40,6 @@ export function AutofixStartCard({
   const [enableBashMode] = useForceBashMode();
 
   const [startingRun, setStartingRun] = useState(false);
-  // The request settles before the first run state is fetched, so the hook's
-  // flag keeps the button pending until there is a run to show.
   const isStarting = startingRun || autofix.isWaitingForRun;
   const handleStartRootCause = async () => {
     setStartingRun(true);
