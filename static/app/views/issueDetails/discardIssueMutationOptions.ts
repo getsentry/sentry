@@ -4,9 +4,9 @@ import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicato
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {useNavigate} from 'sentry/utils/useNavigate';
 
 type DiscardIssueVariables = {
@@ -22,15 +22,16 @@ export function discardIssueMutationOptions({
 }) {
   return mutationOptions({
     mutationFn: (variables: DiscardIssueVariables) =>
-      fetchMutation({
-        method: 'PUT',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-          path: {
-            organizationIdOrSlug: variables.orgSlug,
-            issueId: String(variables.groupId),
-          },
-        }),
-        data: {discard: true},
+      apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+            path: {
+              organizationIdOrSlug: variables.orgSlug,
+              issueId: String(variables.groupId),
+            },
+          }),
+          {method: 'PUT', data: {discard: true}},
+        ],
       }),
     onMutate: variables => {
       const changeId = uniqueId();

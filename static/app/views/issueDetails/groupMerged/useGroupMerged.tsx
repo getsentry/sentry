@@ -10,9 +10,9 @@ import {
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export interface Fingerprint {
@@ -278,12 +278,13 @@ export function useGroupMergedState({
     {fingerprintIds: string[]}
   >({
     mutationFn: ({fingerprintIds}) =>
-      fetchMutation({
-        method: 'PUT',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/hashes/', {
-          path: {organizationIdOrSlug: organization.slug, issueId: groupId},
-        }),
-        options: {query: {id: fingerprintIds}},
+      apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/hashes/', {
+            path: {organizationIdOrSlug: organization.slug, issueId: groupId},
+          }),
+          {method: 'PUT', query: {id: fingerprintIds}},
+        ],
       }),
   });
 

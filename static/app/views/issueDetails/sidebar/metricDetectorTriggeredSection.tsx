@@ -691,7 +691,7 @@ function SeerInvestigationSection({
   const statusBlock = getInvestigationStatusBlock(existingInvestigation, orchestration);
 
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
-    onSuccess: launchedInvestigation => {
+    onSuccess: ({json: launchedInvestigation}) => {
       queryClient.setQueryData(candidateOptions.queryKey, {
         json: {items: [{status: 'view', investigationId: launchedInvestigation.id}]},
         headers: {},

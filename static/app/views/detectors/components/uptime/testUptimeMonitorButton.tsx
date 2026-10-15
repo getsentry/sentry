@@ -4,8 +4,9 @@ import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -54,19 +55,20 @@ export function TestUptimeMonitorButton({
   const previewCheckResult = usePreviewCheckResult();
 
   const {mutate: runPreviewCheck, isPending} = useMutation<
-    PreviewCheckResult,
+    ApiResponse<PreviewCheckResult>,
     RequestError,
     PreviewCheckPayload
   >({
     mutationFn: (payload: PreviewCheckPayload) =>
-      fetchMutation<PreviewCheckResult>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/uptime-preview-check/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data: {...payload},
+      apiFetch<PreviewCheckResult>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/uptime-preview-check/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {method: 'POST', data: {...payload}},
+        ],
       }),
-    onSuccess: response => {
+    onSuccess: ({json: response}) => {
       previewCheckResult?.setPreviewCheckData(response);
       if (response.check_result?.status === PreviewCheckStatus.SUCCESS) {
         addSuccessMessage(t('Uptime check passed successfully'));

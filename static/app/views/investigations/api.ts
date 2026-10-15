@@ -4,9 +4,10 @@ import {
   type UseMutationOptions,
 } from '@tanstack/react-query';
 
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {
   InvestigationCandidate,
   InvestigationBlock,
@@ -179,7 +180,7 @@ export function useInvestigationOrchestrationCommandMutation(
   organizationSlug: string,
   investigationId: string,
   options?: MutationOptions<
-    InvestigationOrchestrationCommandResponse,
+    ApiResponse<InvestigationOrchestrationCommandResponse>,
     InvestigationOrchestrationCommandVariables
   >
 ) {
@@ -192,22 +193,23 @@ export function useInvestigationOrchestrationCommandMutation(
   return useMutation({
     ...options,
     mutationFn: ({command, expectedWorkflowVersion, requestId}) =>
-      fetchMutation<InvestigationOrchestrationCommandResponse>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/commands/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-            },
-          }
-        ),
-        method: 'POST',
-        data: {requestId, expectedWorkflowVersion, command},
+      apiFetch<InvestigationOrchestrationCommandResponse>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/commands/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                investigationId,
+              },
+            }
+          ),
+          {method: 'POST', data: {requestId, expectedWorkflowVersion, command}},
+        ],
       }),
     onSuccess: async (response, variables, onMutateResult, context) => {
       queryClient.setQueryData(orchestrationOptions.queryKey, current =>
-        current ? {...current, json: response.projection} : current
+        current ? {...current, json: response.json.projection} : current
       );
       await options?.onSuccess?.(response, variables, onMutateResult, context);
     },
@@ -314,22 +316,29 @@ function useInvestigationMutation<TData, TVariables>(
 
 export function useLaunchInvestigationMutation(
   organizationSlug: string,
-  options?: MutationOptions<InvestigationDetail, MetricOpenPeriodInvestigationSource>
+  options?: MutationOptions<
+    ApiResponse<InvestigationDetail>,
+    MetricOpenPeriodInvestigationSource
+  >
 ) {
   return useInvestigationMutation(
     organizationSlug,
     source =>
-      fetchMutation<InvestigationDetail>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
-          path: {organizationIdOrSlug: organizationSlug},
-        }),
-        method: 'POST',
-        // No `templateKey`: the metric snapshot is enough for the server to
-        // build an agentic run, which is what gives this investigation
-        // hypotheses instead of a fixed sequence of notebook cells. The
-        // candidates endpoint matches agentic and template lineage keys alike,
-        // so an already-investigated breach still resolves to "View".
-        data: {source},
+      apiFetch<InvestigationDetail>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
+            path: {organizationIdOrSlug: organizationSlug},
+          }),
+          {
+            method: 'POST',
+            // No `templateKey`: the metric snapshot is enough for the server to
+            // build an agentic run, which is what gives this investigation
+            // hypotheses instead of a fixed sequence of notebook cells. The
+            // candidates endpoint matches agentic and template lineage keys alike,
+            // so an already-investigated breach still resolves to "View".
+            data: {source},
+          },
+        ],
       }),
     options,
     {invalidateCandidates: true}
@@ -339,7 +348,7 @@ export function useLaunchInvestigationMutation(
 export function useRenameInvestigationMutation(
   organizationSlug: string,
   investigationId: string,
-  options?: MutationOptions<InvestigationDetail, string>
+  options?: MutationOptions<ApiResponse<InvestigationDetail>, string>
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -356,21 +365,23 @@ export function useRenameInvestigationMutation(
         throw new Error('Investigation detail is not cached.');
       }
 
-      return fetchMutation<InvestigationDetail>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-            },
-          }
-        ),
-        method: 'PUT',
-        data: {title, investigationVersion: current.version},
+      return apiFetch<InvestigationDetail>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/investigations/$investigationId/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                investigationId,
+              },
+            }
+          ),
+          {method: 'PUT', data: {title, investigationVersion: current.version}},
+        ],
       });
     },
-    onSuccess: async (updated, savedTitle, onMutateResult, context) => {
+    onSuccess: async (response, savedTitle, onMutateResult, context) => {
+      const updated = response.json;
       queryClient.setQueryData(detailOptions.queryKey, current => {
         if (!current) {
           return current;
@@ -392,7 +403,7 @@ export function useRenameInvestigationMutation(
       await queryClient.invalidateQueries({
         queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
       });
-      await options?.onSuccess?.(updated, savedTitle, onMutateResult, context);
+      await options?.onSuccess?.(response, savedTitle, onMutateResult, context);
     },
   });
 }
@@ -400,7 +411,7 @@ export function useRenameInvestigationMutation(
 export function useDeleteInvestigationBlockMutation(
   organizationSlug: string,
   investigationId: string,
-  options?: MutationOptions<void, DeleteBlockVariables>
+  options?: MutationOptions<ApiResponse<void>, DeleteBlockVariables>
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -411,22 +422,26 @@ export function useDeleteInvestigationBlockMutation(
   return useMutation({
     ...options,
     mutationFn: ({block, investigationVersion}) => {
-      return fetchMutation<void>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/',
+      return apiFetch<void>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                investigationId,
+                blockId: block.id,
+              },
+            }
+          ),
           {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-              blockId: block.id,
+            method: 'DELETE',
+            data: {
+              investigationVersion,
+              version: block.version,
             },
-          }
-        ),
-        method: 'DELETE',
-        data: {
-          investigationVersion,
-          version: block.version,
-        },
+          },
+        ],
       });
     },
     onSuccess: async (_data, variables, onMutateResult, context) => {
@@ -469,24 +484,28 @@ export function useRunInvestigationBlockMutation(
 
   return useMutation({
     mutationFn: ({block, investigationVersion}: RunBlockVariables) =>
-      fetchMutation<InvestigationBlockExecutionStart>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/',
+      apiFetch<InvestigationBlockExecutionStart>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                investigationId,
+                blockId: block.id,
+              },
+            }
+          ),
           {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-              blockId: block.id,
+            method: 'POST',
+            data: {
+              investigationVersion,
+              version: block.version,
             },
-          }
-        ),
-        method: 'POST',
-        data: {
-          investigationVersion,
-          version: block.version,
-        },
+          },
+        ],
       }),
-    onSuccess: async (execution, variables) => {
+    onSuccess: async ({json: execution}, variables) => {
       queryClient.setQueryData(detailOptions.queryKey, current =>
         current
           ? {
@@ -530,27 +549,31 @@ export function useUpdateInvestigationBlockPromptMutation(
     investigationId
   );
 
-  return useMutation<InvestigationBlock, Error, UpdateBlockPromptVariables>({
+  return useMutation<ApiResponse<InvestigationBlock>, Error, UpdateBlockPromptVariables>({
     mutationFn: ({block, investigationVersion, prompt}) =>
-      fetchMutation<InvestigationBlock>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/',
+      apiFetch<InvestigationBlock>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                investigationId,
+                blockId: block.id,
+              },
+            }
+          ),
           {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-              blockId: block.id,
+            method: 'PUT',
+            data: {
+              investigationVersion,
+              version: block.version,
+              generationPrompt: prompt,
             },
-          }
-        ),
-        method: 'PUT',
-        data: {
-          investigationVersion,
-          version: block.version,
-          generationPrompt: prompt,
-        },
+          },
+        ],
       }),
-    onSuccess: (updatedBlock, variables) => {
+    onSuccess: ({json: updatedBlock}, variables) => {
       queryClient.setQueryData(detailOptions.queryKey, current =>
         current
           ? {
@@ -577,7 +600,7 @@ export function useUpdateInvestigationBlockPromptMutation(
 export function useStopInvestigationExecutionMutation(
   organizationSlug: string,
   investigationId: string,
-  options?: MutationOptions<void, StopExecutionVariables>
+  options?: MutationOptions<ApiResponse<void>, StopExecutionVariables>
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -588,19 +611,21 @@ export function useStopInvestigationExecutionMutation(
   return useMutation({
     ...options,
     mutationFn: ({blockId, executionId}) =>
-      fetchMutation<void>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/$executionId/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-              blockId,
-              executionId,
-            },
-          }
-        ),
-        method: 'DELETE',
+      apiFetch<void>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/$executionId/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                investigationId,
+                blockId,
+                executionId,
+              },
+            }
+          ),
+          {method: 'DELETE'},
+        ],
       }),
     onSuccess: async (_data, variables, onMutateResult, context) => {
       await Promise.all([
@@ -622,7 +647,7 @@ export function useStopInvestigationExecutionMutation(
 export function useResumeInvestigationExecutionMutation(
   organizationSlug: string,
   investigationId: string,
-  options?: MutationOptions<void, ResumeExecutionVariables>
+  options?: MutationOptions<ApiResponse<void>, ResumeExecutionVariables>
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -633,20 +658,21 @@ export function useResumeInvestigationExecutionMutation(
   return useMutation({
     ...options,
     mutationFn: ({blockId, executionId, inputId, responseData}) =>
-      fetchMutation<void>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/$executionId/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-              blockId,
-              executionId,
-            },
-          }
-        ),
-        method: 'PATCH',
-        data: {input_id: inputId, response_data: responseData},
+      apiFetch<void>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/$executionId/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                investigationId,
+                blockId,
+                executionId,
+              },
+            }
+          ),
+          {method: 'PATCH', data: {input_id: inputId, response_data: responseData}},
+        ],
       }),
     onSuccess: async (_data, variables, onMutateResult, context) => {
       await Promise.all([
@@ -667,23 +693,24 @@ export function useResumeInvestigationExecutionMutation(
 
 export function useSetInvestigationFavoriteMutation(
   organizationSlug: string,
-  options?: MutationOptions<void, FavoriteVariables>
+  options?: MutationOptions<ApiResponse<void>, FavoriteVariables>
 ) {
   return useInvestigationMutation(
     organizationSlug,
     ({investigation, shouldFavorite}: FavoriteVariables) =>
-      fetchMutation<void>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/favorite/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId: investigation.id,
-            },
-          }
-        ),
-        method: 'PUT',
-        data: {shouldFavorite},
+      apiFetch<void>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/investigations/$investigationId/favorite/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                investigationId: investigation.id,
+              },
+            }
+          ),
+          {method: 'PUT', data: {shouldFavorite}},
+        ],
       }),
     options
   );
@@ -691,22 +718,24 @@ export function useSetInvestigationFavoriteMutation(
 
 export function useDuplicateInvestigationMutation(
   organizationSlug: string,
-  options?: MutationOptions<InvestigationListItem, InvestigationListItem>
+  options?: MutationOptions<ApiResponse<InvestigationListItem>, InvestigationListItem>
 ) {
   return useInvestigationMutation(
     organizationSlug,
     investigation =>
-      fetchMutation<InvestigationListItem>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/duplicate/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId: investigation.id,
-            },
-          }
-        ),
-        method: 'POST',
+      apiFetch<InvestigationListItem>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/investigations/$investigationId/duplicate/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                investigationId: investigation.id,
+              },
+            }
+          ),
+          {method: 'POST'},
+        ],
       }),
     options
   );
@@ -714,23 +743,24 @@ export function useDuplicateInvestigationMutation(
 
 export function useDeleteInvestigationMutation(
   organizationSlug: string,
-  options?: MutationOptions<void, InvestigationListItem>
+  options?: MutationOptions<ApiResponse<void>, InvestigationListItem>
 ) {
   return useInvestigationMutation(
     organizationSlug,
     investigation =>
-      fetchMutation<void>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId: investigation.id,
-            },
-          }
-        ),
-        method: 'DELETE',
-        data: {investigationVersion: investigation.version},
+      apiFetch<void>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/investigations/$investigationId/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                investigationId: investigation.id,
+              },
+            }
+          ),
+          {method: 'DELETE', data: {investigationVersion: investigation.version}},
+        ],
       }),
     options,
     {invalidateCandidates: true}

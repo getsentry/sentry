@@ -8,9 +8,9 @@ import type {Actor} from 'sentry/types/core';
 import type {Group} from 'sentry/types/group';
 import {buildTeamId, buildUserId} from 'sentry/utils';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
@@ -57,21 +57,30 @@ function makeActorId(actor: Pick<Actor, 'id' | 'type'>) {
 export function useAssignIssueMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<Group, RequestError, AssignIssueVariables, AssignIssueContext>({
+  return useMutation<
+    ApiResponse<Group>,
+    RequestError,
+    AssignIssueVariables,
+    AssignIssueContext
+  >({
     mutationFn: variables => {
       const actorId = variables.actor ? makeActorId(variables.actor) : '';
-      return fetchMutation<Group>({
-        method: 'PUT',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-          path: {
-            organizationIdOrSlug: variables.orgSlug,
-            issueId: variables.groupId,
+      return apiFetch<Group>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+            path: {
+              organizationIdOrSlug: variables.orgSlug,
+              issueId: variables.groupId,
+            },
+          }),
+          {
+            method: 'PUT',
+            data: {
+              assignedTo: actorId,
+              assignedBy: variables.assignedBy,
+            },
           },
-        }),
-        data: {
-          assignedTo: actorId,
-          assignedBy: variables.assignedBy,
-        },
+        ],
       });
     },
     onMutate: variables => {
@@ -80,7 +89,7 @@ export function useAssignIssueMutation() {
       GroupStore.onAssignTo(changeId, variables.groupId, {email: ''});
       return {changeId};
     },
-    onSuccess: (response, variables, onMutateResult) => {
+    onSuccess: ({json: response}, variables, onMutateResult) => {
       const queryKey = groupQueryKey({
         organizationSlug: variables.orgSlug,
         groupId: variables.groupId,

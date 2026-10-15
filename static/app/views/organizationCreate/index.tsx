@@ -18,9 +18,9 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSignupLocalities} from 'sentry/utils/cells';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -73,13 +73,13 @@ function OrganizationCreate() {
 
   const mutation = useMutation({
     mutationFn: (data: CreateOrganizationPayload) =>
-      fetchMutation<OrganizationSummary>({
-        url: getApiUrl('/organizations/'),
-        method: 'POST',
-        data,
-        options: {host: links.sentryUrl},
+      apiFetch<OrganizationSummary>({
+        queryKey: [
+          getApiUrl('/organizations/'),
+          {method: 'POST', data, host: links.sentryUrl},
+        ],
       }),
-    onSuccess: createdOrg => {
+    onSuccess: ({json: createdOrg}) => {
       const hasCustomerDomain = features.has('system:multi-region');
       // One-shot seed for sticky journey origin on /projects/new/. Must ride on
       // the URL: this redirect is a full page reload

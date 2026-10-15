@@ -18,9 +18,10 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {parseApiError} from 'sentry/utils/parseApiError';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -122,12 +123,12 @@ export function SizeCompareMainContent() {
   );
 
   const {mutate: triggerComparison, isPending: isComparing} = useMutation<
-    void,
+    ApiResponse,
     RequestError,
     {baseArtifactId: string; headArtifactId: string}
   >({
     mutationFn: () => {
-      return fetchMutation({url: compareUrl, method: 'POST'});
+      return apiFetch({queryKey: [compareUrl, {method: 'POST'}]});
     },
     onSuccess: () => {
       navigate(

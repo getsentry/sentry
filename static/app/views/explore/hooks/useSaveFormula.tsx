@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useInvalidateSavedFormulas,
@@ -26,16 +26,17 @@ export function useSaveFormula() {
 
   const {mutateAsync: saveFormula, isPending: isSaving} = useMutation({
     mutationFn: ({id, ...formula}: SavedFormulaRequest & {id?: string}) =>
-      fetchMutation<SavedFormula>({
-        url: id
-          ? getApiUrl('/organizations/$organizationIdOrSlug/explore/formulas/$id/', {
-              path: {organizationIdOrSlug: organization.slug, id},
-            })
-          : getApiUrl('/organizations/$organizationIdOrSlug/explore/formulas/', {
-              path: {organizationIdOrSlug: organization.slug},
-            }),
-        method: id ? 'PUT' : 'POST',
-        data: formula,
+      apiFetch<SavedFormula>({
+        queryKey: [
+          id
+            ? getApiUrl('/organizations/$organizationIdOrSlug/explore/formulas/$id/', {
+                path: {organizationIdOrSlug: organization.slug, id},
+              })
+            : getApiUrl('/organizations/$organizationIdOrSlug/explore/formulas/', {
+                path: {organizationIdOrSlug: organization.slug},
+              }),
+          {method: id ? 'PUT' : 'POST', data: formula},
+        ],
       }),
     onSuccess: invalidateSavedFormulas,
   });

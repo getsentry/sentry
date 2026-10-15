@@ -23,9 +23,9 @@ import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isEquation} from 'sentry/utils/discover/fields';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -79,26 +79,30 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   const metricsTabAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
       const user = ConfigStore.get('user');
-      const data = await fetchMutation<SeerRawResponse>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data: {
-          org_id: organization.id,
-          org_slug: organization.slug,
-          natural_language_query: queryToSubmit,
-          project_ids: selectedProjectIdsForMutation,
-          strategy: 'Metrics',
-          user_email: user?.email,
-          options: {
-            metric_context: {
-              metric_name: traceMetric.name,
-              metric_type: traceMetric.type,
-              metric_unit: traceMetric.unit ?? NONE_UNIT,
+      const {json: data} = await apiFetch<SeerRawResponse>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              org_id: organization.id,
+              org_slug: organization.slug,
+              natural_language_query: queryToSubmit,
+              project_ids: selectedProjectIdsForMutation,
+              strategy: 'Metrics',
+              user_email: user?.email,
+              options: {
+                metric_context: {
+                  metric_name: traceMetric.name,
+                  metric_type: traceMetric.type,
+                  metric_unit: traceMetric.unit ?? NONE_UNIT,
+                },
+              },
             },
           },
-        },
+        ],
       });
 
       return buildSeerMutationResult(data, selectedProjectIds, response =>

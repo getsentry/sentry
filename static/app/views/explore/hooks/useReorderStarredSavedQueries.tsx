@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useInvalidateSavedQueries,
@@ -14,20 +14,24 @@ export function useReorderStarredSavedQueries() {
 
   const {mutate} = useMutation({
     mutationFn: (queries: SavedQueryRef[]) =>
-      fetchMutation({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/explore/all-queries/starred/order/',
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/explore/all-queries/starred/order/',
+            {
+              path: {organizationIdOrSlug: organization.slug},
+            }
+          ),
           {
-            path: {organizationIdOrSlug: organization.slug},
-          }
-        ),
-        method: 'PUT',
-        data: {
-          queries: queries.map(({queryId, queryType}) => ({
-            type: queryType,
-            query_id: Number(queryId),
-          })),
-        },
+            method: 'PUT',
+            data: {
+              queries: queries.map(({queryId, queryType}) => ({
+                type: queryType,
+                query_id: Number(queryId),
+              })),
+            },
+          },
+        ],
       }),
     onSettled: () => {
       invalidateSavedQueries();

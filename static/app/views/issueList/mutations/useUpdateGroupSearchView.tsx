@@ -2,8 +2,8 @@ import {useQueryClient, useMutation} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSearchView';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
@@ -28,13 +28,13 @@ export const useUpdateGroupSearchView = (
 
   return useMutation({
     mutationFn: ({id, ...groupSearchView}: UpdateGroupSearchViewVariables) =>
-      fetchMutation<GroupSearchView>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/group-search-views/$viewId/',
-          {path: {organizationIdOrSlug: organization.slug, viewId: id}}
-        ),
-        method: 'PUT',
-        data: groupSearchView,
+      apiFetch<GroupSearchView>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/group-search-views/$viewId/', {
+            path: {organizationIdOrSlug: organization.slug, viewId: id},
+          }),
+          {method: 'PUT', data: groupSearchView},
+        ],
       }),
     onMutate: variables => {
       const {optimistic, ...viewParams} = variables;
@@ -62,7 +62,7 @@ export const useUpdateGroupSearchView = (
         );
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: ({json: data}, variables) => {
       if (!variables.optimistic) {
         const viewKey = groupSearchViewApiOptions({
           orgSlug: organization.slug,

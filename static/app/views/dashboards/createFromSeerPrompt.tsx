@@ -7,8 +7,8 @@ import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -34,10 +34,8 @@ export function CreateFromSeerPrompt() {
           organizationIdOrSlug: organization.slug,
         },
       });
-      const response = await fetchMutation<{run_id: string}>({
-        url,
-        method: 'POST',
-        data: {prompt: prompt.trim()},
+      const {json: response} = await apiFetch<{run_id: string}>({
+        queryKey: [url, {method: 'POST', data: {prompt: prompt.trim()}}],
       });
 
       const runId = response.run_id;

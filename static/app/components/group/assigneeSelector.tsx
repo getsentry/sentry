@@ -51,7 +51,7 @@ export function useHandleAssigneeChange({
         assignedBy: 'assignee_selector',
       },
       {
-        onSuccess: updatedGroup => {
+        onSuccess: ({json: updatedGroup}) => {
           onSuccess?.(updatedGroup.assignedTo);
         },
       }

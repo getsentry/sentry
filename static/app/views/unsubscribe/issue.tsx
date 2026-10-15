@@ -11,9 +11,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -68,11 +68,8 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
   );
   const mutation = useMutation({
     mutationFn: (value: {cancel: number}) =>
-      fetchMutation({
-        url: endpoint,
-        method: 'POST',
-        options: {query: {_: signature}},
-        data: value,
+      apiFetch({
+        queryKey: [endpoint, {method: 'POST', query: {_: signature}, data: value}],
       }),
     onSuccess: () => {
       testableWindowLocation.assign('/auth/login/');

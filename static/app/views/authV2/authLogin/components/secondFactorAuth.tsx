@@ -88,7 +88,7 @@ export function SecondFactorAuth({
 
   useEffect(() => {
     if (auth.result) {
-      onComplete(auth.result);
+      onComplete(auth.result.json);
     }
   }, [auth.result, onComplete]);
 
