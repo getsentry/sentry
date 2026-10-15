@@ -555,8 +555,6 @@ class MonitorCheckIn(Model):
     that occurred during the check-in.
     """
 
-    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=("guid",))
-
     class Meta:
         app_label = "monitors"
         db_table = "sentry_monitorcheckin"
