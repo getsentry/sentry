@@ -67,23 +67,27 @@ function transformTimeSeries(
   widget: Widget,
   queryIndex: number
 ): WidgetTimeSeries[] {
-  const widgetQuery = widget.queries[queryIndex];
-  const aggregate =
-    widgetQuery?.aggregates?.[0] || widgetQuery?.fields?.[0] || 'App Size';
-  const series = transformTimeSeriesResponse(data, widget, queryIndex, {
-    meta: {valueType: 'size', valueUnit: SizeUnit.BYTE},
-  });
+  const isSingleUngroupedSeries =
+    data.timeSeries.length === 1 && !data.timeSeries[0]!.groupBy?.length;
 
-  return series.map(item => {
-    const seriesName =
-      series.length === 1 && !item.timeSeries.groupBy?.length
-        ? widgetQuery?.name || aggregate
-        : item.seriesName;
-    const values = item.timeSeries.values.filter(
-      ({value}) => value !== null && value !== undefined && value !== 0
-    );
-    return {...item, seriesName, timeSeries: {...item.timeSeries, values}};
-  });
+  return transformTimeSeriesResponse(data, widget, queryIndex, {
+    meta: {valueType: 'size', valueUnit: SizeUnit.BYTE},
+    getSeriesName: isSingleUngroupedSeries
+      ? (_timeSeries, widgetQuery) =>
+          widgetQuery.name ||
+          widgetQuery.aggregates?.[0] ||
+          widgetQuery.fields?.[0] ||
+          'App Size'
+      : undefined,
+  }).map(item => ({
+    ...item,
+    timeSeries: {
+      ...item.timeSeries,
+      values: item.timeSeries.values.filter(
+        ({value}) => value !== null && value !== undefined && value !== 0 // Removes empty buckets, matching legacy behavior
+      ),
+    },
+  }));
 }
 
 function removeEmptyBuckets(series: WidgetSeries): WidgetSeries {
