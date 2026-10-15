@@ -93,6 +93,7 @@ const server = new Set<PlatformKey>([
   'php',
   'php-laravel',
   'php-symfony',
+  'pi',
   'powershell',
   'python',
   'python-aiohttp',

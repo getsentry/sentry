@@ -114,6 +114,7 @@ export type PlatformKey =
   | 'php-monolog'
   | 'php-symfony'
   | 'php-symfony2'
+  | 'pi'
   | 'playstation'
   | 'powershell'
   | 'python'

@@ -564,6 +564,7 @@ const INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS = new Set<string>([
   AgentIntegration.EVE,
   AgentIntegration.FLUE,
   AgentIntegration.MASTRA,
+  AgentIntegration.PI,
 ]);
 
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
@@ -668,7 +669,10 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
             jsPackageName
           ),
         ]),
-    ...(isPhpPlatform ? [] : [getSetUserStep(isPythonPlatform, jsPackageName)]),
+    // Pi attaches the developer's git email as the user without the Sentry SDK.
+    ...(isPhpPlatform || selectedIntegration === AgentIntegration.PI
+      ? []
+      : [getSetUserStep(isPythonPlatform, jsPackageName)]),
     ...(isPhpPlatform
       ? [getPhpConversationVerifyStep()]
       : agentMonitoringDocs.verify?.(docParams) || []),
