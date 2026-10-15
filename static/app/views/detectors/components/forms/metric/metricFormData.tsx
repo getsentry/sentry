@@ -22,7 +22,10 @@ import {
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import {getIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
+import type {
+  MetricDetectorFormData,
+  PrioritizeLevelFormData,
+} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -41,12 +44,6 @@ export const enum SnubaQueryType {
   PERFORMANCE = 1,
   CRASH_RATE = 2,
 }
-
-export {
-  METRIC_DETECTOR_FORM_FIELDS,
-  useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
-export type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 
 export const DEFAULT_THRESHOLD_METRIC_FORM_DATA = {
   detectionType: 'static',

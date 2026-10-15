@@ -18,7 +18,7 @@ import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
  * so it can be used by dataset config components without creating cycles.
  */
 
-interface PrioritizeLevelFormData {
+export interface PrioritizeLevelFormData {
   /**
    * Issue is created at this priority level
    */
