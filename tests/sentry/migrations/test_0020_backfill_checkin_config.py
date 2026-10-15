@@ -5,8 +5,8 @@ from sentry.testutils.cases import TestMigrations
 
 class BackfillCheckinConfigTest(TestMigrations):
     app = "monitors"
-    migrate_from = "0016_drop_checkin_api_latest_index"
-    migrate_to = "0017_backfill_checkin_config"
+    migrate_from = "0019_drop_checkin_project_id"
+    migrate_to = "0020_backfill_checkin_config"
     connection = "secondary"
 
     def setup_before_migration(self, apps):
@@ -28,7 +28,6 @@ class BackfillCheckinConfigTest(TestMigrations):
         def create_checkin(**kwargs):
             return MonitorCheckIn.objects.create(
                 guid=uuid4(),
-                project_id=1,
                 monitor=monitor,
                 monitor_environment=monitor_env,
                 **kwargs,

@@ -57,7 +57,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("monitors", "0016_drop_checkin_api_latest_index"),
+        ("monitors", "0019_drop_checkin_project_id"),
     ]
 
     operations = [
