@@ -527,7 +527,7 @@ describe('ProjectFilters', () => {
 
   it('keeps legacy custom filter edits while a filter is created in the modal', async () => {
     renderInboundFilters([]);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const projectMock = MockApiClient.addMockResponse({
       url: PROJECT_URL,
@@ -587,7 +587,7 @@ describe('ProjectFilters', () => {
     expect(within(table).getByText('Error Message')).toBeInTheDocument();
     expect(within(table).getByText('*ConnectionError*')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('textbox', {name: 'Search rules'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Search filters'}));
     await userEvent.paste('ConnectionError');
     expect(screen.getByText('Ignore flaky connection errors')).toBeInTheDocument();
     expect(screen.queryByText('Drop debug log spam')).not.toBeInTheDocument();
@@ -663,7 +663,7 @@ describe('ProjectFilters', () => {
 
   it('saves each line of a condition as one of its values', async () => {
     renderInboundFilters([]);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const createMock = MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
@@ -704,7 +704,7 @@ describe('ProjectFilters', () => {
 
   it('suggests a name once every condition of the draft has a value', async () => {
     renderInboundFilters([], businessProject, nameSuggestionOrg);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const validateMock = MockApiClient.addMockResponse({
       url: VALIDATE_URL,
@@ -743,7 +743,7 @@ describe('ProjectFilters', () => {
 
   it('keeps a name the user typed and suggests one once they clear it', async () => {
     renderInboundFilters([], businessProject, nameSuggestionOrg);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const validateMock = MockApiClient.addMockResponse({
       url: VALIDATE_URL,
@@ -774,7 +774,7 @@ describe('ProjectFilters', () => {
 
   it('does not ask for a name suggestion without the feature', async () => {
     renderInboundFilters([]);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const validateMock = MockApiClient.addMockResponse({
       url: VALIDATE_URL,
@@ -889,7 +889,7 @@ describe('ProjectFilters', () => {
 
   it('creates a filter via the modal', async () => {
     renderInboundFilters([]);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const createMock = MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
@@ -931,7 +931,7 @@ describe('ProjectFilters', () => {
 
   it('creates a filter with an error type and an error message condition', async () => {
     renderInboundFilters([]);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const createMock = MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
@@ -983,7 +983,7 @@ describe('ProjectFilters', () => {
 
   it('keeps the modal open when creating a filter fails', async () => {
     renderInboundFilters([]);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const createMock = MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
@@ -1016,7 +1016,7 @@ describe('ProjectFilters', () => {
 
   it('shows the field errors the API returns for a condition value', async () => {
     renderInboundFilters([]);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const createMock = MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
@@ -1090,7 +1090,7 @@ describe('ProjectFilters', () => {
 
   it('keeps an IP address condition when the data type changes', async () => {
     renderInboundFilters([]);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
     const dialog = await screen.findByRole('dialog');
@@ -1367,7 +1367,7 @@ describe('ProjectFilters', () => {
 
   it('creates a catch-all filter that applies to every data type', async () => {
     renderInboundFilters([]);
-    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const createMock = MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
