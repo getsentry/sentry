@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import ListField
 from sentry_sdk import traces
 
-from sentry import analytics, release_health
+from sentry import analytics, features, release_health
 from sentry.analytics.events.release_created import ReleaseCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -115,6 +115,20 @@ def add_environment_to_queryset(queryset, filter_params):
             releaseprojectenvironment__project_id__in=filter_params["project_id"],
         )
     return queryset
+
+
+def _use_exists_filters(request: Request, organization: Organization) -> bool:
+    """
+    Filter releases by project and environment with EXISTS subqueries instead of joins. The
+    joins duplicate release rows, which forces a DISTINCT over the whole match set before the
+    page limit applies and times out for organizations with many releases.
+    """
+    enabled = features.has(
+        "organizations:releases-exists-filters", organization, actor=request.user
+    )
+    sentry_sdk.set_tag("releases.exists_filters", enabled)
+    sentry_sdk.set_attribute("releases.exists_filters", enabled)
+    return enabled
 
 
 def add_date_filter_to_queryset(queryset, filter_params):
@@ -636,7 +650,22 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
         queryset = queryset.annotate(date=F("date_added"))
 
-        queryset = add_environment_to_queryset(queryset, filter_params)
+        # Flattened results need one row per release project and adoption sorting orders by
+        # the joined environment rows, so only the remaining sorts can use EXISTS filters.
+        use_exists_filters = (
+            not flatten
+            and sort in ("date", "build", "semver")
+            and _use_exists_filters(request, organization)
+        )
+
+        if use_exists_filters:
+            queryset = filter_releases_by_environments(
+                queryset,
+                filter_params["project_id"],
+                [e.id for e in filter_params.get("environment_objects", [])],
+            )
+        else:
+            queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
             try:
                 queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
@@ -648,11 +677,14 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
         select_extra = {}
 
-        queryset = queryset.distinct()
-        if flatten:
-            select_extra["_for_project_id"] = "sentry_release_project.project_id"
+        if use_exists_filters:
+            queryset = filter_releases_by_projects(queryset, filter_params["project_id"])
+        else:
+            queryset = queryset.distinct()
+            if flatten:
+                select_extra["_for_project_id"] = "sentry_release_project.project_id"
 
-        queryset = queryset.filter(projects__id__in=filter_params["project_id"])
+            queryset = queryset.filter(projects__id__in=filter_params["project_id"])
 
         if sort == "date":
             queryset = queryset.order_by("-date")
@@ -1009,20 +1041,34 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint):
         except NoProjects:
             return Response([])
 
-        queryset = (
-            Release.objects.filter(
-                organization=organization, projects__id__in=filter_params["project_id"]
+        if _use_exists_filters(request, organization):
+            queryset = filter_releases_by_projects(
+                Release.objects.filter(organization=organization), filter_params["project_id"]
             )
-            .annotate(
-                date=F("date_added"),
+            queryset = filter_releases_by_environments(
+                queryset,
+                filter_params["project_id"],
+                [e.id for e in filter_params.get("environment_objects", [])],
             )
-            .values("version", "date")
-            .order_by("-date")
-            .distinct()
-        )
+            queryset = (
+                queryset.annotate(date=F("date_added")).values("version", "date").order_by("-date")
+            )
+            queryset = add_date_filter_to_queryset(queryset, filter_params)
+        else:
+            queryset = (
+                Release.objects.filter(
+                    organization=organization, projects__id__in=filter_params["project_id"]
+                )
+                .annotate(
+                    date=F("date_added"),
+                )
+                .values("version", "date")
+                .order_by("-date")
+                .distinct()
+            )
 
-        queryset = add_date_filter_to_queryset(queryset, filter_params)
-        queryset = add_environment_to_queryset(queryset, filter_params)
+            queryset = add_date_filter_to_queryset(queryset, filter_params)
+            queryset = add_environment_to_queryset(queryset, filter_params)
         if query:
             try:
                 queryset = _filter_releases_by_query(queryset, organization, query, filter_params)
