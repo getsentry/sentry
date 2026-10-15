@@ -16,7 +16,6 @@ import {
   COMPARISON_INTERVAL_CHOICES,
   INTERVAL_CHOICES,
 } from 'sentry/views/automations/components/actionFilters/constants';
-import {defaultComparisonMap} from 'sentry/views/automations/components/actionFilters/dataConditionDefaultComparisons';
 import {
   SubfilterDetailsList,
   SubfiltersList,
@@ -24,6 +23,7 @@ import {
 } from 'sentry/views/automations/components/actionFilters/subfiltersList';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
+import type {DataConditionNodeComponentProps} from 'sentry/views/automations/components/dataConditionNodeContext';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
 
 function getIntervalLabel(interval: string): string {
@@ -77,7 +77,9 @@ export function EventFrequencyPercentDetails({condition}: {condition: DataCondit
   );
 }
 
-export function EventFrequencyNode() {
+export function EventFrequencyNode({
+  getDefaultComparison,
+}: DataConditionNodeComponentProps) {
   const {condition} = useDataConditionNodeContext();
   const hasSubfilters = condition.comparison.filters?.length > 0;
 
@@ -85,7 +87,7 @@ export function EventFrequencyNode() {
     <div>
       <RowLine>
         {tct('Number of events in an issue is [select] [where]', {
-          select: <ComparisonTypeField />,
+          select: <ComparisonTypeField getDefaultComparison={getDefaultComparison} />,
           where: hasSubfilters ? <ConditionBadge>{t('Where')}</ConditionBadge> : null,
         })}
       </RowLine>
@@ -94,7 +96,7 @@ export function EventFrequencyNode() {
   );
 }
 
-function ComparisonTypeField() {
+function ComparisonTypeField({getDefaultComparison}: DataConditionNodeComponentProps) {
   const {condition, condition_id, onUpdate} = useDataConditionNodeContext();
   const {removeError} = useAutomationBuilderErrorContext();
 
@@ -125,7 +127,7 @@ function ComparisonTypeField() {
           type: option.value,
           comparison: {
             ...condition.comparison,
-            ...defaultComparisonMap.get(option.value),
+            ...getDefaultComparison(option.value),
           },
         });
         removeError(condition.id);

@@ -18,6 +18,7 @@ import {
 import {
   AgeComparison,
   Attribute,
+  Interval,
   Level,
   MatchType,
   ModelAge,
@@ -25,7 +26,6 @@ import {
   TargetType,
   TimeUnit,
 } from 'sentry/views/automations/components/actionFilters/constants';
-import {defaultComparisonMap} from 'sentry/views/automations/components/actionFilters/dataConditionDefaultComparisons';
 import {
   EventAttributeDetails,
   EventAttributeNode,
@@ -92,11 +92,12 @@ import {
   validateTaggedEventCondition,
 } from 'sentry/views/automations/components/actionFilters/taggedEvent';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
+import type {DataConditionNodeComponentProps} from 'sentry/views/automations/components/dataConditionNodeContext';
 
 type DataConditionNode = {
   label: string;
   validate: (({condition}: ValidateDataConditionProps) => string | undefined) | undefined;
-  dataCondition?: React.ComponentType<any>;
+  dataCondition?: React.ComponentType<DataConditionNodeComponentProps>;
   defaultComparison?: any;
   details?: React.ComponentType<any>;
   warningMessage?: React.ComponentType<any>;
@@ -310,9 +311,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of events'),
       dataCondition: EventFrequencyNode,
       details: EventFrequencyCountDetails,
-      defaultComparison: defaultComparisonMap.get(
-        DataConditionType.EVENT_FREQUENCY_COUNT
-      ),
+      defaultComparison: {value: 100, interval: Interval.ONE_HOUR},
       validate: validateEventFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
@@ -323,9 +322,11 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of events'),
       dataCondition: EventFrequencyNode,
       details: EventFrequencyPercentDetails,
-      defaultComparison: defaultComparisonMap.get(
-        DataConditionType.EVENT_FREQUENCY_PERCENT
-      ),
+      defaultComparison: {
+        value: 100,
+        interval: Interval.ONE_HOUR,
+        comparisonInterval: Interval.ONE_WEEK,
+      },
       validate: validateEventFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
@@ -345,9 +346,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of users affected'),
       dataCondition: EventUniqueUserFrequencyNode,
       details: EventUniqueUserFrequencyCountDetails,
-      defaultComparison: defaultComparisonMap.get(
-        DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT
-      ),
+      defaultComparison: {value: 100, interval: Interval.ONE_HOUR},
       validate: validateEventUniqueUserFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
@@ -358,9 +357,11 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of users affected'),
       dataCondition: EventUniqueUserFrequencyNode,
       details: EventUniqueUserFrequencyPercentDetails,
-      defaultComparison: defaultComparisonMap.get(
-        DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT
-      ),
+      defaultComparison: {
+        value: 100,
+        interval: Interval.ONE_HOUR,
+        comparisonInterval: Interval.ONE_WEEK,
+      },
       validate: validateEventUniqueUserFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
@@ -380,9 +381,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Percentage of sessions affected'),
       dataCondition: PercentSessionsNode,
       details: PercentSessionsCountDetails,
-      defaultComparison: defaultComparisonMap.get(
-        DataConditionType.PERCENT_SESSIONS_COUNT
-      ),
+      defaultComparison: {value: 100, interval: Interval.ONE_HOUR},
       validate: validatePercentSessionsCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
@@ -393,9 +392,11 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Percentage of sessions affected'),
       dataCondition: PercentSessionsNode,
       details: PercentSessionsPercentDetails,
-      defaultComparison: defaultComparisonMap.get(
-        DataConditionType.PERCENT_SESSIONS_PERCENT
-      ),
+      defaultComparison: {
+        value: 100,
+        interval: Interval.ONE_HOUR,
+        comparisonInterval: Interval.ONE_WEEK,
+      },
       validate: validatePercentSessionsCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
