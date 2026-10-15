@@ -1,3 +1,4 @@
+import copy
 import itertools
 from unittest import mock
 
@@ -76,11 +77,38 @@ def test_move_to_symbolicate_event(
     assert backup.call_args_list == [mock.call(data=data)] * redis_backups
     assert mock_symbolicate_event.delay.call_count == 1
     kwargs = mock_symbolicate_event.delay.call_args.kwargs
-    assert (kwargs["unprocessed"] == data) is inline
+    assert kwargs["unprocessed_pending"] is inline
+    assert kwargs["unprocessed"] is None
     assert kwargs["data"] == (data if inline else None)
     assert kwargs["cache_key"] == cache_key
     assert mock_process_event.delay.call_count == 0
     assert mock_save_event.delay.call_count == 0
+
+
+@django_db_all
+@pytest.mark.parametrize("load_shed", (False, True))
+def test_symbolication_passes_unprocessed_event_inline(
+    default_project,
+    mock_process_event,
+    mock_symbolication_function,
+    load_shed,
+):
+    data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
+    unprocessed = copy.deepcopy(data)
+
+    def _symbolicate_in_place(symbolicator, data):
+        data["symbolicated"] = True
+        return data
+
+    mock_symbolication_function.side_effect = _symbolicate_in_place
+    with (
+        override_options({"store.enable-inline-payloads": 1.0}),
+        mock.patch("sentry.tasks.symbolication.killswitch_matches_context", return_value=load_shed),
+        TaskRunner(),
+    ):
+        symbolicate_event(data=data, symbolicate_functions=["js"], unprocessed_pending=True)
+
+    assert mock_process_event.delay.call_args.kwargs["unprocessed"] == unprocessed
 
 
 @django_db_all
