@@ -1475,6 +1475,23 @@ class SlackInvestigationEntrypointTest(TestCase):
 
         assert self._conclusion_sections() == ["First", "Second"]
 
+    def test_conclusion_strips_embed_tags(self) -> None:
+        self._set_cache()
+        self._report_cell(
+            "Errors are a known `KeyError` (PYTHON-FLASK-6).\n\n"
+            '{% issue %}{"id": "PYTHON-FLASK-6 (id 5)"}{% /issue %}\n\n'
+            '## Why\nIt started at {% timestamp %}{"value": "now"}{% /timestamp %}.\n'
+            '{% chart %}\n{"title": "Errors"}\n{% /chart %}\n'
+            'See {% docs href="https://docs.sentry.io" title="Docs" /%}.'
+        )
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._conclusion_sections() == [
+            "Errors are a known `KeyError` (PYTHON-FLASK-6).\n\n## Why\nIt started at .\nSee ."
+        ]
+
     def test_no_text_cells_marks_final_sent(self) -> None:
         self._set_cache()
         self._report_cell("", kind="query")

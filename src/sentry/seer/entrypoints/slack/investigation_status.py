@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
@@ -49,6 +50,9 @@ STEP_DETAIL_PREFIXES = {
 ENDPOINT_SEARCH_CONFIG = SearchConfig.create_from(issue_search_config, allow_boolean=True)
 MAX_CONCLUSION_MARKDOWN_LENGTH = 11_000
 CONCLUSION_TRUNCATED_NOTE = "_The rest of the report is in the full investigation._"
+_EMBED_TAG = r"\{%\s+([\w-]+)(?:\s+[\w-]+=\"[^\"]*\")*\s+(?:/%\}|%\}[\s\S]*?\{%\s+/\1\s+%\})"
+EMBED_TAG_LINE_PATTERN = re.compile(rf"^[ \t]*{_EMBED_TAG}[ \t]*(?:\n|$)", re.MULTILINE)
+EMBED_TAG_PATTERN = re.compile(_EMBED_TAG)
 
 HYPOTHESIS_LABELS = {
     "pending": VERIFYING_LABEL,
@@ -292,6 +296,13 @@ def _cut_at_paragraph(text: str, limit: int) -> str:
     return text[:cut].rstrip() if cut > 0 else ""
 
 
+def strip_embed_tags(markdown: str) -> str:
+    """Removes the embed tags the investigation page renders as widgets, since Slack can't."""
+    markdown = EMBED_TAG_LINE_PATTERN.sub("", markdown)
+    markdown = EMBED_TAG_PATTERN.sub("", markdown)
+    return re.sub(r"\n{3,}", "\n\n", markdown)
+
+
 def build_investigation_conclusion(
     run: InvestigationOrchestrationRun,
 ) -> SeerInvestigationConclusion | None:
@@ -310,7 +321,7 @@ def build_investigation_conclusion(
     sections: list[str] = []
     remaining = MAX_CONCLUSION_MARKDOWN_LENGTH
     for content in contents:
-        content = content.strip()
+        content = strip_embed_tags(content).strip()
         if not content:
             continue
         if len(content) > remaining:
