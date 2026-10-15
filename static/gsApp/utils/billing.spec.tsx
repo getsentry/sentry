@@ -10,6 +10,7 @@ import {DataCategory} from 'sentry/types/core';
 import {
   BILLION,
   GIGABYTE,
+  MILLISECONDS_IN_HOUR,
   MILLION,
   RESERVED_BUDGET_QUOTA,
   UNLIMITED,
@@ -36,7 +37,6 @@ import {
   isDeveloperPlan,
   isNewPayingCustomer,
   isTeamPlanFamily,
-  MILLISECONDS_IN_HOUR,
   productIsEnabled,
   trialPromptIsDismissed,
   UsageAction,

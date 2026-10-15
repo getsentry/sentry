@@ -16,7 +16,7 @@ import {DataCategory} from 'sentry/types/core';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
-import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {GIGABYTE, MILLISECONDS_IN_HOUR, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, type ProductTrial} from 'getsentry/types';
 import {
@@ -26,7 +26,6 @@ import {
   getPercentage,
   getReservedBudgetCategoryForAddOn,
   getSoftCapType,
-  MILLISECONDS_IN_HOUR,
   normalizeMetricHistory,
   supportsPayg,
 } from 'getsentry/utils/billing';
