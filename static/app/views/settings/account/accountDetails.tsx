@@ -13,9 +13,10 @@ import {languages} from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
 import {StacktraceOrder, type User} from 'sentry/types/user';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -123,40 +124,32 @@ function AccountDetails() {
 
   const userMutationOptions = mutationOptions({
     mutationFn: (data: Partial<User>) => {
-      return fetchMutation<User>({
-        method: 'PUT',
-        url: USER_ENDPOINT,
-        data,
-      });
+      return apiFetch<User>({queryKey: [USER_ENDPOINT, {method: 'PUT', data}]});
     },
-    onSuccess: data => {
-      handleSubmitSuccess(data);
+    onSuccess: response => {
+      handleSubmitSuccess(response.json);
     },
   });
 
   const userOptionsMutationOptions = mutationOptions({
     mutationFn: (data: Partial<Preferences>) => {
-      return fetchMutation<User>({
-        method: 'PUT',
-        url: USER_ENDPOINT,
-        data: {options: data},
+      return apiFetch<User>({
+        queryKey: [USER_ENDPOINT, {method: 'PUT', data: {options: data}}],
       });
     },
-    onSuccess: data => {
-      handleSubmitSuccess(data);
+    onSuccess: response => {
+      handleSubmitSuccess(response.json);
     },
   });
 
   const themeMutationOptions = mutationOptions({
     mutationFn: (data: Partial<Preferences>) => {
-      return fetchMutation<User>({
-        method: 'PUT',
-        url: USER_ENDPOINT,
-        data: {options: data},
+      return apiFetch<User>({
+        queryKey: [USER_ENDPOINT, {method: 'PUT', data: {options: data}}],
       });
     },
-    onSuccess: data => {
-      handleSubmitSuccess(data);
+    onSuccess: response => {
+      handleSubmitSuccess(response.json);
       removeBodyTheme();
     },
   });

@@ -12,8 +12,8 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
@@ -71,15 +71,16 @@ export default function ProjectToolbarSettings() {
             initialValue={initialValue}
             mutationOptions={{
               mutationFn: data =>
-                fetchMutation({
-                  url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-                    path: {
-                      organizationIdOrSlug: organization.slug,
-                      projectIdOrSlug: project.slug,
-                    },
-                  }),
-                  method: 'PUT',
-                  data: {options: data},
+                apiFetch({
+                  queryKey: [
+                    getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                      path: {
+                        organizationIdOrSlug: organization.slug,
+                        projectIdOrSlug: project.slug,
+                      },
+                    }),
+                    {method: 'PUT', data: {options: data}},
+                  ],
                 }),
               onSuccess: () => {
                 addSuccessMessage(t('Saved'));

@@ -9,9 +9,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {IntegrationType} from 'sentry/types/integrations';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -45,16 +45,20 @@ export function RequestIntegrationModal({
 
   const sendRequestMutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
-      fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/integration-requests/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data: {
-          providerSlug: slug,
-          providerType: type,
-          message: data.message,
-        },
+      apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/integration-requests/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              providerSlug: slug,
+              providerType: type,
+              message: data.message,
+            },
+          },
+        ],
       }),
     onMutate: () => {
       trackIntegrationAnalytics('integrations.request_install', {

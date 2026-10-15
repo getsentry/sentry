@@ -2,8 +2,8 @@ import {useState} from 'react';
 import {useIsMutating, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -51,12 +51,19 @@ export function useProjectPerformanceReset(): ProjectPerformanceReset {
 
   const thresholdSettingsReset = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
-          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}}
-        ),
-        method: 'DELETE',
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: projectSlug,
+              },
+            }
+          ),
+          {method: 'DELETE'},
+        ],
       }),
     onMutate: () => {
       trackAnalytics('performance_views.project_transaction_threshold.clear', {
@@ -71,12 +78,19 @@ export function useProjectPerformanceReset(): ProjectPerformanceReset {
 
   const detectorSettingsReset = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
-          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}}
-        ),
-        method: 'DELETE',
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: projectSlug,
+              },
+            }
+          ),
+          {method: 'DELETE'},
+        ],
       }),
     onMutate: () => {
       trackAnalytics('performance_views.project_issue_detection_thresholds_reset', {

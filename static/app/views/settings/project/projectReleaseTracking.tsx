@@ -17,9 +17,10 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -67,19 +68,22 @@ export default function ProjectReleaseTracking() {
 
   const {mutate: regenerateToken, isPending: isRegenerating} = useMutation({
     mutationFn: () =>
-      fetchMutation<TokenResponse>({
-        method: 'POST',
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/',
-          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
-        ),
-        data: {project: project.slug},
+      apiFetch<TokenResponse>({
+        queryKey: [
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/', {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          }),
+          {method: 'POST', data: {project: project.slug}},
+        ],
       }),
-    onSuccess: data => {
+    onSuccess: response => {
       setApiQueryData(
         queryClient,
         getReleaseTokenQueryKey(organization.slug, project.slug),
-        data
+        response.json
       );
       addSuccessMessage(
         t(

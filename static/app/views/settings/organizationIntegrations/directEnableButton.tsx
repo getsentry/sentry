@@ -4,8 +4,8 @@ import {Button} from '@sentry/scraps/button';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {AddIntegrationButton} from './addIntegrationButton';
@@ -29,13 +29,14 @@ export function DirectEnableButton({
 
   const {mutate: enable, isPending} = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/integrations/direct-enable/$providerKey/',
-          {path: {organizationIdOrSlug: organization.slug, providerKey: providerSlug}}
-        ),
-        method: 'POST',
-        data: {},
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/integrations/direct-enable/$providerKey/',
+            {path: {organizationIdOrSlug: organization.slug, providerKey: providerSlug}}
+          ),
+          {method: 'POST', data: {}},
+        ],
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({

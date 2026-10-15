@@ -11,8 +11,8 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t, tct} from 'sentry/locale';
 import type {AccessRequest} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = {
   onRemoveAccessRequest: (id: string, isApproved: boolean) => void;
@@ -60,13 +60,13 @@ function AccessRequestItem({
 
   const {mutate, isPending} = useMutation({
     mutationFn: ({isApproved}: {isApproved: boolean}) => {
-      return fetchMutation({
-        method: 'PUT',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/access-requests/$requestId/',
-          {path: {organizationIdOrSlug: orgSlug, requestId: id}}
-        ),
-        data: {isApproved},
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/access-requests/$requestId/', {
+            path: {organizationIdOrSlug: orgSlug, requestId: id},
+          }),
+          {method: 'PUT', data: {isApproved}},
+        ],
       });
     },
     onSuccess: (_data, {isApproved}) => {

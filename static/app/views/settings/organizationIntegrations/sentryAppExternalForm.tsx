@@ -21,8 +21,8 @@ import type {
 } from 'sentry/components/backendJsonFormAdapter/types';
 import {t} from 'sentry/locale';
 import type {Choices, Choice} from 'sentry/types/core';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useApi} from 'sentry/utils/useApi';
@@ -1018,27 +1018,31 @@ export function SentryAppExternalForm({
   const submitDisabled = isFetchingDependentFields || isFetchingInitialCascade;
 
   const {mutateAsync: createExternalIssue} = useMutation<
-    unknown,
+    ApiResponse,
     Error,
     Record<string, unknown>
   >({
     mutationFn: values =>
-      fetchMutation({
-        url: getApiUrl('/sentry-app-installations/$uuid/external-issue-actions/', {
-          path: {uuid: sentryAppInstallationUuid},
-        }),
-        method: 'POST',
-        data: {
-          ...normalizedExtraFields,
-          // The adapter seeds untouched fields (selects become null); the legacy
-          // FormModel sent only filled values, so reuse hasValue to drop empties.
-          ...omitBy(values, value => !hasValue(value)),
-          action,
-          uri: config.uri,
-        },
+      apiFetch({
+        queryKey: [
+          getApiUrl('/sentry-app-installations/$uuid/external-issue-actions/', {
+            path: {uuid: sentryAppInstallationUuid},
+          }),
+          {
+            method: 'POST',
+            data: {
+              ...normalizedExtraFields,
+              // The adapter seeds untouched fields (selects become null); the legacy
+              // FormModel sent only filled values, so reuse hasValue to drop empties.
+              ...omitBy(values, value => !hasValue(value)),
+              action,
+              uri: config.uri,
+            },
+          },
+        ],
       }),
     onSuccess: response => {
-      onSubmitSuccess(response);
+      onSubmitSuccess(response.json);
     },
     onError: error => {
       if (!(error instanceof RequestError)) {

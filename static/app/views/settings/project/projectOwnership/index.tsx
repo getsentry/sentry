@@ -18,9 +18,10 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {CodeOwner} from 'sentry/types/integrations';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -123,12 +124,16 @@ export default function ProjectOwnership() {
 
   const ownershipMutationOptions = {
     mutationFn: (data: Partial<z.infer<typeof ownershipSchema>>) =>
-      fetchMutation({
-        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/', {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-        }),
-        method: 'PUT',
-        data,
+      apiFetch({
+        queryKey: [
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/ownership/', {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          }),
+          {method: 'PUT', data},
+        ],
       }),
   };
 

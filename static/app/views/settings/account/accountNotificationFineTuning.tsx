@@ -21,9 +21,10 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import type {UserEmail} from 'sentry/types/user';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'sentry/views/settings/account/notifications/fields';
 import {OrganizationSelectHeader} from 'sentry/views/settings/account/notifications/organizationSelectHeader';
 import {groupByOrganization} from 'sentry/views/settings/account/notifications/utils';
@@ -61,12 +62,13 @@ function AccountNotificationsByProject({
                 initialValue={emailsByProject?.[project.id] ?? ''}
                 mutationOptions={{
                   mutationFn: (data: Record<string, string>) =>
-                    fetchMutation({
-                      method: 'PUT',
-                      url: getApiUrl('/users/$userId/notifications/email/', {
-                        path: {userId: 'me'},
-                      }),
-                      data,
+                    apiFetch({
+                      queryKey: [
+                        getApiUrl('/users/$userId/notifications/email/', {
+                          path: {userId: 'me'},
+                        }),
+                        {method: 'PUT', data},
+                      ],
                     }),
                   onSuccess: () => refetchEmailsByProject(),
                 }}

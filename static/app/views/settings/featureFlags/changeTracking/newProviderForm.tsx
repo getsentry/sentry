@@ -23,9 +23,9 @@ import {
 } from 'sentry/components/events/featureFlags/utils';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -79,15 +79,19 @@ export function NewProviderForm({
   const mutation = useMutation({
     mutationFn: ({provider, secret}: CreateSecretData) => {
       addLoadingMessage();
-      return fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/flags/signing-secrets/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data: {
-          provider: provider.toLowerCase(),
-          secret,
-        },
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/flags/signing-secrets/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              provider: provider.toLowerCase(),
+              secret,
+            },
+          },
+        ],
       });
     },
     onSuccess: (_response, {secret, provider}) => {

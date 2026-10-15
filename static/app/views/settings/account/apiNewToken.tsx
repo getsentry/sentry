@@ -24,9 +24,9 @@ import {
 import {t, tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -102,15 +102,19 @@ export default function ApiNewToken() {
 
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
-      fetchMutation<NewInternalAppApiToken>({
-        url: getApiUrl('/api-tokens/'),
-        method: 'POST',
-        data: {
-          ...data,
-          scopes,
-        },
+      apiFetch<NewInternalAppApiToken>({
+        queryKey: [
+          getApiUrl('/api-tokens/'),
+          {
+            method: 'POST',
+            data: {
+              ...data,
+              scopes,
+            },
+          },
+        ],
       }),
-    onSuccess: token => {
+    onSuccess: ({json: token}) => {
       addSuccessMessage(t('Created personal token.'));
       queryClient.invalidateQueries({queryKey: [getApiUrl('/api-tokens/')]});
       displayNewToken(token.token, handleGoBack);

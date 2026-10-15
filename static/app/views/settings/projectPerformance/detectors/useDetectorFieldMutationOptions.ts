@@ -1,9 +1,9 @@
 import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {ProjectPerformanceSettings} from './detectorSettings';
@@ -44,13 +44,19 @@ export function useDetectorFieldMutationOptions({
     mutationKey,
     scope: {id: mutationKey.join(':')},
     mutationFn: (data: ProjectPerformanceSettings) =>
-      fetchMutation<ProjectPerformanceSettings>({
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
-          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}}
-        ),
-        method: 'PUT',
-        data,
+      apiFetch<ProjectPerformanceSettings>({
+        queryKey: [
+          getApiUrl(
+            '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: projectSlug,
+              },
+            }
+          ),
+          {method: 'PUT', data},
+        ],
       }),
     onMutate: async (variables: ProjectPerformanceSettings) => {
       await queryClient.cancelQueries({queryKey: queryOptions.queryKey});
@@ -63,9 +69,9 @@ export function useDetectorFieldMutationOptions({
 
       return {previousData};
     },
-    onSuccess: (data, variables) => {
+    onSuccess: (response, variables) => {
       queryClient.setQueryData(queryOptions.queryKey, previous =>
-        previous ? {...previous, json: {...previous.json, ...data}} : previous
+        previous ? {...previous, json: {...previous.json, ...response.json}} : previous
       );
 
       const [thresholdKey, thresholdValue] = Object.entries(variables)[0] ?? [];

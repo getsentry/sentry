@@ -23,9 +23,10 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {UserEmail} from 'sentry/types/user';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -41,15 +42,11 @@ function AccountEmails() {
 
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
-      fetchMutation<{detail?: string}>({
-        url: ENDPOINT,
-        method: 'POST',
-        data,
-      }),
+      apiFetch<{detail?: string}>({queryKey: [ENDPOINT, {method: 'POST', data}]}),
     onSuccess: response => {
       queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
-      if (response?.detail) {
-        addSuccessMessage(response.detail);
+      if (response.json?.detail) {
+        addSuccessMessage(response.json.detail);
       }
     },
     onError: error => {

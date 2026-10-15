@@ -12,8 +12,8 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -85,18 +85,19 @@ export default function WebhookDetailedView() {
             const path = typeof to === 'string' ? to : (to.pathname ?? '');
             const projectSlug = path.split('/projects/')[1]?.split('/')[0];
             if (projectSlug) {
-              fetchMutation({
-                method: 'POST',
-                url: getApiUrl(
-                  '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
-                  {
-                    path: {
-                      organizationIdOrSlug: organization.slug,
-                      projectIdOrSlug: projectSlug,
-                    },
-                  }
-                ),
-                data: {enabled: true},
+              apiFetch({
+                queryKey: [
+                  getApiUrl(
+                    '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
+                    {
+                      path: {
+                        organizationIdOrSlug: organization.slug,
+                        projectIdOrSlug: projectSlug,
+                      },
+                    }
+                  ),
+                  {method: 'POST', data: {enabled: true}},
+                ],
               })
                 .then(() => {
                   modalProps.closeModal();

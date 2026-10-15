@@ -18,8 +18,8 @@ import {EmptyMessage} from 'sentry/components/emptyMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -56,18 +56,16 @@ function useWebhookProjectMutations(project: WebhookProject) {
   const toggleMutation = useMutation({
     mutationFn: (shouldEnable: boolean) => {
       addLoadingMessage(shouldEnable ? t('Enabling...') : t('Disabling...'));
-      return fetchMutation({
-        method: 'POST',
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
-          {
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/', {
             path: {
               organizationIdOrSlug: organization.slug,
               projectIdOrSlug: project.projectSlug,
             },
-          }
-        ),
-        data: {enabled: shouldEnable},
+          }),
+          {method: 'POST', data: {enabled: shouldEnable}},
+        ],
       });
     },
     onSuccess: (_data, shouldEnable) => {
@@ -88,17 +86,16 @@ function useWebhookProjectMutations(project: WebhookProject) {
   const uninstallMutation = useMutation({
     mutationFn: () => {
       addLoadingMessage(t('Removing...'));
-      return fetchMutation({
-        method: 'DELETE',
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
-          {
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/', {
             path: {
               organizationIdOrSlug: organization.slug,
               projectIdOrSlug: project.projectSlug,
             },
-          }
-        ),
+          }),
+          {method: 'DELETE'},
+        ],
       });
     },
     onSuccess: () => {

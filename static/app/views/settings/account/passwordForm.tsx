@@ -7,8 +7,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useUser} from 'sentry/utils/useUser';
 
 const schema = z
@@ -27,10 +27,11 @@ export function PasswordForm() {
 
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
-      fetchMutation({
-        url: getApiUrl('/users/$userId/password/', {path: {userId: 'me'}}),
-        method: 'PUT',
-        data,
+      apiFetch({
+        queryKey: [
+          getApiUrl('/users/$userId/password/', {path: {userId: 'me'}}),
+          {method: 'PUT', data},
+        ],
       }),
   });
 

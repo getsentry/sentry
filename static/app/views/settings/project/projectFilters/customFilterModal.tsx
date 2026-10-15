@@ -21,9 +21,9 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -490,20 +490,22 @@ function CustomFilterModal({
         conditions: formValuesToConditions(values),
       };
       return filter
-        ? fetchMutation<CustomInboundFilter>({
-            method: 'PUT',
-            url: getCustomFilterUrl(organization, project, filter.id),
-            data,
+        ? apiFetch<CustomInboundFilter>({
+            queryKey: [
+              getCustomFilterUrl(organization, project, filter.id),
+              {method: 'PUT', data},
+            ],
           })
-        : fetchMutation<CustomInboundFilter>({
-            method: 'POST',
-            url: getApiUrl(LIST_PATH, {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                projectIdOrSlug: project.slug,
-              },
-            }),
-            data,
+        : apiFetch<CustomInboundFilter>({
+            queryKey: [
+              getApiUrl(LIST_PATH, {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                },
+              }),
+              {method: 'POST', data},
+            ],
           });
     },
     onSuccess: () => {
@@ -527,12 +529,16 @@ function CustomFilterModal({
     !organization.hideAiFeatures;
   const suggestNameMutation = useMutation({
     mutationFn: (draft: CustomInboundFilterDraft) =>
-      fetchMutation<CustomInboundFilterValidation>({
-        method: 'POST',
-        url: getApiUrl(VALIDATE_PATH, {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-        }),
-        data: draft,
+      apiFetch<CustomInboundFilterValidation>({
+        queryKey: [
+          getApiUrl(VALIDATE_PATH, {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          }),
+          {method: 'POST', data: draft},
+        ],
       }),
   });
   // The last draft asked about and the name its answer filled in. A draft is asked
@@ -556,7 +562,7 @@ function CustomFilterModal({
     lastSuggestion.current.draftKey = draftKey;
     // A later request supersedes this one: its callbacks are skipped.
     suggestNameMutation.mutate(draft, {
-      onSuccess: ({suggestedName}) => {
+      onSuccess: ({json: {suggestedName}}) => {
         const name = form.getFieldValue('name');
         const stillOpen = name.trim() === '' || name === lastSuggestion.current.name;
         if (!suggestedName || !stillOpen) {

@@ -4,8 +4,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface UseDeleteIntegrationOptions {
@@ -17,17 +17,16 @@ export function useDeleteIntegration({onSuccess}: UseDeleteIntegrationOptions = 
 
   const mutation = useMutation({
     mutationFn: (integration: Integration) =>
-      fetchMutation({
-        method: 'DELETE',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-          {
+      apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/integrations/$integrationId/', {
             path: {
               organizationIdOrSlug: organization.slug,
               integrationId: integration.id,
             },
-          }
-        ),
+          }),
+          {method: 'DELETE'},
+        ],
       }),
     onSuccess: (_data, integration) => {
       addSuccessMessage(t('%s has been removed.', integration.name));

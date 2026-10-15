@@ -8,9 +8,9 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 interface Props {
   access: Set<Scope>;
@@ -60,10 +60,8 @@ export function EarlyFeaturesSettingsForm({access}: Props) {
   const disabled = !access.has('org:write');
   const featureFlagMutationOptions = mutationOptions({
     mutationFn: (data: Record<string, boolean>) =>
-      fetchMutation<void>({
-        method: 'PUT',
-        url: getApiUrl('/internal/feature-flags/'),
-        data,
+      apiFetch<void>({
+        queryKey: [getApiUrl('/internal/feature-flags/'), {method: 'PUT', data}],
       }),
     onSuccess: (_response, updatedFlags) => {
       queryClient.setQueryData(featureFlagsQueryOptions.queryKey, prev => {

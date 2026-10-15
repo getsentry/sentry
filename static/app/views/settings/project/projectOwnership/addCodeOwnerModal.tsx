@@ -24,10 +24,10 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type Props = {
@@ -124,13 +124,16 @@ function ApplyCodeMappings({
 
   const mutation = useMutation({
     mutationFn: (payload: {codeMappingId: string; raw: string}) =>
-      fetchMutation<CodeOwner>({
-        method: 'POST',
-        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/', {
-          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-        }),
-        options: {},
-        data: payload,
+      apiFetch<CodeOwner>({
+        queryKey: [
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/', {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          }),
+          {method: 'POST', data: payload},
+        ],
       }),
     onError: err => {
       if (!(err instanceof RequestError)) {
@@ -157,9 +160,9 @@ function ApplyCodeMappings({
       }
       return mutation
         .mutateAsync({codeMappingId: value.codeMappingId, raw: codeownersFile.raw})
-        .then(data => {
+        .then(({json}) => {
           const codeMapping = codeMappings.find(cm => cm.id === value.codeMappingId);
-          onSave?.({...data, codeMapping});
+          onSave?.({...json, codeMapping});
           closeModal();
         })
         .catch(() => {});

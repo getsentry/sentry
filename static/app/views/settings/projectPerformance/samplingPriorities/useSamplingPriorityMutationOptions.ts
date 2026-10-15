@@ -3,6 +3,7 @@ import {useIsMutating} from '@tanstack/react-query';
 import type {DetailedProject} from 'sentry/types/project';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -34,7 +35,10 @@ export function useSamplingPriorityMutationOptions(project: DetailedProject) {
           : [...currentBiases, updatedPriority],
       });
     },
-    onSuccess: (_response: DetailedProject, variables: Record<string, boolean>) => {
+    onSuccess: (
+      _response: ApiResponse<DetailedProject>,
+      variables: Record<string, boolean>
+    ) => {
       trackAnalytics(
         variables[priorityName]
           ? 'dynamic_sampling_settings.priority_enabled'

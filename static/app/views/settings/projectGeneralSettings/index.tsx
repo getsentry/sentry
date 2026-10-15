@@ -234,7 +234,7 @@ function ProjectSlugForm({
     onSubmit: ({value, formApi}) =>
       updateProject
         .mutateAsync({slug: value.slug})
-        .then(updatedProject => {
+        .then(({json: updatedProject}) => {
           if (project.slug !== updatedProject.slug) {
             changeProjectSlug(project.slug, updatedProject.slug);
             // Container will redirect after stores get updated with new slug

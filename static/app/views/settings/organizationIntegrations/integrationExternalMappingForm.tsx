@@ -20,10 +20,10 @@ import type {
   Integration,
 } from 'sentry/types/integrations';
 import type {Member, Team} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -184,13 +184,14 @@ function InlineMappingForm({
           mutationFn: ({sentryId}: {sentryId: SentrySelection}) => {
             const isValidMapping = Object.hasOwn(mapping || {}, 'id');
             const fullData = buildMutationData(mapping, integration, type, sentryId);
-            return fetchMutation<ExternalActorMapping>({
-              url: getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
-              method: isValidMapping ? 'PUT' : 'POST',
-              data: fullData,
+            return apiFetch<ExternalActorMapping>({
+              queryKey: [
+                getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
+                {method: isValidMapping ? 'PUT' : 'POST', data: fullData},
+              ],
             });
           },
-          onSuccess: data => onSubmitSuccess?.(data),
+          onSuccess: ({json}) => onSubmitSuccess?.(json),
           onError: () => {
             addErrorMessage(t('Unable to save changes'));
           },
@@ -269,14 +270,15 @@ function ModalMappingForm({
         sentryId,
         externalName
       );
-      return fetchMutation<ExternalActorMapping>({
-        url: getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
-        method: isValidMapping ? 'PUT' : 'POST',
-        data: fullData,
+      return apiFetch<ExternalActorMapping>({
+        queryKey: [
+          getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
+          {method: isValidMapping ? 'PUT' : 'POST', data: fullData},
+        ],
       });
     },
-    onSuccess: data => {
-      onSubmitSuccess?.(data);
+    onSuccess: ({json}) => {
+      onSubmitSuccess?.(json);
       closeModal();
     },
     onError: () => {
