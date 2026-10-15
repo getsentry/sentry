@@ -16,17 +16,17 @@ import {DataCategory} from 'sentry/types/core';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
-import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {GIGABYTE, MILLISECONDS_IN_HOUR, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {useProductBillingMetadata} from 'getsentry/hooks/useProductBillingMetadata';
 import {AddOnCategory, type ProductTrial} from 'getsentry/types';
 import {
+  displayPriceWithCents,
   formatReservedWithUnits,
   formatUsageWithUnits,
   getLineItemUnitType,
   getPercentage,
   getReservedBudgetCategoryForAddOn,
   getSoftCapType,
-  MILLISECONDS_IN_HOUR,
   normalizeMetricHistory,
   supportsPayg,
 } from 'getsentry/utils/billing';
@@ -36,7 +36,7 @@ import {
   isByteCategory,
   isContinuousProfiling,
 } from 'getsentry/utils/dataCategory';
-import {displayPriceWithCents, getBucket} from 'getsentry/views/amCheckout/utils';
+import {getBucket} from 'getsentry/views/amCheckout/utils';
 import {ProductBreakdownPanel} from 'getsentry/views/subscriptionPage/usageOverview/components/panel';
 import {ProductTrialRibbon} from 'getsentry/views/subscriptionPage/usageOverview/components/productTrialRibbon';
 import {SIDE_PANEL_MIN_CONTAINER_BREAKPOINT} from 'getsentry/views/subscriptionPage/usageOverview/constants';

@@ -14,7 +14,11 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
 
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {
+  displayPrice,
+  displayUnitPrice,
+  formatReservedWithUnits,
+} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
@@ -114,8 +118,8 @@ export function VolumeSliders({
           const max = allowedValues.slice(-1)[0]!;
 
           const billingInterval = utils.getShortInterval(activePlan.billingInterval);
-          const price = utils.displayPrice({cents: eventBucket.price});
-          const unitPrice = utils.displayUnitPrice({
+          const price = displayPrice({cents: eventBucket.price});
+          const unitPrice = displayUnitPrice({
             cents: eventBucket.unitPrice || 0,
             minDigits: categoryInfo?.formatting.priceFormatting.minFractionDigits,
             maxDigits: categoryInfo?.formatting.priceFormatting.maxFractionDigits,

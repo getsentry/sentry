@@ -2,7 +2,7 @@ import {Fragment, useId, useState} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
-import {useDrawerContentContext} from '@sentry/scraps/drawer';
+import {useDrawer, useDrawerContentContext} from '@sentry/scraps/drawer';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -17,6 +17,7 @@ import {
   dataCategoryInfo,
   formatDroppedShare,
   reasonDescription,
+  reasonLongDescription,
   reasonTitle,
   type OutcomeColors,
 } from 'sentry/components/droppedData/outcomes';
@@ -40,6 +41,7 @@ function FixThisMenu({
 }) {
   const organization = useOrganization();
   const {onClose: closeDroppedDataDrawer} = useDrawerContentContext();
+  const {panelRef} = useDrawer();
 
   const info = dataCategoryInfo(row.category);
 
@@ -80,9 +82,11 @@ function FixThisMenu({
     <DropdownMenu
       items={items}
       position="bottom-end"
+      usePortal
+      portalContainerRef={panelRef}
       trigger={(triggerProps, isOpen) => (
         <Button {...triggerProps} variant="primary" size="sm" aria-expanded={isOpen}>
-          {t('Fix this')}
+          {t('Learn more')}
         </Button>
       )}
     />
@@ -96,19 +100,18 @@ function ReasonExpansion({
   row: ReasonRow;
   onInvestigate?: (row: ReasonRow) => void;
 }) {
+  const longDescription = reasonLongDescription(row.reason);
+
   return (
     <SimpleTable.FullWidthRow>
       <Flex
         align="center"
-        justify="between"
+        justify={longDescription ? 'between' : 'end'}
         gap="md"
         padding="lg xl"
         background="secondary"
       >
-        {/* TODO: full description of the reason will be wired in separately. */}
-        <Text size="md">
-          {t('A short description of this drop reason will go here.')}
-        </Text>
+        {longDescription && <Text size="md">{longDescription}</Text>}
         <FixThisMenu row={row} onInvestigate={onInvestigate} />
       </Flex>
     </SimpleTable.FullWidthRow>

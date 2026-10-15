@@ -1486,6 +1486,10 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
         user_reports_without_group = UserReport.objects.filter(
             project_id=project.id, event_id=event.event_id, group_id__isnull=True
         )
+        # Almost no events have a user report, so skip the update and environment lookup.
+        # Reports saved after this read are linked later by the update_user_reports task.
+        if not user_reports_without_group:
+            return
         for report in user_reports_without_group:
             if report.environment_id is None:
                 shim_to_feedback(

@@ -1,6 +1,7 @@
 from enum import StrEnum
 from typing import Any, Literal, Protocol, TypedDict
 
+from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import PendingUserInput
@@ -153,6 +154,43 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
 
         Note: This is a static method. The entrypoint instance is NOT persisted between
         trigger and completion, so leverage the cached payload to persist any state.
+        """
+        ...
+
+
+class SeerInvestigationEntrypoint[CachePayloadT](Protocol):
+    """
+    Protocol for entrypoints that can start investigations and receive their updates.
+    """
+
+    key: SeerEntrypointKey
+
+    @staticmethod
+    def has_access(organization: Organization) -> bool:
+        """
+        Entrypoint-specific access gate. The operator checks general investigation access first.
+        """
+        ...
+
+    def on_trigger_investigation_error(self, *, error: str) -> None:
+        """Called when the investigation failed to start."""
+        ...
+
+    def on_trigger_investigation_success(self, *, investigation: Investigation) -> None:
+        """Called when a new investigation was created."""
+        ...
+
+    def create_investigation_cache_payload(self) -> CachePayloadT:
+        """Creates the cached payload that on_investigation_update receives."""
+        ...
+
+    @staticmethod
+    def on_investigation_update(
+        cache_payload: CachePayloadT, run: InvestigationOrchestrationRun
+    ) -> None:
+        """
+        Called when the orchestration run of an investigation changes.
+        This is a static method, so keep all state in the cached payload.
         """
         ...
 

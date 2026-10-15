@@ -31,6 +31,7 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getIngestionCompleteThrough} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
@@ -49,6 +50,7 @@ import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/p
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
@@ -288,6 +290,11 @@ function VisualizationWidgetContent({
     })
     .filter(defined);
 
+  const renderTooltipSeriesDetails = useIncompleteBucketTooltipDetails(
+    timeSeriesWithPlottable.map(([timeSeries]) => timeSeries),
+    getIngestionCompleteThrough(timeseriesResults)
+  );
+
   const plottableWithNeedsColor = timeSeriesWithPlottable.filter(
     ([_, plottable]) => plottable.needsColor
   ).length;
@@ -485,6 +492,7 @@ function VisualizationWidgetContent({
             onZoom={onZoom}
             legendSelection={legendSelection}
             onLegendSelectionChange={onLegendSelectionChange}
+            renderTooltipSeriesDetails={renderTooltipSeriesDetails}
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
@@ -508,6 +516,7 @@ function VisualizationWidgetContent({
           onZoom={onZoom}
           legendSelection={legendSelection}
           onLegendSelectionChange={onLegendSelectionChange}
+          renderTooltipSeriesDetails={renderTooltipSeriesDetails}
         />
       </Container>
       <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>

@@ -342,6 +342,15 @@ class MonitorEnvironmentTestCase(TestCase):
         )
         assert unmuted_env.is_muted is False
 
+    def test_ensure_environment_existing_skips_muted_check(self) -> None:
+        monitor = self.create_monitor()
+        MonitorEnvironment.objects.ensure_environment(self.project, monitor, "production")
+
+        with mock.patch("sentry.monitors.models.is_monitor_muted") as mock_is_muted:
+            MonitorEnvironment.objects.ensure_environment(self.project, monitor, "production")
+
+        mock_is_muted.assert_not_called()
+
 
 class CronMonitorDataSourceHandlerTest(TestCase):
     def setUp(self) -> None:

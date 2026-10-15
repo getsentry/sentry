@@ -25,6 +25,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
+import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {Confirm} from 'sentry/components/confirm';
@@ -1029,15 +1031,59 @@ function matchesQuery(filter: CustomInboundFilter, query: string) {
   return haystack.some(field => field.toLowerCase().includes(needle));
 }
 
+// Says why the filters are not applied. On SaaS the getsentry override names the
+// plan that includes them and offers an upgrade; elsewhere the generic alert shows.
+// Renders nothing while the project has the plan feature.
+function PlanAlert({project}: {project: Project}) {
+  return (
+    <Feature
+      features="projects:custom-inbound-filters"
+      overrideName="feature-disabled:custom-inbound-filters"
+      project={project}
+      renderDisabled={({children, ...props}) => {
+        if (typeof children === 'function') {
+          return children({
+            ...props,
+            renderDisabled: p => (
+              <FeatureDisabled
+                alert
+                featureName={t('Custom Inbound Filters')}
+                features={p.features}
+                message={t(
+                  'Custom inbound filters are not enabled on your Sentry installation. Saved filters are kept but not applied.'
+                )}
+              />
+            ),
+          });
+        }
+        return null;
+      }}
+    >
+      {({hasFeature, renderDisabled, ...props}) =>
+        !hasFeature && typeof renderDisabled === 'function'
+          ? renderDisabled({...props, hasFeature, children: null})
+          : null
+      }
+    </Feature>
+  );
+}
+
 export function CustomFilters({project}: {project: Project}) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
 
-  const hasWriteAccess = hasEveryAccess(['project:write'], {
-    organization,
-    project,
-  });
+  // Relay applies the filters only with the plan feature, and the API refuses
+  // writes without it. The table still lists the filters, marked as not applied,
+  // so an organization that left the plan sees what comes back on upgrade.
+  const hasPlanFeature = project.features.includes('custom-inbound-filters');
+  let writeDisabledReason: string | undefined;
+  if (!hasPlanFeature) {
+    writeDisabledReason = t('Your plan does not include custom inbound filters.');
+  } else if (!hasEveryAccess(['project:write'], {organization, project})) {
+    writeDisabledReason = t('You need project write access to add filters.');
+  }
+  const canWrite = writeDisabledReason === undefined;
   const dataTypeOptions = getAvailableDataTypeOptions(organization);
 
   const queryOptions = apiOptions.as<CustomInboundFilter[]>()(
@@ -1178,6 +1224,7 @@ export function CustomFilters({project}: {project: Project}) {
       <Heading as="h2" size="md">
         {t('Filter Rules')}
       </Heading>
+      <PlanAlert project={project} />
       <Flex gap="md" align="center">
         <Flex flex={1}>
           <InputGroup style={{width: '100%'}}>
@@ -1197,12 +1244,8 @@ export function CustomFilters({project}: {project: Project}) {
           size="sm"
           variant="primary"
           icon={<IconAdd />}
-          disabled={!hasWriteAccess}
-          tooltipProps={
-            hasWriteAccess
-              ? undefined
-              : {title: t('You need project write access to add filters.')}
-          }
+          disabled={!canWrite}
+          tooltipProps={canWrite ? undefined : {title: writeDisabledReason}}
           onClick={() =>
             openModal(
               deps => (
@@ -1271,7 +1314,7 @@ export function CustomFilters({project}: {project: Project}) {
               {visibleFilters.map(filter => (
                 <SimpleTable.Row
                   key={filter.id}
-                  variant={filter.active ? 'default' : 'faded'}
+                  variant={filter.active && hasPlanFeature ? 'default' : 'faded'}
                 >
                   <SimpleTable.RowCell>
                     <Switch
@@ -1279,7 +1322,7 @@ export function CustomFilters({project}: {project: Project}) {
                         filter.active ? t('Disable filter') : t('Enable filter')
                       }
                       checked={filter.active}
-                      disabled={!hasWriteAccess}
+                      disabled={!canWrite}
                       onChange={() => handleToggleActive(filter)}
                     />
                   </SimpleTable.RowCell>
@@ -1321,7 +1364,7 @@ export function CustomFilters({project}: {project: Project}) {
                         variant="transparent"
                         icon={<IconEdit />}
                         aria-label={t('Edit filter')}
-                        disabled={!hasWriteAccess}
+                        disabled={!canWrite}
                         onClick={() =>
                           openModal(
                             deps => (
@@ -1340,7 +1383,7 @@ export function CustomFilters({project}: {project: Project}) {
                       />
                       <Confirm
                         priority="danger"
-                        disabled={!hasWriteAccess}
+                        disabled={!canWrite}
                         message={t('Are you sure you want to delete this filter?')}
                         onConfirm={() => handleDelete(filter.id)}
                       >

@@ -1088,29 +1088,6 @@ export class EventView {
     }));
   }
 
-  getFacetsAPIPayload(
-    location: Location
-  ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {
-    const payload = this.getEventsAPIPayload(location);
-
-    const remove = [
-      'id',
-      'name',
-      'per_page',
-      'sort',
-      'cursor',
-      'field',
-      'equation',
-      'interval',
-    ];
-    for (const key of remove) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      delete payload[key];
-    }
-
-    return payload;
-  }
-
   normalizeDateSelection(location: Location) {
     const query = location?.query || {};
 
