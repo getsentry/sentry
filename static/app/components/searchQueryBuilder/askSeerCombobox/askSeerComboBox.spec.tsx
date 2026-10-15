@@ -23,8 +23,8 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import * as analytics from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
   AsyncSDKIntegrationContextProvider,
@@ -43,15 +43,19 @@ const SELECTED_PROJECT_IDS = [1];
 
 const askSeerMutationOptions = mutationOptions({
   mutationFn: async (queryToSubmit: string) => {
-    const data = await fetchMutation<SeerRawResponse>({
-      url: getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
-        path: {organizationIdOrSlug: 'org-slug'},
-      }),
-      method: 'POST',
-      data: {
-        natural_language_query: queryToSubmit,
-        project_ids: SELECTED_PROJECT_IDS,
-      },
+    const {json: data} = await apiFetch<SeerRawResponse>({
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
+          path: {organizationIdOrSlug: 'org-slug'},
+        }),
+        {
+          method: 'POST',
+          data: {
+            natural_language_query: queryToSubmit,
+            project_ids: SELECTED_PROJECT_IDS,
+          },
+        },
+      ],
     });
 
     return buildSeerMutationResult(data, SELECTED_PROJECT_IDS, response =>

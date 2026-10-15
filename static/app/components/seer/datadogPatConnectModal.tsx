@@ -12,8 +12,8 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {DATADOG_SITES} from 'sentry/utils/seer/datadogSites';
 
@@ -38,18 +38,24 @@ export function DatadogPatConnectModal({
 
   const connectMutation = useMutation({
     mutationFn: () =>
-      fetchMutation<void>({
-        method: isReauth ? 'PUT' : 'POST',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/',
+      apiFetch<void>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/',
+            {
+              path: {
+                organizationIdOrSlug: orgSlug,
+                providerKey: 'datadog_pat',
+              },
+            }
+          ),
           {
-            path: {
-              organizationIdOrSlug: orgSlug,
-              providerKey: 'datadog_pat',
-            },
-          }
-        ),
-        data: isReauth ? {access_token: accessToken} : {access_token: accessToken, site},
+            method: isReauth ? 'PUT' : 'POST',
+            data: isReauth
+              ? {access_token: accessToken}
+              : {access_token: accessToken, site},
+          },
+        ],
       }),
     onSuccess: () => {
       closeModal();

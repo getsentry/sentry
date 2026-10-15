@@ -3,9 +3,10 @@ import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
+import {getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 
 interface Variables extends Partial<Organization> {}
 
@@ -76,15 +77,16 @@ export function useOrganizationMutationOptions(organization: Organization) {
       return {previousOrganization};
     },
     mutationFn: (data: Variables) => {
-      return fetchMutation<Organization>({
-        method: 'PUT',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        data,
+      return apiFetch<Organization>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {method: 'PUT', data},
+        ],
       });
     },
-    onSuccess: (responseOrg: Organization) => {
+    onSuccess: ({json: responseOrg}) => {
       OrganizationStore.onUpdate(responseOrg);
       updateOrganizationsStore(responseOrg);
     },

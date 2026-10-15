@@ -3,8 +3,8 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import type {ProjectSeerPreferences} from 'sentry/components/events/autofix/types';
 import type {Project} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useUpdateProjectSeerPreferences(project: Project) {
@@ -34,13 +34,19 @@ export function useUpdateProjectSeerPreferences(project: Project) {
       return {previousPrefs};
     },
     mutationFn: (preference: ProjectSeerPreferences) => {
-      return fetchMutation({
-        method: 'POST',
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/',
-          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
-        ),
-        data: {...preference},
+      return apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/preferences/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: project.slug,
+              },
+            }
+          ),
+          {method: 'POST', data: {...preference}},
+        ],
       });
     },
     onError: (_error, _variables, context) => {

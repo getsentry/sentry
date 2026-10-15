@@ -10,8 +10,8 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useFetchTempestCredentials} from 'sentry/views/settings/project/tempest/hooks/useFetchTempestCredentials';
@@ -42,13 +42,19 @@ export default function AddCredentialsModal({
 
   const mutation = useMutation({
     mutationFn: (data: FormValues) =>
-      fetchMutation({
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/',
-          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
-        ),
-        method: 'POST',
-        data,
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: project.slug,
+              },
+            }
+          ),
+          {method: 'POST', data},
+        ],
       }),
   });
 

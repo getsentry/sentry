@@ -10,8 +10,8 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization, Team} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {slugify} from 'sentry/utils/slugify';
 
 interface Props extends ModalRenderProps {
@@ -33,14 +33,15 @@ function CreateTeamModal({
 }: Props) {
   const {mutateAsync: submitCreateTeam} = useMutation({
     mutationFn: (data: {slug: string}) =>
-      fetchMutation<Team>({
-        method: 'POST',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        data,
+      apiFetch<Team>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {method: 'POST', data},
+        ],
       }),
-    onSuccess: team => {
+    onSuccess: ({json: team}) => {
       TeamStore.onCreateSuccess(team);
       addSuccessMessage(
         tct('[team] has been added to the [organization] organization', {

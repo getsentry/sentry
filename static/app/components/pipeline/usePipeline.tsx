@@ -2,8 +2,8 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -158,15 +158,21 @@ export function usePipeline<
     mutate: initializeMutate,
     error: initializeError,
     isPending: isInitializePending,
-  } = useMutation<PipelineStepResponse, RequestError, void, {generation: number}>({
+  } = useMutation<
+    ApiResponse<PipelineStepResponse>,
+    RequestError,
+    void,
+    {generation: number}
+  >({
     mutationFn: () =>
-      fetchMutation<PipelineStepResponse>({
-        method: 'POST',
-        url: apiUrl,
-        data: {action: 'initialize', provider, initialData},
+      apiFetch<PipelineStepResponse>({
+        queryKey: [
+          apiUrl,
+          {method: 'POST', data: {action: 'initialize', provider, initialData}},
+        ],
       }),
     onMutate: () => ({generation: generationRef.current}),
-    onSuccess: (data, _variables, context) => {
+    onSuccess: ({json: data}, _variables, context) => {
       if (context?.generation !== generationRef.current) {
         return;
       }
@@ -186,19 +192,15 @@ export function usePipeline<
     error: advanceError,
     reset: resetAdvance,
   } = useMutation<
-    PipelineAdvanceResponse,
+    ApiResponse<PipelineAdvanceResponse>,
     RequestError,
     Record<string, unknown>,
     {generation: number}
   >({
     mutationFn: (data: Record<string, unknown>) =>
-      fetchMutation<PipelineAdvanceResponse>({
-        method: 'POST',
-        url: apiUrl,
-        data,
-      }),
+      apiFetch<PipelineAdvanceResponse>({queryKey: [apiUrl, {method: 'POST', data}]}),
     onMutate: () => ({generation: generationRef.current}),
-    onSuccess: (response, _variables, context) => {
+    onSuccess: ({json: response}, _variables, context) => {
       if (context?.generation !== generationRef.current) {
         return;
       }

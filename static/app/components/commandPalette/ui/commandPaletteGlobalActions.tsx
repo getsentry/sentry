@@ -62,13 +62,13 @@ import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -317,10 +317,7 @@ export function GlobalCommandPaletteActions() {
   const {data: starredDashboards = []} = useGetStarredDashboards();
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl('/auth/superuser/'),
-        method: 'DELETE',
-      }),
+      apiFetch({queryKey: [getApiUrl('/auth/superuser/'), {method: 'DELETE'}]}),
     onSuccess: () => window.location.reload(),
   });
 

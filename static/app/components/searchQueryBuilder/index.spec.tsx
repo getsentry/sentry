@@ -41,6 +41,7 @@ import {
 import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   FieldKey,
@@ -48,7 +49,6 @@ import {
   FieldValueType,
   getFieldDefinition,
 } from 'sentry/utils/fields';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
 
 jest.mock('@tanstack/react-pacer', () => ({
@@ -7777,18 +7777,22 @@ describe('SearchQueryBuilder', () => {
               applySeerSearchQuery={() => {}}
               askSeerMutationOptions={mutationOptions({
                 mutationFn: async (queryToSubmit: string) => {
-                  const data = await fetchMutation<SeerRawResponse>({
-                    url: getApiUrl(
-                      '/organizations/$organizationIdOrSlug/search-agent/translate/',
+                  const {json: data} = await apiFetch<SeerRawResponse>({
+                    queryKey: [
+                      getApiUrl(
+                        '/organizations/$organizationIdOrSlug/search-agent/translate/',
+                        {
+                          path: {organizationIdOrSlug: 'org-slug'},
+                        }
+                      ),
                       {
-                        path: {organizationIdOrSlug: 'org-slug'},
-                      }
-                    ),
-                    method: 'POST',
-                    data: {
-                      natural_language_query: queryToSubmit,
-                      project_ids: [1],
-                    },
+                        method: 'POST',
+                        data: {
+                          natural_language_query: queryToSubmit,
+                          project_ids: [1],
+                        },
+                      },
+                    ],
                   });
 
                   return buildSeerMutationResult(data, [1], response =>

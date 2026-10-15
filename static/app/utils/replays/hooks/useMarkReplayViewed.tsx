@@ -1,7 +1,7 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type TData = unknown;
@@ -24,7 +24,7 @@ export function useMarkReplayViewed() {
           },
         }
       );
-      return fetchMutation({method: 'POST', url});
+      return apiFetch({queryKey: [url, {method: 'POST'}]});
     },
     onSuccess(_data, {projectSlug, replayId}) {
       const url = getApiUrl(

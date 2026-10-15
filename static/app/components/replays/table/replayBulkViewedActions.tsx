@@ -8,9 +8,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ListCheckboxQueryKeyRef} from 'sentry/utils/list/useListItemCheckboxState';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
@@ -52,7 +52,7 @@ export function ReplayBulkViewedActions({
           }
         );
 
-        return fetchMutation({method: 'POST', url}).then(() => replay.id);
+        return apiFetch({queryKey: [url, {method: 'POST'}]}).then(() => replay.id);
       })
     );
 

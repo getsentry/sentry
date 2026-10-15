@@ -98,7 +98,7 @@ export function Provider({
     });
     // This component receives referentially new selectedTeams and selectedProjects
     // on many renders. Ideally fetchTeamKeyTransactions should be refactored to use
-    // `useApiQuery` or `useMutation` with `fetchDataQuery` and `fetchMutation`.
+    // `useQuery` and `useMutation` with `apiFetch`.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, organization.slug, refetchKey]);
 

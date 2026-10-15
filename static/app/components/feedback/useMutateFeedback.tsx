@@ -6,9 +6,9 @@ import {useFeedbackCache} from 'sentry/components/feedback/useFeedbackCache';
 import type {Actor} from 'sentry/types/core';
 import type {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 type TFeedbackIds = 'all' | string[];
 type TPayload =
@@ -53,7 +53,7 @@ export function useMutateFeedback({feedbackIds, organization, projectIds}: Props
         : ids === 'all'
           ? listQueryKeyOptions
           : {query: {id: ids, project: projectIds}};
-      return fetchMutation({method: 'PUT', url, options, data: payload});
+      return apiFetch({queryKey: [url, {...options, method: 'PUT', data: payload}]});
     },
     onSettled: (_resp, _error, [ids, _payload]) => {
       invalidateCached(ids);
