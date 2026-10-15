@@ -171,6 +171,7 @@ class ExploreSavedFormulaResponse(TypedDict):
     dataset: str
     type: str
     unit: str | None
+    prebuilt: bool
 
 
 class ExploreSavedReferencesSerializer(Serializer[ExploreSavedReference]):
@@ -232,6 +233,7 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
             ),
             "type": obj.formula_type,
             "unit": obj.unit,
+            "prebuilt": obj.prebuilt_id is not None,
         }
         return data
 

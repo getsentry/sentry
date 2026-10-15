@@ -50,6 +50,7 @@ class TestFormulaDetails(BaseFormulaTest):
         assert data["formula"] == "({count_satisfied} + {count_tolerating} / 2) / count()"
         assert data["unit"] is None
         assert data["type"] == "number"
+        assert not data["prebuilt"]
         assert data["references"] == [
             {"name": "count_satisfied", "value": "count_if(`{duration}:<{threshold}`)"},
             {
@@ -396,6 +397,7 @@ class TestFormulas(BaseFormulaTest):
         formula_names = [row["name"] for row in response.data]
         assert "formula.apdex" in formula_names
         assert "formula.user_misery" in formula_names
+        assert response.data[0]["prebuilt"]
         assert response.data[0]["references"][0] == {
             "name": "count_satisfied",
             "value": "count_if(`{duration}:<{threshold}`)",
