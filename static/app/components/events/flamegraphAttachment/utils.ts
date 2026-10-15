@@ -3,14 +3,11 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
-export type FlamegraphAttachmentFrame = Omit<
-  Profiling.SentrySampledProfileFrame,
-  'in_app'
-> & {
+type FlamegraphAttachmentFrame = Omit<Profiling.SentrySampledProfileFrame, 'in_app'> & {
   in_app?: boolean;
 };
 
-export type FlamegraphAttachmentNode = {
+type FlamegraphAttachmentNode = {
   frame_id: number;
   sample_count: number;
   children?: FlamegraphAttachmentNode[];
