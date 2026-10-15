@@ -61,6 +61,7 @@ describe('ProjectFilters', () => {
     id: string;
     name: string | null;
     dataType?: string;
+    legacyFilter?: string;
   };
 
   function CustomInboundFilterFixture(
@@ -831,6 +832,58 @@ describe('ProjectFilters', () => {
     expect(
       within(dialog).getByRole('row', {name: /release:.*\[1\.,2\.,3\.,4\.,5\.\]/})
     ).toBeInTheDocument();
+  });
+
+  it('edits the lines of a legacy list row as text', async () => {
+    // A legacy list of the project settings moves into the table as one row with
+    // one condition. Its lines stay a plain list, comments included, instead of a
+    // query, and keep their condition and data type.
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Error Messages',
+        legacyFilter: 'error-message',
+        conditions: [
+          {type: 'error_message', value: ['*timeout*', '# retired', '*refused*']},
+        ],
+      }),
+    ]);
+
+    const editMock = MockApiClient.addMockResponse({
+      url: `${CUSTOM_INBOUND_FILTERS_URL}1/`,
+      method: 'PUT',
+      body: CustomInboundFilterFixture({id: '1', name: 'Error Messages'}),
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Edit filter'}));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Edit Custom Filter')).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole('combobox', {name: 'Add a search term'})
+    ).not.toBeInTheDocument();
+    expect(within(dialog).getByRole('textbox', {name: 'Data Type'})).toBeDisabled();
+
+    const lines = within(dialog).getByRole('textbox', {name: 'Error Message'});
+    expect(lines).toHaveValue('*timeout*\n# retired\n*refused*');
+
+    // Blank lines and surrounding whitespace are not patterns, as in the settings.
+    await userEvent.clear(lines);
+    await userEvent.paste('*timeout*\n\n  # retired  \n');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() =>
+      expect(editMock).toHaveBeenCalledWith(
+        `${CUSTOM_INBOUND_FILTERS_URL}1/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {
+            name: 'Error Messages',
+            dataType: 'error',
+            conditions: [{type: 'error_message', value: ['*timeout*', '# retired']}],
+          },
+        })
+      )
+    );
   });
 
   it('keeps a condition type it does not know', async () => {

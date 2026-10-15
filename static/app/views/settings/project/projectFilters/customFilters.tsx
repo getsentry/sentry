@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
@@ -106,6 +106,17 @@ type CustomInboundFilter = {
   name: string | null;
   // Absent until the API stores the data type on the filter.
   dataType?: FilterDataType;
+  // Set once a legacy newline list of the project settings moves into the table: the
+  // id Relay reports the outcomes of that list under. The row keeps one condition
+  // whose values are the lines of the list. Absent on a filter made here.
+  legacyFilter?: string;
+};
+
+// The body of a create or edit request.
+type CustomInboundFilterInput = {
+  conditions: CustomInboundFilterCondition[];
+  dataType: FilterDataType;
+  name: string;
 };
 
 // The body of the validate endpoint: a filter without its name, which is what the
@@ -130,12 +141,12 @@ type FilterDataType = 'all' | 'error' | 'metric' | 'log' | 'span';
 
 type DataTypeOption = {label: string; value: FilterDataType};
 
-// The modal edits the conditions as one search query, one filter token per
-// condition. See `parseConditionQuery` for the translation.
+// The modal edits the conditions as one text. See `ConditionEditor` for how the
+// text translates.
 type FilterFormValues = {
+  conditions: string;
   dataType: FilterDataType;
   name: string;
-  query: string;
 };
 
 type DataTypeSpec = {
@@ -477,21 +488,67 @@ function getAvailableDataTypeOptions(organization: Organization): DataTypeOption
   }).map(dataTypeOption);
 }
 
-const filterSchema = z
-  .object({
-    name: z.string().trim().min(1, t('Give the filter a name')),
-    dataType: z.enum(FILTER_DATA_TYPES),
-    query: z.string(),
-  })
-  .superRefine((values, ctx) => {
-    if (!parseConditionQuery(values.query, values.dataType)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['query'],
-        message: t('Add at least one condition. Every condition must be valid.'),
-      });
-    }
-  });
+// How the modal edits the conditions as one text. `format` renders the stored
+// conditions for editing and `parse` reads the edited text back, or null for a text
+// the API would reject, which `invalidMessage` explains.
+type ConditionEditor = {
+  format: (conditions: CustomInboundFilterCondition[]) => string;
+  invalidMessage: string;
+  parse: (
+    text: string,
+    dataType: FilterDataType
+  ) => CustomInboundFilterCondition[] | null;
+};
+
+// A filter made here edits its conditions as a search query, one filter token per
+// condition. See `parseConditionQuery` for the translation.
+const QUERY_EDITOR: ConditionEditor = {
+  format: conditionsToQuery,
+  parse: parseConditionQuery,
+  invalidMessage: t('Add at least one condition. Every condition must be valid.'),
+};
+
+// A row that holds a legacy list edits the lines of its one condition, one pattern
+// per line, the way the project settings edit the list. The condition keeps its
+// type and operator, since the legacy API still maps the list onto it. Lines are
+// trimmed and blank ones dropped, as the legacy API does.
+function getLineListEditor(condition: CustomInboundFilterCondition): ConditionEditor {
+  return {
+    format: conditions => (conditions[0]?.value ?? []).join('\n'),
+    parse: text => {
+      const value = text
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean);
+      return value.length > 0 ? [{...condition, value}] : null;
+    },
+    invalidMessage: t('Enter at least one pattern.'),
+  };
+}
+
+function getConditionEditor(
+  legacyCondition: CustomInboundFilterCondition | undefined
+): ConditionEditor {
+  return legacyCondition ? getLineListEditor(legacyCondition) : QUERY_EDITOR;
+}
+
+function getFilterSchema(editor: ConditionEditor) {
+  return z
+    .object({
+      name: z.string().trim().min(1, t('Give the filter a name')),
+      dataType: z.enum(FILTER_DATA_TYPES),
+      conditions: z.string(),
+    })
+    .superRefine((values, ctx) => {
+      if (!editor.parse(values.conditions, values.dataType)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['conditions'],
+          message: editor.invalidMessage,
+        });
+      }
+    });
+}
 
 // An API that does not store the data type derives it the way the old backend did:
 // from the first condition that belongs to one, falling back to errors.
@@ -511,29 +568,26 @@ function getDataTypeLabel(filter: CustomInboundFilter): string {
   return spec?.tableLabel ?? spec?.label ?? dataType;
 }
 
-function filterToFormValues(filter: CustomInboundFilter): FilterFormValues {
+function filterToFormValues(
+  filter: CustomInboundFilter,
+  editor: ConditionEditor
+): FilterFormValues {
   return {
     name: filter.name ?? '',
     dataType: getFilterDataType(filter),
-    query: conditionsToQuery(filter.conditions),
+    conditions: editor.format(filter.conditions),
   };
 }
 
-// The schema already refused a query that does not translate, so this never sees one.
-function formValuesToConditions(
-  values: FilterFormValues
-): CustomInboundFilterCondition[] {
-  return parseConditionQuery(values.query, values.dataType) ?? [];
-}
-
-// The draft a name suggestion describes, or undefined while the query does not
+// The draft a name suggestion describes, or undefined while the text does not
 // translate to conditions yet: the API refuses such a draft, so there is nothing to
 // describe.
 function getCompleteDraft(
+  editor: ConditionEditor,
   values: FilterFormValues,
   filterId: string | undefined
 ): CustomInboundFilterDraft | undefined {
-  const conditions = parseConditionQuery(values.query, values.dataType);
+  const conditions = editor.parse(values.conditions, values.dataType);
   if (!conditions) {
     return undefined;
   }
@@ -723,14 +777,19 @@ function CustomFilterModal({
   onSave,
 }: ModalRenderProps & {
   dataTypeOptions: DataTypeOption[];
-  onSave: (values: FilterFormValues) => Promise<unknown>;
+  onSave: (input: CustomInboundFilterInput) => Promise<unknown>;
   organization: Organization;
   project: Project;
   filter?: CustomInboundFilter;
 }) {
+  // A row that holds a legacy list keeps its one condition and its data type: the
+  // modal edits the lines of the condition.
+  const legacyCondition = filter?.legacyFilter ? filter.conditions[0] : undefined;
+  const editor = useMemo(() => getConditionEditor(legacyCondition), [legacyCondition]);
+  const filterSchema = useMemo(() => getFilterSchema(editor), [editor]);
   const defaultValues = filter
-    ? filterToFormValues(filter)
-    : {name: '', dataType: 'error' as const, query: ''};
+    ? filterToFormValues(filter, editor)
+    : {name: '', dataType: 'error' as const, conditions: ''};
   const modalDataTypeOptions = getModalDataTypeOptions(
     dataTypeOptions,
     filter ? defaultValues.dataType : undefined
@@ -757,7 +816,7 @@ function CustomFilterModal({
   const lastSuggestion = useRef({draftKey: '', name: ''});
 
   const suggestName = (values: FilterFormValues) => {
-    const draft = getCompleteDraft(values, filter?.id);
+    const draft = getCompleteDraft(editor, values, filter?.id);
     const draftKey = JSON.stringify(draft);
     const nameIsOpen =
       values.name.trim() === '' || values.name === lastSuggestion.current.name;
@@ -792,7 +851,12 @@ function CustomFilterModal({
       onBlur: ({formApi}) => suggestName(formApi.state.values),
     },
     onSubmit: ({value}) =>
-      onSave(value)
+      onSave({
+        name: value.name.trim(),
+        dataType: value.dataType,
+        // The schema already refused a text that does not translate.
+        conditions: editor.parse(value.conditions, value.dataType) ?? [],
+      })
         .then(() => closeModal())
         .catch(() => {}),
   });
@@ -805,9 +869,14 @@ function CustomFilterModal({
             {filter ? t('Edit Custom Filter') : t('Create Custom Filter')}
           </Heading>
           <Text variant="muted" size="sm">
-            {t(
-              'Sentry drops data that meets every condition below. Type a property, pick an operator, then enter a value. Use * in a value as a wildcard, or list several values to match any of them.'
-            )}
+            {legacyCondition
+              ? t(
+                  'Sentry drops data whose %s matches any pattern below, one per line. Use * in a pattern as a wildcard.',
+                  getCondition(legacyCondition.type).label
+                )
+              : t(
+                  'Sentry drops data that meets every condition below. Type a property, pick an operator, then enter a value. Use * in a value as a wildcard, or list several values to match any of them.'
+                )}
           </Text>
         </Stack>
       </Header>
@@ -835,6 +904,7 @@ function CustomFilterModal({
                 <dataTypeField.Layout.Stack label={t('Data Type')} required>
                   <dataTypeField.Select
                     clearable={false}
+                    disabled={legacyCondition !== undefined}
                     options={modalDataTypeOptions}
                     value={dataTypeField.state.value}
                     onChange={value => dataTypeField.handleChange(value)}
@@ -844,59 +914,83 @@ function CustomFilterModal({
             </form.AppField>
           </Grid>
 
-          <form.Subscribe selector={state => state.values}>
-            {({dataType, query}) => (
-              <form.AppField name="query">
-                {queryField => (
-                  <queryField.Layout.Stack
-                    label={t('Conditions')}
-                    required
-                    hintText={
-                      dataType === 'all'
-                        ? t(
-                            'This filter applies to every data type Sentry ingests, including ones added later. Only conditions that every data type carries are available.'
-                          )
-                        : undefined
-                    }
-                  >
-                    {/* The builder reads its query once, so a data type change
-                        remounts it: the query then re-parses against the keys the
-                        new data type offers and flags the rest. */}
-                    <SearchQueryBuilder
-                      key={dataType}
+          {legacyCondition ? (
+            <form.AppField name="conditions">
+              {linesField => (
+                <linesField.Layout.Stack
+                  label={getCondition(legacyCondition.type).label}
+                  required
+                >
+                  <linesField.TextArea
+                    placeholder={getCondition(legacyCondition.type).placeholder}
+                    value={linesField.state.value}
+                    onChange={linesField.handleChange}
+                    monospace
+                    autosize
+                    rows={3}
+                    maxRows={15}
+                  />
+                  {RAW_ERROR_PROPERTIES.has(legacyCondition.type) && (
+                    <ObfuscatedErrorWarning project={project} />
+                  )}
+                </linesField.Layout.Stack>
+              )}
+            </form.AppField>
+          ) : (
+            <form.Subscribe selector={state => state.values}>
+              {({dataType, conditions}) => (
+                <form.AppField name="conditions">
+                  {queryField => (
+                    <queryField.Layout.Stack
                       label={t('Conditions')}
-                      initialQuery={queryField.state.value}
-                      filterKeys={getFilterKeys(dataType)}
-                      fieldDefinitionGetter={getFieldDefinitionGetter(dataType)}
-                      getTagValues={getNoTagValues}
-                      onChange={value => queryField.handleChange(value)}
-                      onBlur={() => queryField.handleBlur()}
-                      searchSource="custom_inbound_filter"
-                      placeholder={t('e.g. error_message:*timeout* !release:1.0')}
-                      invalidMessages={CONDITION_QUERY_MESSAGES}
-                      disallowFreeText
-                      disallowLogicalOperators
-                      disallowUnsupportedFilters
-                      showSearchIcon={false}
-                      portalTarget={document.body}
-                      disableFullWidthFilterKeyMenu
-                    />
-                    {queryField.state.meta.isTouched &&
-                      !queryField.state.meta.isValid && (
-                        <Text size="sm" variant="danger">
-                          {queryField.state.meta.errors
-                            .map(error => error?.message)
-                            .join(' ')}
-                        </Text>
-                      )}
-                    {(parseConditionQuery(query, dataType) ?? []).some(condition =>
-                      RAW_ERROR_PROPERTIES.has(condition.type)
-                    ) && <ObfuscatedErrorWarning project={project} />}
-                  </queryField.Layout.Stack>
-                )}
-              </form.AppField>
-            )}
-          </form.Subscribe>
+                      required
+                      hintText={
+                        dataType === 'all'
+                          ? t(
+                              'This filter applies to every data type Sentry ingests, including ones added later. Only conditions that every data type carries are available.'
+                            )
+                          : undefined
+                      }
+                    >
+                      {/* The builder reads its query once, so a data type change
+                          remounts it: the query then re-parses against the keys the
+                          new data type offers and flags the rest. */}
+                      <SearchQueryBuilder
+                        key={dataType}
+                        label={t('Conditions')}
+                        initialQuery={queryField.state.value}
+                        filterKeys={getFilterKeys(dataType)}
+                        fieldDefinitionGetter={getFieldDefinitionGetter(dataType)}
+                        getTagValues={getNoTagValues}
+                        onChange={value => queryField.handleChange(value)}
+                        onBlur={() => queryField.handleBlur()}
+                        searchSource="custom_inbound_filter"
+                        placeholder={t('e.g. error_message:*timeout* !release:1.0')}
+                        invalidMessages={CONDITION_QUERY_MESSAGES}
+                        disallowFreeText
+                        disallowLogicalOperators
+                        disallowUnsupportedFilters
+                        showSearchIcon={false}
+                        portalTarget={document.body}
+                        disableFullWidthFilterKeyMenu
+                      />
+                      {queryField.state.meta.isTouched &&
+                        !queryField.state.meta.isValid && (
+                          <Text size="sm" variant="danger">
+                            {queryField.state.meta.errors
+                              .map(error => error?.message)
+                              .join(' ')}
+                          </Text>
+                        )}
+                      {(parseConditionQuery(conditions, dataType) ?? []).some(condition =>
+                        RAW_ERROR_PROPERTIES.has(condition.type)
+                      ) && <ObfuscatedErrorWarning project={project} />}
+                    </queryField.Layout.Stack>
+                  )}
+                </form.AppField>
+              )}
+            </form.Subscribe>
+          )}
         </Stack>
       </Body>
       <Footer>
@@ -1270,16 +1364,8 @@ export function CustomFilters({project}: {project: Project}) {
   const invalidate = () => queryClient.invalidateQueries({queryKey});
 
   const createMutation = useMutation({
-    mutationFn: (values: FilterFormValues) =>
-      fetchMutation<CustomInboundFilter>({
-        method: 'POST',
-        url: listUrl,
-        data: {
-          name: values.name.trim(),
-          dataType: values.dataType,
-          conditions: formValuesToConditions(values),
-        },
-      }),
+    mutationFn: (input: CustomInboundFilterInput) =>
+      fetchMutation<CustomInboundFilter>({method: 'POST', url: listUrl, data: input}),
     onSuccess: () => {
       addSuccessMessage(t('Filter created'));
       invalidate();
@@ -1325,17 +1411,11 @@ export function CustomFilters({project}: {project: Project}) {
     },
   });
 
-  const handleCreate = (values: FilterFormValues) => createMutation.mutateAsync(values);
+  const handleCreate = (input: CustomInboundFilterInput) =>
+    createMutation.mutateAsync(input);
 
-  const handleEdit = (id: string, values: FilterFormValues) =>
-    updateMutation.mutateAsync({
-      id,
-      data: {
-        name: values.name.trim(),
-        dataType: values.dataType,
-        conditions: formValuesToConditions(values),
-      },
-    });
+  const handleEdit = (id: string, input: CustomInboundFilterInput) =>
+    updateMutation.mutateAsync({id, data: input});
 
   const handleToggleActive = (filter: CustomInboundFilter) =>
     updateMutation.mutate({id: filter.id, data: {active: !filter.active}});
