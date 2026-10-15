@@ -55,14 +55,12 @@ function OrganizationMenuHeader({
         ? {type: 'gravatar', gravatarId: avatar.avatarUrl, ...avatarIdentity}
         : undefined
   );
-  const backgroundColor = avatarColors.type === 'image' ? avatarColors.chonk : undefined;
-
   return (
     <MenuHeader
       title={t('Organization')}
       name={organization.name || organization.slug}
       subtitle={tn('%s Project', '%s Projects', projectCount)}
-      backgroundColor={backgroundColor}
+      backgroundColor={avatarColors.type === 'image' ? avatarColors.chonk : undefined}
       avatar={<OrganizationHeaderAvatar organization={organization} />}
     />
   );
