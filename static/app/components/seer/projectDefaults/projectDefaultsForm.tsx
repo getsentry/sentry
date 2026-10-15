@@ -32,7 +32,7 @@ export function ProjectDefaultsForm({organization}: Props) {
   const orgMutationOpts = mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
       apiFetch<Organization>({queryKey: [orgEndpoint, {method: 'PUT', data}]}),
-    onSuccess: updateOrganization,
+    onSuccess: response => updateOrganization(response.json),
   });
   const autofixTuningMutationOpts = mutationOptions({
     mutationFn: (data: {defaultAutofixAutomationTuning: boolean}) =>
@@ -49,7 +49,7 @@ export function ProjectDefaultsForm({organization}: Props) {
           },
         ],
       }),
-    onSuccess: updateOrganization,
+    onSuccess: response => updateOrganization(response.json),
   });
 
   return (

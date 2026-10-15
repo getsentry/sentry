@@ -15,8 +15,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiFetch} from 'sentry/utils/api/apiFetch';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -106,12 +105,12 @@ function AdminUserEditForm({
   const updateMutation = useMutation({
     mutationFn: (data: UserUpdatePayload) =>
       apiFetch<User>({queryKey: [userEndpoint, {method: 'PUT', data}]}),
-    onSuccess: response => {
+    onSuccess: ({json: updatedUser}) => {
       queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, prev => ({
-        json: response,
+        json: updatedUser,
         headers: prev?.headers ?? {},
       }));
-      form.reset(toFormValues(response));
+      form.reset(toFormValues(updatedUser));
       addSuccessMessage(t('User account updated.'));
     },
     onError: error => {
@@ -145,13 +144,13 @@ function AdminUserEditForm({
       apiFetch<User>({
         queryKey: [userEndpoint, {method: 'PUT', data: {isActive: false}}],
       }),
-    onSuccess: response => {
+    onSuccess: ({json: updatedUser}) => {
       queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, prev => ({
-        json: response,
+        json: updatedUser,
         headers: prev?.headers ?? {},
       }));
-      form.reset(toFormValues(response));
-      addSuccessMessage(t("%s's account has been deactivated.", response.email));
+      form.reset(toFormValues(updatedUser));
+      addSuccessMessage(t("%s's account has been deactivated.", updatedUser.email));
     },
     onError: () => {
       addErrorMessage(t('Failed to deactivate user account.'));

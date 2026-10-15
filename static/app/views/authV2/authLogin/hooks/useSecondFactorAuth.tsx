@@ -108,7 +108,7 @@ export function useSecondFactorAuth() {
       : null,
     isPending: mutation.isPending,
     reset: mutation.reset,
-    result: mutation.data?.json ?? null,
+    result: mutation.data ?? null,
   };
 }
 

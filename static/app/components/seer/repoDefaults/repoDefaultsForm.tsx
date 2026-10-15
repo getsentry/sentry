@@ -31,7 +31,7 @@ export function RepoDefaultsForm({organization}: Props) {
   const orgMutationOpts = mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
       apiFetch<Organization>({queryKey: [orgEndpoint, {method: 'PUT', data}]}),
-    onSuccess: updateOrganization,
+    onSuccess: response => updateOrganization(response.json),
   });
 
   return (

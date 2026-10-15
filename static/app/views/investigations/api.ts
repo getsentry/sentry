@@ -4,6 +4,7 @@ import {
   type UseMutationOptions,
 } from '@tanstack/react-query';
 
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -179,7 +180,7 @@ export function useInvestigationOrchestrationCommandMutation(
   organizationSlug: string,
   investigationId: string,
   options?: MutationOptions<
-    InvestigationOrchestrationCommandResponse,
+    ApiResponse<InvestigationOrchestrationCommandResponse>,
     InvestigationOrchestrationCommandVariables
   >
 ) {
@@ -208,7 +209,7 @@ export function useInvestigationOrchestrationCommandMutation(
       }),
     onSuccess: async (response, variables, onMutateResult, context) => {
       queryClient.setQueryData(orchestrationOptions.queryKey, current =>
-        current ? {...current, json: response.projection} : current
+        current ? {...current, json: response.json.projection} : current
       );
       await options?.onSuccess?.(response, variables, onMutateResult, context);
     },
@@ -315,7 +316,10 @@ function useInvestigationMutation<TData, TVariables>(
 
 export function useLaunchInvestigationMutation(
   organizationSlug: string,
-  options?: MutationOptions<InvestigationDetail, MetricOpenPeriodInvestigationSource>
+  options?: MutationOptions<
+    ApiResponse<InvestigationDetail>,
+    MetricOpenPeriodInvestigationSource
+  >
 ) {
   return useInvestigationMutation(
     organizationSlug,
@@ -344,7 +348,7 @@ export function useLaunchInvestigationMutation(
 export function useRenameInvestigationMutation(
   organizationSlug: string,
   investigationId: string,
-  options?: MutationOptions<InvestigationDetail, string>
+  options?: MutationOptions<ApiResponse<InvestigationDetail>, string>
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -376,7 +380,8 @@ export function useRenameInvestigationMutation(
         ],
       });
     },
-    onSuccess: async (updated, savedTitle, onMutateResult, context) => {
+    onSuccess: async (response, savedTitle, onMutateResult, context) => {
+      const updated = response.json;
       queryClient.setQueryData(detailOptions.queryKey, current => {
         if (!current) {
           return current;
@@ -398,7 +403,7 @@ export function useRenameInvestigationMutation(
       await queryClient.invalidateQueries({
         queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
       });
-      await options?.onSuccess?.(updated, savedTitle, onMutateResult, context);
+      await options?.onSuccess?.(response, savedTitle, onMutateResult, context);
     },
   });
 }
@@ -406,7 +411,7 @@ export function useRenameInvestigationMutation(
 export function useDeleteInvestigationBlockMutation(
   organizationSlug: string,
   investigationId: string,
-  options?: MutationOptions<void, DeleteBlockVariables>
+  options?: MutationOptions<ApiResponse<void>, DeleteBlockVariables>
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -500,7 +505,7 @@ export function useRunInvestigationBlockMutation(
           },
         ],
       }),
-    onSuccess: async (execution, variables) => {
+    onSuccess: async ({json: execution}, variables) => {
       queryClient.setQueryData(detailOptions.queryKey, current =>
         current
           ? {
@@ -544,7 +549,7 @@ export function useUpdateInvestigationBlockPromptMutation(
     investigationId
   );
 
-  return useMutation<InvestigationBlock, Error, UpdateBlockPromptVariables>({
+  return useMutation<ApiResponse<InvestigationBlock>, Error, UpdateBlockPromptVariables>({
     mutationFn: ({block, investigationVersion, prompt}) =>
       apiFetch<InvestigationBlock>({
         queryKey: [
@@ -568,7 +573,7 @@ export function useUpdateInvestigationBlockPromptMutation(
           },
         ],
       }),
-    onSuccess: (updatedBlock, variables) => {
+    onSuccess: ({json: updatedBlock}, variables) => {
       queryClient.setQueryData(detailOptions.queryKey, current =>
         current
           ? {
@@ -595,7 +600,7 @@ export function useUpdateInvestigationBlockPromptMutation(
 export function useStopInvestigationExecutionMutation(
   organizationSlug: string,
   investigationId: string,
-  options?: MutationOptions<void, StopExecutionVariables>
+  options?: MutationOptions<ApiResponse<void>, StopExecutionVariables>
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -642,7 +647,7 @@ export function useStopInvestigationExecutionMutation(
 export function useResumeInvestigationExecutionMutation(
   organizationSlug: string,
   investigationId: string,
-  options?: MutationOptions<void, ResumeExecutionVariables>
+  options?: MutationOptions<ApiResponse<void>, ResumeExecutionVariables>
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -688,7 +693,7 @@ export function useResumeInvestigationExecutionMutation(
 
 export function useSetInvestigationFavoriteMutation(
   organizationSlug: string,
-  options?: MutationOptions<void, FavoriteVariables>
+  options?: MutationOptions<ApiResponse<void>, FavoriteVariables>
 ) {
   return useInvestigationMutation(
     organizationSlug,
@@ -713,7 +718,7 @@ export function useSetInvestigationFavoriteMutation(
 
 export function useDuplicateInvestigationMutation(
   organizationSlug: string,
-  options?: MutationOptions<InvestigationListItem, InvestigationListItem>
+  options?: MutationOptions<ApiResponse<InvestigationListItem>, InvestigationListItem>
 ) {
   return useInvestigationMutation(
     organizationSlug,
@@ -738,7 +743,7 @@ export function useDuplicateInvestigationMutation(
 
 export function useDeleteInvestigationMutation(
   organizationSlug: string,
-  options?: MutationOptions<void, InvestigationListItem>
+  options?: MutationOptions<ApiResponse<void>, InvestigationListItem>
 ) {
   return useInvestigationMutation(
     organizationSlug,

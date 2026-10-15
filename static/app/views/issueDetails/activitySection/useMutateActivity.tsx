@@ -66,7 +66,7 @@ export function useMutateActivity({organization, group}: Props) {
         ],
       });
     },
-    onSuccess: (result, mutation) => {
+    onSuccess: ({json: result}, mutation) => {
       queryClient.setQueriesData<ApiResponse<Group>>({queryKey}, prev => {
         if (!prev) {
           return prev;

@@ -52,8 +52,8 @@ export function SeerAutomationDefault() {
       }
       return;
     },
-    onSuccess: org => {
-      OrganizationStore.onUpdate(org);
+    onSuccess: response => {
+      OrganizationStore.onUpdate(response.json);
     },
     onError: (_error, _variables, rollback) => {
       rollback?.();

@@ -137,7 +137,7 @@ describe('useSecondFactorAuth', () => {
 
     act(() => result.current.authenticate({method: 'totp', otp: '123456'}));
 
-    await waitFor(() => expect(result.current.result).toEqual(response));
+    await waitFor(() => expect(result.current.result?.json).toEqual(response));
     expect(request).toHaveBeenCalledWith(
       '/auth/2fa/',
       expect.objectContaining({
@@ -164,7 +164,7 @@ describe('useSecondFactorAuth', () => {
 
     act(() => result.current.authenticate({method: 'u2f', response: webAuthnResponse}));
 
-    await waitFor(() => expect(result.current.result).toEqual(response));
+    await waitFor(() => expect(result.current.result?.json).toEqual(response));
     expect(request).toHaveBeenCalledWith(
       '/auth/2fa/',
       expect.objectContaining({

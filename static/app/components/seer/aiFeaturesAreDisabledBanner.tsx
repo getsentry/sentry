@@ -39,9 +39,9 @@ export function AiFeaturesAreDisabledBanner() {
         ],
       });
     },
-    onSuccess: updated => {
+    onSuccess: response => {
       addSuccessMessage(t('Generative AI features enabled'));
-      updateOrganization(updated);
+      updateOrganization(response.json);
     },
     onError: () => addErrorMessage(t('Unable to save change')),
   });

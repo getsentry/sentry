@@ -203,7 +203,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     organization.slug,
     investigation.id,
     {
-      onSuccess: updated => {
+      onSuccess: ({json: updated}) => {
         persistedTitle.current = updated.title;
       },
       onError: () => addErrorMessage(t('Unable to rename investigation.')),
@@ -225,7 +225,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     }
   }, [draftTitle, investigation.title]);
   const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
-    onSuccess: duplicate => {
+    onSuccess: ({json: duplicate}) => {
       addSuccessMessage(t('Investigation duplicated.'));
       navigate(getInvestigationPath(organization.slug, duplicate.id));
     },

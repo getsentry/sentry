@@ -57,7 +57,12 @@ function makeActorId(actor: Pick<Actor, 'id' | 'type'>) {
 export function useAssignIssueMutation() {
   const queryClient = useQueryClient();
 
-  return useMutation<Group, RequestError, AssignIssueVariables, AssignIssueContext>({
+  return useMutation<
+    ApiResponse<Group>,
+    RequestError,
+    AssignIssueVariables,
+    AssignIssueContext
+  >({
     mutationFn: variables => {
       const actorId = variables.actor ? makeActorId(variables.actor) : '';
       return apiFetch<Group>({
@@ -84,7 +89,7 @@ export function useAssignIssueMutation() {
       GroupStore.onAssignTo(changeId, variables.groupId, {email: ''});
       return {changeId};
     },
-    onSuccess: (response, variables, onMutateResult) => {
+    onSuccess: ({json: response}, variables, onMutateResult) => {
       const queryKey = groupQueryKey({
         organizationSlug: variables.orgSlug,
         groupId: variables.groupId,

@@ -65,7 +65,7 @@ export function ActivitySection({
 
   async function handleCreate(data: NoteType) {
     try {
-      const result = await createComment(data);
+      const {json: result} = await createComment(data);
       trackAnalytics('issue_details.comment_created', {organization});
       addSuccessMessage(t('Comment posted'));
       onActivityChange?.([result, ...activities]);
@@ -96,7 +96,7 @@ export function ActivitySection({
   async function handleUpdate(item: GroupActivityNote, data: NoteType) {
     try {
       const commentId = item.commentId;
-      const result = await updateComment(commentId, data);
+      const {json: result} = await updateComment(commentId, data);
       trackAnalytics('issue_details.comment_updated', {organization});
       addSuccessMessage(t('Comment updated'));
       onActivityChange?.(

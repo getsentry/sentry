@@ -7,8 +7,7 @@ import {
 import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiFetch} from 'sentry/utils/api/apiFetch';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';

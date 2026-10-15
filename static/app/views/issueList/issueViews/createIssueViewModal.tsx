@@ -73,7 +73,7 @@ export function CreateIssueViewModal({
   const generatedTitle = generatedTitleData?.title;
 
   const {mutateAsync: createIssueView, isError} = useCreateGroupSearchView({
-    onSuccess: (data, variables) => {
+    onSuccess: ({json: data}, variables) => {
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/issues/views/${data.id}/`,

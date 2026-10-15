@@ -6,6 +6,7 @@ import {
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -21,14 +22,22 @@ type UpdateGroupSearchViewStarredVariables = {
 
 export const useUpdateGroupSearchViewStarred = (
   options: Omit<
-    UseMutationOptions<null, RequestError, UpdateGroupSearchViewStarredVariables>,
+    UseMutationOptions<
+      ApiResponse<null>,
+      RequestError,
+      UpdateGroupSearchViewStarredVariables
+    >,
     'mutationFn'
   > = {}
 ) => {
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
-  return useMutation<null, RequestError, UpdateGroupSearchViewStarredVariables>({
+  return useMutation<
+    ApiResponse<null>,
+    RequestError,
+    UpdateGroupSearchViewStarredVariables
+  >({
     ...options,
     mutationFn: ({id, starred}: UpdateGroupSearchViewStarredVariables) =>
       apiFetch<null>({

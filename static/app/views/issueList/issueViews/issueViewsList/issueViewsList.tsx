@@ -364,7 +364,7 @@ export default function IssueViewsList() {
         starred: true,
       },
       {
-        onSuccess: data => {
+        onSuccess: ({json: data}) => {
           navigate({
             pathname: normalizeUrl(
               `/organizations/${organization.slug}/issues/views/${data.id}/`

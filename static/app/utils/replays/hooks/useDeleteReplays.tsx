@@ -44,7 +44,6 @@ export function useDeleteReplays({projectSlug}: Props) {
         throw new Error('User does not have permission to delete replays');
       }
 
-      const options = {};
       const payload = {data};
       return apiFetch({
         queryKey: [
@@ -57,7 +56,7 @@ export function useDeleteReplays({projectSlug}: Props) {
               },
             }
           ),
-          {method: 'POST', ...options, data: payload},
+          {method: 'POST', data: payload},
         ],
       });
     },

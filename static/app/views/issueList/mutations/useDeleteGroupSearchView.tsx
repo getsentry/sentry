@@ -6,6 +6,7 @@ import {
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -19,7 +20,11 @@ type DeleteGroupSearchViewVariables = {
 };
 export const useDeleteGroupSearchView = (
   options: Omit<
-    UseMutationOptions<GroupSearchView, RequestError, DeleteGroupSearchViewVariables>,
+    UseMutationOptions<
+      ApiResponse<GroupSearchView>,
+      RequestError,
+      DeleteGroupSearchViewVariables
+    >,
     'mutationFn'
   > = {}
 ) => {

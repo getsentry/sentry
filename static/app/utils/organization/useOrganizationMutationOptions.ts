@@ -86,7 +86,7 @@ export function useOrganizationMutationOptions(organization: Organization) {
         ],
       });
     },
-    onSuccess: (responseOrg: Organization) => {
+    onSuccess: ({json: responseOrg}) => {
       OrganizationStore.onUpdate(responseOrg);
       updateOrganizationsStore(responseOrg);
     },

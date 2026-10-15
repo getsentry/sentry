@@ -62,7 +62,7 @@ export const useUpdateGroupSearchView = (
         );
       }
     },
-    onSuccess: (data, variables) => {
+    onSuccess: ({json: data}, variables) => {
       if (!variables.optimistic) {
         const viewKey = groupSearchViewApiOptions({
           orgSlug: organization.slug,

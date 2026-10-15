@@ -25,7 +25,7 @@ export function useMarkGroupSeen() {
           {method: 'PUT', data: {hasSeen: true}},
         ],
       }),
-    onSuccess: (updatedGroup, groupId) => {
+    onSuccess: ({json: updatedGroup}, groupId) => {
       queryClient.setQueriesData(
         {queryKey: groupQueryKey({organizationSlug: organization.slug, groupId})},
         (previous: ApiResponse<Group> | undefined) =>
