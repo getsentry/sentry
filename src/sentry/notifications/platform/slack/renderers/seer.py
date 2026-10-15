@@ -353,19 +353,20 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
             blocks.append(RichTextBlock(elements=[quote]))
         blocks.extend(cls._render_progress(data))
-        blocks.append(DividerBlock())
-        blocks.append(
-            ActionsBlock(
-                elements=[
-                    ButtonElement(
-                        text="View full investigation",
-                        style="primary",
-                        url=link_decorator.decorate_url(data.investigation_url),
-                        value="link_clicked",
-                    )
-                ]
+        if not data.progress or data.progress["status"] != "complete":
+            blocks.append(DividerBlock())
+            blocks.append(
+                ActionsBlock(
+                    elements=[
+                        ButtonElement(
+                            text="View full investigation",
+                            style="primary",
+                            url=link_decorator.decorate_url(data.investigation_url),
+                            value="link_clicked",
+                        )
+                    ]
+                )
             )
-        )
         return SlackRenderable(blocks=blocks, text=escape_slack_text(text))
 
     @classmethod
