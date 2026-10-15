@@ -6,7 +6,6 @@ from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
-from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -24,19 +23,11 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "Member",
-            "targetIdentifier": str(self.user.id),
-        }
-        rule = self.create_project_rule(
-            name="ja rule",
-            action_data=[action_data],
-        )
+        origin = self.create_notification_origin(name="ja rule")
 
         notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=create_notification_origin(rule)),
+            Notification(event=event, rule=origin),
             ActionTargetType.MEMBER,
             self.user.id,
             notification_uuid=notification_uuid,
@@ -55,7 +46,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         assert 4 == len(body)
 
         assert (
-            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/)"
+            f"Alert triggered [{origin.label}](http://testserver/organizations/baz/monitors/alerts/{origin.workflow_id}/)"
             == body[0]["text"]
         )
         assert (
@@ -71,21 +62,12 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "IssueOwners",
-            "targetIdentifier": "",
-        }
-        rule = self.create_project_rule(
-            project=self.project,
-            name="ja rule",
-            action_data=[action_data],
-        )
+        origin = self.create_notification_origin(name="ja rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
         notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=create_notification_origin(rule)),
+            Notification(event=event, rule=origin),
             ActionTargetType.ISSUE_OWNERS,
             self.user.id,
             notification_uuid=notification_uuid,
@@ -105,7 +87,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
         assert 4 == len(body)
 
         assert (
-            f"Alert triggered [{rule.label}](http://testserver/organizations/baz/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/)"
+            f"Alert triggered [{origin.label}](http://testserver/organizations/baz/monitors/alerts/{origin.workflow_id}/)"
             == body[0]["text"]
         )
         assert (

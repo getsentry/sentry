@@ -178,6 +178,7 @@ from sentry.notifications.models.notificationaction import (
 )
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
+from sentry.notifications.types import NotificationActionContext, NotificationOrigin
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
@@ -2911,6 +2912,43 @@ class Factories:
             type = Action.Type.SLACK
 
         return Action.objects.create(type=type, config=config, data=data, **kwargs)
+
+    @staticmethod
+    def create_notification_origin(
+        project: Project,
+        name: str | None = None,
+        environment_id: int | None = None,
+    ) -> NotificationOrigin:
+        workflow = Factories.create_workflow(
+            organization=project.organization,
+            name=name,
+            environment_id=environment_id,
+        )
+        return NotificationOrigin(
+            label=workflow.name,
+            environment_id=workflow.environment_id,
+            workflow_id=workflow.id,
+            legacy_rule_id=None,
+        )
+
+    @staticmethod
+    def create_notification_action_context(
+        project: Project,
+        action: Action | None = None,
+        name: str | None = None,
+        environment_id: int | None = None,
+    ) -> NotificationActionContext:
+        if action is None:
+            action = Factories.create_action()
+        return NotificationActionContext(
+            origin=Factories.create_notification_origin(
+                project=project,
+                name=name,
+                environment_id=environment_id,
+            ),
+            action_id=action.id,
+            project=project,
+        )
 
     @staticmethod
     def create_action_invocation(

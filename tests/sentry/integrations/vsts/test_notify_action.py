@@ -11,7 +11,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.notifications import create_notification_action_context
+from sentry.testutils.helpers.notifications import create_legacy_notification_action_context
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
@@ -58,7 +58,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
                 "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
                 "integration": self.integration.model.id,
             },
-            context=create_notification_action_context(rule),
+            context=create_legacy_notification_action_context(rule),
         )
         responses.reset()
         responses.add(

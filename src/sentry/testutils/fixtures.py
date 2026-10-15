@@ -45,6 +45,7 @@ from sentry.monitors.models import (
     MonitorIncident,
     ScheduleType,
 )
+from sentry.notifications.types import NotificationActionContext, NotificationOrigin
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -81,7 +82,7 @@ from sentry.uptime.types import (
 from sentry.users.models.identity import Identity, IdentityProvider
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.workflow_engine.models import DataSource, Detector, DetectorState, Workflow
+from sentry.workflow_engine.models import Action, DataSource, Detector, DetectorState, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -906,6 +907,22 @@ class Fixtures:
     # workflow_engine.models.action
     def create_action(self, *args, **kwargs):
         return Factories.create_action(*args, **kwargs)
+
+    def create_notification_origin(
+        self, project: Project | None = None, *args, **kwargs
+    ) -> NotificationOrigin:
+        return Factories.create_notification_origin(project or self.project, *args, **kwargs)
+
+    def create_notification_action_context(
+        self,
+        project: Project | None = None,
+        action: Action | None = None,
+        *args,
+        **kwargs,
+    ) -> NotificationActionContext:
+        return Factories.create_notification_action_context(
+            project or self.project, action, *args, **kwargs
+        )
 
     def create_action_invocation(self, *args, **kwargs):
         return Factories.create_action_invocation(*args, **kwargs)

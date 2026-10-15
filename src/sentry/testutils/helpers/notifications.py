@@ -16,14 +16,38 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.types import NotificationActionContext, NotificationOrigin
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
+from sentry.workflow_engine.models import Action, Workflow
 
 
-def create_notification_origin(rule: Rule) -> NotificationOrigin:
+def create_notification_origin(workflow: Workflow) -> NotificationOrigin:
+    """Build a workflow-only origin for tests that do not exercise legacy Rules."""
+    return NotificationOrigin(
+        label=workflow.name,
+        environment_id=workflow.environment_id,
+        workflow_id=workflow.id,
+        legacy_rule_id=None,
+    )
+
+
+def create_notification_action_context(
+    workflow: Workflow, action: Action, project: Project
+) -> NotificationActionContext:
+    """Build notification action context from workflow-engine models."""
+    return NotificationActionContext(
+        origin=create_notification_origin(workflow),
+        action_id=action.id,
+        project=project,
+    )
+
+
+def create_legacy_notification_origin(rule: Rule) -> NotificationOrigin:
+    """Translate a Rule for tests that explicitly exercise legacy compatibility."""
     return NotificationOrigin.from_legacy_data(
         label=rule.label,
         environment_id=rule.environment_id,
@@ -32,9 +56,10 @@ def create_notification_origin(rule: Rule) -> NotificationOrigin:
     )
 
 
-def create_notification_action_context(rule: Rule) -> NotificationActionContext:
+def create_legacy_notification_action_context(rule: Rule) -> NotificationActionContext:
+    """Translate a Rule context for tests of legacy rule actions and payloads."""
     return NotificationActionContext(
-        origin=create_notification_origin(rule),
+        origin=create_legacy_notification_origin(rule),
         action_id=rule.id,
         project=rule.project,
     )

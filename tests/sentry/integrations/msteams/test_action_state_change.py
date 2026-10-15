@@ -26,7 +26,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial, assert_slo_metric
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import create_legacy_notification_origin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.identity import Identity, IdentityStatus
@@ -245,7 +245,7 @@ class StatusActionTest(APITestCase):
         self, verify: MagicMock, metrics_incr: MagicMock
     ) -> None:
         rule = self.create_project_rule(project=self.project1)
-        workflow_id = create_notification_origin(rule).workflow_id
+        workflow_id = create_legacy_notification_origin(rule).workflow_id
         assert workflow_id is not None
 
         response = self.post_webhook(

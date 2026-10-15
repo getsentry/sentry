@@ -9,7 +9,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import (
     TEST_ISSUE_OCCURRENCE,
-    create_notification_action_context,
+    create_legacy_notification_action_context,
 )
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -50,7 +50,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
                 "issue_type": "Bug",
                 "fixVersions": "[10000]",
             },
-            context=create_notification_action_context(rule),
+            context=create_legacy_notification_action_context(rule),
         )
         self.jira_rule.rule = self.create_project_rule(name="test rule")
 

@@ -6,7 +6,7 @@ from sentry.notifications.utils.rules import (
     get_workflow_url,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import create_legacy_notification_origin
 from sentry.workflow_engine.models import Workflow
 
 
@@ -63,7 +63,7 @@ class GetNotificationOriginsTest(TestCase):
     def test_resolves_workflow_with_legacy_identity(self) -> None:
         environment = self.create_environment(project=self.project)
         rule = self.create_project_rule(project=self.project)
-        workflow_id = create_notification_origin(rule).workflow_id
+        workflow_id = create_legacy_notification_origin(rule).workflow_id
         assert workflow_id is not None
         Workflow.objects.filter(id=workflow_id).update(environment_id=environment.id)
 
@@ -76,7 +76,7 @@ class GetNotificationOriginsTest(TestCase):
 
     def test_maps_legacy_identity_to_workflow(self) -> None:
         rule = self.create_project_rule(project=self.project)
-        workflow_id = create_notification_origin(rule).workflow_id
+        workflow_id = create_legacy_notification_origin(rule).workflow_id
         assert workflow_id is not None
 
         origins = get_notification_origins(self.project, legacy_rule_ids=[rule.id])
@@ -87,7 +87,7 @@ class GetNotificationOriginsTest(TestCase):
 
     def test_deduplicates_dual_identity(self) -> None:
         rule = self.create_project_rule(project=self.project)
-        workflow_id = create_notification_origin(rule).workflow_id
+        workflow_id = create_legacy_notification_origin(rule).workflow_id
         assert workflow_id is not None
 
         origins = get_notification_origins(

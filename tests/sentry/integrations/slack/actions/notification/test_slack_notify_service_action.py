@@ -1,4 +1,3 @@
-from copy import deepcopy
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -13,7 +12,6 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers.notifications import create_notification_action_context
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.rules import RuleFuture
 
@@ -43,9 +41,6 @@ class TestInit(RuleTestCase):
             "channel": "test-notifications",
             "uuid": self.uuid,
         }
-        self.rule = self.create_project_rule(
-            project=self.project, action_data=[deepcopy(self.action_data)]
-        )
         self.event = self.store_event(
             data={
                 "message": "Hello world",
@@ -59,6 +54,18 @@ class TestInit(RuleTestCase):
 
         self.action = self.create_action()
 
+    def create_legacy_action_context(self) -> NotificationActionContext:
+        return NotificationActionContext(
+            origin=NotificationOrigin(
+                label="Test Alert",
+                environment_id=None,
+                workflow_id=None,
+                legacy_rule_id=self.action.id,
+            ),
+            action_id=self.action.id,
+            project=self.project,
+        )
+
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
@@ -71,18 +78,15 @@ class TestInit(RuleTestCase):
             "status": 200,
         }
 
-        rule = self.create_project_rule(action_data=[self.action_data], include_workflow_id=False)
-        rule.id = self.action.id
-        rule.environment_id = None
-
-        rule_cls_instance = self.get_rule(data=rule.data["actions"][0])
+        context = self.create_legacy_action_context()
+        rule_cls_instance = self.get_rule(data=self.action_data)
 
         results = list(rule_cls_instance.after(event=self.event))
         assert len(results) == 1
 
         results[0].callback(
             self.event,
-            futures=[RuleFuture(context=create_notification_action_context(rule), kwargs={})],
+            futures=[RuleFuture(context=context, kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
@@ -119,18 +123,15 @@ class TestInit(RuleTestCase):
             ),
         )
 
-        rule = self.create_project_rule(action_data=[self.action_data], include_workflow_id=False)
-        rule.id = self.action.id
-        rule.environment_id = None
-
-        rule_cls_instance = self.get_rule(data=rule.data["actions"][0])
+        context = self.create_legacy_action_context()
+        rule_cls_instance = self.get_rule(data=self.action_data)
 
         results = list(rule_cls_instance.after(event=self.event))
         assert len(results) == 1
 
         results[0].callback(
             self.event,
-            futures=[RuleFuture(context=create_notification_action_context(rule), kwargs={})],
+            futures=[RuleFuture(context=context, kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
@@ -173,18 +174,15 @@ class TestInit(RuleTestCase):
             ),
         )
         # tests error flow because we're actually trying to POST
-        rule = self.create_project_rule(action_data=[self.action_data], include_workflow_id=False)
-        rule.id = self.action.id
-        rule.environment_id = None
-
-        rule_cls_instance = self.get_rule(data=rule.data["actions"][0])
+        context = self.create_legacy_action_context()
+        rule_cls_instance = self.get_rule(data=self.action_data)
 
         results = list(rule_cls_instance.after(event=self.event))
         assert len(results) == 1
 
         results[0].callback(
             self.event,
-            futures=[RuleFuture(context=create_notification_action_context(rule), kwargs={})],
+            futures=[RuleFuture(context=context, kwargs={})],
         )
 
         assert NotificationMessage.objects.all().count() == 1
@@ -211,12 +209,7 @@ class TestInit(RuleTestCase):
             "status": 200,
         }
 
-        rule = self.create_project_rule(project=self.project, action_data=[self.action_data])
-        # Represents a test action
-        rule.id = -1
-        rule.environment_id = None
-
-        rule_cls_instance = self.get_rule(data=rule.data["actions"][0])
+        rule_cls_instance = self.get_rule(data=self.action_data)
 
         results = list(rule_cls_instance.after(event=self.event))
         assert len(results) == 1
@@ -227,7 +220,7 @@ class TestInit(RuleTestCase):
                 RuleFuture(
                     context=NotificationActionContext(
                         origin=NotificationOrigin(
-                            label=rule.label,
+                            label="Test Alert",
                             environment_id=None,
                             workflow_id=None,
                             legacy_rule_id=-1,
@@ -268,15 +261,10 @@ class TestInit(RuleTestCase):
             "status": 200,
         }
 
-        rule = self.create_project_rule(
-            action_data=[self.action_data], include_legacy_rule_id=False
-        )
-        rule.id = self.action.id
-        rule.environment_id = None
-
+        context = self.create_notification_action_context(action=self.action)
         rule_cls_instance = self.get_rule(
-            data=rule.data["actions"][0],
-            context=create_notification_action_context(rule),
+            data=self.action_data,
+            context=context,
         )
 
         results = list(rule_cls_instance.after(event=self.event))
@@ -284,14 +272,14 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[RuleFuture(context=create_notification_action_context(rule), kwargs={})],
+            futures=[RuleFuture(context=context, kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
         assert (
             blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&workflow_id={context.origin.workflow_id}&alert_type=issue|*Hello world*>"
         )
 
         assert NotificationMessage.objects.all().count() == 1
@@ -317,25 +305,22 @@ class TestInit(RuleTestCase):
             "status": 200,
         }
 
-        rule = self.create_project_rule(action_data=[self.action_data])
-        rule_cls_instance = self.get_rule(data=rule.data["actions"][0])
+        context = self.create_notification_action_context(action=self.action)
+        rule_cls_instance = self.get_rule(data=self.action_data)
 
         results = list(rule_cls_instance.after(event=self.event))
         assert len(results) == 1
 
-        rule.id = self.action.id
-        rule.environment_id = None
-
         results[0].callback(
             self.event,
-            futures=[RuleFuture(context=create_notification_action_context(rule), kwargs={})],
+            futures=[RuleFuture(context=context, kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
         assert (
             blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&workflow_id={context.origin.workflow_id}&alert_type=issue|*Hello world*>"
         )
 
         assert NotificationMessage.objects.all().count() == 1
@@ -377,25 +362,22 @@ class TestInit(RuleTestCase):
             project_id=self.project.id,
         )
 
-        rule = self.create_project_rule(action_data=[self.action_data])
-        rule_cls_instance = self.get_rule(data=rule.data["actions"][0])
+        context = self.create_notification_action_context(action=self.action)
+        rule_cls_instance = self.get_rule(data=self.action_data)
 
         results = list(rule_cls_instance.after(event=event))
         assert len(results) == 1
 
-        rule.id = self.action.id
-        rule.environment_id = None
-
         results[0].callback(
             self.event,
-            futures=[RuleFuture(context=create_notification_action_context(rule), kwargs={})],
+            futures=[RuleFuture(context=context, kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
         assert (
             blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&workflow_id={context.origin.workflow_id}&alert_type=issue|*Hello world*>"
         )
 
         assert NotificationMessage.objects.all().count() == 2
