@@ -183,7 +183,7 @@ export function UserDropdown() {
           {
             key: 'signout',
             label: t('Sign Out'),
-            leadingItems: <IconUpload style={{transform: 'rotate(-90deg)'}} />,
+            leadingItems: <IconUpload direction="left" />,
             priority: 'danger' as const,
             onAction: handleLogout,
           },
