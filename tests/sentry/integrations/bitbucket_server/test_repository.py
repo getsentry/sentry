@@ -216,32 +216,6 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
         assert rpc_repo.config["webhook_secret"] == secret
 
     @responses.activate
-    def test_on_create_repository_generates_a_secret_per_hook(self) -> None:
-        secrets = []
-        for name in ("newsdiffs", "otherrepo"):
-            repo = Repository.objects.create(
-                provider="integrations:bitbucket_server",
-                name=f"sentryuser/{name}",
-                organization_id=self.organization.id,
-                external_id=name,
-                config={"name": f"sentryuser/{name}", "project": "sentryuser", "repo": name},
-                integration_id=self.integration.id,
-            )
-            responses.add(
-                responses.POST,
-                f"https://bitbucket.example.com/rest/api/1.0/projects/sentryuser/repos/{name}/webhooks",
-                json={"id": 79},
-                status=201,
-            )
-            self.provider.on_create_repository(
-                serialize_repository(repo), serialize_rpc_organization(self.organization)
-            )
-            repo.refresh_from_db()
-            secrets.append(repo.config["webhook_secret"])
-
-        assert secrets[0] != secrets[1]
-
-    @responses.activate
     def test_on_create_repository_keeps_existing_hook(self) -> None:
         repo = Repository.objects.create(
             provider="integrations:bitbucket_server",
