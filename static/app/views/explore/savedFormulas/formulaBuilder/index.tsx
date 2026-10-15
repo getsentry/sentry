@@ -1,0 +1,165 @@
+import {useState} from 'react';
+import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+
+import {Button} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {t} from 'sentry/locale';
+import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import type {
+  FormulaDataset,
+  SavedFormula,
+} from 'sentry/views/explore/hooks/useGetSavedFormulas';
+import {useSaveFormula} from 'sentry/views/explore/hooks/useSaveFormula';
+import {BuilderSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
+import {
+  NAME_PREFIX,
+  toDraft,
+  toRequest,
+  type FormulaDraft,
+} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
+
+const DATASET_OPTIONS: Array<{label: string; value: FormulaDataset}> = [
+  {value: 'spans', label: t('Spans')},
+  {value: 'logs', label: t('Logs')},
+  {value: 'metrics', label: t('Metrics')},
+];
+
+const NO_UNIT = 'none';
+
+const UNIT_OPTIONS = [
+  {value: NO_UNIT, label: t('No unit')},
+  ...[...Object.values(DurationUnit), ...Object.values(SizeUnit)].map(unit => ({
+    value: unit,
+    label: unit,
+  })),
+];
+
+export function FormulaBuilder({
+  formula,
+  onClose,
+}: {
+  onClose: () => void;
+  formula?: SavedFormula;
+}) {
+  const [draft, setDraft] = useState<FormulaDraft>(() => toDraft(formula));
+  const {saveFormula, isSaving} = useSaveFormula();
+
+  async function handleSave() {
+    try {
+      await saveFormula(toRequest(draft));
+    } catch (error) {
+      const detail = (error as RequestError).responseJSON?.detail;
+      addErrorMessage(typeof detail === 'string' ? detail : t('Unable to save formula'));
+      return;
+    }
+    addSuccessMessage(t('Formula saved'));
+    onClose();
+  }
+
+  return (
+    <SlideOverPanel position="right" mode="passive" data-test-id="formula-builder">
+      <Flex
+        align="center"
+        justify="between"
+        borderBottom="primary"
+        height="44px"
+        padding="0 2xl"
+      >
+        <Heading as="h5" size="md">
+          {formula ? t('Edit Formula') : t('Create Formula')}
+        </Heading>
+        <Button
+          variant="transparent"
+          size="sm"
+          aria-label={t('Close Formula Builder')}
+          icon={<IconClose size="sm" />}
+          onClick={onClose}
+        />
+      </Flex>
+      <Stack gap="2xl" padding="2xl">
+        <BuilderSection
+          title={t('Formula Name')}
+          description={t('The name this formula is referenced by elsewhere in Sentry.')}
+        >
+          <Flex gap="md" align="center">
+            <Container position="relative" flexGrow={1}>
+              <NamePrefix variant="muted">{NAME_PREFIX}</NamePrefix>
+              <NameInput
+                value={draft.name}
+                placeholder={t('apdex')}
+                aria-label={t('Formula name')}
+                onChange={event => setDraft({...draft, name: event.target.value})}
+              />
+            </Container>
+            <CompactSelect
+              value={draft.dataset}
+              options={DATASET_OPTIONS}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps} prefix={t('Dataset')} />
+              )}
+              onChange={option => setDraft({...draft, dataset: option.value})}
+            />
+            <CompactSelect
+              value={draft.unit ?? NO_UNIT}
+              options={UNIT_OPTIONS}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button {...triggerProps} prefix={t('Unit')} />
+              )}
+              onChange={option =>
+                setDraft({...draft, unit: option.value === NO_UNIT ? null : option.value})
+              }
+            />
+          </Flex>
+        </BuilderSection>
+
+        <BuilderSection
+          title={t('Formula')}
+          description={t('The expression this formula evaluates when it is used.')}
+        >
+          <Input
+            value={draft.formula}
+            placeholder={t('count() / count_unique(user)')}
+            aria-label={t('Formula')}
+            onChange={event => setDraft({...draft, formula: event.target.value})}
+          />
+        </BuilderSection>
+
+        <Flex gap="md" justify="end">
+          <Button onClick={onClose}>{t('Cancel')}</Button>
+          <Button
+            variant="primary"
+            disabled={!draft.name || !draft.formula}
+            busy={isSaving}
+            onClick={handleSave}
+          >
+            {t('Save')}
+          </Button>
+        </Flex>
+      </Stack>
+    </SlideOverPanel>
+  );
+}
+
+const NAME_PREFIX_WIDTH = '62px';
+
+const NameInput = styled(Input)`
+  padding-left: ${NAME_PREFIX_WIDTH};
+  width: 100%;
+`;
+
+const NamePrefix = styled(Text)`
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  padding-left: ${p => p.theme.space.md};
+  pointer-events: none;
+`;

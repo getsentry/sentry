@@ -13,6 +13,7 @@ import type {
   FormulaDataset,
   SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
+import {useFormulaBuilderUrl} from 'sentry/views/explore/savedFormulas/formulaBuilderUrl';
 import {
   buildTokenMap,
   FormulaToken,
@@ -69,12 +70,21 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
 }
 
 function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean}) {
+  const makeBuilderUrl = useFormulaBuilderUrl();
+  const isPrebuilt = defined(formula.prebuiltId);
+
   return (
     <SavedEntityTable.Row isFirst={isFirst}>
       <SavedEntityTable.Cell>
-        <InfoText title={formula.name} mode="overflowOnly" monospace>
-          {formula.name}
-        </InfoText>
+        {isPrebuilt ? (
+          <InfoText title={formula.name} mode="overflowOnly" monospace>
+            {formula.name}
+          </InfoText>
+        ) : (
+          <SavedEntityTable.CellName to={makeBuilderUrl(formula.id)} title={formula.name}>
+            {formula.name}
+          </SavedEntityTable.CellName>
+        )}
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell>
         <SavedEntityTable.CellTextContent>
@@ -115,7 +125,7 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
         </SavedEntityTable.CellTextContent>
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell>
-        {defined(formula.prebuiltId) ? (
+        {isPrebuilt ? (
           <Tooltip title="Sentry">
             <ActivityAvatar type="system" size={20} />
           </Tooltip>
