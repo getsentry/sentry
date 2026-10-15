@@ -73,7 +73,10 @@ export function ChartVisualization({
     plottables,
     chartInfo.timeseriesResult.isPending
   );
-  const renderTooltipSeriesDetails = useIncompleteBucketTooltipDetails(chartInfo);
+  const renderTooltipSeriesDetails = useIncompleteBucketTooltipDetails(
+    chartInfo.series,
+    chartInfo.timeseriesResult.meta?.ingestion?.completeThrough
+  );
 
   const isLoading = chartInfo.timeseriesResult.isPending;
   const activePlottables = isLoading ? previousPlottables : plottables;

@@ -323,8 +323,11 @@ describe('InvestigationHypotheses', () => {
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('keeps re-reading a settled run until Seer applies an accepted command', async () => {

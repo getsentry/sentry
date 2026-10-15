@@ -399,6 +399,10 @@ const config = defineConfig({
       {
         category: 'test-support',
         pattern: [
+          'jest.config.mjs',
+          'scripts/testCi.js',
+          'static/{app,gsApp,gsAdmin}/jest.config.mjs',
+          'static/oxlint/*/jest.config.mjs',
           'tests/js/fixtures/**/*',
           'tests/js/sentry-test/**/*',
           'static/packages/scraps/test/**/*',
@@ -448,8 +452,6 @@ const config = defineConfig({
     'fixtures/artifact_bundle_debug_ids/**/*',
     'fixtures/artifact_bundle_duplicated_debug_ids/**/*',
     'fixtures/profiles/embedded.js',
-    'jest.config.ts',
-    'jest.config.snapshots.ts',
     'api-docs/**/*',
     'src/sentry/static/sentry/js/**/*',
     'src/sentry/templates/sentry/**/*',
@@ -770,8 +772,8 @@ const config = defineConfig({
         case: 'camelCase',
         ignore: [
           '^jest-pegjs-transform\\.js$',
-          '^jest-environment\\.js$',
-          '^jest-environment-node\\.js$',
+          '^jest-environment\\.cjs$',
+          '^jest-environment-node\\.cjs$',
           // Mocks named after external packages must preserve the package's
           // kebab-case basename so Jest can resolve them.
           '^(?:analytics-browser|react-(?:date-range|lazyload))\\.tsx$',
@@ -1571,6 +1573,8 @@ const config = defineConfig({
             maxSize: 2000,
           },
         ],
+        'jest/prefer-hooks-in-order': 'error',
+        'jest/prefer-hooks-on-top': 'error',
         'jest/prefer-jest-mocked': 'error',
         'jest-dom/prefer-checked': 'error',
         'jest-dom/prefer-empty': 'error',
@@ -1715,12 +1719,15 @@ const config = defineConfig({
     },
     {
       files: [
+        'tests/js/bin/*.mjs',
+        'tests/js/createJestConfig.ts',
         'tests/js/jest-pegjs-transform.js',
-        'tests/js/sentry-test/jest-environment.js',
-        'tests/js/sentry-test/jest-environment-node.js',
-        'tests/js/sentry-test/wrapWithStructuredClone.js',
+        'tests/js/sentry-test/jest-environment.cjs',
+        'tests/js/sentry-test/jest-environment-node.cjs',
+        'tests/js/sentry-test/wrapWithStructuredClone.cjs',
         'tests/js/sentry-test/mocks/*',
         'tests/js/sentry-test/loadFixtures.ts',
+        'tests/js/sentry-test/runner.ts',
         'tests/js/setup.ts',
       ],
       rules: {

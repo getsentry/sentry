@@ -1,7 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
-import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -19,6 +18,7 @@ import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projec
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
+import {targetSampleRateSchema} from 'sentry/views/settings/dynamicSampling/utils/schemas';
 import {
   useProjectSampleCounts,
   type ProjectionSamplePeriod,
@@ -27,22 +27,6 @@ import {
 const UNSAVED_CHANGES_MESSAGE = t(
   'You have unsaved changes, are you sure you want to leave?'
 );
-
-export const sampleRateField = z
-  .string()
-  .min(1, t('Please enter a valid number'))
-  .refine(val => !isNaN(Number(val)), {message: t('Please enter a valid number')})
-  .refine(
-    val => {
-      const n = Number(val);
-      return n >= 0 && n <= 100;
-    },
-    {message: t('Must be between 0% and 100%')}
-  );
-
-export const targetSampleRateSchema = z.object({
-  targetSampleRate: sampleRateField,
-});
 
 export function OrganizationSampling() {
   const organization = useOrganization();
