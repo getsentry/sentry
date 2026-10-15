@@ -14,11 +14,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useApi} from 'sentry/utils/useApi';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
@@ -33,7 +31,6 @@ function PassthroughWrapper({children}: {children: React.ReactNode}) {
 export function UserDropdown() {
   const api = useApi();
   const user = useUser();
-  const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
   const portalContainerRef = useRef<HTMLElement | null>(null);
   const theme = useTheme();
@@ -46,13 +43,6 @@ export function UserDropdown() {
 
   function handleLogout() {
     logout(api);
-  }
-
-  function handleTriggerClick() {
-    trackAnalytics('navigation.primary_item_clicked', {
-      item: 'account',
-      organization,
-    });
   }
 
   const identifier = user.email || user.username || user.id || user.ip_address;
@@ -92,10 +82,9 @@ export function UserDropdown() {
             {...triggerProps}
             aria-label={user.email}
             avatar={avatarProps}
-            onClick={e => {
-              handleTriggerClick();
-              triggerProps.onClick?.(e);
-            }}
+            analyticsEventKey="navigation.primary_item_clicked"
+            analyticsEventName="Navigation: Primary Item Clicked"
+            analyticsParams={{item: 'account'}}
           />
         )}
         menuTitle={<NavigationMenuHeader user={user} />}
@@ -204,12 +193,11 @@ export function UserDropdown() {
       trigger={triggerProps => (
         <AvatarButton
           {...triggerProps}
-          aria-label={user.email}
+          aria-label={t('Account')}
           avatar={avatarProps}
-          onClick={e => {
-            handleTriggerClick();
-            triggerProps.onClick?.(e);
-          }}
+          analyticsEventKey="navigation.primary_item_clicked"
+          analyticsEventName="Navigation: Primary Item Clicked"
+          analyticsParams={{item: 'account'}}
         />
       )}
       items={[

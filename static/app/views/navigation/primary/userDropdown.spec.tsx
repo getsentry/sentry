@@ -14,7 +14,7 @@ describe('UserDropdown', () => {
   it('displays user info and links', async () => {
     render(<UserDropdown />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'foo@example.com'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Account'}));
 
     expect(screen.getByText('Foo Bar')).toBeInTheDocument();
     expect(screen.getByText('foo@example.com')).toBeInTheDocument();
@@ -33,7 +33,7 @@ describe('UserDropdown', () => {
 
     render(<UserDropdown />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'foo@example.com'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Account'}));
 
     await userEvent.click(screen.getByText('Sign Out'));
 
@@ -45,7 +45,7 @@ describe('UserDropdown', () => {
   it('hides admin link if user is not admin', async () => {
     render(<UserDropdown />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'foo@example.com'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Account'}));
 
     expect(screen.queryByRole('menuitemradio', {name: 'Admin'})).not.toBeInTheDocument();
   });
@@ -55,7 +55,7 @@ describe('UserDropdown', () => {
 
     render(<UserDropdown />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'foo@example.com'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Account'}));
 
     expect(screen.getByRole('menuitemradio', {name: 'Admin'})).toHaveAttribute(
       'href',
