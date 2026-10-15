@@ -115,7 +115,7 @@ describe('useSaveMetricsMultiQuery', () => {
     await act(async () => {
       await expect(
         result.current.saveQuery({name: 'New Metrics', starred: true})
-      ).resolves.toEqual(response);
+      ).resolves.toEqual(expect.objectContaining({json: response}));
     });
 
     expect(createRequest).toHaveBeenCalledWith(

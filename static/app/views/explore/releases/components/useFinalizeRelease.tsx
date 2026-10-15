@@ -1,8 +1,8 @@
 import {useMutation} from '@tanstack/react-query';
 
 import type {Release} from 'sentry/types/release';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useFinalizeRelease() {
@@ -20,13 +20,13 @@ export function useFinalizeRelease() {
         dateReleased: release.firstEvent ?? release.dateCreated,
       };
 
-      return fetchMutation({
-        method: 'PUT',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/', {
-          path: {organizationIdOrSlug: organization.slug, version: release.version},
-        }),
-        options: {},
-        data: payload,
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/', {
+            path: {organizationIdOrSlug: organization.slug, version: release.version},
+          }),
+          {method: 'PUT', data: payload},
+        ],
       });
     },
   });

@@ -14,8 +14,9 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -61,11 +62,11 @@ function AcceptProjectTransferForm({
 
   const {mutateAsync: submitTransfer} = useMutation({
     mutationFn: (payload: {data: unknown; organization: string}) =>
-      fetchMutation({
-        method: 'POST',
-        url: getApiUrl('/accept-transfer/'),
-        data: payload,
-        options: {host: regionHost},
+      apiFetch({
+        queryKey: [
+          getApiUrl('/accept-transfer/'),
+          {method: 'POST', data: payload, host: regionHost},
+        ],
       }),
     onSuccess: (_data, payload) => {
       const orgSlug = payload.organization;

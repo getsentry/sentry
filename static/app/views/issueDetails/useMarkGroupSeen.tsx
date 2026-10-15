@@ -2,9 +2,9 @@ import {useMutation, useQueryClient, type InfiniteData} from '@tanstack/react-qu
 
 import type {Group} from 'sentry/types/group';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
@@ -17,14 +17,15 @@ export function useMarkGroupSeen() {
 
   return useMutation({
     mutationFn: (groupId: string) =>
-      fetchMutation<Group>({
-        method: 'PUT',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-          path: {organizationIdOrSlug: organization.slug, issueId: groupId},
-        }),
-        data: {hasSeen: true},
+      apiFetch<Group>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+            path: {organizationIdOrSlug: organization.slug, issueId: groupId},
+          }),
+          {method: 'PUT', data: {hasSeen: true}},
+        ],
       }),
-    onSuccess: (updatedGroup, groupId) => {
+    onSuccess: ({json: updatedGroup}, groupId) => {
       queryClient.setQueriesData(
         {queryKey: groupQueryKey({organizationSlug: organization.slug, groupId})},
         (previous: ApiResponse<Group> | undefined) =>

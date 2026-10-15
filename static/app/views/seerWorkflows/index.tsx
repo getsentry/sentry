@@ -32,7 +32,6 @@ import {t} from 'sentry/locale';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
@@ -73,16 +72,17 @@ function SeerWorkflows() {
   const [expanded, setExpanded] = useState(new Set<string>());
   const {mutate: startWorkflowRun, isPending: isStartingWorkflowRun} = useMutation({
     mutationFn: (data: WorkflowRunCreateRequest) =>
-      fetchMutation<{runId: string}>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data,
+      apiFetch<{runId: string}>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {method: 'POST', data},
+        ],
       }),
-    onSuccess: async result => {
+    onSuccess: async ({json}) => {
       clearAllFilters();
-      setExpanded(previous => new Set(previous).add(result.runId));
+      setExpanded(previous => new Set(previous).add(json.runId));
       await refetch();
     },
     onError: error => {

@@ -6,8 +6,9 @@ import {
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupSearchViewApiOptions} from 'sentry/views/issueList/queries/groupSearchView';
@@ -19,7 +20,11 @@ type DeleteGroupSearchViewVariables = {
 };
 export const useDeleteGroupSearchView = (
   options: Omit<
-    UseMutationOptions<GroupSearchView, RequestError, DeleteGroupSearchViewVariables>,
+    UseMutationOptions<
+      ApiResponse<GroupSearchView>,
+      RequestError,
+      DeleteGroupSearchViewVariables
+    >,
     'mutationFn'
   > = {}
 ) => {
@@ -29,12 +34,13 @@ export const useDeleteGroupSearchView = (
   return useMutation({
     ...options,
     mutationFn: ({id}: DeleteGroupSearchViewVariables) =>
-      fetchMutation<GroupSearchView>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/group-search-views/$viewId/',
-          {path: {organizationIdOrSlug: organization.slug, viewId: id}}
-        ),
-        method: 'DELETE',
+      apiFetch<GroupSearchView>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/group-search-views/$viewId/', {
+            path: {organizationIdOrSlug: organization.slug, viewId: id},
+          }),
+          {method: 'DELETE'},
+        ],
       }),
     onSuccess: (data, parameters, onMutateResult, context) => {
       // Invalidate the view in cache

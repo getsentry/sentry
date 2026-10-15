@@ -11,8 +11,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {PasswordStrengthIndicator} from 'sentry/components/passwordStrengthIndicator';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -44,18 +44,22 @@ export function RegistrationForm({
   const [isPasswordVisible, setPasswordVisible] = useState(false);
   const mutation = useMutation({
     mutationFn: (value: RegistrationValues) =>
-      fetchMutation<AuthenticatedResult>({
-        url: getApiUrl('/auth/register/'),
-        method: 'POST',
-        data: {
-          email: value.email,
-          name: value.name,
-          password: value.password,
-          ...(hasNewsletter ? {subscribe: value.subscribe} : {}),
-        },
+      apiFetch<AuthenticatedResult>({
+        queryKey: [
+          getApiUrl('/auth/register/'),
+          {
+            method: 'POST',
+            data: {
+              email: value.email,
+              name: value.name,
+              password: value.password,
+              ...(hasNewsletter ? {subscribe: value.subscribe} : {}),
+            },
+          },
+        ],
       }),
-    onSuccess: result =>
-      onSuccess ? onSuccess(result) : testableWindowLocation.assign(result.nextUri),
+    onSuccess: ({json}) =>
+      onSuccess ? onSuccess(json) : testableWindowLocation.assign(json.nextUri),
   });
 
   const form = useScrapsForm({

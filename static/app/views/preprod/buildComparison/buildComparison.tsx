@@ -10,8 +10,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -56,18 +57,16 @@ export default function BuildComparison() {
 
   const queryClient = useQueryClient();
   const {mutate: rerunComparison, isPending: isRerunning} = useMutation<
-    {status: string},
+    ApiResponse<{status: string}>,
     RequestError
   >({
     mutationFn: () => {
-      return fetchMutation({
-        url: compareUrl,
-        method: 'POST',
-        options: {query: {rerun: 'true'}},
+      return apiFetch<{status: string}>({
+        queryKey: [compareUrl, {method: 'POST', query: {rerun: 'true'}}],
       });
     },
     onSuccess: response => {
-      if (response?.status === 'exists') {
+      if (response.json?.status === 'exists') {
         addErrorMessage(t('Comparison already exists'));
       } else {
         addSuccessMessage(t('Comparison rerun triggered'));

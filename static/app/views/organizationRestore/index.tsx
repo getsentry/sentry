@@ -12,9 +12,9 @@ import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -88,7 +88,7 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
   });
   const {mutateAsync: restoreOrganization} = useMutation({
     mutationFn: (data: {cancelDeletion: number}) =>
-      fetchMutation<Organization>({url: endpoint, method: 'PUT', data}),
+      apiFetch<Organization>({queryKey: [endpoint, {method: 'PUT', data}]}),
     onSuccess: () => {
       addSuccessMessage(t('Organization Restored'));
 

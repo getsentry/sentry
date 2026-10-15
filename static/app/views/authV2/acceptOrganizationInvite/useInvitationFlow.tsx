@@ -4,9 +4,9 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {logout} from 'sentry/actionCreators/account';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {User} from 'sentry/types/user';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
@@ -70,7 +70,7 @@ export function useInvitationFlow(params: InvitationParams) {
   const invitationUser = inviteDetails?.needsAuthentication ? null : sessionUser;
 
   const acceptMutation = useMutation({
-    mutationFn: () => fetchMutation({url: inviteApiUrl, method: 'POST'}),
+    mutationFn: () => apiFetch({queryKey: [inviteApiUrl, {method: 'POST'}]}),
     onSuccess: () => {
       if (inviteDetails?.orgSlug) {
         testableWindowLocation.assign(`/${inviteDetails.orgSlug}/`);

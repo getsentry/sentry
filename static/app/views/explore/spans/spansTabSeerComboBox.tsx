@@ -23,8 +23,8 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -48,15 +48,19 @@ export function SpansTabSeerComboBox() {
 
   const spansTabAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
-      const data = await fetchMutation<SeerRawResponse>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data: {
-          natural_language_query: queryToSubmit,
-          project_ids: selectedProjectIdsForMutation,
-        },
+      const {json: data} = await apiFetch<SeerRawResponse>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              natural_language_query: queryToSubmit,
+              project_ids: selectedProjectIdsForMutation,
+            },
+          },
+        ],
       });
 
       return buildSeerMutationResult(data, selectedProjectIds, response =>

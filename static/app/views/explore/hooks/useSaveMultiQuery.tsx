@@ -2,8 +2,8 @@ import {useMemo} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar, encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -60,16 +60,20 @@ export function useSaveMultiQuery() {
 
   const {mutateAsync: saveQuery} = useMutation({
     mutationFn: ({name, starred = true}: {name: string; starred?: boolean}) =>
-      fetchMutation<{id: string}>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data: {
-          ...data,
-          name,
-          starred,
-        },
+      apiFetch<{id: string}>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              ...data,
+              name,
+              starred,
+            },
+          },
+        ],
       }),
     onSuccess: () => {
       invalidateSavedQueries();
@@ -78,12 +82,13 @@ export function useSaveMultiQuery() {
 
   const {mutateAsync: updateQuery} = useMutation({
     mutationFn: () =>
-      fetchMutation<{id: string}>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
-          path: {organizationIdOrSlug: organization.slug, id: String(id)},
-        }),
-        method: 'PUT',
-        data,
+      apiFetch<{id: string}>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+            path: {organizationIdOrSlug: organization.slug, id: String(id)},
+          }),
+          {method: 'PUT', data},
+        ],
       }),
     onSuccess: () => {
       invalidateSavedQueries();

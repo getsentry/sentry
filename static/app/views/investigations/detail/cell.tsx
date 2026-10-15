@@ -687,14 +687,14 @@ function RefinementPanel({
     }
 
     try {
-      const updatedBlock = await updatePromptMutation.mutateAsync({
+      const {json: updatedBlock} = await updatePromptMutation.mutateAsync({
         block,
         investigationVersion: investigation.version,
         prompt: nextPrompt,
       });
       const investigationVersion =
         investigation.version + (updatedBlock.version === block.version ? 0 : 1);
-      const started = await runMutation.mutateAsync({
+      const {json: started} = await runMutation.mutateAsync({
         block: updatedBlock,
         investigationVersion,
       });

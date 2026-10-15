@@ -1,8 +1,8 @@
 import {useMutation} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {AuthenticatedResult, MfaMethod} from 'sentry/views/authV2/authLogin/types';
@@ -34,14 +34,18 @@ type EmailAuthResponse =
 export function useEmailAuth(organizationSlug?: string) {
   const mutation = useMutation({
     mutationFn: async ({email, password}: EmailAuthCredentials) => {
-      const response = await fetchMutation<EmailAuthResponse>({
-        url: getApiUrl('/auth/login/'),
-        method: 'POST',
-        data: {
-          username: email,
-          password,
-          orgSlug: organizationSlug ?? null,
-        },
+      const {json: response} = await apiFetch<EmailAuthResponse>({
+        queryKey: [
+          getApiUrl('/auth/login/'),
+          {
+            method: 'POST',
+            data: {
+              username: email,
+              password,
+              orgSlug: organizationSlug ?? null,
+            },
+          },
+        ],
       });
 
       if ('mfaRequired' in response) {

@@ -29,8 +29,8 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -177,19 +177,23 @@ export function LogsTabSeerComboBox() {
   const logsTabAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
       const user = ConfigStore.get('user');
-      const data = await fetchMutation<SeerRawResponse>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data: {
-          org_id: organization.id,
-          org_slug: organization.slug,
-          natural_language_query: queryToSubmit,
-          project_ids: selectedProjectIdsForMutation,
-          strategy: 'Logs',
-          user_email: user?.email,
-        },
+      const {json: data} = await apiFetch<SeerRawResponse>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              org_id: organization.id,
+              org_slug: organization.slug,
+              natural_language_query: queryToSubmit,
+              project_ids: selectedProjectIdsForMutation,
+              strategy: 'Logs',
+              user_email: user?.email,
+            },
+          },
+        ],
       });
 
       return buildSeerMutationResult(data, selectedProjectIds, response =>

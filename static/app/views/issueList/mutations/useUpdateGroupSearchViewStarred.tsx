@@ -6,8 +6,9 @@ import {
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
@@ -21,23 +22,32 @@ type UpdateGroupSearchViewStarredVariables = {
 
 export const useUpdateGroupSearchViewStarred = (
   options: Omit<
-    UseMutationOptions<null, RequestError, UpdateGroupSearchViewStarredVariables>,
+    UseMutationOptions<
+      ApiResponse<null>,
+      RequestError,
+      UpdateGroupSearchViewStarredVariables
+    >,
     'mutationFn'
   > = {}
 ) => {
   const queryClient = useQueryClient();
   const organization = useOrganization();
 
-  return useMutation<null, RequestError, UpdateGroupSearchViewStarredVariables>({
+  return useMutation<
+    ApiResponse<null>,
+    RequestError,
+    UpdateGroupSearchViewStarredVariables
+  >({
     ...options,
     mutationFn: ({id, starred}: UpdateGroupSearchViewStarredVariables) =>
-      fetchMutation<null>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/group-search-views/$viewId/starred/',
-          {path: {organizationIdOrSlug: organization.slug, viewId: id}}
-        ),
-        method: 'POST',
-        data: {starred},
+      apiFetch<null>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/group-search-views/$viewId/starred/',
+            {path: {organizationIdOrSlug: organization.slug, viewId: id}}
+          ),
+          {method: 'POST', data: {starred}},
+        ],
       }),
     onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(
