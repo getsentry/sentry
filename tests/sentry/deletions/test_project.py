@@ -162,6 +162,9 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             subscription=query_sub,
         )
 
+        # Existing join rows still need deletion until IncidentProject is retired.
+        incident.projects.add(project)
+
         rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
 
         self.ScheduledDeletion.schedule(instance=project, days=0)
