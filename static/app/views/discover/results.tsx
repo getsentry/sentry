@@ -14,6 +14,7 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
@@ -1190,15 +1191,10 @@ function DiscoverContextMenu({
     <DropdownMenu
       items={items}
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           aria-label={t('Discover Context Menu')}
           size="sm"
-          onClick={e => {
-            e.stopPropagation();
-            e.preventDefault();
-            triggerProps.onClick?.(e);
-          }}
           icon={<IconEllipsis />}
         />
       )}
@@ -1410,19 +1406,15 @@ function SaveQueryButton({
       position="bottom-end"
       offset={4}
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.Button
           {...triggerProps}
+          showChevron={false}
           size="sm"
           variant="primary"
           aria-label={t('Save as')}
-          onClick={e => {
-            e.stopPropagation();
-            e.preventDefault();
-            triggerProps.onClick?.(e);
-          }}
         >
           {t('Save as')}
-        </Button>
+        </OverlayTrigger.Button>
       )}
     />
   );

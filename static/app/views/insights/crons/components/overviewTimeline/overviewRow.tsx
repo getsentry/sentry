@@ -11,6 +11,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {CheckInPlaceholder} from 'sentry/components/checkInTimeline/checkInPlaceholder';
 import {CheckInTimeline} from 'sentry/components/checkInTimeline/checkInTimeline';
@@ -320,7 +321,7 @@ const EnvRow = styled('div')`
   height: calc(${p => p.theme.font.size.lg} * ${p => p.theme.font.lineHeight.default});
 `;
 
-const EnvActionButton = styled(Button)`
+const EnvActionButton = styled(OverlayTrigger.IconButton)`
   ${EnvRow}:not(:hover) & {
     display: none;
   }
