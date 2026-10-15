@@ -1,9 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import {fileURLToPath} from 'node:url';
 
 import type {Config} from '@jest/types';
 import type {Options as SwcOptions} from '@swc/core';
+
+const rootDir = path.resolve(import.meta.dirname, '../..');
 
 const swcConfig: SwcOptions = {
   isModule: true,
@@ -25,7 +28,7 @@ const swcConfig: SwcOptions = {
       },
     },
     experimental: {
-      plugins: [['@swc-contrib/mut-cjs-exports', {}]],
+      plugins: [[fileURLToPath(import.meta.resolve('@swc-contrib/mut-cjs-exports')), {}]],
     },
   },
 };
@@ -41,7 +44,7 @@ const {
   SENTRY_DSN,
 } = process.env;
 
-const JEST_TEST_FILES_PATH = path.resolve(import.meta.dirname, 'jest-test-files.json');
+const JEST_TEST_FILES_PATH = path.resolve(rootDir, 'jest-test-files.json');
 const JEST_TESTS: string[] | undefined = fs.existsSync(JEST_TEST_FILES_PATH)
   ? (JSON.parse(fs.readFileSync(JEST_TEST_FILES_PATH, 'utf-8')) as string[])
   : undefined;
@@ -83,7 +86,7 @@ let testMatch = JEST_TESTS;
 function getTestsForGroup(
   nodeIndex: number,
   nodeTotal: number,
-  allTests: ReadonlyArray<string>,
+  allTests: readonly string[],
   testStats: Record<string, number>
 ): string[] {
   if (allTests.length === 0) {
@@ -192,15 +195,11 @@ function getTestsForGroup(
   return groups[nodeIndex].map(test => `<rootDir>/${test}`);
 }
 
-if (
-  JEST_TESTS &&
-  typeof CI_NODE_TOTAL !== 'undefined' &&
-  typeof CI_NODE_INDEX !== 'undefined'
-) {
+if (JEST_TESTS && CI_NODE_TOTAL !== undefined && CI_NODE_INDEX !== undefined) {
   let balance: null | Record<string, number> = null;
 
   const BALANCE_RESULTS_PATH = path.resolve(
-    import.meta.dirname,
+    rootDir,
     'tests',
     'js',
     'test-balancer',
@@ -212,9 +211,7 @@ if (
     // Just ignore if balance results doesn't exist
   }
   // Taken from https://github.com/facebook/jest/issues/6270#issue-326653779
-  const envTestList: string[] = JEST_TESTS.map(file =>
-    file.replace(import.meta.dirname, '')
-  );
+  const envTestList: string[] = JEST_TESTS.map(file => file.replace(rootDir, ''));
   const nodeTotal = Number(CI_NODE_TOTAL);
   const nodeIndex = Number(CI_NODE_INDEX);
   optionalTags['ci.total_tests'] = JEST_TESTS.length;
@@ -254,6 +251,7 @@ const ESM_NODE_MODULES = [
 ];
 
 const config: Config.InitialOptions = {
+  rootDir,
   verbose: false,
   cacheDirectory: '.cache/jest',
   collectCoverageFrom: [
@@ -277,9 +275,6 @@ const config: Config.InitialOptions = {
       '<rootDir>/static/packages/scraps/src/$1',
       '<rootDir>/static/app/components/core/$1',
     ],
-    '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
-    '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
-    '^getsentry-test/(.*)': '<rootDir>/tests/js/getsentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
 
@@ -297,9 +292,10 @@ const config: Config.InitialOptions = {
   setupFiles: [
     '<rootDir>/tests/js/sentry-test/setupReact.ts',
     '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
-    'jest-canvas-mock',
+    fileURLToPath(import.meta.resolve('jest-canvas-mock')),
   ],
   setupFilesAfterEnv: [
+    'getsentry-test/setup',
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
   ],
@@ -322,7 +318,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
+    '^.+\\.[mc]?[jt]sx?$': [fileURLToPath(import.meta.resolve('@swc/jest')), swcConfig],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
@@ -341,7 +337,7 @@ const config: Config.InitialOptions = {
    */
   clearMocks: true,
 
-  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment.js',
+  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment.cjs',
   testEnvironmentOptions: {
     globalsCleanup: 'on',
     sentryConfig: {
@@ -368,4 +364,45 @@ const config: Config.InitialOptions = {
   },
 };
 
-export default config;
+/** Scope discovery and coverage, with a Node environment for standalone tools. */
+export function createJestConfig(
+  testDirectory?: string,
+  environment: 'jsdom' | 'node' = 'jsdom'
+): Config.InitialOptions {
+  if (testDirectory === undefined) {
+    return config;
+  }
+  const directoryPattern = testDirectory.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return {
+    ...config,
+    roots: [
+      `<rootDir>/${testDirectory}`,
+      // Jest needs manual mocks inside roots, including mocks used across apps.
+      ...(environment === 'jsdom'
+        ? [
+            '<rootDir>/static/app/__mocks__',
+            '<rootDir>/static/app/utils/__mocks__',
+            '<rootDir>/static/gsApp/__mocks__',
+          ].filter(directory => !directory.startsWith(`<rootDir>/${testDirectory}/`))
+        : []),
+    ],
+    ...(environment === 'node'
+      ? {
+          testEnvironment: 'node',
+          testEnvironmentOptions: {},
+          setupFiles: [],
+          setupFilesAfterEnv: [],
+        }
+      : {}),
+    testPathIgnorePatterns: [
+      ...(config.testPathIgnorePatterns ?? []),
+      `^<rootDir>/(?!${directoryPattern}/)`,
+    ],
+    collectCoverageFrom: [
+      `${testDirectory}/**/*.{js,jsx,ts,tsx}`,
+      `!${testDirectory}/**/*.spec.{js,jsx,ts,tsx}`,
+      `!${testDirectory}/**/*.test.{js,jsx,ts,tsx}`,
+    ],
+    coverageDirectory: path.join(rootDir, '.artifacts/coverage', testDirectory),
+  };
+}
