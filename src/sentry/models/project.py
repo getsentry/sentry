@@ -207,8 +207,6 @@ class ProjectManager(BaseManager["Project"]):
 
     # TODO(dcramer): we might want to cache this per user
     def get_for_user(self, team, user, scope=None, _skip_team_check=False):
-        from sentry.models.team import Team
-
         if not (user and user.is_authenticated):
             return []
 
@@ -502,7 +500,7 @@ class Project(Model):
 
     def transfer_to(self, organization: Organization) -> None:
         from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-        from sentry.incidents.models.alert_rule import AlertRule
+        from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
@@ -514,11 +512,9 @@ class Project(Model):
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
-        from sentry.models.rule import Rule
         from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
-        from sentry.snuba.models import SnubaQuery
+        from sentry.snuba.models import QuerySubscriptionDataSourceHandler, SnubaQuery
         from sentry.workflow_engine.models import (
-            AlertRuleWorkflow,
             DataConditionGroup,
             DataSource,
             Detector,
@@ -557,28 +553,14 @@ class Project(Model):
         # We're generally choosing to just delete the bindings since new data
         # flowing in will recreate links correctly. The tradeoff is that
         # historical data is lost, but this is a compromise we're willing to
-        # take and a side effect of allowing this feature. There are exceptions
-        # to this however, such as rules, which should maintain their
-        # configuration when moved across organizations.
+        # take and a side effect of allowing this feature.
         if org_changed:
             for model in ReleaseProject, ReleaseProjectEnvironment, EnvironmentProject:
                 model.objects.filter(project_id=self.id).delete()
 
-        rules_by_environment_id = defaultdict(set)
-        for rule_id, environment_id in Rule.objects.filter(
-            project_id=self.id, environment_id__isnull=False
-        ).values_list("id", "environment_id"):
-            assert environment_id is not None
-            rules_by_environment_id[environment_id].add(rule_id)
-
         environment_names = dict(
             Environment.objects.filter(organization_id=old_org_id).values_list("id", "name")
         )
-
-        for environment_id, rule_ids in rules_by_environment_id.items():
-            Rule.objects.filter(id__in=rule_ids).update(
-                environment_id=Environment.get_or_create(self, environment_names[environment_id]).id
-            )
 
         # Manually move over organization id's for Monitors
         monitors = Monitor.objects.filter(organization_id=old_org_id, project_id=self.id)
@@ -606,73 +588,16 @@ class Project(Model):
                     )
                 monitor.update(organization_id=organization.id)
 
-        # Remove alert owners not in new org
-        alert_rules = AlertRule.objects.fetch_for_project(self).filter(
-            Q(user_id__isnull=False) | Q(team_id__isnull=False)
-        )
-        for alert_rule in alert_rules:
-            is_member = False
-            if alert_rule.user_id:
-                is_member = organization.member_set.filter(user_id=alert_rule.user_id).exists()
-            if alert_rule.team_id:
-                is_member = Team.objects.filter(
-                    organization_id=organization.id, id=alert_rule.team_id
-                ).exists()
-            if not is_member:
-                alert_rule.update(team_id=None, user_id=None)
-        rule_models = Rule.objects.filter(
-            Q(owner_team_id__isnull=False) | Q(owner_user_id__isnull=False), project=self
-        )
-        for rule_model in rule_models:
-            is_member = False
-            if rule_model.owner_user_id:
-                is_member = organization.member_set.filter(
-                    user_id=rule_model.owner_user_id
-                ).exists()
-            if rule_model.owner_team_id:
-                is_member = Team.objects.filter(
-                    organization_id=organization.id, id=rule_model.owner_team_id
-                ).exists()
-            if not is_member:
-                rule_model.update(owner_user_id=None, owner_team_id=None)
-
-        # [Rule, AlertRule(SnubaQuery->Environment)]
-        # id -> name
-        environment_names_with_alerts = {
-            **environment_names,
-            **{
-                env_id: env_name
-                for env_id, env_name in AlertRule.objects.fetch_for_project(self).values_list(
-                    "snuba_query__environment__id", "snuba_query__environment__name"
-                )
-            },
-        }
-
-        # conditionally create a new environment associated to the new Org -> Project -> AlertRule -> SnubaQuery
-        # this should take care of any potentially dead references from SnubaQuery -> Environment when deleting
-        # the old org
-        # alertrule ->  snuba_query -> environment_id
-        for snuba_id, environment_id in AlertRule.objects.fetch_for_project(self).values_list(
-            "snuba_query_id", "snuba_query__environment__id"
-        ):
-            SnubaQuery.objects.filter(id=snuba_id).update(
-                environment_id=Environment.get_or_create(
-                    self, name=environment_names_with_alerts.get(environment_id, None)
-                ).id
-            )
-
-        AlertRule.objects.fetch_for_project(self).update(organization=organization)
-
         # Transfer DataSource, Workflow, and DataConditionGroup objects for Detectors attached to
         # this project. Detectors are project-scoped (they move with the project via their project
         # FK), but Workflows and their DataConditionGroups are organization-scoped, so they need to
         # be moved into the new org explicitly.
         #
         # Workflows can be shared across multiple projects in the same org if connected to detectors in multiple projects.
-        # To keep every workflow in the same org as the detectors and legacy Rule/AlertRule it fires for, we handle two cases:
+        # To keep every workflow in the same org as its detectors, we handle two cases:
         # * A workflow used ONLY by detectors in this project is moved into the new org as-is.
         # * A workflow shared with detectors in other projects is cloned into the new org; we then
-        #   re-point just this project's DetectorWorkflow and AlertRuleWorkflow links onto the clone
+        #   re-point just this project's DetectorWorkflow links onto the clone
         #   and leave the original behind for the projects that remain.
         #
         # The whole block runs in a transaction so a crash can't leave a half-cloned workflow
@@ -697,6 +622,32 @@ class Project(Model):
                 DataSource.objects.filter(id__in=data_source_ids).update(
                     organization_id=organization.id
                 )
+
+                # SnubaQuery environments are organization-scoped. Find the queries through the
+                # detector's QuerySubscription data sources and reconnect their environments
+                # before the old organization can be deleted.
+                query_data_sources = list(
+                    DataSource.objects.filter(
+                        id__in=data_source_ids,
+                        type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+                    )
+                )
+                query_subscriptions = QuerySubscriptionDataSourceHandler.bulk_get_query_object(
+                    query_data_sources
+                ).values()
+                snuba_query_ids = [
+                    subscription.snuba_query_id
+                    for subscription in query_subscriptions
+                    if subscription is not None and subscription.project_id == self.id
+                ]
+                for snuba_query_id, environment_id in SnubaQuery.objects.filter(
+                    id__in=snuba_query_ids, environment_id__isnull=False
+                ).values_list("id", "environment_id"):
+                    environment_name = environment_names.get(environment_id)
+                    if environment_name is not None:
+                        SnubaQuery.objects.filter(id=snuba_query_id).update(
+                            environment_id=Environment.get_or_create(self, name=environment_name).id
+                        )
 
                 all_workflow_ids = set(
                     Workflow.objects.filter(
@@ -781,12 +732,6 @@ class Project(Model):
                 # we remove the DetectorWorkflow links to the old Workflow so that in a re-run these cloned
                 # workflows will be treated as exclusive and no-op transferred
                 if shared_workflow_ids:
-                    project_rule_ids = list(
-                        Rule.objects.filter(project_id=self.id).values_list("id", flat=True)
-                    )
-                    project_alert_rule_ids = list(
-                        AlertRule.objects.fetch_for_project(self).values_list("id", flat=True)
-                    )
                     for workflow in Workflow.objects.filter(id__in=shared_workflow_ids):
                         clone = clone_workflow_to_organization(
                             workflow,
@@ -799,17 +744,6 @@ class Project(Model):
                         DetectorWorkflow.objects.filter(
                             workflow=workflow, detector_id__in=detector_ids
                         ).update(workflow=clone)
-                        # Re-point the legacy lookups for this project's Rule/AlertRule. Each Rule is
-                        # single-project and AlertRule is functionally single-project, so re-pointing
-                        # this project's rows is unambiguous.
-                        if project_rule_ids:
-                            AlertRuleWorkflow.objects.filter(
-                                workflow=workflow, rule_id__in=project_rule_ids
-                            ).update(workflow=clone)
-                        if project_alert_rule_ids:
-                            AlertRuleWorkflow.objects.filter(
-                                workflow=workflow, alert_rule_id__in=project_alert_rule_ids
-                            ).update(workflow=clone)
 
                 # DataConditionGroups directly owned by detectors (Detector.workflow_condition_group,
                 # a unique FK) are exclusively owned by the detector, so they always transfer.

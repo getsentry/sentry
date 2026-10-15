@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 
+import {useInvertedTheme} from '@sentry/scraps';
 import {
   getOrganizationAvatarProps,
   getUserAvatarProps,
@@ -15,7 +16,6 @@ import {Text} from '@sentry/scraps/text';
 import {t, tn} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 type NavigationMenuHeaderProps =
   | {organization: OrganizationSummary; projectCount: number; user?: never}

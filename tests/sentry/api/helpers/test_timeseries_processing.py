@@ -1,16 +1,99 @@
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import Literal
 
 import pytest
+from pydantic import ValidationError
 
 from sentry.api.helpers.timeseries_processing import (
     FILL_MODE_LINEAR,
     FILL_MODE_LOCF,
     FILL_MODE_ZERO,
     SMOOTH_MODE_SMA,
+    FillTransformation,
+    SmoothTransformation,
+    Transformation,
     fill_timeseries,
+    parse_transformation,
     smooth_timeseries,
 )
+from sentry.exceptions import InvalidSearchQuery
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("fill(locf)", FillTransformation(mode="locf")),
+        ("fill(zero)", FillTransformation(mode="zero")),
+        ("fill(linear)", FillTransformation(mode="linear")),
+        ("smooth(sma,1)", SmoothTransformation(mode="sma", window_size=1)),
+        ("smooth(sma,3)", SmoothTransformation(mode="sma", window_size=3)),
+        ("smooth(sma,5)", SmoothTransformation(mode="sma", window_size=5)),
+        ("smooth( sma , 5 )", SmoothTransformation(mode="sma", window_size=5)),
+        ("fill( linear )", FillTransformation(mode="linear")),
+        ("fill(locf,)", FillTransformation(mode="locf")),
+        ("fill(,locf)", FillTransformation(mode="locf")),
+        ("fill(locf,,)", FillTransformation(mode="locf")),
+        ("smooth(sma,,5)", SmoothTransformation(mode="sma", window_size=5)),
+        ("smooth(sma, ,5)", SmoothTransformation(mode="sma", window_size=5)),
+        ("smooth(sma,5,)", SmoothTransformation(mode="sma", window_size=5)),
+    ],
+)
+def test_parse_transformation(value: str, expected: Transformation) -> None:
+    assert parse_transformation(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value, message",
+    [
+        ("", "is not a valid transformation"),
+        ("fill", "is not a valid transformation"),
+        ("fill(locf", "is not a valid transformation"),
+        ("fill(locf)extra", "is not a valid transformation"),
+        ("fill(locf)\n", "is not a valid transformation"),
+        ("[fill(locf), smooth(sma)]", "is not a valid transformation"),
+        ("fill(locf) AS filled", "is not a valid transformation"),
+        ("count(locf)", "is not a valid transformation function"),
+        ("FILL(locf)", "is not a valid transformation function"),
+        ("fill()", "argument count must be 1"),
+        ("fill(,)", "argument count must be 1"),
+        ("fill(locf,zero)", "argument count must be 1"),
+        ("smooth()", "argument count must be 2"),
+        ("smooth(, ,)", "argument count must be 2"),
+        ("smooth(sma)", "argument count must be 2"),
+        ("smooth(sma,)", "argument count must be 2"),
+        ("smooth(,sma)", "argument count must be 2"),
+        ("smooth(sma,5,6)", "argument count must be 2"),
+        ("smooth(sma,0)", "Window size must be positive"),
+        ("smooth(sma,-1)", "Window size must be positive"),
+        ("smooth(sma,2.5)", "window_size argument invalid"),
+        ("smooth(sma,true)", "window_size argument invalid"),
+        ("smooth(sma,window_size=5)", "window_size argument invalid"),
+        ('smooth(sma,"5")', "window_size argument invalid"),
+        ("fill(sma)", "mode argument invalid"),
+        ("smooth(linear,3)", "mode argument invalid"),
+        ("smooth(ema,3)", "mode argument invalid"),
+        ("fill(LOCF)", "mode argument invalid"),
+        ('fill("locf")', "mode argument invalid"),
+        ("fill(mode=locf)", "mode argument invalid"),
+        ("fill(smooth(sma))", "mode argument invalid"),
+        ("fill(locf))", "mode argument invalid"),
+    ],
+)
+def test_parse_transformation_invalid(value: str, message: str) -> None:
+    with pytest.raises(InvalidSearchQuery, match=message):
+        parse_transformation(value)
+
+
+def test_parsed_transformations_with_processing_helpers() -> None:
+    fill = parse_transformation("fill(linear)")
+    smooth = parse_transformation("smooth(sma,2)")
+    assert isinstance(fill, FillTransformation)
+    assert isinstance(smooth, SmoothTransformation)
+
+    timestamps = [0.0, 1.0, 2.0]
+    filled = fill_timeseries(timestamps, [1.0, None, 5.0], config=fill)
+    assert filled.values == [1.0, 3.0, 5.0]
+    assert smooth_timeseries(timestamps, filled.values, config=smooth) == [1.0, 2.0, 4.0]
 
 
 @pytest.mark.parametrize(
@@ -48,7 +131,7 @@ def test_fill_timeseries_locf(
     timestamps = [float(index) for index in range(len(values))]
     original_values = tuple(values)
 
-    result = fill_timeseries(timestamps, values, mode=FILL_MODE_LOCF)
+    result = fill_timeseries(timestamps, values, config=FillTransformation(mode=FILL_MODE_LOCF))
 
     assert result.values == expected
     assert result.filled == filled
@@ -75,7 +158,7 @@ def test_fill_timeseries_zero(
     timestamps = [float(index) for index in range(len(values))]
     original_values = tuple(values)
 
-    result = fill_timeseries(timestamps, values, mode=FILL_MODE_ZERO)
+    result = fill_timeseries(timestamps, values, config=FillTransformation(mode=FILL_MODE_ZERO))
 
     assert result.values == expected
     assert result.filled == filled
@@ -127,7 +210,7 @@ def test_fill_timeseries_linear(
     original_values = tuple(values)
     original_timestamps = tuple(timestamps)
 
-    result = fill_timeseries(timestamps, values, mode=FILL_MODE_LINEAR)
+    result = fill_timeseries(timestamps, values, config=FillTransformation(mode=FILL_MODE_LINEAR))
 
     assert result.values == expected
     assert result.filled == filled
@@ -139,7 +222,9 @@ def test_fill_timeseries_linear(
 @pytest.mark.parametrize("timestamps", [[0.0, 0.0, 1.0], [0.0, 2.0, 1.0]])
 def test_fill_timeseries_linear_rejects_nonincreasing_timestamps(timestamps: list[float]) -> None:
     with pytest.raises(ValueError, match="Timestamps must be strictly increasing"):
-        fill_timeseries(timestamps, [0.0, None, 1.0], mode=FILL_MODE_LINEAR)
+        fill_timeseries(
+            timestamps, [0.0, None, 1.0], config=FillTransformation(mode=FILL_MODE_LINEAR)
+        )
 
 
 @pytest.mark.parametrize("mode", [FILL_MODE_LOCF, FILL_MODE_ZERO, FILL_MODE_LINEAR])
@@ -148,13 +233,7 @@ def test_fill_timeseries_rejects_mismatched_lengths(
     timestamps: list[float], values: list[float | None], mode: Literal["locf", "zero", "linear"]
 ) -> None:
     with pytest.raises(ValueError, match="Timestamps and values must have the same length"):
-        fill_timeseries(timestamps, values, mode=mode)
-
-
-@pytest.mark.parametrize("mode", ["quadratic", ""])
-def test_fill_timeseries_rejects_unsupported_modes(mode: Any) -> None:
-    with pytest.raises(ValueError, match="Unsupported fill mode"):
-        fill_timeseries([0.0, 1.0], [10.0, None], mode=mode)
+        fill_timeseries(timestamps, values, config=FillTransformation(mode=mode))
 
 
 @pytest.mark.parametrize(
@@ -187,7 +266,11 @@ def test_smooth_timeseries_sma(
     original_values = tuple(values)
     original_timestamps = tuple(timestamps)
 
-    result = smooth_timeseries(timestamps, values, mode=SMOOTH_MODE_SMA, window_size=window_size)
+    result = smooth_timeseries(
+        timestamps,
+        values,
+        config=SmoothTransformation(mode=SMOOTH_MODE_SMA, window_size=window_size),
+    )
 
     assert result == expected
     assert result is not values
@@ -195,16 +278,14 @@ def test_smooth_timeseries_sma(
     assert tuple(timestamps) == original_timestamps
 
 
-def test_smooth_timeseries_sma_default_window_and_equal_weighting() -> None:
-    result = smooth_timeseries([0.0, 1.0, 10.0, 20.0], [2.0, 4.0, 6.0, 8.0], mode=SMOOTH_MODE_SMA)
+def test_smooth_timeseries_sma_equal_weighting() -> None:
+    result = smooth_timeseries(
+        [0.0, 1.0, 10.0, 20.0],
+        [2.0, 4.0, 6.0, 8.0],
+        config=SmoothTransformation(mode=SMOOTH_MODE_SMA, window_size=3),
+    )
 
     assert result == [2.0, 3.0, 4.0, 6.0]
-
-
-@pytest.mark.parametrize("window_size", [0, -1])
-def test_smooth_timeseries_rejects_nonpositive_window(window_size: int) -> None:
-    with pytest.raises(ValueError, match="Window size must be positive"):
-        smooth_timeseries([0.0], [1.0], mode=SMOOTH_MODE_SMA, window_size=window_size)
 
 
 @pytest.mark.parametrize("timestamps, values", [([0.0], []), ([], [1.0])])
@@ -212,10 +293,58 @@ def test_smooth_timeseries_rejects_mismatched_lengths(
     timestamps: list[float], values: list[float | None]
 ) -> None:
     with pytest.raises(ValueError, match="Timestamps and values must have the same length"):
-        smooth_timeseries(timestamps, values, mode=SMOOTH_MODE_SMA)
+        smooth_timeseries(
+            timestamps, values, config=SmoothTransformation(mode=SMOOTH_MODE_SMA, window_size=3)
+        )
 
 
-@pytest.mark.parametrize("mode", ["ema", ""])
-def test_smooth_timeseries_rejects_unsupported_modes(mode: Any) -> None:
-    with pytest.raises(ValueError, match="Unsupported smoothing mode"):
-        smooth_timeseries([0.0], [1.0], mode=mode)
+@pytest.mark.parametrize(
+    "model, config, field, error_type",
+    [
+        (FillTransformation, {}, "mode", "value_error.missing"),
+        (FillTransformation, {"mode": "quadratic"}, "mode", "value_error.const"),
+        (FillTransformation, {"mode": ""}, "mode", "value_error.const"),
+        (
+            FillTransformation,
+            {"mode": "zero", "window_size": 3},
+            "window_size",
+            "value_error.extra",
+        ),
+        (SmoothTransformation, {}, "mode", "value_error.missing"),
+        (SmoothTransformation, {"mode": "sma"}, "window_size", "value_error.missing"),
+        (SmoothTransformation, {"mode": "ema"}, "mode", "value_error.const"),
+        (SmoothTransformation, {"mode": ""}, "mode", "value_error.const"),
+        (SmoothTransformation, {"mode": "sma", "window_size": 0}, "window_size", "value_error"),
+        (SmoothTransformation, {"mode": "sma", "window_size": -1}, "window_size", "value_error"),
+        (SmoothTransformation, {"mode": "sma", "window_size": True}, "window_size", "value_error"),
+        (SmoothTransformation, {"mode": "sma", "window_size": "3"}, "window_size", "value_error"),
+        (SmoothTransformation, {"mode": "sma", "window_size": 3.0}, "window_size", "value_error"),
+        (SmoothTransformation, {"mode": "sma", "window_size": None}, "window_size", "value_error"),
+        (
+            SmoothTransformation,
+            {"mode": "sma", "window_size": 3, "smoothing_factor": 0.5},
+            "smoothing_factor",
+            "value_error.extra",
+        ),
+    ],
+)
+def test_transformation_config_rejects_invalid_values(
+    model: type[FillTransformation] | type[SmoothTransformation],
+    config: dict[str, object],
+    field: str,
+    error_type: str,
+) -> None:
+    with pytest.raises(ValidationError) as error:
+        model.parse_obj(config)
+
+    assert error.value.errors()[0]["loc"] == (field,)
+    assert error.value.errors()[0]["type"] == error_type
+
+
+def test_transformation_config_is_immutable() -> None:
+    config = SmoothTransformation(mode="sma", window_size=2)
+
+    with pytest.raises(TypeError, match="immutable"):
+        setattr(config, "window_size", 1)
+
+    assert smooth_timeseries([0.0, 1.0, 2.0], [1.0, 3.0, 5.0], config=config) == [1.0, 2.0, 4.0]
