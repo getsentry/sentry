@@ -1430,7 +1430,7 @@
   },
   "static/app/components/stream/group.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 4
+      "count": 3
     }
   },
   "static/app/components/tables/keyValueTable/keyValueTable.stories.tsx": {
@@ -2741,11 +2741,6 @@
   },
   "static/app/views/issueDetails/useEngagedViewTracking.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
-  "static/app/views/issueList/actions/index.tsx": {
-    "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
