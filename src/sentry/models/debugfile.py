@@ -195,8 +195,6 @@ class ProjectDebugFile(Model):
         indexes = (
             models.Index(fields=("project_id", "debug_id")),
             models.Index(fields=("project_id", "code_id")),
-            models.Index(fields=("project_id", "wasm_legacy_debug_id")),
-            models.Index(fields=("project_id", "wasm_legacy_code_id")),
         )
         db_table = "sentry_projectdsymfile"
         app_label = "sentry"
