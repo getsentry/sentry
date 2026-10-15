@@ -3,6 +3,9 @@ import {mkdtemp, mkdir, readFile, readdir, rm, writeFile} from 'node:fs/promises
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
+import {pluginReact} from '@rsbuild/plugin-react';
+import {createRslib} from '@rslib/core';
+
 const root = fileURLToPath(new URL('../', import.meta.url));
 const packageJson = JSON.parse(await readFile(resolve(root, 'package.json'), 'utf8'));
 const temporary = await mkdtemp(join(root, '.verify-'));
@@ -13,6 +16,10 @@ const tarball = join(temporary, 'scraps.tgz');
 try {
   await rm(join(root, 'dist'), {recursive: true, force: true});
   await mkdir(installed, {recursive: true});
+  await writeFile(
+    join(consumer, 'package.json'),
+    JSON.stringify({name: 'scraps-verify-consumer', private: true, type: 'module'})
+  );
   execFileSync('pnpm', ['pack', '--out', tarball], {cwd: root, stdio: 'inherit'});
   execFileSync('tar', ['-xzf', tarball, '-C', installed, '--strip-components=1']);
 
@@ -41,6 +48,40 @@ try {
       }
     }
   }
+
+  // Icons currently exports workspace source. Compile a temporary dependency so
+  // Node can verify the packed Scraps JavaScript without a TSX loader.
+  const iconsRoot = fileURLToPath(new URL('../../icons/', import.meta.url));
+  const installedIcons = join(consumer, 'node_modules', '@sentry', 'icons');
+  const iconsPackage = JSON.parse(
+    await readFile(join(iconsRoot, 'package.json'), 'utf8')
+  );
+  const iconsBuild = await createRslib({
+    cwd: iconsRoot,
+    config: {
+      lib: [{format: 'esm', bundle: false, syntax: 'es2022'}],
+      source: {entry: {index: ['./src/**', '!src/**/*.spec.tsx']}},
+      output: {
+        target: 'node',
+        distPath: {root: join(installedIcons, 'dist')},
+        cleanDistPath: false,
+      },
+      plugins: [pluginReact()],
+    },
+  });
+  await iconsBuild.build();
+  await writeFile(
+    join(installedIcons, 'package.json'),
+    JSON.stringify({
+      ...iconsPackage,
+      exports: Object.fromEntries(
+        Object.entries(iconsPackage.exports).map(([subpath, source]) => [
+          subpath,
+          source.replace('./src/', './dist/').replace(/\.tsx?$/, '.js'),
+        ])
+      ),
+    })
+  );
 
   const config = {
     compilerOptions: {
@@ -100,6 +141,7 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
     InlineCode,
     Kbd,
     IndeterminateLoader,
+    Switch,
     lightTheme,
     darkTheme,
   } = await import(join(installed, 'dist/index.js'));
@@ -125,7 +167,8 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
           createElement(Quote, null, 'Quote'),
           createElement(InlineCode, null, 'InlineCode'),
           createElement(Kbd, null, 'Kbd'),
-          createElement(IndeterminateLoader)
+          createElement(IndeterminateLoader),
+          createElement(Switch, {'aria-label': 'Switch'})
         )
       )
     );
@@ -139,6 +182,8 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
       'Quote',
       'InlineCode',
       'Kbd',
+      'data-icon="checkmark"',
+      'data-icon="close"',
     ]) {
       if (!html.includes(label)) {
         throw new Error(`Server render failed for ${label}`);
