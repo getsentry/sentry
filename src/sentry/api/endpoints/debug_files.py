@@ -421,7 +421,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             # will match.
             debug_id_qs = ProjectDebugFile.objects.filter(debug_id_query(debug_id) & q)
             queryset = debug_id_qs.select_related("file").union(
-                ProjectDebugFile.objects.filter(code_id_query(code_id))
+                ProjectDebugFile.objects.filter(code_id_query(code_id) & q)
                 # Only return any code id matches if there are *no* debug id matches.
                 .filter(~Exists(debug_id_qs))
                 .select_related("file")
@@ -429,7 +429,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         elif debug_id:
             q &= debug_id_query(debug_id)
         elif code_id:
-            q &= Q(code_id_query(code_id))
+            q &= code_id_query(code_id)
         elif query:
             query_q = (
                 Q(object_name__icontains=query)
