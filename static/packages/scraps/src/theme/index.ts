@@ -1,6 +1,5 @@
 export {lightTheme, darkTheme} from './theme';
-export type {Theme, StrictCSSObject} from './theme';
-export {generateMotion, zIndex} from './runtime';
+export type {SentryTheme as Theme, StrictCSSObject} from './theme';
 export {baseTheme} from './base';
 export type * from './types';
 export {useInvertedTheme} from './useInvertedTheme';
