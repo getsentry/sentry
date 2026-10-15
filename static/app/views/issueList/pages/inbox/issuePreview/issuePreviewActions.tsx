@@ -10,6 +10,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
 import {Placeholder} from 'sentry/components/placeholder';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import {EntryType, type Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -99,14 +100,27 @@ function CopyAsMarkdownDropdown({
     hasAutofix: Boolean(autofixData),
   };
   const isDisabled = disabled || isPending;
-  const agents: Array<{key: LocalCodingAgent; label: string}> = [
-    {key: 'cursor', label: t('Open in Cursor')},
-    {key: 'codex', label: t('Open in ChatGPT')},
-    {key: 'claude-code', label: t('Open in Claude Desktop')},
+  const agents: Array<{icon: ReactNode; key: LocalCodingAgent; label: string}> = [
+    {
+      key: 'cursor',
+      label: t('Open in Cursor'),
+      icon: <PluginIcon pluginId="cursor" size={16} />,
+    },
+    {
+      key: 'codex',
+      label: t('Open in ChatGPT'),
+      icon: <PluginIcon pluginId="codex" size={16} />,
+    },
+    {
+      key: 'claude-code',
+      label: t('Open in Claude Desktop'),
+      icon: <PluginIcon pluginId="claude_code" size={16} />,
+    },
   ];
-  const agentItems: MenuItemProps[] = agents.map(({key, label}) => ({
+  const agentItems: MenuItemProps[] = agents.map(({key, label, icon}) => ({
     key,
     label,
+    leadingItems: icon,
     onAction: () => {
       trackAnalytics('issue_inbox.open_in_desktop_app_clicked', {
         organization,
