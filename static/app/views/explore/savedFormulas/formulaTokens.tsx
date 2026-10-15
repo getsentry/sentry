@@ -4,7 +4,7 @@ import {Text} from '@sentry/scraps/text';
 
 import type {SavedFormula} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 
-export const VARIABLE_PATTERN = /\{([^{}]+)\}/g;
+const VARIABLE_PATTERN = /\{([^{}]+)\}/g;
 
 type TokenKind = 'parameter' | 'calculation' | 'reference';
 
