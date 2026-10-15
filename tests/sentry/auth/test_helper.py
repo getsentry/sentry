@@ -5,6 +5,7 @@ from unittest import mock
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
+from django.core import mail
 from django.db import IntegrityError, models, router, transaction
 from django.http import HttpResponseRedirect
 from django.http.response import HttpResponseBase
@@ -26,6 +27,7 @@ from sentry.auth.helper import (
     AuthIdentityHandler,
 )
 from sentry.auth.idpmigration import SSO_VERIFICATION_KEY
+from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.store import FLOW_LOGIN, FLOW_SETUP_PROVIDER, AuthHelperSessionStore
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -652,6 +654,44 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert "login_form" in context
 
     @mock.patch("sentry.auth.helper.render_to_response")
+    def test_automatic_migration_sends_link_to_verified_email(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        """A passwordless user asserting their own email gets the link at that address."""
+        existing_user = self.create_user(email=self.email)
+        existing_user.update(password="")
+
+        with self.tasks():
+            self.handler.handle_unknown_identity(self.state)
+
+        assert mock_render.call_args.args[0] == "sentry/auth-confirm-account.html"
+        assert len(mail.outbox) == 1
+        (sent,) = mail.outbox
+        assert sent.to == [self.email]
+
+    @mock.patch("sentry.auth.helper.render_to_response")
+    def test_confirm_link_sent_to_verified_email_when_asserted_differs(
+        self, mock_render: mock.MagicMock
+    ) -> None:
+        """An asserted email that resolves case-insensitively still sends the link
+        to the account's address, not the asserted string."""
+        account_email = "person@example.com"
+        asserted = "PERSON@example.com"
+
+        user = self.create_user(email=account_email)
+        user.update(password="")
+
+        handler = self._handler_with({**self.identity, "email": asserted})
+        with self.tasks():
+            handler.handle_unknown_identity(self.state)
+
+        assert mock_render.call_args.args[0] == "sentry/auth-confirm-account.html"
+        assert len(mail.outbox) == 1
+        (sent,) = mail.outbox
+        assert asserted not in sent.to
+        assert sent.to == [account_email]
+
+    @mock.patch("sentry.auth.helper.render_to_response")
     @mock.patch("sentry.auth.helper.send_one_time_account_confirm_link")
     def test_does_not_migrate_user_with_password(
         self, mock_create_key: mock.MagicMock, mock_render: mock.MagicMock
@@ -1184,6 +1224,26 @@ class HasVerifiedAccountTest(AuthIdentityHandlerTest):
         self.create_useremail(email=self.email, user=self.user)
         verification_value = {**self.verification_value, "organization_id": 99999}
         assert self.handler.has_verified_account(verification_value) is False
+
+    def test_has_verified_account_fail_identity_id(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        value = {**self.verification_value, "identity_id": "someone-else"}
+        assert self.handler.has_verified_account(value) is False
+
+    def test_has_verified_account_migrating_identity_id(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        identity = {**self.identity, "id": MigratingIdentityId(id="sub-1", legacy_id=self.email)}
+        handler = self._handler_with(identity)
+        assert handler.has_verified_account({**self.verification_value, "identity_id": "sub-1"})
+        # the legacy (email) half of the migrating id must not verify
+        assert not handler.has_verified_account(
+            {**self.verification_value, "identity_id": self.email}
+        )
+
+    def test_has_verified_account_ascii_case_insensitive(self) -> None:
+        self.create_useremail(email=self.email, user=self.user)
+        identity = {**self.identity, "email": self.email.upper()}
+        assert self._handler_with(identity).has_verified_account(self.verification_value) is True
 
     def test_has_verified_account_fail_missing_organization_id(self) -> None:
         self.create_useremail(email=self.email, user=self.user)

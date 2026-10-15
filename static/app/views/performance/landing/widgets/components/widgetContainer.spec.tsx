@@ -513,6 +513,10 @@ describe('Performance > Widgets > WidgetContainer', () => {
       'Most Related Issues'
     );
     expect(issuesListMock).toHaveBeenCalledTimes(1);
+    // The issues chart only fetches once the issues list has resolved
+    await waitFor(() => {
+      expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    });
 
     wrapper.rerender(
       <WrappedComponent
@@ -525,6 +529,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
       'Most Related Errors'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
+    // Leftover issues list data must not trigger a chart request for errors
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
   });
 

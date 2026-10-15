@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 
-import {act, fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
 // Disable the NODE_ENV === 'test' instant-open bypass for this file so we can
 // drive the real state machine with fake timers. The rest of the tooltip test
@@ -72,10 +72,14 @@ describe('useHoverOverlay timing', () => {
   });
 
   afterEach(() => {
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
-    jest.useRealTimers();
+    try {
+      cleanup();
+      act(() => {
+        jest.runOnlyPendingTimers();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   // Each render is scoped to its own <HoverOverlayGroupProvider>, so group

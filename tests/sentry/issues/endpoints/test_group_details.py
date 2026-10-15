@@ -739,6 +739,37 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
 
 class GroupUpdateTest(APITestCase):
+    def test_invalid_request_body(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        for url in (
+            f"/api/0/issues/{group.id}/",
+            f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/",
+        ):
+            for data in ("null", "[]", '"invalid"', "0", "false"):
+                response = self.client.put(url, data=data, content_type="application/json")
+
+                assert response.status_code == 400, response.content
+                assert "non_field_errors" in response.data
+                group.refresh_from_db()
+                assert group.status == GroupStatus.UNRESOLVED
+
+    def test_empty_request_body(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+
+        for url in (
+            f"/api/0/issues/{group.id}/",
+            f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/",
+        ):
+            for data in ("", "{}"):
+                response = self.client.put(url, data=data, content_type="application/json")
+
+                assert response.status_code == 200, response.content
+                group.refresh_from_db()
+                assert group.status == GroupStatus.UNRESOLVED
+
     def test_resolve(self) -> None:
         self.login_as(user=self.user)
 

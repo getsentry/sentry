@@ -1598,6 +1598,13 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Stops logging FIRST_SEEN when ingest creates a group.
+register(
+    "issues.action_log.first_seen_on_create.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "issues.backfill_group_action_log.killswitch",
     type=Bool,
