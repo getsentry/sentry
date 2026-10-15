@@ -6,7 +6,7 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.models.rule import Rule
 from sentry.monitors.constants import TIMEOUT
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
@@ -955,7 +955,9 @@ class BaseDeleteMonitorTest(MonitorTestCase):
 
         rule = Rule.objects.get(project_id=monitor.project_id, id=monitor.config["alert_rule_id"])
         assert rule.status == ObjectStatus.PENDING_DELETION
-        assert RuleActivity.objects.filter(rule=rule, type=RuleActivityType.DELETED.value).exists()
+        assert CellScheduledDeletion.objects.filter(
+            object_id=rule.id, model_name="Rule", actor_id=self.user.id
+        ).exists()
 
     def test_simple_with_issue_alert_rule_deleted(self) -> None:
         monitor = self._create_monitor()
