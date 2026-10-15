@@ -53,7 +53,8 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
 
 /**
  * Routes whose page context is only complete once the page node has loaded,
- * mapped to that node.
+ * mapped to that node. If the node registers before its data loads, also pass
+ * `isLoading` to useLLMContext.
  */
 const PAGE_CONTEXT_READY_NODES = new Map<string, LLMContextNodeType>([
   ['/dashboard/:dashboardId/', 'dashboard'],

@@ -364,7 +364,8 @@ export const LLM_CONTEXT_MAX_ROWS = 15;
  *   useLLMContext(someComputedValue);
  *
  * Pass `isLoading` while the data is still being fetched, so the page isn't
- * reported as ready (see isNodeReady) until the node is complete.
+ * reported as ready (see isNodeReady) until the node is complete. Only affects
+ * routes listed in PAGE_CONTEXT_READY_NODES.
  *
  *   useLLMContext({ rows }, { isLoading: isPending });
  *
