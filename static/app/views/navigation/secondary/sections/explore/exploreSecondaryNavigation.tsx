@@ -75,6 +75,13 @@ function ExploreSecondaryNavigationImpl() {
       to: `${baseUrl}/investigations/`,
     });
   }
+  if (organization.features.includes('explore-saved-formulas')) {
+    navItems.push({
+      label: 'Saved Formulas',
+      badge: 'alpha',
+      to: `${baseUrl}/saved-formulas/`,
+    });
+  }
 
   useLLMContext({
     contextHint:
@@ -235,6 +242,17 @@ function ExploreSecondaryNavigationImpl() {
                     {t('All Queries')}
                   </SecondaryNavigation.Link>
                 </SecondaryNavigation.ListItem>
+                <Feature features="organizations:explore-saved-formulas">
+                  <SecondaryNavigation.ListItem>
+                    <SecondaryNavigation.Link
+                      to={`${baseUrl}/saved-formulas/`}
+                      analyticsItemName="explore_saved_formulas"
+                      trailingItems={<FeatureBadge type="alpha" />}
+                    >
+                      {t('Saved Formulas')}
+                    </SecondaryNavigation.Link>
+                  </SecondaryNavigation.ListItem>
+                </Feature>
               </SecondaryNavigation.List>
             </SecondaryNavigation.Section>
             {starredQueries && starredQueries.length > 0 && (
