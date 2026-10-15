@@ -13,15 +13,22 @@ import {
 } from './declarations';
 import {MenuFooter, MenuHeader} from './layout';
 
-type Element = React.ReactElement<any>;
+type Element = React.ReactElement;
+
+function isElementOf<Props>(
+  element: Element,
+  component: (props: Props) => React.ReactNode
+): element is React.ReactElement<Props> {
+  return element.type === component;
+}
 
 function elements(children: React.ReactNode): Element[] {
   return Children.toArray(children).flatMap(child => {
-    if (!isValidElement(child)) {
+    if (!isValidElement<{children?: React.ReactNode}>(child)) {
       return [];
     }
     if (child.type === Fragment) {
-      return elements((child.props as {children?: React.ReactNode}).children);
+      return elements(child.props.children);
     }
     return [child];
   });
@@ -29,9 +36,10 @@ function elements(children: React.ReactNode): Element[] {
 
 function sectionContent(children: React.ReactNode) {
   const parts = elements(children);
-  const label = parts.find(part => part.type === MenuSectionLabel);
+  const label = parts.find(part => isElementOf(part, MenuSectionLabel));
   return {
-    label: label?.props.children as React.ReactNode,
+    label:
+      label && isElementOf(label, MenuSectionLabel) ? label.props.children : undefined,
     items: parts.filter(part => part.type !== MenuSectionLabel),
   };
 }
@@ -75,7 +83,7 @@ export function composeMenu(
     }
 
     let item: MenuItemProps | undefined;
-    if (part.type === MenuSection) {
+    if (isElementOf(part, MenuSection)) {
       const {sectionKey, children: sectionChildren, ...rest} = part.props;
       const {label, items} = sectionContent(sectionChildren);
       if ((label === null || label === undefined) && !rest['aria-label']) {
@@ -91,7 +99,7 @@ export function composeMenu(
         label,
         children: section.items,
       };
-    } else if (part.type === Submenu) {
+    } else if (isElementOf(part, Submenu)) {
       const {itemKey, children: submenuChildren, title, position, ...rest} = part.props;
       const submenu = composeMenu(submenuChildren);
       item = {
@@ -106,7 +114,7 @@ export function composeMenu(
           separatorBeforeKeys: submenu.separatorBeforeKeys,
         },
       };
-    } else if (part.type === MenuItem) {
+    } else if (isElementOf(part, MenuItem)) {
       const {itemKey, ...rest} = part.props;
       item = {...rest, key: itemKey};
     }
@@ -159,7 +167,7 @@ export function composeSelect<Value extends SelectKey>(
     }
 
     let item: SelectOptionOrSection<Value> | undefined;
-    if (part.type === MenuSection) {
+    if (isElementOf(part, MenuSection)) {
       const {sectionKey, children: sectionChildren, ...rest} = part.props;
       const {label, items} = sectionContent(sectionChildren);
       if ((label === null || label === undefined) && !rest['aria-label']) {
@@ -170,13 +178,13 @@ export function composeSelect<Value extends SelectKey>(
         key: sectionKey ?? `section-${result.items.length}`,
         label,
         options: items.map(child => {
-          if (child.type !== ListItem) {
+          if (!isElementOf(child, ListItem<Value>)) {
             throw new Error('MenuSection in CompactSelect only accepts ListItem');
           }
           return child.props;
         }),
       };
-    } else if (part.type === ListItem) {
+    } else if (isElementOf(part, ListItem<Value>)) {
       item = part.props;
     }
 
