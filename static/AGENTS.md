@@ -18,7 +18,9 @@
 - `rsbuild.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
 - `oxlint.config.ts`: Oxlint configuration
+- `oxlint.base.ts`: Shared Oxlint rules used by root and package configs
 - `stylelint.config.js`: CSS/styling linting
+- `stylelint.base.js`: Shared Stylelint rules used by root and package configs
 - **Components**: `static/app/components/{component}/`
 - **Views**: `static/app/views/{area}/{page}.tsx`
 - **Stores**: `static/app/stores/{store}Store.tsx`

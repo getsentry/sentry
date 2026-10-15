@@ -133,10 +133,13 @@ jobs:
       - name: oxlint (impacted files)
         id: oxlint-impacted
         if: steps.strategy.outputs.scope == 'scoped'
-        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- node scripts/custom-oxlint.ts --no-error-on-unmatched-pattern
+        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- node scripts/lint.ts js --no-error-on-unmatched-pattern
         env:
           MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
+
+      - name: stylelint (workspace packages)
+        run: pnpm --recursive --parallel --no-bail --no-include-workspace-root --if-present run lint:css
 
   prune-oxlint-suppressions:
     needs: oxlint

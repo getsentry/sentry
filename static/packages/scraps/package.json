@@ -52,7 +52,10 @@
     "verify": "node scripts/verify.mjs",
     "test": "NODE_ENV=test jest --config jest.config.mjs",
     "typecheck": "tsc --build tsconfig.test.json",
-    "prepack": "pnpm run build"
+    "prepack": "pnpm run build",
+    "lint": "pnpm run lint:js && pnpm run lint:css",
+    "lint:js": "node ../../../scripts/lint.ts js --local --type-aware --report-unused-disable-directives",
+    "lint:css": "node ../../../scripts/lint.ts css --local"
   },
   "dependencies": {
     "@emotion/is-prop-valid": "^1.4.0",
@@ -75,6 +78,9 @@
     "expect-type": "1.4.0",
     "jest": "30.5.1",
     "jsdom": "30.1.1",
+    "oxlint": "1.85.0",
+    "oxlint-tsgolint": "7.0.2001",
+    "stylelint": "16.26.1",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "peerDependencies": {

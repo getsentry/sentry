@@ -84,9 +84,14 @@ Extend `tsconfig.base.json` for shared compiler checks. Keep app aliases, enviro
 
 ```bash
 pnpm run lint:js                          # all JS/TS
-pnpm run lint:js components/avatar.tsx    # specific file(s)
+pnpm run lint:js static/app/components/avatar.tsx # selected files in their owning projects
+pnpm --filter @sentry/icons lint          # Icons: JS/TS, CSS
+pnpm --filter @sentry/scraps lint         # Scraps: JS/TS, CSS
+pnpm run lint:format                     # formatting for the whole repository
 pnpm run fix                              # auto-fix
 ```
+
+Shared lint rules live in `oxlint.base.ts`. Icons and Scraps own their lint configs and run from their package directories. Full lint runs the root task and every package task. Scoped lint and prek route selected files to their owning lint projects and skip unselected packages. Workspaces without a lint task use the root task. Package commands accept project-relative paths and default to a full package scan when paths are omitted. Suppression maintenance and config inspection use the root coordinator.
 
 Incubator rules appear as warnings in editors. The lint wrapper promotes them to errors in the existing oxlint pass in prek, normal lint, and CI so native suppressions and the ratchet remain enforced. Each pnpm workspace owns an `oxlint-suppressions.json` with project-relative file paths; the root asset covers files outside workspaces. These committed files limit existing debt per file and rule. Root maintenance commands scan all projects, including workspaces with their own `oxlint.config.ts`. Successful fixes automatically reduce counts for checked files. Fast local prek fixes conservatively retain TypeScript counts until a full type-aware fix or `pnpm run lint:js --prune`. Enrolling rules requires `pnpm run lint:js --enroll --base REF` using trusted source. Inspect live findings with `pnpm run lint:js --backlog`. Put the maintenance flag first. Use `pnpm run lint:js --help` for all options.
 
