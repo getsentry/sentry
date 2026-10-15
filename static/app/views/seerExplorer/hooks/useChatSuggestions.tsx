@@ -49,28 +49,20 @@ function getFallbackChatSuggestions(route: string, hasDbData: boolean): ChatSugg
 type TimeoutReason = 'timeout' | 'incomplete_context';
 
 /**
- * Resolves to a reason once `isWaiting` has held for SUGGESTIONS_TIMEOUT_MS.
- * Reset when `queryKey` changes so navigating with the panel open starts a fresh
- * wait, and latched so a late response doesn't swap out suggestions the user is reading.
+ * Calls `onTimeout` with a reason once `isWaiting` has held for SUGGESTIONS_TIMEOUT_MS.
+ * Restarts when `queryKey` changes so navigating with the panel open starts a fresh wait.
  */
 function useSuggestionsTimeout({
   queryKey,
   isWaiting,
   isPageReady,
+  onTimeout,
 }: {
   isPageReady: boolean;
   isWaiting: boolean;
+  onTimeout: (reason: TimeoutReason) => void;
   queryKey: string;
-}): TimeoutReason | null {
-  const [timeoutReason, setTimeoutReason] = useState<TimeoutReason | null>(null);
-
-  // Start over when the query changes, e.g. navigating with the panel open.
-  const [prevQueryKey, setPrevQueryKey] = useState(queryKey);
-  if (queryKey !== prevQueryKey) {
-    setPrevQueryKey(queryKey);
-    setTimeoutReason(null);
-  }
-
+}): void {
   // Read when the timer fires, without restarting it when the page becomes ready.
   const isPageReadyRef = useRef(isPageReady);
   useEffect(() => {
@@ -82,13 +74,11 @@ function useSuggestionsTimeout({
       return;
     }
     const timeoutId = window.setTimeout(() => {
-      setTimeoutReason(isPageReadyRef.current ? 'timeout' : 'incomplete_context');
+      onTimeout(isPageReadyRef.current ? 'timeout' : 'incomplete_context');
     }, SUGGESTIONS_TIMEOUT_MS);
     return () => window.clearTimeout(timeoutId);
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- queryKey restarts the timer for a new query.
-  }, [queryKey, isWaiting]);
-
-  return timeoutReason;
+  }, [queryKey, isWaiting, onTimeout]);
 }
 
 export type ChatSuggestionsState =
@@ -140,6 +130,19 @@ export function useChatSuggestions({
     selection.projects,
     allowStructuredContext,
   ];
+  const serializedQueryKey = JSON.stringify(queryKey);
+
+  // Latched so a late response doesn't swap out suggestions the user is reading.
+  const [timeoutReason, setTimeoutReason] = useState<TimeoutReason | null>(null);
+  const hasTimedOut = timeoutReason !== null;
+
+  // Start over when the query changes, e.g. navigating with the panel open.
+  const [prevQueryKey, setPrevQueryKey] = useState(serializedQueryKey);
+  if (serializedQueryKey !== prevQueryKey) {
+    setPrevQueryKey(serializedQueryKey);
+    setTimeoutReason(null);
+  }
+
   const query = useQuery({
     queryKey,
     queryFn: () => {
@@ -161,30 +164,31 @@ export function useChatSuggestions({
       });
     },
     // Generating from a half-loaded page gives generic suggestions, so hold the
-    // request until the page has reported its context.
-    enabled: enabled && hasLlmChatSuggestions && isPageReady,
+    // request until the page has reported its context. If it never did in time,
+    // don't send the request at all.
+    enabled: enabled && hasLlmChatSuggestions && isPageReady && !hasTimedOut,
     staleTime: 10 * 60 * 1000,
     retry: false,
   });
 
-  const timeoutReason = useSuggestionsTimeout({
-    queryKey: JSON.stringify(queryKey),
+  useSuggestionsTimeout({
+    queryKey: serializedQueryKey,
     isWaiting: enabled && hasLlmChatSuggestions && query.isPending,
     isPageReady,
+    onTimeout: setTimeoutReason,
   });
-  const hasTimedOut = timeoutReason !== null;
 
   const state = useMemo((): ChatSuggestionsState => {
     if (!hasLlmChatSuggestions) {
       return {isLoading: false, source: 'legacy', suggestions: LEGACY_SUGGESTIONS};
     }
-    // Once timed out, what's shown is fixed; a late response is ignored.
-    if (!hasTimedOut && query.data?.suggestions.length) {
-      return {isLoading: false, source: 'generated', suggestions: query.data.suggestions};
-    }
     if (!hasTimedOut && query.isPending) {
       return {isLoading: true};
     }
+    if (!hasTimedOut && query.data?.suggestions.length) {
+      return {isLoading: false, source: 'generated', suggestions: query.data.suggestions};
+    }
+    // Once timed out, what's shown is fixed; a late response is ignored.
     return {
       isLoading: false,
       source: 'fallback',

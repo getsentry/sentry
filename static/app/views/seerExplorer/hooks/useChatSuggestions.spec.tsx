@@ -415,7 +415,7 @@ describe('useChatSuggestions', () => {
       });
 
       await act(() => jest.advanceTimersByTimeAsync(1000));
-      await waitFor(() => expect(request).toHaveBeenCalled());
+      expect(request).not.toHaveBeenCalled();
       expect(result.current).toEqual({
         isLoading: false,
         source: 'fallback',

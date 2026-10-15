@@ -40,8 +40,9 @@ interface LLMContextReader {
 const LLMInternalContext = createContext<LLMContextInternalValue | undefined>(undefined);
 
 /**
- * Hook for internal use by registerLLMContext and useLLMContext to access
- * the registry operations (registerNode, unregisterNode, updateNodeData, getSnapshot).
+ * Hook for internal use by registerLLMContext, useLLMContext, and usePageContextReady
+ * to access the registry operations (registerNode, unregisterNode, updateNodeData,
+ * getSnapshot, subscribe, isNodeReady).
  * Throws if called outside an LLMContextProvider.
  */
 export function useLLMContextRegistry(): LLMContextInternalValue {
@@ -212,7 +213,7 @@ const INITIAL_STATE: LLMContextState = {
 
 export function LLMContextProvider({children}: LLMContextProviderProps) {
   // All state lives in refs — no re-renders needed. Consumers read
-  // the latest data imperatively via getSnapshot().
+  // the latest data imperatively via getSnapshot(), or subscribe() to changes.
   const stateRef = useRef(INITIAL_STATE);
   const nodeDataRef = useRef(new Map<string, unknown>());
   const routeRef = useRef<RouteIdentity | null>(null);
