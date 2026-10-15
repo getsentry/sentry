@@ -252,10 +252,12 @@ describe('IntegrationCodeMappings', () => {
     });
 
     expect(
-      await screen.findByText(/Code mappings are moving to Connected Repositories/)
+      await screen.findByText(/Code mappings are moving to the/)
     ).toBeInTheDocument();
 
-    const projectSettingsLink = screen.getByRole('link', {name: 'Project Settings'});
+    const projectSettingsLink = screen.getByRole('link', {
+      name: "each project's settings",
+    });
     expect(projectSettingsLink).toHaveAttribute(
       'href',
       `/settings/${orgWithFlag.slug}/projects/`
@@ -270,8 +272,6 @@ describe('IntegrationCodeMappings', () => {
 
     // Wait for the page to finish loading before asserting absence
     expect(await screen.findByText(repos[0]!.name)).toBeInTheDocument();
-    expect(
-      screen.queryByText(/Code mappings are moving to Connected Repositories/)
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Code mappings are moving to the/)).not.toBeInTheDocument();
   });
 });

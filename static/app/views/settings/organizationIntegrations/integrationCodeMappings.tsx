@@ -145,7 +145,7 @@ function CodeMappingsMovingAlert() {
     <Alert.Container>
       <Alert variant="info">
         {tct(
-          'Code mappings are moving to Connected Repositories in [projectsLink:Project Settings] and to the [reposLink:Repositories] page. Your existing mappings are already there. This page will be removed once the move is complete.',
+          "Code mappings are moving to the [reposLink:Repositories] page and to Connected Repositories in [projectsLink:each project's settings]. Your existing mappings are already there. This page will be removed soon.",
           {
             projectsLink: <Link to={`/settings/${organization.slug}/projects/`} />,
             reposLink: <Link to={`/settings/${organization.slug}/repos/`} />,
