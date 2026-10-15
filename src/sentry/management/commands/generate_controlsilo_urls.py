@@ -119,7 +119,7 @@ class Command(BaseCommand):
             # We have tests in tests/sentry/silo/test_base.py that ensure all views/endpoints
             # have silo annotations on them. We skip including URLs for react views
             # as the UI doesn't make requests to them, but the UI code *does* make
-            # requests to other HTML views (like sentry-wizard)
+            # requests to other HTML views
             if not hasattr(view_func, "silo_limit") or (
                 isinstance(view_func, type)
                 and issubclass(

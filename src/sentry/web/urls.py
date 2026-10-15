@@ -50,7 +50,6 @@ from sentry.web.frontend.project_event import ProjectEventRedirect
 from sentry.web.frontend.react_page import GenericReactPageView, ReactPageView
 from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
-from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.signup_verification_pending import SignupVerificationPendingView
 from sentry.web.frontend.sso_signup_verification import SSOSignupVerificationView
@@ -448,7 +447,7 @@ urlpatterns += [
                 # Project Wizard
                 re_path(
                     r"^settings/wizard/(?P<wizard_hash>[^/]+)/$",
-                    SetupWizardView.as_view(),
+                    GenericReactPageView.as_view(auth_required=False),
                     name="sentry-project-wizard-fetch",
                 ),
                 # Compatibility
