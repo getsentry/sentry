@@ -751,6 +751,7 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
 
         self.assert_match(self.invocation(action))
 
+    @override_options({"notifications.platform.alert-providers": {"metric-alert": ["slack"]}})
     @mock.patch(f"{PLATFORM_DISPATCH}.send_metric_alert")
     @mock.patch(f"{PLATFORM_DISPATCH}.NotificationService.has_access", return_value=True)
     @mock.patch(f"{COMPARE_PATH}.NotificationService.render_template")

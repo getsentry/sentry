@@ -161,9 +161,31 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
             notification_uuid=kwargs["notification_uuid"],
         )
 
+    def _invocation(self, resolved: bool = False) -> ActionInvocation:
+        event_data = self.event_data
+        if resolved:
+            activity = Activity(
+                project=self.project,
+                group=self.group,
+                type=ActivityType.SET_RESOLVED.value,
+                data=asdict(self.evidence_data),
+            )
+            activity.save()
+            event_data = WorkflowEventData(
+                event=activity, workflow_env=self.workflow.environment, group=self.group
+            )
+        return ActionInvocation(
+            event_data=event_data,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+
     @override_options({"notifications.platform-rollout.internal-testing": {"metric-alert": 1.0}})
+    @override_options({"notifications.platform.alert-providers": {"metric-alert": ["slack"]}})
     @with_feature("organizations:notification-platform.internal-testing")
-    def _send_platform_alert_and_get_blocks(self, kwargs: dict[str, Any]) -> list[Any]:
+    def _send_platform_alert_and_get_blocks(self, invocation: ActionInvocation) -> list[Any]:
         with patch("sentry.integrations.slack.integration.SlackSdkClient") as mock_client:
             mock_client.return_value.chat_postMessage.return_value = SlackResponse(
                 client=mock_client.return_value,
@@ -174,14 +196,13 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
                 headers={},
                 status_code=200,
             )
-            self.handler.send_alert(**kwargs)
+            self.handler.invoke_legacy_registry(invocation)
             payload = mock_client.return_value.chat_postMessage.call_args.kwargs
         return payload["attachments"][0]["blocks"]
 
     @with_feature(["organizations:investigations", "organizations:investigations-slack"])
     def test_send_alert_with_investigation_button(self) -> None:
-        kwargs = self._make_send_alert_kwargs()
-        blocks = self._send_platform_alert_and_get_blocks(kwargs)
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation())
 
         assert [block["type"] for block in blocks] == ["section", "actions"]
         (button,) = blocks[1]["elements"]
@@ -192,33 +213,29 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
         assert routing.project_id == self.group.project_id
         assert orjson.loads(button["value"]) == {
             "groupId": self.group.id,
-            "openPeriodId": kwargs["open_period_context"].id,
+            "openPeriodId": OpenPeriodContext.from_group(self.group).id,
         }
 
     @with_feature(["organizations:investigations", "organizations:investigations-slack"])
     def test_send_alert_resolved_has_no_investigation_button(self) -> None:
-        kwargs = self._make_send_alert_kwargs()
-        kwargs["metric_issue_context"].new_status = IncidentStatus.CLOSED
-        kwargs["trigger_status"] = TriggerStatus.RESOLVED
-
-        blocks = self._send_platform_alert_and_get_blocks(kwargs)
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation(resolved=True))
 
         assert [block["type"] for block in blocks] == ["section"]
 
     def test_send_alert_without_flags_has_no_investigation_button(self) -> None:
-        blocks = self._send_platform_alert_and_get_blocks(self._make_send_alert_kwargs())
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation())
 
         assert [block["type"] for block in blocks] == ["section"]
 
     @with_feature("organizations:investigations")
     def test_send_alert_without_slack_flag_has_no_investigation_button(self) -> None:
-        blocks = self._send_platform_alert_and_get_blocks(self._make_send_alert_kwargs())
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation())
 
         assert [block["type"] for block in blocks] == ["section"]
 
     @with_feature("organizations:investigations-slack")
     def test_send_alert_without_investigations_flag_has_no_investigation_button(self) -> None:
-        blocks = self._send_platform_alert_and_get_blocks(self._make_send_alert_kwargs())
+        blocks = self._send_platform_alert_and_get_blocks(self._invocation())
 
         assert [block["type"] for block in blocks] == ["section"]
 
