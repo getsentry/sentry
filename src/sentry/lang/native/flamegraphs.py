@@ -1,18 +1,18 @@
 from collections.abc import Generator
-from copy import deepcopy
 from typing import Any
 
-import orjson
+import rapidjson
 
 from sentry import features
 from sentry.attachments import (
     CachedAttachment,
+    MissingAttachmentChunks,
     get_attachments_for_event,
     store_attachments_for_event,
 )
 from sentry.ingest.consumer import CACHE_TIMEOUT
 from sentry.lang.native.frames import get_frames_for_symbolication, merge_frame
-from sentry.lang.native.utils import is_native_platform
+from sentry.lang.native.utils import is_native_image
 from sentry.models.project import Project
 
 MAX_FLAMEGRAPH_SIZE = 10 * 1024 * 1024
@@ -41,12 +41,20 @@ def _is_valid_flamegraph(payload: Any) -> bool:
             return False
         if "platform" in frame and not isinstance(frame["platform"], str):
             return False
+        if "data" in frame and not isinstance(frame["data"], dict):
+            return False
     debug_meta = payload.get("debug_meta", {})
     if not isinstance(debug_meta, dict):
         return False
     images = debug_meta.get("images", [])
     if not isinstance(images, list) or not all(isinstance(image, dict) for image in images):
         return False
+    for image in images:
+        if any(
+            image.get(field) is not None and not isinstance(image[field], str)
+            for field in ("debug_id", "id", "uuid")
+        ):
+            return False
     for tree in trees:
         if (
             not isinstance(tree, dict)
@@ -79,44 +87,61 @@ def _is_valid_flamegraph(payload: Any) -> bool:
     return True
 
 
-def _expand_inline_frames(trees: list[dict[str, Any]], chains: dict[int, list[int]]) -> None:
-    nodes = [root for tree in trees for root in tree["roots"]]
+def _expand_inline_frames(
+    trees: list[dict[str, Any]], chains: dict[int, list[int]]
+) -> list[dict[str, Any]]:
+    output = [{**tree, "roots": []} for tree in trees]
+    nodes = [
+        (root, new_tree["roots"])
+        for tree, new_tree in zip(trees, output)
+        for root in reversed(tree["roots"])
+    ]
     while nodes:
-        node = nodes.pop()
-        children = node.get("children")
-        nodes.extend(children or [])
-        chain = chains.get(node["frame_id"])
-        if not chain or len(chain) == 1:
-            continue
-        node.pop("children", None)
+        original, siblings = nodes.pop()
+        node = dict(original)
+        siblings.append(node)
+        children = node.pop("children", None)
         current = node
-        for frame_id in chain[1:]:
+        for frame_id in chains.get(node["frame_id"], [])[1:]:
             child = {"frame_id": frame_id, "sample_count": node["sample_count"]}
             current["children"] = [child]
             current = child
         if children is not None:
-            current["children"] = children
+            current["children"] = []
+            nodes.extend((child, current["children"]) for child in reversed(children))
+    return output
 
 
-def get_flamegraph_stacktraces(
-    payload: dict[str, Any], modules: list[dict[str, Any]]
-) -> tuple[list[int], list[dict[str, Any]]]:
+def get_flamegraph_stacktraces(payload: dict[str, Any]) -> tuple[list[int], list[dict[str, Any]]]:
     frame_ids = []
     stacktraces = []
+    original_modules = payload.get("debug_meta", {}).get("images", [])
+    module_indices: dict[int, int] = {}
+    for index, image in enumerate(original_modules):
+        if is_native_image(image):
+            module_indices[index] = len(module_indices)
     for frame_id, frame in enumerate(payload["frames"][:MAX_SYMBOLICATION_FRAMES]):
-        if not is_native_platform(frame.get("platform", payload["platform"])):
+        frames = get_frames_for_symbolication([frame], payload, original_modules, adjustment="none")
+        if not frames:
             continue
-        frames = get_frames_for_symbolication([frame], payload, modules, adjustment="none")
-        if frames:
-            frame_ids.append(frame_id)
-            stacktraces.append({"frames": frames})
+        # Resolve against the captured image table before remapping to the filtered request.
+        addr_mode = frames[0].get("addr_mode")
+        if frame.get("addr_mode", "").startswith("rel:") and addr_mode is None:
+            continue
+        if addr_mode is not None:
+            module_index = module_indices.get(int(addr_mode[4:]))
+            if module_index is None:
+                continue
+            frames[0]["addr_mode"] = f"rel:{module_index}"
+        frame_ids.append(frame_id)
+        stacktraces.append({"frames": frames})
     return frame_ids, stacktraces
 
 
 def _merge_symbolicated_frames(
     payload: dict[str, Any], frame_ids: list[int], stacktraces: list[dict[str, Any]]
 ) -> dict[str, Any]:
-    output = deepcopy(payload)
+    output = {**payload, "frames": list(payload["frames"])}
     chains = {}
     for frame_id, stacktrace in zip(frame_ids, stacktraces):
         original = payload["frames"][frame_id]
@@ -127,7 +152,9 @@ def _merge_symbolicated_frames(
             continue
         chain = []
         for position, frame in enumerate(resolved):
-            merged = deepcopy(original)
+            merged = dict(original)
+            if "data" in merged:
+                merged["data"] = dict(merged["data"])
             merge_frame(merged, frame, original.get("platform", payload["platform"]))
             # Symbolicator may adjust addresses or normalize relative addressing modes.
             # The diagnostic must retain its captured symbolication inputs.
@@ -143,7 +170,7 @@ def _merge_symbolicated_frames(
                 chain.append(len(output["frames"]))
                 output["frames"].append(merged)
         chains[frame_id] = chain
-    _expand_inline_frames(output["trees"], chains)
+    output["trees"] = _expand_inline_frames(payload["trees"], chains)
     output["_symbolication"] = {
         "status": "completed",
         "frames": payload["frames"],
@@ -166,12 +193,15 @@ class Flamegraphs:
         for index, attachment in enumerate(self._attachments):
             if attachment.type != "event.flamegraph":
                 continue
-            raw = attachment.load_data(self._project)
+            try:
+                raw = attachment.load_data(self._project)
+            except (MissingAttachmentChunks, FileNotFoundError):
+                continue
             if len(raw) > MAX_FLAMEGRAPH_SIZE:
                 continue
             try:
-                payload = orjson.loads(raw)
-            except orjson.JSONDecodeError:
+                payload = rapidjson.loads(raw, allow_nan=False)
+            except (rapidjson.JSONDecodeError, UnicodeDecodeError):
                 continue
             if not isinstance(payload, dict):
                 continue
@@ -197,15 +227,16 @@ class Flamegraphs:
         if len(stacktraces) != len(frame_ids):
             return False
         output = _merge_symbolicated_frames(payload, frame_ids, stacktraces)
-        serialized = orjson.dumps(output)
+        serialized = rapidjson.dumps(output, ensure_ascii=False, allow_nan=False).encode()
+        if len(serialized) > MAX_FLAMEGRAPH_SIZE:
+            return False
         attachment = self._attachments[attachment_index]
         metadata = attachment.meta()
         metadata.update(data=serialized, chunks=None, size=len(serialized))
-        self._attachments[attachment_index] = CachedAttachment(**metadata)
-        # Checkpoint before the next request, which may exhaust the event's timeout.
+        # Checkpoint only this attachment, without reading or rewriting unrelated payloads.
+        checkpoint = dict(self._event)
         store_attachments_for_event(
-            self._project, self._event, self._attachments, timeout=CACHE_TIMEOUT
+            self._project, checkpoint, [CachedAttachment(**metadata)], timeout=CACHE_TIMEOUT
         )
-        # Reload metadata so later checkpoints don't rewrite earlier processed payloads.
-        self._attachments = list(get_attachments_for_event(self._event))
+        self._event["_attachments"][attachment_index] = checkpoint["_attachments"][0]
         return True

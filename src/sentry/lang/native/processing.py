@@ -324,7 +324,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         modules = native_images_from_data(payload)
         if not modules:
             continue
-        frame_ids, stacktraces = get_flamegraph_stacktraces(payload, modules)
+        frame_ids, stacktraces = get_flamegraph_stacktraces(payload)
         if not stacktraces:
             continue
         response = symbolicator.process_payload(
