@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
@@ -124,7 +125,9 @@ function DetectorSectionContent({
 
   return (
     <div>
-      <SidebarSectionTitle variant="primary">{title}</SidebarSectionTitle>
+      <Container marginBottom="md">
+        <SidebarSection.Title variant="primary">{title}</SidebarSection.Title>
+      </Container>
       {description && <DetectorDescription>{description}</DetectorDescription>}
       <LinkButton
         aria-label={ctaText}
@@ -139,10 +142,6 @@ function DetectorSectionContent({
     </div>
   );
 }
-
-const SidebarSectionTitle = styled(SidebarSection.Title)`
-  margin-bottom: ${p => p.theme.space.md};
-`;
 
 const DetectorDescription = styled('p')`
   margin: ${p => p.theme.space.md} 0;
