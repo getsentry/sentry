@@ -1,4 +1,4 @@
-import {makeSwatch} from 'sentry/utils/theme/swatch';
+import {makeSwatch} from './swatch';
 
 const TEST_PALETTE = {
   blurple: '#7553FF',

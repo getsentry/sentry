@@ -31,6 +31,7 @@ export function makeSwatch(palette: Record<string, string>, onVibrant: OnVibrant
   const entries = Object.entries(palette);
   const swatchColors = entries.map(([key, hex]) => ({
     background: hex,
+    // oxlint-disable-next-line typescript/no-non-null-assertion -- Categorical palettes use the keys in this contrast map.
     content: onVibrant[SWATCH_CONTRAST_MAP[key]!],
   }));
   const colorSet: ReadonlySet<string> = Object.freeze(
@@ -47,6 +48,7 @@ export function makeSwatch(palette: Record<string, string>, onVibrant: OnVibrant
      */
     get(input: string): {background: string; content: string} {
       const index = hashIdentifier(input ?? '') % swatchColors.length;
+      // oxlint-disable-next-line typescript/no-non-null-assertion -- Modulo selects an entry from the non-empty categorical palette.
       return {...swatchColors[index]!};
     },
 
