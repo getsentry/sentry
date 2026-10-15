@@ -16,16 +16,11 @@ import {ProjectsPreviewTable} from 'sentry/views/settings/dynamicSampling/projec
 import {SamplingModeSwitch} from 'sentry/views/settings/dynamicSampling/samplingModeSwitch';
 import {useHasDynamicSamplingWriteAccess} from 'sentry/views/settings/dynamicSampling/utils/access';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
-import {
-  sampleRateField,
-  targetSampleRateSchema,
-} from 'sentry/views/settings/dynamicSampling/utils/schemas';
+import {targetSampleRateSchema} from 'sentry/views/settings/dynamicSampling/utils/schemas';
 import {
   useProjectSampleCounts,
   type ProjectionSamplePeriod,
 } from 'sentry/views/settings/dynamicSampling/utils/useProjectSampleCounts';
-
-export {sampleRateField, targetSampleRateSchema};
 
 const UNSAVED_CHANGES_MESSAGE = t(
   'You have unsaved changes, are you sure you want to leave?'
