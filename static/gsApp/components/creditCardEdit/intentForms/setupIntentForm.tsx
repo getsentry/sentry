@@ -5,9 +5,9 @@ import {toast} from '@sentry/scraps/toast';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 
 import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
@@ -38,10 +38,10 @@ export function SetupIntentForm(props: IntentFormProps) {
 
       let intentData: PaymentSetupCreateResponse;
       try {
-        intentData = await fetchMutation<PaymentSetupCreateResponse>({
-          url: setupIntentUrl,
-          method: 'POST',
+        const {json} = await apiFetch<PaymentSetupCreateResponse>({
+          queryKey: [setupIntentUrl, {method: 'POST'}],
         });
+        intentData = json;
       } catch (error) {
         throw new Error(
           getRequestErrorUserMessage(error, t('Could not set up payment method.'))
@@ -60,20 +60,24 @@ export function SetupIntentForm(props: IntentFormProps) {
         throw new Error(result.error.message ?? t('Setup failed.'));
       }
 
-      return fetchMutation<Subscription>({
-        method: 'PUT',
-        url: getApiUrl('/customers/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        data: {
-          paymentMethod: result.setupIntent.payment_method,
-          ftcConsentLocation,
-        },
+      return apiFetch<Subscription>({
+        queryKey: [
+          getApiUrl('/customers/$organizationIdOrSlug/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'PUT',
+            data: {
+              paymentMethod: result.setupIntent.payment_method,
+              ftcConsentLocation,
+            },
+          },
+        ],
       });
     },
-    onSuccess: (data: Subscription) => {
+    onSuccess: response => {
       addSuccessMessage(t('Updated payment method.'));
-      onSuccessWithSubscription?.(data);
+      onSuccessWithSubscription?.(response.json);
       onSuccess?.();
     },
     onError: error => {

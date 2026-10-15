@@ -20,9 +20,9 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -52,23 +52,27 @@ function GDPREditModal({
   const mutation = useMutation({
     mutationFn: (value: GDPRFormValues) => {
       addLoadingMessage();
-      return fetchMutation<Subscription>({
-        url: getApiUrl('/customers/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: subscription.slug},
-        }),
-        method: 'PUT',
-        data: {
-          gdprDetails: {
-            [`${prefix}Name`]: value.name,
-            [`${prefix}Address`]: value.address,
-            [`${prefix}Phone`]: value.phone,
-            [`${prefix}Email`]: value.email,
+      return apiFetch<Subscription>({
+        queryKey: [
+          getApiUrl('/customers/$organizationIdOrSlug/', {
+            path: {organizationIdOrSlug: subscription.slug},
+          }),
+          {
+            method: 'PUT',
+            data: {
+              gdprDetails: {
+                [`${prefix}Name`]: value.name,
+                [`${prefix}Address`]: value.address,
+                [`${prefix}Phone`]: value.phone,
+                [`${prefix}Email`]: value.email,
+              },
+            },
           },
-        },
+        ],
       });
     },
-    onSuccess: data => {
-      SubscriptionStore.set(subscription.slug, data);
+    onSuccess: response => {
+      SubscriptionStore.set(subscription.slug, response.json);
       clearIndicators();
       closeModal();
     },

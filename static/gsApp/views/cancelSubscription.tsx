@@ -17,9 +17,9 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -105,16 +105,17 @@ function CancelSubscriptionForm() {
   const [understandsMembers, setUnderstandsMembers] = useState(false);
   const mutation = useMutation({
     mutationFn: (data: {checkboxes: string[]; followup: string; reason: string}) =>
-      fetchMutation<{details?: string}>({
-        url: getApiUrl('/customers/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: subscription?.slug ?? organization.slug},
-        }),
-        method: 'DELETE',
-        data,
+      apiFetch<{details?: string}>({
+        queryKey: [
+          getApiUrl('/customers/$organizationIdOrSlug/', {
+            path: {organizationIdOrSlug: subscription?.slug ?? organization.slug},
+          }),
+          {method: 'DELETE', data},
+        ],
       }),
-    onSuccess: resp => {
+    onSuccess: response => {
       SubscriptionStore.loadData(organization.slug);
-      const msg = resp.details || t('Successfully cancelled subscription');
+      const msg = response.json.details || t('Successfully cancelled subscription');
 
       toast.success(msg);
       navigate({

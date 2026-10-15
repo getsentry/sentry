@@ -10,8 +10,8 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -31,8 +31,8 @@ export default function SeerAutomationAdvancedSettings() {
   });
   const orgMutationOpts = mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
-      fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
-    onSuccess: updateOrganization,
+      apiFetch<Organization>({queryKey: [orgEndpoint, {method: 'PUT', data}]}),
+    onSuccess: response => updateOrganization(response.json),
   });
 
   return (

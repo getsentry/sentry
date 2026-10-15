@@ -5,9 +5,9 @@ import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
@@ -59,12 +59,16 @@ function SpikeProtectionProjectToggle({
         initialValue={isSpikeProtectionEnabled(project)}
         mutationOptions={{
           mutationFn: data =>
-            fetchMutation({
-              url: getApiUrl('/organizations/$organizationIdOrSlug/spike-protections/', {
-                path: {organizationIdOrSlug: organization.slug},
-              }),
-              method: data.enabled ? 'POST' : 'DELETE',
-              data: {projects: [project.slug]},
+            apiFetch({
+              queryKey: [
+                getApiUrl('/organizations/$organizationIdOrSlug/spike-protections/', {
+                  path: {organizationIdOrSlug: organization.slug},
+                }),
+                {
+                  method: data.enabled ? 'POST' : 'DELETE',
+                  data: {projects: [project.slug]},
+                },
+              ],
             }),
           onSuccess: (_data, variables) => {
             const newValue = variables.enabled;
