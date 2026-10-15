@@ -1122,7 +1122,6 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                         tags={**metric_kwargs, "status": "created_new_checkin"},
                     )
 
-
             track_outcome(
                 org_id=project.organization_id,
                 project_id=project.id,
