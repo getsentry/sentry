@@ -15,6 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.conditional_get import ConditionalGetResponseMixin
+from sentry.api.exceptions import InsufficientScope
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -35,7 +36,7 @@ from sentry.issues.action_log import (
 )
 from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.types import GroupActorType
-from sentry.issues.endpoints.bases.group import GroupAiEndpoint
+from sentry.issues.endpoints.bases.group import GroupAiEndpoint, GroupAiPermission
 from sentry.issues.formatting.autofix import format_autofix
 from sentry.issues.formatting.mixin import VALID_FORMATS, FormattableResponseMixin
 from sentry.models.activity import Activity
@@ -100,6 +101,33 @@ AUTOFIX_SETUP_REQUIRED_DETAIL = {
         "before a new run can be started."
     ),
 }
+
+
+class GroupAutofixPermission(GroupAiPermission):
+    # `seer:write` covers the analysis steps only; see _require_publish_scope.
+    scope_map = {
+        **GroupAiPermission.scope_map,
+        "POST": ["event:write", "event:admin", "seer:write"],
+    }
+
+
+# Steps that act outside Sentry: pushing a branch, opening or iterating on a pull
+# request, or handing the run to an external coding agent.
+PUBLISH_STEPS = frozenset({"open_pr", "coding_agent_handoff", "pr_iteration"})
+PUBLISH_SCOPES = frozenset({"event:write", "event:admin"})
+
+
+def _require_publish_scope(
+    request: Request, group: Group, step: str, stopping_point: str | None
+) -> None:
+    """`seer:write` lets a caller run Autofix analysis but not publish its result, so a
+    publishing step, or a run told to continue on to a pull request, still needs
+    `event:write`. Raising the RFC 6750 challenge lets the Seer agent ask for approval."""
+    if step not in PUBLISH_STEPS and stopping_point != AutofixStoppingPoint.OPEN_PR.value:
+        return
+    if request.access.has_any_project_scope(group.project, PUBLISH_SCOPES):
+        return
+    raise InsufficientScope({"event:write"})
 
 
 def _is_unknown_run_id_error(error: SeerPermissionError) -> bool:
@@ -240,6 +268,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
     }
     formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
+    permission_classes = (GroupAutofixPermission,)
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -303,6 +332,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         data = serializer.validated_data
         step = data.get("step", "root_cause")
         stopping_point = data.get("stopping_point")
+        _require_publish_scope(request, group, step, stopping_point)
 
         # Prefer sentry_run_id (a uuid.UUID) over numeric run_id; None = new run.
         sentry_run_id_param: uuid.UUID | None = data.get("sentry_run_id")
