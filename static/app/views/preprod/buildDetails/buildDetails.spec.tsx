@@ -235,7 +235,7 @@ describe('BuildDetails', () => {
     MockApiClient.addMockResponse({
       url: SIZE_ANALYSIS_URL,
       method: 'GET',
-      body: new Promise(() => {}), // Keep pending
+      body: createMockSizeAnalysisData(),
     });
 
     render(<BuildDetails />, {

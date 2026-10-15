@@ -219,6 +219,12 @@ class Client implements ApiNamespace.Client {
       this.request(path, {
         ...options,
         success: (data, ...args) => {
+          // A promise body holds the request in flight. resolve() would adopt it
+          // on its own, but not once it is wrapped in the includeAllArgs tuple.
+          if (includeAllArgs && typeof data?.then === 'function') {
+            data.then((settled: unknown) => resolve([settled, ...args]), reject);
+            return;
+          }
           resolve(includeAllArgs ? [data, ...args] : data);
         },
         error: (error, ..._args) => {
