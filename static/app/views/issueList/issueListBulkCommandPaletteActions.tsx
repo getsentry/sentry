@@ -21,9 +21,8 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
+import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import {
-  BULK_LIMIT,
-  BULK_LIMIT_STR,
   invalidateIssueQueries,
   performBulkUpdate as performSharedBulkUpdate,
 } from 'sentry/views/issueList/actions/utils';

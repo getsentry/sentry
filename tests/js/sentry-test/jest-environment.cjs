@@ -1,6 +1,6 @@
 const v8 = require('node:v8');
 
-const wrapWithStructuredClone = require('./wrapWithStructuredClone');
+const wrapWithStructuredClone = require('./wrapWithStructuredClone.cjs');
 
 // Once V8 TurboFan-optimizes a hot async function shared across vm contexts
 // (jest-circus's event `dispatch`), its "retained maps" keep every later test

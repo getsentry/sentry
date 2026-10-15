@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import math
 import re
-from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -12,16 +11,17 @@ from enum import StrEnum
 
 DETECTION_WINDOW_DAYS = 7
 CACHE_TTL_MINUTES = 5
-LONG_CACHE_TTL_MINUTES = 60
 
 # Smaller prompts do not produce material savings, even when a provider can cache them.
 MIN_CACHEABLE_PREFIX_TOKENS = 4_096
 MIN_CALLS_FOR_CONFIDENCE = 200
 MIN_SAMPLED_CALLS = 50
+MIN_REPEATED_CALL_SHARE = 0.5
 MIN_CACHEABLE_SHARE = 0.5
 NOT_CACHING_MAX_HIT_RATE = 0.05
 THRASH_MAX_HIT_RATE = 0.30
 THRASH_MIN_CREATION_INPUT_FRACTION = 0.3
+THRASH_MIN_WRITE_READ_RATIO = 3.0
 
 # These integrations omit cache-token attributes when their values are zero.
 POSITIVE_ONLY_CACHE_REPORTING_MODEL_MARKERS = ("gemini", "gpt")
@@ -45,7 +45,6 @@ class AgentLabelSource(StrEnum):
     """Span attribute used to label a call site."""
 
     AGENT_NAME = "gen_ai.agent.name"
-    OPERATION_NAME = "gen_ai.operation.name"
 
 
 class CacheOutcome(StrEnum):
@@ -63,9 +62,10 @@ class OutcomeReason(StrEnum):
     SMALL_PROMPTS = "small_prompts"
     LOW_VOLUME = "low_volume"
     FEW_STORED_SPANS = "few_stored_spans"
+    TOO_FEW_REPEATED_CALLS = "too_few_repeated_calls"
+    LOW_REPEATED_CALL_SHARE = "low_repeated_call_share"
     TOO_FEW_WARM_CALLS = "too_few_warm_calls"
     LOW_CACHEABLE_SHARE = "low_cacheable_share"
-    WARM_ONLY_AT_LONG_TTL = "warm_only_at_long_ttl"
     CACHE_ACTIVITY = "cache_activity"
     ZERO_CACHE_TOKENS = "zero_cache_tokens"
     POSITIVE_ONLY_REPORTER = "positive_only_reporter"
@@ -92,50 +92,35 @@ class Classification:
 
 @dataclass(frozen=True)
 class WarmthBucket:
-    """One cache-TTL bucket of extrapolated calls and stored spans."""
+    """One cache-TTL bucket of extrapolated calls, stored spans, and traces."""
 
     start: int
     call_count: float
     sample_count: float
+    unique_trace_count: float
 
 
 def _warm_call_count(buckets: Iterable[WarmthBucket]) -> float:
-    calls = 0.0
-    cold_starts = 0.0
+    warm_calls = 0.0
     for bucket in buckets:
-        if bucket.call_count <= 0:
+        if bucket.call_count <= 0 or bucket.sample_count <= 0:
             continue
-        calls += bucket.call_count
-        cold_starts += (
-            bucket.call_count / bucket.sample_count
-            if bucket.sample_count > 0
-            else bucket.call_count
+        sampling_factor = bucket.call_count / bucket.sample_count
+        cold_starts = min(
+            bucket.call_count,
+            bucket.unique_trace_count * sampling_factor,
         )
-    return max(calls - cold_starts, 0.0)
-
-
-def _widen_buckets(buckets: Iterable[WarmthBucket], minutes: int) -> list[WarmthBucket]:
-    width = minutes * 60
-    call_counts: defaultdict[int, float] = defaultdict(float)
-    sample_counts: defaultdict[int, float] = defaultdict(float)
-    for bucket in buckets:
-        start = bucket.start - bucket.start % width
-        call_counts[start] += bucket.call_count
-        sample_counts[start] += bucket.sample_count
-    return [
-        WarmthBucket(start=start, call_count=call_count, sample_count=sample_counts[start])
-        for start, call_count in call_counts.items()
-    ]
+        warm_calls += bucket.call_count - cold_starts
+    return warm_calls
 
 
 @dataclass(frozen=True)
 class CallSiteWarmth:
-    """Calls that could reuse cache at default and longer TTLs."""
+    """Calls that could reuse cache inside one TTL bucket."""
 
     total_call_count: float
     total_sample_count: float
     warm_call_count: float
-    long_ttl_warm_call_count: float
 
     @classmethod
     def from_buckets(cls, buckets: Sequence[WarmthBucket]) -> CallSiteWarmth:
@@ -143,31 +128,21 @@ class CallSiteWarmth:
             total_call_count=sum(bucket.call_count for bucket in buckets if bucket.call_count > 0),
             total_sample_count=sum(bucket.sample_count for bucket in buckets),
             warm_call_count=_warm_call_count(buckets),
-            long_ttl_warm_call_count=_warm_call_count(
-                _widen_buckets(buckets, LONG_CACHE_TTL_MINUTES)
-            ),
         )
-
-    def _share(self, warm_call_count: float) -> float:
-        if self.total_call_count <= 0:
-            return 0.0
-        return warm_call_count / self.total_call_count
 
     @property
     def cacheable_share(self) -> float:
-        return self._share(self.warm_call_count)
-
-    @property
-    def long_ttl_cacheable_share(self) -> float:
-        return self._share(self.long_ttl_warm_call_count)
+        if self.total_call_count <= 0:
+            return 0.0
+        return self.warm_call_count / self.total_call_count
 
 
 @dataclass(frozen=True)
 class CallSiteStats:
     """Aggregates for one agent label, span name, and model.
 
-    Call count is extrapolated. Sampled call count records stored spans behind
-    token sums.
+    Call count is extrapolated. Sampled call and unique trace counts describe
+    stored spans behind token sums.
     """
 
     agent_label: str
@@ -176,6 +151,7 @@ class CallSiteStats:
     model: str
     call_count: int
     sampled_call_count: int
+    unique_trace_count: int
     sum_input_tokens: float
     sum_cache_read_tokens: float
     sum_cache_creation_tokens: float
@@ -184,6 +160,17 @@ class CallSiteStats:
     @property
     def group_key(self) -> tuple[str, str, str, str]:
         return (self.agent_label_source.value, self.agent_label, self.span_name, self.model)
+
+    @property
+    def repeated_sampled_call_count(self) -> int:
+        """Stored calls beyond the first eligible call in each trace."""
+        return max(self.sampled_call_count - self.unique_trace_count, 0)
+
+    @property
+    def repeated_sampled_call_share(self) -> float:
+        if self.sampled_call_count <= 0:
+            return 0.0
+        return self.repeated_sampled_call_count / self.sampled_call_count
 
     @property
     def hit_rate(self) -> float:
@@ -252,10 +239,16 @@ def classify_call_site(stats: CallSiteStats) -> Classification:
         and stats.hit_rate < THRASH_MAX_HIT_RATE
         and stats.sum_cache_creation_tokens
         >= THRASH_MIN_CREATION_INPUT_FRACTION * stats.sum_input_tokens
+        and stats.sum_cache_creation_tokens
+        >= THRASH_MIN_WRITE_READ_RATIO * stats.sum_cache_read_tokens
     ):
         return Classification(CacheOutcome.THRASH, OutcomeReason.CACHE_ACTIVITY)
 
     if stats.hit_rate < NOT_CACHING_MAX_HIT_RATE:
+        if stats.repeated_sampled_call_count < MIN_SAMPLED_CALLS:
+            return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TOO_FEW_REPEATED_CALLS)
+        if stats.repeated_sampled_call_share < MIN_REPEATED_CALL_SHARE:
+            return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_REPEATED_CALL_SHARE)
         if stats.has_cache_activity:
             reason = OutcomeReason.CACHE_ACTIVITY
         elif reports_only_positive_cache_values(stats.model):
@@ -289,11 +282,9 @@ def resolve_with_warmth(
     if isinstance(warmth, ProbeGap):
         return Classification(CacheOutcome.INELIGIBLE, OutcomeReason(warmth.value))
     shortfall = _warmth_shortfall(warmth.warm_call_count, warmth.cacheable_share)
-    if shortfall is None:
-        return classification
-    if _warmth_shortfall(warmth.long_ttl_warm_call_count, warmth.long_ttl_cacheable_share) is None:
-        return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.WARM_ONLY_AT_LONG_TTL)
-    return Classification(CacheOutcome.INELIGIBLE, shortfall)
+    if shortfall is not None:
+        return Classification(CacheOutcome.INELIGIBLE, shortfall)
+    return classification
 
 
 def resolve_with_cache_presence(

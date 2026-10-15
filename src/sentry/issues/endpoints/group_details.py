@@ -451,7 +451,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         are modified.
         """
         try:
-            discard = request.data.get("discard")
             project = group.project
             search_fn = functools.partial(prep_search, request, project)
             response = update_groups_with_search_fn(
@@ -460,7 +459,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             # if action was discard, there isn't a group to serialize anymore
             # if response isn't 200, return the response update_groups gave us (i.e. helpful error)
             # instead of serializing the updated group
-            if discard or response.status_code != 200:
+            if response.status_code != 200 or request.data.get("discard"):
                 return response
 
             # we need to fetch the object against as the bulk mutation endpoint
