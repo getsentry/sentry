@@ -12,7 +12,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSensitivity,
     AlertRuleTrigger,
 )
-from sentry.incidents.models.incident import Incident, IncidentProject
+from sentry.incidents.models.incident import Incident
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.testutils.helpers.datetime import before_now
@@ -39,9 +39,6 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
             projects=[self.project],
             alert_rule=alert_rule,
         )
-        # Existing join rows still need deletion until IncidentProject is retired.
-        incident.projects.add(self.project)
-
         one_minute = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"timestamp": one_minute, "fingerprint": ["group1"]}, project_id=self.project.id
@@ -69,7 +66,6 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not AlertRuleTrigger.objects.filter(id=alert_rule_trigger.id).exists()
         assert not Incident.objects.filter(id=incident.id).exists()
-        assert not IncidentProject.objects.filter(incident=incident, project=self.project).exists()
         assert not IncidentGroupOpenPeriod.objects.filter(
             incident_id=incident.id,
             incident_identifier=incident.identifier,

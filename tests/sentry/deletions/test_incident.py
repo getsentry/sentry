@@ -1,7 +1,7 @@
 from django.utils import timezone
 
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
-from sentry.incidents.models.incident import Incident, IncidentProject
+from sentry.incidents.models.incident import Incident
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -22,9 +22,6 @@ class DeleteIncidentTest(BaseWorkflowTest, HybridCloudTestMixin):
             projects=[self.project],
             alert_rule=alert_rule,
         )
-
-        # Existing join rows still need deletion until IncidentProject is retired.
-        incident.projects.add(self.project)
 
         one_minute = before_now(minutes=1).isoformat()
         event = self.store_event(
@@ -50,5 +47,4 @@ class DeleteIncidentTest(BaseWorkflowTest, HybridCloudTestMixin):
             incident_identifier=incident.identifier,
             group_open_period=group_open_period,
         ).exists()
-        assert not IncidentProject.objects.filter(incident=incident, project=self.project).exists()
         assert not GroupOpenPeriod.objects.filter(project=self.project, group=group)
