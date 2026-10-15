@@ -5,6 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Organization} from 'sentry/types/organization';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {
   formatTraceMetricsFunction,
@@ -91,6 +92,12 @@ describe('TraceMetricsConfig', () => {
   describe('transformSeries', () => {
     it('uniquely identifies series with single yAxis and no groupings', () => {
       const data: EventsTimeSeriesResponse = {
+        meta: {
+          dataset: DiscoverDatasets.TRACEMETRICS,
+          start: 0,
+          end: 2,
+          ingestion: {status: 'healthy', completeThrough: 1, delaySeconds: 1},
+        },
         timeSeries: [
           {
             yAxis: 'avg(value,test_metric,millisecond,none)',
@@ -119,6 +126,7 @@ describe('TraceMetricsConfig', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0]!.seriesName).toBe('avg(test_metric)');
+      expect(result[0]).toMatchObject({ingestion: data.meta!.ingestion});
     });
 
     it('uniquely identifies series with multiple yAxes and no groupings', () => {
@@ -775,9 +783,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBar {...defaultSearchBarProps} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -805,9 +810,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBar {...defaultSearchBarProps} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -832,9 +834,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBar {...defaultSearchBarProps} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -886,9 +885,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBarDataProviderProbe widgetQuery={defaultWidgetQuery} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -918,9 +914,6 @@ describe('TraceMetricsConfig', () => {
           <SearchBarDataProviderProbe widgetQuery={defaultWidgetQuery} />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['tracemetrics-multi-metric-selection-in-dashboards'],
-          }),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,

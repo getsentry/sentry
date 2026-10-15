@@ -1,6 +1,9 @@
 import LazyLoad from 'react-lazyload';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconFire} from '@sentry/icons/fire';
+import {IconWarning} from '@sentry/icons/warning';
 import type {Location} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -17,12 +20,19 @@ import {NotAvailable} from 'sentry/components/notAvailable';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils/defined';
+import {
+  AdoptionColumn,
+  AdoptionStageColumn,
+  CrashFreeRateColumn,
+  DisplaySmallCol,
+  getReleaseProjectColumns,
+  NewIssuesColumn,
+  ReleaseProjectColumn,
+} from 'sentry/views/explore/releases/list/releaseCard/columns';
 import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/explore/releases/list/releasesRequest';
 import {
@@ -34,32 +44,19 @@ import {
 } from 'sentry/views/explore/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
-import {
-  AdoptionColumn,
-  AdoptionStageColumn,
-  CrashFreeRateColumn,
-  DisplaySmallCol,
-  getReleaseProjectColumns,
-  NewIssuesColumn,
-  ReleaseProjectColumn,
-} from '.';
-
 const CRASH_FREE_DANGER_THRESHOLD = 98;
 const CRASH_FREE_WARNING_THRESHOLD = 99.5;
 
-function getCrashFreeIcon(
-  crashFreePercent: number,
-  iconSize: SVGIconProps['size'] = 'sm'
-) {
+function getCrashFreeIcon(crashFreePercent: number) {
   if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
-    return <IconFire variant="danger" size={iconSize} />;
+    return <IconFire variant="danger" size="sm" />;
   }
 
   if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
-    return <IconWarning variant="warning" size={iconSize} />;
+    return <IconWarning variant="warning" size="sm" />;
   }
 
-  return <IconCheckmark variant="success" size={iconSize} />;
+  return <IconCheckmark variant="success" size="sm" />;
 }
 
 type Props = {

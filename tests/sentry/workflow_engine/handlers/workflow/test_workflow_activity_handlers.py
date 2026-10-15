@@ -102,6 +102,11 @@ class SmartAssignmentCompletedHandlerTest(TestCase):
         activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
+            data={
+                "run_id": 123,
+                "run_uuid": "00000000-0000-0000-0000-000000000001",
+                "predicted_assignee_user_ids": [],
+            },
         )
         # create_group_activity invokes the registered handlers itself, so the delegate
         # is already called once for the real activity; assert on a direct call to keep

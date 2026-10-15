@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
+from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -27,6 +28,7 @@ from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
     autofix_entrypoint_registry,
+    investigation_entrypoint_registry,
 )
 from sentry.seer.entrypoints.slack.messaging import (
     schedule_all_thread_updates,
@@ -37,6 +39,7 @@ from sentry.seer.entrypoints.types import (
     SeerAgentEntrypoint,
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
+    SeerInvestigationEntrypoint,
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.utils import metrics
@@ -78,6 +81,18 @@ class SlackAgentCachePayload(TypedDict):
     integration_id: int
     thread: SlackThreadDetails
     slack_user_id: NotRequired[str]
+
+
+class SlackInvestigationCachePayload(TypedDict):
+    organization_id: int
+    integration_id: int
+    channel_id: str
+    thread_ts: str
+    alert_message_ts: str
+    status_message_ts: str | None
+    slack_user_id: str
+    last_sent_state: str | None
+    final_sent: bool
 
 
 class SlackPendingMentionPayload(TypedDict):
@@ -324,7 +339,7 @@ class SlackAutofixEntrypoint(
         send_thread_update(
             install=self.install,
             thread=self.thread,
-            data=SeerAutofixError(error_message=error),
+            data=SeerAutofixError(organization_id=self.organization_id, error_message=error),
             ephemeral_user_id=self.slack_request.user_id,
         )
 
@@ -341,7 +356,7 @@ class SlackAutofixEntrypoint(
         send_thread_update(
             install=self.install,
             thread=self.thread,
-            data=SeerAutofixError(error_message=error),
+            data=SeerAutofixError(organization_id=self.organization_id, error_message=error),
             ephemeral_user_id=self.slack_request.user_id,
         )
 
@@ -479,7 +494,12 @@ class SlackAutofixEntrypoint(
                         "changes": changes_list,
                     }
                 )
-            case SentryAppEventType.SEER_PR_CREATED | SentryAppEventType.SEER_PR_READY_FOR_REVIEW:
+            # Skipped for now, as it would repeat PR_CREATED's message. Seer will eventually always
+            # mark PRs ready for review (after fixing CI in draft, or giving up on CI), and we plan
+            # to post a separate "ready for a human to review" message in Slack at that point.
+            case SentryAppEventType.SEER_PR_READY_FOR_REVIEW:
+                return
+            case SentryAppEventType.SEER_PR_CREATED:
                 pull_requests = [
                     pr_payload.get("pull_request", {})
                     for pr_payload in event_payload.get("pull_requests", [])
@@ -570,7 +590,7 @@ class SlackAgentEntrypoint(
         send_thread_update(
             install=self.install,
             thread=self.thread,
-            data=SeerAgentError(error_message=error),
+            data=SeerAgentError(organization_id=self.organization_id, error_message=error),
             ephemeral_user_id=self.slack_user_id,
         )
 
@@ -632,7 +652,8 @@ class SlackAgentEntrypoint(
             and pending_user_input.input_type == "agent_write_approval"
         ) or not summary:
             response_data: SeerAgentError | SeerAgentResponse = SeerAgentError(
-                error_message="Seer was unable to generate a response."
+                organization_id=organization_id,
+                error_message="Seer was unable to generate a response.",
             )
         else:
             missing_scope_url = _get_missing_scope_settings_url(
@@ -653,6 +674,56 @@ class SlackAgentEntrypoint(
             organization_id=organization_id,
             data=response_data,
         )
+
+
+class SlackInvestigationEntrypoint(
+    SeerInvestigationEntrypoint[SlackInvestigationCachePayload],
+):
+    key = SeerEntrypointKey.SLACK
+
+    def __init__(
+        self,
+        *,
+        slack_request: SlackActionRequest,
+        organization: Organization,
+        channel_id: str,
+        message_ts: str,
+        slack_user_id: str,
+    ):
+        self.slack_request = slack_request
+        self.organization = organization
+        self.channel_id = channel_id
+        self.message_ts = message_ts
+        self.slack_user_id = slack_user_id
+
+    @staticmethod
+    def has_access(organization: Organization) -> bool:
+        return False
+
+    def on_trigger_investigation_error(self, *, error: str) -> None:
+        pass
+
+    def on_trigger_investigation_success(self, *, investigation: Investigation) -> None:
+        pass
+
+    def create_investigation_cache_payload(self) -> SlackInvestigationCachePayload:
+        return SlackInvestigationCachePayload(
+            organization_id=self.organization.id,
+            integration_id=self.slack_request.integration.id,
+            channel_id=self.channel_id,
+            thread_ts=self.message_ts,
+            alert_message_ts=self.message_ts,
+            status_message_ts=None,
+            slack_user_id=self.slack_user_id,
+            last_sent_state=None,
+            final_sent=False,
+        )
+
+    @staticmethod
+    def on_investigation_update(
+        cache_payload: SlackInvestigationCachePayload, run: InvestigationOrchestrationRun
+    ) -> None:
+        pass
 
 
 def prepare_slack_thread_for_autofix_updates(
@@ -731,3 +802,6 @@ def prepare_slack_thread_for_autofix_updates(
 # Register after class definition to avoid decorator type-narrowing when stacking two registries.
 autofix_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAutofixEntrypoint)
 agent_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAgentEntrypoint)
+investigation_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(
+    SlackInvestigationEntrypoint
+)

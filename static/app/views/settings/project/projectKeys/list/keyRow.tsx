@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
@@ -7,7 +8,6 @@ import {Link} from '@sentry/scraps/link';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {Confirm} from 'sentry/components/confirm';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 import type {Project, ProjectKey} from 'sentry/types/project';

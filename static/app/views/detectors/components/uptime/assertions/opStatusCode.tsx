@@ -12,7 +12,8 @@ import {
   type UptimeStatusCodeOp,
 } from 'sentry/views/detectors/components/uptime/types';
 
-import {COMPARISON_OPTIONS, OpContainer} from './opCommon';
+import {COMPARISON_OPTIONS} from './comparisonOptions';
+import {OpContainer} from './opCommon';
 
 interface AssertionOpStatusCodeProps {
   onChange: (op: UptimeStatusCodeOp) => void;

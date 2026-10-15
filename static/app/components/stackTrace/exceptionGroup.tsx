@@ -5,6 +5,7 @@ import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {t, tn} from 'sentry/locale';
 import type {ExceptionValue} from 'sentry/types/event';
 import {defined} from 'sentry/utils/defined';
@@ -59,9 +60,19 @@ export function useHiddenExceptions(values: ExceptionValue[]) {
 
 function getExceptionName(exception: ExceptionValue) {
   if (exception.type) {
-    return exception.value ? `${exception.type}: ${exception.value}` : exception.type;
+    return exception.value ? (
+      <span>
+        {exception.type}: <AnsiText>{exception.value}</AnsiText>
+      </span>
+    ) : (
+      exception.type
+    );
   }
-  return exception.value ?? t('Exception');
+  return defined(exception.value) ? (
+    <AnsiText>{exception.value}</AnsiText>
+  ) : (
+    t('Exception')
+  );
 }
 
 interface ToggleRelatedExceptionsButtonProps {

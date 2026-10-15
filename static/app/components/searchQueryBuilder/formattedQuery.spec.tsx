@@ -20,6 +20,7 @@ let mockAllowRegexOperators = false;
 jest.mock('sentry/components/searchQueryBuilder/context', () => ({
   useSearchQueryBuilderConfig: () => ({
     allowRegexOperators: mockAllowRegexOperators,
+    filterKeys: {},
     getFieldDefinition: () => null,
   }),
   useSearchQueryBuilderLayout: () => ({
@@ -64,7 +65,7 @@ describe('FormattedQuery', () => {
     render(<FormattedQuery {...defaultProps} query="message://foo//" />);
 
     expect(
-      screen.getByText(textWithMarkupMatcher('message matches regex foo'))
+      screen.getByText(textWithMarkupMatcher('message matches regex /foo/'))
     ).toBeInTheDocument();
   });
 
@@ -74,7 +75,7 @@ describe('FormattedQuery', () => {
     render(<FormattedQuery {...defaultProps} query="!message://foo//" />);
 
     expect(
-      screen.getByText(textWithMarkupMatcher('message does not match regex foo'))
+      screen.getByText(textWithMarkupMatcher('message does not match regex /foo/'))
     ).toBeInTheDocument();
   });
 

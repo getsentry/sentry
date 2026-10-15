@@ -262,7 +262,7 @@ class SeerAgentWriteApprovalActionTest(BaseEventTest):
             )
 
         assert response.status_code == 200
-        assert "belongs to another user" in response.data["text"]
+        assert "You do not have access to this run." in response.data["text"]
         mock_fetch.assert_not_called()
         mock_update.assert_not_called()
 

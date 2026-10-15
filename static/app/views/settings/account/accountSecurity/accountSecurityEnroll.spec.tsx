@@ -58,23 +58,6 @@ describe('AccountSecurityEnroll', () => {
       });
     });
 
-    it('does not have enrolled circle indicator', async () => {
-      render(<AccountSecurityEnroll />, {
-        initialRouterConfig: {
-          location: {
-            pathname: `/settings/account/security/mfa/${authenticator.id}/enroll/`,
-          },
-          route: '/settings/account/security/mfa/:authId/enroll/',
-        },
-      });
-
-      await waitFor(() => {
-        expect(
-          screen.getByRole('status', {name: 'Authentication Method Inactive'})
-        ).toBeInTheDocument();
-      });
-    });
-
     it('has qrcode component', async () => {
       render(<AccountSecurityEnroll />, {
         initialRouterConfig: {
@@ -196,11 +179,9 @@ describe('AccountSecurityEnroll', () => {
         },
       });
 
-      await waitFor(() => {
-        expect(
-          screen.getByRole('status', {name: 'Authentication Method Inactive'})
-        ).toBeInTheDocument();
-      });
+      expect(
+        await screen.findByRole('heading', {name: authenticator.name})
+      ).toBeInTheDocument();
 
       await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
 
@@ -247,11 +228,9 @@ describe('AccountSecurityEnroll', () => {
         },
       });
 
-      await waitFor(() => {
-        expect(
-          screen.getByRole('status', {name: 'Authentication Method Inactive'})
-        ).toBeInTheDocument();
-      });
+      expect(
+        await screen.findByRole('heading', {name: authenticator.name})
+      ).toBeInTheDocument();
 
       await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
 

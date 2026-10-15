@@ -25,9 +25,7 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
     {
       type: 'code',
       language: 'csharp',
-      code: `using Sentry;
-
-SentrySdk.Metrics.EmitCounter("button_click", 5,
+      code: `SentrySdk.Metrics.EmitCounter("button_click", 5,
     [new KeyValuePair<string, object>("browser", "Firefox"), new KeyValuePair<string, object>("app_version", "1.0.0")]);
 SentrySdk.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
     [new KeyValuePair<string, object>("page", "/home")]);

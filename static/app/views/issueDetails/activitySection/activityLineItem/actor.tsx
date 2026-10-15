@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
+import {IconSeer} from '@sentry/icons/seer';
 
 import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, SEER_ACTIVITY_TYPES} from 'sentry/types/group';

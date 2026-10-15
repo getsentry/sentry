@@ -7,6 +7,7 @@ import {
   generateQueryTokensString,
   getCrossEventFilterQuery,
   getExpandedProjectIds,
+  mergeSeerExtraFields,
   normalizeSeerDateTimeParams,
   parseNaturalLanguageToQuery,
   resolveSeerProjectSelection,
@@ -110,6 +111,85 @@ describe('getExpandedProjectIds', () => {
       expect(getExpandedProjectIds(returned, selected)).toEqual(returned);
     }
   );
+});
+
+describe('mergeSeerExtraFields', () => {
+  it.each([undefined, []])(
+    'returns the current fields unchanged when extras are %p',
+    extraFields => {
+      expect(mergeSeerExtraFields(['timestamp', 'message'], extraFields, 5)).toEqual([
+        'timestamp',
+        'message',
+      ]);
+    }
+  );
+
+  it('does not truncate a current selection longer than the limit', () => {
+    const currentFields = Array.from({length: 12}, (_, i) => `curr${i}`);
+    expect(mergeSeerExtraFields(currentFields, undefined, 5)).toEqual(currentFields);
+  });
+
+  it('appends extras after the current fields', () => {
+    expect(mergeSeerExtraFields(['timestamp', 'message'], ['span.op'], 5)).toEqual([
+      'timestamp',
+      'message',
+      'span.op',
+    ]);
+  });
+
+  it('keeps the first occurrence of a field the page already has', () => {
+    expect(
+      mergeSeerExtraFields(['timestamp', 'message'], ['message', 'span.op'], 5)
+    ).toEqual(['timestamp', 'message', 'span.op']);
+  });
+
+  it('trims the current fields from the end to make room for the extras', () => {
+    expect(mergeSeerExtraFields(['a', 'b', 'c', 'd'], ['x', 'y'], 4)).toEqual([
+      'a',
+      'b',
+      'x',
+      'y',
+    ]);
+  });
+
+  it('drops the current fields entirely when the extras fill the limit', () => {
+    expect(mergeSeerExtraFields(['a', 'b', 'c'], ['x', 'y', 'z'], 3)).toEqual([
+      'x',
+      'y',
+      'z',
+    ]);
+  });
+
+  it('truncates the extras when they alone exceed the limit', () => {
+    expect(mergeSeerExtraFields(['a', 'b'], ['x', 'y', 'z'], 2)).toEqual(['x', 'y']);
+  });
+
+  it('ignores the limit when there are no extras to add', () => {
+    expect(mergeSeerExtraFields(['a', 'b', 'c', 'd'], [], 2)).toEqual([
+      'a',
+      'b',
+      'c',
+      'd',
+    ]);
+  });
+
+  it('ignores the limit when every extra is already a current field', () => {
+    expect(mergeSeerExtraFields(['a', 'b', 'c', 'd'], ['b', 'd'], 2)).toEqual([
+      'a',
+      'b',
+      'c',
+      'd',
+    ]);
+  });
+
+  it('counts a deduped extra against the current fields, not the limit', () => {
+    // 'b' is already present, so only 'x' is new and nothing needs trimming.
+    expect(mergeSeerExtraFields(['a', 'b'], ['b', 'x'], 3)).toEqual(['a', 'b', 'x']);
+  });
+
+  it('returns nothing for a limit of zero', () => {
+    expect(mergeSeerExtraFields(['a'], ['x'], 0)).toEqual([]);
+  });
 });
 
 describe('resolveSeerProjectSelection', () => {

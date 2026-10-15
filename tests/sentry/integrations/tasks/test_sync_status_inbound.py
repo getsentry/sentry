@@ -312,6 +312,24 @@ class TestSyncStatusInbound(TestCase):
         self._assert_group_unresolved(self.group.id)
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
+    def test_uninstalled_after_queueing(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
+        mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            ).delete()
+
+        sync_status_inbound(
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            issue_key=TEST_ISSUE_KEY,
+            data=fake_data,
+        )
+
+        self._assert_group_unresolved(self.group.id)
+        mock_get_resolve_sync_action.assert_not_called()
+
+    @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_resolve_next_release(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
 

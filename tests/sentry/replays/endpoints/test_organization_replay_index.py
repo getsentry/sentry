@@ -14,9 +14,10 @@ from sentry.replays.testutils import (
 )
 from sentry.replays.usecases.query import QueryResponse
 from sentry.replays.validators import ReplaySelectorValidator, ReplayValidator
+from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE, TIMEOUT_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.utils.cursors import Cursor
-from sentry.utils.snuba import QueryMemoryLimitExceeded
+from sentry.utils.snuba import QueryMemoryLimitExceeded, QueryTooManySimultaneous
 
 
 class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
@@ -1648,11 +1649,21 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 side_effect=QueryMemoryLimitExceeded("mocked error"),
             ):
                 response = self.client.get(self.url)
-                assert response.status_code == 400
-                assert (
-                    response.content
-                    == b'{"detail":"Query limits exceeded. Try narrowing your request."}'
-                )
+                assert response.status_code == 504
+                assert response.data["detail"] == TIMEOUT_ERROR_MESSAGE
+
+    def test_get_replays_too_many_simultaneous_queries(self) -> None:
+        """Assert Snuba concurrency limits are surfaced as a retryable 429."""
+        self.create_project(teams=[self.team])
+
+        with self.feature(self.features):
+            with mock.patch(
+                "sentry.replays.endpoints.organization_replay_index.query_replays_collection_paginated",
+                side_effect=QueryTooManySimultaneous("mocked error"),
+            ):
+                response = self.client.get(self.url)
+                assert response.status_code == 429
+                assert response.data["detail"] == RATE_LIMIT_ERROR_MESSAGE
 
     def test_get_replays_filter_clicks_non_click_rows(self) -> None:
         project = self.create_project(teams=[self.team])

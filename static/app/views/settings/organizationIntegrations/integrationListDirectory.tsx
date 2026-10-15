@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {useSearchParams} from 'react-router';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
@@ -50,8 +50,8 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegrations/createIntegrationButton';
 import {IntegrationRow} from 'sentry/views/settings/organizationIntegrations/integrationRow';
+import {legacyWebhooksQueryOptions} from 'sentry/views/settings/organizationIntegrations/legacyWebhooksQueryOptions';
 import {ReinstallAlert} from 'sentry/views/settings/organizationIntegrations/reinstallAlert';
-import {legacyWebhooksQueryOptions} from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
 
 const FirstPartyIntegrationAlert = OverrideOrDefault({
   overrideName: 'component:first-party-integration-alert',

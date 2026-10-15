@@ -8,7 +8,7 @@ import requests
 from django.utils import timezone
 from sentry_relay.auth import SecretKey, generate_key_pair
 
-from sentry.models.eventattachment import EventAttachment
+from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
 from sentry.tasks.relay import invalidate_project_config
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -111,10 +111,10 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         files = {"some_file": ("hello.txt", BytesIO(b"Hello World! default"))}
         self.post_and_retrieve_attachment(event_id, files)
 
-        attachments = EventAttachment.objects.filter(project_id=self.project.id)
+        attachments = PendingEventAttachment.objects.filter(project_id=self.project.id)
         assert len(attachments) == 1
 
-        attachment = EventAttachment.objects.get(event_id=event_id)
+        attachment = PendingEventAttachment.objects.get(event_id=event_id)
         with attachment.getfile() as blob:
             assert blob.read() == b"Hello World! default"
         assert attachment.blob_path is not None

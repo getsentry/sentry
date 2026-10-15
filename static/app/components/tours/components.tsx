@@ -3,6 +3,7 @@ import {Fragment, useContext, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
@@ -17,7 +18,6 @@ import {
   type TourStep,
 } from 'sentry/components/tours/tourContext';
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -377,6 +377,12 @@ const zIndex = {
   overlay: 10102,
 };
 
+/**
+ * Keep the guide inside the viewport even when that means overlapping its
+ * highlighted element, such as one that is taller than the viewport.
+ */
+const keepGuideInViewport = {altAxis: true, tether: false};
+
 export function TourGuide({
   children,
   title,
@@ -398,12 +404,24 @@ export function TourGuide({
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
   const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
-  const {triggerProps, overlayProps, arrowProps, update} = useOverlay({
+  const {triggerProps, triggerRef, overlayProps, arrowProps, update} = useOverlay({
     shouldApplyMinWidth: false,
     isOpen,
     position,
     offset,
+    strategy: 'fixed',
+    preventOverflowOptions: keepGuideInViewport,
   });
+
+  // Scroll the highlighted element rather than the guide. The element may live in
+  // a nested scroll container (e.g. the issue details sidebar, which stacks below
+  // the content at narrow widths); the guide is portaled to the body and can't
+  // scroll that container.
+  useEffect(() => {
+    if (isOpen) {
+      triggerRef.current?.scrollIntoView?.({block: 'nearest', behavior: 'smooth'});
+    }
+  }, [isOpen, triggerRef]);
 
   // Update the overlay positioning when the content changes
   useEffectAfterFirstRender(() => {
@@ -447,7 +465,7 @@ export function TourGuide({
                         `,
                       }}
                     >
-                      <TourBody ref={scrollToElement}>
+                      <TourBody>
                         {isTopRowVisible && (
                           <TopRow>
                             <div>{countText}</div>
@@ -480,10 +498,6 @@ export function TourGuide({
         : null}
     </Fragment>
   );
-}
-
-function scrollToElement(element: HTMLDivElement | null) {
-  element?.scrollIntoView?.({block: 'center', behavior: 'smooth'});
 }
 
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */

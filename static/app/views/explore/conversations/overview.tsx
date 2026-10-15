@@ -119,26 +119,9 @@ function ConversationsOverviewPage() {
     hasConversations,
     showOnboarding,
     isLoading: isOnboardingLoading,
+    isError: isOnboardingError,
     refetch: refetchOnboarding,
   } = useShowConversationOnboarding();
-  const conversationsResult = useConversations();
-  const {
-    data: conversations,
-    isFetching: isConversationsFetching,
-    error: conversationsError,
-  } = conversationsResult;
-  useConversationDirectHitRedirect({
-    isDirectHit: conversationsResult.isDirectHit,
-    conversations,
-  });
-  const showMissingMessagesAlert =
-    !isConversationsFetching &&
-    !conversationsError &&
-    conversations.length > 0 &&
-    conversations.every(
-      conversation => !conversation.firstInput && !conversation.lastOutput
-    );
-
   const [selectedTab, setSelectedTab] = useQueryState(
     'table',
     agentsTableTabParser.withOptions({history: 'replace'})
@@ -146,15 +129,33 @@ function ConversationsOverviewPage() {
   const activeTab: AgentsTableTab =
     selectedTab ?? (hasConversations ? 'conversations' : 'traces');
   const isConversationsTab = activeTab === 'conversations';
+  const conversationsResult = useConversations({enabled: isConversationsTab});
+  const {
+    data: conversations,
+    isFetching: isConversationsFetching,
+    error: conversationsError,
+  } = conversationsResult;
+  useConversationDirectHitRedirect({
+    isDirectHit: isConversationsTab && conversationsResult.isDirectHit,
+    conversations,
+  });
+  const showMissingMessagesAlert =
+    isConversationsTab &&
+    !isConversationsFetching &&
+    !conversationsError &&
+    conversations.length > 0 &&
+    conversations.every(
+      conversation => !conversation.firstInput && !conversation.lastOutput
+    );
+
   const searchPlaceholder =
     activeTab === 'conversations'
       ? t('Search by conversation ID, user, model, or message')
       : activeTab === 'traces'
         ? t('Search by trace ID, operation, service, or user')
         : t('Search by model, provider, tokens, or operation');
-  const selectedTabShowsOnboarding = isConversationsTab
-    ? !hasConversations
-    : !hasAgenticSpans;
+  const selectedTabShowsOnboarding =
+    !isOnboardingError && (isConversationsTab ? !hasConversations : !hasAgenticSpans);
 
   const [searchQuery, setSearchQuery] = useQueryState(
     'query',
@@ -215,9 +216,6 @@ function ConversationsOverviewPage() {
       disableRecentSearches: isConversationsTab,
       ...(isConversationsTab
         ? {
-            // The conversations API cannot express negation, so hide negation
-            // operators and add direct-ID matching for conversation searches.
-            disallowNegation: true,
             replaceRawSearchKeys: ['gen_ai.conversation.id', 'gen_ai.input.messages'],
             matchKeySuggestions: [
               {
@@ -298,8 +296,8 @@ function ConversationsOverviewPage() {
         <AgentsTable
           activeTab={activeTab}
           conversations={conversationsResult}
-          hasAgenticSpans={hasAgenticSpans}
-          hasConversations={hasConversations}
+          hasAgenticSpans={hasAgenticSpans || isOnboardingError}
+          hasConversations={hasConversations || isOnboardingError}
           onConversationOnboardingDismiss={refetchOnboarding}
           onTabChange={handleTabChange}
           searchBar={tableSearchBar}
