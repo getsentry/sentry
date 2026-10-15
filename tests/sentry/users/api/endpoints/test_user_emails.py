@@ -87,6 +87,15 @@ class UserEmailsTest(APITestCase):
         assert user.email != "altemail1@example.com"
         assert user.username != "altemail1@example.com"
 
+    def test_change_to_non_ascii_variant_of_verified_email(self) -> None:
+        # only ASCII case differences count as the same address
+        self.create_useremail(user=self.user, email="adm\u0131n@example.com", is_verified=True)
+        response = self.client.put(self.url, data={"email": "admin@example.com"})
+        assert response.status_code == 400, response.data
+
+        user = User.objects.get(id=self.user.id)
+        assert user.email == "foo@example.com"
+
     def test_change_email_not_on_account_to_primary(self) -> None:
         response = self.client.put(self.url, data={"email": "neveradded@example.com"})
         assert response.status_code == 400, response.data

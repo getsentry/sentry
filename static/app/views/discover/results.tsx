@@ -86,9 +86,9 @@ import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart'
 import {ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
 import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
-import Tags from 'sentry/views/discover/results/tags';
+import {Tags} from 'sentry/views/discover/results/tags';
+import {getDatasetFromLocationOrSavedQueryDataset} from 'sentry/views/discover/savedQuery/datasets';
 import {
-  getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
   getSavedQueryWithDataset,
   getTransactionDeprecationMessage,

@@ -24,6 +24,15 @@ import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
 import {defined} from 'sentry/utils/defined';
+import {
+  AdoptionColumn,
+  AdoptionStageColumn,
+  CrashFreeRateColumn,
+  DisplaySmallCol,
+  getReleaseProjectColumns,
+  NewIssuesColumn,
+  ReleaseProjectColumn,
+} from 'sentry/views/explore/releases/list/releaseCard/columns';
 import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
 import type {ReleasesRequestRenderProps} from 'sentry/views/explore/releases/list/releasesRequest';
 import {
@@ -34,16 +43,6 @@ import {
   isMobileRelease,
 } from 'sentry/views/explore/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
-
-import {
-  AdoptionColumn,
-  AdoptionStageColumn,
-  CrashFreeRateColumn,
-  DisplaySmallCol,
-  getReleaseProjectColumns,
-  NewIssuesColumn,
-  ReleaseProjectColumn,
-} from '.';
 
 const CRASH_FREE_DANGER_THRESHOLD = 98;
 const CRASH_FREE_WARNING_THRESHOLD = 99.5;

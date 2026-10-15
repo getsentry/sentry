@@ -11,6 +11,7 @@ from sentry.snuba.utils import DATASET_OPTIONS, RPC_DATASETS
 
 __all__ = [
     "EAP_DEFAULT_STATS_PERIOD",
+    "EAP_DEFAULT_STATS_PERIOD_DAYS",
     "EAPClient",
     "apply_eap_default_stats_period",
     "is_eap_dataset",
@@ -19,7 +20,10 @@ __all__ = [
 # Snuba downsamples EAP queries whose window starts >31d ago. Test fixtures only land
 # in tier 1, so the API's 90d default would make tests see an arbitrary subset of rows.
 # EAPClient applies this automatically; set an explicit window key to opt out.
-EAP_DEFAULT_STATS_PERIOD = f"{EAP_FULL_FIDELITY_QUERY_DAYS}d"
+# One day short of the limit: quantization plus adjust_start_end_window's midnight floor
+# can push a full-limit start past 31d in the first minutes after midnight UTC.
+EAP_DEFAULT_STATS_PERIOD_DAYS = EAP_FULL_FIDELITY_QUERY_DAYS - 1
+EAP_DEFAULT_STATS_PERIOD = f"{EAP_DEFAULT_STATS_PERIOD_DAYS}d"
 
 _WINDOW_KEYS = frozenset(
     {

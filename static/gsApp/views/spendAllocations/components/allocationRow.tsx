@@ -8,7 +8,7 @@ import {Table} from '@sentry/scraps/table';
 
 import {t} from 'sentry/locale';
 
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
+import {displayPrice} from 'getsentry/utils/billing';
 import type {BigNumUnits} from 'getsentry/views/spendAllocations/utils';
 import {bigNumFormatter} from 'getsentry/views/spendAllocations/utils';
 

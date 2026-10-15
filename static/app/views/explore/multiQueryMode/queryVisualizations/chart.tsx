@@ -22,6 +22,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -32,7 +33,10 @@ import {
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
+import {
+  combineConfidenceForSeries,
+  getFirstSamplingWarning,
+} from 'sentry/views/explore/utils';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -97,6 +101,15 @@ export function MultiQueryModeChart({
     </Fragment>
   );
 
+  const samplingWarning = getFirstSamplingWarning(
+    yAxes,
+    timeseriesResult.data,
+    chartInfo.dataScanned
+  );
+  const TitleBadges = samplingWarning ? (
+    <SamplingWarning yAxis={samplingWarning.yAxis} reason={samplingWarning.reason} />
+  ) : null;
+
   const items: MenuItemProps[] = [];
 
   const project =
@@ -159,6 +172,7 @@ export function MultiQueryModeChart({
       key={index}
       height={CHART_HEIGHT}
       Title={Title}
+      TitleBadges={TitleBadges}
       Actions={[
         <Tooltip
           key="visualization"

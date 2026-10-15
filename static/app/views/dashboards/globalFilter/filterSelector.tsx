@@ -21,7 +21,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {modifyFilterValue} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
-import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
 import {
   escapeTagValueForSearch,
   getFilterValueType,
@@ -41,7 +41,7 @@ import {emptyValue, EMPTY_VALUE_LABEL} from 'sentry/utils/discover/emptyFieldVal
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
-import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
+import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/datasetLabels';
 import {
   FilterSelectorTrigger,
   FilterSelectorTriggerButton,
