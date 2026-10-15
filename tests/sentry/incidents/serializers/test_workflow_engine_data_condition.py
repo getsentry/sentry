@@ -1,6 +1,7 @@
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.workflow_engine_data_condition import (
     WorkflowEngineDataConditionSerializer,
+    get_resolve_thresholds,
 )
 from sentry.incidents.endpoints.utils import translate_data_condition_type
 from sentry.incidents.models.alert_rule import (
@@ -9,7 +10,8 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
-from sentry.workflow_engine.migration_helpers.alert_rule import (
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.metric_alert_migration import (
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,
@@ -362,3 +364,59 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
             WorkflowEngineDataConditionSerializer(),
         )
         assert serialized["resolveThreshold"] is None
+
+
+class GetResolveThresholdsTest(TestCase):
+    def test_empty_input(self) -> None:
+        assert get_resolve_thresholds([]) == {}
+
+    def test_single_group_with_resolve_condition(self) -> None:
+        dcg = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition(
+            condition_group=dcg,
+            condition_result=DetectorPriorityLevel.OK,
+            comparison=5.0,
+            type="gte",
+        )
+
+        assert get_resolve_thresholds([dcg]) == {dcg.id: 5.0}
+
+    def test_single_group_without_resolve_condition(self) -> None:
+        dcg = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition(
+            condition_group=dcg,
+            condition_result=DetectorPriorityLevel.HIGH,
+            comparison=100.0,
+            type="gte",
+        )
+
+        assert get_resolve_thresholds([dcg]) == {}
+
+    def test_multiple_groups_mixed(self) -> None:
+        dcg1 = self.create_data_condition_group(organization=self.organization)
+        dcg2 = self.create_data_condition_group(organization=self.organization)
+        dcg3 = self.create_data_condition_group(organization=self.organization)
+
+        self.create_data_condition(
+            condition_group=dcg1,
+            condition_result=DetectorPriorityLevel.OK,
+            comparison=10.0,
+            type="gte",
+        )
+        self.create_data_condition(
+            condition_group=dcg2,
+            condition_result=DetectorPriorityLevel.HIGH,
+            comparison=200.0,
+            type="gte",
+        )
+        self.create_data_condition(
+            condition_group=dcg3,
+            condition_result=DetectorPriorityLevel.OK,
+            comparison=25.0,
+            type="gte",
+        )
+
+        assert get_resolve_thresholds([dcg1, dcg2, dcg3]) == {
+            dcg1.id: 10.0,
+            dcg3.id: 25.0,
+        }
