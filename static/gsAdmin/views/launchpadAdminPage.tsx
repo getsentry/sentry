@@ -13,10 +13,10 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getLocalities} from 'sentry/utils/cells';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
@@ -42,15 +42,15 @@ export function LaunchpadAdminPage() {
         .split(',')
         .map(id => id.trim())
         .filter(Boolean);
-      return fetchMutation({
-        url: getApiUrl('/internal/preprod-artifact/batch-rerun-analysis/'),
-        method: 'POST',
-        data: {artifact_ids: ids},
-        options: {host: locality?.url},
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/internal/preprod-artifact/batch-rerun-analysis/'),
+          {method: 'POST', data: {artifact_ids: ids}, host: locality?.url},
+        ],
       });
     },
-    onSuccess: (data: any) => {
-      const results = data?.results ?? [];
+    onSuccess: ({json}: {json: any}) => {
+      const results = json?.results ?? [];
       const succeeded = results.filter((r: any) => r.success);
       const failed = results.filter((r: any) => !r.success);
       if (failed.length > 0) {
@@ -72,15 +72,17 @@ export function LaunchpadAdminPage() {
 
   const {mutate: deleteArtifactData} = useMutation({
     mutationFn: () => {
-      return fetchMutation({
-        url: getApiUrl('/internal/preprod-artifact/batch-delete/'),
-        method: 'DELETE',
-        data: {
-          preprod_artifact_ids: [deleteArtifactId],
-        },
-        options: {
-          host: locality?.url,
-        },
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/internal/preprod-artifact/batch-delete/'),
+          {
+            method: 'DELETE',
+            data: {
+              preprod_artifact_ids: [deleteArtifactId],
+            },
+            host: locality?.url,
+          },
+        ],
       });
     },
     onSuccess: () => {
@@ -122,18 +124,20 @@ export function LaunchpadAdminPage() {
 
   const {mutate: batchDeleteArtifacts} = useMutation({
     mutationFn: () => {
-      return fetchMutation({
-        url: getApiUrl('/internal/preprod-artifact/batch-delete/'),
-        method: 'DELETE',
-        data: {
-          preprod_artifact_ids: batchDeleteArtifactIds
-            .split(',')
-            .map(id => id.trim())
-            .filter(Boolean),
-        },
-        options: {
-          host: locality?.url,
-        },
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/internal/preprod-artifact/batch-delete/'),
+          {
+            method: 'DELETE',
+            data: {
+              preprod_artifact_ids: batchDeleteArtifactIds
+                .split(',')
+                .map(id => id.trim())
+                .filter(Boolean),
+            },
+            host: locality?.url,
+          },
+        ],
       });
     },
     onSuccess: () => {

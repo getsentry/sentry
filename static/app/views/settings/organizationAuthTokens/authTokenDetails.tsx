@@ -18,14 +18,10 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {OrgAuthToken} from 'sentry/types/user';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-} from 'sentry/utils/queryClient';
+import {getApiQueryData, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -64,12 +60,13 @@ function AuthTokenDetailsForm({token}: {token: OrgAuthToken}) {
 
   const mutation = useMutation<unknown, RequestError, z.infer<typeof schema>>({
     mutationFn: data =>
-      fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
-          path: {organizationIdOrSlug: organization.slug, tokenId: token.id},
-        }),
-        method: 'PUT',
-        data,
+      apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
+            path: {organizationIdOrSlug: organization.slug, tokenId: token.id},
+          }),
+          {method: 'PUT', data},
+        ],
       }),
 
     onSuccess: (_data, {name}) => {

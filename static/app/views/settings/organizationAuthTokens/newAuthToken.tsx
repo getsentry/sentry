@@ -17,9 +17,9 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {OrgAuthToken} from 'sentry/types/user';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -46,19 +46,20 @@ function AuthTokenCreateForm({
   const handleGoBack = () => navigate(`/settings/${organization.slug}/auth-tokens/`);
 
   const mutation = useMutation<
-    OrgAuthTokenWithToken,
+    ApiResponse<OrgAuthTokenWithToken>,
     RequestError,
     z.infer<typeof schema>
   >({
     mutationFn: data =>
-      fetchMutation<OrgAuthTokenWithToken>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data,
+      apiFetch<OrgAuthTokenWithToken>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {method: 'POST', data},
+        ],
       }),
-    onSuccess: (token: OrgAuthTokenWithToken) => {
+    onSuccess: ({json: token}) => {
       addSuccessMessage(t('Created organization token.'));
 
       queryClient.invalidateQueries({

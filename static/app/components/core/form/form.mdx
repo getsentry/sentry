@@ -324,12 +324,12 @@ Always use TanStack Query mutations (`useMutation`) for form submissions. Return
 ```jsx
 import {useMutation} from '@tanstack/react-query';
 
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 
 function MyForm() {
   const mutation = useMutation({
     mutationFn: (data: FormData) =>
-      fetchMutation({url: '/endpoint/', method: 'POST', data}),
+      apiFetch({queryKey: ['/endpoint/', {method: 'POST', data}]}),
   });
 
   const form = useScrapsForm({
@@ -398,7 +398,7 @@ const defaultValues: z.input<typeof schema> = {
 function MyForm() {
   const mutation = useMutation({
     mutationFn: (data: z.output<typeof schema>) =>
-      fetchMutation({url: '/endpoint/', method: 'POST', data}),
+      apiFetch({queryKey: ['/endpoint/', {method: 'POST', data}]}),
   });
 
   const form = useScrapsForm({

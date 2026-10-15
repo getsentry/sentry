@@ -7,8 +7,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {ConsolePlatform} from 'sentry/constants/consolePlatforms';
 import {tct} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export interface ConsoleSdkInviteUser {
@@ -48,12 +49,13 @@ export function useRevokeConsoleSdkPlatformInvite() {
 
   return useMutation({
     mutationFn: ({orgSlug, items}: UseRevokeConsoleSdkPlatformInviteParams) => {
-      return fetchMutation({
-        method: 'DELETE',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/console-sdk-invites/', {
-          path: {organizationIdOrSlug: orgSlug},
-        }),
-        data: {items},
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/console-sdk-invites/', {
+            path: {organizationIdOrSlug: orgSlug},
+          }),
+          {method: 'DELETE', data: {items}},
+        ],
       });
     },
     onMutate: ({email, platform}: UseRevokeConsoleSdkPlatformInviteParams) => {

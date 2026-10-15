@@ -14,8 +14,8 @@ import {
 } from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import type {ApiAccessScope} from 'sentry/constants/scopes';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   PendingUserInput,
@@ -86,16 +86,22 @@ export function AgentWriteApprovalBlock({
     try {
       const response = requestApproval
         ? await requestApproval(pendingApproval.sessionId, pendingApproval.requiredScopes)
-        : await fetchMutation<AgentApprovalResponse>({
-            url: getApiUrl('/organizations/$organizationIdOrSlug/agent/approve/', {
-              path: {organizationIdOrSlug: organization.slug},
-            }),
-            method: 'POST',
-            data: {
-              sessionId: pendingApproval.sessionId,
-              scopes: pendingApproval.requiredScopes,
-            },
-          });
+        : (
+            await apiFetch<AgentApprovalResponse>({
+            queryKey: [
+              getApiUrl('/organizations/$organizationIdOrSlug/agent/approve/', {
+                path: {organizationIdOrSlug: organization.slug},
+              }),
+              {
+                method: 'POST',
+                data: {
+                  sessionId: pendingApproval.sessionId,
+                  scopes: pendingApproval.requiredScopes,
+                },
+              },
+            ],
+            })
+          ).json;
       const decision = pendingApproval.requiredScopes.every(scope =>
         response.scopes.includes(scope)
       )

@@ -11,8 +11,8 @@ import {Access} from 'sentry/components/acl/access';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 const loaderSchema = z.object({
   browserSdkVersion: z.string(),
@@ -144,12 +144,16 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             mutationOptions={{
               mutationKey,
               mutationFn: (submitData: {browserSdkVersion: string}) =>
-                fetchMutation<ProjectKey>({
-                  url: endpoint,
-                  method: 'PUT',
-                  data: buildVersionPayload(submitData.browserSdkVersion),
+                apiFetch<ProjectKey>({
+                  queryKey: [
+                    endpoint,
+                    {
+                      method: 'PUT',
+                      data: buildVersionPayload(submitData.browserSdkVersion),
+                    },
+                  ],
                 }),
-              onSuccess: updateData,
+              onSuccess: response => updateData(response.json),
             }}
           >
             {field => (
@@ -186,12 +190,13 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             mutationOptions={{
               mutationKey,
               mutationFn: (submitData: {hasPerformance: boolean}) =>
-                fetchMutation<ProjectKey>({
-                  url: endpoint,
-                  method: 'PUT',
-                  data: {dynamicSdkLoaderOptions: submitData},
+                apiFetch<ProjectKey>({
+                  queryKey: [
+                    endpoint,
+                    {method: 'PUT', data: {dynamicSdkLoaderOptions: submitData}},
+                  ],
                 }),
-              onSuccess: updateData,
+              onSuccess: response => updateData(response.json),
             }}
           >
             {field => (
@@ -240,12 +245,13 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             mutationOptions={{
               mutationKey,
               mutationFn: (submitData: {hasReplay: boolean}) =>
-                fetchMutation<ProjectKey>({
-                  url: endpoint,
-                  method: 'PUT',
-                  data: {dynamicSdkLoaderOptions: submitData},
+                apiFetch<ProjectKey>({
+                  queryKey: [
+                    endpoint,
+                    {method: 'PUT', data: {dynamicSdkLoaderOptions: submitData}},
+                  ],
                 }),
-              onSuccess: updateData,
+              onSuccess: response => updateData(response.json),
             }}
           >
             {field => (
@@ -302,12 +308,13 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             mutationOptions={{
               mutationKey,
               mutationFn: (submitData: {hasLogsAndMetrics: boolean}) =>
-                fetchMutation<ProjectKey>({
-                  url: endpoint,
-                  method: 'PUT',
-                  data: {dynamicSdkLoaderOptions: submitData},
+                apiFetch<ProjectKey>({
+                  queryKey: [
+                    endpoint,
+                    {method: 'PUT', data: {dynamicSdkLoaderOptions: submitData}},
+                  ],
                 }),
-              onSuccess: updateData,
+              onSuccess: response => updateData(response.json),
             }}
           >
             {field => (
@@ -348,12 +355,13 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             mutationOptions={{
               mutationKey,
               mutationFn: (submitData: {hasFeedback: boolean}) =>
-                fetchMutation<ProjectKey>({
-                  url: endpoint,
-                  method: 'PUT',
-                  data: {dynamicSdkLoaderOptions: submitData},
+                apiFetch<ProjectKey>({
+                  queryKey: [
+                    endpoint,
+                    {method: 'PUT', data: {dynamicSdkLoaderOptions: submitData}},
+                  ],
                 }),
-              onSuccess: updateData,
+              onSuccess: response => updateData(response.json),
             }}
           >
             {field => (
@@ -406,12 +414,13 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             mutationOptions={{
               mutationKey,
               mutationFn: (submitData: {hasDebug: boolean}) =>
-                fetchMutation<ProjectKey>({
-                  url: endpoint,
-                  method: 'PUT',
-                  data: {dynamicSdkLoaderOptions: submitData},
+                apiFetch<ProjectKey>({
+                  queryKey: [
+                    endpoint,
+                    {method: 'PUT', data: {dynamicSdkLoaderOptions: submitData}},
+                  ],
                 }),
-              onSuccess: updateData,
+              onSuccess: response => updateData(response.json),
             }}
           >
             {field => (

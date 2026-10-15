@@ -20,9 +20,10 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -66,28 +67,32 @@ function MergeAccounts() {
     verificationCode: string;
   };
   const {isPending: isSubmitPending, mutate: submit} = useMutation<
-    UserWithOrganizations[],
+    ApiResponse<UserWithOrganizations[]>,
     RequestError,
     SubmitVariables
   >({
     mutationFn: ({idsToMerge, idsToDelete, verificationCode}: SubmitVariables) => {
-      return fetchMutation({
-        url: ENDPOINT,
-        method: 'POST',
-        data: {
-          idsToMerge,
-          idsToDelete,
-          verificationCode,
-        },
+      return apiFetch<UserWithOrganizations[]>({
+        queryKey: [
+          ENDPOINT,
+          {
+            method: 'POST',
+            data: {
+              idsToMerge,
+              idsToDelete,
+              verificationCode,
+            },
+          },
+        ],
       });
     },
-    onSuccess: data => {
+    onSuccess: ({json}) => {
       addSuccessMessage(t('Accounts merged!'));
       setSelectedUserIds([]);
       setApiQueryData<UserWithOrganizations[]>(
         queryClient,
         makeMergeAccountsEndpointKey(),
-        data
+        json
       );
     },
     onError: (err: RequestError) => {
@@ -103,10 +108,8 @@ function MergeAccounts() {
 
   const {mutate: postVerificationCode} = useMutation({
     mutationFn: () => {
-      return fetchMutation({
-        url: VERIFICATION_CODE_ENDPOINT,
-        method: 'POST',
-        data: {},
+      return apiFetch({
+        queryKey: [VERIFICATION_CODE_ENDPOINT, {method: 'POST', data: {}}],
       });
     },
     onSuccess: () => {

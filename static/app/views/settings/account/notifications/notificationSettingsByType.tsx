@@ -19,8 +19,9 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
@@ -86,7 +87,7 @@ function DefaultNotificationField({
   fieldMutationOptions,
 }: {
   fieldMutationOptions: UseMutationOptions<
-    NotificationOptionsObject,
+    ApiResponse<NotificationOptionsObject>,
     Error,
     Record<string, string>
   >;
@@ -274,11 +275,13 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const removeNotificationMutation = useMutation({
     mutationFn: (id: string) =>
-      fetchMutation({
-        method: 'DELETE',
-        url: getApiUrl('/users/$userId/notification-options/$notificationOptionId/', {
-          path: {userId: 'me', notificationOptionId: id},
-        }),
+      apiFetch({
+        queryKey: [
+          getApiUrl('/users/$userId/notification-options/$notificationOptionId/', {
+            path: {userId: 'me', notificationOptionId: id},
+          }),
+          {method: 'DELETE'},
+        ],
       }),
     onSuccess: (_, id) => {
       setApiQueryData<NotificationOptionsObject[]>(
@@ -295,13 +298,13 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const addNotificationMutation = useMutation({
     mutationFn: (data: Omit<NotificationOptionsObject, 'id'>) =>
-      fetchMutation<NotificationOptionsObject>({
-        method: 'PUT',
-        url: getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
-        options: {},
-        data,
+      apiFetch<NotificationOptionsObject>({
+        queryKey: [
+          getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
+          {method: 'PUT', data},
+        ],
       }),
-    onSuccess: notificationOption => {
+    onSuccess: ({json: notificationOption}) => {
       setApiQueryData<NotificationOptionsObject[]>(
         queryClient,
         notificationOptionsQueryKey(notificationType),
@@ -315,13 +318,13 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const deleteNotificationMutation = useMutation({
     mutationFn: (data: NotificationOptionsObject) =>
-      fetchMutation<NotificationOptionsObject>({
-        method: 'PUT',
-        url: getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
-        options: {},
-        data,
+      apiFetch<NotificationOptionsObject>({
+        queryKey: [
+          getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
+          {method: 'PUT', data},
+        ],
       }),
-    onSuccess: notificationOption => {
+    onSuccess: ({json: notificationOption}) => {
       // Replace the item in state
       setApiQueryData<NotificationOptionsObject[]>(
         queryClient,
@@ -367,19 +370,23 @@ export function NotificationSettingsByType({notificationType}: Props) {
   const optionMutationOptions = (fieldName: string) =>
     mutationOptions({
       mutationFn: (data: Record<string, string>) =>
-        fetchMutation<NotificationOptionsObject>({
-          method: 'PUT',
-          url: getApiUrl('/users/$userId/notification-options/', {
-            path: {userId: 'me'},
-          }),
-          data: {
-            type: fieldName,
-            scopeType: 'user',
-            scopeIdentifier: ConfigStore.get('user').id,
-            value: data[fieldName],
-          },
+        apiFetch<NotificationOptionsObject>({
+          queryKey: [
+            getApiUrl('/users/$userId/notification-options/', {
+              path: {userId: 'me'},
+            }),
+            {
+              method: 'PUT',
+              data: {
+                type: fieldName,
+                scopeType: 'user',
+                scopeIdentifier: ConfigStore.get('user').id,
+                value: data[fieldName],
+              },
+            },
+          ],
         }),
-      onSuccess: notificationOption => {
+      onSuccess: ({json: notificationOption}) => {
         trackTuningUpdated('general');
         setApiQueryData<NotificationOptionsObject[]>(
           queryClient,
@@ -408,17 +415,21 @@ export function NotificationSettingsByType({notificationType}: Props) {
 
   const providerMutationOptions = mutationOptions({
     mutationFn: (data: {provider: string[]}) =>
-      fetchMutation({
-        method: 'PUT',
-        url: getApiUrl('/users/$userId/notification-providers/', {
-          path: {userId: 'me'},
-        }),
-        data: {
-          type: notificationType,
-          scopeType: 'user',
-          scopeIdentifier: ConfigStore.get('user').id,
-          providers: data.provider,
-        },
+      apiFetch({
+        queryKey: [
+          getApiUrl('/users/$userId/notification-providers/', {
+            path: {userId: 'me'},
+          }),
+          {
+            method: 'PUT',
+            data: {
+              type: notificationType,
+              scopeType: 'user',
+              scopeIdentifier: ConfigStore.get('user').id,
+              providers: data.provider,
+            },
+          },
+        ],
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({

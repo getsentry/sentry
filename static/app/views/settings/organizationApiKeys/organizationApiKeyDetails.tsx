@@ -12,9 +12,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {API_ACCESS_SCOPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -82,12 +82,13 @@ function OrganizationApiKeyForm({
   const handleCancel = () => navigate(`/settings/${organizationSlug}/api-keys/`);
   const mutation = useMutation({
     mutationFn: (data: ApiKeyFormValues) =>
-      fetchMutation<DeprecatedApiKey>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/', {
-          path: {organizationIdOrSlug: organizationSlug, apiKeyId: apiKey.id},
-        }),
-        method: 'PUT',
-        data,
+      apiFetch<DeprecatedApiKey>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/', {
+            path: {organizationIdOrSlug: organizationSlug, apiKeyId: apiKey.id},
+          }),
+          {method: 'PUT', data},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage('Saved changes');

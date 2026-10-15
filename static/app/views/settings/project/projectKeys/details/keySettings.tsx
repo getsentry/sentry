@@ -20,8 +20,8 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {ProjectKeyCredentials} from 'sentry/views/settings/project/projectKeys/credentials';
 import {KeyRateLimitsForm} from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
@@ -69,13 +69,9 @@ export function KeySettings({
 
   const mutationOptions = {
     mutationFn: (fieldData: Partial<ProjectKey>) =>
-      fetchMutation<ProjectKey>({
-        url: apiEndpoint,
-        method: 'PUT',
-        data: fieldData,
-      }),
-    onSuccess: (updated: ProjectKey) => {
-      updateData(updated);
+      apiFetch<ProjectKey>({queryKey: [apiEndpoint, {method: 'PUT', data: fieldData}]}),
+    onSuccess: (response: ApiResponse<ProjectKey>) => {
+      updateData(response.json);
     },
   };
 

@@ -12,8 +12,9 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -101,16 +102,18 @@ export default function BuildDetails() {
   }, [isPendingOrProcessing, appSizeQuery]);
 
   const {mutate: onRerunAnalysis, isPending: isRerunning} = useMutation<
-    void,
+    ApiResponse,
     RequestError
   >({
     mutationFn: () => {
-      return fetchMutation({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/preprod-artifact/rerun-analysis/$headArtifactId/',
-          {path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId}}
-        ),
-        method: 'POST',
+      return apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/preprod-artifact/rerun-analysis/$headArtifactId/',
+            {path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId}}
+          ),
+          {method: 'POST'},
+        ],
       });
     },
     onSuccess: () => {

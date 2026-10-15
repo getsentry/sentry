@@ -8,10 +8,10 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {TOP_N} from 'sentry/utils/discover/types';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {
@@ -102,7 +102,7 @@ export function createDashboard(
   return promise;
 }
 
-export function validateDashboard(
+export async function validateDashboard(
   orgSlug: string,
   dashboard: DashboardDetails
 ): Promise<void> {
@@ -113,27 +113,29 @@ export function validateDashboard(
     path: {organizationIdOrSlug: orgSlug},
   });
 
-  return fetchMutation({
-    url,
-    method: 'POST',
-    data: {
-      title,
-      widgets: widgets.map(widget => omit(widget, ['tempId'])),
-      projects,
-      environment,
-      period,
-      start,
-      end,
-      filters,
-      utc,
-    },
-    options: {
-      query: {
-        validateOnly: '1',
-        project: projects,
-        environment,
+  await apiFetch({
+    queryKey: [
+      url,
+      {
+        method: 'POST',
+        data: {
+          title,
+          widgets: widgets.map(widget => omit(widget, ['tempId'])),
+          projects,
+          environment,
+          period,
+          start,
+          end,
+          filters,
+          utc,
+        },
+        query: {
+          validateOnly: '1',
+          project: projects,
+          environment,
+        },
       },
-    },
+    ],
   });
 }
 
@@ -263,19 +265,21 @@ export function updateDashboard(
       .map(_enforceWidgetLimit);
   }
 
-  const promise = fetchMutation<DashboardDetails>({
-    url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
-      path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
-    }),
-    method: 'PUT',
-    data,
-    options: {
-      query: {
-        project: projects,
-        environment,
+  const promise = apiFetch<DashboardDetails>({
+    queryKey: [
+      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+        path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
+      }),
+      {
+        method: 'PUT',
+        data,
+        query: {
+          project: projects,
+          environment,
+        },
       },
-    },
-  });
+    ],
+  }).then(response => response.json);
 
   // We let the callers of `updateDashboard` handle adding a success message, so
   // that it can be more specific than just "Dashboard updated," but do the
@@ -370,13 +374,14 @@ export function updateDashboardTitle(
   dashboardId: string,
   title: string
 ): Promise<DashboardDetails> {
-  const promise = fetchMutation<DashboardDetails>({
-    url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
-      path: {organizationIdOrSlug: orgId, dashboardId},
-    }),
-    method: 'PUT',
-    data: {title},
-  });
+  const promise = apiFetch<DashboardDetails>({
+    queryKey: [
+      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+        path: {organizationIdOrSlug: orgId, dashboardId},
+      }),
+      {method: 'PUT', data: {title}},
+    ],
+  }).then(response => response.json);
 
   promise.catch(response => {
     const errorResponse =

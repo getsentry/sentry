@@ -5,11 +5,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {createExportFilename} from 'sentry/components/exports/createExportFilename';
 import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
 import {t} from 'sentry/locale';
-import type {ApiResult, ResponseMeta} from 'sentry/types/api';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
@@ -89,10 +88,10 @@ interface DataExportData {
 function handleDataExportResponse(
   data: DataExportData,
   format: DataExportFormat,
-  response: ResponseMeta | undefined,
+  status: number | undefined,
   organizationSlug: string
 ) {
-  if (response?.status !== 201) {
+  if (status !== 201) {
     addSuccessMessage(
       t("It looks like we're already working on it. Sit tight, we'll email you.")
     );
@@ -142,26 +141,27 @@ export function useDataExport() {
       queryInfo,
       queryType,
     }: DataExportPayload) => {
-      const [data, , response] = await fetchMutation<ApiResult>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/data-export/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        options: {
-          includeAllArgs: true,
-        },
-        method: 'POST',
-        data: {
-          format,
-          limit,
-          query_info: serializeQueryInfo(queryInfo),
-          query_type: queryType,
-        },
+      const response = await apiFetch<DataExportData>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/data-export/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              format,
+              limit,
+              query_info: serializeQueryInfo(queryInfo),
+              query_type: queryType,
+            },
+          },
+        ],
       });
 
-      return {data: data as DataExportData, format, response};
+      return {data: response.json, format, status: response.status};
     },
-    onSuccess: ({data, format, response}) => {
-      handleDataExportResponse(data, format, response, organization.slug);
+    onSuccess: ({data, format, status}) => {
+      handleDataExportResponse(data, format, status, organization.slug);
     },
     onError: error => {
       if (

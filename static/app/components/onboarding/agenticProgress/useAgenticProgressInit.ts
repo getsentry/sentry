@@ -2,8 +2,8 @@ import {useCallback, useEffect, useState} from 'react';
 import {uuid4} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
 
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -33,16 +33,20 @@ export function useAgenticProgressInit({
   const {clientRunId, onboardingCode} = session ?? initialSession;
 
   const initializeRun = (nextClientRunId: string, nextOnboardingCode: string) =>
-    fetchMutation<InitializedAgenticProgressRun>({
-      method: 'POST',
-      url: getApiUrl('/organizations/$organizationIdOrSlug/onboarding/agent/runs/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      data: {
-        clientRunId: nextClientRunId,
-        onboardingCode: nextOnboardingCode,
-      },
-    });
+    apiFetch<InitializedAgenticProgressRun>({
+      queryKey: [
+        getApiUrl('/organizations/$organizationIdOrSlug/onboarding/agent/runs/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        {
+          method: 'POST',
+          data: {
+            clientRunId: nextClientRunId,
+            onboardingCode: nextOnboardingCode,
+          },
+        },
+      ],
+    }).then(response => response.json);
 
   // A conflicting onboarding code is replaced without changing the run's cache identity.
   // eslint-disable-next-line @tanstack/query/exhaustive-deps

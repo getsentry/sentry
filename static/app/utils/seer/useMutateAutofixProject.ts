@@ -3,8 +3,8 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   buildHandoffPayload,
   knownAgentIntegrationsQueryOptions,
@@ -105,11 +105,7 @@ export function useMutateAutofixProject() {
         project,
       });
       const [reposUrl] = reposQueryOptions.queryKey;
-      await fetchMutation({
-        method: 'PUT',
-        url: reposUrl,
-        data: {repos},
-      });
+      await apiFetch({queryKey: [reposUrl, {method: 'PUT', data: {repos}}]});
 
       // 2. Agent, tuning, and stopping point are written SECOND, through the
       //    project settings endpoint added for the new Seer settings UI. Because
@@ -124,17 +120,21 @@ export function useMutateAutofixProject() {
       });
       const [settingsUrl] = settingsQueryOptions.queryKey;
       try {
-        await fetchMutation<SeerProjectSettingResponse>({
-          method: 'PUT',
-          url: settingsUrl,
-          data: {
-            agent,
-            ...(integrationId ? {integrationId} : {}),
-            automationTuning: tuning,
-            ...(stoppingPointValue ? {stoppingPoint: stoppingPointValue} : {}),
-            ...(handoff ? {autoCreatePr: handoff.auto_create_pr} : {}),
-            ...(prIteration === undefined ? {} : {prIteration}),
-          },
+        await apiFetch<SeerProjectSettingResponse>({
+          queryKey: [
+            settingsUrl,
+            {
+              method: 'PUT',
+              data: {
+                agent,
+                ...(integrationId ? {integrationId} : {}),
+                automationTuning: tuning,
+                ...(stoppingPointValue ? {stoppingPoint: stoppingPointValue} : {}),
+                ...(handoff ? {autoCreatePr: handoff.auto_create_pr} : {}),
+                ...(prIteration === undefined ? {} : {prIteration}),
+              },
+            },
+          ],
         });
       } catch (error) {
         throw new AutofixSettingsPartialSaveError({cause: error});

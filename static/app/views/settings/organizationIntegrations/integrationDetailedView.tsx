@@ -25,6 +25,7 @@ import type {
   OrganizationIntegration,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
@@ -40,12 +41,7 @@ import {
   isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-} from 'sentry/utils/queryClient';
+import {getApiQueryData, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -149,7 +145,7 @@ function getOrgMutationOptions(organization: Organization) {
   });
   return mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
-      fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
+      apiFetch<Organization>({queryKey: [orgEndpoint, {method: 'PUT', data}]}),
     onSuccess: data => updateOrganization(data),
   });
 }
@@ -351,12 +347,16 @@ export default function IntegrationDetailedView() {
 
   const {mutate: onRemove} = useMutation({
     mutationFn: (integration: OrganizationIntegration) =>
-      fetchMutation({
-        method: 'DELETE',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-          {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
-        ),
+      apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/integrations/$integrationId/', {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              integrationId: integration.id,
+            },
+          }),
+          {method: 'DELETE'},
+        ],
       }),
     onMutate: async integration => {
       const queryKey = makeIntegrationQueryKey({

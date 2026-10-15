@@ -23,10 +23,10 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
@@ -74,23 +74,25 @@ export default function TeamProjects() {
 
   const {mutate: mutateLinkProject} = useMutation({
     mutationFn: ({project, action}: {action: string; project: Project}) =>
-      fetchMutation<Project>({
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/$teamIdOrSlug/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: project.slug,
-              teamIdOrSlug: team.slug,
-            },
-          }
-        ),
-        method: action === 'add' ? 'POST' : 'DELETE',
+      apiFetch<Project>({
+        queryKey: [
+          getApiUrl(
+            '/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/$teamIdOrSlug/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: project.slug,
+                teamIdOrSlug: team.slug,
+              },
+            }
+          ),
+          {method: action === 'add' ? 'POST' : 'DELETE'},
+        ],
       }),
     onSuccess: (resp, {action}) => {
       refetchLinkedProjects();
       refetchUnlinkedProjects();
-      ProjectsStore.onUpdateSuccess(resp);
+      ProjectsStore.onUpdateSuccess(resp.json);
       addSuccessMessage(
         action === 'add'
           ? t('Successfully added project to team.')

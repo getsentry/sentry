@@ -1,8 +1,8 @@
 import {useMutation} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 
 export interface PasswordResetResult {
@@ -17,10 +17,8 @@ type PasswordResetResponse = {
 export function usePasswordReset() {
   const mutation = useMutation({
     mutationFn: async (email: string) => {
-      const response = await fetchMutation<PasswordResetResponse>({
-        url: getApiUrl('/auth/recovery/'),
-        method: 'POST',
-        data: {user: email},
+      const {json: response} = await apiFetch<PasswordResetResponse>({
+        queryKey: [getApiUrl('/auth/recovery/'), {method: 'POST', data: {user: email}}],
       });
 
       return {

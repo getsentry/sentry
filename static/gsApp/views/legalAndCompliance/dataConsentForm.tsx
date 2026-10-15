@@ -7,9 +7,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
@@ -49,9 +49,9 @@ export function DataConsentForm({subscription}: {subscription: Subscription}) {
 
   const mutationOpts = mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
-      fetchMutation<Partial<Organization>>({method: 'PUT', url: endpoint, data}),
-    onSuccess: (updatedOrganization, variables) => {
-      updateOrganization({id: organization.id, ...updatedOrganization});
+      apiFetch<Partial<Organization>>({queryKey: [endpoint, {method: 'PUT', data}]}),
+    onSuccess: (response, variables) => {
+      updateOrganization({id: organization.id, ...response.json});
       trackGetsentryAnalytics('data_consent_settings.updated', {
         organization,
         setting: 'aggregatedDataConsent',

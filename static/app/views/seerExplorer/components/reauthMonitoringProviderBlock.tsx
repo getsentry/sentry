@@ -8,8 +8,8 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openModal} from 'sentry/actionCreators/modal';
 import {DatadogPatConnectModal} from 'sentry/components/seer/datadogPatConnectModal';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {monitoringProvidersSettingsPath} from 'sentry/utils/seer/monitoringProvidersSettingsPath';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -39,23 +39,27 @@ export function ReauthMonitoringProviderBlock({
 
   const connectOAuthMutation = useMutation({
     mutationFn: () =>
-      fetchMutation<{redirectUrl: string}>({
-        method: 'PUT',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/',
+      apiFetch<{redirectUrl: string}>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                providerKey: data.provider_key,
+              },
+            }
+          ),
           {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              providerKey: data.provider_key,
+            method: 'PUT',
+            data: {
+              return_url: returnUrl ?? monitoringProvidersSettingsPath(organization),
             },
-          }
-        ),
-        data: {
-          return_url: returnUrl ?? monitoringProvidersSettingsPath(organization),
-        },
+          },
+        ],
       }),
-    onSuccess: responseData => {
-      testableWindowLocation.assign(responseData.redirectUrl);
+    onSuccess: ({json}) => {
+      testableWindowLocation.assign(json.redirectUrl);
     },
     onError: () => {
       addErrorMessage(t('Failed to start reconnection.'));

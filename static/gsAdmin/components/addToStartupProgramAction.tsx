@@ -9,8 +9,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
@@ -62,12 +62,13 @@ function AddToStartupProgramModal({
 }: AddToStartupProgramModalProps) {
   const mutation = useMutation({
     mutationFn: (data: {creditAmount: number; notes: string; ticketUrl: string}) =>
-      fetchMutation({
-        method: 'POST',
-        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/balance-changes/', {
-          path: {organizationIdOrSlug: orgId},
-        }),
-        data: {...data, creditAmount: data.creditAmount * 100},
+      apiFetch({
+        queryKey: [
+          getApiUrl('/_admin/customers/$organizationIdOrSlug/balance-changes/', {
+            path: {organizationIdOrSlug: orgId},
+          }),
+          {method: 'POST', data: {...data, creditAmount: data.creditAmount * 100}},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage('Customer added to startup program');

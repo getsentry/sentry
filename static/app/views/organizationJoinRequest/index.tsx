@@ -12,8 +12,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -29,12 +29,13 @@ export default function OrganizationJoinRequest() {
 
   const mutation = useMutation({
     mutationFn: (data: {email: string}) =>
-      fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/join-request/', {
-          path: {organizationIdOrSlug: orgId},
-        }),
-        method: 'POST',
-        data,
+      apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/join-request/', {
+            path: {organizationIdOrSlug: orgId},
+          }),
+          {method: 'POST', data},
+        ],
       }),
     onSuccess: () => {
       trackAnalytics('join_request.created', {

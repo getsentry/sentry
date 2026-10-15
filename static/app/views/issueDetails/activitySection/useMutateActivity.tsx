@@ -5,8 +5,8 @@ import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {issueCommentsQueryOptions} from 'sentry/views/issueDetails/activitySection/issueCommentsQueryOptions';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 
@@ -53,14 +53,17 @@ export function useMutateActivity({organization, group}: Props) {
               },
             });
 
-      return fetchMutation<GroupActivityNote>({
-        method: mutation.method,
-        url,
-        options: {},
-        data:
-          'note' in mutation
-            ? {text: mutation.note.text, mentions: mutation.note.mentions}
-            : undefined,
+      return apiFetch<GroupActivityNote>({
+        queryKey: [
+          url,
+          {
+            method: mutation.method,
+            data:
+              'note' in mutation
+                ? {text: mutation.note.text, mentions: mutation.note.mentions}
+                : undefined,
+          },
+        ],
       });
     },
     onSuccess: (result, mutation) => {

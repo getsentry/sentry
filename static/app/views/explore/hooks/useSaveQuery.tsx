@@ -4,8 +4,8 @@ import {useMutation} from '@tanstack/react-query';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {encodeSort} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -93,16 +93,20 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
 
   const {mutateAsync: saveQuery} = useMutation({
     mutationFn: ({name, starred = true}: {name: string; starred?: boolean}) =>
-      fetchMutation<{id: string}>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data: {
-          ...requestData,
-          name,
-          starred,
-        },
+      apiFetch<{id: string}>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              ...requestData,
+              name,
+              starred,
+            },
+          },
+        ],
       }),
     onSuccess: () => {
       invalidateSavedQueries();
@@ -112,16 +116,20 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
 
   const {mutateAsync: updateQuery} = useMutation({
     mutationFn: () =>
-      fetchMutation<{id: string}>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
-          path: {organizationIdOrSlug: organization.slug, id: String(id)},
-        }),
-        method: 'PUT',
-        data: {
-          ...requestData,
-          dataset:
-            requestData.dataset === 'segment_spans' ? 'spans' : requestData.dataset,
-        },
+      apiFetch<{id: string}>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+            path: {organizationIdOrSlug: organization.slug, id: String(id)},
+          }),
+          {
+            method: 'PUT',
+            data: {
+              ...requestData,
+              dataset:
+                requestData.dataset === 'segment_spans' ? 'spans' : requestData.dataset,
+            },
+          },
+        ],
       }),
     onSuccess: () => {
       invalidateSavedQueries();

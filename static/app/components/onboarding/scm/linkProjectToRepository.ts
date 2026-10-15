@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 /**
  * Best-effort link of a repository to a freshly created project. Linking is
@@ -18,12 +18,13 @@ export async function linkProjectToRepository({
   repositoryId: string;
 }): Promise<void> {
   try {
-    await fetchMutation({
-      url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/repo/', {
-        path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
-      }),
-      method: 'POST',
-      data: {repositoryId},
+    await apiFetch({
+      queryKey: [
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/repo/', {
+          path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
+        }),
+        {method: 'POST', data: {repositoryId}},
+      ],
     });
   } catch (error) {
     Sentry.captureException(error);

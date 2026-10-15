@@ -9,8 +9,8 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
@@ -31,19 +31,23 @@ export function ProjectDefaultsForm({organization}: Props) {
   });
   const orgMutationOpts = mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
-      fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
+      apiFetch<Organization>({queryKey: [orgEndpoint, {method: 'PUT', data}]}),
     onSuccess: updateOrganization,
   });
   const autofixTuningMutationOpts = mutationOptions({
     mutationFn: (data: {defaultAutofixAutomationTuning: boolean}) =>
-      fetchMutation<Organization>({
-        method: 'PUT',
-        url: orgEndpoint,
-        data: {
-          defaultAutofixAutomationTuning: data.defaultAutofixAutomationTuning
-            ? 'medium'
-            : 'off',
-        },
+      apiFetch<Organization>({
+        queryKey: [
+          orgEndpoint,
+          {
+            method: 'PUT',
+            data: {
+              defaultAutofixAutomationTuning: data.defaultAutofixAutomationTuning
+                ? 'medium'
+                : 'off',
+            },
+          },
+        ],
       }),
     onSuccess: updateOrganization,
   });

@@ -1,6 +1,6 @@
 ---
 name: frontend-data-fetching
-description: Fetch data in Sentry's frontend with TanStack Query and apiOptions. Use when adding or editing React code in static/ that calls the API — useQuery/useMutation/useInfiniteQuery, apiOptions, queryOptions/mutationOptions, fetchMutation, reading response headers/pagination, or conditional fetching. Trigger on "fetch data", "add an API call", "useQuery", "useMutation", "apiOptions", "queryFn", "pagination headers", "X-Hits", or "why is my query type wrong".
+description: Fetch data in Sentry's frontend with TanStack Query and apiOptions. Use when adding or editing React code in static/ that calls the API — useQuery/useMutation/useInfiniteQuery, apiOptions, queryOptions/mutationOptions, apiFetch in a mutationFn, reading response headers/pagination, or conditional fetching. Trigger on "fetch data", "add an API call", "useQuery", "useMutation", "apiOptions", "queryFn", "pagination headers", "X-Hits", or "why is my query type wrong".
 ---
 
 # Frontend Data Fetching (TanStack Query + apiOptions)
@@ -48,14 +48,14 @@ useQuery<ResponseType, RequestError>({...})
 // ✅ Let types be inferred — annotate the mutationFn/queryFn instead
 useMutation({
   mutationFn: (variables: MyVariables) =>
-    fetchMutation<MyResponse>({...}),
+    apiFetch<MyResponse>({queryKey: [url, {...}]}),
 })
 ```
 
 Specific rules:
 
 1. **Type the `mutationFn` parameters**, not the hook/function generics. The variables type flows from the `mutationFn` signature.
-2. **Use `fetchMutation<T>`** to type the return value — the generic on `fetchMutation` is correct because it types the API response.
+2. **Use `apiFetch<T>`** to type the return value — the generic on `apiFetch` is correct because it types the API response. A `mutationFn` returning `apiFetch(...)` resolves to `ApiResponse<T>` (`{json, headers, status}`), so `onSuccess`/`mutateAsync` consumers read `.json`.
 3. **Never type the error generic as `RequestError`** — that's a type assertion in disguise. The error is `Error` by default. Use runtime narrowing (`if (error instanceof RequestError)`) when you need `RequestError`-specific properties.
 4. **Never explicitly type the context** — it is inferred from what `onMutate` returns. Creating a separate `type FooContext = {...}` and passing it as a generic is unnecessary.
 5. **Same rule applies to queries** — `useQuery`, `queryOptions`, `useInfiniteQuery`, etc. Types flow from `queryFn` and `select`.
@@ -65,7 +65,7 @@ Specific rules:
 type MyContext = {previousData: Item[]};
 
 mutationOptions<Item, RequestError, UpdateItemVars, MyContext>({
-  mutationFn: variables => fetchMutation({...}),
+  mutationFn: variables => apiFetch({queryKey: [url, {...}]}),
   onMutate: async () => {
     const previousData = queryClient.getQueryData(itemQueryOptions);
     return {previousData};
@@ -78,7 +78,7 @@ mutationOptions<Item, RequestError, UpdateItemVars, MyContext>({
 // ✅ Everything is inferred
 mutationOptions({
   mutationFn: (variables: UpdateItemVars) =>
-    fetchMutation<Item>({...}),
+    apiFetch<Item>({queryKey: [url, {...}]}),
   onMutate: async () => {
     const previousData = queryClient.getQueryData(itemQueryOptions);
     return {previousData};

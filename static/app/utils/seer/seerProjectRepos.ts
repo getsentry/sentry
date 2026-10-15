@@ -8,9 +8,9 @@ import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import type {
   SeerProjectMutateRepoPayload,
@@ -123,10 +123,8 @@ export function getMutateSeerProjectRepoOptions({
 
   return mutationOptions({
     mutationFn: (data: SeerProjectMutateRepoPayload) => {
-      return fetchMutation<SeerProjectReposResponse>({
-        method: 'PUT',
-        url: singleUrl,
-        data,
+      return apiFetch<SeerProjectReposResponse>({
+        queryKey: [singleUrl, {method: 'PUT', data}],
       });
     },
     onMutate: async (data: SeerProjectMutateRepoPayload) => {
@@ -216,11 +214,7 @@ export function getDeleteSeerProjectRepoOptions({
         repoId,
       }).queryKey;
 
-      return fetchMutation({
-        method: 'DELETE',
-        url: singleUrl,
-        data: {repoId},
-      });
+      return apiFetch({queryKey: [singleUrl, {method: 'DELETE', data: {repoId}}]});
     },
     onMutate: async ({repoId}: {repoId: string}) => {
       const singleQueryKey = getSeerProjectRepoQueryOptions({
@@ -406,11 +400,7 @@ export function getMutateSeerProjectReposOptionsAddRepo({
 
   return mutationOptions({
     mutationFn: (data: {repos: SeerProjectRepoCreateInput[]}) => {
-      return fetchMutation({
-        method: 'POST',
-        url: infiniteUrl,
-        data,
-      });
+      return apiFetch({queryKey: [infiniteUrl, {method: 'POST', data}]});
     },
     onMutate: async (data: {repos: SeerProjectRepoCreateInput[]}) => {
       await queryClient.cancelQueries({queryKey: [infiniteUrl], exact: false});

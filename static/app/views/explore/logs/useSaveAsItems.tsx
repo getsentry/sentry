@@ -116,7 +116,7 @@ export function useSaveAsItems({
         });
         openSaveQueryModal({
           organization,
-          saveQuery,
+          saveQuery: variables => saveQuery(variables).then(({json}) => json),
           source: 'table',
           traceItemDataset: TraceItemDataset.LOGS,
         });

@@ -10,10 +10,10 @@ import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const NO_ACCESS_REASON = t(
@@ -65,7 +65,7 @@ export function useInstallationSettings(
     );
     const integrationMutationOptions = mutationOptions({
       mutationFn: (data: Record<string, unknown>) =>
-        fetchMutation({method: 'POST', url: integrationEndpoint, data}),
+        apiFetch({queryKey: [integrationEndpoint, {method: 'POST', data}]}),
       onSuccess: () =>
         queryClient.invalidateQueries({queryKey: integrationQueryOptions.queryKey}),
     });

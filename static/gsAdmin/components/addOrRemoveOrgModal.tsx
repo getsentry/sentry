@@ -8,8 +8,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ORG_ROLES} from 'sentry/constants';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
@@ -44,12 +44,13 @@ function AddToOrgModal({
 }: AddOrRemoveOrgModalProps) {
   const mutation = useMutation({
     mutationFn: (data: AddToOrgFormValues) =>
-      fetchMutation({
-        url: getApiUrl('/customers/$organizationIdOrSlug/users/$userId/members/', {
-          path: {organizationIdOrSlug: data.organizationSlug, userId},
-        }),
-        method: 'POST',
-        data: {orgRole: data.role},
+      apiFetch({
+        queryKey: [
+          getApiUrl('/customers/$organizationIdOrSlug/users/$userId/members/', {
+            path: {organizationIdOrSlug: data.organizationSlug, userId},
+          }),
+          {method: 'POST', data: {orgRole: data.role}},
+        ],
       }),
     onSuccess: () => {
       closeModal();
@@ -122,11 +123,13 @@ function RemoveFromOrgModal({
 }: AddOrRemoveOrgModalProps) {
   const mutation = useMutation({
     mutationFn: (data: RemoveFromOrgFormValues) =>
-      fetchMutation({
-        url: getApiUrl('/customers/$organizationIdOrSlug/users/$userId/members/', {
-          path: {organizationIdOrSlug: data.organizationSlug, userId},
-        }),
-        method: 'DELETE',
+      apiFetch({
+        queryKey: [
+          getApiUrl('/customers/$organizationIdOrSlug/users/$userId/members/', {
+            path: {organizationIdOrSlug: data.organizationSlug, userId},
+          }),
+          {method: 'DELETE'},
+        ],
       }),
     onSuccess: () => {
       closeModal();

@@ -1,8 +1,8 @@
 import {useEffect, useRef} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {AuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';
 import type {EmailAuthResult} from 'sentry/views/authV2/authLogin/hooks/useEmailAuth';
 import type {AuthenticatedResult, MfaMethod} from 'sentry/views/authV2/authLogin/types';
@@ -27,12 +27,13 @@ export function useDemoLogin({authOrganization, enabled, nextUri, onAuthResult}:
   const {mutate: authenticate, reset} = useMutation({
     throwOnError: true,
     mutationFn: async (slug: string): Promise<EmailAuthResult> => {
-      const response = await fetchMutation<DemoAuthResponse>({
-        url: getApiUrl('/auth/organizations/$organizationIdOrSlug/demo/', {
-          path: {organizationIdOrSlug: slug},
-        }),
-        method: 'POST',
-        data: {nextUri: nextUri ?? null},
+      const {json: response} = await apiFetch<DemoAuthResponse>({
+        queryKey: [
+          getApiUrl('/auth/organizations/$organizationIdOrSlug/demo/', {
+            path: {organizationIdOrSlug: slug},
+          }),
+          {method: 'POST', data: {nextUri: nextUri ?? null}},
+        ],
       }).catch(error => {
         throw new Error('Demo authentication failed', {cause: error});
       });

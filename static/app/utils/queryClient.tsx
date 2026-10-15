@@ -7,11 +7,10 @@ import type {
 import {useQuery} from '@tanstack/react-query';
 
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiFetch, QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {selectJson} from 'sentry/utils/api/apiOptions';
 import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
-import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
-import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 export interface UseApiQueryOptions<TApiResponse, TError = RequestError> extends Omit<
@@ -117,32 +116,4 @@ export function setApiQueryData<TResponseData>(
   );
 
   return updateResult?.json;
-}
-
-type ApiMutationVariables = {
-  method: 'PUT' | 'POST' | 'PATCH' | 'DELETE';
-  url: ReturnType<typeof getApiUrl>;
-  data?: Record<string, unknown>;
-  options?: Pick<
-    QueryKeyEndpointOptions,
-    'includeAllArgs' | 'query' | 'headers' | 'host'
-  >;
-};
-
-/**
- * This method can be used as a default `mutationFn` with `useMutation` hook.
- */
-export function fetchMutation<TResponseData = unknown>(
-  variables: ApiMutationVariables
-): Promise<TResponseData> {
-  const {method, url, options, data} = variables;
-
-  return QUERY_API_CLIENT.requestPromise(url, {
-    includeAllArgs: options?.includeAllArgs,
-    method,
-    query: options?.query,
-    headers: options?.headers,
-    host: options?.host,
-    data,
-  });
 }

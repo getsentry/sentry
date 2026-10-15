@@ -18,8 +18,9 @@ import {t, tct} from 'sentry/locale';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -79,20 +80,21 @@ export function PrivateGamingSdkAccessModal({
   );
 
   const mutation = useMutation<
-    ConsoleSdkInviteResponse,
+    ApiResponse<ConsoleSdkInviteResponse>,
     RequestError,
     ConsoleSdkInviteRequest
   >({
     mutationFn: ({platforms}: ConsoleSdkInviteRequest) =>
-      fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/console-sdk-invites/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data: {platforms},
+      apiFetch<ConsoleSdkInviteResponse>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/console-sdk-invites/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {method: 'POST', data: {platforms}},
+        ],
       }),
     onSuccess: (response, {platforms}) => {
-      const platformsWithErrors = response.errors?.map(e => e.platform) ?? [];
+      const platformsWithErrors = response.json.errors?.map(e => e.platform) ?? [];
       const successfulPlatforms = platforms.filter(
         platform => !platformsWithErrors.includes(platform)
       );

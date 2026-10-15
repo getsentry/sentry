@@ -11,9 +11,9 @@ import {t} from 'sentry/locale';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {Authenticator} from 'sentry/types/auth';
 import {generateOrgSlugUrl} from 'sentry/utils';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getPendingInvite} from 'sentry/utils/getPendingInvite';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -33,11 +33,13 @@ export function useAccountSecurityEnrollActions({
 
   const {mutate: deleteAuthenticator} = useMutation({
     mutationFn: (authenticatorId: string) =>
-      fetchMutation({
-        url: getApiUrl('/users/$userId/authenticators/$authId/', {
-          path: {userId: 'me', authId: authenticatorId},
-        }),
-        method: 'DELETE',
+      apiFetch({
+        queryKey: [
+          getApiUrl('/users/$userId/authenticators/$authId/', {
+            path: {userId: 'me', authId: authenticatorId},
+          }),
+          {method: 'DELETE'},
+        ],
       }),
     onError: () => addErrorMessage(t('Error removing authenticator')),
     onSuccess: () => {

@@ -8,8 +8,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -29,12 +29,13 @@ function EndPeriodEarlyModal({
 }: EndPeriodEarlyModalProps) {
   const mutation = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl('/customers/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: orgId},
-        }),
-        method: 'PUT',
-        data: {endPeriodEarly: true},
+      apiFetch({
+        queryKey: [
+          getApiUrl('/customers/$organizationIdOrSlug/', {
+            path: {organizationIdOrSlug: orgId},
+          }),
+          {method: 'PUT', data: {endPeriodEarly: true}},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage('Current period ended successfully');

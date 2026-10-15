@@ -20,9 +20,9 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
@@ -56,21 +56,21 @@ export default function LegacyWebhookDetails() {
   const toggleMutation = useMutation({
     mutationFn: (shouldEnable: boolean) => {
       addLoadingMessage(shouldEnable ? t('Enabling…') : t('Disabling…'));
-      return fetchMutation<LegacyWebhookResponse>({
-        method: 'POST',
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
-          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
-        ),
-        data: {urls: data?.urls ?? [], enabled: shouldEnable},
+      return apiFetch<LegacyWebhookResponse>({
+        queryKey: [
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/', {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          }),
+          {method: 'POST', data: {urls: data?.urls ?? [], enabled: shouldEnable}},
+        ],
       });
     },
-    onSuccess: (responseData, shouldEnable) => {
+    onSuccess: (response, shouldEnable) => {
       addSuccessMessage(shouldEnable ? t('Webhooks enabled') : t('Webhooks disabled'));
-      queryClient.setQueryData(webhookQueryOptions.queryKey, {
-        json: responseData,
-        headers: {},
-      });
+      queryClient.setQueryData(webhookQueryOptions.queryKey, response);
     },
     onError: (_error, shouldEnable) => {
       addErrorMessage(
@@ -82,22 +82,22 @@ export default function LegacyWebhookDetails() {
   const saveMutation = useMutation({
     mutationFn: (urls: string[]) => {
       addLoadingMessage(t('Saving changes…'));
-      return fetchMutation<LegacyWebhookResponse>({
-        method: 'POST',
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
-          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
-        ),
-        data: {urls, enabled: data?.enabled ?? true},
+      return apiFetch<LegacyWebhookResponse>({
+        queryKey: [
+          getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/', {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+            },
+          }),
+          {method: 'POST', data: {urls, enabled: data?.enabled ?? true}},
+        ],
       });
     },
-    onSuccess: responseData => {
+    onSuccess: response => {
       addSuccessMessage(t('Webhook URLs saved successfully.'));
       setUrlsText(null);
-      queryClient.setQueryData(webhookQueryOptions.queryKey, {
-        json: responseData,
-        headers: {},
-      });
+      queryClient.setQueryData(webhookQueryOptions.queryKey, response);
     },
     onError: () => {
       addErrorMessage(t('Unable to save webhook URLs.'));
@@ -107,21 +107,25 @@ export default function LegacyWebhookDetails() {
   const testMutation = useMutation({
     mutationFn: () => {
       addLoadingMessage(t('Sending test event…'));
-      return fetchMutation({
-        method: 'POST',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/test-fire-actions/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        data: {
-          actions: [
-            {
-              type: 'webhook',
-              data: {},
-              config: {target_identifier: 'webhooks'},
+      return apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/test-fire-actions/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              actions: [
+                {
+                  type: 'webhook',
+                  data: {},
+                  config: {target_identifier: 'webhooks'},
+                },
+              ],
+              projectSlug: project.slug,
             },
-          ],
-          projectSlug: project.slug,
-        },
+          },
+        ],
       });
     },
     onSuccess: () => {

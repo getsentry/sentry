@@ -8,8 +8,8 @@ import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {MembershipSettingsProps} from 'sentry/types/overrides';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   membershipSchema,
   ReplayAccessMembersField,
@@ -38,8 +38,8 @@ export function OrganizationMembershipSettingsForm({
 
   const mutationOpts = mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
-      fetchMutation<Organization>({method: 'PUT', url: endpoint, data}),
-    onSuccess: updated => onSave(organization, updated),
+      apiFetch<Organization>({queryKey: [endpoint, {method: 'PUT', data}]}),
+    onSuccess: response => onSave(organization, response.json),
   });
 
   // All fields are disabled if the org lacks the invite-members feature or user lacks org:write

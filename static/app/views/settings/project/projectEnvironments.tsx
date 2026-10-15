@@ -21,11 +21,11 @@ import {t, tct} from 'sentry/locale';
 import type {TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDisplayName} from 'sentry/utils/environment';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -158,23 +158,24 @@ export default function ProjectEnvironments() {
 
   const toggleEnvironment = useMutation({
     mutationFn: ({environment, shouldHide}: ToggleEnvironmentVariables) =>
-      fetchMutation({
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/$environment/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: params.projectId,
-              // Django decodes route params before the endpoint calls
-              // `Environment.get_name_from_path_segment()`, which unquotes the value again.
-              // Pre-encode here so `getApiUrl`'s normal path-param encoding produces the
-              // double-encoded URL needed to preserve literal percent sequences in names.
-              environment: encodeURIComponent(environment.name),
-            },
-          }
-        ),
-        method: 'PUT',
-        data: {isHidden: shouldHide},
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/$environment/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: params.projectId,
+                // Django decodes route params before the endpoint calls
+                // `Environment.get_name_from_path_segment()`, which unquotes the value again.
+                // Pre-encode here so `getApiUrl`'s normal path-param encoding produces the
+                // double-encoded URL needed to preserve literal percent sequences in names.
+                environment: encodeURIComponent(environment.name),
+              },
+            }
+          ),
+          {method: 'PUT', data: {isHidden: shouldHide}},
+        ],
       }),
     onMutate: async ({environment}) => {
       await queryClient.cancelQueries({queryKey: environmentsQueryOptions.queryKey});

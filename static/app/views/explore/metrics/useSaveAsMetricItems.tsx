@@ -102,7 +102,7 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
         });
         openSaveQueryModal({
           organization,
-          saveQuery,
+          saveQuery: variables => saveQuery(variables).then(({json}) => json),
           source: 'table',
           traceItemDataset: TraceItemDataset.TRACEMETRICS,
         });

@@ -6,8 +6,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {Relocation} from 'admin/types';
@@ -27,18 +27,19 @@ export function RelocationAbortModal({
 }: Props) {
   const mutation = useMutation({
     mutationFn: () =>
-      fetchMutation<Relocation>({
-        method: 'PUT',
-        url: getApiUrl('/relocations/$relocationUuid/abort/', {
-          path: {relocationUuid: relocation.uuid},
-        }),
-        options: {host: relocation.region.url},
+      apiFetch<Relocation>({
+        queryKey: [
+          getApiUrl('/relocations/$relocationUuid/abort/', {
+            path: {relocationUuid: relocation.uuid},
+          }),
+          {method: 'PUT', host: relocation.region.url},
+        ],
       }),
-    onSuccess: rawRelocation => {
+    onSuccess: response => {
       addSuccessMessage(
         'This relocation will be immediately halted at the next opportunity.'
       );
-      onSuccess?.(rawRelocation);
+      onSuccess?.(response.json);
       closeModal();
     },
     onError: (error: unknown) => {

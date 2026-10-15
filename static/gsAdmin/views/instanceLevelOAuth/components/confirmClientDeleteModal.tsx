@@ -6,8 +6,8 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Props = ModalRenderProps & {
@@ -20,11 +20,13 @@ export function ConfirmClientDeleteModal({Body, Footer, Header, clientID, name}:
 
   const deleteClient = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl('/_admin/instance-level-oauth/$clientId/', {
-          path: {clientId: clientID ?? ''},
-        }),
-        method: 'DELETE',
+      apiFetch({
+        queryKey: [
+          getApiUrl('/_admin/instance-level-oauth/$clientId/', {
+            path: {clientId: clientID ?? ''},
+          }),
+          {method: 'DELETE'},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage(`Client "${name}" deleted successfully`);

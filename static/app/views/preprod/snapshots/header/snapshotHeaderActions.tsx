@@ -30,10 +30,10 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarUser} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -102,18 +102,19 @@ export function SnapshotHeaderActions({
     {forced: boolean; successMessage: string}
   >({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/preprodartifacts/$artifactId/approve/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              artifactId: data.head_artifact_id,
-            },
-          }
-        ),
-        method: 'POST',
-        data: {feature_type: 'snapshots'},
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/preprodartifacts/$artifactId/approve/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                artifactId: data.head_artifact_id,
+              },
+            }
+          ),
+          {method: 'POST', data: {feature_type: 'snapshots'}},
+        ],
       }),
     onMutate: ({forced}) => {
       trackAnalytics('preprod.snapshots.details.approve_clicked', {
@@ -152,18 +153,19 @@ export function SnapshotHeaderActions({
 
   const {mutate: rerunStatusChecks} = useMutation<unknown, RequestError>({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/preprod-artifact/rerun-status-checks/$headArtifactId/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              headArtifactId: data.head_artifact_id,
-            },
-          }
-        ),
-        method: 'POST',
-        data: {check_types: ['snapshots']},
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/preprod-artifact/rerun-status-checks/$headArtifactId/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                headArtifactId: data.head_artifact_id,
+              },
+            }
+          ),
+          {method: 'POST', data: {check_types: ['snapshots']}},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage(t('Status checks rerun initiated'));
@@ -176,17 +178,19 @@ export function SnapshotHeaderActions({
 
   const {mutate: rerunComparison} = useMutation<unknown, RequestError>({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/recompare/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              snapshotId: data.head_artifact_id,
-            },
-          }
-        ),
-        method: 'POST',
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/recompare/',
+            {
+              path: {
+                organizationIdOrSlug: organizationSlug,
+                snapshotId: data.head_artifact_id,
+              },
+            }
+          ),
+          {method: 'POST'},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage(t('Re-run comparison initiated'));
@@ -199,7 +203,7 @@ export function SnapshotHeaderActions({
     unknown,
     RequestError
   >({
-    mutationFn: () => fetchMutation({url: apiUrl, method: 'DELETE'}),
+    mutationFn: () => apiFetch({queryKey: [apiUrl, {method: 'DELETE'}]}),
     onSuccess: () => {
       addSuccessMessage(t('Snapshot deleted'));
       // TODO(preprod): Redirect to snapshot builds list once that UI is added
@@ -221,7 +225,7 @@ export function SnapshotHeaderActions({
     unknown,
     RequestError
   >({
-    mutationFn: () => fetchMutation({url: archiveUrl, method: 'POST'}),
+    mutationFn: () => apiFetch({queryKey: [archiveUrl, {method: 'POST'}]}),
     onSuccess: () => {
       addSuccessMessage(
         t(

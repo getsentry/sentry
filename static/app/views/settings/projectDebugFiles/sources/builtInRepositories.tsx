@@ -10,9 +10,9 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {BuiltinSymbolSource} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 const SECTION_TITLE = t('Built-in Repositories');
 
@@ -82,21 +82,22 @@ export function BuiltInRepositories({
         initialValue={validBuiltInSymbolSources}
         mutationOptions={{
           mutationFn: (data: Partial<DetailedProject>) =>
-            fetchMutation<DetailedProject>({
-              url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  projectIdOrSlug: project.slug,
-                },
-              }),
-              method: 'PUT',
-              data,
+            apiFetch<DetailedProject>({
+              queryKey: [
+                getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                  path: {
+                    organizationIdOrSlug: organization.slug,
+                    projectIdOrSlug: project.slug,
+                  },
+                }),
+                {method: 'PUT', data},
+              ],
             }),
           onSuccess: (response, variables) => {
-            ProjectsStore.onUpdateSuccess(response);
+            ProjectsStore.onUpdateSuccess(response.json);
             queryClient.setQueryData(projectQueryKey, prev => ({
               headers: prev?.headers ?? {},
-              json: response,
+              json: response.json,
             }));
             const {successMessage} = getRequestMessages(
               variables.builtinSymbolSources.length

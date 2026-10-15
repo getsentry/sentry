@@ -25,9 +25,9 @@ import {mergeSeerExtraFields} from 'sentry/components/searchQueryBuilder/askSeer
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -63,19 +63,23 @@ export function IssueListSeerComboBox({onSearch}: IssueListSeerComboBoxProps) {
   const issueListAskSeerMutationOptions = mutationOptions({
     mutationFn: async (queryToSubmit: string) => {
       const user = ConfigStore.get('user');
-      const data = await fetchMutation<SeerRawResponse>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        method: 'POST',
-        data: {
-          org_id: organization.id,
-          org_slug: organization.slug,
-          natural_language_query: queryToSubmit,
-          project_ids: selectedProjectIdsForMutation,
-          strategy: 'Errors',
-          user_email: user?.email,
-        },
+      const {json: data} = await apiFetch<SeerRawResponse>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/search-agent/translate/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {
+            method: 'POST',
+            data: {
+              org_id: organization.id,
+              org_slug: organization.slug,
+              natural_language_query: queryToSubmit,
+              project_ids: selectedProjectIdsForMutation,
+              strategy: 'Errors',
+              user_email: user?.email,
+            },
+          },
+        ],
       });
 
       return buildSeerMutationResult(data, selectedProjectIds, response =>

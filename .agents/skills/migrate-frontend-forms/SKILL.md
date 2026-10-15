@@ -157,10 +157,8 @@ The `getData` function transformed field data before sending to the API. In the 
     mutationFn: data => {
       // Transform data before API call (equivalent to getData)
       const transformed = {options: data};
-      return fetchMutation({
-        url: `/projects/${organization.slug}/${project.slug}/`,
-        method: 'PUT',
-        data: transformed,
+      return apiFetch({
+        queryKey: [`/projects/${organization.slug}/${project.slug}/`, {method: 'PUT', data: transformed}],
       });
     },
   }}
@@ -178,10 +176,8 @@ The `getData` function transformed field data before sending to the API. In the 
 ```tsx
 mutationOptions={{
   mutationFn: fieldData => {
-    return fetchMutation({
-      url: `/projects/${org}/${project}/`,
-      method: 'PUT',
-      data: {options: fieldData}, // getData equivalent
+    return apiFetch({
+      queryKey: [`/projects/${org}/${project}/`, {method: 'PUT', data: {options: fieldData}}], // getData equivalent
     });
   },
 }}
@@ -195,21 +191,21 @@ The `mutationFn` should be typed with the API's data type (e.g., `Partial<Organi
 // ❌ Don't use generic types - breaks field type narrowing
 mutationOptions={{
   mutationFn: (data: Record<string, unknown>) => {
-    return fetchMutation({url: '/user/', method: 'PUT', data: {options: data}});
+    return apiFetch({queryKey: ['/user/', {method: 'PUT', data: {options: data}}]});
   },
 }}
 
 // ❌ Don't tie mutation type to the zod schema
 mutationOptions={{
   mutationFn: (data: Partial<z.infer<typeof preferencesSchema>>) => {
-    return fetchMutation({url: '/user/', method: 'PUT', data: {options: data}});
+    return apiFetch({queryKey: ['/user/', {method: 'PUT', data: {options: data}}]});
   },
 }}
 
 // ✅ Use the API's data type
 mutationOptions={{
   mutationFn: (data: Partial<UserDetails>) => {
-    return fetchMutation({url: '/user/', method: 'PUT', data: {options: data}});
+    return apiFetch({queryKey: ['/user/', {method: 'PUT', data: {options: data}}]});
   },
 }}
 ```
@@ -221,7 +217,7 @@ Make sure the zod schema's types are compatible with (i.e., assignable to) the A
 ```tsx
 // ❌ Generics on useMutation — NEVER do this
 const mutation = useMutation<CodeOwner, RequestError, [Payload]>({
-  mutationFn: ([payload]) => fetchMutation({url, method: 'POST', data: payload}),
+  mutationFn: ([payload]) => apiFetch({queryKey: [url, {method: 'POST', data: payload}]}),
 });
 
 // ❌ Generics on mutationOptions — NEVER do this either
@@ -233,19 +229,17 @@ type MyContext = {changeId: string};
 // ❌ RequestError as error generic — it's a type assertion in disguise
 // Other things can go wrong that would NOT yield a RequestError
 
-// ✅ Type the mutationFn payload; fetchMutation<T> carries the return type
+// ✅ Type the mutationFn payload; apiFetch<T> carries the return type
 const mutation = useMutation({
   mutationFn: (payload: {codeMappingId: string; raw: string}) =>
-    fetchMutation<CodeOwner>({
-      url: `/projects/${org}/${project}/codeowners/`,
-      method: 'POST',
-      data: payload,
+    apiFetch<CodeOwner>({
+      queryKey: [`/projects/${org}/${project}/codeowners/`, {method: 'POST', data: payload}],
     }),
 });
 
 // ✅ Context is inferred from onMutate, error is Error by default
 mutationOptions({
-  mutationFn: (variables: MyVars) => fetchMutation<MyResponse>({...}),
+  mutationFn: (variables: MyVars) => apiFetch<MyResponse>({queryKey: [url, {...}]}),
   onMutate: async () => {
     return {changeId: uniqueId()};  // context type inferred from this
   },
@@ -392,7 +386,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
   schema={schema}
   initialValue={project.fingerprintingRules}
   mutationOptions={{
-    mutationFn: data => fetchMutation({...}),
+    mutationFn: data => apiFetch({queryKey: [url, {...}]}),
     onSuccess: () => {
       // Custom success message (equivalent to saveMessage)
       addSuccessMessage(t('Changing fingerprint rules will apply to future events only.'));
@@ -419,7 +413,7 @@ The `formatMessageValue` controlled how the changed value appeared in success to
 
 ```tsx
 mutationOptions={{
-  mutationFn: data => fetchMutation({...}),
+  mutationFn: data => apiFetch({queryKey: [url, {...}]}),
   onSuccess: () => {
     // Just show the message, no value (equivalent to formatMessageValue: false)
     addSuccessMessage(t('Rules updated'));
@@ -427,8 +421,8 @@ mutationOptions={{
 }}
 
 // Or if you want to show a formatted value:
-onSuccess: (data) => {
-  addSuccessMessage(t('Slug changed to %s', data.slug));
+onSuccess: (response) => {
+  addSuccessMessage(t('Slug changed to %s', response.json.slug));
 },
 ```
 
@@ -473,7 +467,7 @@ const form = useScrapsForm({
   schema={schema}
   initialValue={settings.enabled}
   mutationOptions={{
-    mutationFn: data => fetchMutation({...}),
+    mutationFn: data => apiFetch({queryKey: [url, {...}]}),
     onError: () => {
       // The field automatically shows error state via TanStack Query
       // If you need to reset the value, you can pass a reset callback
@@ -530,7 +524,7 @@ const slugSchema = z.object({
 function SlugForm({project}: {project: Project}) {
   const mutation = useMutation({
     mutationFn: (data: {slug: string}) =>
-      fetchMutation({url: `/projects/${org}/${project.slug}/`, method: 'PUT', data}),
+      apiFetch({queryKey: [`/projects/${org}/${project.slug}/`, {method: 'PUT', data}]}),
   });
 
   const form = useScrapsForm({
@@ -726,7 +720,7 @@ For a nullable number field, use `z.number().nullable()` in the form schema and 
 ## Migration Checklist
 
 - [ ] Replace JsonForm/FormModel with useScrapsForm or AutoSaveForm
-- [ ] No generics on `useMutation` — type the `mutationFn` payload and use `fetchMutation<T>` for the return type
+- [ ] No generics on `useMutation` — type the `mutationFn` payload and use `apiFetch<T>` for the return type
 - [ ] When using `useScrapsForm` with a Save button: mutation runs in `onSubmit`, triggered by `<form.SubmitButton>` (no form that's never submitted)
 - [ ] Convert field config objects to JSX AppField components
 - [ ] Validate conditionally required fields on the rendered `AppField`, with a permissive form schema

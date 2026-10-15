@@ -545,17 +545,15 @@ import {useMutation} from '@tanstack/react-query';
 
 import {setFieldErrors} from '@sentry/scraps/form';
 
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 function MyForm() {
   const mutation = useMutation({
     mutationFn: (data: {email: string; username: string}) => {
-      return fetchMutation({
-        url: '/users/',
-        method: 'POST',
-        data,
+      return apiFetch({
+        queryKey: ['/users/', {method: 'POST', data}],
       });
     },
   });
@@ -626,7 +624,7 @@ import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 
 const schema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
@@ -640,15 +638,13 @@ function SettingsForm() {
       initialValue={user.displayName}
       mutationOptions={{
         mutationFn: data => {
-          return fetchMutation({
-            url: '/user/',
-            method: 'PUT',
-            data,
+          return apiFetch({
+            queryKey: ['/user/', {method: 'PUT', data}],
           });
         },
-        onSuccess: data => {
+        onSuccess: response => {
           // Update React Query cache
-          queryClient.setQueryData(['user'], old => ({...old, ...data}));
+          queryClient.setQueryData(['user'], old => ({...old, ...response.json}));
         },
       }}
     >
@@ -768,15 +764,13 @@ confirm={value => value === 'delete' ? 'This will permanently delete all data!' 
 ```tsx
 import {useMutation} from '@tanstack/react-query';
 
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 
 function MyForm() {
   const mutation = useMutation({
     mutationFn: (data: FormData) => {
-      return fetchMutation({
-        url: '/endpoint/',
-        method: 'POST',
-        data,
+      return apiFetch({
+        queryKey: ['/endpoint/', {method: 'POST', data}],
       });
     },
     onSuccess: () => {
@@ -898,9 +892,9 @@ onSubmit: ({value}) => {
   return mutation.mutateAsync(value);
 };
 
-// ✅ Use mutations with fetchMutation and .catch(() => {})
+// ✅ Use mutations with apiFetch and .catch(() => {})
 const mutation = useMutation({
-  mutationFn: data => fetchMutation({url: '/users/', method: 'POST', data}),
+  mutationFn: data => apiFetch({queryKey: ['/users/', {method: 'POST', data}]}),
 });
 
 onSubmit: ({value}) => {
@@ -940,7 +934,7 @@ z.string().min(1, 'Email address is required');
 ```tsx
 // ❌ Don't use toasts for auto-save status
 mutationOptions={{
-  mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
+  mutationFn: (data) => apiFetch({queryKey: ['/user/', {method: 'PUT', data}]}),
   onSuccess: () => {
     addSuccessMessage('Saved!'); // ❌ noisy and disruptive
   },
@@ -948,9 +942,9 @@ mutationOptions={{
 
 // ✅ Rely on built-in inline indicators (spinner, checkmark, warning icon)
 mutationOptions={{
-  mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
-  onSuccess: (data) => {
-    queryClient.setQueryData(['user'], old => ({...old, ...data}));
+  mutationFn: (data) => apiFetch({queryKey: ['/user/', {method: 'PUT', data}]}),
+  onSuccess: (response) => {
+    queryClient.setQueryData(['user'], old => ({...old, ...response.json}));
     // No toast needed - AutoSaveForm shows a checkmark automatically
   },
 }}
@@ -963,14 +957,14 @@ Always update the data store or cache in `onSuccess`. Without this, toggling a f
 ```tsx
 // ❌ Don't forget to update the cache after auto-save
 mutationOptions={{
-  mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
+  mutationFn: (data) => apiFetch({queryKey: ['/user/', {method: 'PUT', data}]}),
 }}
 
 // ✅ Update React Query cache on success
 mutationOptions={{
-  mutationFn: (data) => fetchMutation({url: '/user/', method: 'PUT', data}),
-  onSuccess: (data) => {
-    queryClient.setQueryData(['user'], old => ({...old, ...data}));
+  mutationFn: (data) => apiFetch({queryKey: ['/user/', {method: 'PUT', data}]}),
+  onSuccess: (response) => {
+    queryClient.setQueryData(['user'], old => ({...old, ...response.json}));
   },
 }}
 ```
@@ -988,12 +982,12 @@ useMutation<Response, RequestError, Variables>({...})
 
 // ❌ Don't use generic types - breaks field type narrowing
 const opts = mutationOptions({
-  mutationFn: (data: Record<string, unknown>) => fetchMutation({...}),
+  mutationFn: (data: Record<string, unknown>) => apiFetch({queryKey: [url, {...}]}),
 });
 
 // ❌ Don't tie mutation type to the zod schema
 const opts = mutationOptions({
-  mutationFn: (data: Partial<z.infer<typeof preferencesSchema>>) => fetchMutation({...}),
+  mutationFn: (data: Partial<z.infer<typeof preferencesSchema>>) => apiFetch({queryKey: [url, {...}]}),
 });
 
 // ❌ Don't explicitly type context — it's inferred from onMutate return
@@ -1004,7 +998,7 @@ type MyContext = {previousData: UserDetails};
 // ✅ Use the API's data type on mutationFn, let everything else be inferred
 const opts = mutationOptions({
   mutationFn: (data: Partial<UserDetails>) =>
-    fetchMutation<UserDetails>({...}),
+    apiFetch<UserDetails>({queryKey: [url, {...}]}),
 });
 ```
 

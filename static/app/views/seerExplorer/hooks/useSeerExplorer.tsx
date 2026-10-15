@@ -7,15 +7,11 @@ import {useTimezone} from '@sentry/scraps/datetime';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
-import {
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-} from 'sentry/utils/queryClient';
+import {getApiQueryData, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -256,7 +252,7 @@ export const useSeerExplorer = () => {
 
   // Queries and mutations
   const {mutate: sendMessageMutate, isPending: isSendingMessage} = useMutation<
-    SeerExplorerChatResponse,
+    ApiResponse<SeerExplorerChatResponse>,
     RequestError,
     {
       chatPrompt: ChatPrompt | null;
@@ -284,22 +280,26 @@ export const useSeerExplorer = () => {
     },
     mutationFn: async params => {
       const {url} = parseQueryKey(makeSeerExplorerQueryKey(params.orgSlug, params.runId));
-      return fetchMutation({
-        url,
-        method: 'POST',
-        data: {
-          query: params.query,
-          insert_index: params.insertIndex,
-          on_page_context: params.screenshot,
-          page_name: params.pageName,
-          page_location: params.pageLocation,
-          sent_at: params.sentAt,
-          override_ce_enable: params.overrideCtxEngEnable,
-          override_bash_mode_enabled: params.overrideBashModeEnabled,
-          override_code_mode_enable: params.overrideCodeModeEnable,
-          chat_prompt: params.chatPrompt?.text,
-          chat_prompt_context: params.chatPrompt?.context,
-        },
+      return apiFetch<SeerExplorerChatResponse>({
+        queryKey: [
+          url,
+          {
+            method: 'POST',
+            data: {
+              query: params.query,
+              insert_index: params.insertIndex,
+              on_page_context: params.screenshot,
+              page_name: params.pageName,
+              page_location: params.pageLocation,
+              sent_at: params.sentAt,
+              override_ce_enable: params.overrideCtxEngEnable,
+              override_bash_mode_enabled: params.overrideBashModeEnabled,
+              override_code_mode_enable: params.overrideCodeModeEnable,
+              chat_prompt: params.chatPrompt?.text,
+              chat_prompt_context: params.chatPrompt?.context,
+            },
+          },
+        ],
       });
     },
     onSuccess: (response, params) => {
@@ -310,7 +310,7 @@ export const useSeerExplorer = () => {
         // Prefer the UUID; fall back to the numeric run_id for legacy runs.
         dispatch({
           type: 'set created run id',
-          payload: response.sentry_run_id ?? response.run_id,
+          payload: response.json.sentry_run_id ?? response.json.run_id,
         });
       } else {
         // invalidate the query so fresh data is fetched
@@ -342,7 +342,7 @@ export const useSeerExplorer = () => {
   });
 
   const {mutate: userInputMutate} = useMutation<
-    SeerExplorerUpdateResponse,
+    ApiResponse<SeerExplorerUpdateResponse>,
     RequestError,
     {
       inputId: string;
@@ -359,16 +359,20 @@ export const useSeerExplorer = () => {
       return markSessionProcessing(params.orgSlug, params.runId);
     },
     mutationFn: async params => {
-      return fetchMutation({
-        url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
-        method: 'POST',
-        data: {
-          payload: {
-            type: 'user_input_response',
-            input_id: params.inputId,
-            response_data: params.responseData,
+      return apiFetch<SeerExplorerUpdateResponse>({
+        queryKey: [
+          makeExplorerUpdateUrl(params.orgSlug, params.runId),
+          {
+            method: 'POST',
+            data: {
+              payload: {
+                type: 'user_input_response',
+                input_id: params.inputId,
+                response_data: params.responseData,
+              },
+            },
           },
-        },
+        ],
       });
     },
     onSuccess: (_, params) => {
@@ -396,7 +400,7 @@ export const useSeerExplorer = () => {
   });
 
   const {mutate: createPRMutate} = useMutation<
-    SeerExplorerUpdateResponse,
+    ApiResponse<SeerExplorerUpdateResponse>,
     RequestError,
     {orgSlug: string; runId: SeerExplorerRunId | null; repoName?: string}
   >({
@@ -422,15 +426,19 @@ export const useSeerExplorer = () => {
               : prev
         );
       }
-      return fetchMutation({
-        url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
-        method: 'POST',
-        data: {
-          payload: {
-            type: 'create_pr',
-            repo_name: params.repoName,
+      return apiFetch<SeerExplorerUpdateResponse>({
+        queryKey: [
+          makeExplorerUpdateUrl(params.orgSlug, params.runId),
+          {
+            method: 'POST',
+            data: {
+              payload: {
+                type: 'create_pr',
+                repo_name: params.repoName,
+              },
+            },
           },
-        },
+        ],
       });
     },
     onSuccess: (_, params) => {
@@ -453,7 +461,7 @@ export const useSeerExplorer = () => {
   });
 
   const {mutate: interruptRunMutate} = useMutation<
-    SeerExplorerUpdateResponse,
+    ApiResponse<SeerExplorerUpdateResponse>,
     RequestError,
     {
       orgSlug: string;
@@ -462,14 +470,18 @@ export const useSeerExplorer = () => {
   >({
     mutationFn: async params => {
       setHasSentInterrupt(true);
-      return fetchMutation({
-        url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
-        method: 'POST',
-        data: {
-          payload: {
-            type: 'interrupt',
+      return apiFetch<SeerExplorerUpdateResponse>({
+        queryKey: [
+          makeExplorerUpdateUrl(params.orgSlug, params.runId),
+          {
+            method: 'POST',
+            data: {
+              payload: {
+                type: 'interrupt',
+              },
+            },
           },
-        },
+        ],
       });
     },
     onError: () => {

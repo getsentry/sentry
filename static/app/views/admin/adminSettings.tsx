@@ -8,9 +8,9 @@ import {Stack} from '@sentry/scraps/layout';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
@@ -52,10 +52,11 @@ function useAdminOption(name: string, option: FieldDef) {
     required,
     adminMutationOptions: mutationOptions({
       mutationFn: (data: Record<string, boolean | string>) =>
-        fetchMutation({
-          url: getApiUrl('/internal/options/'),
-          method: 'PUT',
-          data: {[name]: data[fieldName]},
+        apiFetch({
+          queryKey: [
+            getApiUrl('/internal/options/'),
+            {method: 'PUT', data: {[name]: data[fieldName]}},
+          ],
         }),
       onSuccess: (_response, data) => {
         queryClient.setQueryData(optionsQueryOptions.queryKey, previous => {

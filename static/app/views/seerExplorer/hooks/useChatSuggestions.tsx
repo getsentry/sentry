@@ -6,9 +6,9 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -139,17 +139,21 @@ export function useChatSuggestions({
         route,
         allowStructured: allowStructuredContext,
       });
-      return fetchMutation<{suggestions: ChatSuggestion[]}>({
-        method: 'POST',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/chat-suggestions/', {
-          path: {organizationIdOrSlug: organization?.slug ?? ''},
-        }),
-        data: {
-          route,
-          route_params: params,
-          page_context: pageContext ?? '',
-          project_ids: selection.projects,
-        },
+      return apiFetch<{suggestions: ChatSuggestion[]}>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/seer/chat-suggestions/', {
+            path: {organizationIdOrSlug: organization?.slug ?? ''},
+          }),
+          {
+            method: 'POST',
+            data: {
+              route,
+              route_params: params,
+              page_context: pageContext ?? '',
+              project_ids: selection.projects,
+            },
+          },
+        ],
       });
     },
     enabled: enabled && hasLlmChatSuggestions && isPageReady && !hasTimedOut,
@@ -195,8 +199,12 @@ export function useChatSuggestions({
     if (query.isPending) {
       return {isLoading: true};
     }
-    if (query.data?.suggestions.length) {
-      return {isLoading: false, source: 'generated', suggestions: query.data.suggestions};
+    if (query.data?.json.suggestions.length) {
+      return {
+        isLoading: false,
+        source: 'generated',
+        suggestions: query.data.json.suggestions,
+      };
     }
     return fallbackState;
   }, [hasLlmChatSuggestions, hasTimedOut, query.isPending, query.data, fallbackState]);

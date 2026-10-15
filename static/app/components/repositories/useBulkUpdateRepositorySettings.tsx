@@ -4,9 +4,10 @@ import type {UseMutationOptions} from '@tanstack/react-query';
 import {getRepositoryWithSettingsQueryKey} from 'sentry/components/repositories/useRepositoryWithSettings';
 import type {Repository, RepositoryWithSettings} from 'sentry/types/integrations';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData} from 'sentry/utils/queryClient';
+import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type RepositorySettings =
@@ -37,13 +38,14 @@ export function useBulkUpdateRepositorySettings(
 
   return useMutation<RepositoryWithSettings[], Error, RepositorySettings>({
     mutationFn: data => {
-      return fetchMutation({
-        method: 'PUT',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/repos/settings/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        data,
-      });
+      return apiFetch<RepositoryWithSettings[]>({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/repos/settings/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+          {method: 'PUT', data},
+        ],
+      }).then(response => response.json);
     },
     ...options,
     onSettled: (data, error, variables, onMutateResult, context) => {

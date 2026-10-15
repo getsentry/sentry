@@ -6,8 +6,8 @@ import {
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
@@ -31,13 +31,14 @@ export const useUpdateGroupSearchViewStarred = (
   return useMutation<null, RequestError, UpdateGroupSearchViewStarredVariables>({
     ...options,
     mutationFn: ({id, starred}: UpdateGroupSearchViewStarredVariables) =>
-      fetchMutation<null>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/group-search-views/$viewId/starred/',
-          {path: {organizationIdOrSlug: organization.slug, viewId: id}}
-        ),
-        method: 'POST',
-        data: {starred},
+      apiFetch<null>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/group-search-views/$viewId/starred/',
+            {path: {organizationIdOrSlug: organization.slug, viewId: id}}
+          ),
+          {method: 'POST', data: {starred}},
+        ],
       }),
     onError: (error, variables, onMutateResult, context) => {
       addErrorMessage(

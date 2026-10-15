@@ -8,9 +8,9 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface PollPhaseConfig {
@@ -236,14 +236,16 @@ export function useSyncRepositories(
           startSyncing();
           phaseTimerRef.current.start();
 
-          fetchMutation({
-            method: 'POST',
-            url: getApiUrl(
-              '/organizations/$organizationIdOrSlug/integrations/$integrationId/repo-sync/',
-              {
-                path: {organizationIdOrSlug, integrationId},
-              }
-            ),
+          apiFetch({
+            queryKey: [
+              getApiUrl(
+                '/organizations/$organizationIdOrSlug/integrations/$integrationId/repo-sync/',
+                {
+                  path: {organizationIdOrSlug, integrationId},
+                }
+              ),
+              {method: 'POST'},
+            ],
           })
             .then(() => {
               query.refetch();

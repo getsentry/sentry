@@ -12,8 +12,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {PasswordStrengthIndicator} from 'sentry/components/passwordStrengthIndicator';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -37,10 +37,11 @@ export function PasswordResetForm({userId, token, onSuccess, onInvalidToken}: Pr
   const [submitError, setSubmitError] = useState<string>();
   const mutation = useMutation({
     mutationFn: (value: z.infer<typeof schema>) =>
-      fetchMutation<void>({
-        url: getApiUrl('/auth/recovery/confirm/'),
-        method: 'POST',
-        data: {userId, token, password: value.password},
+      apiFetch<void>({
+        queryKey: [
+          getApiUrl('/auth/recovery/confirm/'),
+          {method: 'POST', data: {userId, token, password: value.password}},
+        ],
       }),
     onSuccess,
     onError: error => {

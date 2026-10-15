@@ -8,10 +8,11 @@ import {Flex} from '@sentry/scraps/layout';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
+import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
@@ -44,30 +45,34 @@ function CreateReleaseIntegrationModal({
 
   const mutation = useMutation({
     mutationFn: (data: FormValues) =>
-      fetchMutation({
-        url: getApiUrl('/sentry-apps/'),
-        method: 'POST',
-        data: {
-          ...data,
-          organization: organization.slug,
-          isAlertable: false,
-          isInternal: true,
-          scopes: [
-            'project:read',
-            'project:write',
-            'team:read',
-            'team:write',
-            'project:releases',
-            'event:read',
-            'event:write',
-            'org:read',
-            'org:write',
-            'member:read',
-            'member:write',
-          ],
-          verifyInstall: false,
-          overview: `This internal integration was auto-generated to setup Releases for the ${project.slug} project. It is needed to provide the token used to create a release. If this integration is deleted, your Releases workflow will stop working!`,
-        },
+      apiFetch<SentryApp>({
+        queryKey: [
+          getApiUrl('/sentry-apps/'),
+          {
+            method: 'POST',
+            data: {
+              ...data,
+              organization: organization.slug,
+              isAlertable: false,
+              isInternal: true,
+              scopes: [
+                'project:read',
+                'project:write',
+                'team:read',
+                'team:write',
+                'project:releases',
+                'event:read',
+                'event:write',
+                'org:read',
+                'org:write',
+                'member:read',
+                'member:write',
+              ],
+              verifyInstall: false,
+              overview: `This internal integration was auto-generated to setup Releases for the ${project.slug} project. It is needed to provide the token used to create a release. If this integration is deleted, your Releases workflow will stop working!`,
+            },
+          },
+        ],
       }),
   });
 
@@ -78,8 +83,8 @@ function CreateReleaseIntegrationModal({
     onSubmit: ({value, formApi}) =>
       mutation
         .mutateAsync(value)
-        .then(integration => {
-          onCreateSuccess(integration);
+        .then(response => {
+          onCreateSuccess(response.json);
           addSuccessMessage(t('Created Release Integration'));
           closeModal();
         })

@@ -9,9 +9,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useParams} from 'sentry/utils/useParams';
 
 import {BroadcastEditForm} from 'admin/components/broadcastEditForm';
@@ -44,11 +44,7 @@ export function BroadcastDetails() {
 
   const updateMutation = useMutation({
     mutationFn: (params: {isActive: boolean} | {syncLocked: boolean}) =>
-      fetchMutation({
-        url: broadcastUrl,
-        method: 'PUT',
-        data: params,
-      }),
+      apiFetch({queryKey: [broadcastUrl, {method: 'PUT', data: params}]}),
     onSuccess: () => {
       addSuccessMessage('Broadcast updated.');
       queryClient.invalidateQueries({

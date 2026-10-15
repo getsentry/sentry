@@ -18,14 +18,10 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-} from 'sentry/utils/queryClient';
+import {getApiQueryData, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -61,10 +57,11 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
 
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
-      fetchMutation({
-        url: getApiUrl('/api-tokens/$tokenId/', {path: {tokenId: token.id}}),
-        method: 'PUT',
-        data,
+      apiFetch({
+        queryKey: [
+          getApiUrl('/api-tokens/$tokenId/', {path: {tokenId: token.id}}),
+          {method: 'PUT', data},
+        ],
       }),
     onSuccess: (_data, {name}) => {
       addSuccessMessage(t('Updated user auth token.'));

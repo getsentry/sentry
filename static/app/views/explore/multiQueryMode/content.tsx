@@ -152,7 +152,7 @@ function Content({datePageFilterProps}: ContentProps) {
                   });
                   openSaveQueryModal({
                     organization,
-                    saveQuery,
+                    saveQuery: variables => saveQuery(variables).then(({json}) => json),
                     source: 'toolbar',
                     traceItemDataset: TraceItemDataset.SPANS,
                   });

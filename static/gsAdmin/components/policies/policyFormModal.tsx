@@ -10,8 +10,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {readFileAsBase64} from 'sentry/utils/readFileAsBase64';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -68,9 +68,15 @@ export function PolicyFormModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isReadingFile, setIsReadingFile] = useState(false);
   const mutation = useMutation({
-    mutationFn: fetchMutation<Policy | PolicyRevision>,
-    onSuccess: data => {
-      onSuccess(data);
+    mutationFn: ({
+      url,
+      data,
+    }: {
+      data: Record<string, unknown>;
+      url: ReturnType<typeof getApiUrl>;
+    }) => apiFetch<Policy | PolicyRevision>({queryKey: [url, {method: 'POST', data}]}),
+    onSuccess: response => {
+      onSuccess(response.json);
       closeModal();
     },
     onError: error => {
@@ -108,7 +114,6 @@ export function PolicyFormModal({
             : getApiUrl('/policies/$policySlug/revisions/', {
                 path: {policySlug},
               }),
-          method: 'POST',
           data: isNewPolicy
             ? {
                 name: value.name,

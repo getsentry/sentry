@@ -13,10 +13,10 @@ import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project, ProjectKey} from 'sentry/types/project';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 const PREDEFINED_RATE_LIMIT_VALUES = [
@@ -86,14 +86,10 @@ export function KeyRateLimitsForm({
 
   const mutation = useMutation({
     mutationFn: (submitData: {rateLimit: ProjectKey['rateLimit']}) =>
-      fetchMutation<ProjectKey>({
-        url: endpoint,
-        method: 'PUT',
-        data: submitData,
-      }),
-    onSuccess: responseData => {
+      apiFetch<ProjectKey>({queryKey: [endpoint, {method: 'PUT', data: submitData}]}),
+    onSuccess: response => {
       addSuccessMessage(t('Successfully saved rate limit.'));
-      updateData(responseData);
+      updateData(response.json);
       form.reset();
     },
     onError: error => {

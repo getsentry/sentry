@@ -8,8 +8,8 @@ import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
@@ -79,17 +79,15 @@ export function NewInstanceLevelOAuthClient({Body, Footer, Header}: ModalRenderP
 
   const mutation = useMutation({
     mutationFn: (data: ClientFormValues) =>
-      fetchMutation<ClientResponse>({
-        url: getApiUrl('/_admin/instance-level-oauth/'),
-        method: 'POST',
-        data,
+      apiFetch<ClientResponse>({
+        queryKey: [getApiUrl('/_admin/instance-level-oauth/'), {method: 'POST', data}],
       }),
-    onSuccess: data => {
+    onSuccess: response => {
       openModal(deps => (
         <ClientSecretModal
           {...deps}
-          clientSecret={data.clientSecret}
-          clientID={data.clientID}
+          clientSecret={response.json.clientSecret}
+          clientID={response.json.clientID}
         />
       ));
     },

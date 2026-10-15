@@ -3,9 +3,10 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
@@ -30,16 +31,20 @@ async function startDashboardEditSession(
   const url = getApiUrl('/organizations/$organizationIdOrSlug/dashboards/generate/', {
     path: {organizationIdOrSlug: orgSlug},
   });
-  const response = await fetchMutation<{run_id: string}>({
-    url,
-    method: 'POST',
-    data: {
-      prompt: message,
-      current_dashboard: {
-        title: dashboard.title,
-        widgets: dashboard.widgets,
+  const {json: response} = await apiFetch<{run_id: string}>({
+    queryKey: [
+      url,
+      {
+        method: 'POST',
+        data: {
+          prompt: message,
+          current_dashboard: {
+            title: dashboard.title,
+            widgets: dashboard.widgets,
+          },
+        },
       },
-    },
+    ],
   });
   return Number(response.run_id);
 }
@@ -174,13 +179,19 @@ export function useSeerDashboardSession({
           // A session exists, send the message to the existing session
           const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
           const {url} = parseQueryKey(queryKey);
-          await fetchMutation({
-            url,
-            method: 'POST',
-            data: {
-              query: message,
-              ...(dashboard ? {on_page_context: buildEditOnPageContext(dashboard)} : {}),
-            },
+          await apiFetch({
+            queryKey: [
+              url,
+              {
+                method: 'POST',
+                data: {
+                  query: message,
+                  ...(dashboard
+                    ? {on_page_context: buildEditOnPageContext(dashboard)}
+                    : {}),
+                },
+              },
+            ],
           });
           queryClient.invalidateQueries({queryKey});
         }

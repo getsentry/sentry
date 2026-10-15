@@ -8,8 +8,8 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
@@ -30,7 +30,7 @@ export function RepoDefaultsForm({organization}: Props) {
   });
   const orgMutationOpts = mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
-      fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
+      apiFetch<Organization>({queryKey: [orgEndpoint, {method: 'PUT', data}]}),
     onSuccess: updateOrganization,
   });
 

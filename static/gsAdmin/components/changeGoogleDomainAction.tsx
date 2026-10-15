@@ -9,8 +9,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = {
   onUpdated: (data: any) => void;
@@ -44,28 +44,24 @@ function ChangeGoogleDomainModal({
   const [dryRunInfo, setDryRunInfo] = useState<string[]>([]);
 
   const mutation = useMutation({
-    mutationFn: async (data: {append: 'add' | 'swap'; newDomain: string}) => {
-      const result: {
-        dryrun_info: string[];
-        new_domain: string;
-      } = await fetchMutation({
-        url: getApiUrl('/customers/$organizationIdOrSlug/migrate-google-domain/', {
-          path: {organizationIdOrSlug: orgId},
-        }),
-        method: 'POST',
-        data: {...data, dryRun},
-      });
-      return result;
-    },
-    onSuccess: result => {
+    mutationFn: (data: {append: 'add' | 'swap'; newDomain: string}) =>
+      apiFetch<{dryrun_info: string[]; new_domain: string}>({
+        queryKey: [
+          getApiUrl('/customers/$organizationIdOrSlug/migrate-google-domain/', {
+            path: {organizationIdOrSlug: orgId},
+          }),
+          {method: 'POST', data: {...data, dryRun}},
+        ],
+      }),
+    onSuccess: response => {
       if (dryRun) {
-        setDryRunInfo(result.dryrun_info);
+        setDryRunInfo(response.json.dryrun_info);
         setDryRun(false);
         return;
       }
 
       closeModal();
-      onUpdated({newDomain: result.new_domain});
+      onUpdated({newDomain: response.json.new_domain});
     },
     onError: error => {
       closeModal();

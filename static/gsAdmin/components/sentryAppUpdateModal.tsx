@@ -12,8 +12,9 @@ import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
@@ -45,17 +46,18 @@ export function SentryAppUpdateModal(props: Props) {
 
   const mutation = useMutation({
     mutationFn: (data: {features: number[]; popularity: number}) =>
-      fetchMutation<SentryApp>({
-        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
-          path: {sentryAppIdOrSlug: sentryAppData.slug},
-        }),
-        method: 'PUT',
-        data: {...sentryAppData, ...data},
+      apiFetch<SentryApp>({
+        queryKey: [
+          getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+            path: {sentryAppIdOrSlug: sentryAppData.slug},
+          }),
+          {method: 'PUT', data: {...sentryAppData, ...data}},
+        ],
       }),
-    onSuccess: updatedSentryApp => {
+    onSuccess: response => {
       queryClient.setQueryData(sentryAppQueryOptions.queryKey, previous => ({
         headers: previous?.headers ?? {},
-        json: updatedSentryApp,
+        json: response.json,
       }));
       closeModal();
     },

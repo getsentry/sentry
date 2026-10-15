@@ -17,9 +17,9 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -62,18 +62,20 @@ export function PlayStationSettings({organization, project}: Props) {
     variables: removingCredential,
   } = useMutation<unknown, RequestError, {id: number}>({
     mutationFn: ({id}) =>
-      fetchMutation({
-        method: 'DELETE',
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/$tempestCredentialsId/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: project.slug,
-              tempestCredentialsId: id,
-            },
-          }
-        ),
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/projects/$organizationIdOrSlug/$projectIdOrSlug/tempest-credentials/$tempestCredentialsId/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: project.slug,
+                tempestCredentialsId: id,
+              },
+            }
+          ),
+          {method: 'DELETE'},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage(t('Removed the credentials.'));

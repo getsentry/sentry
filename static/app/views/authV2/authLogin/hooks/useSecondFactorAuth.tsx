@@ -1,9 +1,9 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import type {AuthenticatedResult, MfaMethod} from 'sentry/views/authV2/authLogin/types';
 
@@ -66,10 +66,8 @@ export function useSecondFactorChallenge() {
     mutationFn: async (
       method: SecondFactorChallengeMethod
     ): Promise<MfaChallengeResult> => {
-      const response = await fetchMutation<MfaChallengeResponse>({
-        url: getApiUrl('/auth/2fa/challenge/'),
-        method: 'POST',
-        data: {method},
+      const {json: response} = await apiFetch<MfaChallengeResponse>({
+        queryKey: [getApiUrl('/auth/2fa/challenge/'), {method: 'POST', data: {method}}],
       });
 
       return response.method === 'sms'
@@ -95,10 +93,8 @@ export function useSecondFactorChallenge() {
 export function useSecondFactorAuth() {
   const mutation = useMutation({
     mutationFn: (credentials: SecondFactorCredentials) =>
-      fetchMutation<SecondFactorAuthResult>({
-        url: getApiUrl('/auth/2fa/'),
-        method: 'POST',
-        data: credentials,
+      apiFetch<SecondFactorAuthResult>({
+        queryKey: [getApiUrl('/auth/2fa/'), {method: 'POST', data: credentials}],
       }),
   });
 
@@ -112,7 +108,7 @@ export function useSecondFactorAuth() {
       : null,
     isPending: mutation.isPending,
     reset: mutation.reset,
-    result: mutation.data ?? null,
+    result: mutation.data?.json ?? null,
   };
 }
 
@@ -120,10 +116,7 @@ export function useCancelSecondFactorAuth() {
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: () =>
-      fetchMutation<void>({
-        url: getApiUrl('/auth/2fa/'),
-        method: 'DELETE',
-      }),
+      apiFetch<void>({queryKey: [getApiUrl('/auth/2fa/'), {method: 'DELETE'}]}),
     onSuccess: () => {
       // Remove rather than invalidate because these methods belong to the cancelled
       // MFA session. A later session must not render them while refetching or if the

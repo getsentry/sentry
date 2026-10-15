@@ -14,8 +14,8 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {
   buildGcpVerifyPayload,
   getGcpProjectResults,
@@ -54,13 +54,14 @@ export function GcpConnectionStatus({
     reset,
   } = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        method: 'POST',
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
-          {path: {organizationIdOrSlug: organization.slug}}
-        ),
-        data: payload ?? undefined,
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
+            {path: {organizationIdOrSlug: organization.slug}}
+          ),
+          {method: 'POST', data: payload ?? undefined},
+        ],
       }),
     onSuccess: () => onRetested(),
     onMutate: () => onVerificationStarted?.(),

@@ -4,10 +4,10 @@ import {useMutation} from '@tanstack/react-query';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {getUtcValue, normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getDateFromTimestamp, getDateWithTimezoneInUtc} from 'sentry/utils/dates';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
@@ -46,14 +46,19 @@ export function useDeleteReplays({projectSlug}: Props) {
 
       const options = {};
       const payload = {data};
-      return fetchMutation({
-        method: 'POST',
-        url: getApiUrl(
-          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/jobs/delete/',
-          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}}
-        ),
-        options,
-        data: payload,
+      return apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/jobs/delete/',
+            {
+              path: {
+                organizationIdOrSlug: organization.slug,
+                projectIdOrSlug: projectSlug,
+              },
+            }
+          ),
+          {method: 'POST', ...options, data: payload},
+        ],
       });
     },
   });

@@ -19,9 +19,9 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = ModalRenderProps & {
   integration: Integration;
@@ -95,11 +95,7 @@ export function RepositoryProjectPathConfigModal({
 
   const mutation = useMutation({
     mutationFn: (data: Partial<RepositoryProjectPathConfig>) =>
-      fetchMutation({
-        method: existingConfig ? 'PUT' : 'POST',
-        url: endpoint,
-        data,
-      }),
+      apiFetch({queryKey: [endpoint, {method: existingConfig ? 'PUT' : 'POST', data}]}),
     onError: e => {
       Sentry.captureException(e);
       addErrorMessage(t('Failed to configure code path mapping'));

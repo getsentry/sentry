@@ -14,8 +14,8 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -95,12 +95,13 @@ function JoinRequestForm({
   const location = useLocation();
   const mutation = useMutation({
     mutationFn: (data: {email: string}) =>
-      fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/join-request/', {
-          path: {organizationIdOrSlug: organizationSlug},
-        }),
-        method: 'POST',
-        data,
+      apiFetch({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/join-request/', {
+            path: {organizationIdOrSlug: organizationSlug},
+          }),
+          {method: 'POST', data},
+        ],
       }),
     onSuccess: () => {
       trackAnalytics('join_request.created', {

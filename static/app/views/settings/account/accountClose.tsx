@@ -20,8 +20,8 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';
 import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
@@ -114,10 +114,11 @@ function AccountClose() {
 
   const {mutate: removeAccount} = useMutation({
     mutationFn: (orgs: string[]) =>
-      fetchMutation({
-        method: 'DELETE',
-        url: getApiUrl('/users/$userId/', {path: {userId: 'me'}}),
-        data: {organizations: orgs},
+      apiFetch({
+        queryKey: [
+          getApiUrl('/users/$userId/', {path: {userId: 'me'}}),
+          {method: 'DELETE', data: {organizations: orgs}},
+        ],
       }),
     onMutate: () => {
       addLoadingMessage('Closing account\u2026');

@@ -21,8 +21,8 @@ import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import type {
   GcpVerificationInput,
@@ -232,20 +232,22 @@ function GcpVerificationStep({
 
   const {
     mutate: verify,
-    data: result,
+    data: response,
     isPending,
     isError,
-  } = useMutation<GcpVerifyConnectionResponse>({
+  } = useMutation<ApiResponse<GcpVerifyConnectionResponse>>({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
-          {path: {organizationIdOrSlug: organization.slug}}
-        ),
-        method: 'POST',
-        data: {customerSaEmail, gcpProjectIds: projects},
+      apiFetch<GcpVerifyConnectionResponse>({
+        queryKey: [
+          getApiUrl(
+            '/organizations/$organizationIdOrSlug/monitoring-providers/gcp/verify-connection/',
+            {path: {organizationIdOrSlug: organization.slug}}
+          ),
+          {method: 'POST', data: {customerSaEmail, gcpProjectIds: projects}},
+        ],
       }),
   });
+  const result = response?.json;
 
   const canVerify = Boolean(customerSaEmail && projects?.length);
 

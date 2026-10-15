@@ -13,7 +13,7 @@ export function SaveReplayQueryButton() {
   const handleClick = () => {
     openSaveQueryModal({
       organization,
-      saveQuery,
+      saveQuery: variables => saveQuery(variables).then(({json}) => json),
       traceItemDataset: TraceItemDataset.REPLAYS,
     });
   };

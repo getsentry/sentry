@@ -16,9 +16,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -105,7 +105,7 @@ function AdminUserEditForm({
 
   const updateMutation = useMutation({
     mutationFn: (data: UserUpdatePayload) =>
-      fetchMutation<User>({url: userEndpoint, method: 'PUT', data}),
+      apiFetch<User>({queryKey: [userEndpoint, {method: 'PUT', data}]}),
     onSuccess: response => {
       queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, prev => ({
         json: response,
@@ -125,10 +125,11 @@ function AdminUserEditForm({
 
   const deleteMutation = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: userEndpoint,
-        method: 'DELETE',
-        data: {hardDelete: true, organizations: []},
+      apiFetch({
+        queryKey: [
+          userEndpoint,
+          {method: 'DELETE', data: {hardDelete: true, organizations: []}},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage(t("%s's account has been deleted.", user.email));
@@ -141,10 +142,8 @@ function AdminUserEditForm({
 
   const deactivateMutation = useMutation({
     mutationFn: () =>
-      fetchMutation<User>({
-        url: userEndpoint,
-        method: 'PUT',
-        data: {isActive: false},
+      apiFetch<User>({
+        queryKey: [userEndpoint, {method: 'PUT', data: {isActive: false}}],
       }),
     onSuccess: response => {
       queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, prev => ({

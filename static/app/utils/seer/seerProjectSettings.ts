@@ -9,10 +9,10 @@ import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {encodeSort} from 'sentry/utils/queryString';
 import {
   isPreferredAgentProvider,
@@ -126,18 +126,22 @@ export function getMutateSeerProjectSettingsOptions({
             ? ('off' as const)
             : ('medium' as const);
 
-      return fetchMutation<SeerProjectSettingResponse>({
-        method: 'PUT',
-        url,
-        data: {
-          ...rest,
-          ...(!isOff &&
-            stoppingPoint !== undefined && {
-              stoppingPoint,
-            }),
-          ...agentObj,
-          ...(tuning !== undefined && {automationTuning: tuning}),
-        },
+      return apiFetch<SeerProjectSettingResponse>({
+        queryKey: [
+          url,
+          {
+            method: 'PUT',
+            data: {
+              ...rest,
+              ...(!isOff &&
+                stoppingPoint !== undefined && {
+                  stoppingPoint,
+                }),
+              ...agentObj,
+              ...(tuning !== undefined && {automationTuning: tuning}),
+            },
+          },
+        ],
       });
     },
     onMutate: async data => {
@@ -279,19 +283,23 @@ export function getMutateSeerProjectsSettingsOptions({
             ? ('off' as const)
             : ('medium' as const);
 
-      return fetchMutation<SeerProjectSettingResponse>({
-        method: 'PUT',
-        url: infiniteUrl,
-        data: {
-          ...rest,
-          query: selectedIds === 'all' ? query : `id:[${selectedIds.join(',')}]`,
-          ...(!isOff &&
-            stoppingPoint !== undefined && {
-              stoppingPoint,
-            }),
-          ...agentObj,
-          ...(tuning !== undefined && {automationTuning: tuning}),
-        } satisfies SeerBulkProjectSettingUpdatePayload,
+      return apiFetch<SeerProjectSettingResponse>({
+        queryKey: [
+          infiniteUrl,
+          {
+            method: 'PUT',
+            data: {
+              ...rest,
+              query: selectedIds === 'all' ? query : `id:[${selectedIds.join(',')}]`,
+              ...(!isOff &&
+                stoppingPoint !== undefined && {
+                  stoppingPoint,
+                }),
+              ...agentObj,
+              ...(tuning !== undefined && {automationTuning: tuning}),
+            } satisfies SeerBulkProjectSettingUpdatePayload,
+          },
+        ],
       });
     },
     onMutate: async data => {
