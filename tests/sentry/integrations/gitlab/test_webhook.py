@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import orjson
+from scm.types import CommitFile as SCMCommitFile
 
 from fixtures.gitlab import (
     EXTERNAL_ID,
@@ -16,6 +17,7 @@ from fixtures.gitlab import (
     WEBHOOK_TOKEN,
     GitLabTestCase,
 )
+from sentry.integrations.gitlab.commits import format_api_commit, format_sentry_commit
 from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.gitlab.webhooks import IssuesEventWebhook, MergeEventWebhook
 from sentry.integrations.models.integration import Integration
@@ -24,6 +26,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.commits import materialize_commit
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouplink import GroupLink
@@ -392,6 +395,97 @@ class WebhookTest(GitLabWebhookTestCase):
             assert author.name
             assert author.organization_id == self.organization.id
 
+    @patch("sentry.integrations.gitlab.integration.GitlabIntegration.get_client")
+    def test_push_event_uses_complete_payload_without_api_calls(self, get_client) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        push_event = orjson.loads(PUSH_EVENT)
+        push_event["commits"] = [push_event["commits"][0]]
+        push_event["commits"][0]["message"] = "JS fix\n\nFixes PROJ-1"
+
+        self._post_push_event(orjson.dumps(push_event))
+
+        assert Commit.objects.get().message == "JS fix\n\nFixes PROJ-1"
+        get_client.assert_not_called()
+
+    def test_push_event_preserves_empty_message(self) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        push_event = orjson.loads(PUSH_EVENT)
+        push_event["commits"] = [push_event["commits"][0]]
+        push_event["commits"][0]["message"] = ""
+
+        self._post_push_event(orjson.dumps(push_event))
+
+        assert Commit.objects.get().message == ""
+
+    def test_push_and_api_ingestion_converge_in_either_order(self) -> None:
+        repo = self.create_gitlab_repo("getsentry/sentry")
+        author = self.create_commit_author(
+            project=self.project,
+            email="jordi@example.org",
+        )
+        author.update(name="Jordi")
+
+        for webhook_first, commit_id in (
+            (True, "a" * 40),
+            (False, "b" * 40),
+        ):
+            push_commit = orjson.loads(PUSH_EVENT)["commits"][0]
+            push_commit["id"] = commit_id
+            push_commit["message"] = "JS fix\n\nFixes PROJ-1"
+            push_event = orjson.loads(PUSH_EVENT)
+            push_event["commits"] = [push_commit]
+            api_data = format_sentry_commit(
+                repository=repo.name,
+                commit=format_api_commit(
+                    commit={
+                        "id": commit_id,
+                        "author_email": "jordi@example.org",
+                        "author_name": "Jordi",
+                        "message": "JS fix\n\nFixes PROJ-1",
+                        "created_at": push_commit["timestamp"],
+                    },
+                    patch_set=[
+                        SCMCommitFile(
+                            filename="CHANGELOG",
+                            status="added",
+                            patch=None,
+                            additions=None,
+                            deletions=None,
+                            previous_filename=None,
+                        ),
+                        SCMCommitFile(
+                            filename="app/controller/application.rb",
+                            status="modified",
+                            patch=None,
+                            additions=None,
+                            deletions=None,
+                            previous_filename=None,
+                        ),
+                    ],
+                ),
+            )
+
+            if webhook_first:
+                self._post_push_event(orjson.dumps(push_event))
+            materialize_commit(
+                organization_id=self.organization.id,
+                repository=repo,
+                author=author,
+                data=api_data,
+            )
+            if not webhook_first:
+                self._post_push_event(orjson.dumps(push_event))
+
+            commit = Commit.objects.get(key=commit_id)
+            assert commit.message == api_data["message"]
+            assert commit.author == author
+            assert set(
+                CommitFileChange.objects.filter(commit_id=commit.id).values_list("filename", "type")
+            ) == {
+                ("CHANGELOG", "A"),
+                ("app/controller/application.rb", "M"),
+            }
+
     def test_push_event_creates_commit_file_changes(self) -> None:
         repo = self.create_gitlab_repo("getsentry/sentry")
         push_event = orjson.loads(PUSH_EVENT)
@@ -449,11 +543,17 @@ class WebhookTest(GitLabWebhookTestCase):
     def test_push_event_duplicate_delivery_is_idempotent(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
 
-        for _ in range(2):
-            self._post_push_event()
+        with patch.object(
+            Commit.objects,
+            "select_for_update",
+            wraps=Commit.objects.select_for_update,
+        ) as select_for_update:
+            for _ in range(2):
+                self._post_push_event()
 
         assert Commit.objects.count() == 2
         assert CommitFileChange.objects.count() == 4
+        assert select_for_update.call_count == 4
 
     @patch("sentry.tasks.codeowners.code_owners_auto_sync")
     def test_push_event_duplicate_filename_creates_one_change_and_sync_task(
