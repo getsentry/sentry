@@ -98,7 +98,6 @@
     "./list": "./src/iconList.tsx",
     "./location": "./src/iconLocation.tsx",
     "./lock": "./src/iconLock.tsx",
-    "./logOut": "./src/iconLogOut.tsx",
     "./mail": "./src/iconMail.tsx",
     "./markdown": "./src/iconMarkdown.tsx",
     "./megaphone": "./src/iconMegaphone.tsx",
