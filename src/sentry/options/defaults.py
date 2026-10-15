@@ -1598,6 +1598,13 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Stops logging FIRST_SEEN when ingest creates a group.
+register(
+    "issues.action_log.first_seen_on_create.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "issues.backfill_group_action_log.killswitch",
     type=Bool,
@@ -4663,5 +4670,12 @@ register(
     "ingestion-delay.measurement-cache-seconds",
     type=Int,
     default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "integrations.client.disable_retries",
+    default=False,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

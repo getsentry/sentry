@@ -374,6 +374,7 @@ export const TraceMetricsConfig: DatasetConfig<
           timeSeries,
         }),
         timeSeries,
+        ingestion: data.meta?.ingestion,
       };
     });
   },

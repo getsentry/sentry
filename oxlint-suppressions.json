@@ -157,21 +157,6 @@
       "count": 1
     }
   },
-  "static/app/components/core/form/field/selectField.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/form/field/switchField.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/form/field/textAreaField.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
-      "count": 1
-    }
-  },
   "static/app/components/core/relativeTime/relativeTime.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -200,11 +185,6 @@
   "static/app/components/customIgnoreDurationModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    }
-  },
-  "static/app/components/customResolutionModal.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
-      "count": 1
     }
   },
   "static/app/components/customResolutionModal.tsx": {
@@ -982,7 +962,7 @@
   },
   "static/app/components/profiling/flamegraph/flamegraphDrawer/flamegraphDrawer.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 3
+      "count": 2
     }
   },
   "static/app/components/profiling/flamegraph/flamegraphLayout.tsx": {
@@ -1151,9 +1131,6 @@
     }
   },
   "static/app/components/replays/replayContext.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
@@ -1367,9 +1344,6 @@
     }
   },
   "static/app/components/seer/markdown/embeds/components/autofix.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
-      "count": 3
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -1405,11 +1379,6 @@
     }
   },
   "static/app/components/shortId.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/components/sidebarSection.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -1790,11 +1759,6 @@
   "static/app/views/app/globalAlerts.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
-    }
-  },
-  "static/app/views/app/index.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
-      "count": 2
     }
   },
   "static/app/views/app/index.tsx": {
@@ -2226,9 +2190,6 @@
     }
   },
   "static/app/views/explore/metrics/metricToolbar/index.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -2325,7 +2286,7 @@
   },
   "static/app/views/explore/releases/list/releaseCard/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 5
+      "count": 4
     }
   },
   "static/app/views/explore/releases/list/releaseCard/releaseCardCommits.tsx": {
@@ -2628,23 +2589,8 @@
       "count": 1
     }
   },
-  "static/app/views/investigations/detail/index.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
-      "count": 4
-    }
-  },
   "static/app/views/investigations/detail/runTimer.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
-  "static/app/views/investigations/hypotheses/investigationHypotheses.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
-      "count": 1
-    }
-  },
-  "static/app/views/investigations/index.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
       "count": 1
     }
   },
@@ -2715,11 +2661,6 @@
   },
   "static/app/views/issueDetails/eventNavigation/issueDetailsJumpTo.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/issueDetails/foldSection.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
       "count": 1
     }
   },
@@ -3188,11 +3129,6 @@
       "count": 1
     }
   },
-  "static/app/views/projectDetail/charts/projectBaseEventsChart.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
-      "count": 1
-    }
-  },
   "static/app/views/projectInstall/createProject.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -3320,7 +3256,7 @@
   },
   "static/app/views/seerWorkflows/overview/index.spec.tsx": {
     "@sentry/prefer-fake-timers": {
-      "count": 3
+      "count": 2
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3577,21 +3513,6 @@
     }
   },
   "static/app/views/settings/organizationMembers/inviteMember/orgRoleSelect.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/settings/organizationMembers/inviteRequestRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 4
-    }
-  },
-  "static/app/views/settings/organizationMembers/organizationMemberRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 3
-    }
-  },
-  "static/app/views/settings/organizationMembers/organizationMembersList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -3876,11 +3797,6 @@
       "count": 4
     }
   },
-  "static/gsApp/components/features/disabledCustomInboundFilters.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/gsApp/components/features/disabledDataForwarding.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3992,11 +3908,6 @@
     }
   },
   "static/gsApp/overrides/integrationFeatures.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/gsApp/overrides/memberListHeader.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }

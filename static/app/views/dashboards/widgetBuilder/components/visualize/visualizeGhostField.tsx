@@ -21,7 +21,7 @@ import {
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/index';
 import {ColumnCompactSelect} from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 type VisualizeGhostFieldProps = {
   activeId: number;
