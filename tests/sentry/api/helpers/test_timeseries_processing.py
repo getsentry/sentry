@@ -340,6 +340,6 @@ def test_transformation_config_is_immutable() -> None:
     config = SmoothTransformation(mode="sma", window_size=2)
 
     with pytest.raises(TypeError, match="immutable"):
-        config.window_size = 1
+        setattr(config, "window_size", 1)
 
     assert smooth_timeseries([0.0, 1.0, 2.0], [1.0, 3.0, 5.0], config=config) == [1.0, 2.0, 4.0]
