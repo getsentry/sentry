@@ -1519,18 +1519,18 @@ def test_precision_adapter_exports_stable_any_obligations(tmp_path: Path) -> Non
     alias_fingerprint = hashlib.sha256(
         ast.dump(alias_value, include_attributes=False).encode()
     ).hexdigest()[:20]
-    alias_anchor = f"ast:{alias_fingerprint}#0"
+    alias_anchor = f"precision:ast:{alias_fingerprint}#0:any-leaf:"
     pep695_value = pep695_alias_node.value
     pep695_fingerprint = hashlib.sha256(
         ast.dump(pep695_value, include_attributes=False).encode()
     ).hexdigest()[:20]
-    pep695_rhs_anchor = f"ast:{pep695_fingerprint}#0"
+    pep695_rhs_anchor = f"precision:ast:{pep695_fingerprint}#0:any-leaf:"
     assert any(
-        item.path == "src/sentry/example.py" and item.anchor == alias_anchor
+        item.path == "src/sentry/example.py" and item.anchor.startswith(alias_anchor)
         for item in measurement.any_obligations
     )
     assert any(
-        item.path == "src/sentry/example.py" and item.anchor == pep695_rhs_anchor
+        item.path == "src/sentry/example.py" and item.anchor.startswith(pep695_rhs_anchor)
         for item in measurement.any_obligations
     )
     assert any(item.path == "src/sentry/example.py" for item in measurement.diagnostics)
@@ -1662,20 +1662,23 @@ def test_precision_adapter_anchors_unique_import_and_exception_binders(
         if item.path == "src/sentry/wildcard.py"
     ]
     unique_tree = ast.parse((package / "unique.py").read_text())
-    expected_import_anchors = {
-        "ast-role:import-binding:"
+    expected_import_anchor_prefixes = {
+        "precision:ast-role:import-binding:"
         + hashlib.sha256(ast.dump(alias, include_attributes=False).encode()).hexdigest()[:20]
-        + "#0"
+        + "#"
         for statement in ast.walk(unique_tree)
         if isinstance(statement, ast.ImportFrom) and statement.module == "sentry.provider"
         for alias in statement.names
     }
-    assert any(item.anchor.startswith("ast-role:exception-handler:") for item in unique)
-    assert expected_import_anchors <= {item.anchor for item in unique}
+    assert any(item.anchor.startswith("precision:ast-role:exception-handler:") for item in unique)
+    assert all(
+        any(item.anchor.startswith(prefix) and ":any-leaf:" in item.anchor for item in unique)
+        for prefix in expected_import_anchor_prefixes
+    )
     assert any("unanchored:OpExpr::" in item.anchor and ":-1:None:None" in item.anchor for item in unique)
     assert any("unanchored:NameExpr:conflict:" in item.anchor for item in ambiguous)
     assert wildcard
-    assert all(not item.anchor.startswith("ast-role:import-binding:") for item in wildcard)
+    assert all(not item.anchor.startswith("precision:ast-role:import-binding:") for item in wildcard)
 
 
 def test_precision_adapter_handles_namespace_package_directory(tmp_path: Path) -> None:
@@ -1819,6 +1822,76 @@ def test_precision_adapter_anchors_source_kinds_and_rejects_ambiguous_rewrites(
     assert all("unanchored:TypeApplication:" not in item.anchor for item in generic)
     assert any("unanchored:MemberExpr:" in item.anchor for item in mismatched)
     assert any("unanchored:CastExpr:" in item.anchor for item in mismatched)
+
+
+def test_precision_any_identity_ignores_inserted_non_any_siblings(tmp_path: Path) -> None:
+    root = tmp_path / "snapshot"
+    package = root / "src" / "sentry"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    source_path = package / "example.py"
+    shared_source = (
+        "from typing import Any\n\n"
+        "class Typed:\n"
+        "    attr: str\n\n"
+        "def any_first(value: Any) -> None:\n"
+        "    result = value.attr\n\n"
+        "def typed_middle(value: Typed) -> None:\n"
+        "    result = value.attr\n\n"
+    )
+    typed_insertion = (
+        "def typed_inserted(value: Typed) -> None:\n"
+        "    result = value.attr\n\n"
+    )
+    source_path.write_text(
+        shared_source
+        + "def any_last(value: Any) -> None:\n"
+        + "    result = value.attr\n"
+    )
+    (root / "pyproject.toml").write_text(
+        "[tool.mypy]\n"
+        "python_version = '3.13'\n"
+        "files = ['src/sentry']\n"
+        "mypy_path = ['src']\n"
+        "namespace_packages = true\n"
+        "explicit_package_bases = true\n"
+    )
+    parent_output = tmp_path / "parent-output"
+    parent_output.mkdir()
+    parent = run_profile(
+        Profile.PRECISION,
+        root,
+        "parent-tree",
+        parent_output,
+        timeout_seconds=120,
+    )
+
+    source_path.write_text(
+        shared_source
+        + typed_insertion
+        + "def any_last(value: Any) -> None:\n"
+        + "    result = value.attr\n"
+    )
+    candidate_output = tmp_path / "candidate-output"
+    candidate_output.mkdir()
+    candidate = run_profile(
+        Profile.PRECISION,
+        root,
+        "candidate-tree",
+        candidate_output,
+        timeout_seconds=120,
+    )
+
+    parent_rows = [item for item in parent.any_obligations if item.path == "src/sentry/example.py"]
+    candidate_rows = [
+        item for item in candidate.any_obligations if item.path == "src/sentry/example.py"
+    ]
+    assert parent.adapter_status == 0
+    assert candidate.adapter_status == 0
+    assert parent_rows
+    assert [(item.anchor, item.type_position, item.origin) for item in candidate_rows] == [
+        (item.anchor, item.type_position, item.origin) for item in parent_rows
+    ]
 
 
 def test_coverage_audits_batch_standalone_sources(tmp_path: Path) -> None:
@@ -2200,7 +2273,14 @@ def test_new_any_obligation_rejects_candidate() -> None:
     parent = _tree()
     candidate = _tree(
         any_obligations=frozenset(
-            {AnyObligation("src/sentry/example.py", "ast:abc#0", "return", "explicit")}
+            {
+                AnyObligation(
+                    "src/sentry/example.py",
+                    "precision:ast:abc#0:any-leaf:0",
+                    "return",
+                    "explicit",
+                )
+            }
         )
     )
 
@@ -2208,6 +2288,46 @@ def test_new_any_obligation_rejects_candidate() -> None:
 
     assert decision.outcome == Outcome.REJECTED
     assert any("new Any obligation" in reason for reason in decision.reasons)
+
+
+def test_precision_any_origin_and_position_changes_keep_the_same_debt_identity() -> None:
+    path = "src/sentry/example.py"
+    anchor = "precision:ast:abc#0:any-leaf:0"
+    parent_any = AnyObligation(path, anchor, "expression:0", "from_another_any")
+    candidate_any = AnyObligation(path, anchor, "expression:0.1", "from_error")
+    profiles = tuple(Profile)
+    parent = _tree(
+        any_obligations=frozenset({parent_any}),
+        precision_any_obligations=(parent_any,),
+        source_digests={path: "before"},
+        profiles=profiles,
+    )
+    candidate = _tree(
+        any_obligations=frozenset({candidate_any}),
+        precision_any_obligations=(candidate_any,),
+        source_digests={path: "after"},
+        profiles=profiles,
+    )
+
+    decision = decide_candidate(
+        parent,
+        candidate,
+        require_adoption_credit=False,
+        precision_calibrated=True,
+    )
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.details["new_any_obligations"] == []
+    assert decision.details["any_obligation_metadata_changes"] == [
+        {
+            "path": path,
+            "anchor": anchor,
+            "parent_type_position": "expression:0",
+            "candidate_type_position": "expression:0.1",
+            "parent_origin": "from_another_any",
+            "candidate_origin": "from_error",
+        }
+    ]
 
 
 def test_source_changes_are_rejected_without_calibrated_precision() -> None:

@@ -117,6 +117,12 @@ class AnyObligation:
     def key(self) -> tuple[str, str, str, str, str]:
         return self.path, self.anchor, self.type_position, self.origin, self.exception or ""
 
+    @property
+    def debt_key(self) -> tuple[str, str, str, str, str]:
+        if ":any-leaf:" in self.anchor:
+            return self.path, self.anchor, "", "", ""
+        return self.key
+
 
 @dataclass(frozen=True)
 class ProfileMeasurement:
@@ -782,12 +788,43 @@ def _any_obligations(result, origins: dict[int, str]) -> dict[str, object]:
                     )
                 position = "expression:" + ".".join(str(index) for index in type_path)
                 if source_path is not None:
-                    found.add((os.path.realpath(source_path), anchor, position, origin))
+                    if anchor.startswith(("ast:", "ast-role:")):
+                        anchor = anchor.rsplit("#", 1)[0]
+                    found.add(
+                        (
+                            os.path.realpath(source_path),
+                            anchor,
+                            position,
+                            origin,
+                            expression.line,
+                            expression.column,
+                            end_line or 0,
+                            end_column or 0,
+                        )
+                    )
+    expressions: dict[tuple[str, str, int, int, int, int], set[tuple[str, str]]] = {}
+    for path, anchor, position, origin, line, column, end_line, end_column in found:
+        expression_key = (path, anchor, line, column, end_line, end_column)
+        expressions.setdefault(expression_key, set()).add((position, origin))
+    expression_occurrences: Counter[tuple[str, str]] = Counter()
+    obligations = []
+    for expression_key, leaves in sorted(expressions.items()):
+        path, anchor, _, _, _, _ = expression_key
+        occurrence_key = (path, anchor)
+        expression_occurrence = expression_occurrences[occurrence_key]
+        expression_occurrences[occurrence_key] += 1
+        anchor_prefix = "" if anchor.startswith("unanchored:") else "precision:"
+        for leaf_index, (position, origin) in enumerate(sorted(leaves)):
+            obligations.append(
+                {
+                    "path": path,
+                    "anchor": f"{anchor_prefix}{anchor}#{expression_occurrence}:any-leaf:{leaf_index}",
+                    "type_position": position,
+                    "origin": origin,
+                }
+            )
     return {
-        "obligations": [
-            {"path": path, "anchor": anchor, "type_position": position, "origin": origin}
-            for path, anchor, position, origin in sorted(found)
-        ],
+        "obligations": obligations,
         "unanchored_count": unanchored_count,
     }
 
@@ -2307,6 +2344,12 @@ def _unanchored_any_obligations(
     )
 
 
+def _any_obligations_by_debt_key(
+    obligations: Iterable[AnyObligation],
+) -> dict[tuple[str, str, str, str, str], AnyObligation]:
+    return {item.debt_key: item for item in sorted(obligations, key=lambda item: item.key)}
+
+
 def _precision_residual_summary(
     profile: ProfileMeasurement | None,
     obligations: Sequence[AnyObligation],
@@ -2439,7 +2482,33 @@ def decide_candidate(
 
     bypass_additions = candidate.bypasses - parent.bypasses
     omission_additions = candidate.signature_omissions - parent.signature_omissions
-    any_additions = candidate.any_obligations - parent.any_obligations
+    parent_any_by_debt_key = _any_obligations_by_debt_key(parent.any_obligations)
+    candidate_any_by_debt_key = _any_obligations_by_debt_key(candidate.any_obligations)
+    any_additions = tuple(
+        candidate_any_by_debt_key[key]
+        for key in sorted(candidate_any_by_debt_key.keys() - parent_any_by_debt_key.keys())
+    )
+    removed_any = tuple(
+        parent_any_by_debt_key[key]
+        for key in sorted(parent_any_by_debt_key.keys() - candidate_any_by_debt_key.keys())
+    )
+    any_metadata_changes = [
+        {
+            "path": candidate_any_by_debt_key[key].path,
+            "anchor": candidate_any_by_debt_key[key].anchor,
+            "parent_type_position": parent_any_by_debt_key[key].type_position,
+            "candidate_type_position": candidate_any_by_debt_key[key].type_position,
+            "parent_origin": parent_any_by_debt_key[key].origin,
+            "candidate_origin": candidate_any_by_debt_key[key].origin,
+        }
+        for key in sorted(parent_any_by_debt_key.keys() & candidate_any_by_debt_key.keys())
+        if (
+            parent_any_by_debt_key[key].type_position
+            != candidate_any_by_debt_key[key].type_position
+            or parent_any_by_debt_key[key].origin
+            != candidate_any_by_debt_key[key].origin
+        )
+    ]
     reasons.extend(
         f"new typing bypass {path}: {anchor}"
         for path, anchor in sorted(bypass_additions)
@@ -2488,7 +2557,6 @@ def decide_candidate(
     removed_weak = parent.weak_pairs - candidate.weak_pairs
     removed_suppressions = parent.suppressed_pairs - candidate.suppressed_pairs
     removed_bypasses = parent.bypasses - candidate.bypasses
-    removed_any = parent.any_obligations - candidate.any_obligations
     removed_omissions = parent.signature_omissions - candidate.signature_omissions
     changed_source_modules = {
         _module_for_path(path, candidate.inventory)
@@ -2596,6 +2664,7 @@ def decide_candidate(
         "new_bypasses": sorted(bypass_additions),
         "new_signature_omissions": sorted(omission_additions),
         "new_any_obligations": [asdict(item) for item in sorted(any_additions, key=lambda obligation: obligation.key)],
+        "any_obligation_metadata_changes": any_metadata_changes,
         "precision_residuals": {
             "parent": _precision_residual_summary(parent_precision, parent_residuals),
             "candidate": _precision_residual_summary(candidate_precision, candidate_residuals),
