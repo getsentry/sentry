@@ -370,14 +370,81 @@ def test_smooth_timeseries_rejects_unsupported_modes(mode: Any) -> None:
             id="kurtosis-rejects-smoothing-a-spike",
         ),
         pytest.param(
+            [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 2 + [-1.0],
+            [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 2 + [-1.0],
+            id="nine-buckets-have-no-candidate",
+        ),
+        pytest.param(
+            [0.0, 2.0] * 4 + [0.0, 10.0],
+            [0.0] + [1.0] * 8 + [5.0],
+            id="ten-buckets-allow-window-two",
+        ),
+        pytest.param(
             [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 5,
-            [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 5,
-            id="fourteen-buckets-have-no-candidate",
+            [4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 9,
+            id="fourteen-buckets-allow-window-two",
         ),
         pytest.param(
             [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 5 + [-1.0],
             [4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 10,
-            id="fifteen-buckets-round-up-to-window-two",
+            id="fifteen-buckets-floor-window-limit",
+        ),
+        pytest.param(
+            [1.0, -1.0] * 5,
+            [1.0, -1.0] * 5,
+            id="startup-values-cannot-make-constant-windows-feasible",
+        ),
+        pytest.param(
+            [
+                8.0,
+                7.0,
+                6.0,
+                1.0,
+                4.0,
+                9.0,
+                0.0,
+                9.0,
+                6.0,
+                1.0,
+                6.0,
+                5.0,
+                8.0,
+                5.0,
+                6.0,
+                1.0,
+                8.0,
+                1.0,
+                8.0,
+                9.0,
+            ],
+            [
+                8.0,
+                7.5,
+                7.0,
+                5.5,
+                4.5,
+                5.0,
+                3.5,
+                5.5,
+                6.0,
+                4.0,
+                5.5,
+                4.5,
+                5.0,
+                6.0,
+                6.0,
+                5.0,
+                5.0,
+                4.0,
+                4.5,
+                6.5,
+            ],
+            id="inclusive-one-fifth-window-limit",
+        ),
+        pytest.param(
+            tuple(value for value in range(14, 33, 2) for _ in range(2)),
+            [14.0, 14.0] + list(range(15, 33)),
+            id="equal-roughness-prefers-smaller-window",
         ),
     ],
 )
@@ -400,12 +467,12 @@ def test_smooth_timeseries_asap(
     [(0.0, 1e-300), (0.0, 1.0), (0.0, 1e300), (1e308, 1e307), (-1e308, 1e307), (1e16, 4.0)],
 )
 def test_smooth_timeseries_asap_selects_window_two(offset: float, scale: float) -> None:
-    values = tuple(offset + value * scale for value in [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 8)
+    values = tuple(offset + value * scale for value in [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 5)
 
-    result = smooth_timeseries(list(range(20)), values, mode="asap")
+    result = smooth_timeseries(list(range(14)), values, mode="asap")
 
     assert [(value - offset) / scale for value in result if value is not None] == pytest.approx(
-        [4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 15
+        [4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 9
     )
 
 
@@ -449,8 +516,8 @@ def test_smooth_timeseries_asap_selects_different_windows_across_gaps() -> None:
     result = smooth_timeseries(list(range(len(values))), values, mode=SMOOTH_MODE_ASAP)
 
     assert result == pytest.approx(
-        [None, 4.0, 5.0, 5.0, 5.0, 2.5]
-        + [0.0] * 15
+        [None, 4.0, 5.0, 14 / 3, 5.0, 3.75, 2.5, 1.25]
+        + [0.0] * 13
         + [None, None]
         + [
             8.0,
@@ -493,8 +560,12 @@ def test_smooth_timeseries_asap_composes_with_filling_in_either_order() -> None:
     smoothed = smooth_timeseries(timestamps, values, mode=SMOOTH_MODE_ASAP)
     smooth_then_fill = fill_timeseries(timestamps, smoothed, mode=FILL_MODE_ZERO)
 
-    assert fill_then_smooth == pytest.approx([4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 15 + [0.5])
-    assert smooth_then_fill.values == pytest.approx([4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 16)
+    assert fill_then_smooth == pytest.approx(
+        [4.0, 5.0, 14 / 3, 5.0, 3.75, 2.5, 1.25] + [0.0] * 13 + [0.25]
+    )
+    assert smooth_then_fill.values == pytest.approx(
+        [4.0, 5.0, 14 / 3, 5.0, 3.75, 2.5, 1.25] + [0.0] * 14
+    )
     assert filled.filled == smooth_then_fill.filled == [False] * 20 + [True]
 
 

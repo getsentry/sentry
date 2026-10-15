@@ -1,8 +1,8 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from itertools import groupby
+from itertools import groupby, pairwise
 from math import fsum, isfinite
-from statistics import pvariance
+from statistics import fmean, pvariance
 from typing import Final, Literal, overload
 
 FILL_MODE_LOCF: Final = "locf"
@@ -147,13 +147,14 @@ def smooth_timeseries(
         asap: Automatically select a moving-average window for each contiguous run
             of observations. Minimize the variance of adjacent differences without
             decreasing Pearson kurtosis, scoring complete windows as in Stanford's
-            ASAP-simple reference. Round run_length / 10 half up to set the largest
-            window, then search down to two. Retain the original values when no
-            window improves the objective.
-            Return partial windows at the start to preserve bucket alignment; these
-            startup values do not participate in the selection metrics. Missing
-            buckets stay None and separate independent runs. Only non-None values
-            must be finite. window_size and smoothing_factor do not apply to asap.
+            Python smooth_simple reference. Search windows from two through
+            run_length // 5, preferring smaller windows when roughness ties. Retain
+            the original values when no window improves the objective.
+            Return partial windows at the start to preserve bucket alignment. The
+            kurtosis constraint applies only to complete windows, excluding startup
+            averages. Missing buckets stay None and separate independent runs. Only
+            non-None values must be finite. window_size and smoothing_factor do not
+            apply to asap.
     """
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
@@ -217,33 +218,33 @@ def smooth_timeseries(
 
 
 def _smooth_asap(values: Sequence[float]) -> list[float]:
-    """Smooth one observed run using Stanford's ASAP simple window search.
+    """Smooth one observed run using Stanford's Python smooth_simple window search.
 
     Reference implementation and its Apache-2.0 license at the revision used:
-        https://github.com/stanford-futuredata/ASAP/blob/bdd467b53c2af05fb5d67b28a79ed40584ee4355/ASAP-simple.js
-        https://github.com/stanford-futuredata/ASAP/blob/bdd467b53c2af05fb5d67b28a79ed40584ee4355/LICENSE
+        https://github.com/stanford-futuredata/ASAP/blob/8b39db4bc92590cbe5b44ddace9b7bb1d677248b/ASAP.ipynb
+        https://github.com/stanford-futuredata/ASAP/blob/8b39db4bc92590cbe5b44ddace9b7bb1d677248b/LICENSE
     Paper:
         https://arxiv.org/abs/1703.00983
-
-    Score complete windows. Retain partial startup averages to preserve bucket
-    alignment, excluding them from selection metrics. The caller handles missing
-    buckets by smoothing each observed run independently.
     """
-    # Match the reference's Math.round by adding half the divisor before integer division.
-    max_window = (len(values) + 5) // 10
+    max_window = len(values) // 5
     if max_window < 2 or min(values) == max(values):
         return list(values)
 
     scale = max(abs(value) for value in values)
     normalized = [value / scale for value in values]
     min_roughness, original_kurtosis = _asap_metrics(normalized)
-    best_values = list(values)
-    for window_size in range(max_window, 1, -1):
+    best_window = 1
+    for window_size in range(2, max_window + 1):
         smoothed = _asap_moving_average(normalized, window_size)
         roughness, kurtosis = _asap_metrics(smoothed[window_size - 1 :])
         if roughness < min_roughness and kurtosis >= original_kurtosis:
             min_roughness = roughness
-            best_values = [value * scale for value in smoothed]
+            best_window = window_size
+
+    if best_window == 1:
+        return list(values)
+
+    best_values = [value * scale for value in _asap_moving_average(normalized, best_window)]
 
     return best_values if all(isfinite(value) for value in best_values) else list(values)
 
@@ -259,7 +260,7 @@ def _asap_moving_average(values: Sequence[float], window_size: int) -> list[floa
 
 
 def _asap_metrics(values: Sequence[float]) -> tuple[float, float]:
-    mean = fsum(values) / len(values)
+    mean = fmean(values)
     deviations = [value - mean for value in values]
     deviation_scale = max(abs(value) for value in deviations)
     kurtosis = 0.0
@@ -268,5 +269,5 @@ def _asap_metrics(values: Sequence[float]) -> tuple[float, float]:
         second_moment = fsum(value**2 for value in centered)
         kurtosis = len(values) * fsum(value**4 for value in centered) / second_moment**2
 
-    roughness = pvariance(right - left for left, right in zip(values, values[1:]))
+    roughness = pvariance(right - left for left, right in pairwise(values))
     return roughness, kurtosis
