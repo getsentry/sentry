@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     #   is a schema change, it's completely safe to run the operation after the code has deployed.
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
-    is_post_deployment = True
+    is_post_deployment = False
 
     dependencies = [
         ("monitors", "0021_make_checkin_monitor_nullable"),
