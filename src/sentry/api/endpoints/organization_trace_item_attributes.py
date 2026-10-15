@@ -52,7 +52,12 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    mark_parameter_experimental,
+)
 from sentry.apidocs.response_types import (
     DetailResponse,
     ValidationErrorResponse,
@@ -218,21 +223,21 @@ VALUE_SUBSTRING_MATCH_QUERY_PARAM = OpenApiParameter(
     description="Restrict results to attribute values containing this substring.",
 )
 
-EXPAND_QUERY_PARAM = OpenApiParameter(
-    name="expand",
-    location="query",
-    required=False,
-    many=True,
-    type=str,
-    enum=["context"],
-    # The endpoint is PUBLIC, but the context shape is still evolving, so only this
-    # parameter is flagged experimental.
-    extensions={"x-sentry-experimental": True},
-    description=(
-        "**Experimental:** This parameter is under active development and may change.\n\n"
-        "Optional fields to expand. Pass `context` to include attribute metadata "
-        "(brief, examples, deprecation, etc.)."
-    ),
+# The endpoint is PUBLIC, but the context shape is still evolving, so only this
+# parameter is flagged experimental.
+EXPAND_QUERY_PARAM = mark_parameter_experimental(
+    OpenApiParameter(
+        name="expand",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        enum=["context"],
+        description=(
+            "Optional fields to expand. Pass `context` to include attribute metadata "
+            "(brief, examples, deprecation, etc.)."
+        ),
+    )
 )
 
 
