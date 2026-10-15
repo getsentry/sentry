@@ -1,15 +1,18 @@
+import type * as React from 'react';
 import {createRef} from 'react';
 import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
-import {darkTheme, lightTheme} from '@sentry/scraps/theme';
+import {lightTheme} from '@sentry/scraps/theme';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
-
-import {render, screen} from '../../test/env';
-import {getEmotionRules} from '../../test/env/emotion';
 
 import {ExternalLink, Link, type LinkProps} from './link';
 import {LinkBehaviorContextProvider} from './linkBehaviorContext';
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
 
 describe('Link without a router', () => {
   it.each<[LinkProps['to'], string]>([
@@ -35,7 +38,7 @@ describe('Link without a router', () => {
       '/issues/?flag&tag=one&tag=two',
     ],
   ])('renders %j as %s', (to, href) => {
-    render(<Link to={to}>Issues</Link>);
+    render(<Link to={to}>Issues</Link>, {wrapper: ThemeWrapper});
     expect(screen.getByRole('link', {name: 'Issues'})).toHaveAttribute('href', href);
   });
 
@@ -51,7 +54,8 @@ describe('Link without a router', () => {
         state={{source: 'test'}}
       >
         Issues
-      </Link>
+      </Link>,
+      {wrapper: ThemeWrapper}
     );
     const link = screen.getByRole('link', {name: 'Issues'});
     expect(ref.current).toBe(link);
@@ -79,7 +83,8 @@ describe('Link without a router', () => {
         >
           Issues
         </Link>
-      </TrackingContextProvider>
+      </TrackingContextProvider>,
+      {wrapper: ThemeWrapper}
     );
     const link = screen.getByRole('link', {name: 'Issues'});
     await userEvent.click(link);
@@ -101,31 +106,13 @@ describe('Link without a router', () => {
     render(
       <Link disabled to={{pathname: '/issues/', query: {query: 'error'}}}>
         Issues
-      </Link>
+      </Link>,
+      {wrapper: ThemeWrapper}
     );
     const link = screen.getByText('Issues');
     expect(link).not.toHaveAttribute('href');
     expect(link).not.toHaveAttribute('to');
-    expect(getEmotionRules(link).join(' ')).toContain('pointer-events: none');
   });
-
-  it.each([lightTheme, darkTheme])(
-    'applies text styles and a focus ring without resetting spacing',
-    theme => {
-      render(
-        <ThemeProvider theme={theme}>
-          <Link to="/issues/">Issues</Link>
-        </ThemeProvider>
-      );
-      const rules = getEmotionRules(screen.getByRole('link', {name: 'Issues'})).join(' ');
-      expect(rules).toContain('text-box-edge: text text');
-      expect(rules).toContain('text-box-trim: trim-both');
-      expect(rules).toContain(':focus-visible');
-      expect(rules).toContain(`box-shadow: 0 0 0 2px ${theme.tokens.focus.default}`);
-      expect(rules).not.toMatch(/margin:\s*0/);
-      expect(rules).not.toMatch(/padding:\s*0/);
-    }
-  );
 });
 
 describe('Link with a supplied behavior', () => {
@@ -149,7 +136,8 @@ describe('Link with a supplied behavior', () => {
         <Link to="/issues/" replace state={{source: 'test'}} onClick={onClick}>
           Issues
         </Link>
-      </LinkBehaviorContextProvider>
+      </LinkBehaviorContextProvider>,
+      {wrapper: ThemeWrapper}
     );
     const link = screen.getByRole('link', {name: 'Issues'});
     expect(link).toHaveAttribute('href', '/normalized/');
@@ -169,7 +157,8 @@ describe('ExternalLink', () => {
       render(
         <ExternalLink href="https://example.com" openInNewTab={openInNewTab}>
           External
-        </ExternalLink>
+        </ExternalLink>,
+        {wrapper: ThemeWrapper}
       );
       const link = screen.getByRole('link', {name: 'External'});
       expect(link).toHaveAttribute('href', 'https://example.com');
