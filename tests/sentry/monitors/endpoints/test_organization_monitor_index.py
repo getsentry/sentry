@@ -13,8 +13,14 @@ from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, Fir
 from sentry.constants import ObjectStatus
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, is_monitor_muted
-from sentry.monitors.utils import get_detector_for_monitor
+from sentry.monitors.models import (
+    Monitor,
+    MonitorStatus,
+    ScheduleType,
+    get_detector_for_monitor,
+    is_monitor_muted,
+)
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import MonitorTestCase
@@ -22,6 +28,7 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.workflow_engine.models import Detector
 
 
 class ListOrganizationMonitorsTest(MonitorTestCase):
@@ -1093,6 +1100,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
     def test_bulk_disable_enable(self) -> None:
         monitor_one = self._create_monitor(slug="monitor_one")
         monitor_two = self._create_monitor(slug="monitor_two")
+        ensure_cron_detector(monitor_one)
+        ensure_cron_detector(monitor_two)
         data = {
             "ids": [monitor_one.guid, monitor_two.guid],
             "status": "disabled",
@@ -1104,6 +1113,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_two.refresh_from_db()
         assert monitor_one.status == ObjectStatus.DISABLED
         assert monitor_two.status == ObjectStatus.DISABLED
+        assert not Detector.objects.get(datasource__source_id=str(monitor_one.id)).enabled
+        assert not Detector.objects.get(datasource__source_id=str(monitor_two.id)).enabled
 
         data = {
             "ids": [monitor_one.guid, monitor_two.guid],
@@ -1117,6 +1128,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_two.refresh_from_db()
         assert monitor_one.status == ObjectStatus.ACTIVE
         assert monitor_two.status == ObjectStatus.ACTIVE
+        assert Detector.objects.get(datasource__source_id=str(monitor_one.id)).enabled
+        assert Detector.objects.get(datasource__source_id=str(monitor_two.id)).enabled
 
     @patch("sentry.quotas.backend.check_assign_seats")
     def test_enable_no_quota(self, check_assign_seats: MagicMock) -> None:
