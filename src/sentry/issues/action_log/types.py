@@ -13,6 +13,7 @@ from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, Typ
 import orjson
 from pydantic import BaseModel
 
+# NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
 SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, str | int]]
 
 
@@ -201,7 +202,7 @@ class GroupAction(BaseModel, abc.ABC):
       ``dict[str, Any]`` or ``list[dict[str, str | dict[str, str]]]``; it's impossible to
       tell what those contain, or whether a value from two years ago means the same thing
       as one written today. Use nested ``BaseModel`` types, ``Literal``, or enums. Existing
-      fields marked ``TODO Break out as separate model?`` are debt, not precedent.
+      fields marked ``NOTE: Underspecified schema`` are debt, not precedent.
     - When the source data is loosely shaped (an upstream API response, ``Activity.data``),
       translate it into a fixed shape when publishing rather than storing it as-is.
     - Document anything the type doesn't say: which model an ID refers to, units, and what
@@ -522,6 +523,7 @@ class UnlinkPlatformExternalIssueAction(GroupAction):
 class AutofixPrCreatedAction(GroupAction):
     user_visible = True
     run_id: str | None = None
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     pull_requests: list[dict[str, object]]
 
     @classmethod
@@ -701,7 +703,7 @@ class DeployAction(GroupAction):
 class NewProcessingIssuesAction(GroupAction):
     user_visible = True
     reprocessing_active: bool
-    # TODO Break out as separate model?
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     issues: list[dict[str, str | dict[str, str]]]
 
     @classmethod
@@ -753,6 +755,7 @@ class SetEscalatingAction(GroupAction):
     user_visible = True
     event_id: Optional[str] = None
     forecast: Optional[int] = None
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     expired_snooze: Optional[dict[str, int | str | None]] = None
 
     @classmethod
@@ -791,7 +794,7 @@ class SeerRCACompletedAction(GroupAction):
     user_visible = True
     run_id: Optional[int | str] = None
     summary: Optional[str] = None
-    # TODO Break out as separate model?
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     root_cause: Optional[dict[str, str | list[str]]] = None
 
     @classmethod
@@ -811,7 +814,7 @@ class SeerSolutionStartedAction(GroupAction):
 class SeerSolutionCompletedAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
-    # TODO Break out as separate model?
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     solution: Optional[dict[str, str | list[dict[str, str]]]] = None
     summary: Optional[str] = None
 
@@ -832,6 +835,7 @@ class SeerCodingStartedAction(GroupAction):
 class SeerCodingCompletedAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     changes: Optional[list[dict[str, str | int]]] = None
 
     @classmethod
