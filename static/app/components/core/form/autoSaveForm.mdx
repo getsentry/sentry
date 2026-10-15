@@ -30,7 +30,7 @@ import {z} from 'zod';
 
 import {AutoSaveForm} from '@sentry/scraps/form';
 
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 
 const schema = z.object({
   displayName: z.string().min(1, 'Display name is required'),
@@ -41,9 +41,9 @@ const schema = z.object({
   schema={schema}
   initialValue={user.displayName}
   mutationOptions={{
-    mutationFn: (data: Partial<User>) => fetchMutation({url: '/user/', method: 'PUT', data}),
-    onSuccess: data => {
-      queryClient.setQueryData(['user'], old => ({...old, ...data}));
+    mutationFn: (data: Partial<User>) => apiFetch({queryKey: ['/user/', {method: 'PUT', data}]}),
+    onSuccess: response => {
+      queryClient.setQueryData(['user'], old => ({...old, ...response.json}));
     },
   }}
 >
@@ -106,7 +106,7 @@ const schema = z.object({
   initialValue="{}"
   mutationOptions={{
     mutationFn: (data: {highlightContext: Record<string, string[]>}) =>
-      fetchMutation({url: '/project/', method: 'PUT', data}),
+      apiFetch({queryKey: ['/project/', {method: 'PUT', data}]}),
   }}
 >
   {field => (
@@ -155,11 +155,11 @@ Type the `mutationFn` with the API's data type, **not** the zod schema type. The
 ```jsx
 // ❌ Don't tie mutation type to the zod schema
 mutationFn: (data: Partial<z.infer<typeof schema>>) =>
-  fetchMutation({url: '/user/', method: 'PUT', data})
+  apiFetch({queryKey: ['/user/', {method: 'PUT', data}]})
 
 // ✅ Use the API's data type
 mutationFn: (data: Partial<UserDetails>) =>
-  fetchMutation({url: '/user/', method: 'PUT', data})
+  apiFetch({queryKey: ['/user/', {method: 'PUT', data}]})
 ```
 
 Make sure the zod schema's types are compatible with the API type. For example, if the API expects a string union like `'off' | 'low' | 'high'`, use `z.enum(['off', 'low', 'high'])` instead of `z.string()`.
@@ -171,9 +171,9 @@ Always update the data store or React Query cache in `onSuccess` so the UI stays
 ```jsx
 mutationOptions={{
   mutationFn: data =>
-    fetchMutation({url: '/user/', method: 'PUT', data}),
-  onSuccess: data => {
-    queryClient.setQueryData(['user'], old => ({...old, ...data}));
+    apiFetch({queryKey: ['/user/', {method: 'PUT', data}]}),
+  onSuccess: response => {
+    queryClient.setQueryData(['user'], old => ({...old, ...response.json}));
   },
 }}
 ```
