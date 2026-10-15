@@ -6,6 +6,25 @@ import type {SavedFormula} from 'sentry/views/explore/hooks/useGetSavedFormulas'
 
 const VARIABLE_PATTERN = /\{([^{}]+)\}/g;
 
+const VARIABLE_OR_NAME_PATTERN = /\{[^{}]*\}|\w[\w.]*/g;
+
+/** Unwraps `{name}` back to `name` for the equation inputs. */
+export function stripVariableBraces(expression: string) {
+  return expression.replace(VARIABLE_PATTERN, (_match, name: string) => name);
+}
+
+/** Wraps the names a formula defines back up as `{name}` for the API. */
+export function addVariableBraces(expression: string, names: string[]) {
+  const known = new Set(names.filter(Boolean));
+  if (known.size === 0) {
+    return expression;
+  }
+
+  return expression.replace(VARIABLE_OR_NAME_PATTERN, match =>
+    known.has(match) ? `{${match}}` : match
+  );
+}
+
 type TokenKind = 'parameter' | 'calculation' | 'reference';
 
 /** Every name a formula can interpolate, keyed by the name inside the `{}`. */
