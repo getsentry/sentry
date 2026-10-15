@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import ast
+import hashlib
 import subprocess
 from dataclasses import replace
 from pathlib import Path
@@ -22,6 +24,7 @@ from tools.mypy_helpers.typing_campaign import (
     SourceFile,
     SourceKind,
     TreeMeasurement,
+    _assert_tree_path,
     _assert_trusted_policy,
     _candidate_allstrong_reuse_allowed,
     _command_compare,
@@ -34,6 +37,7 @@ from tools.mypy_helpers.typing_campaign import (
     _known_environment_warnings,
     _measure_tree,
     _mypy_config_policy,
+    _precision_any_obligations,
     _policy_changes,
     _run_precision_canaries,
     _source_contracts,
@@ -53,6 +57,8 @@ def _profile(
     profile: Profile,
     diagnostics: tuple[DiagnosticRecord, ...] = (),
     graph: tuple[ModuleState, ...] = (),
+    any_obligations: tuple[AnyObligation, ...] = (),
+    unanchored_any_count: int = 0,
 ) -> ProfileMeasurement:
     return ProfileMeasurement(
         profile,
@@ -61,11 +67,12 @@ def _profile(
         1,
         diagnostics,
         graph,
-        (),
+        any_obligations,
         (),
         0.0,
         None,
         Path(".work/tmp/test"),
+        unanchored_any_count=unanchored_any_count,
     )
 
 
@@ -78,6 +85,8 @@ def _tree(
     bypasses: frozenset[tuple[str, str]] = frozenset(),
     omissions: frozenset[tuple[str, str, str]] = frozenset(),
     any_obligations: frozenset[AnyObligation] = frozenset(),
+    precision_any_obligations: tuple[AnyObligation, ...] = (),
+    unanchored_any_count: int = 0,
     source_digests: dict[str, str] | None = None,
     signatures: dict[tuple[str, str, str], str] | None = None,
     graph: tuple[ModuleState, ...] = (),
@@ -105,6 +114,8 @@ def _tree(
                 if profile == Profile.CONFIGURED
                 else (),
                 graph,
+                precision_any_obligations if profile == Profile.PRECISION else (),
+                unanchored_any_count if profile == Profile.PRECISION else 0,
             )
             for profile in profiles
         },
@@ -1170,6 +1181,160 @@ def consume(value: Dynamic) -> Dictionary[str, Dynamic]:
     assert any("broad-dict-any" in bypass for _, bypass in bypasses)
 
 
+def test_source_contracts_account_for_pep695_alias_and_type_parameters(
+    tmp_path: Path,
+) -> None:
+    source_path = "src/example.py"
+    source = """\
+from typing import Any
+
+type Alias[T: Any = Any] = dict[str, Any]
+
+class Box[T: Any = Any]:
+    payload: Any
+
+def identity[T: Any = Any](value: T) -> Any:
+    return value
+"""
+    source_file = tmp_path / source_path
+    source_file.parent.mkdir(parents=True)
+    source_file.write_text(source)
+
+    _, signatures, _, obligations = _source_contracts(source_path, tmp_path)
+
+    assert signatures[(source_path, "example.Alias#1", "generic:T")] == "T: Any = Any"
+    assert signatures[(source_path, "example.Box#1", "generic:T")] == "T: Any = Any"
+    assert signatures[(source_path, "example.identity#1", "generic:T")] == "T: Any = Any"
+    assert any(item.anchor == "type-alias:Alias" for item in obligations)
+    assert any(
+        item.anchor.startswith("annotation:payload:") and item.origin == "explicit"
+        for item in obligations
+    )
+    assert sum(item.anchor.startswith("signature:") for item in obligations) == 7
+
+
+@pytest.mark.parametrize("module_name", ["typing", "typing_extensions"])
+def test_typing_wildcard_import_is_accounted_as_unknown(tmp_path: Path, module_name: str) -> None:
+    source_path = "src/example.py"
+    source = f"""\
+from {module_name} import *
+
+def unchecked(value):
+    return cast(Any, value)
+
+@no{"_type_check"}
+def ignored(value):
+    return value
+
+callback: Callable[..., Any]
+mapping: dict[str, Any]
+"""
+    source_file = tmp_path / source_path
+    source_file.parent.mkdir(parents=True)
+    source_file.write_text(source)
+
+    bypasses, _, _, obligations = _source_contracts(source_path, tmp_path)
+
+    anchor = f"typing-wildcard-import:{module_name}#1"
+    assert bypasses == frozenset({(source_path, anchor)})
+    assert obligations == frozenset(
+        {
+            AnyObligation(
+                source_path,
+                anchor,
+                "unresolved-imported-typing-names",
+                "unknown-typing-wildcard",
+            )
+        }
+    )
+
+
+def test_candidate_with_new_typing_wildcard_import_is_rejected(tmp_path: Path) -> None:
+    source_path = "src/sentry/example.py"
+    source_file = tmp_path / source_path
+    source_file.parent.mkdir(parents=True)
+    source_file.write_text("from typing import *\n")
+    bypasses, _, _, obligations = _source_contracts(source_path, tmp_path)
+    parent = _tree(source_digests={source_path: "parent"})
+    candidate = _tree(
+        bypasses=bypasses,
+        any_obligations=obligations,
+        source_digests={source_path: "candidate"},
+    )
+
+    decision = decide_candidate(
+        parent, candidate, require_adoption_credit=True, precision_calibrated=True
+    )
+
+    assert decision.outcome == Outcome.REJECTED
+    assert any("new typing bypass" in reason for reason in decision.reasons)
+    assert any("new Any obligation" in reason for reason in decision.reasons)
+
+
+def test_source_contracts_reuse_any_nodes_for_nested_types_and_bypasses(tmp_path: Path) -> None:
+    source_path = "src/example.py"
+    source = """\
+from typing import Any, Callable, cast
+
+def consume(value: list[tuple[Any, Any]]) -> Any:
+    cast(Any, value)
+    return value
+
+alias = tuple[Any, list[Any]]
+typed_alias: object = tuple[Any, Any]
+callback: Callable[..., Any]
+mapping: dict[str, list[Any]]
+"""
+    source_file = tmp_path / source_path
+    source_file.parent.mkdir(parents=True)
+    source_file.write_text(source)
+    module = ast.parse(source)
+    callback_annotation = ast.dump(module.body[4].annotation, include_attributes=False)
+    mapping_annotation = ast.dump(module.body[5].annotation, include_attributes=False)
+
+    bypasses, signatures, omissions, obligations = _source_contracts(source_path, tmp_path)
+
+    assert signatures == {
+        (source_path, "example.consume#1", "parameter:value"): "list[tuple[Any, Any]]",
+        (source_path, "example.consume#1", "return"): "Any",
+    }
+    assert omissions == frozenset()
+    assert obligations == frozenset(
+        {
+            AnyObligation(
+                source_path, "signature:example.consume#1", "parameter:value:0", "explicit"
+            ),
+            AnyObligation(
+                source_path, "signature:example.consume#1", "parameter:value:1", "explicit"
+            ),
+            AnyObligation(source_path, "signature:example.consume#1", "return:0", "explicit"),
+            AnyObligation(source_path, "type-alias:alias", "alias:0", "explicit"),
+            AnyObligation(source_path, "type-alias:alias", "alias:1", "explicit"),
+            AnyObligation(source_path, "type-alias:typed_alias", "alias:0", "explicit"),
+            AnyObligation(source_path, "type-alias:typed_alias", "alias:1", "explicit"),
+            AnyObligation(
+                source_path,
+                f"annotation:callback:{callback_annotation}",
+                "variable:0",
+                "explicit",
+            ),
+            AnyObligation(
+                source_path,
+                f"annotation:mapping:{mapping_annotation}",
+                "variable:0",
+                "explicit",
+            ),
+        }
+    )
+    assert bypasses == frozenset(
+        {
+            (source_path, "callable-any:Callable[..., Any]"),
+            (source_path, "broad-dict-any:dict[str, list[Any]]"),
+            (source_path, "erasing-cast:cast(Any, value)"),
+        }
+    )
+
+
 def test_no_type_check_alias_is_a_bypass(tmp_path: Path) -> None:
     root = tmp_path / "snapshot"
     root.mkdir()
@@ -1217,13 +1382,77 @@ def test_adapter_target_count_must_match_target_manifest() -> None:
         )
 
 
+def test_precision_any_obligations_normalizes_each_raw_path_once(tmp_path: Path) -> None:
+    root = tmp_path / "snapshot"
+    in_root_path = str(root / "src" / "sentry" / "example.py")
+    out_of_root_path = str(tmp_path / "external.py")
+    raw_obligations = [
+        {
+            "path": in_root_path,
+            "anchor": "ast:one#0",
+            "type_position": "expression:0",
+            "origin": "explicit",
+        },
+        {
+            "path": out_of_root_path,
+            "anchor": "ast:two#0",
+            "type_position": "expression:0",
+            "origin": "unannotated",
+        },
+        {
+            "path": in_root_path,
+            "anchor": "ast:three#0",
+            "type_position": "expression:1",
+            "origin": "explicit",
+        },
+        {
+            "path": out_of_root_path,
+            "anchor": "ast:four#0",
+            "type_position": "expression:1",
+            "origin": "unannotated",
+        },
+    ]
+    normalized: list[str] = []
+    normalize_path = _assert_tree_path
+
+    def record_normalization(path: str, source_root: Path, *, owned_module: bool = False) -> str:
+        normalized.append(path)
+        return normalize_path(path, source_root, owned_module=owned_module)
+
+    with patch(
+        "tools.mypy_helpers.typing_campaign._assert_tree_path",
+        side_effect=record_normalization,
+    ):
+        obligations = _precision_any_obligations(raw_obligations, root)
+
+    assert normalized == [in_root_path, out_of_root_path]
+    assert obligations == (
+        AnyObligation(
+            "src/sentry/example.py",
+            "ast:one#0",
+            "expression:0",
+            "explicit",
+        ),
+        AnyObligation(
+            "src/sentry/example.py",
+            "ast:three#0",
+            "expression:1",
+            "explicit",
+        ),
+    )
+
+
 def test_precision_adapter_exports_stable_any_obligations(tmp_path: Path) -> None:
     root = tmp_path / "snapshot"
     package = root / "src" / "sentry"
     package.mkdir(parents=True)
     (package / "__init__.py").write_text("")
-    (package / "example.py").write_text(
-        "from typing import Any\n\n\ndef identity(value: Any) -> Any:\n    return value\n"
+    example_path = package / "example.py"
+    example_path.write_text(
+        "from typing import Any, TypeAlias\n\n"
+        "Alias: TypeAlias = dict[str, Any]\n\n"
+        "type PEP695Alias = list[Any]\n\n"
+        "def identity(value: Any) -> Any:\n    return value\n"
     )
     (root / "pyproject.toml").write_text(
         "[tool.mypy]\n"
@@ -1266,11 +1495,310 @@ def test_precision_adapter_exports_stable_any_obligations(tmp_path: Path) -> Non
     assert all("unused section(s)" not in item.message for item in measurement.diagnostics)
     assert any(item.origin == "explicit" for item in measurement.any_obligations)
     assert all(not item.anchor.startswith("unanchored:") for item in measurement.any_obligations)
+    alias_value = ast.parse(example_path.read_text()).body[1].value
+    alias_fingerprint = hashlib.sha256(
+        ast.dump(alias_value, include_attributes=False).encode()
+    ).hexdigest()[:20]
+    alias_anchor = f"ast:{alias_fingerprint}#0"
+    pep695_value = ast.parse(example_path.read_text()).body[2].value
+    pep695_fingerprint = hashlib.sha256(
+        ast.dump(pep695_value, include_attributes=False).encode()
+    ).hexdigest()[:20]
+    pep695_rhs_anchor = f"ast:{pep695_fingerprint}#0"
+    assert any(
+        item.path == "src/sentry/example.py" and item.anchor == alias_anchor
+        for item in measurement.any_obligations
+    )
+    assert any(
+        item.path == "src/sentry/example.py" and item.anchor == pep695_rhs_anchor
+        for item in measurement.any_obligations
+    )
     assert any(item.path == "src/sentry/example.py" for item in measurement.diagnostics)
     state = next(state for state in measurement.graph if state.module == "sentry.example")
     assert state.checked
     assert "implicit_reexport" in dict(state.effective_options)
     assert "no_implicit_reexport" not in dict(state.effective_options)
+
+
+def test_precision_adapter_accounts_for_declaration_expression_sentinels(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "snapshot"
+    package = root / "src" / "sentry"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    source_path = "src/sentry/example.py"
+    (root / source_path).write_text(
+        "from enum import Enum\n"
+        "from typing import Any, NamedTuple, NewType, ParamSpec, TypeAlias, TypeVar, "
+        "TypeVarTuple, TypedDict\n\n"
+        "Alias: TypeAlias = list[Any]\n"
+        "T = TypeVar('T')\n"
+        "P = ParamSpec('P')\n"
+        "Ts = TypeVarTuple('Ts')\n"
+        "Point = NamedTuple('Point', [('value', Any)])\n"
+        "Payload = TypedDict('Payload', {'value': Any})\n"
+        "Color = Enum('Color', 'RED')\n"
+        "Identifier = NewType('Identifier', int)\n"
+        "missing: Any\n"
+    )
+    (root / "pyproject.toml").write_text(
+        "[tool.mypy]\n"
+        "python_version = '3.13'\n"
+        "files = ['src/sentry']\n"
+        "mypy_path = ['src']\n"
+        "namespace_packages = true\n"
+        "explicit_package_bases = true\n"
+    )
+    output = tmp_path / "measurements"
+    output.mkdir()
+
+    measurement = run_profile(
+        Profile.PRECISION,
+        root,
+        "synthetic-tree",
+        output,
+        timeout_seconds=120,
+    )
+
+    assert measurement.adapter_status == 0
+    assert measurement.unanchored_any_count == 0
+    assert all(
+        not item.anchor.startswith("unanchored:")
+        for item in measurement.any_obligations
+        if item.path == source_path
+    )
+    _, _, _, source_obligations = _source_contracts(source_path, root)
+    assert any(item.anchor == "type-alias:Alias" for item in source_obligations)
+    assert any(
+        item.anchor.startswith("annotation:missing:") for item in source_obligations
+    )
+
+
+def test_precision_adapter_anchors_unique_import_and_exception_binders(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "snapshot"
+    package = root / "src" / "sentry"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    (package / "provider.py").write_text(
+        "from typing import Any\n\nplain: Any\naliased: Any\n"
+    )
+    (package / "unique.py").write_text(
+        "from typing import Any\n\n"
+        "plain = 0\n"
+        "from sentry.provider import plain\n\n"
+        "Alias = 0\n"
+        "from sentry.provider import aliased as Alias\n\n"
+        "def caught() -> Any:\n"
+        "    try:\n"
+        "        raise ValueError()\n"
+        "    except Any as error:\n"
+        "        return error\n\n"
+        "def divided(value: Any, base: int):\n"
+        "    return divmod(value, base)\n"
+    )
+    (package / "ambiguous.py").write_text(
+        "conflict = 0\n"
+        "from sentry.provider import plain as conflict, aliased as conflict\n"
+    )
+    (package / "wildcard.py").write_text(
+        "from typing import *\n\n"
+        "def identity(value: Any) -> Any:\n"
+        "    return value\n"
+    )
+    (root / "pyproject.toml").write_text(
+        "[tool.mypy]\n"
+        "python_version = '3.13'\n"
+        "files = ['src/sentry']\n"
+        "mypy_path = ['src']\n"
+        "namespace_packages = true\n"
+        "explicit_package_bases = true\n"
+    )
+    output = tmp_path / "measurements"
+    output.mkdir()
+
+    measurement = run_profile(
+        Profile.PRECISION,
+        root,
+        "synthetic-tree",
+        output,
+        timeout_seconds=120,
+    )
+
+    assert measurement.adapter_status == 0
+    unique = [
+        item for item in measurement.any_obligations if item.path == "src/sentry/unique.py"
+    ]
+    ambiguous = [
+        item
+        for item in measurement.any_obligations
+        if item.path == "src/sentry/ambiguous.py"
+    ]
+    wildcard = [
+        item
+        for item in measurement.any_obligations
+        if item.path == "src/sentry/wildcard.py"
+    ]
+    unique_tree = ast.parse((package / "unique.py").read_text())
+    expected_import_anchors = {
+        "ast-role:import-binding:"
+        + hashlib.sha256(ast.dump(alias, include_attributes=False).encode()).hexdigest()[:20]
+        + "#0"
+        for statement in ast.walk(unique_tree)
+        if isinstance(statement, ast.ImportFrom) and statement.module == "sentry.provider"
+        for alias in statement.names
+    }
+    assert any(item.anchor.startswith("ast-role:exception-handler:") for item in unique)
+    assert expected_import_anchors <= {item.anchor for item in unique}
+    assert any("unanchored:OpExpr::" in item.anchor and ":-1:None:None" in item.anchor for item in unique)
+    assert any("unanchored:NameExpr:conflict:" in item.anchor for item in ambiguous)
+    assert wildcard
+    assert all(not item.anchor.startswith("ast-role:import-binding:") for item in wildcard)
+
+
+def test_precision_adapter_handles_namespace_package_directory(tmp_path: Path) -> None:
+    root = tmp_path / "snapshot"
+    package = root / "src" / "sentry"
+    package_paths = (
+        package,
+        package / "api",
+        package / "api" / "endpoints",
+        package / "api" / "endpoints" / "integrations",
+        package / "api" / "endpoints" / "integrations" / "sentry_apps",
+    )
+    for package_path in package_paths:
+        package_path.mkdir(parents=True, exist_ok=True)
+        (package_path / "__init__.py").write_text("")
+    namespace_package = package_paths[-1] / "installation"
+    child_package = namespace_package / "child"
+    child_package.mkdir(parents=True)
+    (child_package / "__init__.py").write_text(
+        "from typing import Any\n\n\ndef identity(value: Any) -> Any:\n    return value\n"
+    )
+    (root / "pyproject.toml").write_text(
+        "[tool.mypy]\n"
+        "python_version = '3.13'\n"
+        "files = ['src/sentry']\n"
+        "mypy_path = ['src']\n"
+        "namespace_packages = true\n"
+        "explicit_package_bases = true\n"
+    )
+    output = tmp_path / "measurements"
+    output.mkdir()
+
+    measurement = run_profile(
+        Profile.PRECISION,
+        root,
+        "synthetic-tree",
+        output,
+        timeout_seconds=120,
+    )
+
+    assert measurement.adapter_status == 0
+    namespace_state = next(
+        state
+        for state in measurement.graph
+        if state.module == "sentry.api.endpoints.integrations.sentry_apps.installation"
+    )
+    assert namespace_state.path == "src/sentry/api/endpoints/integrations/sentry_apps/installation"
+    assert (root / namespace_state.path).is_dir()
+    assert measurement.unanchored_any_count == 0
+    assert any(item.origin == "explicit" for item in measurement.any_obligations)
+    assert all(not item.anchor.startswith("unanchored:") for item in measurement.any_obligations)
+
+
+def test_precision_adapter_anchors_source_kinds_and_rejects_ambiguous_rewrites(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "snapshot"
+    package = root / "src" / "sentry"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    (package / "ordinary.py").write_text(
+        "from typing import Any, cast\n\n"
+        "def expressions(value: Any, other: Any) -> Any:\n"
+        "    assigned = (captured := value)\n"
+        "    binary = value + other\n"
+        "    boolean = value and other\n"
+        "    return assigned, binary, boolean\n\n"
+        "def generator(value: Any):\n"
+        "    yield value\n"
+        "    yield from [value]\n\n"
+        "class Parent:\n"
+        "    def method(self, value: Any) -> Any:\n"
+        "        return value\n\n"
+        "class Child(Parent):\n"
+        "    def method(self, value: Any) -> Any:\n"
+        "        return super().method(value)\n\n"
+        "async def awaited(value: Any) -> Any:\n"
+        "    return await value\n\n"
+        "def casted(value: Any) -> Any:\n"
+        "    return cast(Any, value)\n\n"
+        "def dictionary(value: Any) -> dict[str, Any]:\n"
+        "    return dict(value=value)\n\n"
+        "def lambda_expression(value: Any) -> Any:\n"
+        "    function = lambda: value\n"
+        "    return function()\n\n"
+        "def formatted(value: Any) -> Any:\n"
+        "    return f'{value.attr}'\n"
+    )
+    (package / "generic.py").write_text(
+        "from typing import Any, TypeVar\n\n"
+        "T = TypeVar('T')\n\n"
+        "def identity(value: T) -> T:\n"
+        "    return value\n\n"
+        "def specialized(value: Any) -> Any:\n"
+        "    return identity[Any](value)\n"
+    )
+    (package / "mismatched.py").write_text(
+        "from typing import Any, cast\n\n"
+        "def formatted(value: Any) -> str:\n"
+        "    return f'{ value.attr }'\n\n"
+        "def ambiguous_cast(value: Any) -> Any:\n"
+        "    return cast(Any, value)()\n"
+    )
+    (root / "pyproject.toml").write_text(
+        "[tool.mypy]\n"
+        "python_version = '3.13'\n"
+        "files = ['src/sentry']\n"
+        "mypy_path = ['src']\n"
+        "namespace_packages = true\n"
+        "explicit_package_bases = true\n"
+    )
+    output = tmp_path / "measurements"
+    output.mkdir()
+
+    measurement = run_profile(
+        Profile.PRECISION,
+        root,
+        "synthetic-tree",
+        output,
+        timeout_seconds=120,
+    )
+
+    assert measurement.adapter_status == 0
+    ordinary = [
+        item for item in measurement.any_obligations if item.path == "src/sentry/ordinary.py"
+    ]
+    generic = [
+        item for item in measurement.any_obligations if item.path == "src/sentry/generic.py"
+    ]
+    mismatched = [
+        item for item in measurement.any_obligations if item.path == "src/sentry/mismatched.py"
+    ]
+    assert measurement.unanchored_any_count > 0
+    assert ordinary
+    unanchored_ordinary = [
+        item.anchor for item in ordinary if item.anchor.startswith("unanchored:")
+    ]
+    assert not unanchored_ordinary, unanchored_ordinary
+    assert generic
+    assert all("unanchored:TypeVarExpr:" not in item.anchor for item in generic)
+    assert all("unanchored:TypeApplication:" not in item.anchor for item in generic)
+    assert any("unanchored:MemberExpr:" in item.anchor for item in mismatched)
+    assert any("unanchored:CastExpr:" in item.anchor for item in mismatched)
 
 
 def test_coverage_audits_batch_standalone_sources(tmp_path: Path) -> None:
@@ -1655,6 +2183,176 @@ def test_source_changes_are_rejected_without_calibrated_precision() -> None:
     assert any("calibrated precision extraction" in reason for reason in decision.reasons)
 
 
+def test_precision_residual_in_unchanged_file_allows_measuring_other_source_change() -> None:
+    changed_path = "src/sentry/changed.py"
+    residual_path = "src/sentry/residual.py"
+    residual = AnyObligation(
+        residual_path,
+        "unanchored:OpExpr:divmod:10:-1:None:None",
+        "expression:0",
+        "unannotated",
+    )
+    inventory = (
+        SourceFile(changed_path, "sentry.changed", SourceKind.OWNED_IMPLEMENTATION),
+        SourceFile(residual_path, "sentry.residual", SourceKind.OWNED_IMPLEMENTATION),
+    )
+    parent = _tree(
+        any_obligations=frozenset({residual}),
+        precision_any_obligations=(residual,),
+        unanchored_any_count=1,
+        source_digests={changed_path: "before", residual_path: "same"},
+        profiles=tuple(Profile),
+        inventory=inventory,
+    )
+    candidate = _tree(
+        any_obligations=frozenset({residual}),
+        precision_any_obligations=(residual,),
+        unanchored_any_count=1,
+        source_digests={changed_path: "after", residual_path: "same"},
+        profiles=tuple(Profile),
+        inventory=inventory,
+    )
+
+    decision = decide_candidate(
+        parent,
+        candidate,
+        require_adoption_credit=False,
+        precision_calibrated=True,
+    )
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.precision_complete
+    residual_details = decision.details["precision_residuals"]
+    assert residual_details["parent"] == {
+        "expression_count": 1,
+        "obligation_count": 1,
+        "paths": [residual_path],
+    }
+    assert residual_details["candidate"] == residual_details["parent"]
+    assert residual_details["non_unchanged_source_obligation_count"] == 0
+    assert residual_details["non_unchanged_source_residual_paths"] == []
+
+
+def test_precision_residual_in_changed_file_blocks_precision_completeness() -> None:
+    changed_path = "src/sentry/changed.py"
+    residual_path = "src/sentry/residual.py"
+    residual = AnyObligation(
+        residual_path,
+        "unanchored:OpExpr:divmod:10:-1:None:None",
+        "expression:0",
+        "unannotated",
+    )
+    inventory = (
+        SourceFile(changed_path, "sentry.changed", SourceKind.OWNED_IMPLEMENTATION),
+        SourceFile(residual_path, "sentry.residual", SourceKind.OWNED_IMPLEMENTATION),
+    )
+    parent = _tree(
+        any_obligations=frozenset({residual}),
+        precision_any_obligations=(residual,),
+        unanchored_any_count=1,
+        source_digests={changed_path: "before", residual_path: "before"},
+        profiles=tuple(Profile),
+        inventory=inventory,
+    )
+    candidate = _tree(
+        any_obligations=frozenset({residual}),
+        precision_any_obligations=(residual,),
+        unanchored_any_count=1,
+        source_digests={changed_path: "after", residual_path: "after"},
+        profiles=tuple(Profile),
+        inventory=inventory,
+    )
+
+    decision = decide_candidate(
+        parent,
+        candidate,
+        require_adoption_credit=False,
+        precision_calibrated=True,
+    )
+
+    assert decision.outcome == Outcome.REJECTED
+    assert not decision.precision_complete
+    assert any(
+        "unanchored Any obligation rows without unchanged source digests" in reason
+        and residual_path in reason
+        for reason in decision.reasons
+    )
+    residual_details = decision.details["precision_residuals"]
+    assert residual_details["non_unchanged_source_obligation_count"] == 2
+    assert residual_details["non_unchanged_source_residual_paths"] == [residual_path]
+
+
+def test_new_unanchored_any_residual_is_rejected_by_any_set_comparison() -> None:
+    changed_path = "src/sentry/changed.py"
+    residual_path = "src/sentry/residual.py"
+    residual = AnyObligation(
+        residual_path,
+        "unanchored:OpExpr:divmod:10:-1:None:None",
+        "expression:0",
+        "unannotated",
+    )
+    inventory = (
+        SourceFile(changed_path, "sentry.changed", SourceKind.OWNED_IMPLEMENTATION),
+        SourceFile(residual_path, "sentry.residual", SourceKind.OWNED_IMPLEMENTATION),
+    )
+    parent = _tree(
+        source_digests={changed_path: "before", residual_path: "same"},
+        profiles=tuple(Profile),
+        inventory=inventory,
+    )
+    candidate = _tree(
+        any_obligations=frozenset({residual}),
+        precision_any_obligations=(residual,),
+        unanchored_any_count=1,
+        source_digests={changed_path: "after", residual_path: "same"},
+        profiles=tuple(Profile),
+        inventory=inventory,
+    )
+
+    decision = decide_candidate(
+        parent,
+        candidate,
+        require_adoption_credit=False,
+        precision_calibrated=True,
+    )
+
+    assert decision.outcome == Outcome.REJECTED
+    assert decision.precision_complete
+    assert any("new Any obligation" in reason for reason in decision.reasons)
+
+
+@pytest.mark.parametrize("incomplete_gate", ["unknown-origin", "coverage-gap"])
+def test_source_change_precision_still_rejects_unknown_origins_and_coverage_gaps(
+    incomplete_gate: str,
+) -> None:
+    source_path = "src/sentry/example.py"
+    parent = _tree(
+        source_digests={source_path: "before"},
+        profiles=tuple(Profile),
+    )
+    candidate = _tree(
+        source_digests={source_path: "after"},
+        profiles=tuple(Profile),
+    )
+    if incomplete_gate == "unknown-origin":
+        unknown = AnyObligation(source_path, "ast:unknown#0", "return", "unknown-origin")
+        parent = replace(parent, any_obligations=frozenset({unknown}))
+        candidate = replace(candidate, any_obligations=frozenset({unknown}))
+    else:
+        candidate = replace(candidate, precision_gaps=("precision source coverage missing",))
+
+    decision = decide_candidate(
+        parent,
+        candidate,
+        require_adoption_credit=False,
+        precision_calibrated=True,
+    )
+
+    assert decision.outcome == Outcome.REJECTED
+    assert not decision.precision_complete
+    assert any("source changes require calibrated precision extraction" in reason for reason in decision.reasons)
+
+
 def test_truthful_read_only_input_widening_is_accepted_with_precision() -> None:
     key = ("src/sentry/example.py", "sentry.example.consume#1", "parameter:values")
     parent = _tree(
@@ -1731,6 +2429,30 @@ def test_terminal_reports_precision_incomplete_separately_from_core() -> None:
     assert decision.core_complete
     assert not decision.precision_complete
     assert "precision canaries have not been calibrated" in decision.reasons
+
+
+def test_terminal_completion_keeps_precision_residuals_as_outstanding_debt() -> None:
+    residual_path = "src/sentry/residual.py"
+    residual = AnyObligation(
+        residual_path,
+        "unanchored:OpExpr:divmod:10:-1:None:None",
+        "expression:0",
+        "unannotated",
+    )
+    measurement = _tree(
+        any_obligations=frozenset({residual}),
+        precision_any_obligations=(residual,),
+        unanchored_any_count=1,
+        profiles=tuple(Profile),
+        inventory=(SourceFile(residual_path, "sentry.residual", SourceKind.OWNED_IMPLEMENTATION),),
+    )
+
+    decision = decide_terminal(measurement, precision_calibrated=True)
+
+    assert decision.outcome == Outcome.REJECTED
+    assert not decision.precision_complete
+    assert any("Any expressions lack stable AST anchors" in reason for reason in decision.reasons)
+    assert decision.details["precision_residuals"]["paths"] == [residual_path]
 
 
 def test_guard_cli_defaults_to_head_tree(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

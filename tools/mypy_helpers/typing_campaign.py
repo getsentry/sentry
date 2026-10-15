@@ -373,37 +373,93 @@ def _states(result, target_modules: set[str], base_options) -> list[dict[str, ob
     return states
 
 
-def _ast_expression_anchors(path: str) -> tuple[dict[tuple[int, int, str], str], dict[str, str]]:
+SpanKey = tuple[int, int, int, int, str]
+StartKey = tuple[int, int, str]
+AnchorMap = dict[SpanKey, set[str]]
+StartAnchorMap = dict[StartKey, set[str]]
+TypeAliasAnchorMap = dict[tuple[int, str], set[str]]
+TypeAliasRhsAnchorMap = dict[tuple[int, int, int, int], set[str]]
+RoleKey = tuple[int, int, int, int, str, str]
+RoleAnchorMap = dict[RoleKey, set[str]]
+
+DECLARATION_ANY_SENTINELS = frozenset(
+    {
+        "TempNode",
+        "TypeVarExpr",
+        "ParamSpecExpr",
+        "TypeVarTupleExpr",
+        "NamedTupleExpr",
+        "TypedDictExpr",
+        "EnumCallExpr",
+        "NewTypeExpr",
+    }
+)
+
+
+def _is_declaration_any_sentinel(expression_kind: str, origin: str) -> bool:
+    return origin == "special_form" and expression_kind in DECLARATION_ANY_SENTINELS
+
+
+def _ast_expression_anchors(
+    path: str,
+) -> tuple[
+    AnchorMap,
+    StartAnchorMap,
+    AnchorMap,
+    AnchorMap,
+    StartAnchorMap,
+    AnchorMap,
+    TypeAliasAnchorMap,
+    TypeAliasRhsAnchorMap,
+    RoleAnchorMap,
+    dict[str, tuple[str, ...]],
+]:
     with open(path, encoding="utf-8") as source_file:
         tree = ast.parse(source_file.read(), filename=path)
     expected_nodes = {
-        "NameExpr": "Name",
-        "MemberExpr": "Attribute",
-        "CallExpr": "Call",
-        "IndexExpr": "Subscript",
-        "OpExpr": "BinOp",
-        "ComparisonExpr": "Compare",
-        "TupleExpr": "Tuple",
-        "ListExpr": "List",
-        "DictExpr": "Dict",
-        "SetExpr": "Set",
-        "GeneratorExpr": "GeneratorExp",
-        "ListComprehension": "ListComp",
-        "SetComprehension": "SetComp",
-        "DictionaryComprehension": "DictComp",
-        "IntExpr": "Constant",
-        "FloatExpr": "Constant",
-        "StrExpr": "Constant",
-        "BytesExpr": "Constant",
-        "EllipsisExpr": "Constant",
-        "UnaryExpr": "UnaryOp",
-        "ConditionalExpr": "IfExp",
-        "LambdaExpr": "Lambda",
-        "SliceExpr": "Slice",
-        "StarExpr": "Starred",
+        "NameExpr": ("Name",),
+        "MemberExpr": ("Attribute",),
+        "SuperExpr": ("Attribute",),
+        "CallExpr": ("Call",),
+        "IndexExpr": ("Subscript",),
+        "OpExpr": ("BinOp", "BoolOp"),
+        "ComparisonExpr": ("Compare",),
+        "TupleExpr": ("Tuple",),
+        "ListExpr": ("List",),
+        "DictExpr": ("Dict",),
+        "SetExpr": ("Set",),
+        "GeneratorExpr": ("GeneratorExp",),
+        "ListComprehension": ("ListComp",),
+        "SetComprehension": ("SetComp",),
+        "DictionaryComprehension": ("DictComp",),
+        "IntExpr": ("Constant",),
+        "FloatExpr": ("Constant",),
+        "StrExpr": ("Constant",),
+        "BytesExpr": ("Constant",),
+        "EllipsisExpr": ("Constant",),
+        "AwaitExpr": ("Await",),
+        "UnaryExpr": ("UnaryOp",),
+        "ConditionalExpr": ("IfExp",),
+        "LambdaExpr": ("Lambda",),
+        "CastExpr": ("Call",),
+        "TypeApplication": ("Subscript",),
+        "SliceExpr": ("Slice",),
+        "StarExpr": ("Starred",),
+        "AssignmentExpr": ("NamedExpr",),
+        "YieldExpr": ("Yield",),
+        "YieldFromExpr": ("YieldFrom",),
     }
     counts: Counter[str] = Counter()
-    anchors: dict[tuple[int, int, str], str] = {}
+    anchors: AnchorMap = {}
+    start_anchors: StartAnchorMap = {}
+    formatted_value_anchors: AnchorMap = {}
+    dict_call_anchors: AnchorMap = {}
+    dict_call_start_anchors: StartAnchorMap = {}
+    formatted_dict_call_anchors: AnchorMap = {}
+    type_alias_anchors: TypeAliasAnchorMap = {}
+    type_alias_rhs_anchors: TypeAliasRhsAnchorMap = {}
+    role_anchors: RoleAnchorMap = {}
+    role_fingerprint_counts: Counter[tuple[str, str]] = Counter()
     nodes = sorted(
         (node for node in ast.walk(tree) if isinstance(node, ast.expr)),
         key=lambda node: (
@@ -414,13 +470,153 @@ def _ast_expression_anchors(path: str) -> tuple[dict[tuple[int, int, str], str],
         ),
     )
     for node in nodes:
-        fingerprint = hashlib.sha256(ast.dump(node, include_attributes=False).encode()).hexdigest()[:20]
+        if node.end_lineno is None or node.end_col_offset is None:
+            continue
+        fingerprint = hashlib.sha256(
+            ast.dump(node, include_attributes=False).encode()
+        ).hexdigest()[:20]
         occurrence = counts[fingerprint]
         counts[fingerprint] += 1
         anchor = f"ast:{fingerprint}#{occurrence}"
-        anchors[(node.lineno, node.col_offset, type(node).__name__)] = anchor
-        anchors[(node.lineno, node.col_offset + 1, type(node).__name__)] = anchor
-    return anchors, expected_nodes
+        span = (
+            node.lineno,
+            node.col_offset,
+            node.end_lineno,
+            node.end_col_offset,
+            type(node).__name__,
+        )
+        start = (node.lineno, node.col_offset, type(node).__name__)
+        anchors.setdefault(span, set()).add(anchor)
+        start_anchors.setdefault(start, set()).add(anchor)
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "dict"
+        ):
+            dict_call_anchors.setdefault(span, set()).add(anchor)
+            dict_call_start_anchors.setdefault(start, set()).add(anchor)
+    for formatted_value in ast.walk(tree):
+        if not isinstance(formatted_value, ast.FormattedValue):
+            continue
+        value = formatted_value.value
+        if (
+            not isinstance(value, ast.expr)
+            or value.end_lineno is None
+            or value.end_col_offset is None
+            or value.lineno != formatted_value.lineno
+            or value.col_offset != formatted_value.col_offset + 1
+        ):
+            continue
+        value_span = (
+            value.lineno,
+            value.col_offset,
+            value.end_lineno,
+            value.end_col_offset,
+            type(value).__name__,
+        )
+        value_anchors = anchors.get(value_span, set())
+        if len(value_anchors) != 1:
+            continue
+        shifted_span = (
+            formatted_value.lineno,
+            formatted_value.col_offset,
+            value.end_lineno,
+            value.end_col_offset,
+            type(value).__name__,
+        )
+        anchor = next(iter(value_anchors))
+        formatted_value_anchors.setdefault(shifted_span, set()).add(anchor)
+        if (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Name)
+            and value.func.id == "dict"
+        ):
+            formatted_dict_call_anchors.setdefault(shifted_span, set()).add(anchor)
+
+    def add_type_alias_anchor(line: int, name: str, value: ast.expr | None) -> None:
+        if value is None or value.end_lineno is None or value.end_col_offset is None:
+            return
+        span = (
+            value.lineno,
+            value.col_offset,
+            value.end_lineno,
+            value.end_col_offset,
+            type(value).__name__,
+        )
+        candidates = anchors.get(span, set())
+        if len(candidates) == 1:
+            type_alias_anchors.setdefault((line, name), set()).update(candidates)
+
+    def add_role_anchor(
+        role: str,
+        name: str,
+        location: ast.AST,
+        fingerprint_node: ast.AST,
+    ) -> None:
+        line = getattr(location, "lineno", None)
+        column = getattr(location, "col_offset", None)
+        end_line = getattr(location, "end_lineno", None)
+        end_column = getattr(location, "end_col_offset", None)
+        if line is None or column is None or end_line is None or end_column is None:
+            return
+        fingerprint = hashlib.sha256(
+            ast.dump(fingerprint_node, include_attributes=False).encode()
+        ).hexdigest()[:20]
+        occurrence_key = (role, fingerprint)
+        occurrence = role_fingerprint_counts[occurrence_key]
+        role_fingerprint_counts[occurrence_key] += 1
+        anchor = f"ast-role:{role}:{fingerprint}#{occurrence}"
+        role_key = (line, column, end_line, end_column, role, name)
+        role_anchors.setdefault(role_key, set()).add(anchor)
+
+    for statement in ast.walk(tree):
+        if isinstance(statement, ast.Assign):
+            for target in statement.targets:
+                if isinstance(target, ast.Name):
+                    add_type_alias_anchor(statement.lineno, target.id, statement.value)
+        elif isinstance(statement, ast.AnnAssign) and isinstance(statement.target, ast.Name):
+            add_type_alias_anchor(statement.lineno, statement.target.id, statement.value)
+        elif isinstance(statement, ast.TypeAlias):
+            add_type_alias_anchor(
+                statement.lineno, statement.name.id, statement.value
+            )
+            value = statement.value
+            if value.end_lineno is not None and value.end_col_offset is not None:
+                span = (
+                    value.lineno,
+                    value.col_offset,
+                    value.end_lineno,
+                    value.end_col_offset,
+                    type(value).__name__,
+                )
+                type_alias_rhs_anchors.setdefault(
+                    (value.lineno, value.col_offset, value.end_lineno, value.end_col_offset), set()
+                ).update(anchors.get(span, set()))
+        elif isinstance(statement, ast.ExceptHandler) and statement.name is not None:
+            add_role_anchor(
+                "exception-handler", statement.name, statement, statement
+            )
+        elif isinstance(statement, (ast.Import, ast.ImportFrom)):
+            for alias in statement.names:
+                if alias.name == "*":
+                    continue
+                if isinstance(statement, ast.Import):
+                    bound_name = alias.asname or alias.name.partition(".")[0]
+                else:
+                    bound_name = alias.asname or alias.name
+                add_role_anchor("import-binding", bound_name, statement, alias)
+    return (
+        anchors,
+        start_anchors,
+        formatted_value_anchors,
+        dict_call_anchors,
+        dict_call_start_anchors,
+        formatted_dict_call_anchors,
+        type_alias_anchors,
+        type_alias_rhs_anchors,
+        role_anchors,
+        expected_nodes,
+    )
 
 
 def _any_obligations(result, origins: dict[int, str]) -> dict[str, object]:
@@ -429,29 +625,163 @@ def _any_obligations(result, origins: dict[int, str]) -> dict[str, object]:
     unanchored_count = 0
     source_root = Path(os.environ["TYPING_CAMPAIGN_SOURCE_ROOT"]).resolve()
     for module, state in result.graph.items():
-        if state.tree is None or not state.path:
+        if state.tree is None:
             continue
-        try:
-            Path(state.path).resolve().relative_to(source_root)
-        except ValueError:
-            continue
-        anchors, expected_nodes = _ast_expression_anchors(state.path)
+        source_path = Path(state.path).resolve() if state.path else None
+        if source_path is None:
+            if module.split(".", 1)[0] not in FIRST_PARTY_ROOTS:
+                continue
+        else:
+            try:
+                source_path.relative_to(source_root)
+            except ValueError:
+                continue
+        if source_path is not None and source_path.is_file():
+            (
+                anchors,
+                start_anchors,
+                formatted_value_anchors,
+                dict_call_anchors,
+                dict_call_start_anchors,
+                formatted_dict_call_anchors,
+                type_alias_anchors,
+                type_alias_rhs_anchors,
+                role_anchors,
+                expected_nodes,
+            ) = _ast_expression_anchors(str(source_path))
+        else:
+            anchors = {}
+            start_anchors = {}
+            formatted_value_anchors = {}
+            dict_call_anchors = {}
+            dict_call_start_anchors = {}
+            formatted_dict_call_anchors = {}
+            type_alias_anchors = {}
+            type_alias_rhs_anchors = {}
+            role_anchors = {}
+            expected_nodes = {}
         for expression in _expressions(state.tree):
             typ = result.types.get(expression)
             if typ is None:
                 continue
             for any_type, type_path in collector.query_types([typ]):
                 expression_kind = type(expression).__name__
-                expected_kind = expected_nodes.get(expression_kind)
-                anchor = anchors.get((expression.line, expression.column, expected_kind or ""))
-                if anchor is None and expected_kind is not None:
-                    anchor = anchors.get((expression.line, expression.column - 1, expected_kind))
+                origin = origins.get(
+                    int(any_type.type_of_any), f"unknown-{any_type.type_of_any}"
+                )
+                if _is_declaration_any_sentinel(expression_kind, origin):
+                    continue
+                expected_kinds = expected_nodes.get(expression_kind, ())
+                if expression_kind == "OpExpr":
+                    operator = getattr(expression, "op", None)
+                    if operator in {"and", "or"} and "BoolOp" in expected_kinds:
+                        expected_kinds = ("BoolOp",)
+                    elif operator in {
+                        "+",
+                        "-",
+                        "*",
+                        "@",
+                        "/",
+                        "%",
+                        "**",
+                        "<<",
+                        ">>",
+                        "|",
+                        "^",
+                        "&",
+                        "//",
+                    } and "BinOp" in expected_kinds:
+                        expected_kinds = ("BinOp",)
+                    else:
+                        expected_kinds = ()
+                end_line = getattr(expression, "end_line", None)
+                end_column = getattr(expression, "end_column", None)
+                source_span = (
+                    expression.line,
+                    expression.column,
+                    end_line,
+                    end_column,
+                )
+                if end_line is not None and end_column is not None:
+                    exact_anchors = set().union(
+                        *(
+                            anchors.get((*source_span, expected_kind), set())
+                            for expected_kind in expected_kinds
+                        )
+                    )
+                    formatted_anchors = set().union(
+                        *(
+                            formatted_value_anchors.get((*source_span, expected_kind), set())
+                            for expected_kind in expected_kinds
+                        )
+                    )
+                else:
+                    exact_anchors = set()
+                    formatted_anchors = set()
+                anchor_candidates = exact_anchors or formatted_anchors
+                if expression_kind == "TypeAliasExpr":
+                    alias = getattr(expression, "node", None)
+                    alias_name = getattr(alias, "name", None)
+                    alias_line = getattr(alias, "line", expression.line)
+                    anchor_candidates = type_alias_anchors.get(
+                        (alias_line, alias_name), set()
+                    )
+                if (
+                    expression_kind == "LambdaExpr"
+                    and end_line is not None
+                    and end_column is not None
+                ):
+                    alias_rhs_key = (
+                        expression.line,
+                        expression.column,
+                        end_line,
+                        end_column,
+                    )
+                    if alias_rhs_key in type_alias_rhs_anchors:
+                        anchor_candidates = type_alias_rhs_anchors[alias_rhs_key]
+                if expression_kind == "NameExpr" and not anchor_candidates:
+                    name = getattr(expression, "name", "")
+                    anchor_candidates = set().union(
+                        role_anchors.get(
+                            (*source_span, "exception-handler", name), set()
+                        ),
+                        role_anchors.get((*source_span, "import-binding", name), set()),
+                    )
+                if expression_kind == "DictExpr" and not anchor_candidates:
+                    dict_call_candidates = (
+                        dict_call_anchors.get((*source_span, "Call"), set())
+                        | formatted_dict_call_anchors.get((*source_span, "Call"), set())
+                        if end_line is not None and end_column is not None
+                        else dict_call_start_anchors.get(
+                            (expression.line, expression.column, "Call"), set()
+                        )
+                    )
+                    anchor_candidates = dict_call_candidates
+                if (
+                    expression_kind in {"LambdaExpr", "CastExpr", "TypeApplication"}
+                    and not anchor_candidates
+                    and (end_line is None or end_column is None)
+                ):
+                    anchor_candidates = set().union(
+                        *(
+                            start_anchors.get(
+                                (expression.line, expression.column, expected_kind), set()
+                            )
+                            for expected_kind in expected_kinds
+                        )
+                    )
+                anchor = (
+                    next(iter(anchor_candidates)) if len(anchor_candidates) == 1 else None
+                )
                 if anchor is None:
                     unanchored_count += 1
-                    anchor = f"unanchored:{expression_kind}:{getattr(expression, 'name', '')}"
-                origin = origins.get(int(any_type.type_of_any), f"unknown-{any_type.type_of_any}")
+                    anchor = (
+                        f"unanchored:{expression_kind}:{getattr(expression, 'name', '')}:"
+                        f"{expression.line}:{expression.column}:{end_line}:{end_column}"
+                    )
                 position = "expression:" + ".".join(str(index) for index in type_path)
-                found.add((os.path.realpath(state.path), anchor, position, origin))
+                if source_path is not None:
+                    found.add((os.path.realpath(source_path), anchor, position, origin))
     return {
         "obligations": [
             {"path": path, "anchor": anchor, "type_position": position, "origin": origin}
@@ -672,6 +1002,32 @@ def _known_environment_warnings(output: str) -> tuple[str, ...]:
             continue
         raise InvalidMeasurement(f"unexplained mypy stderr: {line}")
     return tuple(warnings)
+
+
+def _precision_any_obligations(
+    raw_obligations: Sequence[Mapping[str, object]], root: Path
+) -> tuple[AnyObligation, ...]:
+    normalized_paths: dict[str, str | None] = {}
+    obligations: list[AnyObligation] = []
+    for item in raw_obligations:
+        raw_path = str(item["path"])
+        if raw_path not in normalized_paths:
+            normalized_path = _assert_tree_path(raw_path, root)
+            normalized_paths[raw_path] = (
+                None if Path(normalized_path).is_absolute() else normalized_path
+            )
+        source_path = normalized_paths[raw_path]
+        if source_path is None:
+            continue
+        obligations.append(
+            AnyObligation(
+                source_path,
+                str(item["anchor"]),
+                str(item["type_position"]),
+                str(item["origin"]),
+            )
+        )
+    return tuple(obligations)
 
 
 def _run_git(repo: Path, *args: str) -> str:
@@ -1011,16 +1367,7 @@ def run_profile(
     raw_any = response.get("any_obligations", {})
     if not isinstance(raw_any, dict):
         raise InvalidMeasurement("precision adapter returned an invalid Any inventory")
-    any_obligations = tuple(
-        AnyObligation(
-            _assert_tree_path(str(item["path"]), root),
-            str(item["anchor"]),
-            str(item["type_position"]),
-            str(item["origin"]),
-        )
-        for item in raw_any.get("obligations", [])
-        if _is_snapshot_path(str(item["path"]), root)
-    )
+    any_obligations = _precision_any_obligations(raw_any.get("obligations", []), root)
     graph.sort(key=lambda state: (state.module, state.path))
     source_count = _validate_targets(
         response.get("source_count"), response.get("targets"), graph, root
@@ -1102,14 +1449,6 @@ def _validate_targets(
     return source_count
 
 
-def _is_snapshot_path(path: str, root: Path) -> bool:
-    try:
-        Path(path).resolve().relative_to(root.resolve())
-        return True
-    except ValueError:
-        return False
-
-
 def _profile_report(result: ProfileMeasurement) -> dict[str, object]:
     return {
         "profile": result.profile.value,
@@ -1183,7 +1522,7 @@ def _typing_names(
     )
 
 
-def _is_any(node: ast.AST | None, names: set[str], modules: set[str]) -> bool:
+def _contains_any(node: ast.AST | None, names: set[str], modules: set[str]) -> bool:
     if node is None:
         return False
     for item in ast.walk(node):
@@ -1309,8 +1648,31 @@ def _source_contracts(
 
     def visit(node: ast.AST, scope: tuple[str, ...]) -> None:
         if isinstance(node, ast.ClassDef):
+            qualified_name = ".".join((module, *scope, node.name))
+            occurrence_key = (qualified_name, source_path)
+            occurrence_counts[occurrence_key] += 1
+            symbol = f"{qualified_name}#{occurrence_counts[occurrence_key]}"
+            for type_parameter in getattr(node, "type_params", ()):
+                record_signature(
+                    symbol,
+                    f"generic:{getattr(type_parameter, 'name', type(type_parameter).__name__)}",
+                    type_parameter,
+                )
             for child in node.body:
                 visit(child, (*scope, node.name))
+            return
+        if isinstance(node, ast.TypeAlias):
+            alias_name = node.name.id
+            qualified_name = ".".join((module, *scope, alias_name))
+            occurrence_key = (qualified_name, source_path)
+            occurrence_counts[occurrence_key] += 1
+            symbol = f"{qualified_name}#{occurrence_counts[occurrence_key]}"
+            for type_parameter in node.type_params:
+                record_signature(
+                    symbol,
+                    f"generic:{getattr(type_parameter, 'name', type(type_parameter).__name__)}",
+                    type_parameter,
+                )
             return
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             qualified_name = ".".join((module, *scope, node.name))
@@ -1357,9 +1719,21 @@ def _source_contracts(
     visit(tree, ())
 
     for node in ast.walk(tree):
+        if isinstance(node, ast.TypeAlias):
+            alias_any_nodes = _any_nodes(node.value, any_names, module_aliases)
+            for index, _ in enumerate(alias_any_nodes):
+                any_obligations.add(
+                    AnyObligation(
+                        source_path,
+                        f"type-alias:{node.name.id}",
+                        f"alias:{index}",
+                        "explicit",
+                    )
+                )
         if isinstance(node, ast.AnnAssign):
             target_text = ast.unparse(node.target)
-            for index, _ in enumerate(_any_nodes(node.annotation, any_names, module_aliases)):
+            annotation_any_nodes = _any_nodes(node.annotation, any_names, module_aliases)
+            for index, _ in enumerate(annotation_any_nodes):
                 any_obligations.add(
                     AnyObligation(
                         source_path,
@@ -1368,47 +1742,59 @@ def _source_contracts(
                         "explicit",
                     )
                 )
-            if _is_any(node.value, any_names, module_aliases):
-                for index, _ in enumerate(_any_nodes(node.value, any_names, module_aliases)):
-                    any_obligations.add(
-                        AnyObligation(
-                            source_path,
-                            f"type-alias:{target_text}",
-                            f"alias:{index}",
-                            "explicit",
-                        )
+            value_any_nodes = _any_nodes(node.value, any_names, module_aliases)
+            for index, _ in enumerate(value_any_nodes):
+                any_obligations.add(
+                    AnyObligation(
+                        source_path,
+                        f"type-alias:{target_text}",
+                        f"alias:{index}",
+                        "explicit",
                     )
-        if isinstance(node, ast.Assign) and _is_any(node.value, any_names, module_aliases):
-            for assignment_target in node.targets:
-                if isinstance(assignment_target, ast.Name):
-                    for index, _ in enumerate(_any_nodes(node.value, any_names, module_aliases)):
-                        any_obligations.add(
-                            AnyObligation(
-                                source_path,
-                                f"type-alias:{assignment_target.id}",
-                                f"alias:{index}",
-                                "explicit",
+                )
+        if isinstance(node, ast.Assign):
+            value_any_nodes = _any_nodes(node.value, any_names, module_aliases)
+            if value_any_nodes:
+                for assignment_target in node.targets:
+                    if isinstance(assignment_target, ast.Name):
+                        for index, _ in enumerate(value_any_nodes):
+                            any_obligations.add(
+                                AnyObligation(
+                                    source_path,
+                                    f"type-alias:{assignment_target.id}",
+                                    f"alias:{index}",
+                                    "explicit",
+                                )
                             )
-                        )
-        if isinstance(node, ast.Call) and _is_typing_name(node.func, cast_names, module_aliases, "cast"):
-            if node.args and (_is_any(node.args[0], any_names, module_aliases) or ast.unparse(node.args[0]) == "object"):
+        if isinstance(node, ast.Call) and _is_typing_name(
+            node.func, cast_names, module_aliases, "cast"
+        ):
+            if node.args and (
+                _contains_any(node.args[0], any_names, module_aliases)
+                or ast.unparse(node.args[0]) == "object"
+            ):
                 bypasses.add((source_path, f"erasing-cast:{ast.unparse(node)}"))
         if not isinstance(node, ast.Subscript):
             continue
         slice_nodes = list(ast.walk(node.slice))
-        contains_any = any(
-            isinstance(item, ast.Name) and item.id in any_names
-            or isinstance(item, ast.Attribute)
-            and item.attr == "Any"
-            and isinstance(item.value, ast.Name)
-            and item.value.id in module_aliases
-            for item in slice_nodes
-        )
+        is_callable = _is_typing_name(node.value, callable_names, module_aliases, "Callable")
+        contains_any = False
+        contains_ellipsis = False
+        for item in slice_nodes:
+            if (isinstance(item, ast.Name) and item.id in any_names) or (
+                isinstance(item, ast.Attribute)
+                and item.attr == "Any"
+                and isinstance(item.value, ast.Name)
+                and item.value.id in module_aliases
+            ):
+                contains_any = True
+            if isinstance(item, ast.Constant) and item.value is Ellipsis:
+                contains_ellipsis = True
+            if contains_any and (not is_callable or contains_ellipsis):
+                break
         if not contains_any:
             continue
-        if _is_typing_name(node.value, callable_names, module_aliases, "Callable") and any(
-            isinstance(item, ast.Constant) and item.value is Ellipsis for item in slice_nodes
-        ):
+        if is_callable and contains_ellipsis:
             bypasses.add((source_path, f"callable-any:{ast.unparse(node)}"))
         if (
             isinstance(node.value, ast.Name)
@@ -1874,6 +2260,30 @@ def _signature_improvements(
     return tuple(improvements)
 
 
+def _unanchored_any_obligations(
+    profile: ProfileMeasurement | None,
+) -> tuple[AnyObligation, ...]:
+    if profile is None:
+        return ()
+    return tuple(
+        sorted(
+            (item for item in profile.any_obligations if item.anchor.startswith("unanchored:")),
+            key=lambda item: item.key,
+        )
+    )
+
+
+def _precision_residual_summary(
+    profile: ProfileMeasurement | None,
+    obligations: Sequence[AnyObligation],
+) -> dict[str, object]:
+    return {
+        "expression_count": profile.unanchored_any_count if profile is not None else 0,
+        "obligation_count": len(obligations),
+        "paths": sorted({item.path for item in obligations}),
+    }
+
+
 def _module_for_path(path: str, inventory: Sequence[SourceFile]) -> str:
     for record in inventory:
         if record.path == path and record.module is not None:
@@ -1939,6 +2349,31 @@ def decide_candidate(
         for path in set(parent.source_digests) | set(candidate.source_digests)
         if parent.source_digests.get(path) != candidate.source_digests.get(path)
     }
+    unchanged_source_paths = {
+        path
+        for path in set(parent.source_digests) & set(candidate.source_digests)
+        if parent.source_digests[path] == candidate.source_digests[path]
+    }
+    parent_precision = parent.profiles.get(Profile.PRECISION)
+    candidate_precision = candidate.profiles.get(Profile.PRECISION)
+    parent_residuals = _unanchored_any_obligations(parent_precision)
+    candidate_residuals = _unanchored_any_obligations(candidate_precision)
+    parent_blocked_residuals = tuple(
+        item for item in parent_residuals if item.path not in unchanged_source_paths
+    )
+    candidate_blocked_residuals = tuple(
+        item for item in candidate_residuals if item.path not in unchanged_source_paths
+    )
+    blocked_residual_count = len(parent_blocked_residuals) + len(candidate_blocked_residuals)
+    blocked_residual_paths = sorted(
+        {item.path for item in (*parent_blocked_residuals, *candidate_blocked_residuals)}
+    )
+    if blocked_residual_count:
+        reasons.append(
+            "precision incomplete: unanchored Any obligation rows without unchanged source digests "
+            f"(parent={len(parent_blocked_residuals)}, candidate={len(candidate_blocked_residuals)}): "
+            + ", ".join(blocked_residual_paths)
+        )
     if source_removals:
         reasons.extend(f"owned source was removed: {path}" for path in sorted(source_removals))
 
@@ -1992,8 +2427,6 @@ def decide_candidate(
         and Profile.PRECISION in candidate.profiles
         and not parent.precision_gaps
         and not candidate.precision_gaps
-        and not parent.profiles[Profile.PRECISION].unanchored_any_count
-        and not candidate.profiles[Profile.PRECISION].unanchored_any_count
         and not any(item.origin.startswith("unknown-") for item in parent.any_obligations)
         and not any(item.origin.startswith("unknown-") for item in candidate.any_obligations)
     ):
@@ -2085,8 +2518,7 @@ def decide_candidate(
         and Profile.PRECISION in candidate.profiles
         and not parent.precision_gaps
         and not candidate.precision_gaps
-        and not parent.profiles[Profile.PRECISION].unanchored_any_count
-        and not candidate.profiles[Profile.PRECISION].unanchored_any_count
+        and not blocked_residual_count
         and not any(item.origin.startswith("unknown-") for item in parent.any_obligations)
         and not any(item.origin.startswith("unknown-") for item in candidate.any_obligations)
     )
@@ -2115,6 +2547,12 @@ def decide_candidate(
         "new_bypasses": sorted(bypass_additions),
         "new_signature_omissions": sorted(omission_additions),
         "new_any_obligations": [asdict(item) for item in sorted(any_additions, key=lambda obligation: obligation.key)],
+        "precision_residuals": {
+            "parent": _precision_residual_summary(parent_precision, parent_residuals),
+            "candidate": _precision_residual_summary(candidate_precision, candidate_residuals),
+            "non_unchanged_source_obligation_count": blocked_residual_count,
+            "non_unchanged_source_residual_paths": blocked_residual_paths,
+        },
         "removed_signature_omissions": sorted(removed_omissions),
         "signature_improvements": list(signature_improvements),
         "credited_modules": sorted(credited_modules),
@@ -2177,6 +2615,7 @@ def decide_terminal(
     if configured_errors:
         reasons.append(f"{len(configured_errors)} configured-profile errors remain")
     precision = measurement.profiles[Profile.PRECISION]
+    precision_residuals = _unanchored_any_obligations(precision)
     if precision.unanchored_any_count:
         reasons.append(f"{precision.unanchored_any_count} Any expressions lack stable AST anchors")
     precision_errors = _owned_diagnostics(precision, measurement.inventory)
@@ -2223,6 +2662,9 @@ def decide_terminal(
             "configured_error_count": len(configured_errors),
             "any_obligation_count": len(measurement.any_obligations),
             "precision_gaps": list(measurement.precision_gaps),
+            "precision_residuals": _precision_residual_summary(
+                precision, precision_residuals
+            ),
         },
     )
 
