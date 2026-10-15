@@ -40,8 +40,8 @@ export function NavigationMenuHeader({
 
     return (
       <MenuHeader
-        title={t('Organization')}
-        name={organization.name || organization.slug}
+        label={t('Organization')}
+        title={organization.name || organization.slug}
         subtitle={tn('%s Project', '%s Projects', projectCount)}
         avatarProps={avatarProps}
         avatar={<OrganizationHeaderAvatar organization={organization} />}
@@ -51,8 +51,8 @@ export function NavigationMenuHeader({
 
   return (
     <MenuHeader
-      title={t('User')}
-      name={user.name || user.username || user.email}
+      label={t('User')}
+      title={user.name || user.username || user.email}
       subtitle={user.email}
       avatarProps={getUserAvatarProps(user)}
       avatar={<UserAvatar user={user} size={32} />}
@@ -82,14 +82,14 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
 }
 
 function MenuHeader({
+  label,
   title,
-  name,
   subtitle,
   avatar,
   avatarProps,
 }: {
   avatar: ReactNode;
-  name: string;
+  label: string;
   subtitle: string;
   title: string;
   avatarProps?: BaseAvatarProps;
@@ -121,13 +121,13 @@ function MenuHeader({
       >
         <Stack gap="md" padding="md lg">
           <Text size="sm" density="fixed" bold variant="primary" tabular>
-            {title}
+            {label}
           </Text>
           <Flex align="center" gap="md">
             {avatar}
             <Stack gap="0">
               <Text size="md" density="comfortable" bold variant="primary">
-                {name}
+                {title}
               </Text>
               <Text size="sm" density="comfortable" variant="muted" tabular>
                 {subtitle}
