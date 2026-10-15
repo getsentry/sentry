@@ -1422,11 +1422,6 @@ const config = defineConfig({
   },
   overrides: [
     {
-      // AutoSaveForm forwards the field API to its caller's render function.
-      files: ['static/app/components/core/form/autoSaveForm.tsx'],
-      rules: {'@sentry/scraps/require-field-component': 'off'},
-    },
-    {
       files: [
         'tests/js/jestReactRouterResolver.cjs',
         'tests/js/jestReactRouterResolver.spec.ts',
