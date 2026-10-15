@@ -188,6 +188,27 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         client.return_value.chat_postMessage.assert_called_once()
         self.assert_match(observation)
 
+    def test_slack_reuses_the_legacy_notification_origin(self) -> None:
+        action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
+        invocation = self.invocation(action)
+
+        def rename_workflow(**kwargs: Any) -> dict[str, str]:
+            self.workflow.update(name="Renamed Workflow")
+            return {"ts": "1234.5678"}
+
+        with (
+            observe_shadow() as observation,
+            mock.patch(SLACK_ISSUE_CLIENT) as client,
+        ):
+            client.return_value.chat_postMessage.side_effect = rename_workflow
+            execute_via_group_type_registry(invocation)
+
+        client.return_value.chat_postMessage.assert_called_once()
+        self.assert_match(observation)
+        legacy, platform = observation.payloads
+        assert "Shadow Workflow" in orjson.dumps(legacy).decode()
+        assert "Renamed Workflow" not in orjson.dumps(platform).decode()
+
     def test_skips_when_the_group_status_changed(self) -> None:
         action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
         invocation = self.invocation(action)

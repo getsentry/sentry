@@ -27,6 +27,7 @@ from sentry.notifications.platform.templates.issue import (
     SerializableRuleProxy,
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
+from sentry.notifications.types import NotificationActionContext
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
@@ -136,15 +137,18 @@ def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
         raise
 
 
-def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotificationData:
+def issue_notification_data_factory(
+    invocation: ActionInvocation, *, context: NotificationActionContext | None = None
+) -> IssueNotificationData:
     action = invocation.action
     detector = invocation.detector
     event_data = invocation.event_data
 
     handler = issue_alert_handler_registry.get(action.type)
-    context = handler.create_action_context(
-        action, detector, event_data, workflow_id=invocation.workflow_id
-    )
+    if context is None:
+        context = handler.create_action_context(
+            action, detector, event_data, workflow_id=invocation.workflow_id
+        )
     rule_data = handler.build_rule_data_from_action(action, detector, context.origin)
     rule = SerializableRuleProxy.from_action_context(
         context,
