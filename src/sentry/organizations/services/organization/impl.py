@@ -43,7 +43,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.recentsearch import RecentSearch
-from sentry.models.rule import Rule, RuleActivity
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
@@ -602,7 +602,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 ProjectBookmark,
                 RecentSearch,
                 Rule,
-                RuleActivity,
                 RuleSnooze,
             ]
             for model in model_list:
