@@ -361,6 +361,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         <TopBar.Slot name="actions">
           <Button
             icon={<IconChat />}
+            disabled={investigation.status === 'archived'}
             onClick={() => {
               composerRef.current?.scrollIntoView?.({
                 block: 'center',
