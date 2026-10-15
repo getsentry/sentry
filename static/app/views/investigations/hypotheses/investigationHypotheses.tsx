@@ -141,7 +141,11 @@ export function InvestigationHypotheses({
   // rewrite the projection behind it.
   const [commandSentAt, setCommandSentAt] = useState<number | null>(null);
 
-  const {data: projection, isPending} = useQuery({
+  const {
+    data: projection,
+    dataUpdatedAt,
+    isPending,
+  } = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigationId),
     enabled,
     refetchInterval: query => {
@@ -221,7 +225,7 @@ export function InvestigationHypotheses({
   // A finished run has nothing left to report here: the findings below speak
   // for themselves, and the header badge still says it completed. Every other
   // state — running, waiting on input, failed, stopped — keeps the block.
-  const seerStatus = getSeerStatusBlock(projection);
+  const seerStatus = getSeerStatusBlock(projection, dataUpdatedAt);
   const statusBlock = seerStatus?.variant === 'complete' ? null : seerStatus;
   const {workflowVersion} = projection;
   const commandPending = commandMutation.isPending;
