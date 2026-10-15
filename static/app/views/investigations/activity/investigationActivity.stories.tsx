@@ -14,6 +14,7 @@ const uncommentedInvestigation = InvestigationDetailFixture({
   dateCreated: '2026-08-27T14:08:00Z',
   blocks: [],
 });
+const archivedInvestigation = {...commentedInvestigation, status: 'archived' as const};
 
 export default Storybook.story('Investigations — Activity', story => {
   story('Page and block comments', () => (
@@ -35,6 +36,18 @@ export default Storybook.story('Investigations — Activity', story => {
     >
       <Container maxWidth="960px">
         <InvestigationActivity investigation={uncommentedInvestigation} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Archived investigation', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-activity-archived"
+      details={[archivedInvestigation]}
+      comments={{[archivedInvestigation.id]: commentedInvestigationComments.slice(0, 2)}}
+    >
+      <Container maxWidth="960px">
+        <InvestigationActivity investigation={archivedInvestigation} />
       </Container>
     </InvestigationFixtureApi>
   ));

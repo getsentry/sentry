@@ -308,5 +308,29 @@ describe('InvestigationFixtureApi', () => {
       expect(screen.getByText('on a deleted block')).toBeInTheDocument();
       expect(screen.getByText('Unknown user commented')).toBeInTheDocument();
     });
+
+    it('posts comments as the story viewer', async () => {
+      const investigation = InvestigationDetailFixture({id: 'posting', blocks: []});
+
+      render(
+        <InvestigationFixtureApi
+          organizationSlug="storybook-comments-post-test"
+          details={[investigation]}
+        >
+          <InvestigationActivity investigation={investigation} />
+        </InvestigationFixtureApi>,
+        {organization}
+      );
+
+      const composer = await screen.findByRole('combobox', {name: 'Add a comment'});
+      // user-event does not yet recognize contenteditable="plaintext-only".
+      composer.setAttribute('contenteditable', 'true');
+      await userEvent.type(composer, 'Rolling back the autoscaling change.{Enter}');
+
+      expect(await screen.findByText('Ada Lovelace commented')).toBeInTheDocument();
+      expect(
+        screen.getByText('Rolling back the autoscaling change.')
+      ).toBeInTheDocument();
+    });
   });
 });

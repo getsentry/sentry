@@ -3,13 +3,17 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import type {RequestOptions} from 'sentry/api';
 import type {ResponseMeta} from 'sentry/types/api';
+import type {AvatarUser} from 'sentry/types/user';
 import {QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
+import {commentStoryAuthors} from 'sentry/views/investigations/__stories__/commentStoryFixtures';
 import {
   InvestigationBlockExecutionFixture,
+  InvestigationCommentFixture,
   InvestigationBlockFixture,
   InvestigationDetailFixture,
   InvestigationExecutionDetailFixture,
@@ -48,7 +52,10 @@ type InvestigationFixtureApiProps = {
   titleGenerations?: Record<string, InvestigationTitleGeneration>;
 };
 
-type FixtureApiConfig = Omit<InvestigationFixtureApiProps, 'children'>;
+type FixtureApiConfig = Omit<InvestigationFixtureApiProps, 'children'> & {
+  /** Author of comments posted through the fixture. */
+  viewer: AvatarUser;
+};
 
 type FixtureResponse = {
   body: unknown;
@@ -87,6 +94,7 @@ export function InvestigationFixtureApi({
   titleGenerations = {},
 }: InvestigationFixtureApiProps) {
   const outerOrganization = useOrganization();
+  const viewer = useStoryViewer();
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -114,6 +122,7 @@ export function InvestigationFixtureApi({
       orchestration,
       pageLinks,
       titleGenerations,
+      viewer,
     })
   );
   const [ready, setReady] = useState(false);
@@ -146,6 +155,15 @@ export function InvestigationFixtureApi({
       <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     </OrganizationContext>
   );
+}
+
+/**
+ * Stories view investigations as Ada Lovelace, with the signed-in user's id, so
+ * they look the same for everyone who opens them.
+ */
+export function useStoryViewer(): AvatarUser {
+  const {id} = useUser();
+  return {...commentStoryAuthors.ADA, id};
 }
 
 function registerFixtureHandler(key: string, handler: FixtureHandler) {
@@ -235,6 +253,7 @@ type FixtureState = {
   list: InvestigationListItem[];
   orchestration: Map<string, InvestigationOrchestration>;
   titleGenerations: Map<string, InvestigationTitleGeneration>;
+  viewer: AvatarUser;
   pageLinks?: string;
 };
 
@@ -284,6 +303,7 @@ function createFixtureState(config: FixtureApiConfig): FixtureState {
         cloneFixture(generation),
       ])
     ),
+    viewer: config.viewer,
   };
 }
 
@@ -436,6 +456,24 @@ function handleFixtureRequest(
       body: cloneFixture(getFixtureComments(state, investigationId)),
       headers: link ? {Link: link} : undefined,
     };
+  }
+
+  if (parts[1] === 'comments' && parts.length === 2 && method === 'POST') {
+    const comments = state.comments.get(investigationId) ?? [];
+    const now = new Date().toISOString();
+    const comment = InvestigationCommentFixture({
+      id: reserveFixtureId(
+        `storybook-comment-${comments.length + 1}`,
+        new Set(comments.map(existing => existing.id))
+      ),
+      author: state.viewer,
+      blockId: getDataString(data, 'blockId') ?? null,
+      body: getDataString(data, 'body') ?? '',
+      dateCreated: now,
+      dateUpdated: now,
+    });
+    state.comments.set(investigationId, [...comments, comment]);
+    return {body: cloneFixture(comment)};
   }
 
   if (parts[1] === 'blocks' && parts.length === 2 && method === 'POST') {

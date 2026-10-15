@@ -6,6 +6,7 @@ import {
   commentedInvestigationComments,
 } from 'sentry/views/investigations/__stories__/commentStoryFixtures';
 import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
+import {StoryTopBar} from 'sentry/views/investigations/__stories__/storyTopBar';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 
 export default Storybook.story('Investigations — Comments', story => {
@@ -16,7 +17,9 @@ export default Storybook.story('Investigations — Comments', story => {
       comments={{[commentedInvestigation.id]: commentedInvestigationComments}}
     >
       <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={commentedInvestigation.id} />
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={commentedInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
