@@ -67,60 +67,35 @@ describe('groupIntoBuckets', () => {
     expect(buckets.map(bucket => bucket.dropped.count)).toEqual([10, 20]);
   });
 
-  it('excludes configured drops', () => {
-    const buckets = groupIntoBuckets([
-      DroppedEventFixture({
-        outcome: 'client_discard',
-        reason: 'before_send',
-        count: 100,
-      }),
-      DroppedEventFixture({
-        outcome: 'client_discard',
-        reason: 'sample_rate',
-        count: 100,
-      }),
-      DroppedEventFixture({
-        outcome: 'filtered',
-        reason: 'web-crawlers',
-        count: 100,
-      }),
-      DroppedEventFixture({
-        outcome: 'filtered',
-        reason: 'legacy-browsers',
-        count: 100,
-      }),
-      DroppedEventFixture({
-        outcome: 'filtered',
-        reason: 'filtered-transaction',
-        count: 100,
-      }),
-      DroppedEventFixture({
-        outcome: 'rate_limited',
-        reason: 'generic',
-        count: 10,
-      }),
-    ]);
-
-    expect(buckets).toHaveLength(1);
-    expect(buckets[0]!.dropped.count).toBe(10);
+  it.each([
+    ['client_discard', 'before_send'],
+    ['client_discard', 'event_processor'],
+    ['client_discard', 'ignored'],
+    ['client_discard', 'no_parent_span'],
+    ['client_discard', 'sample_rate'],
+    ['client_sampled', 'sample_rate'],
+    ['filtered', 'web-crawlers'],
+    ['filtered', 'custom-inbound-filter:123'],
+    ['invalid', 'cors'],
+    ['invalid', 'missing_signature'],
+    ['invalid', 'transaction_sampled'],
+    ['rate_limited', 'key_quota'],
+  ])('excludes configured %s drops with reason %s', (outcome, reason) => {
+    expect(groupIntoBuckets([DroppedEventFixture({outcome, reason})])).toEqual([]);
   });
 
-  it('keeps client discards the SDK did not choose', () => {
-    const buckets = groupIntoBuckets([
-      DroppedEventFixture({
-        outcome: 'client_discard',
-        reason: 'queue_overflow',
-        count: 7,
-      }),
-      DroppedEventFixture({
-        outcome: 'client_discard',
-        reason: 'network_error',
-        count: 3,
-      }),
-    ]);
+  it.each([
+    ['client_discard', 'queue_overflow'],
+    ['client_discard', 'network_error'],
+    ['invalid', 'timestamp'],
+    ['invalid', 'too_large:transaction'],
+    ['rate_limited', 'generic'],
+    ['rate_limited', 'span_usage_exceeded'],
+  ])('keeps unintentional %s drops with reason %s', (outcome, reason) => {
+    const buckets = groupIntoBuckets([DroppedEventFixture({outcome, reason, count: 7})]);
 
     expect(buckets).toHaveLength(1);
-    expect(buckets[0]!.dropped.count).toBe(10);
+    expect(buckets[0]!.dropped.count).toBe(7);
   });
 
   it('keeps an unrecognized reason under a server-side outcome', () => {
@@ -139,7 +114,7 @@ describe('groupIntoBuckets', () => {
     const buckets = groupIntoBuckets([
       DroppedEventFixture({outcome: 'invalid', count: 3}),
       DroppedEventFixture({outcome: 'rate_limited', count: 10}),
-      DroppedEventFixture({outcome: 'invalid', count: 4, reason: 'cors'}),
+      DroppedEventFixture({outcome: 'invalid', count: 4, reason: 'timestamp'}),
     ]);
 
     expect(buckets[0]!.byOutcome).toEqual([
