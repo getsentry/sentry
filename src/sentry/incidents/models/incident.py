@@ -25,7 +25,7 @@ class IncidentProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
-    incident = FlexibleForeignKey("sentry.Incident")
+    incident = FlexibleForeignKey("sentry.Incident", db_constraint=False)
 
     class Meta:
         app_label = "sentry"
