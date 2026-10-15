@@ -3,8 +3,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.db import OperationalError, connections, router
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
-from psycopg2.errors import LockNotAvailable
+from psycopg2.errors import LockNotAvailable, QueryCanceled
 from taskbroker_client.retry import RetryTaskError
 
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
@@ -12,7 +13,10 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release, ReleaseStatus
-from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
+from sentry.tasks.clear_expired_resolutions import (
+    _clear_finalized_resolutions,
+    clear_expired_resolutions,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import Feature, with_feature
@@ -420,12 +424,21 @@ class FinalizedResolutionTaskTest(TestCase):
                 ident=self.resolution.id,
                 data={"version": "", "current_release_version": self.anchor.version},
             )
+
+        def slow_activity_write(execute, sql, params, many, context):
+            if sql.startswith('UPDATE "sentry_activity"'):
+                return execute("SELECT pg_sleep(2)", None, False, context)
+            return execute(sql, params, many, context)
+
+        connection = connections[router.db_for_write(GroupResolution)]
         with (
-            patch.object(Activity, "update", side_effect=OperationalError("statement timeout")),
+            connection.execute_wrapper(slow_activity_write),
             patch.object(clear_expired_resolutions, "apply_async_with_future") as publish,
-            pytest.raises(RetryTaskError),
+            pytest.raises(RetryTaskError) as error,
         ):
             clear_expired_resolutions(successor.id)
+        assert isinstance(error.value.__cause__, OperationalError)
+        assert isinstance(error.value.__cause__.__cause__, QueryCanceled)
         publish.assert_not_called()
         self.resolution.refresh_from_db()
         activity.refresh_from_db()
@@ -549,3 +562,103 @@ def test_lock_contention_retries_and_preserves_manual_resolution(
     assert resolution.release_id == manual.id
     assert other_resolution.release_id == successor.id
     assert other_resolution.status == GroupResolution.Status.resolved
+
+
+@django_db_all
+@pytest.mark.parametrize("anchor_count", [1, 20])
+def test_batch_query_cost_and_activity_matching(
+    factories: Factories, default_group: Group, anchor_count: int
+) -> None:
+    project = default_group.project
+    now = timezone.now()
+    anchors = [
+        factories.create_release(
+            project=project, version=f"anchor-{i}", date_added=now - timedelta(days=2, minutes=i)
+        )
+        for i in range(anchor_count)
+    ]
+    successor = factories.create_release(project=project, version="next", date_added=now)
+    expected_versions = {
+        anchor.id: Release.objects.get_next_release(
+            project, anchor, use_finalized_order=True
+        ).version
+        for anchor in anchors
+    }
+    groups = [factories.create_group(project=project) for _ in range(100)]
+    resolutions = [
+        factories.create_group_resolution(
+            group=group,
+            release=anchors[i % anchor_count],
+            type=GroupResolution.Type.in_next_release,
+            current_release_version=anchors[i % anchor_count].version,
+        )
+        for i, group in enumerate(groups)
+    ]
+    expected_activity_versions = [expected_versions[r.release_id] for r in resolutions]
+    with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+        activities = [
+            Activity.objects.create_group_activity(
+                group,
+                ActivityType.SET_RESOLVED_IN_RELEASE,
+                ident=resolution.id,
+                data={"version": "", "current_release_version": resolution.current_release_version},
+                send_notification=False,
+            )
+            for group, resolution in zip(groups[:-1], resolutions[:-1])
+        ]
+        # Equal timestamps still update just one latest matching activity.
+        duplicate = Activity.objects.create_group_activity(
+            groups[1],
+            ActivityType.SET_RESOLVED_IN_RELEASE,
+            ident=resolutions[1].id,
+            data={"version": "", "preserve": True},
+            datetime=activities[1].datetime,
+            send_notification=False,
+        )
+        unrelated = Activity.objects.create_group_activity(
+            groups[0],
+            ActivityType.SET_RESOLVED_IN_RELEASE,
+            ident="unrelated",
+            data={"version": "unchanged"},
+            send_notification=False,
+        )
+    activities[0].update(data=None)
+    connection = connections[router.db_for_write(GroupResolution)]
+    with (
+        CaptureQueriesContext(connection) as queries,
+        patch("sentry.tasks.clear_expired_resolutions.monotonic", return_value=0),
+    ):
+        cursor = _clear_finalized_resolutions(successor)
+    assert cursor == resolutions[-1].id
+    data_queries = [q["sql"] for q in queries if q["sql"].startswith(("SELECT", "UPDATE"))]
+    # One candidate read, one lookup per distinct anchor, and three bulk operations.
+    assert len(data_queries) == anchor_count + 4
+    assert len([sql for sql in data_queries if sql.startswith('UPDATE "sentry_activity"')]) == 1
+    assert (
+        len([sql for sql in data_queries if sql.startswith('UPDATE "sentry_groupresolution"')]) == 1
+    )
+    assert '"sentry_groupedmessage"."data"' not in data_queries[0]
+    assert (
+        list(
+            GroupResolution.objects.filter(id__in=[r.id for r in resolutions])
+            .order_by("id")
+            .values_list("release__version", flat=True)
+        )
+        == expected_activity_versions
+    )
+    assert not GroupResolution.objects.filter(
+        id__in=[r.id for r in resolutions], status=GroupResolution.Status.pending
+    ).exists()
+    activities[0].refresh_from_db()
+    activities[1].refresh_from_db()
+    activities[2].refresh_from_db()
+    duplicate.refresh_from_db()
+    unrelated.refresh_from_db()
+    assert activities[0].data == {"version": expected_activity_versions[0]}
+    assert activities[1].data["version"] == ""
+    assert activities[2].data == {
+        "version": expected_activity_versions[2],
+        "current_release_version": resolutions[2].current_release_version,
+    }
+    assert duplicate.data == {"version": expected_activity_versions[1], "preserve": True}
+    assert unrelated.data == {"version": "unchanged"}

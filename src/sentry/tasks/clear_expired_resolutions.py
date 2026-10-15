@@ -1,9 +1,10 @@
 import logging
 from collections.abc import Sequence
+from dataclasses import dataclass
 from time import monotonic
 
 from django.db import connections, router, transaction
-from django.db.models import Q
+from django.db.models import BigIntegerField, Case, Q, Value, When
 from django.db.models.functions import Coalesce
 from taskbroker_client.retry import LastAction, Retry, RetryTaskError
 
@@ -21,6 +22,14 @@ logger = logging.getLogger(__name__)
 
 RESOLUTION_BATCH_SIZE = 100
 RESOLUTION_BATCH_SECONDS = 3
+
+
+@dataclass(frozen=True)
+class ResolutionUpdate:
+    resolution_id: int
+    group_id: int
+    release_id: int
+    version: str
 
 
 @instrumented_task(
@@ -110,16 +119,21 @@ def _clear_finalized_resolutions(release: Release, *, after_id: int = 0) -> int 
             group__project_id__in=release.projects.values("id"),
             release__organization_id=release.organization_id,
         )
-        .alias(resolution_release_order=Coalesce("release__date_released", "release__date_added"))
+        .annotate(
+            resolution_release_order=Coalesce("release__date_released", "release__date_added")
+        )
         .filter(
             Q(release=release)
             | Q(resolution_release_order__lt=release_order)
             | Q(resolution_release_order=release_order, release_id__lt=release.id)
         )
-        .select_related("release", "group__project")
+        .values_list(
+            "id", "group_id", "group__project_id", "release_id", "resolution_release_order"
+        )
         .order_by("id")
     )
-    next_releases: dict[tuple[int, int], Release | None] = {}
+    next_releases: dict[tuple[int, int], tuple[int, str] | None] = {}
+    updates: list[ResolutionUpdate] = []
     using = router.db_for_write(GroupResolution)
     started = monotonic()
     examined = completed = 0
@@ -132,31 +146,32 @@ def _clear_finalized_resolutions(release: Release, *, after_id: int = 0) -> int 
         # Lock before choosing successors so concurrent tasks cannot overwrite
         # each other's assignments or a new manual resolution.
         resolutions = list(pending.select_for_update(of=("self",))[:RESOLUTION_BATCH_SIZE])
-        for resolution in resolutions:
-            # Finish the current resolution and commit progress before yielding.
-            # Individual statements are bounded even when a database is busy.
+        for resolution_id, group_id, project_id, anchor_id, anchor_date in resolutions:
+            # Reserve the remaining task time for the bounded bulk writes.
             if examined and monotonic() - started >= RESOLUTION_BATCH_SECONDS:
                 break
-            project = resolution.group.project
-            key = (project.id, resolution.release_id)
+            key = (project_id, anchor_id)
             if key not in next_releases:
-                try:
-                    next_releases[key] = Release.objects.get_next_release(
-                        project, resolution.release, use_finalized_order=True
+                next_releases[key] = (
+                    Release.objects.get_next_release_queryset(
+                        organization_id=release.organization_id,
+                        project_id=project_id,
+                        current_release_id=anchor_id,
+                        current_date=anchor_date,
+                        use_finalized_order=True,
                     )
-                except Release.DoesNotExist:
-                    next_releases[key] = None
+                    .values_list("id", "version")
+                    .first()
+                )
             next_release = next_releases[key]
             if next_release is not None:
-                GroupResolution.objects.filter(id=resolution.id).update(
-                    release=next_release,
-                    type=GroupResolution.Type.in_release,
-                    status=GroupResolution.Status.resolved,
+                updates.append(
+                    ResolutionUpdate(resolution_id, group_id, next_release[0], next_release[1])
                 )
-                _update_resolution_activities([resolution], next_release)
                 completed += 1
-            after_id = resolution.id
+            after_id = resolution_id
             examined += 1
+        _complete_resolution_batch(updates)
 
     metrics.timing("releases.resolution_batch.duration", monotonic() - started, sample_rate=1.0)
     metrics.distribution("releases.resolution_batch.examined", examined, sample_rate=1.0)
@@ -179,6 +194,43 @@ def _clear_finalized_resolutions(release: Release, *, after_id: int = 0) -> int 
     if examined < len(resolutions) or len(resolutions) == RESOLUTION_BATCH_SIZE:
         return after_id
     return None
+
+
+def _complete_resolution_batch(updates: Sequence[ResolutionUpdate]) -> None:
+    if not updates:
+        return
+
+    GroupResolution.objects.filter(id__in=[update.resolution_id for update in updates]).update(
+        release_id=Case(
+            *(When(id=update.resolution_id, then=Value(update.release_id)) for update in updates),
+            output_field=BigIntegerField(),
+        ),
+        type=GroupResolution.Type.in_release,
+        status=GroupResolution.Status.resolved,
+    )
+
+    activity_filter = Q()
+    versions = {}
+    for update in updates:
+        activity_filter |= Q(group_id=update.group_id, ident=str(update.resolution_id))
+        versions[(update.group_id, str(update.resolution_id))] = update.version
+
+    # Fetch only the latest activity for each exact (issue, resolution) pair.
+    # The ID tie-break makes duplicate timestamps deterministic. An instance
+    # update sends post_save, but Activity has no update-specific receivers or
+    # model cache to maintain; these are metadata edits, not new activities.
+    activities = list(
+        Activity.objects.filter(activity_filter, type=ActivityType.SET_RESOLVED_IN_RELEASE.value)
+        .order_by("group_id", "ident", "-datetime", "-id")
+        .distinct("group_id", "ident")
+    )
+    for activity in activities:
+        assert activity.ident is not None
+        activity.data = {
+            **(activity.data or {}),
+            "version": versions[(activity.group_id, activity.ident)],
+        }
+    Activity.objects.bulk_update(activities, ["data"])
 
 
 def _update_resolution_activities(resolutions: Sequence[GroupResolution], release: Release) -> None:
