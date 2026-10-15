@@ -78,8 +78,7 @@ export const ActivityLineRow = styled('div')`
     left: 10.5px;
     top: 11px;
     bottom: calc(-${p => p.theme.space.md} - 11px);
-    border-left: 1px solid
-      ${p => p.theme.tokens.border.transparent.neutral.muted};
+    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
 `;
 
