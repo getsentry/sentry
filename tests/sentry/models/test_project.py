@@ -15,6 +15,7 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.types import ExternalProviders
 from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -546,6 +547,109 @@ class TestProjectTransfer(TestCase):
         assert other_project.organization_id == self.from_org.id
         assert other_ext_issue.organization_id == self.from_org.id
         assert other_group_link.project_id == other_project.id
+
+    def test_transfer_to_organization_external_issue_shared_with_remaining_project(self) -> None:
+        group = self.create_group(project=self.project)
+        other_group = self.create_group(project=self.create_project(organization=self.from_org))
+        integration = self.create_integration(
+            organization=self.from_org, provider="jira", name="Jira", external_id="jira:1"
+        )
+        self.create_organization_integration(
+            organization_id=self.to_org.id, integration_id=integration.id
+        )
+        ext_issue = self.create_integration_external_issue(
+            group=group, integration=integration, key="APP-1"
+        )
+        self.create_group_link(
+            other_group, linked_id=ext_issue.id, linked_type=GroupLink.LinkedType.issue
+        )
+
+        self.project.transfer_to(organization=self.to_org)
+
+        ext_issue.refresh_from_db()
+        assert ext_issue.organization_id == self.from_org.id
+        assert list(
+            Group.objects.get_groups_by_external_issue(integration, [self.from_org], "APP-1")
+        ) == [other_group]
+        assert list(
+            Group.objects.get_groups_by_external_issue(integration, [self.to_org], "APP-1")
+        ) == [group]
+
+    def test_transfer_to_organization_external_issue_reuses_existing_in_new_org(self) -> None:
+        group = self.create_group(project=self.project)
+        other_group = self.create_group(project=self.create_project(organization=self.from_org))
+        to_org_group = self.create_group(project=self.create_project(organization=self.to_org))
+        integration = self.create_integration(
+            organization=self.from_org, provider="jira", name="Jira", external_id="jira:1"
+        )
+        self.create_organization_integration(
+            organization_id=self.to_org.id, integration_id=integration.id
+        )
+        ext_issue = self.create_integration_external_issue(
+            group=group, integration=integration, key="APP-1"
+        )
+        self.create_group_link(
+            other_group, linked_id=ext_issue.id, linked_type=GroupLink.LinkedType.issue
+        )
+        to_org_ext_issue = self.create_integration_external_issue(
+            group=to_org_group, integration=integration, key="APP-1"
+        )
+
+        self.project.transfer_to(organization=self.to_org)
+
+        assert GroupLink.objects.get(group_id=group.id).linked_id == to_org_ext_issue.id
+        assert list(
+            Group.objects.get_groups_by_external_issue(integration, [self.from_org], "APP-1")
+        ) == [other_group]
+        assert set(
+            Group.objects.get_groups_by_external_issue(integration, [self.to_org], "APP-1")
+        ) == {group, to_org_group}
+
+    def test_transfer_to_organization_external_issue_collides_in_new_org(self) -> None:
+        # Only the moved project links it, but the new org already tracks the same provider issue,
+        # so moving the row outright would violate (organization, integration_id, key) uniqueness.
+        group = self.create_group(project=self.project)
+        to_org_group = self.create_group(project=self.create_project(organization=self.to_org))
+        integration = self.create_integration(
+            organization=self.from_org, provider="jira", name="Jira", external_id="jira:1"
+        )
+        self.create_organization_integration(
+            organization_id=self.to_org.id, integration_id=integration.id
+        )
+        self.create_integration_external_issue(group=group, integration=integration, key="APP-1")
+        to_org_ext_issue = self.create_integration_external_issue(
+            group=to_org_group, integration=integration, key="APP-1"
+        )
+
+        self.project.transfer_to(organization=self.to_org)
+
+        assert GroupLink.objects.get(group_id=group.id).linked_id == to_org_ext_issue.id
+        assert set(
+            Group.objects.get_groups_by_external_issue(integration, [self.to_org], "APP-1")
+        ) == {group, to_org_group}
+
+    def test_transfer_to_organization_ignores_commit_links_colliding_with_external_issue_ids(
+        self,
+    ) -> None:
+        group = self.create_group(project=self.project)
+        other_group = self.create_group(project=self.create_project(organization=self.from_org))
+        integration = self.create_integration(
+            organization=self.from_org, provider="jira", name="Jira", external_id="jira:1"
+        )
+        other_ext_issue = self.create_integration_external_issue(
+            group=other_group, integration=integration, key="APP-1"
+        )
+        # GroupLink.linked_id holds Commit ids for commit links, so it can equal an unrelated
+        # ExternalIssue id.
+        self.create_group_link(
+            group, linked_id=other_ext_issue.id, linked_type=GroupLink.LinkedType.commit
+        )
+
+        self.project.transfer_to(organization=self.to_org)
+
+        other_ext_issue.refresh_from_db()
+        assert other_ext_issue.organization_id == self.from_org.id
+        assert ExternalIssue.objects.filter(organization_id=self.to_org.id).count() == 0
 
     def test_transfer_to_organization_with_metric_issue_detector_and_workflow(self) -> None:
         self.project.transfer_to(organization=self.to_org)
