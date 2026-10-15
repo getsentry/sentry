@@ -55,6 +55,7 @@ class DashboardWidgetQueryResponse(TypedDict):
     name: str
     fields: list[str]
     aggregates: list[str]
+    transformations: dict[str, list[str]]
     columns: list[str]
     fieldAliases: list[str]
     conditions: str
@@ -428,6 +429,7 @@ class DashboardWidgetQuerySerializer(Serializer[DashboardWidgetQueryResponse]):
             "name": obj.name,
             "fields": obj.fields,
             "aggregates": obj.aggregates or [],
+            "transformations": obj.transformations or {},
             "columns": obj.columns or [],
             "fieldAliases": obj.field_aliases or [],
             "conditions": str(obj.conditions),
