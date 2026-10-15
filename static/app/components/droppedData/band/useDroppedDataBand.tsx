@@ -15,7 +15,7 @@ import {useRenderToString} from '@sentry/scraps/renderToString';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import {DroppedDataTooltip} from 'sentry/components/droppedData/band/bucketTooltip';
 import {severityColor, withAlpha} from 'sentry/components/droppedData/band/severityColor';
-import {highlightedBuckets} from 'sentry/components/droppedData/buckets';
+import {groupIntoBuckets, isHighlighted} from 'sentry/components/droppedData/buckets';
 import type {
   DroppedDataBucket,
   DroppedDataProps,
@@ -191,6 +191,7 @@ function droppedDataRenderItem(
   theme: Theme
 ): CustomSeriesRenderItem {
   const trackFill = theme.tokens.background.secondary;
+  const highlighted = data.filter(isHighlighted);
 
   return function renderDroppedDataItem(params, api) {
     const bucket = data[params.dataIndex];
@@ -213,7 +214,7 @@ function droppedDataRenderItem(
     if (params.dataIndexInside === 0) {
       children.push(bandRect(track, y, track, trackFill, {silent: true, z2: -1}));
 
-      const gradient = bandGradient(data, api);
+      const gradient = bandGradient(highlighted, api);
       if (gradient) {
         children.push(
           bandRect(clampRange(gradient.range, track), y, track, gradient.fill, {
@@ -296,12 +297,12 @@ export function useDroppedDataBand({
 
   const buckets = useMemo(
     () =>
-      highlightedBuckets(droppedEvents ?? [], acceptedEvents).sort(
+      groupIntoBuckets(droppedEvents ?? [], acceptedEvents).sort(
         (a, b) => a.start - b.start
       ),
     [acceptedEvents, droppedEvents]
   );
-  const isVisible = buckets.length > 0;
+  const isVisible = buckets.some(isHighlighted);
 
   const renderTooltip = useCallback(
     (bucket: DroppedDataBucket) =>
