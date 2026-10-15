@@ -9,11 +9,14 @@ from sentry.ingest.inbound_filters import (
     ACTIVE_GENERIC_FILTERS,
     CUSTOM_INBOUND_FILTER_ID_PREFIX,
     InboundFilterFeatures,
+    VersionComparison,
     _chunk_load_error_filter,
     _custom_error_filter,
     _error_message_condition,
     get_custom_inbound_filter_generic_filters,
     get_generic_filters,
+    is_version,
+    parse_version_comparison,
 )
 from sentry.models.custominboundfilter import LegacyFilter
 from sentry.models.project import Project
@@ -418,6 +421,89 @@ def release_rule_condition(values: list[str]) -> dict:
             id="catch_all_ip_address_needs_no_per_data_type_field",
         ),
         pytest.param(
+            "error",
+            [{"type": "browser_name", "value": ["Chrome*", "Mobile Safari"]}],
+            {
+                "op": "glob",
+                "name": "event.contexts.browser.name",
+                "value": ["Chrome*", "Mobile Safari"],
+            },
+            id="browser_name_reads_the_browser_context",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "browser_version", "value": ["<111"]}],
+            {
+                "op": "release",
+                "name": "event.contexts.browser.version",
+                "comparator": "lt",
+                "value": "111",
+            },
+            id="browser_version_comparison_is_not_wrapped",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "browser_version", "value": [">= 15.4", "<=16", ">1", "=17.4.1", "17.*"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "glob", "name": "event.contexts.browser.version", "value": ["17.*"]},
+                    {
+                        "op": "release",
+                        "name": "event.contexts.browser.version",
+                        "comparator": "gte",
+                        "value": "15.4",
+                    },
+                    {
+                        "op": "release",
+                        "name": "event.contexts.browser.version",
+                        "comparator": "lte",
+                        "value": "16",
+                    },
+                    {
+                        "op": "release",
+                        "name": "event.contexts.browser.version",
+                        "comparator": "gt",
+                        "value": "1",
+                    },
+                    {
+                        "op": "release",
+                        "name": "event.contexts.browser.version",
+                        "comparator": "eq",
+                        "value": "17.4.1",
+                    },
+                ],
+            },
+            id="browser_version_mixes_comparisons_and_globs",
+        ),
+        pytest.param(
+            "error",
+            [
+                {"type": "browser_name", "value": ["Chrome"]},
+                {"type": "browser_version", "value": [">=100"]},
+                {"type": "browser_version", "value": ["<111"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "event.contexts.browser.name", "value": ["Chrome"]},
+                    {
+                        "op": "release",
+                        "name": "event.contexts.browser.version",
+                        "comparator": "gte",
+                        "value": "100",
+                    },
+                    {
+                        "op": "release",
+                        "name": "event.contexts.browser.version",
+                        "comparator": "lt",
+                        "value": "111",
+                    },
+                ],
+            },
+            id="browser_name_and_version_range",
+        ),
+        pytest.param(
             "log",
             [
                 {"type": "log_message", "value": ["*DEBUG*"]},
@@ -448,6 +534,46 @@ def test_custom_inbound_filter_condition_translation(
         "condition": expected_condition,
     }
     assert_relay_accepts_condition(generic_filter["condition"])
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("<111", VersionComparison("lt", "111")),
+        ("<=111", VersionComparison("lte", "111")),
+        (">111", VersionComparison("gt", "111")),
+        (">=111", VersionComparison("gte", "111")),
+        ("=111", VersionComparison("eq", "111")),
+        (">= 15.4", VersionComparison("gte", "15.4")),
+        ("<abc", VersionComparison("lt", "abc")),
+        ("111", None),
+        ("17.*", None),
+        ("", None),
+        ("<", None),
+    ],
+)
+def test_parse_version_comparison(value, expected) -> None:
+    assert parse_version_comparison(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        ("111", True),
+        ("15.4", True),
+        ("120.0.6099.129", True),
+        ("111-beta", True),
+        ("0", True),
+        ("17.*", False),
+        ("abc", False),
+        ("v111", False),
+        ("Chrome@111", False),
+        ("1.2.3.4.5", False),
+        ("", False),
+    ],
+)
+def test_is_version(value, expected) -> None:
+    assert is_version(value) is expected
 
 
 @django_db_all

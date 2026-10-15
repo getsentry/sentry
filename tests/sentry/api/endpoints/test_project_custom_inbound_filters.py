@@ -192,7 +192,8 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "value": ["Rate limit*"]},
                 ],
                 "A filter on error data cannot use the log_message condition. "
-                "It accepts error_type, error_message, release, ip_address, geo_country_code.",
+                "It accepts error_type, error_message, release, ip_address, geo_country_code, "
+                "browser_name, browser_version.",
             ),
             (
                 "log",
@@ -225,6 +226,12 @@ class CustomInboundFiltersTest(APITestCase):
                 "all",
                 [{"type": "geo_country_code", "value": ["US"]}],
                 "A filter on all data cannot use the geo_country_code condition. "
+                "It accepts release, ip_address.",
+            ),
+            (
+                "span",
+                [{"type": "browser_version", "value": ["<111"]}],
+                "A filter on span data cannot use the browser_version condition. "
                 "It accepts release, ip_address.",
             ),
         ]
@@ -314,6 +321,45 @@ class CustomInboundFiltersTest(APITestCase):
         custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
         assert response.data["conditions"] == conditions
         assert custom_filter.conditions == conditions
+
+    def test_post_browser_name_and_version(self) -> None:
+        """A version value with a comparator is stored as typed; the name is a glob."""
+        conditions = [
+            {"type": "browser_name", "value": ["Chrome*", "Mobile Safari"]},
+            {"type": "browser_version", "value": ["<111", ">= 15.4", "17.*"]},
+        ]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Old Chrome and Safari",
+                dataType="error",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_rejects_browser_version_comparison_without_version(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Typo",
+                dataType="error",
+                conditions=[
+                    {"type": "browser_version", "value": ["<111", "<17.*", ">=v15", "17.*"]}
+                ],
+            )
+
+        assert str(response.data["conditions"][0]["value"][0]) == (
+            "<17.*, >=v15 does not compare against a version such as 111 or 15.4."
+        )
 
     def test_rejects_ip_address_that_does_not_parse(self) -> None:
         with self.feature(self.features):
@@ -710,7 +756,8 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on error data cannot use the log_message condition. "
-            "It accepts error_type, error_message, release, ip_address, geo_country_code."
+            "It accepts error_type, error_message, release, ip_address, geo_country_code, "
+            "browser_name, browser_version."
         )
 
     def test_put_to_catch_all(self) -> None:

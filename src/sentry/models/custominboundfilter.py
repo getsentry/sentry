@@ -16,6 +16,8 @@ class ConditionType(StrEnum):
     RELEASE = "release"
     IP_ADDRESS = "ip_address"
     GEO_COUNTRY_CODE = "geo_country_code"
+    BROWSER_NAME = "browser_name"
+    BROWSER_VERSION = "browser_version"
 
 
 class DataType(StrEnum):
