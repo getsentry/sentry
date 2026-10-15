@@ -11,11 +11,11 @@ from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
 from sentry.rules.conditions.every_event import EveryEventCondition
 from sentry.rules.processing.processor import split_conditions_and_filters
-from sentry.workflow_engine.migration_helpers.issue_alert_conditions import (
+from sentry.testutils.helpers.issue_alert_conditions import (
     create_event_unique_user_frequency_condition_with_conditions,
     translate_to_data_condition,
 )
-from sentry.workflow_engine.migration_helpers.rule_action import (
+from sentry.testutils.helpers.rule_action import (
     build_notification_actions_from_rule_data_actions,
 )
 from sentry.workflow_engine.models import (

@@ -18,8 +18,8 @@ from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY
 from sentry.notifications.models.notificationaction import ActionService
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.testutils.helpers.metric_alert_migration_utils import get_workflow_name
 from sentry.users.services.user import RpcUser
-from sentry.workflow_engine.migration_helpers.utils import get_workflow_name
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -56,9 +56,6 @@ TYPE_TO_PROVIDER = {
     ActionService.OPSGENIE.value: Action.Type.OPSGENIE,
     ActionService.DISCORD.value: Action.Type.DISCORD,
 }
-
-# XXX: "target_identifier" is not here because there is special logic to handle it
-LEGACY_ACTION_FIELDS = ["integration_id", "target_display", "target_type"]
 
 
 class MissingDataConditionGroup(Exception):
