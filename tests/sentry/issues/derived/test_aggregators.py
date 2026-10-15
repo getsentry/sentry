@@ -17,12 +17,14 @@ from sentry.issues.action_log.types import (
     GroupAction,
     GroupActionType,
     GroupActorType,
+    ImpactAssessmentAction,
     ReconcileStatusAction,
 )
-from sentry.issues.derived.aggregators import AGGREGATORS
+from sentry.issues.derived.aggregators import AGGREGATORS, _impact_level
 from sentry.issues.derived.features import (
     BLOCKER,
     FIRST_ASSIGNMENT_ACTION_ID,
+    IMPACT,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
     NO_CHANGE_RECONCILE_IDS,
@@ -86,6 +88,10 @@ def _ts(year: int = 2025, month: int = 1, day: int = 1, hour: int = 0) -> dateti
 def _resolved_pr_data(pr_id: int) -> dict[str, object]:
     """Build a ResolvedInPullRequestAction-shaped data dict."""
     return {"pull_request": pr_id}
+
+
+def _impact_entry(action: ImpactAssessmentAction) -> FakeEntry:
+    return FakeEntry(type=action.get_type(), data=action.dict())
 
 
 def _reconcile_entry(
@@ -187,6 +193,49 @@ def test_first_assignment_includes_migrated_actions() -> None:
 
 def test_starts_open() -> None:
     assert _run_for_feature(STATUS, []) == IssueStatus.OPEN
+
+
+def test_impact_defaults_to_none() -> None:
+    assert _run_for_feature(IMPACT, []) is None
+
+
+@pytest.mark.parametrize(
+    ("score", "expected"),
+    [
+        (None, None),
+        (0.0, "super_low"),
+        (19.99, "super_low"),
+        (20.0, "low"),
+        (39.99, "low"),
+        (40.0, "moderate"),
+        (59.99, "moderate"),
+        (60.0, "high"),
+        (79.99, "high"),
+        (80.0, "super_high"),
+        (100.0, "super_high"),
+    ],
+)
+def test_impact_level(score: float | None, expected: str | None) -> None:
+    assert _impact_level(score) == expected
+
+
+def test_impact_assessment_is_projected() -> None:
+    action = ImpactAssessmentAction(
+        score=73.5,
+        description="Users cannot submit an order.",
+        citations=[{"reference": "trace", "claim": "The request failed.", "source": "trace"}],
+        source_event_id="a" * 32,
+    )
+
+    impact = _run_for_feature(IMPACT, [_impact_entry(action)])
+
+    assert impact == {
+        "score": 73.5,
+        "level": "high",
+        "description": "Users cannot submit an order.",
+        "citations": [{"reference": "trace", "claim": "The request failed.", "source": "trace"}],
+        "sourceEventId": "a" * 32,
+    }
 
 
 @pytest.mark.parametrize(

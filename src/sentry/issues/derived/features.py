@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 
 from sentry.issues.derived.framework import DateTimeCodec, EnumCodec, Feature, OptionalCodec
+from sentry.issues.impact.types import ImpactDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.types.group import IssueAutofixStep, IssueBlocker
 
@@ -55,3 +56,6 @@ LAST_COMPLETED_AUTOFIX_STEP = Feature[IssueAutofixStep](
 
 # The current action blocking the issue's progress toward resolution.
 BLOCKER = Feature[IssueBlocker]("blocker", default=IssueBlocker.NONE, codec=EnumCodec(IssueBlocker))
+
+# Current issue Impact, projected from the latest assessment action.
+IMPACT = Feature[ImpactDerivedData | None]("impact", default=None)
