@@ -20,12 +20,10 @@ import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
+import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
-import {BULK_LIMIT, BULK_LIMIT_STR} from './constants';
 import {ExtraDescription} from './extraDescription';
-
-export {BULK_LIMIT, BULK_LIMIT_STR};
 
 export enum ConfirmAction {
   RESOLVE = 'resolve',
