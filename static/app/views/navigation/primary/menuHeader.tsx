@@ -13,7 +13,7 @@ import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 export function UserMenuHeader({user}: {user: User}) {
   return (
-    <NavigationMenuHeader
+    <MenuHeader
       title={t('User')}
       name={user.name || user.username || user.email}
       subtitle={user.email}
@@ -44,7 +44,7 @@ export function OrganizationMenuHeader({
   const accentColor = avatarColors.type === 'image' ? avatarColors.chonk : undefined;
 
   return (
-    <NavigationMenuHeader
+    <MenuHeader
       title={t('Organization')}
       name={organization.name || organization.slug}
       subtitle={tn('%s Project', '%s Projects', projectCount)}
@@ -75,7 +75,7 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
   );
 }
 
-function NavigationMenuHeader({
+function MenuHeader({
   title,
   name,
   subtitle,
