@@ -1,5 +1,6 @@
 from collections.abc import Callable, Iterable
 from datetime import datetime, timedelta, timezone
+from enum import StrEnum
 from functools import partial
 from typing import Any
 from unittest.mock import Mock, patch
@@ -51,7 +52,9 @@ from sentry.issues.derived.features import (
 )
 from sentry.issues.derived.framework import (
     AggregatorResult,
+    BoolCodec,
     DerivedDataError,
+    EnumCodec,
     Feature,
     Pipeline,
     Scope,
@@ -186,19 +189,38 @@ class ProcessGroupLogTest(TestCase):
                 actor=GroupActionActor.user(self.user.id),
             )
 
-    def test_inline_corruption_preserves_data(self) -> None:
-        self._assert_corruption_preserves_data(
+    def test_inline_removed_enum_value_preserves_data(self) -> None:
+        self._assert_removed_enum_value_preserves_data(
             partial(processing.trigger_group_log_processing, strategy=ProcessingStrategy.INLINE)
         )
 
-    def test_async_corruption_preserves_data(self) -> None:
-        self._assert_corruption_preserves_data(process_group_log_task)
+    def test_async_removed_enum_value_preserves_data(self) -> None:
+        self._assert_removed_enum_value_preserves_data(process_group_log_task)
 
-    def _assert_corruption_preserves_data(self, run: Callable[[int], None]) -> None:
+    def _assert_removed_enum_value_preserves_data(self, run: Callable[[int], None]) -> None:
+        class PreviousIssueStatus(StrEnum):
+            OPEN = "open"
+            CLOSED = "closed"
+            ARCHIVED = "archived"
+
+        previous_status = Feature[PreviousIssueStatus](
+            STATUS.name,
+            default=PreviousIssueStatus.OPEN,
+            codec=EnumCodec(PreviousIssueStatus),
+        )
+        stored_status = previous_status.to_json(PreviousIssueStatus.ARCHIVED)
+        assert previous_status.from_json(stored_status) is PreviousIssueStatus.ARCHIVED
+
         group = self.create_group()
         derived = self.create_group_derived_data(
-            group, data={"status": "invalid"}, pipeline_hash=PIPELINE.pipeline_hash
+            group, data={"status": stored_status}, pipeline_hash="previous"
         )
+        with pytest.raises(DerivedDataError) as exc:
+            GroupDerivedDataStore.load(PIPELINE, derived)
+        assert exc.value.stage == "decode"
+        assert exc.value.feature_name == STATUS.name
+        assert isinstance(exc.value.__cause__, ValueError)
+
         entry = self.create_group_action_log_entry(group)
         before = GroupDerivedData.objects.filter(id=derived.id).values().get()
         with (
@@ -227,6 +249,32 @@ class ProcessGroupLogTest(TestCase):
         assert extra["cursor_id"] == derived.cursor_id
         assert extra["pipeline_hash"] == PIPELINE.pipeline_hash
         assert extra["feature_name"] == "status"
+
+    def test_removed_json_feature_does_not_block_processing(self) -> None:
+        removed_feature = Feature[bool]("removed_feature", default=False, codec=BoolCodec())
+        group = self.create_group()
+        derived = self.create_group_derived_data(
+            group,
+            view_count=3,
+            data={"status": "open", removed_feature.name: removed_feature.to_json(True)},
+            pipeline_hash="previous",
+        )
+        state = GroupDerivedDataStore.load(PIPELINE, derived)
+        assert removed_feature not in state
+        assert state[STATUS] is IssueStatus.OPEN
+        assert state[VIEW_COUNT] == 3
+
+        entry = self.create_group_action_log_entry(group, type=GroupActionType.RESOLVE)
+        with patch("sentry.issues.derived.reporting.logger") as logger:
+            processing.trigger_group_log_processing(group.id, strategy=ProcessingStrategy.INLINE)
+
+        logger.exception.assert_not_called()
+        derived.refresh_from_db()
+        assert derived.data["status"] == "closed"
+        assert derived.view_count == 3
+        assert (derived.cursor_date, derived.cursor_id) == (entry.date_added, entry.id)
+        # Updating a JSON feature rewrites the blob with only current features.
+        assert removed_feature.name not in derived.data
 
     def test_sync_processing_raises_corruption(self) -> None:
         group = self.create_group()
