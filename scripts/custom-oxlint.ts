@@ -908,7 +908,13 @@ Native oxlint options:
       }
       atomicWrite(asset, serialize(committed));
       // The pinned CLI uses this process, so a killed transaction has no orphan writer.
-      process.argv = [process.execPath, nativeCLI, '--prune-suppressions', ...args];
+      process.argv = [
+        process.execPath,
+        nativeCLI,
+        '--disable-nested-config',
+        '--prune-suppressions',
+        ...args,
+      ];
       await import(pathToFileURL(nativeCLI).href);
       const options = args.slice(0, args.includes('--') ? args.indexOf('--') : undefined);
       if ((process.exitCode ?? 0) !== 0 || !options.includes('--fix')) {

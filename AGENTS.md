@@ -82,7 +82,10 @@ Run `pnpm run typecheck` to run the typescript type checker. It does not accept 
 
 ```bash
 pnpm run lint:js                          # all JS/TS
-pnpm run lint:js components/avatar.tsx    # specific file(s)
+pnpm run lint:js static/app/components/avatar.tsx # selected files in their owning projects
+pnpm --filter @sentry/icons lint          # Icons: JS/TS, CSS
+pnpm --filter @sentry/scraps lint         # Scraps: JS/TS, CSS
+pnpm run lint:format                     # formatting for the whole repository
 pnpm run fix                              # auto-fix
 ```
 

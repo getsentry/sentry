@@ -18,7 +18,9 @@
 - `rsbuild.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
 - `oxlint.config.ts`: Oxlint configuration
+- `oxlint.base.ts`: Shared Oxlint rules used by root and package configs
 - `stylelint.config.js`: CSS/styling linting
+- `stylelint.base.js`: Shared Stylelint rules used by root and package configs
 - **Components**: `static/app/components/{component}/`
 - **Views**: `static/app/views/{area}/{page}.tsx`
 - **Stores**: `static/app/stores/{store}Store.tsx`
@@ -57,6 +59,8 @@ Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecat
 6. Lazy load routes: `React.lazy(() => import('...'))`
 
 ## Linting
+
+Icons and Scraps own their lint configs. Scoped lint and prek route selected files to their owning packages; package commands accept project-relative paths. Use root commands for suppression maintenance.
 
 Incubator rules show as warnings in editors but fail `pnpm run lint:js`, prek, and CI. Each workspace's `oxlint-suppressions.json` uses project-relative paths and caps existing debt per file and rule. Missing files mean empty budgets. Successful fixes lower counts automatically. Run `pnpm run lint:js --help` for the suppression maintenance flags (`--prune`, `--enroll`, `--backlog`).
 
