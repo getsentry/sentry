@@ -25,6 +25,7 @@ from tools.mypy_helpers.typing_campaign import (
     _assert_trusted_policy,
     _candidate_allstrong_reuse_allowed,
     _command_compare,
+    _command_evaluate_series,
     _coverage_audits,
     _coverage_gaps,
     _diagnostic_record,
@@ -683,6 +684,403 @@ python_version = "3.13"
 
     assert calls == list(profiles)
     assert changed_source.profiles[Profile.ALL_STRONG].reused_from_tree is None
+
+
+def test_evaluate_series_reuses_adjacent_configuration_measurements(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    config_path = repo / "pyproject.toml"
+    config_path.write_text("[tool.mypy]\n")
+    subprocess.run(("git", "init", "-q"), cwd=repo, check=True)
+    subprocess.run(("git", "add", "."), cwd=repo, check=True)
+    parent_tree = subprocess.run(
+        ("git", "write-tree"), cwd=repo, capture_output=True, check=True, text=True
+    ).stdout.strip()
+
+    config_path.write_text("[tool.mypy]\n# first promotion\n")
+    subprocess.run(("git", "add", "."), cwd=repo, check=True)
+    first_tree = subprocess.run(
+        ("git", "write-tree"), cwd=repo, capture_output=True, check=True, text=True
+    ).stdout.strip()
+    config_path.write_text("[tool.mypy]\n# second promotion\n")
+    subprocess.run(("git", "add", "."), cwd=repo, check=True)
+    second_tree = subprocess.run(
+        ("git", "write-tree"), cwd=repo, capture_output=True, check=True, text=True
+    ).stdout.strip()
+
+    parent = replace(
+        _tree(
+            weak=frozenset(
+                {
+                    ("sentry.example", "disallow_untyped_defs"),
+                    ("sentry.other", "disallow_untyped_defs"),
+                }
+            )
+        ),
+        tree=parent_tree,
+    )
+    first = replace(
+        _tree(weak=frozenset({("sentry.other", "disallow_untyped_defs")})),
+        tree=first_tree,
+    )
+    second = replace(_tree(), tree=second_tree)
+    templates = {parent_tree: parent, first_tree: first, second_tree: second}
+    measured: list[tuple[str, TreeMeasurement | None]] = []
+
+    def fake_measure_tree(_repo, revision, tree, _output, _profiles, *, reuse_from=None):
+        measured.append((tree, reuse_from))
+        return replace(templates[tree], revision=revision)
+
+    with (
+        patch("tools.mypy_helpers.typing_campaign.resolve_tree", return_value=("parent", parent_tree)),
+        patch(
+            "tools.mypy_helpers.typing_campaign._resolve_candidate_tree",
+            side_effect=[("first", first_tree), ("second", second_tree)],
+        ),
+        patch("tools.mypy_helpers.typing_campaign._assert_trusted_policy"),
+        patch("tools.mypy_helpers.typing_campaign._policy_changes", return_value=()),
+        patch(
+            "tools.mypy_helpers.typing_campaign._candidate_allstrong_reuse_allowed",
+            return_value=True,
+        ),
+        patch(
+            "tools.mypy_helpers.typing_campaign._measure_tree",
+            side_effect=fake_measure_tree,
+        ),
+    ):
+        exit_code, report = _command_evaluate_series(
+            repo,
+            tmp_path / "evaluation",
+            parent_reference="parent",
+            candidate_references=("first", "second"),
+        )
+
+    assert exit_code == ExitCode.COMPLETE
+    assert [tree for tree, _ in measured] == [parent_tree, first_tree, second_tree]
+    assert measured[1][1] is measured[0][1] or measured[1][1] == replace(
+        parent, revision="parent"
+    )
+    assert measured[2][1] is measured[1][1]
+    transitions = report["transitions"]
+    assert isinstance(transitions, list)
+    expected = (
+        decide_candidate(parent, first, require_adoption_credit=True),
+        decide_candidate(first, second, require_adoption_credit=True),
+    )
+    for transition, decision in zip(transitions, expected, strict=True):
+        assert transition["outcome"] == decision.outcome.value
+        assert transition["reasons"] == list(decision.reasons)
+        assert transition["adoption_credit"] == decision.adoption_credit
+        assert transition["details"] == decision.details
+    assert [transition["parent_tree"] for transition in transitions] == [
+        parent_tree,
+        first_tree,
+    ]
+    assert [transition["candidate_tree"] for transition in transitions] == [
+        first_tree,
+        second_tree,
+    ]
+    assert report["adoption_credit"] == [True, True]
+
+
+def test_evaluate_series_stops_after_rejected_transition(tmp_path: Path) -> None:
+    parent_tree = "parent-tree"
+    first_tree = "first-tree"
+    second_tree = "second-tree"
+    parent = replace(_tree(), tree=parent_tree)
+    first = replace(
+        _tree(weak=frozenset({("sentry.example", "disallow_untyped_defs")})),
+        tree=first_tree,
+    )
+    templates = {
+        parent_tree: parent,
+        first_tree: first,
+        second_tree: replace(_tree(), tree=second_tree),
+    }
+    measured: list[str] = []
+
+    def fake_measure_tree(_repo, revision, tree, _output, _profiles, *, reuse_from=None):
+        measured.append(tree)
+        return replace(templates[tree], revision=revision)
+
+    with (
+        patch(
+            "tools.mypy_helpers.typing_campaign.resolve_tree",
+            return_value=("parent", parent_tree),
+        ),
+        patch(
+            "tools.mypy_helpers.typing_campaign._resolve_candidate_tree",
+            side_effect=[("first", first_tree), ("second", second_tree)],
+        ),
+        patch("tools.mypy_helpers.typing_campaign._assert_trusted_policy"),
+        patch(
+            "tools.mypy_helpers.typing_campaign._changed_tree_paths",
+            return_value=("pyproject.toml",),
+        ),
+        patch("tools.mypy_helpers.typing_campaign._changed_source_paths", return_value=()),
+        patch("tools.mypy_helpers.typing_campaign._policy_changes", return_value=()),
+        patch(
+            "tools.mypy_helpers.typing_campaign._candidate_allstrong_reuse_allowed",
+            return_value=True,
+        ),
+        patch(
+            "tools.mypy_helpers.typing_campaign._measure_tree",
+            side_effect=fake_measure_tree,
+        ),
+    ):
+        exit_code, report = _command_evaluate_series(
+            tmp_path,
+            tmp_path / "evaluation",
+            parent_reference="parent",
+            candidate_references=("first", "second"),
+        )
+
+    assert exit_code == ExitCode.REJECTED
+    assert measured == [parent_tree, first_tree]
+    transitions = report["transitions"]
+    assert isinstance(transitions, list)
+    assert len(transitions) == 1
+    transition = transitions[0]
+    assert isinstance(transition, dict)
+    assert transition["parent_tree"] == parent_tree
+    assert transition["candidate_tree"] == first_tree
+    assert transition["outcome"] == Outcome.REJECTED.value
+
+
+def test_evaluate_series_stops_allstrong_reuse_after_ineligible_transition(
+    tmp_path: Path,
+) -> None:
+    parent_tree = "parent-tree"
+    first_tree = "first-tree"
+    second_tree = "second-tree"
+    parent = replace(
+        _tree(
+            weak=frozenset(
+                {
+                    ("sentry.example", "disallow_untyped_defs"),
+                    ("sentry.other", "disallow_untyped_defs"),
+                }
+            )
+        ),
+        tree=parent_tree,
+    )
+    first = replace(
+        _tree(weak=frozenset({("sentry.other", "disallow_untyped_defs")})),
+        tree=first_tree,
+    )
+    second = replace(_tree(), tree=second_tree)
+    templates = {parent_tree: parent, first_tree: first, second_tree: second}
+    measurements: list[tuple[str, TreeMeasurement | None]] = []
+
+    def fake_measure_tree(_repo, revision, tree, _output, _profiles, *, reuse_from=None):
+        measurements.append((tree, reuse_from))
+        return replace(templates[tree], revision=revision)
+
+    with (
+        patch(
+            "tools.mypy_helpers.typing_campaign.resolve_tree",
+            return_value=("parent", parent_tree),
+        ),
+        patch(
+            "tools.mypy_helpers.typing_campaign._resolve_candidate_tree",
+            side_effect=[("first", first_tree), ("second", second_tree)],
+        ),
+        patch("tools.mypy_helpers.typing_campaign._assert_trusted_policy"),
+        patch("tools.mypy_helpers.typing_campaign._changed_tree_paths", return_value=("pyproject.toml",)),
+        patch("tools.mypy_helpers.typing_campaign._changed_source_paths", return_value=()),
+        patch("tools.mypy_helpers.typing_campaign._policy_changes", return_value=()),
+        patch(
+            "tools.mypy_helpers.typing_campaign._candidate_allstrong_reuse_allowed",
+            side_effect=[True, False],
+        ),
+        patch(
+            "tools.mypy_helpers.typing_campaign._measure_tree",
+            side_effect=fake_measure_tree,
+        ),
+    ):
+        exit_code, report = _command_evaluate_series(
+            tmp_path,
+            tmp_path / "evaluation",
+            parent_reference="parent",
+            candidate_references=("first", "second"),
+        )
+
+    assert exit_code == ExitCode.COMPLETE
+    assert len(measurements) == 3
+    assert measurements[1][1] is not None
+    assert measurements[1][1].tree == parent_tree
+    assert measurements[2][1] is None
+    transitions = report["transitions"]
+    assert isinstance(transitions, list)
+    assert [transition["outcome"] for transition in transitions] == [
+        Outcome.COMPLETE.value,
+        Outcome.COMPLETE.value,
+    ]
+
+
+def test_evaluate_series_rechecks_allstrong_reuse_for_each_candidate(
+    tmp_path: Path,
+) -> None:
+    parent_tree = "parent-tree"
+    first_tree = "first-tree"
+    second_tree = "second-tree"
+    parent = replace(
+        _tree(
+            weak=frozenset(
+                {
+                    ("sentry.example", "disallow_untyped_defs"),
+                    ("sentry.other", "disallow_untyped_defs"),
+                }
+            )
+        ),
+        tree=parent_tree,
+    )
+    first = replace(
+        _tree(weak=frozenset({("sentry.other", "disallow_untyped_defs")})),
+        tree=first_tree,
+    )
+    second = replace(_tree(), tree=second_tree)
+    templates = {parent_tree: parent, first_tree: first, second_tree: second}
+    measurements: list[tuple[str, TreeMeasurement | None]] = []
+
+    def fake_measure_tree(_repo, revision, tree, _output, _profiles, *, reuse_from=None):
+        measurements.append((tree, reuse_from))
+        return replace(templates[tree], revision=revision)
+
+    with (
+        patch(
+            "tools.mypy_helpers.typing_campaign.resolve_tree",
+            return_value=("parent", parent_tree),
+        ),
+        patch(
+            "tools.mypy_helpers.typing_campaign._resolve_candidate_tree",
+            side_effect=[("first", first_tree), ("second", second_tree)],
+        ),
+        patch("tools.mypy_helpers.typing_campaign._assert_trusted_policy"),
+        patch(
+            "tools.mypy_helpers.typing_campaign._changed_tree_paths",
+            return_value=("pyproject.toml",),
+        ),
+        patch("tools.mypy_helpers.typing_campaign._changed_source_paths", return_value=()),
+        patch("tools.mypy_helpers.typing_campaign._policy_changes", return_value=()),
+        patch(
+            "tools.mypy_helpers.typing_campaign._candidate_allstrong_reuse_allowed",
+            side_effect=[False, True],
+        ),
+        patch(
+            "tools.mypy_helpers.typing_campaign._measure_tree",
+            side_effect=fake_measure_tree,
+        ),
+    ):
+        exit_code, _ = _command_evaluate_series(
+            tmp_path,
+            tmp_path / "evaluation",
+            parent_reference="parent",
+            candidate_references=("first", "second"),
+        )
+
+    assert exit_code == ExitCode.COMPLETE
+    assert [tree for tree, _ in measurements] == [parent_tree, first_tree, second_tree]
+    assert measurements[1][1] is None
+    assert measurements[2][1] is not None
+    assert measurements[2][1].tree == parent_tree
+
+
+def test_evaluate_series_rejects_non_configuration_transition_before_measurement(
+    tmp_path: Path,
+) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    source = repo / "src" / "sentry" / "example.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("value = 1\n")
+    config_path = repo / "pyproject.toml"
+    config_path.write_text("[tool.mypy]\n")
+    subprocess.run(("git", "init", "-q"), cwd=repo, check=True)
+    subprocess.run(("git", "add", "."), cwd=repo, check=True)
+    parent_tree = subprocess.run(
+        ("git", "write-tree"), cwd=repo, capture_output=True, check=True, text=True
+    ).stdout.strip()
+    source.write_text("value = 2\n")
+    subprocess.run(("git", "add", "."), cwd=repo, check=True)
+    candidate_tree = subprocess.run(
+        ("git", "write-tree"), cwd=repo, capture_output=True, check=True, text=True
+    ).stdout.strip()
+
+    with (
+        patch("tools.mypy_helpers.typing_campaign.resolve_tree", return_value=("parent", parent_tree)),
+        patch(
+            "tools.mypy_helpers.typing_campaign._resolve_candidate_tree",
+            return_value=("candidate", candidate_tree),
+        ),
+        patch("tools.mypy_helpers.typing_campaign._assert_trusted_policy"),
+        patch("tools.mypy_helpers.typing_campaign._measure_tree") as measure_tree,
+    ):
+        exit_code, report = _command_evaluate_series(
+            repo,
+            tmp_path / "evaluation",
+            parent_reference="parent",
+            candidate_references=("candidate",),
+        )
+
+    assert exit_code == ExitCode.REJECTED
+    assert report["outcome"] == Outcome.REJECTED.value
+    transitions = report["transitions"]
+    assert isinstance(transitions, list)
+    transition = transitions[0]
+    assert isinstance(transition, dict)
+    assert transition["parent_tree"] == parent_tree
+    assert transition["changed_paths"] == ["src/sentry/example.py"]
+    measure_tree.assert_not_called()
+
+
+def test_evaluate_series_rejects_policy_change_before_measurement(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    config_path = repo / "pyproject.toml"
+    config_path.write_text("[tool.mypy]\n")
+    subprocess.run(("git", "init", "-q"), cwd=repo, check=True)
+    subprocess.run(("git", "add", "."), cwd=repo, check=True)
+    parent_tree = subprocess.run(
+        ("git", "write-tree"), cwd=repo, capture_output=True, check=True, text=True
+    ).stdout.strip()
+    config_path.write_text("[tool.mypy]\npython_version = '3.13'\n")
+    subprocess.run(("git", "add", "."), cwd=repo, check=True)
+    candidate_tree = subprocess.run(
+        ("git", "write-tree"), cwd=repo, capture_output=True, check=True, text=True
+    ).stdout.strip()
+
+    with (
+        patch("tools.mypy_helpers.typing_campaign.resolve_tree", return_value=("parent", parent_tree)),
+        patch(
+            "tools.mypy_helpers.typing_campaign._resolve_candidate_tree",
+            return_value=("candidate", candidate_tree),
+        ),
+        patch("tools.mypy_helpers.typing_campaign._assert_trusted_policy"),
+        patch(
+            "tools.mypy_helpers.typing_campaign._policy_changes",
+            return_value=("pyproject.toml",),
+        ),
+        patch("tools.mypy_helpers.typing_campaign._measure_tree") as measure_tree,
+    ):
+        exit_code, report = _command_evaluate_series(
+            repo,
+            tmp_path / "evaluation",
+            parent_reference="parent",
+            candidate_references=("candidate",),
+        )
+
+    assert exit_code == ExitCode.REJECTED
+    assert report["outcome"] == Outcome.REJECTED.value
+    assert report["reasons"] == ["candidate changes evaluator policy: pyproject.toml"]
+    transitions = report["transitions"]
+    assert isinstance(transitions, list)
+    transition = transitions[0]
+    assert isinstance(transition, dict)
+    assert transition["parent_tree"] == parent_tree
+    measure_tree.assert_not_called()
 
 
 def test_preexisting_typing_debt_does_not_invalidate_candidate_comparison() -> None:
@@ -1348,6 +1746,39 @@ def test_guard_cli_defaults_to_head_tree(tmp_path: Path, capsys: pytest.CaptureF
     assert exit_code == ExitCode.COMPLETE
     assert compare.call_args.kwargs["candidate_reference"] == "HEAD^{tree}"
     assert compare.call_args.kwargs["parent_reference"] == "accepted-parent"
+    assert "complete:" in capsys.readouterr().out
+
+
+def test_evaluate_series_cli_accepts_ordered_candidate_trees(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with (
+        patch("tools.mypy_helpers.typing_campaign._prepare_output", return_value=tmp_path),
+        patch(
+            "tools.mypy_helpers.typing_campaign._command_evaluate_series",
+            return_value=(ExitCode.COMPLETE, {"outcome": "complete"}),
+        ) as evaluate_series,
+    ):
+        exit_code = main(
+            [
+                "evaluate-series",
+                "--parent",
+                "accepted-parent",
+                "--candidate-tree",
+                "candidate-one",
+                "--candidate-tree",
+                "candidate-two",
+                "--output",
+                ".work/tmp/series",
+            ]
+        )
+
+    assert exit_code == ExitCode.COMPLETE
+    assert evaluate_series.call_args.kwargs["parent_reference"] == "accepted-parent"
+    assert evaluate_series.call_args.kwargs["candidate_references"] == [
+        "candidate-one",
+        "candidate-two",
+    ]
     assert "complete:" in capsys.readouterr().out
 
 

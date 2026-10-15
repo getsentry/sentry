@@ -136,16 +136,21 @@ One ordinary commit is one accepted item. The minimum coupled atomic repair is a
 
 ## Evaluator contract
 
-P2 creates the following interface. These commands are deliverables, not existing tools:
+P2 provides these commands:
 
 ```sh
 .venv/bin/python -m tools.mypy_helpers.typing_campaign baseline --output .work/tmp/baseline
 .venv/bin/python -m tools.mypy_helpers.typing_campaign evaluate --parent ACCEPTED_PARENT --candidate-tree CANDIDATE_TREE --output .work/tmp/candidate
+.venv/bin/python -m tools.mypy_helpers.typing_campaign evaluate-series \
+  --parent ACCEPTED_PARENT --candidate-tree FIRST_TREE --candidate-tree SECOND_TREE \
+  --output .work/tmp/series
 .venv/bin/python -m tools.mypy_helpers.typing_campaign guard --parent ACCEPTED_PARENT --output .work/tmp/guard
 .venv/bin/python -m tools.mypy_helpers.typing_campaign terminal --output .work/tmp/terminal
 ```
 
 `ACCEPTED_PARENT` is the concrete Git revision saved immediately before editing. `CANDIDATE_TREE` is the intended commit's Git tree, not the live working tree. Only the coordinator can change evaluator policy, in a separate tested infrastructure commit with no adoption credit. Run evaluation without concurrent edits. Use the evaluator from the last accepted infrastructure revision, loaded from scratch with its own imports, while inspecting candidate files as data. Do not execute candidate evaluator policy to approve that candidate.
+
+`evaluate-series` accepts ordered `--candidate-tree` values. Each adjacent tree pair must change only `pyproject.toml` and pass the evaluator policy check. The command measures the parent once, measures each candidate once, and compares each candidate with the preceding measurement. It stops after the first rejected or invalid candidate. It measures configured and unsuppressed profiles for every candidate. It reuses the original parent's all-strong profile only when the configurations match after the weaklist section is cleared. The source inventory, source digests and graph coverage must also match. Otherwise, it measures all-strong for that candidate. Use this command for a linked series of metadata promotions. Do not use it for source changes.
 
 Construct the intended tree using a separate `GIT_INDEX_FILE` under `.work/tmp`: initialize it with `git read-tree ACCEPTED_PARENT`, add only the item-owned paths, and obtain the tree with `git write-tree`. Never use the owner's index or include unrelated dirty files. Overlapping owner edits remain parked. Materialize this tree as a disposable source snapshot under `.work/tmp`, without a new branch or Git worktree. All first-party source reads, config paths, plugins, generated inputs and runtime test imports must resolve to this snapshot. Run the checker and tests from its root.
 

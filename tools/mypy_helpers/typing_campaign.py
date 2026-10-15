@@ -2924,6 +2924,142 @@ def _command_compare(
     return exit_code, report
 
 
+def _command_evaluate_series(
+    repo: Path,
+    output: Path,
+    *,
+    parent_reference: str,
+    candidate_references: Sequence[str],
+) -> tuple[ExitCode, dict[str, object]]:
+    if not candidate_references:
+        raise InvalidMeasurement("evaluate-series requires at least one candidate tree")
+    parent_revision, parent_tree = resolve_tree(repo, parent_reference)
+    candidates = [
+        (reference, *_resolve_candidate_tree(repo, reference))
+        for reference in candidate_references
+    ]
+    _assert_trusted_policy(repo)
+
+    previous_tree = parent_tree
+    transitions: list[dict[str, object]] = []
+    for reference, _, candidate_tree in candidates:
+        changed_paths = _changed_tree_paths(repo, previous_tree, candidate_tree)
+        if changed_paths != ("pyproject.toml",):
+            transitions.append(
+                {
+                    "parent_tree": previous_tree,
+                    "candidate_reference": reference,
+                    "candidate_tree": candidate_tree,
+                    "outcome": Outcome.REJECTED.value,
+                    "reasons": [
+                        "evaluate-series accepts only transitions changing pyproject.toml"
+                    ],
+                    "changed_paths": list(changed_paths),
+                }
+            )
+            return ExitCode.REJECTED, {
+                "command": "evaluate-series",
+                "outcome": Outcome.REJECTED.value,
+                "reasons": transitions[-1]["reasons"],
+                "parent_revision": parent_revision,
+                "parent_tree": parent_tree,
+                "transitions": transitions,
+            }
+        changed_policy = _policy_changes(repo, previous_tree, candidate_tree)
+        if changed_policy:
+            reasons = [
+                "candidate changes evaluator policy: " + ", ".join(changed_policy)
+            ]
+            transitions.append(
+                {
+                    "parent_tree": previous_tree,
+                    "candidate_reference": reference,
+                    "candidate_tree": candidate_tree,
+                    "outcome": Outcome.REJECTED.value,
+                    "reasons": reasons,
+                    "changed_policy": list(changed_policy),
+                }
+            )
+            return ExitCode.REJECTED, {
+                "command": "evaluate-series",
+                "outcome": Outcome.REJECTED.value,
+                "reasons": reasons,
+                "parent_revision": parent_revision,
+                "parent_tree": parent_tree,
+                "transitions": transitions,
+            }
+        previous_tree = candidate_tree
+
+    source_changes = _changed_source_paths(repo, parent_tree, candidates[-1][2])
+    if source_changes:
+        raise InvalidMeasurement("evaluate-series candidate chain changes Python sources")
+
+    measurements: list[TreeMeasurement] = [
+        _measure_tree(repo, parent_revision, parent_tree, output, _CORE_PROFILES)
+    ]
+    original = measurements[0]
+    previous_tree = parent_tree
+    for reference, revision, candidate_tree in candidates:
+        reuse_allstrong = not original.gaps and _candidate_allstrong_reuse_allowed(
+            repo, parent_tree, candidate_tree, (), original
+        )
+        candidate_measurement = _measure_tree(
+            repo,
+            revision,
+            candidate_tree,
+            output,
+            _CORE_PROFILES,
+            reuse_from=original if reuse_allstrong else None,
+        )
+        previous_measurement = measurements[-1]
+        decision = decide_candidate(
+            previous_measurement,
+            candidate_measurement,
+            require_adoption_credit=True,
+        )
+        transitions.append(
+            {
+                "parent_tree": previous_tree,
+                "candidate_reference": reference,
+                "candidate_tree": candidate_tree,
+                "outcome": decision.outcome.value,
+                "reasons": list(decision.reasons),
+                "adoption_credit": decision.adoption_credit,
+                "core_complete": decision.core_complete,
+                "precision_complete": decision.precision_complete,
+                "details": decision.details,
+                "parent": _tree_report(previous_measurement),
+                "candidate": _tree_report(candidate_measurement),
+            }
+        )
+        measurements.append(candidate_measurement)
+        previous_tree = candidate_tree
+        if decision.outcome != Outcome.COMPLETE:
+            break
+
+    outcomes = [Outcome(str(transition["outcome"])) for transition in transitions]
+    exit_code = (
+        ExitCode.INVALID
+        if Outcome.INVALID in outcomes
+        else ExitCode.REJECTED
+        if Outcome.REJECTED in outcomes
+        else ExitCode.COMPLETE
+    )
+    return exit_code, {
+        "command": "evaluate-series",
+        "outcome": {
+            ExitCode.COMPLETE: Outcome.COMPLETE.value,
+            ExitCode.REJECTED: Outcome.REJECTED.value,
+            ExitCode.INVALID: Outcome.INVALID.value,
+        }[exit_code],
+        "parent_revision": parent_revision,
+        "parent_tree": parent_tree,
+        "candidate_trees": [tree for _, _, tree in candidates],
+        "adoption_credit": [bool(transition["adoption_credit"]) for transition in transitions],
+        "transitions": transitions,
+    }
+
+
 def _command_terminal(repo: Path, output: Path) -> tuple[ExitCode, dict[str, object]]:
     revision, tree = resolve_tree(repo, "HEAD")
     precision_calibration = _run_precision_canaries(output)
@@ -2958,6 +3094,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     evaluate.add_argument("--parent", required=True)
     evaluate.add_argument("--candidate-tree", required=True)
     evaluate.add_argument("--output", required=True)
+    evaluate_series = commands.add_parser("evaluate-series")
+    evaluate_series.add_argument("--parent", required=True)
+    evaluate_series.add_argument("--candidate-tree", action="append", required=True)
+    evaluate_series.add_argument("--output", required=True)
     guard = commands.add_parser("guard")
     guard.add_argument("--parent", required=True)
     guard.add_argument("--candidate-tree")
@@ -2979,6 +3119,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 command=arguments.command,
                 parent_reference=arguments.parent,
                 candidate_reference=candidate,
+            )
+        elif arguments.command == "evaluate-series":
+            exit_code, report = _command_evaluate_series(
+                REPO_ROOT,
+                output,
+                parent_reference=arguments.parent,
+                candidate_references=arguments.candidate_tree,
             )
         else:
             exit_code, report = _command_terminal(REPO_ROOT, output)
