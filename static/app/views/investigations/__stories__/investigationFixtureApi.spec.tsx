@@ -1,6 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
 import {InvestigationsPage} from 'sentry/views/investigations';
@@ -375,6 +381,45 @@ describe('InvestigationFixtureApi', () => {
 
       expect(await QUERY_API_CLIENT.requestPromise(commentsUrl)).toEqual([
         expect.objectContaining({id: 'mine', body: 'Second draft'}),
+      ]);
+    });
+
+    it('opens block threads in a drawer that reads the fixture', async () => {
+      render(
+        <InvestigationFixtureApi
+          organizationSlug="storybook-comments-drawer-test"
+          details={[commentedInvestigation]}
+          comments={{[commentedInvestigation.id]: commentedInvestigationComments}}
+        >
+          <InvestigationBootstrapPage investigationId={commentedInvestigation.id} />
+        </InvestigationFixtureApi>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/storybook-comments-drawer-test/explore/investigations/${commentedInvestigation.id}/`,
+              query: {comments: 'open', commentsBlock: 'commented-query'},
+            },
+          },
+        }
+      );
+
+      const drawer = await screen.findByRole('complementary', {name: 'Block comments'});
+      expect(
+        await within(drawer).findByRole('heading', {
+          name: 'Comments on Invoice generation duration',
+        })
+      ).toBeInTheDocument();
+      // Oldest first, and only this block's comments.
+      const thread = await within(drawer).findByRole('list', {name: 'Block comments'});
+      expect(
+        within(thread)
+          .getAllByRole('listitem')
+          .map(item => item.textContent)
+      ).toEqual([
+        expect.stringContaining('p95 jumps right at 13:40'),
+        expect.stringContaining('worker minimum'),
+        expect.stringContaining('Reverting the minimum instance count'),
       ]);
     });
   });

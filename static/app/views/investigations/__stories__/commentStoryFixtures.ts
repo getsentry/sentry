@@ -69,8 +69,27 @@ export const commentedInvestigation = InvestigationDetailFixture({
   ],
 });
 
-/** A page comment, block comments, a deleted block, and a deleted author. */
+/**
+ * A page comment, a thread on the query block, a comment on a deleted block, and
+ * one from a deleted author.
+ */
 export const commentedInvestigationComments = [
+  InvestigationCommentFixture({
+    id: 'comment-query-reply-2',
+    blockId: 'commented-query',
+    author: KATHERINE,
+    body: 'Confirmed. Reverting the minimum instance count now.',
+    dateCreated: '2026-08-27T15:18:00Z',
+    dateUpdated: '2026-08-27T15:18:00Z',
+  }),
+  InvestigationCommentFixture({
+    id: 'comment-query-reply-1',
+    blockId: 'commented-query',
+    author: GRACE,
+    body: "Yesterday's config push lowered the eu-west-1 worker minimum from `4` to `1`.",
+    dateCreated: '2026-08-27T15:11:00Z',
+    dateUpdated: '2026-08-27T15:11:00Z',
+  }),
   InvestigationCommentFixture({
     id: 'comment-page-latest',
     author: GRACE,

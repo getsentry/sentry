@@ -1,6 +1,8 @@
 import {useEffect, useState, type ReactNode} from 'react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
+import {GlobalDrawer} from '@sentry/scraps/drawer';
+
 import type {RequestOptions} from 'sentry/api';
 import type {ResponseMeta} from 'sentry/types/api';
 import type {AvatarUser} from 'sentry/types/user';
@@ -150,9 +152,13 @@ export function InvestigationFixtureApi({
     return null;
   }
 
+  // Drawers render where GlobalDrawer is mounted, so mount one inside the
+  // fixture. The app's drawer would read the real organization and API.
   return (
     <OrganizationContext value={organization}>
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <GlobalDrawer>{children}</GlobalDrawer>
+      </QueryClientProvider>
     </OrganizationContext>
   );
 }
@@ -457,8 +463,14 @@ function handleFixtureRequest(
 
   if (parts[1] === 'comments' && parts.length === 2 && method === 'GET') {
     const link = state.commentPageLinks[investigationId];
+    const blockId = options.query?.blockId;
+    const comments = getFixtureComments(state, investigationId);
     return {
-      body: cloneFixture(getFixtureComments(state, investigationId)),
+      body: cloneFixture(
+        typeof blockId === 'string'
+          ? comments.filter(comment => comment.blockId === blockId)
+          : comments
+      ),
       headers: link ? {Link: link} : undefined,
     };
   }
