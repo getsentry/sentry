@@ -25,7 +25,7 @@ def test_candidate_fields_include_evidence_and_enrichment() -> None:
     finding = CacheFinding(
         classification=FINAL,
         stats=make_stats(model="claude-sonnet-4", hit_rate=0.1, write_read_ratio=2),
-        warmth=CallSiteWarmth(1_000, 500, 800, 900),
+        warmth=CallSiteWarmth(1_000, 500, 800),
         spans_with_cache_attributes=400,
     )
     report = CandidateReport(
@@ -44,6 +44,8 @@ def test_candidate_fields_include_evidence_and_enrichment() -> None:
     assert fields["outcome"] == "thrash"
     assert fields["disposition"] == "would_create"
     assert fields["cacheable_share"] == 0.8
+    assert fields["repeated_sampled_call_count"] == 5_000
+    assert fields["repeated_sampled_call_share"] == 0.5
     assert fields["spans_with_cache_attributes"] == 400
     assert fields["estimated_savings_usd"] == 12.5
     assert fields["sample_calls"][0]["trace_id"] == "trace-id"

@@ -26,6 +26,7 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {useApi} from 'sentry/utils/useApi';
 import {useIsStuck} from 'sentry/utils/useIsStuck';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
@@ -36,13 +37,7 @@ import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 import {ActionSet} from './actionSet';
 import {TrendHeader} from './headers';
-import {
-  BULK_LIMIT,
-  BULK_LIMIT_STR,
-  ConfirmAction,
-  invalidateIssueQueries,
-  performBulkUpdate,
-} from './utils';
+import {ConfirmAction, invalidateIssueQueries, performBulkUpdate} from './utils';
 
 type IssueListActionsProps = {
   allResultsVisible: boolean;

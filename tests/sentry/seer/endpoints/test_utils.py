@@ -52,6 +52,12 @@ class ResolveSeerRunTest(TestCase):
 
         assert result == ResolvedSeerRun(555, str(run.uuid))
 
+    def test_user_scope_rejects_unmirrored_numeric_run(self) -> None:
+        result = resolve_seer_run("555", self.organization, user_id=self.user.id)
+
+        assert isinstance(result, Response)
+        assert result.status_code == status.HTTP_403_FORBIDDEN
+
     def test_user_scope_rejects_another_users_numeric_run(self) -> None:
         run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=555, user_id=self.user.id
@@ -64,9 +70,7 @@ class ResolveSeerRunTest(TestCase):
 
         assert isinstance(result, Response)
         assert result.status_code == status.HTTP_403_FORBIDDEN
-        assert result.data == {
-            "detail": "This conversation belongs to another user and is read-only."
-        }
+        assert result.data == {"detail": "You do not have access to this run."}
 
     def test_user_scope_rejects_another_users_uuid_run(self) -> None:
         run = self.create_seer_run(
@@ -80,9 +84,7 @@ class ResolveSeerRunTest(TestCase):
 
         assert isinstance(result, Response)
         assert result.status_code == status.HTTP_403_FORBIDDEN
-        assert result.data == {
-            "detail": "This conversation belongs to another user and is read-only."
-        }
+        assert result.data == {"detail": "You do not have access to this run."}
 
     def test_uuid_with_failed_mirror_returns_error_session(self) -> None:
         run = self.create_seer_run(

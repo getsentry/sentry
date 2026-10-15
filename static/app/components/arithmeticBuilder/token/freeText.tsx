@@ -490,7 +490,7 @@ function useParenthesisItems({
     if (nextAllowedTokenKinds.includes(TokenKind.OPEN_PARENTHESIS)) {
       options.push({
         key: `${TokenKind.OPEN_PARENTHESIS}:open`,
-        label: <IconParenthesis height={26} />,
+        label: <IconParenthesis size="lg" />,
         value: '(',
         textValue: '(',
         hideCheck: true,
@@ -500,7 +500,7 @@ function useParenthesisItems({
     if (nextAllowedTokenKinds.includes(TokenKind.CLOSE_PARENTHESIS)) {
       options.push({
         key: `${TokenKind.CLOSE_PARENTHESIS}:close`,
-        label: <IconParenthesis side="right" height={26} />,
+        label: <IconParenthesis side="right" size="lg" />,
         value: ')',
         textValue: ')',
         hideCheck: true,

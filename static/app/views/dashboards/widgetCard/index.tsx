@@ -36,7 +36,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {withApi} from 'sentry/utils/withApi';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
-import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/dashboard';
+import {DASHBOARD_CHART_GROUP} from 'sentry/views/dashboards/constants';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,

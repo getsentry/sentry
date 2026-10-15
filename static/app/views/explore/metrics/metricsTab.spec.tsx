@@ -12,10 +12,12 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   defaultMetricQuery,
   encodeMetricQueryParams,
@@ -62,6 +64,16 @@ const encodedBarMetric = encodeMetricQueryParams({
   metric: {name: 'bar', type: 'distribution'},
 });
 
+const encodedP50BarMetric = JSON.stringify({
+  metric: {name: 'bar', type: 'distribution'},
+  query: '',
+  aggregateFields: [
+    new VisualizeFunction('p50(value,bar,distribution,none)').serialize(),
+  ],
+  aggregateSortBys: [],
+  mode: 'samples',
+});
+
 describe('MetricsTabContent', () => {
   const {
     organization,
@@ -89,9 +101,13 @@ describe('MetricsTabContent', () => {
     route: '/organizations/:orgId/explore/metrics/',
   };
 
+  const scrollIntoView = jest.fn();
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     trackAnalyticsMock.mockClear();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    resetMockDate();
     setupPageFilters();
 
     const metricFixtures = createTraceMetricFixtures(organization, project, new Date());
@@ -213,6 +229,198 @@ describe('MetricsTabContent', () => {
     toolbars = screen.getAllByTestId('metric-toolbar');
     expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
+  });
+
+  it.each(['Add Metric', 'Add Equation'])(
+    'scrolls the new panel into view when %s is clicked',
+    async buttonName => {
+      render(
+        <ProviderWrapper>
+          <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        </ProviderWrapper>,
+        {
+          initialRouterConfig,
+          organization,
+        }
+      );
+
+      expect(await screen.findAllByTestId('metric-panel')).toHaveLength(1);
+
+      await userEvent.click(screen.getAllByRole('button', {name: buttonName})[0]!);
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
+      });
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(scrollIntoView.mock.contexts[0]).toBe(
+        screen.getAllByTestId('metric-panel')[1]
+      );
+    }
+  );
+
+  describe('when another chart fetches new data', () => {
+    function renderWithTwoPanels() {
+      render(
+        <ProviderWrapper>
+          <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        </ProviderWrapper>,
+        {
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              ...initialLocation,
+              query: {
+                ...initialLocation.query,
+                metric: [encodedBarMetric, encodedP50BarMetric, encodedBarMetric],
+              },
+            },
+          },
+          organization,
+        }
+      );
+    }
+
+    async function changeLastPanelAggregate() {
+      await userEvent.click(screen.getAllByRole('button', {name: /Agg/})[2]!);
+      await userEvent.click(await screen.findByRole('option', {name: 'p75'}));
+    }
+
+    function getYAxesAfter(mock: jest.Mock, callCount: number) {
+      return mock.mock.calls
+        .slice(callCount)
+        .map(([, options]) => options.query.yAxis[0])
+        .sort();
+    }
+
+    it('refetches charts fetched in an earlier interval', async () => {
+      const timeseriesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        body: {timeSeries: [TimeSeriesFixture()]},
+      });
+      renderWithTwoPanels();
+      expect(await screen.findAllByText(/data points/)).toHaveLength(3);
+      const initialCallCount = timeseriesMock.mock.calls.length;
+      setMockDate(Date.now() + 24 * 60 * 60 * 1000);
+
+      await changeLastPanelAggregate();
+
+      await waitFor(() =>
+        expect(getYAxesAfter(timeseriesMock, initialCallCount)).toEqual([
+          'p50(value,bar,distribution,none)',
+          'p75(value,bar,distribution,none)',
+          'sum(value)',
+        ])
+      );
+    });
+
+    it('refetches charts requested in an earlier interval when their responses arrived later', async () => {
+      const {promise: responsesReleased, resolve: releaseResponses} =
+        Promise.withResolvers<void>();
+      const timeseriesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        asyncDelay: responsesReleased,
+        body: {timeSeries: [TimeSeriesFixture()]},
+      });
+      renderWithTwoPanels();
+      await waitFor(() => expect(timeseriesMock).toHaveBeenCalledTimes(2));
+      setMockDate(Date.now() + 24 * 60 * 60 * 1000);
+      releaseResponses();
+      expect(await screen.findAllByText(/data points/)).toHaveLength(3);
+
+      await changeLastPanelAggregate();
+
+      await waitFor(() =>
+        expect(getYAxesAfter(timeseriesMock, 2)).toEqual([
+          'p50(value,bar,distribution,none)',
+          'p75(value,bar,distribution,none)',
+          'sum(value)',
+        ])
+      );
+    });
+
+    it('refetches charts whose earlier requests were in flight when another chart fetched', async () => {
+      const {promise: responsesReleased, resolve: releaseResponses} =
+        Promise.withResolvers<void>();
+      const timeseriesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        asyncDelay: responsesReleased,
+        body: {timeSeries: [TimeSeriesFixture()]},
+      });
+      renderWithTwoPanels();
+      await waitFor(() => expect(timeseriesMock).toHaveBeenCalledTimes(2));
+      setMockDate(Date.now() + 24 * 60 * 60 * 1000);
+
+      await changeLastPanelAggregate();
+      await waitFor(() => expect(timeseriesMock).toHaveBeenCalledTimes(3));
+      releaseResponses();
+
+      await waitFor(() =>
+        expect(getYAxesAfter(timeseriesMock, 2)).toEqual([
+          'p50(value,bar,distribution,none)',
+          'p75(value,bar,distribution,none)',
+          'sum(value)',
+        ])
+      );
+    });
+
+    it('refetches high accuracy charts fetched in an earlier interval', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({sampling: SAMPLING_MODE.NORMAL})],
+        body: (_url: string, options: {query: {yAxis: string[]}}) => {
+          const timeSeries = TimeSeriesFixture({yAxis: options.query.yAxis[0]});
+          return {
+            timeSeries: [
+              {...timeSeries, meta: {...timeSeries.meta, dataScanned: 'partial'}},
+            ],
+          };
+        },
+      });
+      const highAccuracyMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        match: [MockApiClient.matchQuery({sampling: SAMPLING_MODE.HIGH_ACCURACY})],
+        body: (_url: string, options: {query: {yAxis: string[]}}) => ({
+          timeSeries: [TimeSeriesFixture({yAxis: options.query.yAxis[0]})],
+        }),
+      });
+      renderWithTwoPanels();
+      await waitFor(() => expect(highAccuracyMock).toHaveBeenCalledTimes(2));
+      setMockDate(Date.now() + 24 * 60 * 60 * 1000);
+
+      await changeLastPanelAggregate();
+
+      await waitFor(() =>
+        expect(getYAxesAfter(highAccuracyMock, 2)).toEqual([
+          'p50(value,bar,distribution,none)',
+          'p75(value,bar,distribution,none)',
+          'sum(value)',
+        ])
+      );
+    });
+
+    it('does not refetch charts fetched in the current interval', async () => {
+      const timeseriesMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        body: {timeSeries: [TimeSeriesFixture()]},
+      });
+      renderWithTwoPanels();
+      expect(await screen.findAllByText(/data points/)).toHaveLength(3);
+      const initialCallCount = timeseriesMock.mock.calls.length;
+
+      await changeLastPanelAggregate();
+
+      await waitFor(() =>
+        expect(getYAxesAfter(timeseriesMock, initialCallCount)).toEqual([
+          'p75(value,bar,distribution,none)',
+        ])
+      );
+    });
   });
 
   it('prompts for an equation instead of loading when an added equation is empty', async () => {

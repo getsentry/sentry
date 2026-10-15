@@ -22,12 +22,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AllocationTargetTypes, BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
+import {displayPrice} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {bigNumFormatter, BigNumUnits} from 'getsentry/views/spendAllocations/utils';
 
 import {ProjectSelectControl} from './projectSelectControl';

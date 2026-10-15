@@ -5,7 +5,7 @@ import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import type {StarredGroupSearchView} from 'sentry/views/issueList/types';
-import type {IssueView} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
+import type {IssueView} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewUtils';
 
 export function useStarredIssueViews() {
   const organization = useOrganization();
