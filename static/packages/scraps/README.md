@@ -61,13 +61,6 @@ the test consumer. It does not change or publish the icons package.
 Consumers provide Emotion's `ThemeProvider` with `lightTheme` or `darkTheme`.
 The package does not include application providers, global CSS, or fonts.
 
-`Link` renders native anchors by default and supports string destinations or
-objects with `pathname`, `search`, `query`, and `hash`. A `query` object overrides
-`search`. Supply `LinkBehaviorContextProvider` to use a client router. Sentry's
-`SentryLinkBehaviorProvider` supplies routing, URL normalization, and preloading.
-Router options such as `replace`, `state`, and `preventScrollReset` are passed to
-the supplied component; native anchors use browser navigation.
-
 ## Prepare a release
 
 Run the `Release` GitHub workflow and select the `static/packages/scraps` workspace.
