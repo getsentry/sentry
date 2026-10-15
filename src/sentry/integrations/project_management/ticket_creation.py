@@ -133,11 +133,11 @@ def create_ticket(
             lifecycle.record_halt(error)
             raise
 
-    return create_external_issue_link(
-        integration=integration,
-        installation=installation,
-        group=group,
-        title=external_issue_title,
-        description=external_issue_description,
-        response=response,
-    )
+        return create_external_issue_link(
+            integration=integration,
+            installation=installation,
+            group=group,
+            title=external_issue_title,
+            description=external_issue_description,
+            response=response,
+        )

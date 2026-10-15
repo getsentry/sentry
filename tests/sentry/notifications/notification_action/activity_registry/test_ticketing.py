@@ -169,6 +169,23 @@ class TestTicketingActivityHandler(BaseWorkflowTest):
             == 1
         )
 
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
+    @mock.patch("sentry.integrations.project_management.ticket_creation.create_external_issue_link")
+    def test_invoke_action_records_link_failure(
+        self,
+        mock_create_external_issue_link: mock.MagicMock,
+        mock_record_failure: mock.MagicMock,
+    ) -> None:
+        error = RuntimeError("Failed to link external issue")
+        mock_create_external_issue_link.side_effect = error
+
+        with self._mock_github_create_issue(), pytest.raises(RuntimeError, match=str(error)):
+            TicketingActivityHandler.invoke_action(
+                invocation=self._create_invocation(self.activity), activity=self.activity
+            )
+
+        mock_record_failure.assert_called_once_with(error, create_issue=True)
+
     @mock.patch("sentry.notifications.notification_action.activity_registry.ticketing.logger")
     @mock.patch(
         "sentry.notifications.notification_action.activity_registry.ticketing.integration_service"
