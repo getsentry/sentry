@@ -16,7 +16,7 @@ from sentry.api.endpoints.timeseries import IncompleteReason
 from sentry.api.helpers.timeseries_processing import (
     EmaSmoothTransformation,
     FillTransformation,
-    SmoothTransformation,
+    SmaSmoothTransformation,
     Transformation,
 )
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
@@ -34,14 +34,14 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
         ("transformations[0]=fill(locf)", {0: [FillTransformation(mode="locf")]}),
         (
             "transformations[0]=smooth(sma,,5)",
-            {0: [SmoothTransformation(mode="sma", window_size=5)]},
+            {0: [SmaSmoothTransformation(mode="sma", window_size=5)]},
         ),
         (
             "transformations[0]=smooth%28sma%2C5%29&transformations[0]=smooth(sma,3)",
             {
                 0: [
-                    SmoothTransformation(mode="sma", window_size=5),
-                    SmoothTransformation(mode="sma", window_size=3),
+                    SmaSmoothTransformation(mode="sma", window_size=5),
+                    SmaSmoothTransformation(mode="sma", window_size=3),
                 ]
             },
         ),
@@ -51,7 +51,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
             {
                 1: [
                     FillTransformation(mode="locf"),
-                    SmoothTransformation(mode="sma", window_size=3),
+                    SmaSmoothTransformation(mode="sma", window_size=3),
                 ],
                 0: [FillTransformation(mode="zero")],
             },
@@ -59,7 +59,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
         (
             "yAxis=count()&yAxis=avg(span.duration)&yAxis=p90(span.duration)"
             "&transformations[2]=smooth(sma,3)",
-            {2: [SmoothTransformation(mode="sma", window_size=3)]},
+            {2: [SmaSmoothTransformation(mode="sma", window_size=3)]},
         ),
         (
             "transformations[0]=fill(locf)&transformations[0]=fill(locf)",
@@ -74,7 +74,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
             {
                 0: [
                     EmaSmoothTransformation(mode="ema", window_size=7, smoothing_factor=0.25),
-                    SmoothTransformation(mode="sma", window_size=3),
+                    SmaSmoothTransformation(mode="sma", window_size=3),
                 ]
             },
         ),

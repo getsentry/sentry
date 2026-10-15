@@ -12,7 +12,7 @@ from sentry.api.helpers.timeseries_processing import (
     SMOOTH_MODE_SMA,
     EmaSmoothTransformation,
     FillTransformation,
-    SmoothTransformation,
+    SmaSmoothTransformation,
     Transformation,
     fill_timeseries,
     parse_transformation,
@@ -27,17 +27,17 @@ from sentry.exceptions import InvalidSearchQuery
         ("fill(locf)", FillTransformation(mode="locf")),
         ("fill(zero)", FillTransformation(mode="zero")),
         ("fill(linear)", FillTransformation(mode="linear")),
-        ("smooth(sma,1)", SmoothTransformation(mode="sma", window_size=1)),
-        ("smooth(sma,3)", SmoothTransformation(mode="sma", window_size=3)),
-        ("smooth(sma,5)", SmoothTransformation(mode="sma", window_size=5)),
-        ("smooth( sma , 5 )", SmoothTransformation(mode="sma", window_size=5)),
+        ("smooth(sma,1)", SmaSmoothTransformation(mode="sma", window_size=1)),
+        ("smooth(sma,3)", SmaSmoothTransformation(mode="sma", window_size=3)),
+        ("smooth(sma,5)", SmaSmoothTransformation(mode="sma", window_size=5)),
+        ("smooth( sma , 5 )", SmaSmoothTransformation(mode="sma", window_size=5)),
         ("fill( linear )", FillTransformation(mode="linear")),
         ("fill(locf,)", FillTransformation(mode="locf")),
         ("fill(,locf)", FillTransformation(mode="locf")),
         ("fill(locf,,)", FillTransformation(mode="locf")),
-        ("smooth(sma,,5)", SmoothTransformation(mode="sma", window_size=5)),
-        ("smooth(sma, ,5)", SmoothTransformation(mode="sma", window_size=5)),
-        ("smooth(sma,5,)", SmoothTransformation(mode="sma", window_size=5)),
+        ("smooth(sma,,5)", SmaSmoothTransformation(mode="sma", window_size=5)),
+        ("smooth(sma, ,5)", SmaSmoothTransformation(mode="sma", window_size=5)),
+        ("smooth(sma,5,)", SmaSmoothTransformation(mode="sma", window_size=5)),
         ("smooth(ema,3)", EmaSmoothTransformation(mode="ema", window_size=3)),
         ("smooth(ema,7)", EmaSmoothTransformation(mode="ema", window_size=7)),
         (
@@ -59,7 +59,10 @@ from sentry.exceptions import InvalidSearchQuery
     ],
 )
 def test_parse_transformation(value: str, expected: Transformation) -> None:
-    assert parse_transformation(value) == expected
+    result = parse_transformation(value)
+
+    assert result == expected
+    assert isinstance(result, type(expected))
 
 
 @pytest.mark.parametrize(
@@ -121,7 +124,7 @@ def test_parsed_transformations_with_processing_helpers() -> None:
     fill = parse_transformation("fill(linear)")
     smooth = parse_transformation("smooth(sma,2)")
     assert isinstance(fill, FillTransformation)
-    assert isinstance(smooth, SmoothTransformation)
+    assert isinstance(smooth, SmaSmoothTransformation)
 
     timestamps = [0.0, 1.0, 2.0]
     filled = fill_timeseries(timestamps, [1.0, None, 5.0], config=fill)
@@ -316,7 +319,7 @@ def test_smooth_timeseries_sma(
     result = smooth_timeseries(
         timestamps,
         values,
-        config=SmoothTransformation(mode=SMOOTH_MODE_SMA, window_size=window_size),
+        config=SmaSmoothTransformation(mode=SMOOTH_MODE_SMA, window_size=window_size),
     )
 
     assert result == expected
@@ -329,7 +332,7 @@ def test_smooth_timeseries_sma_equal_weighting() -> None:
     result = smooth_timeseries(
         [0.0, 1.0, 10.0, 20.0],
         [2.0, 4.0, 6.0, 8.0],
-        config=SmoothTransformation(mode=SMOOTH_MODE_SMA, window_size=3),
+        config=SmaSmoothTransformation(mode=SMOOTH_MODE_SMA, window_size=3),
     )
 
     assert result == [2.0, 3.0, 4.0, 6.0]
@@ -338,7 +341,7 @@ def test_smooth_timeseries_sma_equal_weighting() -> None:
 @pytest.mark.parametrize(
     "config",
     [
-        SmoothTransformation(mode="sma", window_size=3),
+        SmaSmoothTransformation(mode="sma", window_size=3),
         EmaSmoothTransformation(mode="ema", window_size=3),
     ],
 )
@@ -346,7 +349,7 @@ def test_smooth_timeseries_sma_equal_weighting() -> None:
 def test_smooth_timeseries_rejects_mismatched_lengths(
     timestamps: list[float],
     values: list[float | None],
-    config: SmoothTransformation | EmaSmoothTransformation,
+    config: SmaSmoothTransformation | EmaSmoothTransformation,
 ) -> None:
     with pytest.raises(ValueError, match="Timestamps and values must have the same length"):
         smooth_timeseries(timestamps, values, config=config)
@@ -364,26 +367,58 @@ def test_smooth_timeseries_rejects_mismatched_lengths(
             "window_size",
             "value_error.extra",
         ),
-        (SmoothTransformation, {}, "mode", "value_error.missing"),
-        (SmoothTransformation, {"mode": "sma"}, "window_size", "value_error.missing"),
-        (SmoothTransformation, {"mode": "ema"}, "mode", "value_error.const"),
-        (SmoothTransformation, {"mode": ""}, "mode", "value_error.const"),
-        (SmoothTransformation, {"mode": "sma", "window_size": 0}, "window_size", "value_error"),
-        (SmoothTransformation, {"mode": "sma", "window_size": -1}, "window_size", "value_error"),
-        (SmoothTransformation, {"mode": "sma", "window_size": True}, "window_size", "value_error"),
-        (SmoothTransformation, {"mode": "sma", "window_size": "3"}, "window_size", "value_error"),
-        (SmoothTransformation, {"mode": "sma", "window_size": 3.0}, "window_size", "value_error"),
-        (SmoothTransformation, {"mode": "sma", "window_size": None}, "window_size", "value_error"),
+        (SmaSmoothTransformation, {}, "mode", "value_error.missing"),
+        (SmaSmoothTransformation, {"mode": "sma"}, "window_size", "value_error.missing"),
+        (SmaSmoothTransformation, {"mode": "quadratic"}, "mode", "value_error.const"),
+        (SmaSmoothTransformation, {"mode": ""}, "mode", "value_error.const"),
+        (SmaSmoothTransformation, {"mode": "sma", "window_size": 0}, "window_size", "value_error"),
+        (SmaSmoothTransformation, {"mode": "sma", "window_size": -1}, "window_size", "value_error"),
         (
-            SmoothTransformation,
+            SmaSmoothTransformation,
+            {"mode": "sma", "window_size": True},
+            "window_size",
+            "value_error",
+        ),
+        (
+            SmaSmoothTransformation,
+            {"mode": "sma", "window_size": "3"},
+            "window_size",
+            "value_error",
+        ),
+        (
+            SmaSmoothTransformation,
+            {"mode": "sma", "window_size": 3.0},
+            "window_size",
+            "value_error",
+        ),
+        (
+            SmaSmoothTransformation,
+            {"mode": "sma", "window_size": None},
+            "window_size",
+            "value_error",
+        ),
+        (
+            SmaSmoothTransformation,
             {"mode": "sma", "window_size": 3, "smoothing_factor": 0.5},
             "smoothing_factor",
             "value_error.extra",
         ),
+        (
+            SmaSmoothTransformation,
+            {"mode": "ema", "window_size": 3},
+            "mode",
+            "value_error.const",
+        ),
+        (
+            EmaSmoothTransformation,
+            {"mode": "sma", "window_size": 3},
+            "mode",
+            "value_error.const",
+        ),
     ],
 )
 def test_transformation_config_rejects_invalid_values(
-    model: type[FillTransformation] | type[SmoothTransformation] | type[EmaSmoothTransformation],
+    model: type[FillTransformation] | type[SmaSmoothTransformation] | type[EmaSmoothTransformation],
     config: dict[str, object],
     field: str,
     error_type: str,
@@ -396,7 +431,7 @@ def test_transformation_config_rejects_invalid_values(
 
 
 def test_transformation_config_is_immutable() -> None:
-    config = SmoothTransformation(mode="sma", window_size=2)
+    config = SmaSmoothTransformation(mode="sma", window_size=2)
 
     with pytest.raises(TypeError, match="immutable"):
         setattr(config, "window_size", 1)
@@ -512,7 +547,9 @@ def test_smooth_timeseries_ema_default_factor_and_irregular_timestamps() -> None
     ],
 )
 def test_smooth_timeseries_ema_window(
-    values: Sequence[float | None], window_size: int, expected: list[float | None]
+    values: Sequence[float | None],
+    window_size: int,
+    expected: list[float | None],
 ) -> None:
     timestamps = [float(index) for index in range(len(values))]
 

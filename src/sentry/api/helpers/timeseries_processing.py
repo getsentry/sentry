@@ -31,7 +31,7 @@ class FillTransformation(BaseModel):
         validate_all = True
 
 
-class _SmoothTransformation(BaseModel):
+class BaseSmoothTransformation(BaseModel):
     mode: Literal["sma", "ema"]
     window_size: int
 
@@ -49,11 +49,11 @@ class _SmoothTransformation(BaseModel):
         return value
 
 
-class SmoothTransformation(_SmoothTransformation):
+class SmaSmoothTransformation(BaseSmoothTransformation):
     mode: Literal["sma"]
 
 
-class EmaSmoothTransformation(_SmoothTransformation):
+class EmaSmoothTransformation(BaseSmoothTransformation):
     mode: Literal["ema"]
     smoothing_factor: float | None = None
 
@@ -68,18 +68,18 @@ class EmaSmoothTransformation(_SmoothTransformation):
         return float(value)
 
 
-Transformation = FillTransformation | SmoothTransformation | EmaSmoothTransformation
+Transformation = FillTransformation | SmaSmoothTransformation | EmaSmoothTransformation
 
 _TRANSFORMATIONS: dict[
     str,
     tuple[
-        type[FillTransformation] | type[SmoothTransformation] | type[EmaSmoothTransformation],
+        type[FillTransformation] | type[SmaSmoothTransformation] | type[EmaSmoothTransformation],
         tuple[FunctionArg, ...],
     ],
 ] = {
     "fill": (FillTransformation, (FunctionArg("mode"),)),
     "smooth": (
-        SmoothTransformation,
+        SmaSmoothTransformation,
         (FunctionArg("mode"), IntArg("window_size", negative=True)),
     ),
 }
@@ -201,7 +201,7 @@ def smooth_timeseries(
     timestamps: Sequence[float],
     values: Sequence[float | None],
     *,
-    config: SmoothTransformation | EmaSmoothTransformation,
+    config: SmaSmoothTransformation | EmaSmoothTransformation,
 ) -> list[float | None]:
     """Smooth values using the selected mode.
 
