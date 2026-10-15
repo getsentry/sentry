@@ -39,7 +39,7 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'formula', width: 'minmax(0, 3fr)'},
   {key: 'dataset', width: 'max-content'},
   {key: 'unit', visible: {xl: true}, width: 'max-content'},
-  {key: 'created-by', width: '48px'},
+  {key: 'created-by', width: 'min-content'},
   {key: 'actions', width: '48px'},
 ];
 
