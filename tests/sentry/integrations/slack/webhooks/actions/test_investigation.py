@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
@@ -268,16 +268,19 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert button["text"]["text"] == "Open investigation"
         assert button["url"].startswith(f"{link}?referrer=seer-investigation-started-slack")
 
-        post_kwargs = self.mock_post_message.call_args.kwargs
-        assert post_kwargs["channel"] == CHANNEL_ID
-        assert post_kwargs["thread_ts"] == MESSAGE_TS
-        assert link not in str(post_kwargs["blocks"])
-        assert post_kwargs["text"] == (
+        started_call, status_call = self.mock_post_message.call_args_list
+        assert started_call.kwargs["channel"] == CHANNEL_ID
+        assert started_call.kwargs["thread_ts"] == MESSAGE_TS
+        assert link not in str(started_call.kwargs["blocks"])
+        assert started_call.kwargs["text"] == (
             f"<@{self.external_id}> started a Seer investigation for this alert."
         )
         alert_update_call, thread_post_call = mock_record_sent.call_args_list
         assert alert_update_call.kwargs["links"] == {NotificationLink.INVESTIGATION}
         assert not thread_post_call.kwargs.get("links")
+        assert status_call.kwargs["channel"] == CHANNEL_ID
+        assert status_call.kwargs["thread_ts"] == MESSAGE_TS
+        assert status_call.kwargs["text"] == "Investigating Checkout errors"
 
         assert SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
             entrypoint_key="slack", investigation_id=investigation.id
@@ -287,9 +290,9 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             channel_id=CHANNEL_ID,
             thread_ts=MESSAGE_TS,
             alert_message_ts=MESSAGE_TS,
-            status_message_ts=None,
+            status_message_ts="1702424399.000100",
             slack_user_id=self.external_id,
-            last_sent_state=None,
+            last_sent_state=ANY,
             final_sent=False,
         )
 
@@ -310,7 +313,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         ]
         assert len(started_calls) == 1
         assert self.mock_update.call_count == 1
-        assert self.mock_post_message.call_count == 1
+        assert self.mock_post_message.call_count == 2
 
     @with_feature(FEATURES)
     def test_slack_error_during_update_still_creates_investigation(self) -> None:
@@ -322,7 +325,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
 
         assert response.status_code == 200
         (investigation,) = self.investigations()
-        self.mock_post_message.assert_called_once()
+        assert self.mock_post_message.call_count == 2
         cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
             entrypoint_key="slack", investigation_id=investigation.id
         )
