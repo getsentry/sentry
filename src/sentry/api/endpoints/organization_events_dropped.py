@@ -173,6 +173,9 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
                         _to_bucket(bucket, outcome=_ACCEPTED, reason=_ACCEPTED)
                         for bucket in accepted_raw
                     ]
+                except ParseError:
+                    # ParseErrors should bubble up so we 400 to the user
+                    raise
                 except Exception:
                     # An Outcomes failure degrades to empty rather than failing the request.
                     sentry_sdk.capture_exception()
