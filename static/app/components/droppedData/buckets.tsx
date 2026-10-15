@@ -6,14 +6,28 @@ import type {
 } from 'sentry/components/droppedData/types';
 import {defined} from 'sentry/utils/defined';
 
-const CONFIGURED_CLIENT_DISCARD_REASONS = new Set(['before_send', 'sample_rate']);
+// TODO: The configured vs. unintentional classification will become a backend
+// setting. Read it from the API once it's exposed instead of hardcoding it here.
+const CONFIGURED_OUTCOMES = new Set(['client_sampled', 'filtered']);
+
+const CONFIGURED_REASONS_BY_OUTCOME: Record<string, Set<string>> = {
+  client_discard: new Set([
+    'before_send',
+    'event_processor',
+    'ignored',
+    'no_parent_span',
+    'sample_rate',
+  ]),
+  invalid: new Set(['cors', 'missing_signature', 'transaction_sampled']),
+  rate_limited: new Set(['key_quota']),
+};
 
 function isConfiguredDrop({outcome, reason}: DroppedEventsBucket): boolean {
-  if (outcome === 'filtered') {
+  if (CONFIGURED_OUTCOMES.has(outcome)) {
     return true;
   }
 
-  return outcome === 'client_discard' && CONFIGURED_CLIENT_DISCARD_REASONS.has(reason);
+  return CONFIGURED_REASONS_BY_OUTCOME[outcome]?.has(reason) ?? false;
 }
 
 interface BucketDraft {
