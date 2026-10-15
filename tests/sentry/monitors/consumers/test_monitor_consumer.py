@@ -1028,7 +1028,6 @@ class MonitorConsumerTest(TestCase):
         old_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=MonitorEnvironment.objects.get(monitor=monitor),
-            project_id=self.project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=monitor.date_added - timedelta(weeks=52),
         )
