@@ -4,8 +4,9 @@ from unittest.mock import Mock, patch
 import pytest
 from django.db import OperationalError, connections, router
 from django.utils import timezone
-from psycopg2.errors import LockNotAvailable
+from psycopg2.errors import LockNotAvailable, QueryCanceled
 from taskbroker_client.retry import RetryTaskError
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.models.activity import Activity
@@ -144,6 +145,13 @@ def test_archived_release_does_not_expire_resolution(
 class ClearExpiredResolutionsTest(TestCase):
     def test_task_persistent_name(self) -> None:
         assert clear_expired_resolutions.name == "sentry.tasks.clear_expired_resolutions"
+        retry = clear_expired_resolutions.retry
+        assert retry is not None
+        state = retry.initial_state()
+        assert retry.should_retry(state, ProcessingDeadlineExceeded())
+        assert retry.should_retry(state, RetryTaskError())
+        state.attempts = state.max_attempts - 1
+        assert not retry.should_retry(state, ProcessingDeadlineExceeded())
 
     def test_simple(self) -> None:
         project = self.create_project()
@@ -420,12 +428,34 @@ class FinalizedResolutionTaskTest(TestCase):
                 ident=self.resolution.id,
                 data={"version": "", "current_release_version": self.anchor.version},
             )
+
+        def slow_activity_write(execute, sql, params, many, context):
+            if sql.startswith('UPDATE "sentry_activity"'):
+                return execute("SELECT pg_sleep(2)", None, False, context)
+            return execute(sql, params, many, context)
+
+        connection = connections[router.db_for_write(GroupResolution)]
         with (
-            patch.object(Activity, "update", side_effect=OperationalError("statement timeout")),
+            connection.execute_wrapper(slow_activity_write),
             patch.object(clear_expired_resolutions, "apply_async_with_future") as publish,
-            pytest.raises(RetryTaskError),
+            patch("sentry.tasks.clear_expired_resolutions.logger") as logger,
+            patch("sentry.tasks.clear_expired_resolutions.metrics.incr") as incr,
+            patch(
+                "sentry.tasks.clear_expired_resolutions.current_task",
+                return_value=Mock(retries_remaining=False),
+            ),
+            pytest.raises(RetryTaskError) as error,
         ):
             clear_expired_resolutions(successor.id)
+        assert isinstance(error.value.__cause__, OperationalError)
+        assert isinstance(error.value.__cause__.__cause__, QueryCanceled)
+        logger.exception.assert_not_called()
+        assert logger.warning.call_args.kwargs["extra"]["phase"] == "write"
+        incr.assert_any_call(
+            "releases.resolution_batch.exhausted",
+            tags={"phase": "write", "error": "statement_timeout"},
+            sample_rate=1.0,
+        )
         publish.assert_not_called()
         self.resolution.refresh_from_db()
         activity.refresh_from_db()
@@ -451,8 +481,14 @@ class FinalizedResolutionTaskTest(TestCase):
             patch.object(clear_expired_resolutions, "apply_async_with_future") as publish,
         ):
             publish.return_value.result.side_effect = TimeoutError("delivery failed")
-            with pytest.raises(RetryTaskError):
+            with (
+                patch("sentry.tasks.clear_expired_resolutions.logger") as logger,
+                pytest.raises(RetryTaskError),
+            ):
                 clear_expired_resolutions(successor.id)
+            logger.exception.assert_called_once()
+            assert logger.exception.call_args.kwargs["extra"]["phase"] == "publish"
+            assert logger.exception.call_args.kwargs["extra"]["error"] == "other"
             self.resolution.refresh_from_db()
             other_resolution.refresh_from_db()
             assert self.resolution.status == GroupResolution.Status.resolved
@@ -527,11 +563,14 @@ def test_lock_contention_retries_and_preserves_manual_resolution(
             )
             with (
                 Feature({"organizations:release-resolution-finalized-order": True}),
+                patch("sentry.tasks.clear_expired_resolutions.logger") as logger,
                 pytest.raises(RetryTaskError) as error,
             ):
                 clear_expired_resolutions(successor.id)
             assert isinstance(error.value.__cause__, OperationalError)
             assert isinstance(error.value.__cause__.__cause__, LockNotAvailable)
+            logger.exception.assert_not_called()
+            assert logger.warning.call_args.kwargs["extra"]["error"] == "lock_timeout"
             other_resolution.refresh_from_db()
             assert other_resolution.status == GroupResolution.Status.pending
             cursor.execute(
