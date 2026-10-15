@@ -37,13 +37,11 @@ from sentry.apidocs.response_types import (
 from sentry.constants import (
     PROJECT_SLUG_MAX_LENGTH,
     RESERVED_PROJECT_SLUGS,
-    SAMPLING_MODE_DEFAULT,
     ObjectStatus,
 )
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
-from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
@@ -391,12 +389,6 @@ E.g. `['release', 'environment']`""",
         required=False,
         help_text="ID of a project whose settings, teams, and keys should be copied into this one.",
     )
-    targetSampleRate = serializers.FloatField(
-        required=False,
-        min_value=0,
-        max_value=1,
-        help_text="Target proportion of transactions to retain, from `0` to `1`. Requires manual dynamic sampling mode.",
-    )
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(
         required=False,
         many=True,
@@ -592,24 +584,6 @@ E.g. `['release', 'environment']`""",
 
     def validate_safeFields(self, value):
         return validate_pii_selectors(value)
-
-    def validate_targetSampleRate(self, value):
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not has_custom_dynamic_sampling(organization, actor=actor):
-            raise serializers.ValidationError(
-                "Organization does not have the custom dynamic sample rate feature enabled."
-            )
-
-        if (
-            organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-            != DynamicSamplingMode.PROJECT.value
-        ):
-            raise serializers.ValidationError(
-                "Must enable Manual Mode to configure project sample rates."
-            )
-
-        return value
 
     def validate_tempestFetchScreenshots(self, value):
         organization = self.context["project"].organization
@@ -941,13 +915,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:scm_source_context_enabled"] = result[
                     "scmSourceContextEnabled"
                 ]
-        if result.get("targetSampleRate") is not None:
-            if project.update_option(
-                "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
-            ):
-                changed_proj_settings["sentry:target_sample_rate"] = round(
-                    result["targetSampleRate"], 4
-                )
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):

@@ -361,8 +361,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/repos/settings/'
   | '/organizations/$organizationIdOrSlug/request-project-creation/'
   | '/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/'
-  | '/organizations/$organizationIdOrSlug/sampling/project-rates/'
-  | '/organizations/$organizationIdOrSlug/sampling/project-root-counts/'
   | '/organizations/$organizationIdOrSlug/scim/v2/Groups'
   | '/organizations/$organizationIdOrSlug/scim/v2/Groups/$teamIdOrSlug'
   | '/organizations/$organizationIdOrSlug/scim/v2/ResourceTypes'

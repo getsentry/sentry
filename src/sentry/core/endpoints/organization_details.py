@@ -68,21 +68,12 @@ from sentry.constants import (
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
     REQUIRE_SCRUB_IP_ADDRESS_DEFAULT,
     ROLLBACK_ENABLED_DEFAULT,
-    SAMPLING_MODE_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
     SEER_DEFAULT_CODING_AGENT_DEFAULT,
-    TARGET_SAMPLE_RATE_DEFAULT,
 )
 from sentry.core.endpoints.project_details import MAX_SENSITIVE_FIELD_CHARS
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.dynamic_sampling.per_org.scheduler import run_calculations_per_org_task_entry
-from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import (
-    has_custom_dynamic_sampling,
-    is_organization_mode_sampling,
-    is_project_mode_sampling,
-)
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.integrations.services.integration import integration_service
@@ -93,7 +84,6 @@ from sentry.lang.native.utils import (
 )
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
@@ -196,8 +186,6 @@ ORG_OPTIONS = (
         bool,
         METRIC_ALERTS_THREAD_DEFAULT,
     ),
-    ("targetSampleRate", "sentry:target_sample_rate", float, TARGET_SAMPLE_RATE_DEFAULT),
-    ("samplingMode", "sentry:sampling_mode", str, SAMPLING_MODE_DEFAULT),
     ("rollbackEnabled", "sentry:rollback_enabled", bool, ROLLBACK_ENABLED_DEFAULT),
     (
         # Sets the default value for new projects created in this organization
@@ -332,8 +320,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     relayDsnEndpoint = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
-    targetSampleRate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    samplingMode = serializers.ChoiceField(choices=DynamicSamplingMode.choices, required=False)
     rollbackEnabled = serializers.BooleanField(required=False)
     rollbackSharingEnabled = serializers.BooleanField(required=False)
     defaultAutofixAutomationTuning = serializers.ChoiceField(
@@ -508,38 +494,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
-    def validate_targetSampleRate(self, value):
-        organization = self.context["organization"]
-        request = self.context["request"]
-        has_dynamic_sampling_custom = has_custom_dynamic_sampling(organization, actor=request.user)
-        if not has_dynamic_sampling_custom:
-            raise serializers.ValidationError(
-                "Organization does not have the custom dynamic sample rate feature enabled."
-            )
-
-        return value
-
-    def validate_samplingMode(self, value):
-        organization = self.context["organization"]
-        request = self.context["request"]
-        has_dynamic_sampling_custom = has_custom_dynamic_sampling(organization, actor=request.user)
-        if not has_dynamic_sampling_custom:
-            raise serializers.ValidationError(
-                "Organization does not have the custom dynamic sample rate feature enabled."
-            )
-
-        # Manual Mode is closed to new organizations. An organization already in it keeps it
-        # until it switches back, and may keep sending its current mode.
-        if value == DynamicSamplingMode.PROJECT.value and not is_project_mode_sampling(
-            organization
-        ):
-            raise serializers.ValidationError(
-                "Manual Mode is no longer available. Sample rates are configured for the "
-                "whole organization."
-            )
-
-        return value
-
     def validate_hasGranularReplayPermissions(self, value):
         self._validate_granular_replay_permissions()
         return value
@@ -566,22 +520,6 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 raise serializers.ValidationError(
                     {"avatarType": "Cannot set avatarType to upload without avatar"}
                 )
-
-        organization = self.context["organization"]
-        sampling_mode = organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-        request_sampling_mode = attrs.get("samplingMode")
-        request_target_sample_rate = attrs.get("targetSampleRate")
-
-        if (
-            request_sampling_mode == DynamicSamplingMode.PROJECT.value
-            or (
-                sampling_mode == DynamicSamplingMode.PROJECT.value
-                and request_sampling_mode != DynamicSamplingMode.ORGANIZATION.value
-            )
-        ) and request_target_sample_rate is not None:
-            raise serializers.ValidationError(
-                "Must be in Automatic Mode to configure the organization sample rate."
-            )
 
         return attrs
 
@@ -1208,49 +1146,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     return self.respond(slug_err, status=status.HTTP_400_BAD_REQUEST)
             with transaction.atomic(router.db_for_write(Organization)):
                 organization, changed_data = serializer.save()
-
-            if request.access.has_scope("org:write") and has_custom_dynamic_sampling(organization):
-                is_org_mode = is_organization_mode_sampling(organization)
-
-                # Manual Mode cannot be entered any more, so a changed sampling mode is always
-                # a switch back to Automatic Mode: the project rates give way to the org rate.
-                if "samplingMode" in changed_data and is_org_mode:
-                    with transaction.atomic(router.db_for_write(ProjectOption)):
-                        if "targetSampleRate" in changed_data:
-                            organization.update_option(
-                                "sentry:target_sample_rate",
-                                serializer.validated_data["targetSampleRate"],
-                            )
-                        changed_data["samplingMode"] = "to Default Mode"
-
-                        ProjectOption.objects.filter(
-                            project__organization_id=organization.id,
-                            key="sentry:target_sample_rate",
-                        ).delete()
-
-                # If the target sample rate for the org was changed, update the org option
-                if is_org_mode and "targetSampleRate" in changed_data:
-                    organization.update_option(
-                        "sentry:target_sample_rate", serializer.validated_data["targetSampleRate"]
-                    )
-
-                # If the sampling mode was changed to org mode or the target sample rate was changed (or both),
-                # trigger the rebalancing of project sample rates.
-                if is_org_mode and (
-                    "samplingMode" in changed_data or "targetSampleRate" in changed_data
-                ):
-                    run_calculations_per_org_task_entry.delay(organization.id)
-
-                if is_org_mode and "defaultAutofixAutomationTuning" in changed_data:
-                    organization.update_option(
-                        "sentry:default_autofix_automation_tuning",
-                        serializer.validated_data["defaultAutofixAutomationTuning"],
-                    )
-                if is_org_mode and "defaultSeerScannerAutomation" in changed_data:
-                    organization.update_option(
-                        "sentry:default_seer_scanner_automation",
-                        serializer.validated_data["defaultSeerScannerAutomation"],
-                    )
 
             if was_pending_deletion:
                 self.create_audit_entry(

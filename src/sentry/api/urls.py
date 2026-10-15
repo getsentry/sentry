@@ -43,9 +43,6 @@ from sentry.api.endpoints.organization_releases import (
 from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
     OrganizationSamplingEffectiveSampleRateEndpoint,
 )
-from sentry.api.endpoints.organization_sampling_project_span_counts import (
-    OrganizationSamplingProjectSpanCountsEndpoint,
-)
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attribute_context import (
     OrganizationTraceItemAttributeContextEndpoint,
@@ -851,7 +848,6 @@ from .endpoints.organization_projects_sent_first_event import (
 )
 from .endpoints.organization_recent_searches import OrganizationRecentSearchesEndpoint
 from .endpoints.organization_relay_usage import OrganizationRelayUsage
-from .endpoints.organization_sampling_project_rates import OrganizationSamplingProjectRatesEndpoint
 from .endpoints.organization_sdk_deprecations import OrganizationSdkDeprecationsEndpoint
 from .endpoints.organization_sdk_updates import (
     OrganizationSdksEndpoint,
@@ -1718,16 +1714,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/config/integrations/$",
         OrganizationConfigIntegrationsEndpoint.as_view(),
         name="sentry-api-0-organization-config-integrations",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/sampling/project-rates/$",
-        OrganizationSamplingProjectRatesEndpoint.as_view(),
-        name="sentry-api-0-organization-sampling-project-rates",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/sampling/project-root-counts/$",
-        OrganizationSamplingProjectSpanCountsEndpoint.as_view(),
-        name="sentry-api-0-organization-sampling-root-counts",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sampling/effective-sample-rate/$",
