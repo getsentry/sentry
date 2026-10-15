@@ -96,7 +96,7 @@ export function FormulaBuilder({
             <Container flexGrow={1}>
               <Input
                 value={draft.name}
-                placeholder={t('apdex')}
+                placeholder={t('Enter formula name')}
                 aria-label={t('Formula name')}
                 onChange={event => setDraft({...draft, name: event.target.value})}
               />
