@@ -88,18 +88,18 @@ export function AgentWriteApprovalBlock({
         ? await requestApproval(pendingApproval.sessionId, pendingApproval.requiredScopes)
         : (
             await apiFetch<AgentApprovalResponse>({
-            queryKey: [
-              getApiUrl('/organizations/$organizationIdOrSlug/agent/approve/', {
-                path: {organizationIdOrSlug: organization.slug},
-              }),
-              {
-                method: 'POST',
-                data: {
-                  sessionId: pendingApproval.sessionId,
-                  scopes: pendingApproval.requiredScopes,
+              queryKey: [
+                getApiUrl('/organizations/$organizationIdOrSlug/agent/approve/', {
+                  path: {organizationIdOrSlug: organization.slug},
+                }),
+                {
+                  method: 'POST',
+                  data: {
+                    sessionId: pendingApproval.sessionId,
+                    scopes: pendingApproval.requiredScopes,
+                  },
                 },
-              },
-            ],
+              ],
             })
           ).json;
       const decision = pendingApproval.requiredScopes.every(scope =>

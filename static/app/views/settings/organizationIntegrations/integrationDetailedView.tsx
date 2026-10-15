@@ -146,7 +146,7 @@ function getOrgMutationOptions(organization: Organization) {
   return mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
       apiFetch<Organization>({queryKey: [orgEndpoint, {method: 'PUT', data}]}),
-    onSuccess: data => updateOrganization(data),
+    onSuccess: ({json}) => updateOrganization(json),
   });
 }
 

@@ -62,7 +62,8 @@ export default function BuildComparison() {
   >({
     mutationFn: () => {
       return apiFetch<{status: string}>({
-        queryKey: [compareUrl, {method: 'POST', query: {rerun: 'true'}}]});
+        queryKey: [compareUrl, {method: 'POST', query: {rerun: 'true'}}],
+      });
     },
     onSuccess: response => {
       if (response.json?.status === 'exists') {

@@ -191,7 +191,7 @@ function InlineMappingForm({
               ],
             });
           },
-          onSuccess: data => onSubmitSuccess?.(data),
+          onSuccess: ({json}) => onSubmitSuccess?.(json),
           onError: () => {
             addErrorMessage(t('Unable to save changes'));
           },
@@ -277,8 +277,8 @@ function ModalMappingForm({
         ],
       });
     },
-    onSuccess: data => {
-      onSubmitSuccess?.(data);
+    onSuccess: ({json}) => {
+      onSubmitSuccess?.(json);
       closeModal();
     },
     onError: () => {
