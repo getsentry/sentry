@@ -29,9 +29,8 @@ describe('SeerRepoTableHeader', () => {
           knownIds={[repository.id]}
           endpointOptions={undefined}
         >
-          <SimpleTable>
+          <SimpleTable customSections>
             <SeerRepoTableHeader
-              gridColumns="48px 1fr 138px 150px"
               isFetchingNextPage={false}
               isPending={false}
               mutateRepositorySettings={jest.fn()}

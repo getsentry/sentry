@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "main": "./index.tsx",
+  "scripts": {
+    "test": "sentry-test --watch --config jest.config.mjs"
+  },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
     "@dnd-kit/modifiers": "7.0.0",
@@ -133,7 +136,6 @@
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
-    "@figma/code-connect": "^1.4.8",
     "@react-aria/live-announcer": "3.5.1",
     "@sentry/rrweb-types": "2.44.0",
     "@testing-library/react": "16.3.2",

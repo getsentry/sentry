@@ -285,7 +285,7 @@ def _backfill_project(
                 actor.actor_type.value,
                 actor.actor_id,
                 BACKFILL_ACTIVITY_SOURCE,
-                json.dumps(action.dict()),
+                json.dumps(action.json_dict()),
                 activity.datetime,
                 timezone.now(),  # date_updated
                 activity_action_idempotency_key(activity),

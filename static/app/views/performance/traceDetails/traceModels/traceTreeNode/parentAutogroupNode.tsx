@@ -3,7 +3,7 @@ import type {Theme} from '@emotion/react';
 import {t} from 'sentry/locale';
 import {AutogroupNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/autogroup';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceAutogroupedRow} from 'sentry/views/performance/traceDetails/traceRow/traceAutogroupedRow';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
 

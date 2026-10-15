@@ -17,7 +17,7 @@ type Props = {
   onEventClick?: () => void;
   queryDetail?: string;
   renderContextMenu?: () => React.ReactNode;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   title?: string;
 };
 

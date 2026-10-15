@@ -20,6 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
@@ -28,13 +29,7 @@ import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
 import {ActionSet} from './actionSet';
 import {Headers} from './headers';
-import {
-  BULK_LIMIT,
-  BULK_LIMIT_STR,
-  ConfirmAction,
-  invalidateIssueQueries,
-  performBulkUpdate,
-} from './utils';
+import {ConfirmAction, invalidateIssueQueries, performBulkUpdate} from './utils';
 
 type IssueListActionsProps = {
   allResultsVisible: boolean;

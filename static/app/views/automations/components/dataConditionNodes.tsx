@@ -92,11 +92,12 @@ import {
   validateTaggedEventCondition,
 } from 'sentry/views/automations/components/actionFilters/taggedEvent';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
+import type {DataConditionNodeComponentProps} from 'sentry/views/automations/components/dataConditionNodeContext';
 
 type DataConditionNode = {
   label: string;
   validate: (({condition}: ValidateDataConditionProps) => string | undefined) | undefined;
-  dataCondition?: React.ComponentType<any>;
+  dataCondition?: React.ComponentType<DataConditionNodeComponentProps>;
   defaultComparison?: any;
   details?: React.ComponentType<any>;
   warningMessage?: React.ComponentType<any>;

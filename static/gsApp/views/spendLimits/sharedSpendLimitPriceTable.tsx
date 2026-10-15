@@ -12,6 +12,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
 import type {AddOnCategory, Plan} from 'getsentry/types';
 import {
+  displayPrice,
   formatReservedWithUnits,
   getReservedBudgetCategoryForAddOn,
 } from 'getsentry/utils/billing';
@@ -22,7 +23,6 @@ import {
 } from 'getsentry/utils/dataCategory';
 import {PerformanceHovercard} from 'getsentry/views/amCheckout/components/volumeSliders';
 import {getProductCheckoutDescription} from 'getsentry/views/amCheckout/steps/productSelect';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
 import {
   formatPaygPricePerUnit,
   getPaygPricePerUnit,
