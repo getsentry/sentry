@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconSort} from '@sentry/icons/sort';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -90,21 +90,16 @@ export function SavedQueriesLandingContent() {
               },
             ]}
             trigger={triggerProps => (
-              <Button
+              <OverlayTrigger.Button
+                showChevron={false}
                 {...triggerProps}
                 variant="primary"
                 icon={<IconAdd />}
                 size="md"
                 aria-label={t('Create Query')}
-                onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
-
-                  triggerProps.onClick?.(e);
-                }}
               >
                 {t('Create Query')}
-              </Button>
+              </OverlayTrigger.Button>
             )}
           />
         ) : (

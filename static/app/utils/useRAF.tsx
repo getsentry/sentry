@@ -1,15 +1,18 @@
-import {useEffect, useEffectEvent} from 'react';
+import {useEffect, useLayoutEffect, useRef} from 'react';
 
 export function useRAF(callback: () => unknown, opts?: {enabled: boolean}) {
   const {enabled = true} = opts ?? {};
-  const onFrame = useEffectEvent(callback);
+  const callbackRef = useRef(callback);
+  useLayoutEffect(() => {
+    callbackRef.current = callback;
+  }, [callback]);
+
   useEffect(() => {
     if (enabled) {
-      // Keep polling even when the callback does not trigger a React render.
       let timer: number;
       let active = true;
       const tick = () => {
-        onFrame();
+        callbackRef.current();
         if (active) {
           timer = window.requestAnimationFrame(tick);
         }
