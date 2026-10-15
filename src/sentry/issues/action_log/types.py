@@ -58,7 +58,8 @@ class GroupActionType(IntEnum):
     Action kinds stored in GroupActionLogEntry.type.
 
     To add a new kind: add a value here, then add a corresponding
-    GroupAction subclass below. Values need not be contiguous.
+    GroupAction subclass below (read the GroupAction docstring first).
+    Values need not be contiguous, and must never be reused.
     """
 
     VIEW = 0
@@ -185,7 +186,42 @@ PULL_REQUEST_ACTION_TYPES = {
 
 
 class GroupAction(BaseModel, abc.ABC):
-    """Typed payload for a group action log entry. Frozen after construction."""
+    """
+    Typed payload for a group action log entry. Frozen after construction.
+
+    Action log entries are retained effectively indefinitely and are never migrated. A
+    payload written today will be read back years from now with ``cls(**entry.data)``,
+    using whatever this subclass looks like at that point. The subclass, its types, and its
+    docs *are* the schema: anyone must be able to interpret any stored payload from those
+    alone, without knowing what code wrote it or when.
+
+    Defining a subclass:
+
+    - Payloads must never be implementation-defined. Avoid open-ended types such as
+      ``dict[str, Any]`` or ``list[dict[str, str | dict[str, str]]]``; it's impossible to
+      tell what those contain, or whether a value from two years ago means the same thing
+      as one written today. Use nested ``BaseModel`` types, ``Literal``, or enums. Existing
+      fields marked ``TODO Break out as separate model?`` are debt, not precedent.
+    - When the source data is loosely shaped (an upstream API response, ``Activity.data``),
+      translate it into a fixed shape when publishing rather than storing it as-is.
+    - Document anything the type doesn't say: which model an ID refers to, units, and what
+      ``None`` means.
+
+    Evolving a subclass:
+
+    - Every payload already stored must still parse and must still mean the same thing.
+      Never change the meaning of an existing field, and never reuse a GroupActionType value.
+    - Add new fields as optional with a default. If a legacy shape needs reinterpreting,
+      translate it explicitly on read (e.g. with ``@root_validator(pre=True)``) rather than
+      leaving it ambiguous.
+    - Unknown keys are ignored when parsing, so removing or renaming a field silently drops
+      that data from old payloads. Changing a field's type can also silently coerce old
+      values (pydantic v1 tries ``Union`` members left to right).
+    - Add a test that parses a literal snapshot of a currently-stored payload and asserts how
+      it's interpreted, so later changes can't break old payloads unnoticed.
+    - If the change is significant, add a new GroupActionType and subclass instead, and keep
+      the old one registered so existing entries still parse.
+    """
 
     _registry: ClassVar[dict[GroupActionType, type[GroupAction]]] = {}
     _user_visible_types: ClassVar[set[GroupActionType]] = set()
