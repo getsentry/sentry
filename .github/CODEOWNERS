@@ -194,6 +194,7 @@ oxlint-suppressions.json                                 @getsentry/design-engin
 /scripts/custom-oxlint.ts                                @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 /jest.config.mjs                                         @getsentry/owners-js-build
+/rsbuild.config.ts                                       @getsentry/owners-js-build
 /tests/js/test-balancer/                                 @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 .node-version                                            @getsentry/owners-js-deps
