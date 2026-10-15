@@ -13,7 +13,7 @@ class TestNotificationTuple:
     def test_pickle_shape_remains_compatible(self) -> None:
         values = (mock.sentinel.event, [123], "notification-uuid", IdentifierKey.WORKFLOW)
 
-        class PickledNotificationTuple(tuple):
+        class PickledNotificationTuple(tuple[object, ...]):
             def __reduce__(self) -> tuple[type[Notification], tuple[object, ...]]:
                 # Pickle reconstructs a NamedTuple by passing its values positionally. Returning
                 # Notification here simulates loading the four-field representation already in
