@@ -36,9 +36,10 @@ from tools.mypy_helpers.typing_campaign import (
     _effective_pairs,
     _known_environment_warnings,
     _measure_tree,
+    _merge_profiles,
     _mypy_config_policy,
-    _precision_any_obligations,
     _policy_changes,
+    _precision_any_obligations,
     _run_precision_canaries,
     _source_contracts,
     _validate_targets,
@@ -1861,6 +1862,24 @@ def test_coverage_audits_batch_standalone_sources(tmp_path: Path) -> None:
     }
     assert set(standalone_paths).issubset(checked_paths)
     assert len(list(output.glob("configured-standalone-*"))) == 2
+
+
+def test_merge_profiles_preserves_repeated_diagnostic_counts(tmp_path: Path) -> None:
+    error = DiagnosticRecord("src/sentry/example.py", "no-untyped-def", "missing annotation")
+    parent_primary = replace(
+        _profile(Profile.ALL_STRONG, diagnostics=(error, error)), output_dir=tmp_path
+    )
+    supplemental = _profile(Profile.ALL_STRONG, diagnostics=(error, error))
+
+    parent = _merge_profiles(Profile.ALL_STRONG, "tree", parent_primary, (supplemental,))
+
+    candidate_primary = replace(parent_primary, diagnostics=(error, error, error))
+    candidate = _merge_profiles(
+        Profile.ALL_STRONG, "tree", candidate_primary, (supplemental,)
+    )
+
+    assert len(parent.diagnostics) == 2
+    assert compare_error_debt(parent.diagnostics, candidate.diagnostics) == (error,)
 
 
 def test_precision_canaries_cover_imported_plugin_any_and_cli_parity(tmp_path: Path) -> None:

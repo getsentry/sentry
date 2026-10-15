@@ -1891,7 +1891,8 @@ def _merge_profiles(
     supplemental: Sequence[ProfileMeasurement],
 ) -> ProfileMeasurement:
     graph_by_key = {(state.module, state.path): state for state in primary.graph}
-    error_by_key = {diagnostic.key: diagnostic for diagnostic in primary.diagnostics}
+    diagnostic_by_key = {diagnostic.key: diagnostic for diagnostic in primary.diagnostics}
+    diagnostic_counts = Counter(diagnostic.key for diagnostic in primary.diagnostics)
     any_by_key = {obligation.key: obligation for obligation in primary.any_obligations}
     warnings = list(primary.environment_warnings)
     elapsed = primary.elapsed_seconds
@@ -1901,7 +1902,9 @@ def _merge_profiles(
         for state in result.graph:
             graph_by_key[(state.module, state.path)] = state
         for diagnostic in result.diagnostics:
-            error_by_key[diagnostic.key] = diagnostic
+            diagnostic_by_key.setdefault(diagnostic.key, diagnostic)
+        for key, count in Counter(diagnostic.key for diagnostic in result.diagnostics).items():
+            diagnostic_counts[key] = max(diagnostic_counts[key], count)
         for obligation in result.any_obligations:
             any_by_key[obligation.key] = obligation
         warnings.extend(result.environment_warnings)
@@ -1910,7 +1913,11 @@ def _merge_profiles(
         if result.peak_rss_bytes is not None:
             peak_rss = max(peak_rss or 0, result.peak_rss_bytes)
     graph = tuple(sorted(graph_by_key.values(), key=lambda state: (state.module, state.path)))
-    diagnostics = tuple(sorted(error_by_key.values(), key=lambda item: _diagnostic_sort_key(item.key)))
+    diagnostics = tuple(
+        diagnostic_by_key[key]
+        for key in sorted(diagnostic_counts, key=_diagnostic_sort_key)
+        for _ in range(diagnostic_counts[key])
+    )
     any_obligations = tuple(sorted(any_by_key.values(), key=lambda item: item.key))
     merged = ProfileMeasurement(
         profile,
