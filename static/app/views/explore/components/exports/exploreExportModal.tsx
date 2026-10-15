@@ -1,10 +1,8 @@
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -183,17 +181,11 @@ export function ExploreExportModal({
           <form.AppField name="limit">
             {field => (
               <field.Layout.Stack label={t('Number of rows')}>
-                <CompactSelect
+                <field.CompactSelect
                   disabled={rowCountOptions.length === 1}
                   options={rowCountOptions}
                   value={field.state.value}
-                  onChange={option => field.handleChange(option.value)}
-                  trigger={triggerProps => (
-                    <OverlayTrigger.Button
-                      {...triggerProps}
-                      aria-label={t('Number of rows')}
-                    />
-                  )}
+                  onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}

@@ -9,7 +9,12 @@ resources:
 
 import {Container} from '@sentry/scraps/layout';
 
-import {BaseFieldDemo, CheckboxFieldDemo, NumberFieldDemo} from './__stories__/formDemos';
+import {
+  BaseFieldDemo,
+  CheckboxFieldDemo,
+  CompactSelectFieldDemo,
+  NumberFieldDemo,
+} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
 
@@ -167,6 +172,38 @@ Add the `multiple` prop for multi-select. The field value should be an array.
   )}
 </form.AppField>
 ```
+
+## CompactSelect
+
+A select with a button trigger. It supports search, custom triggers, and single or
+multiple selection. Pass raw values to `value` and `onChange`, as with `field.Select`.
+An empty single selection uses `null`.
+
+<Storybook.Demo>
+  <Container width="80%">
+    <CompactSelectFieldDemo />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<form.AppField name="country">
+  {field => (
+    <field.Layout.Row label={t('Country')}>
+      <field.CompactSelect
+        value={field.state.value}
+        onChange={field.handleChange}
+        options={[
+          {value: 'us', label: 'United States'},
+          {value: 'uk', label: 'United Kingdom'},
+        ]}
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+Custom `trigger` callbacks receive the form and overlay props already merged. Forward
+these props to `OverlayTrigger.Button` or `OverlayTrigger.IconButton`.
 
 ## SelectAsync
 

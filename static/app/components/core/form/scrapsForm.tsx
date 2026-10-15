@@ -14,6 +14,7 @@ import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {FieldLayout} from '@sentry/scraps/form/layout';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 
+import {CompactSelectField} from './field/compactSelectField';
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
 import {PasswordField} from './field/passwordField';
@@ -59,6 +60,7 @@ export const defaultFormOptions = formOptions({
 const fieldComponents = {
   Base: BaseField,
   Checkbox: CheckboxField,
+  CompactSelect: CompactSelectField,
   Input: InputField,
   Number: NumberField,
   Password: PasswordField,
