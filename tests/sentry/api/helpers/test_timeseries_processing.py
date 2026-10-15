@@ -25,12 +25,17 @@ from sentry.exceptions import InvalidSearchQuery
         ("fill(locf)", FillTransformation(mode="locf")),
         ("fill(zero)", FillTransformation(mode="zero")),
         ("fill(linear)", FillTransformation(mode="linear")),
-        ("smooth(sma)", SmoothTransformation(mode="sma")),
         ("smooth(sma,1)", SmoothTransformation(mode="sma", window_size=1)),
         ("smooth(sma,3)", SmoothTransformation(mode="sma", window_size=3)),
         ("smooth(sma,5)", SmoothTransformation(mode="sma", window_size=5)),
         ("smooth( sma , 5 )", SmoothTransformation(mode="sma", window_size=5)),
         ("fill( linear )", FillTransformation(mode="linear")),
+        ("fill(locf,)", FillTransformation(mode="locf")),
+        ("fill(,locf)", FillTransformation(mode="locf")),
+        ("fill(locf,,)", FillTransformation(mode="locf")),
+        ("smooth(sma,,5)", SmoothTransformation(mode="sma", window_size=5)),
+        ("smooth(sma, ,5)", SmoothTransformation(mode="sma", window_size=5)),
+        ("smooth(sma,5,)", SmoothTransformation(mode="sma", window_size=5)),
     ],
 )
 def test_parse_transformation(value: str, expected: Transformation) -> None:
@@ -49,18 +54,15 @@ def test_parse_transformation(value: str, expected: Transformation) -> None:
         ("fill(locf) AS filled", "is not a valid transformation"),
         ("count(locf)", "is not a valid transformation function"),
         ("FILL(locf)", "is not a valid transformation function"),
-        ("fill()", "empty transformation arguments"),
+        ("fill()", "argument count must be 1"),
+        ("fill(,)", "argument count must be 1"),
         ("fill(locf,zero)", "argument count must be 1"),
-        ("fill(locf,)", "empty transformation arguments"),
-        ("fill(,locf)", "empty transformation arguments"),
-        ("fill(locf,,)", "empty transformation arguments"),
-        ("smooth()", "empty transformation arguments"),
-        ("smooth(sma,)", "empty transformation arguments"),
-        ("smooth(,sma)", "empty transformation arguments"),
-        ("smooth(sma,,5)", "empty transformation arguments"),
-        ("smooth(sma, ,5)", "empty transformation arguments"),
-        ("smooth(sma,5,)", "empty transformation arguments"),
-        ("smooth(sma,5,6)", "argument count must be 1 to 2"),
+        ("smooth()", "argument count must be 2"),
+        ("smooth(, ,)", "argument count must be 2"),
+        ("smooth(sma)", "argument count must be 2"),
+        ("smooth(sma,)", "argument count must be 2"),
+        ("smooth(,sma)", "argument count must be 2"),
+        ("smooth(sma,5,6)", "argument count must be 2"),
         ("smooth(sma,0)", "Window size must be positive"),
         ("smooth(sma,-1)", "Window size must be positive"),
         ("smooth(sma,2.5)", "window_size argument invalid"),
@@ -68,8 +70,8 @@ def test_parse_transformation(value: str, expected: Transformation) -> None:
         ("smooth(sma,window_size=5)", "window_size argument invalid"),
         ('smooth(sma,"5")', "window_size argument invalid"),
         ("fill(sma)", "mode argument invalid"),
-        ("smooth(linear)", "mode argument invalid"),
-        ("smooth(ema)", "mode argument invalid"),
+        ("smooth(linear,3)", "mode argument invalid"),
+        ("smooth(ema,3)", "mode argument invalid"),
         ("fill(LOCF)", "mode argument invalid"),
         ('fill("locf")', "mode argument invalid"),
         ("fill(mode=locf)", "mode argument invalid"),
@@ -276,11 +278,11 @@ def test_smooth_timeseries_sma(
     assert tuple(timestamps) == original_timestamps
 
 
-def test_smooth_timeseries_sma_default_window_and_equal_weighting() -> None:
+def test_smooth_timeseries_sma_equal_weighting() -> None:
     result = smooth_timeseries(
         [0.0, 1.0, 10.0, 20.0],
         [2.0, 4.0, 6.0, 8.0],
-        config=SmoothTransformation(mode=SMOOTH_MODE_SMA),
+        config=SmoothTransformation(mode=SMOOTH_MODE_SMA, window_size=3),
     )
 
     assert result == [2.0, 3.0, 4.0, 6.0]
@@ -291,7 +293,9 @@ def test_smooth_timeseries_rejects_mismatched_lengths(
     timestamps: list[float], values: list[float | None]
 ) -> None:
     with pytest.raises(ValueError, match="Timestamps and values must have the same length"):
-        smooth_timeseries(timestamps, values, config=SmoothTransformation(mode=SMOOTH_MODE_SMA))
+        smooth_timeseries(
+            timestamps, values, config=SmoothTransformation(mode=SMOOTH_MODE_SMA, window_size=3)
+        )
 
 
 @pytest.mark.parametrize(
@@ -307,6 +311,7 @@ def test_smooth_timeseries_rejects_mismatched_lengths(
             "value_error.extra",
         ),
         (SmoothTransformation, {}, "mode", "value_error.missing"),
+        (SmoothTransformation, {"mode": "sma"}, "window_size", "value_error.missing"),
         (SmoothTransformation, {"mode": "ema"}, "mode", "value_error.const"),
         (SmoothTransformation, {"mode": ""}, "mode", "value_error.const"),
         (SmoothTransformation, {"mode": "sma", "window_size": 0}, "window_size", "value_error"),
@@ -317,7 +322,7 @@ def test_smooth_timeseries_rejects_mismatched_lengths(
         (SmoothTransformation, {"mode": "sma", "window_size": None}, "window_size", "value_error"),
         (
             SmoothTransformation,
-            {"mode": "sma", "smoothing_factor": 0.5},
+            {"mode": "sma", "window_size": 3, "smoothing_factor": 0.5},
             "smoothing_factor",
             "value_error.extra",
         ),

@@ -32,26 +32,33 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
         ("transformationsExtra=ignored&query=anything", {}),
         ("transformations[0]=fill(locf)", {0: [FillTransformation(mode="locf")]}),
         (
-            "transformations[0]=smooth%28sma%2C5%29&transformations[0]=smooth(sma)",
+            "transformations[0]=smooth(sma,,5)",
+            {0: [SmoothTransformation(mode="sma", window_size=5)]},
+        ),
+        (
+            "transformations[0]=smooth%28sma%2C5%29&transformations[0]=smooth(sma,3)",
             {
                 0: [
                     SmoothTransformation(mode="sma", window_size=5),
-                    SmoothTransformation(mode="sma"),
+                    SmoothTransformation(mode="sma", window_size=3),
                 ]
             },
         ),
         (
             "yAxis=count()&yAxis=count()&transformations%5B1%5D=fill%28locf%29"
-            "&transformations%5B1%5D=smooth%28sma%29&transformations%5B0%5D=fill%28zero%29",
+            "&transformations%5B1%5D=smooth%28sma%2C3%29&transformations%5B0%5D=fill%28zero%29",
             {
-                1: [FillTransformation(mode="locf"), SmoothTransformation(mode="sma")],
+                1: [
+                    FillTransformation(mode="locf"),
+                    SmoothTransformation(mode="sma", window_size=3),
+                ],
                 0: [FillTransformation(mode="zero")],
             },
         ),
         (
             "yAxis=count()&yAxis=avg(span.duration)&yAxis=p90(span.duration)"
-            "&transformations[2]=smooth(sma)",
-            {2: [SmoothTransformation(mode="sma")]},
+            "&transformations[2]=smooth(sma,3)",
+            {2: [SmoothTransformation(mode="sma", window_size=3)]},
         ),
         (
             "transformations[0]=fill(locf)&transformations[0]=fill(locf)",
@@ -115,7 +122,11 @@ def test_decode_transformations_index_out_of_range(query: str) -> None:
             "smooth(sma,0)",
             "smooth(sma,0): window_size argument invalid: Window size must be positive.",
         ),
-        ("smooth(sma,,5)", "smooth(sma,,5): empty transformation arguments are not allowed"),
+        ("fill()", "fill(): argument count must be 1"),
+        ("smooth()", "smooth(): argument count must be 2"),
+        ("smooth(sma)", "smooth(sma): argument count must be 2"),
+        ("fill(locf,zero)", "fill(locf,zero): argument count must be 1"),
+        ("smooth(sma,5,6)", "smooth(sma,5,6): argument count must be 2"),
     ],
 )
 def test_decode_transformations_invalid_value(
@@ -163,11 +174,11 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             }
         ):
             response = self.get_error_response(
-                self.org.slug, **{"transformations[0]": ["smooth(linear)"]}, status_code=400
+                self.org.slug, **{"transformations[0]": ["smooth(linear,3)"]}, status_code=400
             )
 
         assert response.data == {
-            "detail": "smooth(linear): mode argument invalid: expected one of sma"
+            "detail": "smooth(linear,3): mode argument invalid: expected one of sma"
         }
 
     def test_transformations_ignored_when_feature_disabled(self) -> None:
@@ -277,7 +288,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "end": self.end,
                 "interval": "1h",
                 "project": [self.project.id, self.project2.id],
-                "transformations[0]": ["fill(locf)", "smooth(sma)"],
+                "transformations[0]": ["fill(locf)", "smooth(sma,3)"],
             },
             features={
                 "organizations:discover-basic": True,

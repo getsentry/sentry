@@ -31,7 +31,7 @@ class FillTransformation(BaseModel):
 
 class SmoothTransformation(BaseModel):
     mode: Literal["sma"]
-    window_size: int = 3
+    window_size: int
 
     class Config:
         extra = "forbid"
@@ -72,19 +72,11 @@ def parse_transformation(value: str) -> Transformation:
         raise InvalidSearchQuery(f"{function} is not a valid transformation function")
 
     model, argument_definitions = definition
-    columns = match.group("columns")
-    arguments = parse_arguments(function, columns)
-    if len(arguments) != columns.count(",") + 1:
-        raise InvalidSearchQuery(f"{value}: empty transformation arguments are not allowed")
-
-    required_count = sum(
-        model.__fields__[argument.name].required is True for argument in argument_definitions
-    )
-    if not required_count <= len(arguments) <= len(argument_definitions):
-        expected = str(required_count)
-        if required_count != len(argument_definitions):
-            expected = f"{required_count} to {len(argument_definitions)}"
-        raise InvalidSearchQuery(f"{value}: argument count must be {expected}")
+    arguments = parse_arguments(function, match.group("columns"))
+    if function == "fill" and len(arguments) != 1:
+        raise InvalidSearchQuery(f"{value}: argument count must be 1")
+    if function == "smooth" and len(arguments) != 2:
+        raise InvalidSearchQuery(f"{value}: argument count must be 2")
 
     config: dict[str, object] = {}
     for argument, raw_value in zip(argument_definitions, arguments):
@@ -190,7 +182,7 @@ def smooth_timeseries(
             window_size - 1 buckets. Use smaller windows at the start of the series.
             Missing buckets stay None and are excluded from the average. Each available
             value has equal weight, regardless of timestamp spacing. window_size must
-            be positive and defaults to three buckets.
+            be provided and positive.
     """
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
