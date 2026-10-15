@@ -1,5 +1,4 @@
 import logging
-import re
 from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
@@ -15,7 +14,10 @@ from sentry.ai_monitoring.conversation_aggregates import (
     AIConversationAggregates,
     parse_conversation_aggregates,
 )
-from sentry.ai_monitoring.conversation_query import compile_conversation_query
+from sentry.ai_monitoring.conversation_query import (
+    compile_conversation_query,
+    is_conversation_id_lookup,
+)
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_titles
 from sentry.ai_monitoring.serializers import OrganizationAIConversationsSerializer
 from sentry.ai_monitoring.utils import (
@@ -79,10 +81,6 @@ class AIConversationResponse(AIConversationData):
     webUrl: str
 
 
-# Matches a query that is exactly a single gen_ai.conversation.id filter, e.g.
-# `gen_ai.conversation.id:abc` or `gen_ai.conversation.id:"slack:1234"`.
-_CONVERSATION_ID_LOOKUP_RE = re.compile(r'^gen_ai\.conversation\.id:(?:"[^"]+"|(?![!<>=\[\]])\S+)$')
-
 AI_CONVERSATIONS_QUERY_PARAM = OpenApiParameter(
     name="query",
     location="query",
@@ -102,10 +100,6 @@ AI_CONVERSATIONS_PER_PAGE_PARAM = OpenApiParameter(
     type=int,
     description="Number of conversations to return per page. Defaults to 10; maximum is 100.",
 )
-
-
-def _is_conversation_id_lookup(user_query: str) -> bool:
-    return bool(_CONVERSATION_ID_LOOKUP_RE.match(user_query.strip()))
 
 
 def _extract_conversation_ids(results: EAPResponse) -> list[str]:
@@ -210,6 +204,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         validated_data = serializer.validated_data
         user_query = validated_data.get("query", "")
+        direct_id_lookup = is_conversation_id_lookup(user_query)
 
         with handle_query_errors():
             resolver = Spans.get_resolver(
@@ -242,10 +237,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         # A search for a single conversation ID that resolves to exactly one
         # conversation signals the client to redirect straight to the detail view.
-        if (
-            _is_conversation_id_lookup(validated_data.get("query") or "")
-            and len(response.data) == 1
-        ):
+        if direct_id_lookup and len(response.data) == 1:
             response["X-Sentry-Direct-Hit"] = "1"
 
         return response
