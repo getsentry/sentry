@@ -21,41 +21,45 @@ function makeState(overrides: Partial<RepoPRState> = {}): RepoPRState {
   };
 }
 
-// Every status is always rendered and the inactive ones hidden with CSS, which
-// jsdom's getComputedStyle does not resolve, so read the emotion rule instead.
-function getStatusLayerVisibility(text: string) {
-  const layer = screen.getByText(text).parentElement!;
-  return Array.from(document.styleSheets)
-    .flatMap(sheet => Array.from(sheet.cssRules))
-    .filter(
-      (rule): rule is CSSStyleRule =>
-        rule instanceof CSSStyleRule && layer.matches(rule.selectorText)
-    )
-    .map(rule => rule.style.visibility)
-    .findLast(Boolean);
-}
-
 describe('PRLinksBar', () => {
   it('links a completed pull request', () => {
     render(<PRLinksBar repoPRStates={{[REPO]: makeState()}} />);
 
-    expect(screen.getByRole('button', {name: 'View PR'})).toHaveAttribute('href', PR_URL);
-    expect(screen.getByRole('link', {name: 'acme/web#482'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'acme/web#482'})).toHaveAttribute(
       'href',
       PR_URL
     );
   });
 
-  it('links an open pull request while changes are pushed to it', () => {
+  it('disables the button while the pull request is opening', async () => {
+    render(
+      <PRLinksBar
+        repoPRStates={{
+          [REPO]: makeState({
+            pr_creation_status: 'creating',
+            pr_number: null,
+            pr_url: null,
+          }),
+        }}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: REPO});
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(button);
+    expect(await screen.findByText('Opening PR…')).toBeInTheDocument();
+  });
+
+  it('disables the button while changes are pushed to an open pull request', async () => {
     render(
       <PRLinksBar repoPRStates={{[REPO]: makeState({pr_creation_status: 'creating'})}} />
     );
 
-    expect(screen.getByText('Pushing changes…')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'acme/web#482'})).toHaveAttribute(
-      'href',
-      PR_URL
-    );
+    const button = screen.getByRole('button', {name: 'acme/web#482'});
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    expect(button).not.toHaveAttribute('href');
+    await userEvent.hover(button);
+    expect(await screen.findByText('Pushing changes…')).toBeInTheDocument();
   });
 
   it('shows the error when the pull request could not be opened', async () => {
@@ -72,11 +76,13 @@ describe('PRLinksBar', () => {
       />
     );
 
-    await userEvent.hover(screen.getByText('Could not open PR'));
+    const button = screen.getByRole('button', {name: REPO});
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(button);
     expect(await screen.findByText('No write access to repository')).toBeInTheDocument();
   });
 
-  it('shows a push failure for a pull request that already exists', () => {
+  it('still links a pull request whose push failed', async () => {
     render(
       <PRLinksBar
         repoPRStates={{
@@ -88,12 +94,23 @@ describe('PRLinksBar', () => {
       />
     );
 
-    expect(getStatusLayerVisibility('Could not push changes')).toBe('visible');
-    expect(getStatusLayerVisibility('Could not open PR')).toBe('hidden');
-    expect(screen.getByRole('link', {name: 'acme/web#482'})).toHaveAttribute(
-      'href',
-      PR_URL
+    const button = screen.getByRole('button', {name: 'acme/web#482'});
+    expect(button).toHaveAttribute('href', PR_URL);
+    await userEvent.hover(button);
+    expect(await screen.findByText('Push rejected')).toBeInTheDocument();
+  });
+
+  it('says the push failed when a pull request already exists', async () => {
+    render(
+      <PRLinksBar
+        repoPRStates={{
+          [REPO]: makeState({pr_creation_status: 'error', pr_creation_error: null}),
+        }}
+      />
     );
+
+    await userEvent.hover(screen.getByRole('button', {name: 'acme/web#482'}));
+    expect(await screen.findByText('Could not push changes')).toBeInTheDocument();
   });
 
   it('does not link a javascript: PR URL', () => {
@@ -101,18 +118,14 @@ describe('PRLinksBar', () => {
     const scriptUrl = 'javascript:alert(document.domain)';
     render(<PRLinksBar repoPRStates={{[REPO]: makeState({pr_url: scriptUrl})}} />);
 
-    expect(screen.getByText('acme/web#482')).toBeInTheDocument();
-    expect(screen.queryByRole('link')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'View PR'})).not.toHaveAttribute(
-      'href',
-      scriptUrl
-    );
+    const button = screen.getByRole('button', {name: 'acme/web#482'});
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    expect(button).not.toHaveAttribute('href');
   });
 
-  it('collapses the pull requests', async () => {
-    render(<PRLinksBar repoPRStates={{[REPO]: makeState()}} />);
+  it('skips repos with no pull request', () => {
+    render(<PRLinksBar repoPRStates={{[REPO]: makeState({pr_creation_status: null})}} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Pull requests (1)'}));
-    expect(screen.queryByText(REPO)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 });
