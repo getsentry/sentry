@@ -1,6 +1,9 @@
 import {useMemo} from 'react';
 
-import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
+import {
+  ArithmeticBuilder,
+  VALID_REFERENCE_PATTERN,
+} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 
 /**
@@ -19,7 +22,9 @@ export function FormulaEquationInput({
   value: string;
   disabled?: boolean;
 }) {
-  const nameList = names.filter(Boolean).join(',');
+  // Names are mid-edit while this renders, and the builder throws on one it can't
+  // tokenize, so those are left as plain text until they're valid.
+  const nameList = names.filter(name => VALID_REFERENCE_PATTERN.test(name)).join(',');
   const references = useMemo(
     () => new Set(nameList ? nameList.split(',') : []),
     [nameList]

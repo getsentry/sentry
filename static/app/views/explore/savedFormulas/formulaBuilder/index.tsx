@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
@@ -8,7 +7,7 @@ import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -21,12 +20,14 @@ import type {
 import {useSaveFormula} from 'sentry/views/explore/hooks/useSaveFormula';
 import {BuilderSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
 import {
-  NAME_PREFIX,
   toDraft,
   toRequest,
+  variableNames,
   type FormulaDraft,
 } from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
 import {ParametersSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/parametersSection';
+import {ReferencesSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/referencesSection';
+import {FormulaEquationInput} from 'sentry/views/explore/savedFormulas/formulaEquationInput';
 
 const DATASET_OPTIONS: Array<{label: string; value: FormulaDataset}> = [
   {value: 'spans', label: t('Spans')},
@@ -92,11 +93,10 @@ export function FormulaBuilder({
           description={t('The name this formula is referenced by elsewhere in Sentry.')}
         >
           <Flex gap="md" align="center">
-            <Container position="relative" flexGrow={1}>
-              <NamePrefix variant="muted">{NAME_PREFIX}</NamePrefix>
-              <NameInput
+            <Container flexGrow={1}>
+              <Input
                 value={draft.name}
-                placeholder={t('apdex')}
+                placeholder={t('Enter formula name')}
                 aria-label={t('Formula name')}
                 onChange={event => setDraft({...draft, name: event.target.value})}
               />
@@ -127,15 +127,23 @@ export function FormulaBuilder({
           onChange={params => setDraft({...draft, params})}
         />
 
+        <ReferencesSection
+          dataset={draft.dataset}
+          params={draft.params}
+          references={draft.references}
+          onChange={references => setDraft({...draft, references})}
+        />
+
         <BuilderSection
           title={t('Formula')}
-          description={t('The expression this formula evaluates when it is used.')}
+          description={t(
+            'Combines the parameters and references into the value the formula returns.'
+          )}
         >
-          <Input
+          <FormulaEquationInput
             value={draft.formula}
-            placeholder={t('count() / count_unique(user)')}
-            aria-label={t('Formula')}
-            onChange={event => setDraft({...draft, formula: event.target.value})}
+            names={variableNames(draft)}
+            onChange={expression => setDraft({...draft, formula: expression})}
           />
         </BuilderSection>
 
@@ -154,18 +162,3 @@ export function FormulaBuilder({
     </SlideOverPanel>
   );
 }
-
-const NAME_PREFIX_WIDTH = '62px';
-
-const NameInput = styled(Input)`
-  padding-left: ${NAME_PREFIX_WIDTH};
-  width: 100%;
-`;
-
-const NamePrefix = styled(Text)`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  padding-left: ${p => p.theme.space.md};
-  pointer-events: none;
-`;

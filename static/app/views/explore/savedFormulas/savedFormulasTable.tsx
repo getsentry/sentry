@@ -5,10 +5,17 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+import {useDeleteFormula} from 'sentry/views/explore/hooks/useDeleteFormula';
 import type {
   FormulaDataset,
   SavedFormula,
@@ -32,7 +39,8 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'formula', width: 'minmax(0, 3fr)'},
   {key: 'dataset', width: 'max-content'},
   {key: 'unit', visible: {xl: true}, width: 'max-content'},
-  {key: 'created-by', width: '48px'},
+  {key: 'created-by', width: 'min-content'},
+  {key: 'actions', width: '48px'},
 ];
 
 type Props = {
@@ -59,6 +67,7 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
           <SavedEntityTable.HeaderCell>{t('Dataset')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Unit')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Creator')}</SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell />
         </SavedEntityTable.Header>
       }
     >
@@ -71,7 +80,26 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
 
 function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean}) {
   const makeBuilderUrl = useFormulaBuilderUrl();
+  const {deleteFormula} = useDeleteFormula();
   const isPrebuilt = defined(formula.prebuiltId);
+
+  function confirmDelete() {
+    openConfirmModal({
+      message: t('Are you sure you want to delete the formula "%s"?', formula.name),
+      isDangerous: true,
+      confirmText: t('Delete Formula'),
+      priority: 'danger',
+      onConfirm: async () => {
+        addLoadingMessage(t('Deleting formula...'));
+        try {
+          await deleteFormula(formula.id);
+          addSuccessMessage(t('Formula deleted'));
+        } catch {
+          addErrorMessage(t('Unable to delete formula'));
+        }
+      },
+    });
+  }
 
   return (
     <SavedEntityTable.Row isFirst={isFirst}>
@@ -130,6 +158,20 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
             <ActivityAvatar type="system" size={20} />
           </Tooltip>
         ) : null}
+      </SavedEntityTable.Cell>
+      <SavedEntityTable.Cell hasButton>
+        {isPrebuilt ? null : (
+          <SavedEntityTable.CellActions
+            items={[
+              {
+                key: 'delete',
+                label: t('Delete'),
+                priority: 'danger',
+                onAction: confirmDelete,
+              },
+            ]}
+          />
+        )}
       </SavedEntityTable.Cell>
     </SavedEntityTable.Row>
   );
