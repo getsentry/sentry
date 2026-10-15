@@ -112,8 +112,8 @@ function MenuHeader({
             css`
               background: linear-gradient(
                 90deg,
-                color-mix(in srgb, ${backgroundColor} 30%, #2c155c),
-                color-mix(in srgb, ${backgroundColor} 30%, #4e168c)
+                color-mix(in srgb, ${backgroundColor} 25%, black),
+                color-mix(in srgb, ${backgroundColor} 40%, black)
               );
             `
           }
