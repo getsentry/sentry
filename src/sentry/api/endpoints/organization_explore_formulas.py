@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from types import SimpleNamespace
 from typing import Any, Mapping, TypedDict
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import extend_schema
@@ -40,6 +41,7 @@ from sentry.explore.models import (
     KindItemTypes,
     ParamItemTypes,
 )
+from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import parse_formula
@@ -50,12 +52,92 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.locking import UnableToAcquireLock
 
 DATASETS = {
     ExploreSavedQueryDataset.SPANS: Spans,
     ExploreSavedQueryDataset.OURLOGS: OurLogs,
     ExploreSavedQueryDataset.METRICS: TraceMetrics,
 }
+
+PREBUILT_FORMULAS = [
+    {
+        "prebuilt_id": 1,
+        "name": "formula.apdex",
+        "description": "(Application Performance Index) Calculates apdex a weighted average of user experiences",
+        "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
+        "unit": None,
+        "dataset": "spans",
+        "references": [
+            {
+                "name": "count_satisfied",
+                "value": "count_if(`{duration}:<{threshold}`)",
+            },
+            {
+                "name": "count_tolerating",
+                "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+            },
+        ],
+        "params": [
+            {
+                "name": "duration",
+                "type": "column",
+                "order": 0,
+                "value": "",
+            },
+            {
+                "name": "threshold",
+                "type": "number",
+                "order": 1,
+                "value": "",
+            },
+            {
+                "name": "4threshold",
+                "type": "calculation",
+                "order": 2,
+                "value": "{threshold} * 4",
+            },
+        ],
+    },
+    {
+        "prebuilt_id": 2,
+        "name": "formula.user_misery",
+        "description": "Calculates a user misery score that tries to not let low throughput transactions have a high score using weights, 5.8875 in the numerator and 111.8625 in the denominator",
+        "formula": "({miserable_users} + 5.8875) / ({total_unique_users} + 111.8625)",
+        "unit": None,
+        "dataset": "spans",
+        "references": [
+            {
+                "name": "miserable_users",
+                "value": "count_unique_if(`is_transaction:True and {duration}:>{4threshold}`, user)",
+            },
+            {
+                "name": "total_unique_users",
+                "value": "count_unique(`is_transaction:True and has:{duration}`, user)",
+            },
+        ],
+        "params": [
+            {
+                "name": "duration",
+                "type": "column",
+                "order": 0,
+                "value": "",
+            },
+            {
+                "name": "threshold",
+                "type": "number",
+                "order": 1,
+                "value": "",
+            },
+            {
+                "name": "4threshold",
+                "type": "calculation",
+                "order": 2,
+                "value": "{threshold} * 4",
+            },
+        ],
+    },
+]
 
 
 class ExploreSavedReference(TypedDict):
@@ -296,6 +378,75 @@ def write_formula_to_db() -> Iterator[None]:
         raise
 
 
+def sync_prebuilt_formulas(organization: Organization) -> None:
+    """
+    Queries the database to check if prebuilt formulas have an ExploreSavedFormula record and
+    creates them if they don't
+    """
+    with transaction.atomic(router.db_for_write(ExploreSavedFormula)):
+        saved_prebuilt_queries = ExploreSavedFormula.objects.filter(
+            organization=organization,
+            prebuilt_id__isnull=False,
+        )
+
+        saved_prebuilt_query_ids = set(saved_prebuilt_queries.values_list("prebuilt_id", flat=True))
+
+        # Create prebuilt formulas if they don't exist
+        formulas_to_create = []
+        variables_to_create = []
+        validated_formulas = []
+        for prebuilt_formula in PREBUILT_FORMULAS:
+            # Users can update the prebuilts so if its already there don't touch it again
+            if prebuilt_formula["prebuilt_id"] in saved_prebuilt_query_ids:
+                continue
+            # Ensure the prebuilt query is valid also provides mapping for some fields such as the dataset string `spans` into the int `0`
+            serializer = FormulaSerializer(
+                data=prebuilt_formula,
+            )
+            if serializer.is_valid():
+                data = serializer.validated_data
+                formulas_to_create.append(
+                    ExploreSavedFormula(
+                        organization=organization,
+                        name=data["name"],
+                        formula=data["formula"],
+                        dataset=data["dataset"],
+                        created_by_id=None,
+                        prebuilt_id=int(prebuilt_formula["prebuilt_id"]),
+                    )
+                )
+                validated_formulas.append(data)
+            else:
+                continue
+        if len(formulas_to_create) > 0:
+            created = ExploreSavedFormula.objects.bulk_create(formulas_to_create)
+            for formula, data in zip(created, validated_formulas):
+                for param in data["params"]:
+                    variables_to_create.append(
+                        ExploreSavedVariable(
+                            organization=organization,
+                            explore_saved_formula=formula,
+                            name=param["name"],
+                            value=param["value"],
+                            param_type=param["param_type"],
+                            order=param["order"],
+                            kind=KindItemTypes.PARAM,
+                        )
+                    )
+                for param in data["references"]:
+                    variables_to_create.append(
+                        ExploreSavedVariable(
+                            organization=organization,
+                            explore_saved_formula=formula,
+                            name=param["name"],
+                            value=param["value"],
+                            kind=KindItemTypes.REFERENCE,
+                        )
+                    )
+            if len(variables_to_create) > 0:
+                ExploreSavedVariable.objects.bulk_create(variables_to_create)
+
+
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
@@ -322,8 +473,22 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
+        # Explore has prebuilt formulas that are created lazily on read.
+        try:
+            lock = locks.get(
+                f"explore:sync_prebuilt_formulas:{organization.id}:{request.user.id}",
+                duration=10,
+                name="sync_prebuilt_formulas",
+            )
+            with lock.acquire():
+                sync_prebuilt_formulas(organization)
+        except UnableToAcquireLock:
+            pass
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
+
         queryset = (
-            ExploreSavedFormula.objects.filter(organization=organization)
+            ExploreSavedFormula.objects.filter(organization=organization, prebuilt_deleted=False)
             .prefetch_related(
                 "variables"
                 # TODO: add an orderby parameter, sorting by name for now
@@ -417,6 +582,7 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
             kwargs["formula"] = ExploreSavedFormula.objects.prefetch_related("variables").get(
                 id=id,
                 organization=kwargs["organization"],
+                prebuilt_deleted=False,
             )
         except ExploreSavedFormula.DoesNotExist:
             raise ResourceDoesNotExist

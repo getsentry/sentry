@@ -7758,16 +7758,16 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         response = self.do_request(
             {
-                "field": ["formula.apdex(span.duration, 300)"],
+                "field": ["formula.custom_apdex(span.duration, 300)"],
                 "project": self.project.id,
                 "dataset": "spans",
             },
             features={"organizations:explore-saved-formulas": True},
         )
         assert response.status_code == 200, response.content
-        assert response.data["data"] == [{"formula.apdex(span.duration, 300)": 0.5}]
+        assert response.data["data"] == [{"formula.custom_apdex(span.duration, 300)": 0.5}]
         assert response.data["meta"]["fields"] == {
-            "formula.apdex(span.duration, 300)": "number",
+            "formula.custom_apdex(span.duration, 300)": "number",
         }
 
     def test_user_formula_invalid_arguments(self) -> None:
@@ -7778,7 +7778,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
 
         response = self.do_request(
             {
-                "field": ["formula.apdex(span.duration, fan.duration)"],
+                "field": ["formula.custom_apdex(span.duration, fan.duration)"],
                 "project": self.project.id,
                 "dataset": "spans",
             },
