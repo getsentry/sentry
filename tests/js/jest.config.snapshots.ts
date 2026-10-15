@@ -1,4 +1,6 @@
+import path from 'node:path';
 import process from 'node:process';
+import {fileURLToPath} from 'node:url';
 
 import type {Config} from '@jest/types';
 import type {Options as SwcOptions} from '@swc/core';
@@ -13,6 +15,8 @@ const {CI, GITHUB_PR_SHA, GITHUB_PR_REF, GITHUB_RUN_ID, GITHUB_RUN_ATTEMPT, SENT
 // stays `ci:pull_request`.
 const BRANCH = GITHUB_PR_REF?.replace(/^refs\/heads\//, '');
 const IS_MASTER_BRANCH = GITHUB_PR_REF === 'refs/heads/master';
+
+const rootDir = path.resolve(import.meta.dirname, '../..');
 
 const swcConfig: SwcOptions = {
   isModule: true,
@@ -35,9 +39,9 @@ const swcConfig: SwcOptions = {
     },
     experimental: {
       plugins: [
-        ['@swc-contrib/mut-cjs-exports', {}],
+        [fileURLToPath(import.meta.resolve('@swc-contrib/mut-cjs-exports')), {}],
         [
-          '@swc/plugin-emotion',
+          fileURLToPath(import.meta.resolve('@swc/plugin-emotion')),
           {
             sourceMap: false,
             autoLabel: 'never',
@@ -54,10 +58,11 @@ const swcConfig: SwcOptions = {
 const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color'];
 
 const config: Config.InitialOptions = {
+  rootDir,
   testTimeout: 30_000,
   cacheDirectory: '.cache/jest-snapshots',
   // testEnvironment and testMatch are the core differences between this and the main config
-  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment-node.js',
+  testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment-node.cjs',
   testMatch: ['<rootDir>/static/**/*.snapshots.tsx'],
   testPathIgnorePatterns: ['/node_modules/', '<rootDir>/static/packages/scraps/'],
   // Coding agents check out nested git worktrees under .claude/worktrees/, each a
@@ -101,9 +106,6 @@ const config: Config.InitialOptions = {
       '<rootDir>/static/packages/scraps/src/$1',
       '<rootDir>/static/app/components/core/$1',
     ],
-    '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
-    '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
-    '^getsentry-test/(.*)': '<rootDir>/tests/js/getsentry-test/$1',
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
@@ -111,7 +113,7 @@ const config: Config.InitialOptions = {
   },
 
   transform: {
-    '^.+\\.[mc]?[jt]sx?$': ['@swc/jest', swcConfig],
+    '^.+\\.[mc]?[jt]sx?$': [fileURLToPath(import.meta.resolve('@swc/jest')), swcConfig],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [
