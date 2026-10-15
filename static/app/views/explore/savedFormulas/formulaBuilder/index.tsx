@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
@@ -8,7 +7,7 @@ import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -21,7 +20,6 @@ import type {
 import {useSaveFormula} from 'sentry/views/explore/hooks/useSaveFormula';
 import {BuilderSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
 import {
-  NAME_PREFIX,
   toDraft,
   toRequest,
   variableNames,
@@ -95,9 +93,8 @@ export function FormulaBuilder({
           description={t('The name this formula is referenced by elsewhere in Sentry.')}
         >
           <Flex gap="md" align="center">
-            <Container position="relative" flexGrow={1}>
-              <NamePrefix variant="muted">{NAME_PREFIX}</NamePrefix>
-              <NameInput
+            <Container flexGrow={1}>
+              <Input
                 value={draft.name}
                 placeholder={t('apdex')}
                 aria-label={t('Formula name')}
@@ -165,18 +162,3 @@ export function FormulaBuilder({
     </SlideOverPanel>
   );
 }
-
-const NAME_PREFIX_WIDTH = '62px';
-
-const NameInput = styled(Input)`
-  padding-left: ${NAME_PREFIX_WIDTH};
-  width: 100%;
-`;
-
-const NamePrefix = styled(Text)`
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  padding-left: ${p => p.theme.space.md};
-  pointer-events: none;
-`;

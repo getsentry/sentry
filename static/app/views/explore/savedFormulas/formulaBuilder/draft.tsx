@@ -12,7 +12,7 @@ import {
 } from 'sentry/views/explore/savedFormulas/formulaTokens';
 
 /** Names are stored with this prefix so they can't collide with a built in function. */
-export const NAME_PREFIX = 'formula.';
+const NAME_PREFIX = 'formula.';
 
 /** The API resolves params positionally, and only has four positions. */
 export const MAX_PARAMS = 4;
