@@ -19,7 +19,8 @@ const result = spawnSync(
   [
     '--recursive',
     '--workspace-concurrency=2',
-    '--stream',
+    '--aggregate-output',
+    '--reporter=append-only',
     '--no-sort',
     '--no-bail',
     '--no-include-workspace-root',
