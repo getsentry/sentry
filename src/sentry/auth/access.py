@@ -45,6 +45,7 @@ from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.types.request import _HttpRequestWithUser
 from sentry.types.superuser import SuperuserAccess
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -1006,6 +1007,30 @@ class NoAccess(OrganizationlessAccess):
         )
 
 
+def _propagate_superuser_access(
+    request: _HttpRequestWithUser,
+    org_context: RpcUserOrganizationContext,
+    su: Superuser | None,
+    *,
+    read_only: bool,
+) -> None:
+    # Members use their normal callback permissions and user flags; adding this
+    # claim would instead force read-only access and a five-minute VC lifetime.
+    if org_context.member is not None:
+        return
+    if request.auth is not None or su is None or not su.is_active:
+        return
+    if su.requires_org_auth(org_context.organization):
+        return
+    expires_at = get_superuser_access_expiry(su, org_context.organization.id)
+    if expires_at is not None:
+        set_viewer_context_superuser(
+            user_id=request.user.id,
+            organization_id=org_context.organization.id,
+            superuser=SuperuserAccess(expires_at=expires_at, read_only=read_only),
+        )
+
+
 def from_request_org_and_scopes(
     *,
     request: HttpRequest,
@@ -1069,20 +1094,9 @@ def from_request_org_and_scopes(
         if member and member.scopes:
             superuser_scopes = superuser_scopes.union(set(member.scopes))
 
-        if (
-            member is None
-            and request.auth is None
-            and su is not None
-            and su.is_active
-            and not requires_org_auth
-        ):
-            expires_at = get_superuser_access_expiry(su, rpc_user_org_context.organization.id)
-            if expires_at is not None:
-                set_viewer_context_superuser(
-                    user_id=request.user.id,
-                    organization_id=rpc_user_org_context.organization.id,
-                    superuser=SuperuserAccess(expires_at=expires_at, read_only=superuser_read_only),
-                )
+        _propagate_superuser_access(
+            request, rpc_user_org_context, su, read_only=superuser_read_only
+        )
 
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
