@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 
-import {OrganizationAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {getUserAvatarProps, OrganizationAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {useAvatarColors} from '@sentry/scraps/avatarButton';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -20,9 +20,30 @@ export function NavigationMenuHeader({
   projectCount,
   user,
 }: NavigationMenuHeaderProps) {
+  const avatar = organization?.avatar;
+  const avatarIdentity = {
+    identifier: organization?.slug ?? '',
+    name: organization?.name || organization?.slug || '',
+  };
+  const avatarProps = organization
+    ? avatar?.avatarType === 'upload' && avatar.avatarUrl
+      ? {type: 'upload' as const, uploadUrl: avatar.avatarUrl, ...avatarIdentity}
+      : avatar?.avatarType === 'gravatar' && avatar.avatarUrl
+        ? {type: 'gravatar' as const, gravatarId: avatar.avatarUrl, ...avatarIdentity}
+        : undefined
+    : getUserAvatarProps(user);
+  const avatarColors = useAvatarColors(avatarProps);
+  const backgroundColor = avatarColors.type === 'image' ? avatarColors.chonk : undefined;
+
   if (organization) {
     return (
-      <OrganizationMenuHeader organization={organization} projectCount={projectCount} />
+      <MenuHeader
+        title={t('Organization')}
+        name={organization.name || organization.slug}
+        subtitle={tn('%s Project', '%s Projects', projectCount)}
+        backgroundColor={backgroundColor}
+        avatar={<OrganizationHeaderAvatar organization={organization} />}
+      />
     );
   }
 
@@ -31,37 +52,8 @@ export function NavigationMenuHeader({
       title={t('User')}
       name={user.name || user.username || user.email}
       subtitle={user.email}
+      backgroundColor={backgroundColor}
       avatar={<UserAvatar user={user} size={32} />}
-    />
-  );
-}
-
-function OrganizationMenuHeader({
-  organization,
-  projectCount,
-}: {
-  organization: OrganizationSummary;
-  projectCount: number;
-}) {
-  const avatar = organization.avatar;
-  const avatarIdentity = {
-    identifier: organization.slug,
-    name: organization.name || organization.slug,
-  };
-  const avatarColors = useAvatarColors(
-    avatar?.avatarType === 'upload' && avatar.avatarUrl
-      ? {type: 'upload', uploadUrl: avatar.avatarUrl, ...avatarIdentity}
-      : avatar?.avatarType === 'gravatar' && avatar.avatarUrl
-        ? {type: 'gravatar', gravatarId: avatar.avatarUrl, ...avatarIdentity}
-        : undefined
-  );
-  return (
-    <MenuHeader
-      title={t('Organization')}
-      name={organization.name || organization.slug}
-      subtitle={tn('%s Project', '%s Projects', projectCount)}
-      backgroundColor={avatarColors.type === 'image' ? avatarColors.chonk : undefined}
-      avatar={<OrganizationHeaderAvatar organization={organization} />}
     />
   );
 }
