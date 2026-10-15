@@ -10,6 +10,7 @@ import {
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
@@ -310,7 +311,7 @@ export function NumericFilterSelector({
             <DropdownMenu
               usePortal
               trigger={triggerProps => (
-                <StyledOperatorButton {...triggerProps}>
+                <StyledOperatorButton showChevron={false} {...triggerProps}>
                   {getOperatorLabel(filter.stagedOperator)}
                 </StyledOperatorButton>
               )}
@@ -357,7 +358,7 @@ const MenuBodyWrap = styled('div')`
   padding: ${p => p.theme.space.md};
 `;
 
-const StyledOperatorButton = styled(Button)`
+const StyledOperatorButton = styled(OverlayTrigger.Button)`
   width: 100%;
   font-weight: ${p => p.theme.font.weight.sans.regular};
 `;
