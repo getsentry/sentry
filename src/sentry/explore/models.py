@@ -510,6 +510,10 @@ class ExploreSavedFormula(DefaultFieldsModel):
     dataset = BoundedPositiveIntegerField(
         choices=ExploreSavedQueryDataset.as_choices(), db_default=ExploreSavedQueryDataset.SPANS
     )
+    # The corresponding prebuilt_id found in hardcoded prebuilt formulas from
+    # src/sentry/explore/endpoints/organization_explore_formulas.py
+    # If the saved query is not a prebuilt query, this will be None
+    prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
 
     class Meta:
         app_label = "explore"

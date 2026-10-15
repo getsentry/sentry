@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 from typing import Any, NamedTuple, Protocol, TypedDict
 from uuid import uuid4
 
+from django.utils import timezone
+
 from sentry.issues.derived.features import NO_CHANGE_RECONCILE_IDS, STATUS, IssueStatus
 from sentry.issues.derived.framework import Feature, State
 from sentry.issues.derived.gate import derived_should_be_correct
@@ -19,6 +21,8 @@ from sentry.utils import metrics
 from sentry.workflow_engine.caches.mapping import CacheMapping
 
 logger = logging.getLogger(__name__)
+
+_RECENT_LOG_ENTRY_WINDOW = timedelta(minutes=10)
 
 
 class _GroupActionPipeline(PipelineFeatures, Protocol):
@@ -140,6 +144,13 @@ class CheckInvalidated:
     pass
 
 
+@dataclass(frozen=True)
+class CheckRecentBackfill:
+    """A check skipped because its replay includes a recently backfilled log entry."""
+
+    pass
+
+
 class FeatureDifference(TypedDict):
     """JSON-safe expected and actual feature values for diagnostics."""
 
@@ -157,7 +168,7 @@ class CheckFailure:
     differences: dict[Feature[Any], FeatureDifference]
 
 
-type CheckResult = CheckPassed | CheckFailure | CheckInvalidated
+type CheckResult = CheckPassed | CheckFailure | CheckInvalidated | CheckRecentBackfill
 
 
 def compare_derived_data(
@@ -285,6 +296,7 @@ def check_derived_data(
         check_id = CheckId.new_for_derived_data(target)
 
     target_state = GroupDerivedDataStore.load(pipeline, target)
+    recent_entry_cutoff = timezone.now() - _RECENT_LOG_ENTRY_WINDOW
 
     replayed_derived = _check_cache.get(check_id)
     if replayed_derived is None:
@@ -298,6 +310,12 @@ def check_derived_data(
 
     deadline = time.monotonic() + timeout.total_seconds() if timeout is not None else None
     while entries := _entries_through_target_cursor(replayed_derived, check_id, batch_size):
+        if any(
+            entry.date_updated >= recent_entry_cutoff and entry.date_added < recent_entry_cutoff
+            for entry in entries
+        ):
+            _check_cache.delete(check_id)
+            return CheckRecentBackfill()
         replayed = pipeline.run(
             entries, state=GroupDerivedDataStore.load(pipeline, replayed_derived)
         )

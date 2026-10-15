@@ -3,6 +3,7 @@ import type {
   HTMLAttributes,
   MouseEvent,
   ReactNode,
+  Ref,
   RefObject,
 } from 'react';
 import {createContext, Fragment, useContext} from 'react';
@@ -82,7 +83,7 @@ interface HeaderCellProps extends HTMLAttributes<HTMLTableCellElement> {
 }
 
 interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
-  ref?: RefObject<HTMLTableRowElement | null>;
+  ref?: Ref<HTMLTableRowElement>;
   variant?: 'default' | 'faded';
 }
 

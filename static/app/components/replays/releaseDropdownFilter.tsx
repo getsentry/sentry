@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
-import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -69,6 +69,6 @@ export function ReleaseDropdownFilter({version}: {version: string}) {
   );
 }
 
-const TriggerButton = styled(Button)`
+const TriggerButton = styled(OverlayTrigger.IconButton)`
   padding: ${p => p.theme.space.xs};
 `;

@@ -77,6 +77,29 @@ describe('EntityHeader', () => {
       ).toBeVisible();
     });
 
+    it('opens an external link title in a new tab', () => {
+      render(
+        <EntityHeader
+          title={{
+            type: 'link',
+            label: 'Branch',
+            value: 'seer/spans-table',
+            externalHref: 'https://github.com/getsentry/sentry/tree/seer/spans-table',
+          }}
+        />
+      );
+
+      const link = screen.getByRole('link', {name: 'Branch, seer/spans-table'});
+      expect(link).toHaveAttribute(
+        'href',
+        'https://github.com/getsentry/sentry/tree/seer/spans-table'
+      );
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(
+        within(link).getByRole('heading', {level: 2, name: 'Branch, seer/spans-table'})
+      ).toBeVisible();
+    });
+
     it('renders tags beside the title and hides the leading graphic from AT', () => {
       render(
         <EntityHeader
@@ -676,6 +699,32 @@ describe('EntityHeader', () => {
       // And the key is not repeated beside it — the link already speaks it.
       const item = screen.getByRole('listitem');
       expect(item).toHaveTextContent(/^8\.42\.0$/);
+    });
+
+    it('opens an external metadata link in a new tab', () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Branch', value: 'main'}}
+          metadata={{
+            label: 'Build properties',
+            items: [
+              {
+                label: 'Commit',
+                type: 'link',
+                value: '169d99d',
+                externalHref: 'https://github.com/getsentry/sentry/commit/169d99d',
+              },
+            ],
+          }}
+        />
+      );
+
+      const link = screen.getByRole('link', {name: 'Commit 169d99d'});
+      expect(link).toHaveAttribute(
+        'href',
+        'https://github.com/getsentry/sentry/commit/169d99d'
+      );
+      expect(link).toHaveAttribute('target', '_blank');
     });
 
     it('names each metadata item, and the row they belong to', () => {

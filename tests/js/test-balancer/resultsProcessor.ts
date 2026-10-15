@@ -3,6 +3,10 @@ import {resolve} from 'node:path';
 
 import type {AggregatedResult} from '@jest/test-result';
 
+/**
+ * @public Jest loads this callback through --testResultsProcessor in
+ * .github/workflows/jest-balance.yml; Knip does not track that CLI argument.
+ */
 export default function writeReport(results: AggregatedResult): AggregatedResult {
   const cwd = process.cwd();
   const testValues: Record<string, number> = {};

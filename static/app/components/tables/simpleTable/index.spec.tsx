@@ -365,4 +365,18 @@ describe('SimpleTable component', () => {
       getEmotionRules(screen.getByRole('row', {name: 'One'})).join('')
     ).not.toContain('border-bottom');
   });
+
+  it('passes the row element to a ref when given a callback ref', () => {
+    const ref = jest.fn();
+
+    render(
+      <SimpleTable>
+        <SimpleTable.Row ref={ref}>
+          <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    expect(ref).toHaveBeenCalledWith(screen.getByRole('row'));
+  });
 });

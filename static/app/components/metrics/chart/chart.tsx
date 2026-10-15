@@ -2,7 +2,7 @@
 import color from 'color';
 
 import type {Series} from 'sentry/types/echarts';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
 
 const AVERAGE_INGESTION_DELAY_MS = 90_000;
 /**

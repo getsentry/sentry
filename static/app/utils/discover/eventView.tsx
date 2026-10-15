@@ -54,15 +54,15 @@ import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDatasetFromLocationOrDataset,
-} from 'sentry/views/discover/savedQuery/utils';
+} from 'sentry/views/discover/savedQuery/datasets';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
-import {getSortField} from './fieldRenderers';
+import {getSortField} from './getSortField';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, any> & {
@@ -1086,29 +1086,6 @@ export class EventView {
       key: sort.field,
       order: sort.kind,
     }));
-  }
-
-  getFacetsAPIPayload(
-    location: Location
-  ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {
-    const payload = this.getEventsAPIPayload(location);
-
-    const remove = [
-      'id',
-      'name',
-      'per_page',
-      'sort',
-      'cursor',
-      'field',
-      'equation',
-      'interval',
-    ];
-    for (const key of remove) {
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      delete payload[key];
-    }
-
-    return payload;
   }
 
   normalizeDateSelection(location: Location) {

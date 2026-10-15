@@ -7,6 +7,7 @@ import pick from 'lodash/pick';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Table, type TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
@@ -292,7 +293,7 @@ const TimelineOverlay = styled(GridLineOverlay)`
 
 // The negative margin keeps the row from growing when the button appears on hover.
 // The menu is portaled out of the row, so an open menu has to keep its trigger shown.
-const EnvironmentActionsButton = styled(Button)`
+const EnvironmentActionsButton = styled(OverlayTrigger.IconButton)`
   margin-block: -${p => p.theme.space.xs};
 
   tr:not(:hover) &:not([aria-expanded='true']) {

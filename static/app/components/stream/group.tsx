@@ -679,10 +679,6 @@ const CheckboxLabel = styled('label')`
 `;
 
 const StreamGroupRow = styled(SimpleTable.Row)`
-  [role='cell']:has(${CheckboxLabel}) {
-    z-index: 1;
-  }
-
   [data-issue-title-link] {
     &::before {
       content: '';

@@ -15,11 +15,11 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {PreviewInvoiceItem, Subscription} from 'getsentry/types';
 import {
   displayBudgetName,
+  displayPriceWithCents,
   getCreditApplied,
   getCredits,
   getFees,
 } from 'getsentry/utils/billing';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 
 type NextBillInvoiceItem = Pick<PreviewInvoiceItem, 'amount' | 'type' | 'description'>;

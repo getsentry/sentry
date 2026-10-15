@@ -13,6 +13,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers.notifications import create_notification_action_context
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.rules import RuleFuture
 
@@ -81,16 +82,14 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(context=NotificationActionContext.from_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(context=create_notification_action_context(rule), kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
         assert (
             blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={rule.data['actions'][0]['legacy_rule_id']}&alert_type=issue|*Hello world*>"
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack|*Hello world*>"
         )
 
         assert NotificationMessage.objects.all().count() == 1
@@ -131,16 +130,14 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(context=NotificationActionContext.from_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(context=create_notification_action_context(rule), kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
 
         assert (
             blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id={rule.data['actions'][0]['legacy_rule_id']}&alert_type=issue|*Hello world*>"
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack|*Hello world*>"
         )
 
         assert (
@@ -187,9 +184,7 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(context=NotificationActionContext.from_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(context=create_notification_action_context(rule), kwargs={})],
         )
 
         assert NotificationMessage.objects.all().count() == 1
@@ -249,7 +244,7 @@ class TestInit(RuleTestCase):
 
         assert (
             blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack&alert_rule_id=-1&alert_type=issue|*Hello world*>"
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack|*Hello world*>"
         )
 
         # Test action should not create a notification message
@@ -281,7 +276,7 @@ class TestInit(RuleTestCase):
 
         rule_cls_instance = self.get_rule(
             data=rule.data["actions"][0],
-            context=NotificationActionContext.from_legacy_rule(rule),
+            context=create_notification_action_context(rule),
         )
 
         results = list(rule_cls_instance.after(event=self.event))
@@ -289,9 +284,7 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(context=NotificationActionContext.from_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(context=create_notification_action_context(rule), kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
@@ -335,9 +328,7 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(context=NotificationActionContext.from_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(context=create_notification_action_context(rule), kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
@@ -397,9 +388,7 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(context=NotificationActionContext.from_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(context=create_notification_action_context(rule), kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)

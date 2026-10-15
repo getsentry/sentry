@@ -12,8 +12,8 @@ import {ResultTable} from 'sentry/components/resultTable';
 import type {DataCategory} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
+import {displayUnitPrice} from 'getsentry/utils/billing';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
-import {displayUnitPrice} from 'getsentry/views/amCheckout/utils';
 
 export interface BillingPlansResponse {
   data: Plans;

@@ -4,6 +4,7 @@ import {parseAsString, useQueryState, useQueryStates} from 'nuqs';
 import {SentryNuqsTestingAdapter} from 'sentry-test/nuqsTestingAdapter';
 import {
   act,
+  cleanup,
   render,
   renderHookWithProviders,
   screen,
@@ -176,10 +177,14 @@ describe('SentryNuqsTestingAdapter', () => {
     });
 
     afterEach(() => {
-      act(() => {
-        jest.runOnlyPendingTimers();
-      });
-      jest.useRealTimers();
+      try {
+        cleanup();
+        act(() => {
+          jest.runOnlyPendingTimers();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('keeps setters stable when the router query changes', () => {

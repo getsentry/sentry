@@ -1,5 +1,4 @@
 import {lazy, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {IconIssues} from '@sentry/icons/issues';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
@@ -90,36 +89,21 @@ function SingleIssueBlock({id, shortId}: IssueEmbedProps) {
       testId="seer-issue-embed"
       title={getIssueTitle({id, shortId})}
     >
-      <FlushPreview>
-        <LazyLoad
-          LazyComponent={LazyGroupList}
-          queryParams={queryParams}
-          withChart
-          withColumns={[]}
-          withHeader={false}
-          withPagination={false}
-          canSelectGroups={false}
-          useFilteredStats={false}
-          numPlaceholderRows={1}
-        />
-      </FlushPreview>
+      <LazyLoad
+        LazyComponent={LazyGroupList}
+        queryParams={queryParams}
+        withChart
+        withColumns={[]}
+        withHeader={false}
+        withPagination={false}
+        border="none"
+        canSelectGroups={false}
+        useFilteredStats={false}
+        numPlaceholderRows={1}
+      />
     </SeerEmbedBlock>
   );
 }
-
-/**
- * The issue row sits flush in the card: the card's own border already frames
- * it, so `GroupList`'s table border, rounding, and trailing margin would only
- * draw a second box inside the first.
- */
-const FlushPreview = styled('div')`
-  > div,
-  > div > table {
-    border: 0;
-    border-radius: 0;
-    margin-bottom: 0;
-  }
-`;
 
 export const Issue = defineSeerEmbed({
   name: 'issue',
