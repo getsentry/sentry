@@ -1,8 +1,8 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from '@testing-library/react';
 
 import {SizeProvider, useSizeContext} from '@sentry/scraps/sizeContext';
 
-import {slot} from './';
+import {slot} from './index';
 
 describe('slot', () => {
   it('returns a module with Provider, Outlet, and Fallback sub-components', () => {

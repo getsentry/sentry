@@ -1,4 +1,4 @@
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from '@testing-library/react';
 
 import {useScrollLock} from './useScrollLock';
 
@@ -7,14 +7,20 @@ describe('useScrollLock', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
+    jest.spyOn(window, 'scrollTo').mockImplementation(() => {});
     container = document.createElement('div');
     container.style.overflow = 'auto';
     document.body.appendChild(container);
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    document.body.removeChild(container);
+    try {
+      jest.runOnlyPendingTimers();
+    } finally {
+      jest.useRealTimers();
+      document.body.removeChild(container);
+      jest.restoreAllMocks();
+    }
   });
 
   it('locks scroll when acquired', () => {
@@ -193,12 +199,12 @@ describe('useScrollLock', () => {
 
     result.current.release();
 
-    expect(document.body).toHaveStyle({position: ''});
-    expect(document.body).toHaveStyle({top: ''});
-    expect(document.body).toHaveStyle({left: ''});
-    expect(document.body).toHaveStyle({right: ''});
-    expect(document.body).toHaveStyle({width: ''});
-    expect(document.body).toHaveStyle({paddingRight: ''});
+    expect(document.body.style.getPropertyValue('position')).toBe('');
+    expect(document.body.style.getPropertyValue('top')).toBe('');
+    expect(document.body.style.getPropertyValue('left')).toBe('');
+    expect(document.body.style.getPropertyValue('right')).toBe('');
+    expect(document.body.style.getPropertyValue('width')).toBe('');
+    expect(document.body.style.getPropertyValue('padding-right')).toBe('');
     jest.runAllTimers();
     expect(scrollToSpy).toHaveBeenCalledWith(scrollX, scrollY);
 

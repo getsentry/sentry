@@ -1,6 +1,6 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from '@testing-library/react';
 
-import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
+import {DateTimeProvider, useClockDisplay, useTimezone} from './datetime';
 
 describe('datetime', () => {
   function ShowDateTime() {

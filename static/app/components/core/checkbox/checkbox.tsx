@@ -4,9 +4,8 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import type {FormSize} from '@sentry/scraps/theme';
 import {Tooltip, useDisabledTooltip, type TooltipProps} from '@sentry/scraps/tooltip';
-
-import type {FormSize} from 'sentry/utils/theme';
 
 type CheckboxConfig = {
   borderRadius: string;

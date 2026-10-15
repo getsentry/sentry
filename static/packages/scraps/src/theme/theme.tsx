@@ -11,18 +11,12 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import {spring, type Transition} from 'framer-motion';
 
-import {
-  darkTheme as baseDarkTheme,
-  lightTheme as baseLightTheme,
-  type Theme as ScrapsTheme,
-  type MotionDuration,
-  type MotionEasing,
-} from '@sentry/scraps/theme';
 import {color, typography} from '@sentry/scraps/tokens';
 
-import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants/env';
-
+import {darkTheme as baseDarkTheme} from './dark';
+import {lightTheme as baseLightTheme} from './light';
 import {makeSwatch, type Swatch} from './swatch';
+import type {MotionDuration, MotionEasing} from './types';
 
 type MotionDefinition = Record<MotionDuration, string>;
 
@@ -43,7 +37,8 @@ const motionCurves: Record<
 };
 
 // Disable transitions in acceptance tests or node testing environments.
-const IS_ACCEPTANCE_OR_TESTING = IS_ACCEPTANCE_TEST || NODE_ENV === 'test';
+const IS_ACCEPTANCE_OR_TESTING =
+  !!process.env.IS_ACCEPTANCE_TEST || process.env.NODE_ENV === 'test';
 const EMPTY_TRANSITION: Transition = {
   duration: 0,
   staggerChildren: 0,
@@ -258,6 +253,12 @@ const commonTheme = {
 
   ...typography,
 } as const;
+
+type ScrapsTheme = {
+  [Key in keyof typeof baseLightTheme]:
+    | (typeof baseLightTheme)[Key]
+    | (typeof baseDarkTheme)[Key];
+};
 
 export interface SentryTheme
   extends ScrapsTheme, Omit<typeof lightThemeDefinition, keyof ScrapsTheme | 'chart'> {
