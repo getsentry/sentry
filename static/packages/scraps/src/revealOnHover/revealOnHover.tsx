@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import styled from '@emotion/styled';
 
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
