@@ -92,11 +92,15 @@ class OrganizationSentryAppComponentsEndpoint(ControlSiloOrganizationEndpoint):
         """
         Retrieve prepared UI components for installed custom integrations, including issue-link forms.
 
-        To create or link an external issue through an app such as Linear, request
-        `filter=issue-link`. Submit the fields from `schema.create` or `schema.link`, with
-        that section's `uri`, to the external issue actions endpoint of the component's
-        `installationUuid`. Select fields with a `uri` load their choices from that
-        installation's select options endpoint.
+        API clients can use `filter=issue-link` to create or link an external issue through
+        an app such as Linear. The `uri` values in `schema` are paths on the app's own server.
+        Clients never call them directly; Sentry calls the app on their behalf:
+
+        - To load a select field's choices, pass the field's `uri` to
+          `GET /sentry-app-installations/{installationUuid}/external-requests/`.
+        - To create or link the issue, send the form values with the `uri` from
+          `schema.create` or `schema.link` to
+          `POST /sentry-app-installations/{installationUuid}/external-issue-actions/`.
         """
         components = []
         errors = {}
