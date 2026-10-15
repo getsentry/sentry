@@ -689,10 +689,9 @@ const config = defineConfig({
         'import/no-relative-parent-imports': 'off',
       },
     },
-    // Scraps is its own component library rather than ordinary app code, and a
-    // handful of its internal imports are deliberately parent-relative.
+    // Legacy app core components still use parent-relative imports.
     {
-      files: coreComponentFiles,
+      files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
       rules: {
         'import/no-relative-parent-imports': 'off',
       },
@@ -730,14 +729,6 @@ const config = defineConfig({
       },
       env: {
         node: true,
-      },
-    },
-    {
-      files: ['static/packages/scraps/src/**/*.{ts,tsx}'],
-      // Re-enable these rules when Scraps has its own stricter lint config.
-      rules: {
-        'boundaries/no-unknown-files': 'off',
-        'no-shadow': 'off',
       },
     },
     {
@@ -860,7 +851,6 @@ const config = defineConfig({
         'static/packages/icons/test/**/*.{ts,tsx,mjs}',
       ],
       rules: {
-        'import/no-relative-parent-imports': 'off',
         'import/no-nodejs-modules': 'off',
         'no-restricted-imports': [
           'error',

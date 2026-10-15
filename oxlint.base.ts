@@ -306,6 +306,63 @@ export const storyOverride: OxlintOverride = {
 
 // Share rules explicitly so JS plugins, environments, and settings travel with them.
 // Keep application aliases, boundary paths, and suppression policy in the root config.
+export const restrictedSyntax = [
+  {
+    selector:
+      "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='forwardRef']",
+    message:
+      'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+  },
+  {
+    selector:
+      "CallExpression[callee.object.name='React'][callee.property.name='forwardRef']",
+    message:
+      'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+  },
+  {
+    selector: "MemberExpression[object.name='React'][property.name='Fragment']",
+    message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
+  },
+  {
+    selector: "JSXMemberExpression[object.name='React'][property.name='Fragment']",
+    message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
+  },
+  {
+    // Require an annotation for uninitialized let declarations, except in
+    // for...of and for...in loops.
+    selector:
+      'VariableDeclaration[kind = "let"]:not(ForOfStatement > VariableDeclaration, ForInStatement > VariableDeclaration) > VariableDeclarator[init = null]:not([id.typeAnnotation])',
+    message: 'Provide a type annotation',
+  },
+  {
+    // IIFEs obscure JSX children, attribute values, and spreads.
+    selector:
+      'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
+    message: 'Do not use IIFEs inside JSX.',
+  },
+  {
+    selector:
+      "TSIndexedAccessType > TSTypeReference.objectType[typeName.name='CSSProperties']",
+    message: CSS_TYPES_MESSAGE,
+  },
+  {
+    selector:
+      "TSIndexedAccessType > TSTypeReference.objectType > TSQualifiedName.typeName[left.name='React'][right.name='CSSProperties']",
+    message: CSS_TYPES_MESSAGE,
+  },
+  {
+    selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
+    message:
+      "Use dynamic import for type-loader imports (for example: `import('!!type-loader!@sentry/scraps/alert')`), not `import ... from '!!type-loader!...'`.",
+  },
+  {
+    // Absolute URLs belong in ExternalLink, not the internal router Link.
+    selector:
+      "JSXOpeningElement[name.name='Link'] JSXAttribute[name.name='to'] Literal[value=/^https?:/i]",
+    message: "Do not pass an absolute URL to Link's to=. Use ExternalLink instead.",
+  },
+];
+
 const base = defineConfig({
   plugins: ['import', 'react', 'typescript', 'unicorn'],
   categories: {
@@ -934,63 +991,7 @@ const base = defineConfig({
     'eslint-js/multiline-comment-style': ['error', 'separate-lines'],
     'eslint-js/no-octal': ['error'],
     'eslint-js/no-octal-escape': ['error'],
-    'eslint-js/no-restricted-syntax': [
-      'error',
-      {
-        selector:
-          "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='forwardRef']",
-        message:
-          'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
-      },
-      {
-        selector:
-          "CallExpression[callee.object.name='React'][callee.property.name='forwardRef']",
-        message:
-          'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
-      },
-      {
-        selector: "MemberExpression[object.name='React'][property.name='Fragment']",
-        message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
-      },
-      {
-        selector: "JSXMemberExpression[object.name='React'][property.name='Fragment']",
-        message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
-      },
-      {
-        // Require an annotation for uninitialized let declarations, except in
-        // for...of and for...in loops.
-        selector:
-          'VariableDeclaration[kind = "let"]:not(ForOfStatement > VariableDeclaration, ForInStatement > VariableDeclaration) > VariableDeclarator[init = null]:not([id.typeAnnotation])',
-        message: 'Provide a type annotation',
-      },
-      {
-        // IIFEs obscure JSX children, attribute values, and spreads.
-        selector:
-          'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
-        message: 'Do not use IIFEs inside JSX.',
-      },
-      {
-        selector:
-          "TSIndexedAccessType > TSTypeReference.objectType[typeName.name='CSSProperties']",
-        message: CSS_TYPES_MESSAGE,
-      },
-      {
-        selector:
-          "TSIndexedAccessType > TSTypeReference.objectType > TSQualifiedName.typeName[left.name='React'][right.name='CSSProperties']",
-        message: CSS_TYPES_MESSAGE,
-      },
-      {
-        selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
-        message:
-          "Use dynamic import for type-loader imports (for example: `import('!!type-loader!@sentry/scraps/alert')`), not `import ... from '!!type-loader!...'`.",
-      },
-      {
-        // Absolute URLs belong in ExternalLink, not the internal router Link.
-        selector:
-          "JSXOpeningElement[name.name='Link'] JSXAttribute[name.name='to'] Literal[value=/^https?:/i]",
-        message: "Do not pass an absolute URL to Link's to=. Use ExternalLink instead.",
-      },
-    ],
+    'eslint-js/no-restricted-syntax': ['error', ...restrictedSyntax],
     'eslint-js/spaced-comment': [
       'error',
       'always',
@@ -1152,7 +1153,6 @@ export function createPackageConfig(
         files: ['**/*.spec.{ts,tsx,js,jsx}', 'test/**/*.{ts,tsx,mjs}'],
         env: {node: true},
         rules: {
-          'import/no-relative-parent-imports': 'off',
           'import/no-nodejs-modules': 'off',
           'no-loss-of-precision': 'off',
           '@sentry/prefer-react-component': 'off',

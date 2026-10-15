@@ -46,7 +46,6 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
             MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_env,
-                project_id=project.id,
                 status=CheckInStatus.OK,
             )
         return monitor, num_checkins
@@ -125,7 +124,6 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
             MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_env,
-                project_id=project.id,
                 status=status,
             )
 
@@ -159,7 +157,6 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         incident = MonitorIncident.objects.create(
@@ -201,19 +198,16 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.OK,
         )
         checkin3 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
 
@@ -296,19 +290,16 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         checkin3 = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.OK,
         )
 
@@ -384,13 +375,11 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         failed_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         ok_checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=project.id,
             status=CheckInStatus.OK,
         )
 
@@ -439,13 +428,11 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         checkin1_m1 = MonitorCheckIn.objects.create(
             monitor=monitor1,
             monitor_environment=monitor_env1,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         checkin2_m1 = MonitorCheckIn.objects.create(
             monitor=monitor1,
             monitor_environment=monitor_env1,
-            project_id=project.id,
             status=CheckInStatus.OK,
         )
         incident1_m1 = MonitorIncident.objects.create(
@@ -472,13 +459,11 @@ class DeleteMonitorCheckInTest(APITestCase, TransactionTestCase, HybridCloudTest
         checkin1_m2 = MonitorCheckIn.objects.create(
             monitor=monitor2,
             monitor_environment=monitor_env2,
-            project_id=project.id,
             status=CheckInStatus.ERROR,
         )
         checkin2_m2 = MonitorCheckIn.objects.create(
             monitor=monitor2,
             monitor_environment=monitor_env2,
-            project_id=project.id,
             status=CheckInStatus.OK,
         )
         incident1_m2 = MonitorIncident.objects.create(

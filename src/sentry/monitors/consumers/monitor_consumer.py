@@ -414,8 +414,7 @@ def update_existing_check_in(
     processing_errors: list[ProcessingError] = []
 
     if (
-        existing_check_in.project_id != project_id
-        or existing_check_in.monitor_id != monitor.id
+        existing_check_in.monitor_id != monitor.id
         or existing_check_in.monitor_environment_id != monitor_environment.id
     ):
         mismatch_error: CheckinGuidProjectMismatch = {
@@ -1067,7 +1066,6 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
 
                 lookup = {
                     "guid": guid,
-                    "project_id": project_id,
                     "monitor": monitor,
                     "monitor_environment": monitor_environment,
                 }
