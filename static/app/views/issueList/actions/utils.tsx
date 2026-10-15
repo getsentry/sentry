@@ -1,26 +1,26 @@
 import {Fragment} from 'react';
+import {uuid4} from '@sentry/core';
+import {IconRefresh} from '@sentry/icons/refresh';
 import type {QueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import type {ResponsiveKey} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
+import {GroupStatus, type BaseGroup} from 'sentry/types/group';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {BulkIssueUpdateData} from 'sentry/views/issueList/types';
 
 import {ExtraDescription} from './extraDescription';
 
@@ -236,14 +236,72 @@ export function invalidateIssueQueries({
   });
 }
 
-function getBulkUpdateErrorMessage(error: unknown): string {
-  const fallback = t('Unable to update issues');
+function getBulkActionMessages(
+  data: BulkIssueUpdateData,
+  itemIds: string[] | undefined,
+  previousGroups: BaseGroup[]
+) {
+  const allInQuery = itemIds === undefined;
+  const singleGroup = itemIds?.length === 1 ? previousGroups[0] : undefined;
+  const target = singleGroup
+    ? singleGroup.shortId
+    : tn('%s issue', '%s issues', itemIds?.length ?? 0);
+  const status = 'status' in data ? data.status : undefined;
+
+  if (status === GroupStatus.RESOLVED) {
+    return {
+      loading: t('Resolving issues…'),
+      success: allInQuery ? t('Selected issues resolved') : t('Resolved %s', target),
+      error: t('Unable to resolve issues'),
+    };
+  }
+  if (status === GroupStatus.IGNORED) {
+    return {
+      loading: t('Archiving issues…'),
+      success: allInQuery ? t('Selected issues archived') : t('Archived %s', target),
+      error: t('Unable to archive issues'),
+    };
+  }
+  if (status === GroupStatus.UNRESOLVED) {
+    return {
+      loading: t('Unresolving issues…'),
+      success: allInQuery ? t('Selected issues unresolved') : t('Unresolved %s', target),
+      error: t('Unable to unresolve issues'),
+    };
+  }
+  if ('inbox' in data && !data.inbox) {
+    return {
+      loading: t('Marking issues reviewed…'),
+      success: allInQuery ? t('Selected issues reviewed') : t('Reviewed %s', target),
+      error: t('Unable to mark issues reviewed'),
+    };
+  }
+  if ('priority' in data) {
+    return {
+      loading: t('Updating issue priority…'),
+      success: allInQuery
+        ? t('Selected issues reprioritized')
+        : t('Reprioritized %s', target),
+      error: t('Unable to update issue priority'),
+    };
+  }
+  return {
+    loading: t('Saving changes…'),
+    success: t('Changes saved'),
+    error: t('Unable to update issues'),
+  };
+}
+
+function getBulkUpdateErrorMessage(error: unknown, fallback: string): string {
+  if (isDemoModeActive()) {
+    return t('This action is not allowed in demo mode.');
+  }
   if (!(error instanceof RequestError) || error.status !== 400) {
     return fallback;
   }
 
   const message = getWorkflowEngineResponseErrorMessage(error.responseJSON);
-  return message ? t('Unable to update issues: %s', message) : fallback;
+  return message ? t('%s: %s', fallback, message) : fallback;
 }
 
 export async function performBulkUpdate({
@@ -253,21 +311,35 @@ export async function performBulkUpdate({
   organizationSlug,
   query,
   selection,
+  onError,
   onSuccess,
 }: {
   api: Client;
-  data: IssueUpdateData | Record<string, unknown>;
+  data: BulkIssueUpdateData;
   itemIds: string[] | undefined;
   organizationSlug: string;
   query: string;
   selection: PageFilters;
-  onSuccess?: (itemIds: string[] | undefined) => void;
+  onError?: () => void;
+  onSuccess?: (
+    itemIds: string[] | undefined,
+    previousGroups: BaseGroup[]
+  ) => (() => void) | void;
 }) {
+  if (itemIds?.length === 0) {
+    return;
+  }
+
   const projectConstraints = {
     project: getSelectedProjectIds({selectedGroupIds: itemIds, selection}),
   };
 
-  addLoadingMessage(t('Saving changes…'));
+  const previousGroups = itemIds?.map(id => GroupStore.get(id)).filter(defined) ?? [];
+  const messages = getBulkActionMessages(data, itemIds, previousGroups);
+  const toastId = toast.loading(messages.loading, {
+    id: uuid4(),
+    duration: 30_000,
+  });
 
   try {
     await bulkUpdate(api, {
@@ -280,10 +352,17 @@ export async function performBulkUpdate({
       ...projectConstraints,
       ...selection.datetime,
     });
-    clearIndicators();
-    onSuccess?.(itemIds);
   } catch (error) {
-    clearIndicators();
-    addErrorMessage(getBulkUpdateErrorMessage(error));
+    toast.error(getBulkUpdateErrorMessage(error, messages.error), {id: toastId});
+    onError?.();
+    return;
   }
+
+  const undo = onSuccess?.(itemIds, previousGroups);
+  toast.success(messages.success, {
+    id: toastId,
+    action: undo
+      ? {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo}
+      : undefined,
+  });
 }

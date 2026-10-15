@@ -14,7 +14,12 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
-import {GroupStatus, GroupSubstatus, PriorityLevel} from 'sentry/types/group';
+import {
+  GroupStatus,
+  GroupSubstatus,
+  PriorityLevel,
+  type BaseGroup,
+} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
@@ -31,14 +36,19 @@ import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {
+  AssignIssuesData,
+  BulkIssueUpdateData,
+  IssueActionHandler,
+  IssueUpdateData,
+} from 'sentry/views/issueList/types';
 
 interface IssueListBulkCommandPaletteActionsProps {
   groupIds: string[];
   query: string;
   queryCount: number;
   selection: PageFilters;
-  onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
+  onActionTaken?: IssueActionHandler;
 }
 
 interface IssueListMarkAllCommandPaletteActionProps extends IssueListBulkCommandPaletteActionsProps {}
@@ -63,7 +73,7 @@ function AssignActionItems({
   onConfirmBulkUpdate,
   onBulkUpdate,
 }: {
-  onBulkUpdate: (data: Record<string, unknown>) => void;
+  onBulkUpdate: (data: AssignIssuesData) => void;
   onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
   const user = useUser();
@@ -160,7 +170,7 @@ function AssignActions({
   onConfirmBulkUpdate,
   onBulkUpdate,
 }: {
-  onBulkUpdate: (data: Record<string, unknown>) => void;
+  onBulkUpdate: (data: AssignIssuesData) => void;
   onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
   return (
@@ -252,8 +262,11 @@ function useIssueListBulkCommandPaletteActions({
   }
 
   function performBulkUpdate(
-    data: IssueUpdateData | Record<string, unknown>,
-    onSuccess?: (itemIds: string[] | undefined) => void,
+    data: BulkIssueUpdateData,
+    onSuccess?: (
+      itemIds: string[] | undefined,
+      previousGroups: BaseGroup[]
+    ) => (() => void) | void,
     allInQuery?: boolean
   ) {
     const itemIds = allInQuery ? undefined : getSelectedIds();
@@ -264,13 +277,14 @@ function useIssueListBulkCommandPaletteActions({
       organizationSlug: organization.slug,
       query,
       selection,
-      onSuccess: updatedItemIds => {
-        onSuccess?.(updatedItemIds);
+      onSuccess: (updatedItemIds, previousGroups) => {
+        const undo = onSuccess?.(updatedItemIds, previousGroups);
         invalidateIssueQueries({
           itemIds: updatedItemIds,
           organizationSlug: organization.slug,
           queryClient,
         });
+        return undo;
       },
     });
 
@@ -280,14 +294,12 @@ function useIssueListBulkCommandPaletteActions({
   function handleUpdate(data: IssueUpdateData, allInQuery?: boolean) {
     performBulkUpdate(
       data,
-      itemIds => {
-        onActionTaken?.(itemIds ?? [], data);
-      },
+      (itemIds, previousGroups) => onActionTaken?.(itemIds, data, previousGroups),
       allInQuery
     );
   }
 
-  function handleBulkUpdate(data: Record<string, unknown>, allInQuery?: boolean) {
+  function handleBulkUpdate(data: AssignIssuesData, allInQuery?: boolean) {
     performBulkUpdate(data, undefined, allInQuery);
   }
   const selectedIssueIds = useMemo(() => {
@@ -362,8 +374,7 @@ export function IssueListMarkAllCommandPaletteAction(
   }
 
   const handleUpdateAll = (data: IssueUpdateData) => handleUpdate(data, true);
-  const handleBulkUpdateAll = (data: Record<string, unknown>) =>
-    handleBulkUpdate(data, true);
+  const handleBulkUpdateAll = (data: AssignIssuesData) => handleBulkUpdate(data, true);
 
   return (
     <CMDKAction

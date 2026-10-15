@@ -16,7 +16,7 @@ import {IssueListActions} from 'sentry/views/issueList/actions';
 import {GroupListBody} from 'sentry/views/issueList/groupListBody';
 import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueActionHandler} from 'sentry/views/issueList/types';
 
 interface IssueListTableProps {
   allResultsVisible: boolean;
@@ -26,7 +26,7 @@ interface IssueListTableProps {
   issuesLoading: boolean;
   issuesSuccessfullyLoaded: boolean;
   memberList: IndexedMembersByProject | undefined;
-  onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
+  onActionTaken: IssueActionHandler;
   onCursor: CursorHandler;
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;

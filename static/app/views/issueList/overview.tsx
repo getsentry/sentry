@@ -13,7 +13,6 @@ import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
-import {addMessage} from 'sentry/actionCreators/indicator';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -55,7 +54,7 @@ import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueActionHandler, IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -789,28 +788,18 @@ function IssueListOverviewInner({
 
   const onIssueAction = ({
     itemIds,
-    actionType,
     shouldRemove,
     skipRefetch,
-    undo,
   }: {
-    actionType: 'Reviewed' | 'Resolved' | 'Ignored' | 'Archived' | 'Reprioritized';
-    itemIds: string[];
+    itemIds: string[] | undefined;
     shouldRemove: boolean;
     skipRefetch?: boolean;
-    undo?: () => void;
   }) => {
-    if (itemIds.length > 1) {
-      addMessage(`${actionType} ${itemIds.length} ${t('Issues')}`, 'success', {
-        duration: 4000,
-        undo,
-      });
-    } else {
-      const shortId = itemIds.map(item => GroupStore.get(item)?.shortId).toString();
-      addMessage(`${actionType} ${shortId}`, 'success', {
-        duration: 4000,
-        undo,
-      });
+    if (itemIds === undefined) {
+      // Reload the list instead of merging results when the affected IDs are unknown.
+      actionTakenRef.current = false;
+      fetchData();
+      return;
     }
 
     if (!shouldRemove) {
@@ -840,53 +829,58 @@ function IssueListOverviewInner({
     }
   };
 
-  const onActionTaken = (itemIds: string[], data: IssueUpdateData) => {
+  const onActionTaken: IssueActionHandler = (itemIds, data, previousGroups = []) => {
     invalidateIssueCounts();
-    const groupItems = itemIds.map(id => GroupStore.get(id)).filter(defined);
 
     if ('status' in data) {
-      if (data.status === 'resolved') {
+      if (data.status === GroupStatus.RESOLVED || data.status === GroupStatus.IGNORED) {
         onIssueAction({
           itemIds,
-          actionType: 'Resolved',
           shouldRemove:
             query.includes('is:unresolved') ||
-            query.includes('is:ignored') ||
-            isForReviewQuery(query),
+            isForReviewQuery(query) ||
+            (data.status === GroupStatus.RESOLVED && query.includes('is:ignored')),
           skipRefetch: realtimeActive,
-          undo: realtimeActive
-            ? undefined
-            : () =>
-                undoAction({
-                  data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
-                  groupItems,
-                }),
         });
-        return;
-      }
 
-      if (data.status === 'ignored') {
-        onIssueAction({
-          itemIds,
-          actionType: 'Archived',
-          shouldRemove: query.includes('is:unresolved') || isForReviewQuery(query),
-          skipRefetch: realtimeActive,
-          undo: realtimeActive
-            ? undefined
-            : () =>
-                undoAction({
-                  data: {status: GroupStatus.UNRESOLVED, statusDetails: {}},
-                  groupItems,
-                }),
-        });
-        return;
+        // Realtime refetches the list on its own, and query-wide actions don't
+        // know which issues changed, so neither can be undone.
+        if (realtimeActive || previousGroups.length !== itemIds?.length) {
+          return;
+        }
+
+        // Undo can only send issues back to unresolved. An issue that was already
+        // archived or resolved would lose that state, so skip Undo entirely.
+        if (previousGroups.some(group => group.status !== GroupStatus.UNRESOLVED)) {
+          return;
+        }
+
+        // One request sets one substatus for every issue. Restore it when they all
+        // share it (e.g. a single escalating issue). Otherwise leave it out and the
+        // backend picks one; this matters because without it a single issue
+        // coming back from resolved is marked regressed.
+        const substatus = previousGroups[0]?.substatus;
+        const sharedSubstatus = previousGroups.every(
+          group => group.substatus === substatus
+        )
+          ? substatus
+          : undefined;
+
+        return () =>
+          undoAction({
+            data: {
+              status: GroupStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: sharedSubstatus,
+            },
+            groupItems: previousGroups,
+          });
       }
     }
 
     if ('inbox' in data && !data.inbox) {
       onIssueAction({
         itemIds,
-        actionType: 'Reviewed',
         shouldRemove: isForReviewQuery(query),
         skipRefetch: realtimeActive,
       });
@@ -899,12 +893,12 @@ function IssueListOverviewInner({
 
       onIssueAction({
         itemIds,
-        actionType: 'Reprioritized',
         shouldRemove: !priorityValues.has(priority),
         skipRefetch: realtimeActive,
       });
       return;
     }
+    return;
   };
 
   const onDelete = () => {

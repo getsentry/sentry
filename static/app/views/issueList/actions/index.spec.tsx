@@ -305,7 +305,7 @@ describe('IssueListActions', () => {
 
         expect(
           await screen.findByText(
-            "Unable to update issues: No release data present in the system to form a basis for 'Next Release'"
+            "Unable to resolve issues: No release data present in the system to form a basis for 'Next Release'"
           )
         ).toBeInTheDocument();
       });
@@ -324,7 +324,7 @@ describe('IssueListActions', () => {
 
         await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
-        expect(await screen.findByText('Unable to update issues')).toBeInTheDocument();
+        expect(await screen.findByText('Unable to resolve issues')).toBeInTheDocument();
       });
     });
   });
@@ -497,7 +497,11 @@ describe('IssueListActions', () => {
       const reviewButton = screen.getByRole('menuitemradio', {name: 'Mark Reviewed'});
       await userEvent.click(reviewButton);
 
-      expect(mockOnActionTaken).toHaveBeenCalledWith(['1', '2', '3'], {inbox: false});
+      expect(mockOnActionTaken).toHaveBeenCalledWith(
+        ['1', '2', '3'],
+        {inbox: false},
+        expect.arrayContaining([expect.objectContaining({id: '1'})])
+      );
     });
 
     it('mark reviewed disabled for group that is already reviewed', async () => {

@@ -7,7 +7,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   render,
-  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -15,11 +14,12 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Container} from '@sentry/scraps/layout';
+import {GlobalModal} from '@sentry/scraps/modal';
 
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {TagStore} from 'sentry/stores/tagStore';
-import {PriorityLevel} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus, PriorityLevel} from 'sentry/types/group';
 import IssueListOverview from 'sentry/views/issueList/overview';
 import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
 
@@ -109,6 +109,7 @@ describe('IssueListOverview (actions)', () => {
         title: 'Group 1',
       },
       shortId: 'JAVASCRIPT-1',
+      substatus: GroupSubstatus.ONGOING,
     });
     const group2 = GroupFixture({
       id: '2',
@@ -116,6 +117,7 @@ describe('IssueListOverview (actions)', () => {
         title: 'Group 2',
       },
       shortId: 'JAVASCRIPT-2',
+      substatus: GroupSubstatus.ONGOING,
     });
     const group3 = GroupFixture({
       id: '3',
@@ -178,18 +180,23 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<OverviewInContainer />, {
-        organization,
+      render(
+        <Fragment>
+          <OverviewInContainer />
+          <GlobalModal />
+        </Fragment>,
+        {
+          organization,
 
-        initialRouterConfig: {
-          route: '/organizations/:orgId/issues/',
-          location: {
-            pathname: '/organizations/org-slug/issues/',
-            query: {query: 'is:unresolved'},
+          initialRouterConfig: {
+            route: '/organizations/:orgId/issues/',
+            location: {
+              pathname: '/organizations/org-slug/issues/',
+              query: {query: 'is:unresolved'},
+            },
           },
-        },
-      });
-      renderGlobalModal();
+        }
+      );
 
       expect(await screen.findByText('Group 1')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('checkbox', {name: /select all/i}));
@@ -231,12 +238,14 @@ describe('IssueListOverview (actions)', () => {
       expect(await screen.findByText('Group 3')).toBeInTheDocument();
       expect(screen.queryByText('Group 1')).not.toBeInTheDocument();
       expect(screen.queryByText('Group 2')).not.toBeInTheDocument();
+      expect(screen.getAllByText('Resolved 2 issues')).toHaveLength(1);
     });
 
     it('updates saved view counts after resolving and undoing', async () => {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'PUT',
+        body: {status: GroupStatus.RESOLVED, statusDetails: {}, substatus: null},
       });
 
       MockApiClient.addMockResponse({
@@ -317,11 +326,149 @@ describe('IssueListOverview (actions)', () => {
         '/organizations/org-slug/issues/',
         expect.objectContaining({
           query: expect.objectContaining({id: ['1']}),
-          data: {status: 'unresolved', statusDetails: {}},
+          data: {
+            status: 'unresolved',
+            statusDetails: {},
+            substatus: GroupSubstatus.ONGOING,
+          },
         })
       );
       expect(await screen.findByText('Group 1')).toBeInTheDocument();
       expect(await savedViewCount.findByText('2')).toBeInTheDocument();
+    });
+
+    it('confirms query-wide resolution without offering Undo', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group1, group2],
+        headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '20'},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+        body: {status: GroupStatus.RESOLVED},
+      });
+      render(
+        <Fragment>
+          <OverviewInContainer />
+          <GlobalModal />
+        </Fragment>,
+        {organization}
+      );
+
+      await screen.findByText('Group 1');
+      await userEvent.click(screen.getByRole('checkbox', {name: /select all/i}));
+      await userEvent.click(
+        screen.getByText(/Select all 20 issues that match this search query/)
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [],
+        headers: {Link: DEFAULT_LINKS_HEADER},
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.click(
+        within(dialog).getByRole('button', {name: 'Bulk resolve issues'})
+      );
+
+      expect(await screen.findByText('Selected issues resolved')).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Undo'})).not.toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByText('Group 1')).not.toBeInTheDocument());
+    });
+
+    it('offers Undo without a substatus when the issues had different substatuses', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group1, {...group2, substatus: GroupSubstatus.NEW}],
+        headers: {Link: DEFAULT_LINKS_HEADER},
+      });
+      const updateIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+        body: {status: GroupStatus.RESOLVED},
+      });
+      render(
+        <Fragment>
+          <OverviewInContainer />
+          <GlobalModal />
+        </Fragment>,
+        {organization}
+      );
+
+      await screen.findByText('Group 1');
+      await userEvent.click(screen.getByRole('checkbox', {name: /select all/i}));
+      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.click(within(dialog).getByRole('button', {name: /resolve/i}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Undo'}));
+
+      expect(updateIssueMock).toHaveBeenLastCalledWith(
+        '/organizations/org-slug/issues/',
+        expect.objectContaining({
+          data: expect.objectContaining({status: 'unresolved', substatus: undefined}),
+        })
+      );
+    });
+
+    it('does not offer Undo when resolving a previously archived issue', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [
+          GroupFixture({
+            id: '1',
+            shortId: 'JAVASCRIPT-1',
+            metadata: {title: 'Group 1'},
+            status: GroupStatus.IGNORED,
+            substatus: GroupSubstatus.ARCHIVED_FOREVER,
+          }),
+          group2,
+        ],
+        headers: {Link: DEFAULT_LINKS_HEADER},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+        body: {status: GroupStatus.RESOLVED},
+      });
+      render(
+        <Container containerType="inline-size">
+          <IssueListOverview initialQuery="" />
+        </Container>,
+        {organization}
+      );
+
+      await screen.findByText('Group 1');
+      await userEvent.click(
+        within(screen.getAllByTestId('group')[0]!).getByRole('checkbox', {
+          name: /select issue/i,
+        })
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+      expect(await screen.findByText('Resolved JAVASCRIPT-1')).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Undo'})).not.toBeInTheDocument();
+    });
+
+    it('shows an error without success when resolution fails', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+        statusCode: 500,
+      });
+      render(<OverviewInContainer />, {organization});
+
+      await screen.findByText('Group 1');
+      await userEvent.click(
+        within(screen.getAllByTestId('group')[0]!).getByRole('checkbox', {
+          name: /select issue/i,
+        })
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+      expect(await screen.findByText('Unable to resolve issues')).toBeInTheDocument();
+      expect(screen.queryByText('Resolving issues…')).not.toBeInTheDocument();
+      expect(screen.queryByText('Resolved JAVASCRIPT-1')).not.toBeInTheDocument();
+      expect(screen.getByText('Group 1')).toBeInTheDocument();
     });
   });
 
