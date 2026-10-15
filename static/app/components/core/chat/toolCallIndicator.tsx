@@ -2,11 +2,10 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconClose} from '@sentry/icons/close';
 import {IconWarning} from '@sentry/icons/warning';
 
+import {Spinner} from '@sentry/scraps/chat/spinner';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {unreachable} from 'sentry/utils/unreachable';
-
-import {Spinner} from './spinner';
 
 /**
  * Aggregate status of a message's tool calls.

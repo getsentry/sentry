@@ -1,11 +1,14 @@
 const config = {
   testEnvironment: '<rootDir>/test/env/environment.mjs',
   setupFilesAfterEnv: ['<rootDir>/test/env/setup.ts'],
-  testMatch: ['<rootDir>/src/**/*.spec.tsx'],
+  testMatch: ['<rootDir>/src/**/*.spec.{ts,tsx}'],
   moduleNameMapper: {
     '^@sentry/scraps$': '<rootDir>/src/index.ts',
     '^@sentry/scraps/(.*)$': '<rootDir>/src/$1',
   },
+  transformIgnorePatterns: [
+    '/node_modules/.pnpm/(?!(marked|marked-highlight|color|color-convert|color-string|color-name)@)',
+  ],
   transform: {
     '^.+\\.[jt]sx?$': [
       '@swc/jest',

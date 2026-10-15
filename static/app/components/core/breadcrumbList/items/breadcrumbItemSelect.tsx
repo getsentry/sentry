@@ -1,5 +1,6 @@
 import {IconChevron} from '@sentry/icons/chevron';
 
+import {BreadcrumbLeadingSlot} from '@sentry/scraps/breadcrumbList/items/breadcrumbLeadingSlot';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SingleSelectProps} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -9,7 +10,6 @@ import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {BreadcrumbItemLink} from './breadcrumbItemLink';
-import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
 export type BreadcrumbItemSelectProps<Value extends SelectKey = string> = Pick<
   Extract<SingleSelectProps<Value>, {clearable?: false}>,

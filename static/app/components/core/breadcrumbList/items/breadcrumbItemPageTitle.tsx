@@ -6,6 +6,7 @@ import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadc
 import type {BreadcrumbCopyActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import {BreadcrumbMenuAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
 import type {BreadcrumbMenuActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
+import {BreadcrumbLeadingSlot} from '@sentry/scraps/breadcrumbList/items/breadcrumbLeadingSlot';
 import {
   Button,
   type ButtonProps,
@@ -19,8 +20,6 @@ import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {unreachable} from 'sentry/utils/unreachable';
-
-import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
 /**
  * A single trailing action for the page-title crumb. The discriminant keeps

@@ -1,10 +1,11 @@
 import {createContext} from 'react';
 import type {TreeState} from '@react-stately/tree';
 
+import type {useSafetyTriangle} from '@sentry/scraps/dropdownMenu/useSafetyTriangle';
+
 import type {useOverlay} from 'sentry/utils/useOverlay';
 
 import type {MenuItemProps} from './item';
-import type {useSafetyTriangle} from './useSafetyTriangle';
 
 export type OverlayState = ReturnType<typeof useOverlay>['state'];
 

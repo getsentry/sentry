@@ -1806,7 +1806,7 @@ const config = defineConfig({
     },
     {
       files: [
-        'static/packages/scraps/src/**/*.spec.tsx',
+        'static/packages/scraps/src/**/*.spec.{ts,tsx}',
         'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
         'static/packages/icons/src/**/*.spec.tsx',
         'static/packages/icons/test/**/*.{ts,tsx,mjs}',

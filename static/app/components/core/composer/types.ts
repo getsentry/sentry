@@ -1,9 +1,9 @@
 import type React from 'react';
 import type {AnyUseQueryOptions} from '@tanstack/react-query';
 
-import type {FormSize} from 'sentry/utils/theme';
+import type {ComposerValue} from '@sentry/scraps/composer/model';
 
-import type {ComposerValue} from './model';
+import type {FormSize} from 'sentry/utils/theme';
 
 /**
  * Edits the value captured when a suggestion is selected. Call at most one action,

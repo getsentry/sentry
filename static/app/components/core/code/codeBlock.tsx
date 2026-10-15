@@ -5,12 +5,11 @@ import {IconCopy} from '@sentry/icons/copy';
 import Prism from 'prismjs';
 
 import {Button} from '@sentry/scraps/button';
+import {getPrismLanguage, loadPrismLanguage} from '@sentry/scraps/code/prism';
 import {Container} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {darkTheme} from 'sentry/utils/theme/theme';
-
-import {getPrismLanguage, loadPrismLanguage} from './prism';
 
 interface CodeBlockProps {
   children: string;

@@ -1,3 +1,4 @@
+import {METADATA_TEXT_HEIGHT, ROW_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {Container, Flex, Grid, Stack, useHasContainerQuery} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -14,7 +15,6 @@ import type {EntityHeaderStatProps} from './items/entityHeaderStat';
 import {EntityHeaderStat} from './items/entityHeaderStat';
 import type {EntityHeaderTitleProps} from './items/entityHeaderTitle';
 import {EntityHeaderTitle} from './items/entityHeaderTitle';
-import {METADATA_TEXT_HEIGHT, ROW_HEIGHT} from './constants';
 
 export interface EntityHeaderProps {
   /**

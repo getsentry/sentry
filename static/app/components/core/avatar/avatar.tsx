@@ -2,11 +2,11 @@ import type React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
+import type {BaseAvatarStyleProps} from '@sentry/scraps/avatar/avatarComponentStyles';
+import {LetterAvatar} from '@sentry/scraps/avatar/letterAvatar/letterAvatar';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 import {ImageAvatar} from './imageAvatar/imageAvatar';
-import {LetterAvatar} from './letterAvatar/letterAvatar';
-import type {BaseAvatarStyleProps} from './avatarComponentStyles';
 import {useAvatar} from './useAvatar';
 
 export interface AvatarProps extends BaseAvatarStyleProps {

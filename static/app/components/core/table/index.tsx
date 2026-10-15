@@ -14,4 +14,4 @@ export {
   fullWidthCellStyle,
   statusCellStyle,
   TableStatusCell,
-} from './styles';
+} from '@sentry/scraps/table/styles';

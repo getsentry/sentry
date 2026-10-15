@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 import type {Tagged} from 'type-fest';
 
+import {
+  baseAvatarStyles,
+  type BaseAvatarStyleProps,
+} from '@sentry/scraps/avatar/avatarComponentStyles';
 import {Image, type ImageProps} from '@sentry/scraps/image';
-
-// eslint-disable-next-line @sentry/no-relative-import-paths
-import {baseAvatarStyles, type BaseAvatarStyleProps} from '../avatarComponentStyles';
 
 export interface ImageAvatarProps
   extends BaseAvatarStyleProps, Omit<ImageProps, 'alt' | 'ref' | 'src'> {

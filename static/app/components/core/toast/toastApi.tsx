@@ -1,8 +1,9 @@
 import type {ReactNode} from 'react';
 import {toast as sonnerToast} from 'sonner';
 
+import type {ToastOptions, ToastVariant} from '@sentry/scraps/toast/types';
+
 import {Toast} from './toast';
-import type {ToastOptions, ToastVariant} from './types';
 
 type ToastId = string | number;
 

@@ -22,6 +22,16 @@ import type {LocationDescriptor} from 'history';
 
 import {DragHandle} from '@sentry/scraps/dragHandle';
 import {type Responsive, useResponsivePropResolver} from '@sentry/scraps/layout';
+import {
+  TableBody,
+  TableCell,
+  TableGrid,
+  TableHead,
+  TableHeadCell,
+  TableResizer,
+  TableRow,
+  TableStatusCell,
+} from '@sentry/scraps/table/styles';
 
 import {
   COLUMN_ALIGN_JUSTIFY,
@@ -33,17 +43,6 @@ import {
 import {useColumnResize} from 'sentry/components/tables/useColumnResize';
 import {useObservedColumnSize} from 'sentry/components/tables/useObservedColumnSize';
 import {useStableMergeRef} from 'sentry/utils/useStableMergeRef';
-
-import {
-  TableBody,
-  TableCell,
-  TableGrid,
-  TableHead,
-  TableHeadCell,
-  TableResizer,
-  TableRow,
-  TableStatusCell,
-} from './styles';
 
 // Auto layout width.
 export const COL_WIDTH_UNDEFINED = -1;

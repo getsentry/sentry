@@ -5,8 +5,9 @@ import type {AriaTabListOptions} from '@react-aria/tabs';
 import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
 import type {Orientation} from '@react-types/shared';
 
+import {tabsShouldForwardProp} from '@sentry/scraps/tabs/utils';
+
 import type {TabProps} from './tab';
-import {tabsShouldForwardProp} from './utils';
 
 interface TabsProps<T>
   extends

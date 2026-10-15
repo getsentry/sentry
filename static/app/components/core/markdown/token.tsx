@@ -1,6 +1,8 @@
 import {createContext, useContext, type ReactNode} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
+import type {ExtendedToken, Token as TokenType} from '@sentry/scraps/markdown/marked';
+import {isSafeHref, isInternalHref, sanitizeHtml} from '@sentry/scraps/markdown/marked';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -32,8 +34,6 @@ import {
   DefaultUnorderedList,
 } from './defaultComponents';
 import type {MarkdownComponents} from './markdown';
-import type {ExtendedToken, Token as TokenType} from './marked';
-import {isSafeHref, isInternalHref, sanitizeHtml} from './marked';
 
 const TAG_START_RE = /\{%\s+[\w-]/;
 

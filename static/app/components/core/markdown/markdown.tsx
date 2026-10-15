@@ -3,11 +3,14 @@ import type {ComponentType, ReactNode} from 'react';
 import {Global} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
+import type {ExtendedToken} from '@sentry/scraps/markdown/marked';
+import {MarkedLexer} from '@sentry/scraps/markdown/marked';
+import {
+  streamingAnimationStyles,
+  useStreamingAnimation,
+} from '@sentry/scraps/markdown/useStreamingAnimation';
 
-import type {ExtendedToken} from './marked';
-import {MarkedLexer} from './marked';
 import {MarkdownStreamingContext, Token} from './token';
-import {streamingAnimationStyles, useStreamingAnimation} from './useStreamingAnimation';
 
 type WithDefault<Props> = Props & {Default: ComponentType<Props>};
 

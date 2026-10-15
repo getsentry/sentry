@@ -13,6 +13,7 @@ import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
+import {useSafetyTriangle} from '@sentry/scraps/dropdownMenu/useSafetyTriangle';
 import {Container} from '@sentry/scraps/layout';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -24,7 +25,6 @@ import {DropdownMenuContext} from './context';
 import type {MenuItemProps} from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
-import {useSafetyTriangle} from './useSafetyTriangle';
 
 export interface DropdownMenuListProps
   extends

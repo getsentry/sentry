@@ -11,6 +11,20 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
+import type {
+  GroupedOptionsType,
+  OptionsType,
+  OptionTypeBase,
+  Props as ReactSelectProps,
+  StylesConfig as ReactSelectStylesConfig,
+  ValueType,
+} from '@sentry/scraps/select/reactSelectWrapper';
+import {
+  createFilter,
+  mergeStyles,
+  ReactSelect,
+  components as selectComponents,
+} from '@sentry/scraps/select/reactSelectWrapper';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -21,20 +35,6 @@ import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
 import {SelectOption} from './option';
-import type {
-  GroupedOptionsType,
-  OptionsType,
-  OptionTypeBase,
-  Props as ReactSelectProps,
-  StylesConfig as ReactSelectStylesConfig,
-  ValueType,
-} from './reactSelectWrapper';
-import {
-  createFilter,
-  mergeStyles,
-  ReactSelect,
-  components as selectComponents,
-} from './reactSelectWrapper';
 import type {SelectValue} from './types';
 
 // We don't care about any options for the styles config

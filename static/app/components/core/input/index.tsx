@@ -5,4 +5,4 @@ export {NumberDragInput} from './numberDragInput';
 export {NumberInput} from './numberInput';
 /** @public */
 export {OTPInput} from './otpInput';
-export {useAutosizeInput} from './useAutosizeInput';
+export {useAutosizeInput} from '@sentry/scraps/input/useAutosizeInput';

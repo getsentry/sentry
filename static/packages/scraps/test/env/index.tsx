@@ -10,7 +10,9 @@ import {
 
 import {lightTheme} from '@sentry/scraps/theme';
 
-export {act, screen} from '@testing-library/react';
+export {default as userEvent} from '@testing-library/user-event';
+
+export {act, screen, waitFor} from '@testing-library/react';
 
 function ThemeWrapper({children}: {children: ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;

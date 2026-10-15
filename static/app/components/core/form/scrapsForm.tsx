@@ -11,6 +11,13 @@ import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {BaseField} from '@sentry/scraps/form/field/baseField';
 import {CheckboxField} from '@sentry/scraps/form/field/checkboxField';
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
+import {
+  FormElementContext,
+  fieldContext,
+  formContext,
+  useFormContext,
+  useIsInsideFormElement,
+} from '@sentry/scraps/form/formContext';
 import {FieldLayout} from '@sentry/scraps/form/layout';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 
@@ -23,13 +30,6 @@ import {SelectAsyncField} from './field/selectAsyncField';
 import {SelectField} from './field/selectField';
 import {SwitchField} from './field/switchField';
 import {TextAreaField} from './field/textAreaField';
-import {
-  FormElementContext,
-  fieldContext,
-  formContext,
-  useFormContext,
-  useIsInsideFormElement,
-} from './formContext';
 
 export const defaultFormOptions = formOptions({
   onSubmitInvalid({

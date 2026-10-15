@@ -36,7 +36,10 @@ try {
       const name = specifier.startsWith('@')
         ? specifier.split('/').slice(0, 2).join('/')
         : specifier.split('/')[0];
-      if (name !== packageJson.name && !(name in dependencies)) {
+      const typesName =
+        '@types/' + (name.startsWith('@') ? name.slice(1).replace('/', '__') : name);
+      const declaredTypes = file.endsWith('.d.ts') && typesName in dependencies;
+      if (name !== packageJson.name && !(name in dependencies) && !declaredTypes) {
         throw new Error(`Undeclared dependency: ${specifier} in ${file}`);
       }
     }

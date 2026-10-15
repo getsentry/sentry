@@ -7,13 +7,13 @@ export {
 
 export {SelectOption} from './option';
 export {CheckWrap} from './styles';
-export {components, createFilter} from './reactSelectWrapper';
+export {components, createFilter} from '@sentry/scraps/select/reactSelectWrapper';
 export type {
   MultiValueProps,
   OptionsType,
   OptionTypeBase,
   SingleValueProps,
   ValueType,
-} from './reactSelectWrapper';
+} from '@sentry/scraps/select/reactSelectWrapper';
 
 export type {SelectValue} from './types';
