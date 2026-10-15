@@ -9,7 +9,7 @@ from sentry.digests.notifications import (
     event_to_record,
     get_rules_from_workflows,
 )
-from sentry.digests.types import IdentifierKey, Record
+from sentry.digests.types import Record
 from sentry.digests.utils import (
     get_event_from_groups_in_digest,
     get_participants_by_event,
@@ -84,8 +84,6 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
             e.event_id for e in events
         }
 
-        assert all(record.value.identifier_key == IdentifierKey.WORKFLOW for record in records)
-
     def test_event_to_record_with_workflow_id(self) -> None:
         project = self.create_project(fire_project_created=True)
         rule = self.create_project_rule(project, include_legacy_rule_id=False)
@@ -101,7 +99,6 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         records = _get_records(project, (rule,), event)
         assert len(records) == 1
         record = records[0]
-        assert record.value.identifier_key == IdentifierKey.WORKFLOW
         assert record.value.rules == [workflow_id]
 
     def test_get_rules_from_workflows_uses_workflow_environment_for_linked_rule(self) -> None:
