@@ -102,21 +102,19 @@ describe('SnapshotEntityHeader approval', () => {
     expect(screen.queryByText('Failed')).not.toBeInTheDocument();
   });
 
-  it('names the approvers in a structured tooltip', async () => {
-    renderHeader({
-      approval_status: 'approved',
-      approvers: [
-        {source: 'sentry', name: 'Alice Chen', approved_at: '2026-10-13T09:00:00Z'},
-      ],
-    });
+  it('explains an auto-approval', async () => {
+    renderHeader({approval_status: 'auto_approved', approvers: []});
 
-    await userEvent.hover(screen.getByText('Approved'));
+    await userEvent.hover(screen.getByText('Auto-approved'));
 
-    expect(await screen.findByText('Approved by')).toBeInTheDocument();
-    expect(screen.getByText('Alice Chen')).toBeInTheDocument();
+    expect(
+      await screen.findByText(/previously approved build on this PR/)
+    ).toBeInTheDocument();
   });
+});
 
-  it('names the approvers without a pointer, since a Tag cannot be focused', () => {
+describe('SnapshotEntityHeader approvers', () => {
+  it('names the approvers alongside the status, not inside it', () => {
     renderHeader({
       approval_status: 'approved',
       approvers: [
@@ -125,17 +123,32 @@ describe('SnapshotEntityHeader approval', () => {
       ],
     });
 
-    expect(screen.getByText('Approved by Alice Chen, bob-lee')).toBeInTheDocument();
+    expect(screen.getByText('Approved by: Alice Chen, bob-lee')).toBeInTheDocument();
   });
 
-  it('explains an auto-approval that has no named approver', async () => {
-    renderHeader({approval_status: 'auto_approved', approvers: []});
+  it('names a GitHub approver by its login rather than as an unknown author', () => {
+    renderHeader({
+      approval_status: 'approved',
+      approvers: [{source: 'github', username: 'bob-lee'}],
+    });
 
-    await userEvent.hover(screen.getByText('Auto-approved'));
+    expect(screen.getByText('Approved by: bob-lee')).toBeInTheDocument();
+  });
 
-    expect(
-      await screen.findByText(/previously approved build on this PR/)
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Approved by')).not.toBeInTheDocument();
+  it('still names them when the comparison never succeeded', () => {
+    renderHeader({
+      comparison_state: 'failed',
+      approval_status: 'approved',
+      approvers: [{source: 'sentry', name: 'Alice Chen'}],
+    });
+
+    expect(screen.getByText('Approved')).toBeInTheDocument();
+    expect(screen.getByText('Approved by: Alice Chen')).toBeInTheDocument();
+  });
+
+  it('renders nothing when nobody has approved', () => {
+    renderHeader();
+
+    expect(screen.queryByText(/^Approved by:/)).not.toBeInTheDocument();
   });
 });

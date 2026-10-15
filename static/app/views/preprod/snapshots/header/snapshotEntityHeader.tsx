@@ -1,12 +1,9 @@
-import {Fragment} from 'react';
-import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {IconBranch} from '@sentry/icons/branch';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconCommit} from '@sentry/icons/commit';
 import {IconPullRequest} from '@sentry/icons/pullRequest';
 import {IconTimer} from '@sentry/icons/timer';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {
@@ -17,7 +14,6 @@ import type {
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
-import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {AvatarUser} from 'sentry/types/user';
 import {isSnapshotApproved} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -27,11 +23,6 @@ import type {
   SnapshotDetailsApiResponse,
 } from 'sentry/views/preprod/types/snapshotTypes';
 import {getPrUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
-
-// The 225px default leaves roughly 100px for a name once the avatar, gaps and
-// timestamp are taken out. Still a ceiling, not a width — the tooltip sizes to
-// its rows and only wraps past this.
-const APPROVERS_TOOLTIP_MAX_WIDTH = 320;
 
 const AUTO_APPROVED_EXPLANATION = t(
   'Automatically approved because the changes match a previously approved build on this PR.'
@@ -48,8 +39,10 @@ function approverName(approver: SnapshotApprover) {
 
 function toAvatarUser(approver: SnapshotApprover, index: number): AvatarUser {
   return {
+    // `userDisplayName` reads `name` alone, so the fallbacks have to land there
+    // or a GitHub approver carrying only a login reads as an unknown author.
     id: approver.id ?? `approver-${index}`,
-    name: approver.name ?? '',
+    name: approverName(approver),
     email: approver.email ?? '',
     username: approver.username ?? '',
     ip_address: '',
@@ -57,36 +50,6 @@ function toAvatarUser(approver: SnapshotApprover, index: number): AvatarUser {
       ? {avatarType: 'upload' as const, avatarUuid: '', avatarUrl: approver.avatar_url}
       : undefined,
   };
-}
-
-function approvalTooltip(approvers: SnapshotApprover[], isAutoApproved: boolean) {
-  if (approvers.length === 0) {
-    return isAutoApproved ? AUTO_APPROVED_EXPLANATION : null;
-  }
-
-  return (
-    <Fragment>
-      <Tooltip.Header>{t('Approved by')}</Tooltip.Header>
-      <Tooltip.Grid columns="max-content 1fr max-content">
-        {approvers.map((approver, index) => (
-          <Tooltip.Row
-            key={index}
-            leadingItems={<UserAvatar user={toAvatarUser(approver, index)} size={16} />}
-            trailingItems={
-              approver.approved_at ? (
-                // The absolute date this normally hides behind a tooltip would
-                // be a tooltip inside a tooltip, which nothing can reach.
-                <TimeSince date={approver.approved_at} disabledAbsoluteTooltip />
-              ) : undefined
-            }
-          >
-            {approverName(approver)}
-          </Tooltip.Row>
-        ))}
-      </Tooltip.Grid>
-      {isAutoApproved && <Tooltip.Footer>{AUTO_APPROVED_EXPLANATION}</Tooltip.Footer>}
-    </Fragment>
-  );
 }
 
 function approvalTag(data: SnapshotDetailsApiResponse) {
@@ -103,38 +66,16 @@ function approvalTag(data: SnapshotDetailsApiResponse) {
   }
 
   if (isSnapshotApproved(approvalStatus)) {
-    const isAutoApproved = approvalStatus === 'auto_approved';
-    const approvers = data.approvers ?? [];
-    const tooltip = approvalTooltip(approvers, isAutoApproved);
     const tag = (
       <Tag variant="success" icon={<IconCheckmark />}>
-        {isAutoApproved ? t('Auto-approved') : t('Approved')}
+        {approvalStatus === 'auto_approved' ? t('Auto-approved') : t('Approved')}
       </Tag>
     );
 
-    if (!tooltip) {
-      return tag;
-    }
-
-    return (
-      <Fragment>
-        <Tooltip
-          title={tooltip}
-          // Prose keeps the sentence-width default; the approver grid does not.
-          maxWidth={approvers.length > 0 ? APPROVERS_TOOLTIP_MAX_WIDTH : undefined}
-        >
-          {tag}
-        </Tooltip>
-        {/*
-          A Tag is not focusable, so the tooltip above is reachable by pointer
-          only — its content is not in the DOM until it opens.
-        */}
-        {approvers.length > 0 && (
-          <VisuallyHidden>
-            {t('Approved by %s', approvers.map(approverName).join(', '))}
-          </VisuallyHidden>
-        )}
-      </Fragment>
+    return approvalStatus === 'auto_approved' ? (
+      <Tooltip title={AUTO_APPROVED_EXPLANATION}>{tag}</Tooltip>
+    ) : (
+      tag
     );
   }
 
@@ -221,6 +162,10 @@ export function SnapshotEntityHeader({data, isLoading}: SnapshotEntityHeaderProp
       isLoading={isLoading}
       title={buildTitle(data)}
       metadata={buildMetadata(data)}
+      // Who approved is a fact about the build, not about the state it is in,
+      // so it sits beside the status rather than inside it — and stays visible
+      // whatever that status turns out to be.
+      people={{label: t('Approved by'), users: (data.approvers ?? []).map(toAvatarUser)}}
     />
   );
 }
