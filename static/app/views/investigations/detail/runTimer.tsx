@@ -6,11 +6,18 @@ import {t} from 'sentry/locale';
 import {formatElapsedDuration} from 'sentry/utils/duration/formatElapsedDuration';
 import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
 
-export function InvestigationRunTimer({
-  orchestration,
-}: {
-  orchestration: InvestigationOrchestration;
-}) {
+/**
+ * How long the run has been working, in seconds, as of the projection's
+ * snapshot, and whether that clock is still running. `null` when the
+ * projection can't vouch for a value.
+ *
+ * The seconds are measured on the server's clock, so a caller that keeps
+ * counting should add only time it measured itself since the snapshot landed,
+ * never the gap between `serverTime` and its own wall clock.
+ */
+export function getInvestigationActiveTime(
+  orchestration: InvestigationOrchestration
+): {active: boolean; seconds: number} | null {
   const {
     startedAt,
     finishedAt,
@@ -50,9 +57,23 @@ export function InvestigationRunTimer({
     return null;
   }
 
+  return {active, seconds};
+}
+
+export function InvestigationRunTimer({
+  orchestration,
+}: {
+  orchestration: InvestigationOrchestration;
+}) {
+  const activeTime = getInvestigationActiveTime(orchestration);
+  if (!activeTime) {
+    return null;
+  }
+  const {active, seconds} = activeTime;
+
   return (
     <LiveDuration
-      key={`${orchestration.runId}:${orchestration.generation}:${serverTime}:${seconds}:${active}`}
+      key={`${orchestration.runId}:${orchestration.generation}:${orchestration.serverTime}:${seconds}:${active}`}
       seconds={seconds}
       active={active}
     />

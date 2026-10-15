@@ -667,7 +667,7 @@ function SeerInvestigationSection({
   const hasSummary = Boolean(
     existingInvestigation?.summary && existingInvestigation.summaryDescription
   );
-  const {data: orchestration} = useQuery({
+  const {data: orchestration, dataUpdatedAt: orchestrationReceivedAt} = useQuery({
     ...investigationOrchestrationQueryOptions(
       organization.slug,
       existingInvestigationId ?? 'disabled'
@@ -688,7 +688,11 @@ function SeerInvestigationSection({
         : false;
     },
   });
-  const statusBlock = getInvestigationStatusBlock(existingInvestigation, orchestration);
+  const statusBlock = getInvestigationStatusBlock(
+    existingInvestigation,
+    orchestration,
+    orchestrationReceivedAt
+  );
 
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
     onSuccess: launchedInvestigation => {
@@ -791,7 +795,8 @@ function SeerInvestigationSection({
  */
 function getInvestigationStatusBlock(
   investigation: InvestigationDetail | undefined,
-  orchestration: InvestigationOrchestration | undefined
+  orchestration: InvestigationOrchestration | undefined,
+  orchestrationReceivedAt: number
 ): ComponentProps<typeof SeerStatusBlock> | null {
   // The run's projection carries the summary too, so it shows even when the
   // detail query stopped polling before the summary was written.
@@ -816,7 +821,9 @@ function getInvestigationStatusBlock(
       ),
     };
   }
-  const runStatus = orchestration ? getSeerStatusBlock(orchestration) : null;
+  const runStatus = orchestration
+    ? getSeerStatusBlock(orchestration, orchestrationReceivedAt)
+    : null;
   if (!runStatus) {
     return null;
   }
@@ -832,6 +839,7 @@ function getInvestigationStatusBlock(
     // what happened, carry it here.
     description: runStatus.variant === 'running' ? undefined : runStatus.description,
     toolActivity: runStatus.toolActivity,
+    startTime: runStatus.startTime,
   };
 }
 
