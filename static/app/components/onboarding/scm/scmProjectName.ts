@@ -3,6 +3,31 @@ import {slugify} from 'sentry/utils/slugify';
 
 const MAX_PROJECT_NAME_LENGTH = 50;
 
+/**
+ * Mirrors sentry.constants.RESERVED_PROJECT_SLUGS.
+ * Keep in sync with src/sentry/constants.py when adding or removing entries.
+ */
+const RESERVED_PROJECT_SLUGS = new Set([
+  '$all',
+  'api-keys',
+  'audit-log',
+  'auth',
+  'members',
+  'projects',
+  'rate-limits',
+  'repos',
+  'settings',
+  'teams',
+  'billing',
+  'payments',
+  'legal',
+  'subscription',
+  'support',
+  'integrations',
+  'developer-settings',
+  'usage',
+]);
+
 interface Options {
   platformKey: string | undefined;
   repository: Repository | undefined;
@@ -13,13 +38,14 @@ interface Options {
  *
  * Prefers the last path segment of the selected repository name
  * (e.g. "getsentry/sentry" → "sentry"), falling back to the platform key
- * when no repository is selected.
+ * when no repository is selected or the repo-derived name is a reserved slug.
  */
 export function getScmDefaultProjectName({repository, platformKey}: Options): string {
-  return (
-    toProjectName(repository?.name.split('/').pop() ?? '') ||
-    toProjectName(platformKey ?? '')
-  );
+  const repoName = toProjectName(repository?.name.split('/').pop() ?? '');
+  if (repoName && !RESERVED_PROJECT_SLUGS.has(repoName)) {
+    return repoName;
+  }
+  return toProjectName(platformKey ?? '');
 }
 
 // Mirrors the backend's slugify_instance, which strips edge hyphens after truncating.
