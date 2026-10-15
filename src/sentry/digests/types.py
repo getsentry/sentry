@@ -19,9 +19,13 @@ class IdentifierKey(StrEnum):
 
 class Notification(NamedTuple):
     event: Event | GroupEvent
+    # Compatibility field: despite its name, this contains workflow IDs.
     rules: Sequence[int] = ()
     notification_uuid: str | None = None
-    identifier_key: IdentifierKey = IdentifierKey.RULE
+    identifier_key: IdentifierKey = IdentifierKey.WORKFLOW
+    # New records mirror `rules` here. Once all live data has both fields, readers should switch
+    # to this field. When present, both fields must contain the same values.
+    workflow_ids: Sequence[int] | None = None
 
     def with_rules(self, rules: list[NotificationOrigin]) -> NotificationWithRuleObjects:
         return NotificationWithRuleObjects(
