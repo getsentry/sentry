@@ -52,9 +52,8 @@ describe('SettingsBreadcrumbSelector', () => {
     await userEvent.hover(label);
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     await userEvent.click(trigger);
-    // jsdom can't evaluate the breadcrumb's @container query, so the crumb's base
-    // `display: none` wins and jsdom refuses to focus anything inside it.
-    // userEvent.type never reaches the input, so set the value directly.
+    // jsdom can't evaluate container queries, so it treats the crumb as hidden
+    // and won't focus the input. Set the value directly instead of typing.
     fireEvent.change(await screen.findByPlaceholderText('Search Projects'), {
       target: {value: 'python'},
     });
