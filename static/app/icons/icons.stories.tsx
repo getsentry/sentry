@@ -808,13 +808,6 @@ const SECTIONS: TSection[] = [
     label: 'Action',
     icons: [
       {
-        id: 'logOut',
-        groups: ['action'],
-        keywords: ['sign out', 'logout', 'exit'],
-        name: 'LogOut',
-        defaultProps: {},
-      },
-      {
         id: 'add',
         groups: ['action'],
         keywords: ['plus', 'create', 'new', 'insert', 'math'],
