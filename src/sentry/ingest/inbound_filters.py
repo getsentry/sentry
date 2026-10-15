@@ -436,7 +436,9 @@ def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:
 
 
 def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
-    globs = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}")
+    from sentry.ingest import legacy_filter_lists
+
+    globs = legacy_filter_lists.get_applied_lines(project, FilterTypes.LOG_MESSAGES)
     if not globs:
         return []
 
@@ -445,7 +447,9 @@ def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
 
 
 def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]:
-    globs = project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}")
+    from sentry.ingest import legacy_filter_lists
+
+    globs = legacy_filter_lists.get_applied_lines(project, FilterTypes.TRACE_METRIC_NAMES)
     if not globs:
         return []
 
@@ -699,8 +703,8 @@ def _custom_filter_condition(
 
 def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
     generic_filters: list[GenericFilter] = []
-    # A row with legacy_filter set is the double write of a legacy list that Relay still receives
-    # through the legacy path, so serving it here would filter the same data twice.
+    # A row with legacy_filter set holds a legacy list that Relay receives through the
+    # legacy path at every stage, so serving it here would filter the same data twice.
     custom_filters = CustomInboundFilter.objects.filter(
         project_id=project.id, active=True, legacy_filter__isnull=True
     ).order_by("id")[:MAX_FILTERS_PER_PROJECT]

@@ -28,6 +28,7 @@ from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils.safe import get_path
@@ -1517,3 +1518,52 @@ def test_project_config_skips_the_row_of_a_legacy_list(default_project) -> None:
     assert [i for i in generic_ids if i.startswith(CUSTOM_INBOUND_FILTER_ID_PREFIX)] == [
         f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{mine.id}"
     ]
+
+
+@django_db_all
+@cell_silo_test
+@override_options(
+    {
+        "custom-inbound-filters.legacy-filter-stage": {
+            "releases": "v2",
+            "error_messages": "v2",
+            "log_messages": "v2",
+        }
+    }
+)
+def test_project_config_reads_a_legacy_list_at_v2_from_its_row(default_project, factories):
+    default_project.update_option("sentry:releases", ["stale"])
+    default_project.update_option("sentry:error_messages", ["stale"])
+    default_project.update_option("sentry:log_messages", ["stale"])
+    default_project.update_option("sentry:trace_metric_names", ["some metric"])
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "value": ["1.*"]}],
+        legacy_filter=LegacyFilter.RELEASE_VERSION,
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        active=False,
+        data_type="error",
+        conditions=[{"type": "error_message", "value": ["TypeError*"]}],
+        legacy_filter=LegacyFilter.ERROR_MESSAGE,
+    )
+
+    with Feature(
+        {
+            "projects:custom-inbound-filters": True,
+            "organizations:ourlogs-ingestion": True,
+            "organizations:tracemetrics-ingestion": True,
+        }
+    ):
+        cfg = get_project_config(default_project).to_dict()
+
+    filter_settings = cfg["config"]["filterSettings"]
+    assert filter_settings["releases"] == {"releases": ["1.*"]}
+    # A row the user switched off applies nothing, and a list without a row is empty
+    # whatever its option still holds. A list before v2 still reads its option.
+    assert "errorMessages" not in filter_settings
+    generic_ids = [f["id"] for f in filter_settings["generic"]["filters"]]
+    assert "log-message" not in generic_ids
+    assert "trace-metric-name" in generic_ids

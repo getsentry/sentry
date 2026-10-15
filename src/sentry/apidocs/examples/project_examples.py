@@ -376,6 +376,7 @@ ERROR_RELEASE_CUSTOM_INBOUND_FILTER = {
     ],
     "dateCreated": "2024-07-23T17:52:53.981206Z",
     "dateUpdated": "2024-07-23T17:52:53.981206Z",
+    "legacyFilter": None,
 }
 
 
