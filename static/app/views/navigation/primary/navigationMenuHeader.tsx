@@ -41,8 +41,12 @@ export function NavigationMenuHeader({
   return (
     <MenuHeader
       label={t('User')}
-      title={user.name || user.username || user.email}
-      subtitle={user.name === user.email ? undefined : user.email}
+      title={
+        user.name === user.email
+          ? user.email.split('@')[0]?.split('.').join(' ')
+          : user.name || user.username || user.email
+      }
+      subtitle={user.email}
       avatarProps={getUserAvatarProps(user)}
       avatar={
         <Container
@@ -91,8 +95,8 @@ function MenuHeader({
   avatar: ReactNode;
   avatarProps: BaseAvatarProps;
   label: string;
+  subtitle: string;
   title: string;
-  subtitle?: string;
 }) {
   const currentTheme = useTheme();
   const invertedTheme = useInvertedTheme();
@@ -129,11 +133,9 @@ function MenuHeader({
               <Text size="md" density="comfortable" bold variant="primary">
                 {title}
               </Text>
-              {subtitle && (
-                <Text size="sm" density="comfortable" variant="muted" tabular>
-                  {subtitle}
-                </Text>
-              )}
+              <Text size="sm" density="comfortable" variant="muted" tabular>
+                {subtitle}
+              </Text>
             </Stack>
           </Flex>
         </Stack>
