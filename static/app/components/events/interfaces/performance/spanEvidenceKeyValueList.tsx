@@ -949,5 +949,6 @@ const QueryCard = styled('div')`
   pre {
     margin: 0 !important;
     padding-top: ${p => p.theme.space.md} !important;
+    padding-inline: ${p => p.theme.space.lg} !important;
   }
 `;
