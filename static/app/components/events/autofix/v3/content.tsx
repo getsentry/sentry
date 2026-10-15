@@ -57,7 +57,6 @@ export function SeerDrawerContent({
   const isLoadingRun =
     autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
 
-  // While a start request is in flight, keep the start card on screen.
   if (isLoadingRun && !autofix.isWaitingForRun) {
     return (
       <Stack gap="xl">

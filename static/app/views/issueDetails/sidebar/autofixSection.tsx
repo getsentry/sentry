@@ -187,8 +187,6 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
 
   const isLoadingRun =
     autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
-  // While a start request is in flight, keep the start card (with its pending
-  // button) on screen instead of swapping it for a placeholder.
   const showRunPlaceholder = isLoadingRun && !autofix.isWaitingForRun;
 
   if (isPending || aiConfig.isAutofixSetupLoading || showRunPlaceholder) {
