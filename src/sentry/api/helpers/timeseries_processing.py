@@ -2,9 +2,16 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Final, Literal
 
+from pydantic import BaseModel, ValidationError, validator
+
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import FUNCTION_PATTERN
-from sentry.search.events.fields import parse_arguments
+from sentry.search.events.fields import (
+    FunctionArg,
+    IntArg,
+    InvalidFunctionArgument,
+    parse_arguments,
+)
 
 FILL_MODE_LOCF: Final = "locf"
 FILL_MODE_ZERO: Final = "zero"
@@ -16,25 +23,44 @@ FillMode = Literal["locf", "zero", "linear"]
 SmoothMode = Literal["sma"]
 
 
-@dataclass(frozen=True)
-class FillTransformation:
+class FillTransformation(BaseModel):
     mode: FillMode
 
+    class Config:
+        extra = "forbid"
+        frozen = True
+        validate_all = True
 
-@dataclass(frozen=True)
-class SmoothTransformation:
+
+class SmoothTransformation(BaseModel):
     mode: SmoothMode
+    window_size: int = 3
+
+    class Config:
+        extra = "forbid"
+        frozen = True
+        validate_all = True
+
+    @validator("window_size", pre=True)
+    def validate_window_size(cls, value: object) -> int:
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError("Window size must be an integer.")
+        if value < 1:
+            raise ValueError("Window size must be positive.")
+        return value
 
 
 Transformation = FillTransformation | SmoothTransformation
 
-_TRANSFORMATIONS: dict[str, dict[str, Transformation]] = {
-    "fill": {
-        FILL_MODE_LOCF: FillTransformation(mode=FILL_MODE_LOCF),
-        FILL_MODE_ZERO: FillTransformation(mode=FILL_MODE_ZERO),
-        FILL_MODE_LINEAR: FillTransformation(mode=FILL_MODE_LINEAR),
-    },
-    "smooth": {SMOOTH_MODE_SMA: SmoothTransformation(mode=SMOOTH_MODE_SMA)},
+_TRANSFORMATIONS: dict[
+    str,
+    tuple[type[FillTransformation] | type[SmoothTransformation], tuple[FunctionArg, ...]],
+] = {
+    "fill": (FillTransformation, (FunctionArg("mode"),)),
+    "smooth": (
+        SmoothTransformation,
+        (FunctionArg("mode"), IntArg("window_size", negative=True)),
+    ),
 }
 
 
@@ -44,18 +70,40 @@ def parse_transformation(value: str) -> Transformation:
         raise InvalidSearchQuery(f"{value} is not a valid transformation")
 
     function = match.group("function")
-    modes = _TRANSFORMATIONS.get(function)
-    if modes is None:
+    definition = _TRANSFORMATIONS.get(function)
+    if definition is None:
         raise InvalidSearchQuery(f"{function} is not a valid transformation function")
 
-    arguments = parse_arguments(function, match.group("columns"))
-    if len(arguments) != 1 or match.group("columns").strip() != arguments[0]:
-        raise InvalidSearchQuery(f"{value}: expected a single mode argument")
+    model, argument_definitions = definition
+    columns = match.group("columns")
+    arguments = parse_arguments(function, columns)
+    if len(arguments) != columns.count(",") + 1:
+        raise InvalidSearchQuery(f"{value}: empty transformation arguments are not allowed")
 
-    transformation = modes.get(arguments[0])
-    if transformation is None:
-        raise InvalidSearchQuery(f"{value}: mode argument invalid: expected one of {list(modes)}")
-    return transformation
+    required_count = sum(
+        model.__fields__[argument.name].required is True for argument in argument_definitions
+    )
+    if not required_count <= len(arguments) <= len(argument_definitions):
+        expected = str(required_count)
+        if required_count != len(argument_definitions):
+            expected = f"{required_count} to {len(argument_definitions)}"
+        raise InvalidSearchQuery(f"{value}: argument count must be {expected}")
+
+    config: dict[str, object] = {}
+    for argument, raw_value in zip(argument_definitions, arguments):
+        try:
+            config[argument.name] = argument.normalize(raw_value, {}, None)
+        except InvalidFunctionArgument as error:
+            raise InvalidSearchQuery(f"{value}: {argument.name} argument invalid: {error}")
+
+    try:
+        return model.parse_obj(config)
+    except ValidationError as error:
+        detail = error.errors()[0]
+        message = detail["msg"]
+        if detail["type"] == "value_error.const":
+            message = f"expected one of {', '.join(detail['ctx']['permitted'])}"
+        raise InvalidSearchQuery(f"{value}: {detail['loc'][0]} argument invalid: {message}")
 
 
 @dataclass(frozen=True)
@@ -68,7 +116,7 @@ def fill_timeseries(
     timestamps: Sequence[float],
     values: Sequence[float | None],
     *,
-    mode: FillMode,
+    config: FillTransformation,
 ) -> FilledTimeseries:
     """Fill missing values using the selected mode.
 
@@ -86,6 +134,7 @@ def fill_timeseries(
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
 
+    mode = config.mode
     if mode == FILL_MODE_ZERO:
         return FilledTimeseries(
             values=[0.0 if value is None else value for value in values],
@@ -124,16 +173,13 @@ def fill_timeseries(
             filled_values.append(last_observed_value)
 
         return FilledTimeseries(values=filled_values, filled=filled)
-    else:
-        raise ValueError(f"Unsupported fill mode: {mode}")
 
 
 def smooth_timeseries(
     timestamps: Sequence[float],
     values: Sequence[float | None],
     *,
-    mode: SmoothMode,
-    window_size: int = 3,
+    config: SmoothTransformation,
 ) -> list[float | None]:
     """Smooth values using the selected mode.
 
@@ -152,26 +198,20 @@ def smooth_timeseries(
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
 
-    if mode == SMOOTH_MODE_SMA:
-        if window_size < 1:
-            raise ValueError("Window size must be positive.")
+    smoothed_values: list[float | None] = []
+    window_sum = 0.0
+    window_count = 0
+    for index, value in enumerate(values):
+        if index >= config.window_size:
+            expired_value = values[index - config.window_size]
+            if expired_value is not None:
+                window_sum -= expired_value
+                window_count -= 1
+        if value is None:
+            smoothed_values.append(None)
+        else:
+            window_sum += value
+            window_count += 1
+            smoothed_values.append(window_sum / window_count)
 
-        smoothed_values: list[float | None] = []
-        window_sum = 0.0
-        window_count = 0
-        for index, value in enumerate(values):
-            if index >= window_size:
-                expired_value = values[index - window_size]
-                if expired_value is not None:
-                    window_sum -= expired_value
-                    window_count -= 1
-            if value is None:
-                smoothed_values.append(None)
-            else:
-                window_sum += value
-                window_count += 1
-                smoothed_values.append(window_sum / window_count)
-
-        return smoothed_values
-    else:
-        raise ValueError(f"Unsupported smoothing mode: {mode}")
+    return smoothed_values

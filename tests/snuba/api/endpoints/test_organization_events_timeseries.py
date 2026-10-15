@@ -32,6 +32,15 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
         ("transformationsExtra=ignored&query=anything", {}),
         ("transformations[0]=fill(locf)", {0: [FillTransformation(mode="locf")]}),
         (
+            "transformations[0]=smooth%28sma%2C5%29&transformations[0]=smooth(sma)",
+            {
+                0: [
+                    SmoothTransformation(mode="sma", window_size=5),
+                    SmoothTransformation(mode="sma"),
+                ]
+            },
+        ),
+        (
             "yAxis=count()&yAxis=count()&transformations%5B1%5D=fill%28locf%29"
             "&transformations%5B1%5D=smooth%28sma%29&transformations%5B0%5D=fill%28zero%29",
             {
@@ -100,8 +109,13 @@ def test_decode_transformations_index_out_of_range(query: str) -> None:
         ("[fill(locf), smooth(sma)]", "[fill(locf), smooth(sma)] is not a valid transformation"),
         (
             "fill(sma)",
-            "fill(sma): mode argument invalid: expected one of ['locf', 'zero', 'linear']",
+            "fill(sma): mode argument invalid: expected one of locf, zero, linear",
         ),
+        (
+            "smooth(sma,0)",
+            "smooth(sma,0): window_size argument invalid: Window size must be positive.",
+        ),
+        ("smooth(sma,,5)", "smooth(sma,,5): empty transformation arguments are not allowed"),
     ],
 )
 def test_decode_transformations_invalid_value(
@@ -153,7 +167,7 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             )
 
         assert response.data == {
-            "detail": "smooth(linear): mode argument invalid: expected one of ['sma']"
+            "detail": "smooth(linear): mode argument invalid: expected one of sma"
         }
 
     def test_transformations_ignored_when_feature_disabled(self) -> None:
