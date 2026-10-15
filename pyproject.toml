@@ -571,7 +571,6 @@ module = [
     "sentry.api.endpoints.project_transaction_names",
     "sentry.api.endpoints.project_transaction_threshold",
     "sentry.api.endpoints.project_transaction_threshold_override",
-    "sentry.api.endpoints.project_web_vitals_detection",
     "sentry.api.endpoints.prompts_activity",
     "sentry.api.endpoints.relay.*",
     "sentry.api.endpoints.seer_models",
