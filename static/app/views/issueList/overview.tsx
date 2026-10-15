@@ -188,10 +188,6 @@ function IssueListOverviewInner({
 
   useIssuesINPObserver();
 
-  useEffect(() => {
-    Sentry.metrics.count('issues.list.page-view', 1);
-  }, []);
-
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
       // Note: We do not update state with cursors from polling,
