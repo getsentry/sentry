@@ -193,12 +193,16 @@ oxlint-suppressions.json                                 @getsentry/design-engin
 /.github/workflows/prune-oxlint-suppressions.yml           @getsentry/design-engineering
 /scripts/custom-oxlint.ts                                @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
-jest.config.ts                                           @getsentry/owners-js-build
+/jest.config.mjs                                         @getsentry/owners-js-build
 /tests/js/test-balancer/                                 @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 .node-version                                            @getsentry/owners-js-deps
 package.json                                             @getsentry/owners-js-deps
 pnpm-lock.yaml                                           @getsentry/owners-js-deps
+/tests/js/createJestConfig.ts                             @getsentry/owners-js-build
+/tests/js/jest.config.*                                   @getsentry/owners-js-build
+/tests/js/bin/                                           @getsentry/owners-js-build
+/tests/js/package.json                                   @getsentry/owners-js-build @getsentry/owners-js-deps
 
 ## Product Design
 /static/fonts/                                           @getsentry/product-design
