@@ -62,12 +62,13 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
             button = BlockSlackMessageBuilder.get_button_action(investigation_action)
             blocks.append({"type": "actions", "elements": [button]})
 
-        # The footer goes last and its link is left undecorated so this block matches the legacy
-        # builder exactly, which the shadow comparison relies on.
+        # The footer goes last, matching the legacy builder. Like the title link, the footer link
+        # only differs from legacy when tracking is enabled for this source.
         if data.workflow_name and data.workflow_link:
+            workflow_link = link_decorator.decorate_url(data.workflow_link)
             blocks.append(
                 BlockSlackMessageBuilder.get_context_block(
-                    text=get_workflow_footer(data.workflow_name, data.workflow_link)
+                    text=get_workflow_footer(data.workflow_name, workflow_link)
                 )
             )
 
