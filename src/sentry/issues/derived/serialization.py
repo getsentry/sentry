@@ -9,7 +9,7 @@ materialized (possibly stale), mirroring every other derived-data consumer.
 
 import logging
 from datetime import datetime
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from sentry.issues.derived.features import (
     BLOCKER,
@@ -43,7 +43,8 @@ class GroupDerivedDataResponse(TypedDict):
     hasRootCause: bool
     lastCompletedAutofixStep: str
     lastProgressedAt: datetime | None
-    impact: ImpactDerivedData | None
+    # Will become required once generally available
+    impact: NotRequired[ImpactDerivedData | None]
 
 
 def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDataResponse]:
