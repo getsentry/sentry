@@ -3530,7 +3530,12 @@ class PostProcessGroupErrorTest(
         event.data["nodestore_insert"] = now - 60
         event.data["contexts"]["reprocessing"] = reprocessing_context
 
-        self.call_post_process_group(True, False, True, event)
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
 
         mock_run_job.assert_called_once()
         mock_timing.assert_any_call(
