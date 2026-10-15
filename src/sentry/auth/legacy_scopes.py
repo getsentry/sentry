@@ -98,7 +98,6 @@ def record_legacy_read_write(
             "method": request.method,
             "scopes": sorted(scopes),
             "allowed": allowed,
-            "token_id": _user_token_id(request.auth),
             "user_id": getattr(request.user, "id", None),
         },
     )
