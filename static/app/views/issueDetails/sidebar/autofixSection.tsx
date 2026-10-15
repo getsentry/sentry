@@ -188,12 +188,15 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
   if (
     // waiting on the onboarding checks to load
     isPending ||
-    // autofix results are loading
-    autofix.isLoading ||
     // waiting for the ai configs to load
     aiConfig.isAutofixSetupLoading ||
-    // we're polling and no blocks have been added yet
-    (autofix.isPolling && !autofix.runState?.blocks?.length)
+    // A start request that hasn't returned a run yet keeps the start card on
+    // screen with its pending button, rather than swapping it for a placeholder.
+    (!autofix.isWaitingForRun &&
+      // autofix results are loading
+      (autofix.isLoading ||
+        // we're polling and no blocks have been added yet
+        (autofix.isPolling && !autofix.runState?.blocks?.length)))
   ) {
     return <Placeholder height="160px" />;
   }

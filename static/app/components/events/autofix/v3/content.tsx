@@ -55,10 +55,12 @@ export function SeerDrawerContent({
   );
 
   if (
+    // Same as the sidebar: a pending start keeps the start card on screen.
+    !autofix.isWaitingForRun &&
     // autofix results are loading
-    autofix.isLoading ||
-    // we're polling and no blocks have been added yet
-    (autofix.isPolling && !autofix.runState?.blocks?.length)
+    (autofix.isLoading ||
+      // we're polling and no blocks have been added yet
+      (autofix.isPolling && !autofix.runState?.blocks?.length))
   ) {
     return (
       <Stack gap="xl">

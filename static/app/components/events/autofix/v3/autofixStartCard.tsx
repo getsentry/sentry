@@ -40,6 +40,9 @@ export function AutofixStartCard({
   const [enableBashMode] = useForceBashMode();
 
   const [startingRun, setStartingRun] = useState(false);
+  // The request settles before the first run state is fetched, so the hook's
+  // flag keeps the button pending until there is a run to show.
+  const isStarting = startingRun || autofix.isWaitingForRun;
   const handleStartRootCause = async () => {
     setStartingRun(true);
     try {
@@ -57,14 +60,14 @@ export function AutofixStartCard({
       <AutofixStartCardContent />
       <Button
         size="md"
-        icon={startingRun ? <LoadingIndicator size={16} /> : <IconBug />}
+        icon={isStarting ? <LoadingIndicator size={16} /> : <IconBug />}
         aria-label={t('Start Analysis')}
         variant="primary"
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
-        disabled={startingRun}
+        disabled={isStarting}
       >
         {t('Start Analysis')}
       </Button>
