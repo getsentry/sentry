@@ -2002,6 +2002,15 @@ DEPRECATED_SCOPES = frozenset(
     ]
 )
 
+# Compatibility scopes for writes that historically only required a read scope.
+# Endpoints list the compatibility scope in place of the read scope; the caller
+# satisfies it by holding the read scope with a credential that predates the cutoff
+# in `sentry.auth.legacy_scopes`. They are never stored on credentials, granted by
+# roles, or advertised to clients, which is why they are not in SENTRY_SCOPES.
+LEGACY_READ_WRITE_SCOPES: dict[str, str] = {
+    "legacy:org-read-writes": "org:read",
+}
+
 SENTRY_SCOPE_SETS = (
     (
         ("org:admin", "Read, write, and admin access to organization details."),

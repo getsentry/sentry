@@ -38,10 +38,14 @@ def _qualified_name(value: object) -> str:
 
 
 def _expand_scope_hierarchy(scopes: Iterable[str]) -> frozenset[str]:
+    # A compatibility scope is checked through its read scope, so the read scope
+    # counts as declared wherever the compatibility scope is.
     return frozenset(
         effective_scope
         for scope in scopes
-        for effective_scope in settings.SENTRY_SCOPE_HIERARCHY_MAPPING.get(scope, (scope,))
+        for effective_scope in settings.SENTRY_SCOPE_HIERARCHY_MAPPING.get(
+            settings.LEGACY_READ_WRITE_SCOPES.get(scope, scope), (scope,)
+        )
     )
 
 

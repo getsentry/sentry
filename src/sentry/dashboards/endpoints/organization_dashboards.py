@@ -375,9 +375,9 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int)
 class OrganizationDashboardsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "dashboard:read"],
-        "POST": ["org:read", "org:write", "org:admin", "dashboard:write"],
-        "PUT": ["org:read", "org:write", "org:admin", "dashboard:write"],
-        "DELETE": ["org:read", "org:write", "org:admin", "dashboard:delete"],
+        "POST": ["legacy:org-read-writes", "org:write", "org:admin", "dashboard:write"],
+        "PUT": ["legacy:org-read-writes", "org:write", "org:admin", "dashboard:write"],
+        "DELETE": ["legacy:org-read-writes", "org:write", "org:admin", "dashboard:delete"],
     }
 
     def has_object_permission(
@@ -415,7 +415,13 @@ class OrganizationDashboardsCreatePermission(OrganizationDashboardsPermission):
     # `dashboard:write` stays listed for tokens whose stored scopes predate `dashboard:create`.
     scope_map = {
         **OrganizationDashboardsPermission.scope_map,
-        "POST": ["org:read", "org:write", "org:admin", "dashboard:create", "dashboard:write"],
+        "POST": [
+            "legacy:org-read-writes",
+            "org:write",
+            "org:admin",
+            "dashboard:create",
+            "dashboard:write",
+        ],
     }
 
 

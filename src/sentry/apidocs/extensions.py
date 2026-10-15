@@ -11,7 +11,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import Direction
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint
-from sentry.conf.server import GRANULAR_SCOPES
+from sentry.conf.server import GRANULAR_SCOPES, LEGACY_READ_WRITE_SCOPES
 
 
 class TokenAuthExtension(OpenApiAuthenticationExtension):
@@ -27,7 +27,9 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
         scopes = set()
         for permission in auto_schema.view.get_permissions():
             for s in permission.scope_map.get(auto_schema.method, []):
-                scopes.add(s)
+                # Document the read scope behind a compatibility scope until the
+                # cutoff applies to every credential.
+                scopes.add(LEGACY_READ_WRITE_SCOPES.get(s, s))
 
         scope_list = sorted(scopes - GRANULAR_SCOPES)
         return {self.name: scope_list}
