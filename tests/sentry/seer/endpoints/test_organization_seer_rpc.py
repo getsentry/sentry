@@ -495,6 +495,30 @@ class TestOrganizationSeerRpcTeamRestrictedMember(APITestCase):
         assert params["project"] == [self.visible_project.id]
 
     @with_feature("organizations:seer-public-rpc")
+    @patch("sentry.seer.assisted_query.issues_tools.ApiClient")
+    def test_execute_issues_query_drops_short_id_hits_from_other_projects(
+        self, mock_api_client: MagicMock
+    ) -> None:
+        mock_api_client.return_value.get.return_value = MagicMock(
+            data=[
+                {"id": "1", "project": {"id": str(self.visible_project.id)}},
+                {"id": "2", "project": {"id": str(self.restricted_project.id)}},
+            ]
+        )
+
+        response = self._post(
+            "execute_issues_query",
+            {
+                "project_ids": [self.visible_project.id],
+                "query": "PAYMENTS-7",
+                "stats_period": "24h",
+            },
+        )
+
+        assert response.status_code == 200
+        assert [issue["id"] for issue in response.data] == ["1"]
+
+    @with_feature("organizations:seer-public-rpc")
     @patch("sentry.seer.agent.tools.client.get")
     def test_execute_table_query_defaults_to_accessible_projects(self, mock_get: MagicMock) -> None:
         mock_get.return_value = MagicMock(data={"data": []})

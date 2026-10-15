@@ -11,7 +11,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.release import Release
 from sentry.models.team import Team, TeamStatus
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
-from sentry.seer.public_caller import scope_projects
+from sentry.seer.public_caller import public_caller_restricted, scope_projects
 from sentry.seer.sentry_data_models import (
     ExecuteIssuesQuerySuccessResponse,
     ExecuteQueryErrorResponse,
@@ -742,7 +742,19 @@ def execute_issues_query(
             path=f"/organizations/{organization.slug}/issues/",
             params=params,
         )
-        return ExecuteIssuesQuerySuccessResponse(__root__=resp.data)
+        # shortIdLookup resolves with project_ids=None and then keeps every issue
+        # the synthetic org key can see, which is the whole org. Drop anything
+        # outside the caller's projects.
+        data = resp.data
+        if public_caller_restricted() and isinstance(data, list):
+            allowed = {str(project_id) for project_id in project_ids}
+            data = [
+                issue
+                for issue in data
+                if isinstance(issue, dict)
+                and str((issue.get("project") or {}).get("id")) in allowed
+            ]
+        return ExecuteIssuesQuerySuccessResponse(__root__=data)
     except ApiError as e:
         if e.status_code == 400:
             detail = e.body.get("detail") if isinstance(e.body, dict) else None
