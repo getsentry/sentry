@@ -205,7 +205,7 @@ class AppPlatformEventSerializerTest(TestCase):
         assert original.headers["Idempotency-Key"] == expected
         assert retry.headers["Idempotency-Key"] == expected
         assert original.loggable_headers["Idempotency-Key"] == expected
-        assert len(expected) == 8
+        assert len(expected) == 32
 
     def test_error_created_idempotency_key_is_stable_across_retries(self) -> None:
         event_id = "0123456789abcdef0123456789abcdef"
