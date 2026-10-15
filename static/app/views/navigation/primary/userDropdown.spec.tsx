@@ -79,6 +79,8 @@ describe('UserDropdown', () => {
       'href',
       '/settings/account/'
     );
+    expect(screen.getByRole('separator')).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Sign Out'})).toBeInTheDocument();
     expect(screen.getByText('Foo Bar')).toBeInTheDocument();
 
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Preferences'}));

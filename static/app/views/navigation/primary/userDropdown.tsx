@@ -1,6 +1,7 @@
 import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconLogOut} from '@sentry/icons/logOut';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSliders} from '@sentry/icons/sliders';
 
@@ -100,83 +101,89 @@ export function UserDropdown() {
         menuTitle={<NavigationMenuHeader user={user} />}
         items={[
           {
-            key: 'settings',
-            label: t('Settings'),
-            leadingItems: <IconSettings size="sm" />,
-            to: '/settings/account/',
-          },
-          {
-            key: 'preferences',
-            label: t('Preferences'),
-            leadingItems: <IconSliders size="sm" />,
-            submenu: {title: t('Preferences')},
+            key: 'account-actions',
             children: [
               {
-                key: 'theme',
-                label: t('Theme'),
+                key: 'settings',
+                label: t('Settings'),
+                leadingItems: <IconSettings size="sm" />,
+                to: '/settings/account/',
+              },
+              {
+                key: 'preferences',
+                label: t('Preferences'),
+                leadingItems: <IconSliders size="sm" />,
+                submenu: {title: t('Preferences')},
                 children: [
                   {
-                    key: 'theme-system',
-                    label: t('Default to system'),
-                    leadingItems:
-                      user.options.theme === 'system' ? (
-                        <IconCheckmark size="sm" />
-                      ) : undefined,
-                    onAction: () => updateOptions({theme: 'system'}),
+                    key: 'theme',
+                    label: t('Theme'),
+                    children: [
+                      {
+                        key: 'theme-system',
+                        label: t('Default to system'),
+                        leadingItems:
+                          user.options.theme === 'system' ? (
+                            <IconCheckmark size="sm" />
+                          ) : undefined,
+                        onAction: () => updateOptions({theme: 'system'}),
+                      },
+                      {
+                        key: 'theme-light',
+                        label: t('Light'),
+                        leadingItems:
+                          user.options.theme === 'light' ? (
+                            <IconCheckmark size="sm" />
+                          ) : undefined,
+                        onAction: () => updateOptions({theme: 'light'}),
+                      },
+                      {
+                        key: 'theme-dark',
+                        label: t('Dark'),
+                        leadingItems:
+                          user.options.theme === 'dark' ? (
+                            <IconCheckmark size="sm" />
+                          ) : undefined,
+                        onAction: () => updateOptions({theme: 'dark'}),
+                      },
+                    ],
                   },
                   {
-                    key: 'theme-light',
-                    label: t('Light'),
-                    leadingItems:
-                      user.options.theme === 'light' ? (
-                        <IconCheckmark size="sm" />
-                      ) : undefined,
-                    onAction: () => updateOptions({theme: 'light'}),
-                  },
-                  {
-                    key: 'theme-dark',
-                    label: t('Dark'),
-                    leadingItems:
-                      user.options.theme === 'dark' ? (
-                        <IconCheckmark size="sm" />
-                      ) : undefined,
-                    onAction: () => updateOptions({theme: 'dark'}),
+                    key: 'time-format',
+                    label: t('Time Format'),
+                    children: [
+                      {
+                        key: 'time-format-false',
+                        label: t('12 hour'),
+                        leadingItems: user.options.clock24Hours ? undefined : (
+                          <IconCheckmark size="sm" />
+                        ),
+                        onAction: () => updateOptions({clock24Hours: false}),
+                      },
+                      {
+                        key: 'time-format-true',
+                        label: t('24 hour'),
+                        leadingItems: user.options.clock24Hours ? (
+                          <IconCheckmark size="sm" />
+                        ) : undefined,
+                        onAction: () => updateOptions({clock24Hours: true}),
+                      },
+                    ],
                   },
                 ],
               },
               {
-                key: 'time-format',
-                label: t('Time Format'),
-                children: [
-                  {
-                    key: 'time-format-false',
-                    label: t('12 hour'),
-                    leadingItems: user.options.clock24Hours ? undefined : (
-                      <IconCheckmark size="sm" />
-                    ),
-                    onAction: () => updateOptions({clock24Hours: false}),
-                  },
-                  {
-                    key: 'time-format-true',
-                    label: t('24 hour'),
-                    leadingItems: user.options.clock24Hours ? (
-                      <IconCheckmark size="sm" />
-                    ) : undefined,
-                    onAction: () => updateOptions({clock24Hours: true}),
-                  },
-                ],
+                key: 'admin',
+                label: t('Admin'),
+                to: '/manage/',
+                hidden: !isActiveSuperuser(),
               },
             ],
           },
           {
-            key: 'admin',
-            label: t('Admin'),
-            to: '/manage/',
-            hidden: !isActiveSuperuser(),
-          },
-          {
             key: 'signout',
             label: t('Sign Out'),
+            leadingItems: <IconLogOut />,
             priority: 'danger' as const,
             onAction: handleLogout,
           },
