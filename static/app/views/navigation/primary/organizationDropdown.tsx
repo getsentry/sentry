@@ -106,6 +106,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         minMenuWidth={258}
         menuTitle={
           <NavigationMenuHeader
+            avatarProps={avatarProps}
             organization={organization}
             projectCount={projects.length}
           />

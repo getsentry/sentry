@@ -17,27 +17,21 @@ import type {User} from 'sentry/types/user';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 
 type NavigationMenuHeaderProps =
-  | {organization: OrganizationSummary; projectCount: number; user?: never}
-  | {user: User; organization?: never; projectCount?: never};
+  | {
+      avatarProps: BaseAvatarProps;
+      organization: OrganizationSummary;
+      projectCount: number;
+      user?: never;
+    }
+  | {user: User; avatarProps?: never; organization?: never; projectCount?: never};
 
 export function NavigationMenuHeader({
+  avatarProps,
   organization,
   projectCount,
   user,
 }: NavigationMenuHeaderProps) {
   if (organization) {
-    const avatar = organization.avatar;
-    const avatarIdentity = {
-      identifier: organization.slug,
-      name: organization.name || organization.slug,
-    };
-    const avatarProps =
-      avatar?.avatarType === 'upload' && avatar.avatarUrl
-        ? {type: 'upload' as const, uploadUrl: avatar.avatarUrl, ...avatarIdentity}
-        : avatar?.avatarType === 'gravatar' && avatar.avatarUrl
-          ? {type: 'gravatar' as const, gravatarId: avatar.avatarUrl, ...avatarIdentity}
-          : undefined;
-
     return (
       <MenuHeader
         label={t('Organization')}
@@ -89,10 +83,10 @@ function MenuHeader({
   avatarProps,
 }: {
   avatar: ReactNode;
+  avatarProps: BaseAvatarProps;
   label: string;
   subtitle: string;
   title: string;
-  avatarProps?: BaseAvatarProps;
 }) {
   const currentTheme = useTheme();
   const invertedTheme = useInvertedTheme();
