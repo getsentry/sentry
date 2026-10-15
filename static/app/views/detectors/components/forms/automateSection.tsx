@@ -33,16 +33,18 @@ export const AutomateSection = withFieldGroup({
   defaultValues: {workflowIds: [] as string[]},
   props: {} as {project: Project; step?: number},
   render: ({group, step, project}) => (
-    <group.AppField name="workflowIds">
-      {field => (
+    <group.Subscribe selector={state => state.values.workflowIds}>
+      {workflowIds => (
         <AutomateSectionInner
           step={step}
           project={project}
-          workflowIds={field.state.value}
-          setWorkflowIds={field.handleChange}
+          workflowIds={workflowIds}
+          setWorkflowIds={nextWorkflowIds =>
+            group.setFieldValue('workflowIds', nextWorkflowIds)
+          }
         />
       )}
-    </group.AppField>
+    </group.Subscribe>
   ),
 });
 
