@@ -41,7 +41,7 @@ class MonitorStatsMixin(BaseEndpointMixin, StatsMixin):
         ]
 
         environments = get_environments(request, project.organization)
-        check_ins = MonitorCheckIn.objects.using_replica().filter(
+        check_ins = MonitorCheckIn.objects.filter(
             monitor_environment_id__in=get_monitor_environment_ids(monitor, environments),
             status__in=tracked_statuses,
             date_added__gt=args["start"],

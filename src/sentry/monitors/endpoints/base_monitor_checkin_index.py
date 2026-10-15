@@ -24,7 +24,7 @@ class MonitorCheckInMixin(BaseEndpointMixin):
             raise ParseError(detail="Invalid date range")
 
         environments = get_environments(request, project.organization)
-        queryset = MonitorCheckIn.objects.using_replica().filter(
+        queryset = MonitorCheckIn.objects.filter(
             monitor_environment_id__in=get_monitor_environment_ids(monitor, environments),
             date_added__gte=start,
             date_added__lte=end,
