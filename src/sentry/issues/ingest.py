@@ -71,9 +71,7 @@ def save_issue_occurrence(
     if group_info:
         environment = event.get_environment()
         _get_or_create_group_environment(environment, release, [group_info], event.datetime)
-        _increment_release_associated_counts(
-            group_info.group.project, environment, release, [group_info]
-        )
+        _increment_release_associated_counts(event.project, environment, release, [group_info])
         _get_or_create_group_release(environment, release, event, [group_info])
 
         # Create IncidentGroupOpenPeriod relationship for metric issues
