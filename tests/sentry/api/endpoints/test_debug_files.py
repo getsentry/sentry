@@ -95,7 +95,7 @@ class DebugFilesTestCases(APITestCase):
 
         # Replace code and debug ID with their legacy values and clear
         # those out, simulating an old upload.
-        meta.debug_id = meta.legacy_debug_id
+        meta.debug_id = meta.legacy_debug_id  # type: ignore[assignment]
         meta.code_id = meta.legacy_code_id
         meta.legacy_debug_id = None
         meta.legacy_code_id = None
