@@ -3502,6 +3502,115 @@ class PostProcessGroupErrorTest(
     PipelineKillswitchTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
+    @freeze_time()
+    def test_latency_metrics(self) -> None:
+        self._assert_latency_metrics({}, "false")
+
+    @freeze_time()
+    def test_reprocessed_latency_metrics(self) -> None:
+        self._assert_latency_metrics({"original_issue_id": 123}, "true")
+
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    @patch("sentry.tasks.post_process.metrics.timing")
+    def _assert_latency_metrics(
+        self,
+        reprocessing_context: dict[str, int],
+        reprocessing_tag: str,
+        mock_timing: MagicMock,
+        mock_run_job: MagicMock,
+    ) -> None:
+        event = self.create_event(
+            data={
+                "exception": {"values": [{"type": "ValueError", "value": "testing"}]},
+                "platform": "python",
+            },
+            project_id=self.project.id,
+        )
+        now = time.time()
+        event.data["received"] = now - 1200
+        event.data["nodestore_insert"] = now - 60
+        event.data["contexts"]["reprocessing"] = reprocessing_context
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_run_job.assert_called_once()
+        mock_timing.assert_any_call(
+            "events.since_received",
+            1200,
+            instance="python",
+            tags={
+                "step": "start_post_process",
+                "reprocessing": reprocessing_tag,
+                "type": "error",
+            },
+        )
+        mock_timing.assert_any_call(
+            "events.since_received",
+            1200,
+            instance="python",
+            tags={
+                "step": "end_post_process",
+                "occurrence_type": "error",
+                "reprocessing": reprocessing_tag,
+                "type": "error",
+            },
+        )
+        mock_timing.assert_any_call(
+            "events.nodestore_to_post_process",
+            60,
+            instance="python",
+            tags={
+                "occurrence_type": "error",
+                "reprocessing": reprocessing_tag,
+                "type": "error",
+            },
+        )
+
+    @freeze_time()
+    @patch("sentry.tasks.post_process.run_post_process_job")
+    @patch("sentry.tasks.post_process.metrics.timing")
+    def test_latency_metrics_without_nodestore_timestamp(
+        self, mock_timing: MagicMock, mock_run_job: MagicMock
+    ) -> None:
+        event = self.create_event(
+            data={
+                "exception": {"values": [{"type": "ValueError", "value": "testing"}]},
+                "platform": "python",
+            },
+            project_id=self.project.id,
+        )
+        event.data["received"] = time.time() - 1200
+        event.data.pop("nodestore_insert")
+
+        self.call_post_process_group(
+            is_new=True,
+            is_regression=False,
+            is_new_group_environment=True,
+            event=event,
+        )
+
+        mock_run_job.assert_called_once()
+        mock_timing.assert_any_call(
+            "events.since_received",
+            1200,
+            instance="python",
+            tags={
+                "step": "end_post_process",
+                "occurrence_type": "error",
+                "reprocessing": "false",
+                "type": "error",
+            },
+        )
+        assert all(
+            call.args[0] != "events.nodestore_to_post_process"
+            for call in mock_timing.call_args_list
+        )
+
     @patch("sentry.tasks.post_process.run_post_process_job")
     def test_reads_processed_event_from_nodestore_once(
         self, mock_run_post_process_job: MagicMock
