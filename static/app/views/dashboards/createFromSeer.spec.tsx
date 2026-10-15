@@ -59,7 +59,7 @@ const MOCKED_COMPLETED_SESSION = {
   },
 };
 
-function makeCompletedSession(conditions: string) {
+function makeCompletedSession(scope: {environment?: string[]; projects?: number[]}) {
   const [userBlock, assistantBlock] = MOCKED_COMPLETED_SESSION.session.blocks;
   const artifact = assistantBlock!.artifacts[0]!;
   return {
@@ -69,18 +69,7 @@ function makeCompletedSession(conditions: string) {
         userBlock,
         {
           ...assistantBlock,
-          artifacts: [
-            {
-              ...artifact,
-              data: {
-                ...artifact.data,
-                widgets: artifact.data.widgets.map(widget => ({
-                  ...widget,
-                  queries: widget.queries.map(query => ({...query, conditions})),
-                })),
-              },
-            },
-          ],
+          artifacts: [{...artifact, data: {...artifact.data, ...scope}}],
         },
       ],
     },
@@ -186,14 +175,14 @@ describe('CreateFromSeer', () => {
     ).toBeInTheDocument();
   });
 
-  it('selects projects referenced by generated widget filters', async () => {
+  it('selects the projects Seer scoped the dashboard to', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '2', slug: 'project-slug', isMember: true}),
       ProjectFixture({id: '3', slug: 'other-project', isMember: false}),
     ]);
     MockApiClient.addMockResponse({
       url: SEER_API_URL,
-      body: makeCompletedSession('project:other-project'),
+      body: makeCompletedSession({projects: [3]}),
     });
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -213,17 +202,17 @@ describe('CreateFromSeer', () => {
 
     expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
     await waitFor(() => {
-      expect(router.location.query.project).toEqual(['2', '3']);
+      expect(router.location.query.project).toBe('3');
     });
     await waitFor(() => {
       expect(eventsStatsMock).toHaveBeenCalled();
     });
     for (const [, options] of eventsStatsMock.mock.calls) {
-      expect(options.query.project).toEqual([2, 3]);
+      expect(options.query.project).toEqual([3]);
     }
   });
 
-  it('does not select other projects when widgets do not filter on them', async () => {
+  it('does not select other projects when Seer does not scope the dashboard', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '2', slug: 'project-slug', isMember: true}),
       ProjectFixture({id: '3', slug: 'other-project', isMember: false}),

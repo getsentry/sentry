@@ -3,10 +3,7 @@ import type {Location} from 'history';
 
 import {validateDashboard} from 'sentry/actionCreators/dashboards';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {parseSearch, TermOperator, Token} from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {decodeList} from 'sentry/utils/queryString';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 
@@ -143,54 +140,6 @@ export function extractDashboardFromSession(
   return null;
 }
 
-const PROJECT_SLUG_FILTER_KEYS = new Set(['project', 'project.name']);
-
-/**
- * Collects project slugs that generated widget queries require via positive
- * `project:` / `project.name:` filters. The events APIs reject these filters
- * with a 400 when the slug isn't part of the request's project selection, so
- * the preview must select these projects for the widgets to load.
- *
- * Negated and wildcard filters are skipped because the API doesn't require
- * those projects to be selected.
- */
-export function getProjectSlugsFromWidgets(widgets: Widget[]): string[] {
-  const slugs = new Set<string>();
-
-  for (const widget of widgets) {
-    for (const query of widget.queries ?? []) {
-      const parsed = parseSearch(query.conditions ?? '', {flattenParenGroups: true});
-
-      for (const token of parsed ?? []) {
-        if (
-          token.type !== Token.FILTER ||
-          token.negated ||
-          (token.operator !== TermOperator.DEFAULT &&
-            token.operator !== TermOperator.EQUAL) ||
-          !PROJECT_SLUG_FILTER_KEYS.has(getKeyName(token.key))
-        ) {
-          continue;
-        }
-
-        const values =
-          token.value.type === Token.VALUE_TEXT_LIST
-            ? token.value.items.map(item => item.value?.value)
-            : token.value.type === Token.VALUE_TEXT
-              ? [token.value.value]
-              : [];
-
-        for (const value of values) {
-          if (value && !value.includes('*')) {
-            slugs.add(value);
-          }
-        }
-      }
-    }
-  }
-
-  return [...slugs];
-}
-
 export type GeneratedDashboardPageFilters = {
   environment?: string[];
   project?: string[];
@@ -198,18 +147,18 @@ export type GeneratedDashboardPageFilters = {
 
 /**
  * Determines the page filter query params the preview needs so that a
- * generated dashboard's widgets can query the projects they reference.
+ * generated dashboard's widgets query the projects and environments Seer
+ * scoped the dashboard to. Without these, preview requests fall back to
+ * "My Projects" and the events APIs reject widget filters on other projects.
  *
  * Returns null when the current URL selection already covers the dashboard.
- * Selections are only ever widened, so a user's explicit selection is kept.
+ * An explicit selection is only ever widened, so the user's choice is kept.
  */
 export function getGeneratedDashboardPageFilters({
   dashboard,
   query,
-  projects,
 }: {
-  dashboard: Pick<GeneratedDashboard, 'environment' | 'projects' | 'widgets'>;
-  projects: Project[];
+  dashboard: Pick<GeneratedDashboard, 'environment' | 'projects'>;
   query: Location['query'];
 }): GeneratedDashboardPageFilters | null {
   const update: GeneratedDashboardPageFilters = {};
@@ -217,36 +166,13 @@ export function getGeneratedDashboardPageFilters({
   const selectedProjectIds = decodeList(query.project)
     .map(Number)
     .filter(id => !Number.isNaN(id));
-  const hasAllProjects = selectedProjectIds.includes(ALL_ACCESS_PROJECTS);
+  const selectedProjectIdSet = new Set(selectedProjectIds);
+  const missingProjectIds = [...new Set(dashboard.projects)].filter(
+    id => !selectedProjectIdSet.has(id)
+  );
 
-  if (!hasAllProjects) {
-    const slugToId = new Map(projects.map(project => [project.slug, Number(project.id)]));
-    const requiredIds = [
-      ...dashboard.projects,
-      ...getProjectSlugsFromWidgets(dashboard.widgets).flatMap(slug => {
-        const id = slugToId.get(slug);
-        return id === undefined ? [] : [id];
-      }),
-    ];
-
-    // An empty selection means "My Projects". Unless Seer scoped the dashboard
-    // itself, keep those selected so widgets without a project filter keep
-    // showing the same data.
-    const baseIds =
-      selectedProjectIds.length > 0
-        ? selectedProjectIds
-        : dashboard.projects.length > 0
-          ? []
-          : projects
-              .filter(project => project.isMember)
-              .map(project => Number(project.id));
-
-    const baseIdSet = new Set(baseIds);
-    const missingIds = [...new Set(requiredIds)].filter(id => !baseIdSet.has(id));
-
-    if (missingIds.length > 0) {
-      update.project = [...baseIds, ...missingIds].map(String);
-    }
+  if (!selectedProjectIdSet.has(ALL_ACCESS_PROJECTS) && missingProjectIds.length > 0) {
+    update.project = [...selectedProjectIds, ...missingProjectIds].map(String);
   }
 
   if (dashboard.environment.length > 0 && decodeList(query.environment).length === 0) {

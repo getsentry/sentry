@@ -11,7 +11,6 @@ import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 import {CreateFromSeerLoading} from 'sentry/views/dashboards/createFromSeerLoading';
 import {CreateFromSeerPrompt} from 'sentry/views/dashboards/createFromSeerPrompt';
 
@@ -35,14 +34,13 @@ export default function CreateFromSeer() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const {projects} = useProjects();
 
   const seerRunId = location.query?.seerRunId ? Number(location.query.seerRunId) : null;
   const hasFeature = organization.features.includes('dashboards-edit');
 
   const [dashboard, setDashboard] = useState(EMPTY_DASHBOARD);
-  // Page filters the preview is navigating to so the generated widgets can
-  // query the projects they reference. The dashboard is held back until the
+  // Page filters the preview is navigating to so the generated widgets query
+  // the projects Seer scoped the dashboard to. The dashboard is held back until the
   // URL reflects them, otherwise widgets would first query with the old
   // selection and fail.
   const [pendingPageFilters, setPendingPageFilters] =
@@ -65,7 +63,6 @@ export default function CreateFromSeer() {
       const pageFilters = getGeneratedDashboardPageFilters({
         dashboard: data,
         query: location.query,
-        projects,
       });
       if (pageFilters) {
         setPendingPageFilters(pageFilters);
@@ -84,7 +81,7 @@ export default function CreateFromSeer() {
       setDashboard(newDashboard);
       reportedWidgetErrors.current.clear();
     },
-    [location, navigate, projects]
+    [location, navigate]
   );
 
   const isSyncingPageFilters =

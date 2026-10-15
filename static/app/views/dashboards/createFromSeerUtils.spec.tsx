@@ -1,10 +1,7 @@
-import {ProjectFixture} from 'sentry-fixture/project';
-
 import {
   applySeerWidgetDefaults,
   extractDashboardFromSession,
   getGeneratedDashboardPageFilters,
-  getProjectSlugsFromWidgets,
   queryHasPageFilters,
   splitDashboardPrompt,
   statusIsTerminal,
@@ -30,19 +27,6 @@ function makeWidget(overrides: Partial<Widget> = {}): Widget {
     ],
     ...overrides,
   };
-}
-
-function makeWidgetWithConditions(...conditions: string[]): Widget {
-  return makeWidget({
-    queries: conditions.map(condition => ({
-      name: '',
-      conditions: condition,
-      aggregates: ['count()'],
-      columns: [],
-      fields: ['count()'],
-      orderby: '',
-    })),
-  });
 }
 
 function makeSession(
@@ -205,123 +189,55 @@ describe('extractDashboardFromSession', () => {
   });
 });
 
-describe('getProjectSlugsFromWidgets', () => {
-  it('collects slugs from single values and lists', () => {
-    const widgets = [
-      makeWidgetWithConditions('project:frontend', 'project:[backend,worker]'),
-      makeWidgetWithConditions('project.name:mobile level:error'),
-    ];
-
-    expect(getProjectSlugsFromWidgets(widgets)).toEqual([
-      'frontend',
-      'backend',
-      'worker',
-      'mobile',
-    ]);
-  });
-
-  it('collects slugs inside boolean groups', () => {
-    const widgets = [makeWidgetWithConditions('(project:frontend OR project:backend)')];
-
-    expect(getProjectSlugsFromWidgets(widgets)).toEqual(['frontend', 'backend']);
-  });
-
-  it('ignores negated, wildcard, and unrelated filters', () => {
-    const widgets = [
-      makeWidgetWithConditions(
-        '!project:frontend project:back* transaction:project:frontend'
-      ),
-    ];
-
-    expect(getProjectSlugsFromWidgets(widgets)).toEqual([]);
-  });
-
-  it('dedupes slugs across widgets', () => {
-    const widgets = [
-      makeWidgetWithConditions('project:frontend'),
-      makeWidgetWithConditions('project:frontend'),
-    ];
-
-    expect(getProjectSlugsFromWidgets(widgets)).toEqual(['frontend']);
-  });
-});
-
 describe('getGeneratedDashboardPageFilters', () => {
-  const memberProject = ProjectFixture({id: '1', slug: 'member', isMember: true});
-  const otherProject = ProjectFixture({id: '2', slug: 'other', isMember: false});
-  const projects = [memberProject, otherProject];
-
   function makeDashboard(
     overrides: Partial<
       Parameters<typeof getGeneratedDashboardPageFilters>[0]['dashboard']
     >
   ) {
-    return {projects: [], environment: [], widgets: [], ...overrides};
+    return {projects: [], environment: [], ...overrides};
   }
 
-  it('returns null when member projects already cover the widget filters', () => {
+  it('returns null when the dashboard has no project or environment scope', () => {
     expect(
-      getGeneratedDashboardPageFilters({
-        dashboard: makeDashboard({widgets: [makeWidgetWithConditions('project:member')]}),
-        query: {},
-        projects,
-      })
+      getGeneratedDashboardPageFilters({dashboard: makeDashboard({}), query: {}})
     ).toBeNull();
   });
 
-  it('adds non-member projects referenced by widget filters to My Projects', () => {
+  it('selects the generated projects when none are selected', () => {
     expect(
       getGeneratedDashboardPageFilters({
-        dashboard: makeDashboard({widgets: [makeWidgetWithConditions('project:other')]}),
+        dashboard: makeDashboard({projects: [2, 3]}),
         query: {},
-        projects,
       })
-    ).toEqual({project: ['1', '2']});
+    ).toEqual({project: ['2', '3']});
   });
 
   it('widens an explicit project selection', () => {
     expect(
       getGeneratedDashboardPageFilters({
-        dashboard: makeDashboard({widgets: [makeWidgetWithConditions('project:member')]}),
+        dashboard: makeDashboard({projects: [1, 2]}),
         query: {project: '2'},
-        projects,
       })
     ).toEqual({project: ['2', '1']});
+  });
+
+  it('returns null when the selection already covers the generated projects', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({projects: [2]}),
+        query: {project: ['1', '2']},
+      })
+    ).toBeNull();
   });
 
   it('returns null when all projects are selected', () => {
     expect(
       getGeneratedDashboardPageFilters({
-        dashboard: makeDashboard({widgets: [makeWidgetWithConditions('project:other')]}),
+        dashboard: makeDashboard({projects: [2]}),
         query: {project: '-1'},
-        projects,
       })
     ).toBeNull();
-  });
-
-  it('ignores slugs that do not match a known project', () => {
-    expect(
-      getGeneratedDashboardPageFilters({
-        dashboard: makeDashboard({
-          widgets: [makeWidgetWithConditions('project:unknown')],
-        }),
-        query: {},
-        projects,
-      })
-    ).toBeNull();
-  });
-
-  it('uses the generated project scope instead of My Projects', () => {
-    expect(
-      getGeneratedDashboardPageFilters({
-        dashboard: makeDashboard({
-          projects: [2],
-          widgets: [makeWidgetWithConditions('project:member')],
-        }),
-        query: {},
-        projects,
-      })
-    ).toEqual({project: ['2', '1']});
   });
 
   it('applies the generated environments when none are selected', () => {
@@ -329,7 +245,6 @@ describe('getGeneratedDashboardPageFilters', () => {
       getGeneratedDashboardPageFilters({
         dashboard: makeDashboard({environment: ['production']}),
         query: {},
-        projects,
       })
     ).toEqual({environment: ['production']});
 
@@ -337,7 +252,6 @@ describe('getGeneratedDashboardPageFilters', () => {
       getGeneratedDashboardPageFilters({
         dashboard: makeDashboard({environment: ['production']}),
         query: {environment: 'staging'},
-        projects,
       })
     ).toBeNull();
   });
