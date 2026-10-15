@@ -1,5 +1,6 @@
+import copy
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from time import time
 from typing import Any
 
@@ -68,6 +69,7 @@ def _do_symbolicate_event(
     data: Event | None = None,
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
+    unprocessed: MutableMapping[str, Any] | None = None,
 ) -> None:
     data = load_event_payload(data, cache_key, processing.event_processing_store)
 
@@ -86,6 +88,11 @@ def _do_symbolicate_event(
     sentry_sdk.set_tag("event_id", event_id)
     sentry_sdk.set_attribute("event_id", event_id)
 
+    # Eager task execution doesn't serialize task arguments, so copy before symbolication
+    # modifies the payload in place.
+    if unprocessed is data:
+        unprocessed = copy.deepcopy(data)
+
     def _continue_to_process_event(was_killswitched: bool = False) -> None:
         # Go through the remaining symbolication platforms/functions
         # and submit the next one.
@@ -100,6 +107,7 @@ def _do_symbolicate_event(
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
                 data=data,
+                unprocessed=unprocessed,
             )
             return
         # else:
@@ -112,6 +120,7 @@ def _do_symbolicate_event(
             from_symbolicate=True,
             has_attachments=has_attachments,
             data=data,
+            unprocessed=unprocessed,
         )
 
     symbolication_function = task_kind.function
@@ -231,6 +240,7 @@ def submit_symbolicate(
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
     data: Event | None = None,
+    unprocessed: MutableMapping[str, Any] | None = None,
 ) -> None:
     data, cache_key = prepare_submit(data, cache_key, event_id)
 
@@ -253,6 +263,7 @@ def submit_symbolicate(
         has_attachments=has_attachments,
         symbolicate_functions=symbolicate_function_names,
         data=data,
+        unprocessed=unprocessed,
     )
 
 
@@ -281,6 +292,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         data: Event | None = None,
         has_attachments: bool = False,
         symbolicate_functions: list[str] | None = None,
+        unprocessed: MutableMapping[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -308,6 +320,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
             data=data,
             has_attachments=has_attachments,
             symbolicate_functions=symbolicate_function_values,
+            unprocessed=unprocessed,
         )
 
     fn_name = name.split(".")[-1]
