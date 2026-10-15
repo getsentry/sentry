@@ -150,6 +150,30 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         assert resp.data[0]["id"] == str(checkin1.guid)
         assert resp.data[0]["environment"] == checkin1.monitor_environment.get_environment().name
 
+    def test_excludes_other_monitors(self) -> None:
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
+        other_monitor = self._create_monitor(slug="other-monitor")
+        other_monitor_environment = self._create_monitor_environment(other_monitor)
+
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            date_added=monitor.date_added - timedelta(minutes=2),
+            status=CheckInStatus.OK,
+        )
+        MonitorCheckIn.objects.create(
+            monitor=other_monitor,
+            monitor_environment=other_monitor_environment,
+            date_added=monitor.date_added - timedelta(minutes=1),
+            status=CheckInStatus.OK,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, **{"statsPeriod": "1d"}
+        )
+        assert [c["id"] for c in resp.data] == [str(checkin.guid)]
+
     def test_bad_monitorenvironment(self) -> None:
         self.login_as(self.user)
 
