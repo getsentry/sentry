@@ -6,7 +6,13 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {useConfigureReplayMenuItem} from 'sentry/components/replays/header/configureReplayMenuItem';
 
-function renderMenuItem({sdkName, isMobile}: {isMobile: boolean; sdkName: string}) {
+function renderMenuItem({
+  sdkName,
+  isMobile,
+}: {
+  isMobile: boolean;
+  sdkName: string | null;
+}) {
   const {result} = renderHookWithProviders(useConfigureReplayMenuItem, {
     organization: OrganizationFixture(),
     initialProps: {
@@ -82,6 +88,25 @@ describe('useConfigureReplayMenuItem', () => {
       );
       expect(item.children).toHaveLength(3);
       expect(item.children?.every(child => child.disabled === true)).toBe(true);
+    });
+
+    it('disables documentation links without logging when the SDK name is missing', () => {
+      const item = renderMenuItem({sdkName: null, isMobile: true});
+
+      expect(captureSpy).not.toHaveBeenCalled();
+      expect(item.children).toHaveLength(3);
+      expect(item.children?.every(child => child.disabled === true)).toBe(true);
+    });
+
+    it('disables documentation links without logging when the replay record is missing', () => {
+      const {result} = renderHookWithProviders(useConfigureReplayMenuItem, {
+        organization: OrganizationFixture(),
+        initialProps: {isMobile: true, replayRecord: undefined},
+      });
+
+      expect(captureSpy).not.toHaveBeenCalled();
+      expect(result.current.children).toHaveLength(3);
+      expect(result.current.children?.every(child => child.disabled === true)).toBe(true);
     });
   });
 });
