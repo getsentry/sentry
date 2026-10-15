@@ -264,12 +264,12 @@ export function Table({
   return (
     <TableContext value={contextValue}>
       <TableGrid
+        role="table"
         {...props}
         hiddenColumnIndexes={resolvedColumns.flatMap((column, index) =>
           column.hidden ? [index] : []
         )}
         ref={gridRef}
-        role="table"
         style={template ? {...props.style, gridTemplateColumns: template} : props.style}
       >
         {children}
