@@ -154,7 +154,7 @@ def test_alias_filter_preserves_eap_null_semantics(operator: str) -> None:
     compiled = compile_conversation_query(f"conversation.totalCost:{operator}0", resolver)
     _, having, _ = resolver.resolve_query(compiled)
     _, expected, _ = resolver.resolve_query(
-        f"sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client):{operator}0"
+        f"sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.total_tokens):{operator}0"
     )
     assert having == expected
 
@@ -326,7 +326,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert query["selected_columns"] == [
             "gen_ai.conversation.id",
             "max(timestamp)",
-            "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client) as total_cost",
+            "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.cost.total_tokens) as total_cost",
         ]
         assert query["orderby"] == ["-total_cost", "gen_ai.conversation.id"]
         assert query["query_string"] == (
