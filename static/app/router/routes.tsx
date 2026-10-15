@@ -2694,6 +2694,10 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/explore/savedQueries')),
     },
     {
+      path: 'saved-formulas/',
+      component: make(() => import('sentry/views/explore/savedFormulas')),
+    },
+    {
       path: 'investigations/',
       component: make(() => import('sentry/views/investigations')),
     },
