@@ -136,6 +136,8 @@ test('lint-only paths do not count as frontend changes', t => {
     'api-docs/package.json',
     'config/.oxlintignore',
     'oxlint-suppressions.json',
+    'static/app/oxlint-suppressions.json',
+    'tests/js/oxlint-suppressions.json',
   ];
   for (const file of [...lintOnly, 'static/app/example.ts', 'package.json']) {
     write(file, '');
@@ -307,9 +309,14 @@ test('base scans resolve installed dependencies and use base workspace source', 
   const result = lint('--enroll', '--base', 'HEAD');
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(
-    JSON.parse(readFileSync(path.join(directory, 'oxlint-suppressions.json'), 'utf8')),
+    JSON.parse(
+      readFileSync(
+        path.join(directory, 'packages/example/oxlint-suppressions.json'),
+        'utf8'
+      )
+    ),
     {
-      'packages/example/index.ts': {'typescript/no-floating-promises': {count: 1}},
+      'index.ts': {'typescript/no-floating-promises': {count: 1}},
     }
   );
   write(
@@ -590,4 +597,190 @@ test('CI rescans unverified base commits instead of trusting stale budgets', t =
     assert.equal(result.status, 1, result.stderr);
     assert.match(result.stderr, /2 violations, budget 1/);
   }
+});
+
+test('workspace assets round-trip native lint, prune, historical budgets, and cross-project renames', t => {
+  const {directory, write, lint, commit, git, env} = fixture(t);
+  write(
+    'pnpm-workspace.yaml',
+    "packages:\n  - 'packages/*'\n  - 'packages/outer/nested'\n"
+  );
+  for (const project of ['a', 'b', 'outer', 'outer/nested']) {
+    write(
+      `packages/${project}/package.json`,
+      JSON.stringify({name: project.replace('/', '-'), type: 'module'})
+    );
+  }
+  write(
+    'oxlint.config.ts',
+    `export const incubator = {rules: {'no-debugger': 'error'}}; export default {categories: {correctness: 'off'}, ...incubator};`
+  );
+  write('packages/a/source.js', 'debugger;\n');
+  write('packages/outer/nested/source.js', 'debugger;\n');
+  write(
+    'oxlint-suppressions.json',
+    JSON.stringify({
+      'packages/a/source.js': {'no-debugger': {count: 1}},
+      'packages/outer/nested/source.js': {'no-debugger': {count: 1}},
+    })
+  );
+  commit();
+  const originalBase = git('rev-parse', 'HEAD');
+  const enroll = lint('--enroll', '--base', originalBase);
+  assert.equal(enroll.status, 0, enroll.stderr);
+  const read = (project: string) =>
+    JSON.parse(
+      readFileSync(path.join(directory, project, 'oxlint-suppressions.json'), 'utf8')
+    );
+  assert.deepEqual(read(''), {});
+  assert.deepEqual(read('packages/a'), {'source.js': {'no-debugger': {count: 1}}});
+  assert.deepEqual(read('packages/outer'), {});
+  assert.deepEqual(read('packages/outer/nested'), {
+    'source.js': {'no-debugger': {count: 1}},
+  });
+  const bytes = readFileSync(
+    path.join(directory, 'packages/a/oxlint-suppressions.json'),
+    'utf8'
+  );
+  const ordinary = lint('packages');
+  assert.equal(ordinary.status, 0, ordinary.stderr);
+  assert.equal(
+    readFileSync(path.join(directory, 'packages/a/oxlint-suppressions.json'), 'utf8'),
+    bytes
+  );
+  env.SENTRY_OXLINT_VERIFIED_BASE = originalBase;
+  const oldBase = lint('--ci', '--base', originalBase);
+  assert.equal(oldBase.status, 0, oldBase.stderr);
+  commit();
+  renameSync(
+    path.join(directory, 'packages/a/source.js'),
+    path.join(directory, 'packages/b/source.js')
+  );
+  git('add', 'packages/a/source.js', 'packages/b/source.js');
+  const renamed = lint('--enroll', '--base', 'HEAD');
+  assert.equal(renamed.status, 0, renamed.stderr);
+  assert.deepEqual(read('packages/a'), {});
+  assert.deepEqual(read('packages/b'), {'source.js': {'no-debugger': {count: 1}}});
+  write('packages/b/source.js', '');
+  const fix = lint('--fix', 'packages/b');
+  assert.equal(fix.status, 0, fix.stderr);
+  assert.deepEqual(read('packages/b'), {});
+  assert.deepEqual(read('packages/outer/nested'), {
+    'source.js': {'no-debugger': {count: 1}},
+  });
+  write('packages/outer/nested/source.js', '');
+  const prune = lint('--prune');
+  assert.equal(prune.status, 0, prune.stderr);
+  assert.deepEqual(read('packages/outer/nested'), {});
+});
+
+test('maintenance scans isolated package policy using HEAD policy against base source', t => {
+  const {directory, write, lint, commit, git} = fixture(t);
+  write('pnpm-workspace.yaml', "packages:\n  - 'packages/*'\n");
+  write('packages/example/package.json', '{"name":"example","type":"module"}');
+  write('packages/example/source.js', 'debugger;\n');
+  write('packages/example/disabled.js', 'debugger;\n');
+  write(
+    'oxlint.config.ts',
+    `export const incubator = {rules: {'no-debugger': 'error'}}; export default {categories: {correctness: 'off'}, ...incubator};`
+  );
+  commit();
+  const base = git('rev-parse', 'HEAD');
+  write(
+    'oxlint.config.ts',
+    `export const incubator = {rules: {'no-debugger': 'error'}}; export default {ignorePatterns: ['packages/**'], categories: {correctness: 'off'}, ...incubator};`
+  );
+  write(
+    'packages/example/oxlint.config.ts',
+    `export default {rules: {'no-debugger': 'warn'}, overrides: [{files: ['disabled.js'], rules: {'no-debugger': 'off'}}]};`
+  );
+  const enroll = lint('--enroll', '--base', base);
+  assert.equal(enroll.status, 0, enroll.stderr);
+  const asset = path.join(directory, 'packages/example/oxlint-suppressions.json');
+  assert.deepEqual(JSON.parse(readFileSync(asset, 'utf8')), {
+    'source.js': {'no-debugger': {count: 1}},
+  });
+  const prune = lint('--prune');
+  assert.equal(prune.status, 0, prune.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(asset, 'utf8')), {
+    'source.js': {'no-debugger': {count: 1}},
+  });
+  const ordinary = lint('--fix');
+  assert.equal(ordinary.status, 0, ordinary.stdout + ordinary.stderr);
+  assert.deepEqual(JSON.parse(readFileSync(asset, 'utf8')), {
+    'source.js': {'no-debugger': {count: 1}},
+  });
+  const native = spawnSync(
+    process.execPath,
+    [new URL('cli.js', import.meta.resolve('oxlint')).pathname, '-D', 'no-debugger', '.'],
+    {cwd: path.join(directory, 'packages/example'), encoding: 'utf8'}
+  );
+  assert.equal(native.status, 0, native.stdout + native.stderr);
+  assert.doesNotMatch(native.stdout, /Unexpected debugger/);
+  write('packages/example/source.js', 'debugger; debugger;\n');
+  const check = lint('--check', '--base', base);
+  assert.equal(check.status, 1, check.stdout + check.stderr);
+  assert.match(
+    check.stderr,
+    /packages\/example\/source.js no-debugger: 2 violations, budget 1/
+  );
+});
+
+test('abandoned transactions restore all project assets and reject corrupt journals', t => {
+  const {directory, write, lint, commit} = fixture(t);
+  write('pnpm-workspace.yaml', "packages:\n  - 'packages/*'\n");
+  write('packages/example/package.json', '{"name":"example","type":"module"}');
+  write(
+    'oxlint.config.ts',
+    `export const incubator = {rules: {'no-debugger': 'error'}}; export default {categories: {correctness: 'off'}, ...incubator};`
+  );
+  write('packages/example/source.js', 'debugger;\n');
+  commit();
+  const child = spawnSync(process.execPath, ['-e', 'console.log(process.pid)'], {
+    encoding: 'utf8',
+  });
+  assert.equal(child.status, 0, child.stderr);
+  const original = '{"source.js":{"no-debugger":{"count":1}}}\n';
+  const policy = 'packages/example/.oxlint-incubator-abcd.json';
+  const lease = {
+    pid: Number(child.stdout.trim()),
+    token: 'abcd',
+    assets: {
+      'oxlint-suppressions.json': Buffer.from('{}\n').toString('base64'),
+      'packages/example/oxlint-suppressions.json':
+        Buffer.from(original).toString('base64'),
+    },
+    policies: [policy],
+  };
+  write('.artifacts/lint-incubator/transactions/owner.json', JSON.stringify(lease));
+  write(policy, '{}');
+  write('oxlint-suppressions.json', 'corrupt temporary native file');
+  const recovered = lint('--backlog', '--json');
+  assert.equal(recovered.status, 0, recovered.stderr);
+  assert.equal(
+    readFileSync(
+      path.join(directory, 'packages/example/oxlint-suppressions.json'),
+      'utf8'
+    ),
+    original
+  );
+  assert.equal(
+    readFileSync(path.join(directory, 'oxlint-suppressions.json'), 'utf8'),
+    '{}\n'
+  );
+  assert.throws(() => readFileSync(path.join(directory, policy)), /ENOENT/);
+  write(
+    '.artifacts/lint-incubator/transactions/owner.json',
+    JSON.stringify({...lease, assets: {'../oxlint-suppressions.json': null}})
+  );
+  const corrupt = lint('--snapshot');
+  assert.equal(corrupt.status, 2, corrupt.stderr);
+  assert.match(corrupt.stderr, /Invalid suppression asset path/);
+  assert.equal(
+    readFileSync(
+      path.join(directory, 'packages/example/oxlint-suppressions.json'),
+      'utf8'
+    ),
+    original
+  );
 });
