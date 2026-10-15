@@ -1,12 +1,12 @@
 import {useEffect, useRef} from 'react';
-import {css, ThemeProvider, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconBuilding} from '@sentry/icons/building';
 import {IconSettings} from '@sentry/icons/settings';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
-import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {getOrganizationAvatarProps, OrganizationAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
 import {
   DropdownMenu,
@@ -14,7 +14,7 @@ import {
   type MenuItemProps,
 } from '@sentry/scraps/dropdownMenu';
 import {InfoTip} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 import {useInvertedTheme} from '@sentry/scraps/theme';
@@ -35,6 +35,8 @@ import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
+import {NavigationMenuHeader} from './navigationMenuHeader';
+
 interface OrganizationDropdownProps {
   /**
    * When true, hides settings, projects, members, teams, and billing links for the current organization.
@@ -46,7 +48,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
   const config = useLegacyStore(ConfigStore);
   const theme = useTheme();
-  const invertedTheme = useInvertedTheme();
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -65,30 +66,13 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const {projects} = useProjects();
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
-  const letterAvatarProps = {
-    identifier: organization.slug,
-    name: organization.name || organization.slug,
-  };
+  const avatarProps = getOrganizationAvatarProps(organization);
 
   const size = useSizeContext();
 
   const trigger: DropdownMenuProps['trigger'] = triggerProps => (
     <AvatarButton
-      avatar={
-        organization.avatar.avatarType === 'upload' && organization.avatar.avatarUrl
-          ? {
-              type: 'upload',
-              uploadUrl: organization.avatar.avatarUrl,
-              ...letterAvatarProps,
-            }
-          : organization.avatar.avatarType === 'gravatar' && organization.avatar.avatarUrl
-            ? {
-                type: 'gravatar',
-                gravatarId: organization.avatar.avatarUrl,
-                ...letterAvatarProps,
-              }
-            : {type: 'letter_avatar', ...letterAvatarProps}
-      }
+      avatar={avatarProps}
       size={size}
       aria-label={t('Toggle organization menu')}
       {...triggerProps}
@@ -105,12 +89,10 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         trigger={trigger}
         minMenuWidth={258}
         menuTitle={
-          <ThemeProvider theme={theme.type === 'dark' ? theme : invertedTheme}>
-            <OrganizationMenuHeader
-              organization={organization}
-              projectCount={projects.length}
-            />
-          </ThemeProvider>
+          <NavigationMenuHeader
+            organization={organization}
+            projectCount={projects.length}
+          />
         }
         items={[
           {
@@ -253,58 +235,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
         },
       ]}
     />
-  );
-}
-
-function OrganizationMenuHeader({
-  organization,
-  projectCount,
-}: {
-  organization: OrganizationSummary;
-  projectCount: number;
-}) {
-  const lightTheme = useInvertedTheme();
-
-  return (
-    <Container
-      radius="md md 0 0"
-      padding="xs"
-      css={theme => css`
-        /* Extend the header background through the menu title's padding. */
-        margin: -${theme.space.sm} -${theme.space.lg};
-        background: linear-gradient(90deg, #2c155c, #4e168c);
-      `}
-    >
-      <Stack gap="md" padding="md lg">
-        <Text size="sm" density="fixed" variant="primary" bold tabular>
-          {t('Organization')}
-        </Text>
-        <Flex align="center" gap="md">
-          <ThemeProvider theme={lightTheme}>
-            <Flex
-              align="center"
-              justify="center"
-              width="32px"
-              height="32px"
-              radius="md"
-              overflow="hidden"
-              background="primary"
-              border="muted"
-            >
-              <OrganizationAvatar organization={organization} size={30} />
-            </Flex>
-          </ThemeProvider>
-          <Stack gap="0">
-            <Text size="md" density="comfortable" variant="primary" bold>
-              {organization.name || organization.slug}
-            </Text>
-            <Text size="sm" density="comfortable" variant="muted" tabular>
-              {tn('%s Project', '%s Projects', projectCount)}
-            </Text>
-          </Stack>
-        </Flex>
-      </Stack>
-    </Container>
   );
 }
 
