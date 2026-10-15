@@ -2,11 +2,60 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Final, Literal
 
+from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.constants import FUNCTION_PATTERN
+from sentry.search.events.fields import parse_arguments
+
 FILL_MODE_LOCF: Final = "locf"
 FILL_MODE_ZERO: Final = "zero"
 FILL_MODE_LINEAR: Final = "linear"
 
 SMOOTH_MODE_SMA: Final = "sma"
+
+FillMode = Literal["locf", "zero", "linear"]
+SmoothMode = Literal["sma"]
+
+
+@dataclass(frozen=True)
+class FillTransformation:
+    mode: FillMode
+
+
+@dataclass(frozen=True)
+class SmoothTransformation:
+    mode: SmoothMode
+
+
+Transformation = FillTransformation | SmoothTransformation
+
+_TRANSFORMATIONS: dict[str, dict[str, Transformation]] = {
+    "fill": {
+        FILL_MODE_LOCF: FillTransformation(mode=FILL_MODE_LOCF),
+        FILL_MODE_ZERO: FillTransformation(mode=FILL_MODE_ZERO),
+        FILL_MODE_LINEAR: FillTransformation(mode=FILL_MODE_LINEAR),
+    },
+    "smooth": {SMOOTH_MODE_SMA: SmoothTransformation(mode=SMOOTH_MODE_SMA)},
+}
+
+
+def parse_transformation(value: str) -> Transformation:
+    match = FUNCTION_PATTERN.fullmatch(value)
+    if match is None or match.group("alias") is not None:
+        raise InvalidSearchQuery(f"{value} is not a valid transformation")
+
+    function = match.group("function")
+    modes = _TRANSFORMATIONS.get(function)
+    if modes is None:
+        raise InvalidSearchQuery(f"{function} is not a valid transformation function")
+
+    arguments = parse_arguments(function, match.group("columns"))
+    if len(arguments) != 1 or match.group("columns").strip() != arguments[0]:
+        raise InvalidSearchQuery(f"{value}: expected a single mode argument")
+
+    transformation = modes.get(arguments[0])
+    if transformation is None:
+        raise InvalidSearchQuery(f"{value}: mode argument invalid: expected one of {list(modes)}")
+    return transformation
 
 
 @dataclass(frozen=True)
@@ -19,7 +68,7 @@ def fill_timeseries(
     timestamps: Sequence[float],
     values: Sequence[float | None],
     *,
-    mode: Literal["locf", "zero", "linear"],
+    mode: FillMode,
 ) -> FilledTimeseries:
     """Fill missing values using the selected mode.
 
@@ -83,7 +132,7 @@ def smooth_timeseries(
     timestamps: Sequence[float],
     values: Sequence[float | None],
     *,
-    mode: Literal["sma"],
+    mode: SmoothMode,
     window_size: int = 3,
 ) -> list[float | None]:
     """Smooth values using the selected mode.

@@ -8,9 +8,73 @@ from sentry.api.helpers.timeseries_processing import (
     FILL_MODE_LOCF,
     FILL_MODE_ZERO,
     SMOOTH_MODE_SMA,
+    FillTransformation,
+    SmoothTransformation,
+    Transformation,
     fill_timeseries,
+    parse_transformation,
     smooth_timeseries,
 )
+from sentry.exceptions import InvalidSearchQuery
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("fill(locf)", FillTransformation(mode="locf")),
+        ("fill(zero)", FillTransformation(mode="zero")),
+        ("fill(linear)", FillTransformation(mode="linear")),
+        ("smooth(sma)", SmoothTransformation(mode="sma")),
+        ("fill( linear )", FillTransformation(mode="linear")),
+    ],
+)
+def test_parse_transformation(value: str, expected: Transformation) -> None:
+    assert parse_transformation(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value, message",
+    [
+        ("", "is not a valid transformation"),
+        ("fill", "is not a valid transformation"),
+        ("fill(locf", "is not a valid transformation"),
+        ("fill(locf)extra", "is not a valid transformation"),
+        ("fill(locf)\n", "is not a valid transformation"),
+        ("[fill(locf), smooth(sma)]", "is not a valid transformation"),
+        ("fill(locf) AS filled", "is not a valid transformation"),
+        ("count(locf)", "is not a valid transformation function"),
+        ("FILL(locf)", "is not a valid transformation function"),
+        ("fill()", "expected a single mode argument"),
+        ("smooth(sma,3)", "expected a single mode argument"),
+        ("fill(locf,zero)", "expected a single mode argument"),
+        ("fill(locf,)", "expected a single mode argument"),
+        ("fill(,locf)", "expected a single mode argument"),
+        ("fill(locf,,)", "expected a single mode argument"),
+        ("fill(sma)", "mode argument invalid"),
+        ("smooth(linear)", "mode argument invalid"),
+        ("smooth(ema)", "mode argument invalid"),
+        ("fill(LOCF)", "mode argument invalid"),
+        ('fill("locf")', "mode argument invalid"),
+        ("fill(mode=locf)", "mode argument invalid"),
+        ("fill(smooth(sma))", "mode argument invalid"),
+        ("fill(locf))", "mode argument invalid"),
+    ],
+)
+def test_parse_transformation_invalid(value: str, message: str) -> None:
+    with pytest.raises(InvalidSearchQuery, match=message):
+        parse_transformation(value)
+
+
+def test_parsed_transformations_with_processing_helpers() -> None:
+    fill = parse_transformation("fill(linear)")
+    smooth = parse_transformation("smooth(sma)")
+    assert isinstance(fill, FillTransformation)
+    assert isinstance(smooth, SmoothTransformation)
+
+    timestamps = [0.0, 1.0, 2.0]
+    filled = fill_timeseries(timestamps, [1.0, None, 5.0], mode=fill.mode)
+    assert filled.values == [1.0, 3.0, 5.0]
+    assert smooth_timeseries(timestamps, filled.values, mode=smooth.mode) == [1.0, 2.0, 3.0]
 
 
 @pytest.mark.parametrize(
