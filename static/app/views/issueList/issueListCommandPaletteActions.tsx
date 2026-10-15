@@ -281,16 +281,8 @@ function SortActions({
   query,
   onSortChange,
 }: Pick<IssueListCommandPaletteActionsProps, 'sort' | 'query' | 'onSortChange'>) {
-  const organization = useOrganization();
-  // Mirror the sort dropdown (sortOptions.tsx): Recommended is selectable when
-  // the org has the option flag, when it's the default sort, or when it's the
-  // active sort — otherwise a user defaulted to Recommended couldn't switch back.
-  const hasRecommendedSort =
-    organization.features.includes('issue-stream-recommended-sort') ||
-    organization.features.includes('issue-stream-recommended-sort-default') ||
-    sort === IssueSortOptions.RECOMMENDED;
   const sortKeys = [
-    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
+    IssueSortOptions.RECOMMENDED,
     ...(FOR_REVIEW_QUERIES.includes(query) ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,

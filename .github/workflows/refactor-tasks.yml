@@ -46,4 +46,6 @@ jobs:
           XDG_CACHE_HOME: ${{ github.workspace }}/.refactor-tasks-cache
           SENTRY_DSN: ${{ secrets.SENTRY_REFACTOR_TASKS_DSN }}
           OPENROUTER_API_KEY: ${{ secrets.REFACTOR_TASKS_OPENROUTER_API_KEY }}
-        run: pnpm dlx @sentry/refactor-tasks scan-and-report
+        # The conventions use the `search` block, which releases before 0.3.0
+        # can't read.
+        run: pnpm dlx '@sentry/refactor-tasks@>=0.3.0' scan-and-report

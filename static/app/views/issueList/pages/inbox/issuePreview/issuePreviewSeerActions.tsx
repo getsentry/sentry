@@ -13,6 +13,7 @@ import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/bu
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
@@ -194,7 +195,7 @@ function RunSeerActionButton({
         items={codingAgentOptions}
         isDisabled={defined(codingAgentDisabledReason)}
         trigger={(triggerProps, isOpen) => (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             variant={variant}
             size="sm"

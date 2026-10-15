@@ -330,7 +330,7 @@ Each entry shows the function signature, the rounding/precision logic, and concr
 
 ### `displayPrice({cents, formatBigNum?})` / `displayPriceWithCents({cents})` / `displayUnitPrice({cents})`
 
-[amCheckout/utils.tsx](../../../gsApp/views/amCheckout/utils.tsx) · Billing price display. Input is always in **cents**. Hardcoded `'en-US'` locale.
+[gsApp/utils/billing.tsx](../../../gsApp/utils/billing.tsx) · Billing price display. Input is always in **cents**. Hardcoded `'en-US'` locale.
 
 | Function                | Input (cents) | Output                  |
 | ----------------------- | ------------- | ----------------------- |

@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
@@ -127,9 +128,13 @@ describe('ConversationsOverviewPage', () => {
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
 
-    const chartInterval = screen.getByRole('button', {name: /^Chart interval:/});
+    const chartInterval = screen.getByRole('button', {
+      name: /^Chart interval:/,
+    });
     const tabList = screen.getByRole('tablist');
-    const tableSearch = screen.getByRole('combobox', {name: 'Add a search term'});
+    const tableSearch = screen.getByRole('combobox', {
+      name: 'Add a search term',
+    });
     expect(
       chartInterval.compareDocumentPosition(tabList) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -207,7 +212,12 @@ describe('ConversationsOverviewPage', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      match: [MockApiClient.matchQuery({referrer: Referrer.CHART, query: LLM_QUERY})],
+      match: [
+        MockApiClient.matchQuery({
+          referrer: Referrer.CHART,
+          query: LLM_QUERY,
+        }),
+      ],
       body: {data: [{id: 'llm-span-id'}]},
     });
     MockApiClient.addMockResponse({
@@ -267,7 +277,11 @@ describe('ConversationsOverviewPage', () => {
   it('does not apply the table search to agent charts', async () => {
     const chartRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
-      match: [MockApiClient.matchQuery({referrer: 'api.dashboards.widget.bar-chart'})],
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.dashboards.widget.bar-chart',
+        }),
+      ],
       body: {data: []},
     });
 
@@ -305,6 +319,7 @@ describe('ConversationsOverviewPage', () => {
 
   it('defaults to traces and shows conversation onboarding on demand', async () => {
     localStorage.clear();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     render(<ConversationsOverviewPage />, {organization});
 
     expect(await screen.findByRole('tab', {name: 'Traces'})).toHaveAttribute(
@@ -375,6 +390,7 @@ describe('ConversationsOverviewPage', () => {
 
   it('shows conversation onboarding without data tabs when there are no gen AI spans', async () => {
     localStorage.clear();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '1', hasInsightsAgentMonitoring: false}),
     ]);
@@ -388,8 +404,80 @@ describe('ConversationsOverviewPage', () => {
     expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
   });
 
+  it('shows agent data without the project flag or conversation IDs', async () => {
+    localStorage.clear();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', hasInsightsAgentMonitoring: false}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          query: '(has:gen_ai.operation.type OR has:gen_ai.conversation.id)',
+        }),
+      ],
+      body: {data: [{id: 'llm-span-id'}]},
+    });
+
+    render(<ConversationsOverviewPage />, {organization});
+
+    expect(
+      await screen.findByRole('tab', {name: 'Traces', selected: true})
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Agent Runs')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Copy prompt'})).not.toBeInTheDocument();
+  });
+
+  it('shows conversations without the project flag', async () => {
+    localStorage.clear();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', hasInsightsAgentMonitoring: false}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [MockApiClient.matchQuery({query: 'has:gen_ai.conversation.id'})],
+      body: {data: [{id: 'conversation-span-id'}]},
+    });
+
+    render(<ConversationsOverviewPage />, {organization});
+
+    expect(
+      await screen.findByRole('tab', {name: 'Conversations', selected: true})
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Agent Runs')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Copy prompt'})).not.toBeInTheDocument();
+  });
+
+  it('keeps data tabs available if the availability check fails', async () => {
+    localStorage.clear();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', hasInsightsAgentMonitoring: false}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          query: '(has:gen_ai.operation.type OR has:gen_ai.conversation.id)',
+        }),
+      ],
+      statusCode: 500,
+      body: {detail: 'Unavailable'},
+    });
+
+    render(<ConversationsOverviewPage />, {organization});
+
+    expect(
+      await screen.findByRole('tab', {name: 'Traces', selected: true})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Copy prompt'})).not.toBeInTheDocument();
+  });
+
   it('shows agentic spans in the LLM Calls tab', async () => {
     localStorage.clear();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     render(<ConversationsOverviewPage />, {organization});
 
     await userEvent.click(await screen.findByRole('tab', {name: 'LLM Calls'}));
@@ -465,8 +553,16 @@ describe('ConversationsOverviewPage', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [
-        {key: 'ai.toolCall.args', name: 'ai.toolCall.args', attributeType: 'string'},
-        {key: 'ai.toolCall.result', name: 'ai.toolCall.result', attributeType: 'string'},
+        {
+          key: 'ai.toolCall.args',
+          name: 'ai.toolCall.args',
+          attributeType: 'string',
+        },
+        {
+          key: 'ai.toolCall.result',
+          name: 'ai.toolCall.result',
+          attributeType: 'string',
+        },
         {
           key: 'ai.response.toolCalls',
           name: 'ai.response.toolCalls',
