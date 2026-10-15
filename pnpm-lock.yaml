@@ -1020,10 +1020,10 @@ importers:
         version: link:../packages/scraps
       '@stripe/react-stripe-js':
         specifier: ^3.9.2
-        version: 3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 3.9.2(@stripe/stripe-js@10.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@stripe/stripe-js':
-        specifier: ^5.10.0
-        version: 5.10.0
+        specifier: ^10.0.0
+        version: 10.0.0
       '@tanstack/react-query':
         specifier: 5.101.4
         version: 5.101.4(react@19.3.0)
@@ -1418,10 +1418,10 @@ importers:
     devDependencies:
       '@stripe/react-stripe-js':
         specifier: ^3.9.2
-        version: 3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        version: 3.9.2(@stripe/stripe-js@10.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@stripe/stripe-js':
-        specifier: ^5.10.0
-        version: 5.10.0
+        specifier: ^10.0.0
+        version: 10.0.0
       '@types/lodash':
         specifier: ^4.17.24
         version: 4.17.24
@@ -4226,8 +4226,8 @@ packages:
       react: '>=16.8.0 <20.0.0'
       react-dom: '>=16.8.0 <20.0.0'
 
-  '@stripe/stripe-js@5.10.0':
-    resolution: {integrity: sha512-PTigkxMdMUP6B5ISS7jMqJAKhgrhZwjprDqR1eATtFfh0OpKVNp110xiH+goeVdrJ29/4LeZJR4FaHHWstsu0A==}
+  '@stripe/stripe-js@10.0.0':
+    resolution: {integrity: sha512-y5LKFTtnz1ciM+IQfrDfHcpjGlsm5Ao4onaUn4scurI/B6rNhrmV+ScTPDo+3Ges5oF8ol4tBkBAIZyVXVBIXw==}
     engines: {node: '>=12.16'}
 
   '@swc-contrib/mut-cjs-exports@19.0.0':
@@ -12125,14 +12125,14 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
-  '@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@10.0.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
-      '@stripe/stripe-js': 5.10.0
+      '@stripe/stripe-js': 10.0.0
       prop-types: 15.8.1
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
 
-  '@stripe/stripe-js@5.10.0': {}
+  '@stripe/stripe-js@10.0.0': {}
 
   '@swc-contrib/mut-cjs-exports@19.0.0(@swc/core@1.16.13(@swc/helpers@0.5.23))(@swc/jest@0.2.39(@swc/core@1.16.13(@swc/helpers@0.5.23)))':
     dependencies:

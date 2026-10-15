@@ -15,7 +15,7 @@
     "@sentry/react": "11.6.0",
     "@sentry/scraps": "workspace:*",
     "@stripe/react-stripe-js": "^3.9.2",
-    "@stripe/stripe-js": "^5.10.0",
+    "@stripe/stripe-js": "^10.0.0",
     "@tanstack/react-query": "5.101.4",
     "color": "5.0.2",
     "core-js": "3.45.0",

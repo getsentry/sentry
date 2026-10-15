@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "@stripe/react-stripe-js": "^3.9.2",
-    "@stripe/stripe-js": "^5.10.0",
+    "@stripe/stripe-js": "^10.0.0",
     "@types/lodash": "^4.17.24",
     "@types/node": "26.6.4",
     "getsentry": "workspace:@sentry-internal/gs-app@*",
