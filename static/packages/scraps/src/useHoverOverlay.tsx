@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {
   cloneElement,
   createContext,
@@ -22,15 +23,14 @@ import {mergeProps} from '@react-aria/utils';
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {Theme} from '@sentry/scraps/theme';
 
-import {NODE_ENV} from 'sentry/constants/env';
-import type {OverlayAnchor, OverlayPlacement} from 'sentry/utils/overlayPositioning';
+import type {OverlayAnchor, OverlayPlacement} from '@sentry/scraps/overlayPositioning';
 import {
   anchoredStyles,
   anchorOverlay,
   arrowOverlay,
   placementMiddleware,
   shiftOverlay,
-} from 'sentry/utils/overlayPositioning';
+} from '@sentry/scraps/overlayPositioning';
 
 import {useStableMergeRef} from './useStableMergeRef';
 
@@ -130,7 +130,7 @@ function startGroupCoolDown(group: DelayGroup) {
   // In test mode the open path bypasses the warm-up delay entirely, so a
   // cooldown timer would only serve to leak onto the default group (which has
   // no provider cleaning it up). Match the open-path bypass and no-op here.
-  if (NODE_ENV === 'test') {
+  if (process.env.NODE_ENV === 'test') {
     group.isWarm = false;
     return;
   }
@@ -483,7 +483,7 @@ function useHoverOverlay({
     // Skip the warmup delay if the caller asked for instant open, we're in a
     // test environment, or the delay-group is already warm from a recently
     // open overlay.
-    if (delay === 0 || NODE_ENV === 'test' || group.isWarm) {
+    if (delay === 0 || process.env.NODE_ENV === 'test' || group.isWarm) {
       commitStatus('open');
       warmUpGroup(group, selfTokenRef.current);
       return;

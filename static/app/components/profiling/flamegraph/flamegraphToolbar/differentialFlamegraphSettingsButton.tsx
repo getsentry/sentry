@@ -7,7 +7,7 @@ import {Button} from '@sentry/scraps/button';
 
 import {DifferentialFlamegraphMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {t} from 'sentry/locale';
-import {flipOverlay, shiftOverlay} from 'sentry/utils/overlayPositioning';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 

@@ -30,7 +30,7 @@ import type {
 } from 'sentry/utils/analytics/profilingAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
-import {flipOverlay, shiftOverlay} from 'sentry/utils/overlayPositioning';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 import type {
   FlamegraphColorCodings,
   FlamegraphSorting,

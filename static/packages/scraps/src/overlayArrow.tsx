@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Placement} from '@floating-ui/react-dom';

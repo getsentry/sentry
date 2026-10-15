@@ -11,9 +11,9 @@ import {HighlightText, ListBox} from '@sentry/scraps/compactSelect';
 import {useHotkeys, Hotkey} from '@sentry/scraps/hotkey';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text';
 
-import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {t} from 'sentry/locale';
 import {storyFrontmatterIndex, storyHeadingIndex} from 'sentry/stories/storyManifest';

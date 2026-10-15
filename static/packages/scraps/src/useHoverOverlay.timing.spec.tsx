@@ -1,16 +1,12 @@
+import type * as React from 'react';
 import {Fragment, useEffect} from 'react';
+import {ThemeProvider} from '@emotion/react';
+// Cleanup must run before pending timers drain and real timers are restored.
+// oxlint-disable-next-line testing-library/no-manual-cleanup
+import {act, cleanup, fireEvent, render, screen} from '@testing-library/react';
 
-import {act, cleanup, fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
-
-// Disable the NODE_ENV === 'test' instant-open bypass for this file so we can
-// drive the real state machine with fake timers. The rest of the tooltip test
-// suite keeps the bypass and does not need to be rewritten.
-jest.mock('sentry/constants/env', () => ({
-  ...jest.requireActual('sentry/constants/env'),
-  NODE_ENV: 'production',
-}));
-
-import {HoverOverlayGroupProvider, useHoverOverlay} from 'sentry/utils/useHoverOverlay';
+import {lightTheme} from '@sentry/scraps/theme';
+import {HoverOverlayGroupProvider, useHoverOverlay} from '@sentry/scraps/useHoverOverlay';
 
 const OPEN_DELAY = 400;
 const CLOSE_DELAY = 150;
@@ -68,6 +64,7 @@ function DelayedForceVisibleTrigger({
 
 describe('useHoverOverlay timing', () => {
   beforeEach(() => {
+    jest.replaceProperty(process.env, 'NODE_ENV', 'production');
     jest.useFakeTimers();
   });
 
@@ -79,6 +76,7 @@ describe('useHoverOverlay timing', () => {
       });
     } finally {
       jest.useRealTimers();
+      jest.restoreAllMocks();
     }
   });
 
@@ -86,7 +84,13 @@ describe('useHoverOverlay timing', () => {
   // state (warmth, snap-close listeners, pending cool-down timers) is
   // isolated per test without reaching into module internals.
   function renderInGroup(ui: React.ReactElement) {
-    return render(ui, {wrapper: HoverOverlayGroupProvider});
+    return render(ui, {
+      wrapper: ({children}) => (
+        <ThemeWrapper>
+          <HoverOverlayGroupProvider>{children}</HoverOverlayGroupProvider>
+        </ThemeWrapper>
+      ),
+    });
   }
 
   function hover(el: HTMLElement) {
@@ -380,3 +384,7 @@ describe('useHoverOverlay timing', () => {
     expect(screen.getByRole('tooltip')).toBeInTheDocument();
   });
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}

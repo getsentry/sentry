@@ -1,7 +1,10 @@
+import type * as React from 'react';
 import {Fragment} from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {act, render, screen, waitFor} from '@testing-library/react';
+import {userEvent} from '@testing-library/user-event';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-
+import {lightTheme} from '@sentry/scraps/theme';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 /**
@@ -43,13 +46,16 @@ describe('Tooltip', () => {
     render(
       <Tooltip title="test">
         <button>My Button</button>
-      </Tooltip>
+      </Tooltip>,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.hover(screen.getByText('My Button'));
     expect(screen.getByText('test')).toBeInTheDocument();
 
     // Check that the arrow svg is rendered
+    // These assertions verify the generated CSS targets and section DOM structure.
+    // oxlint-disable-next-line testing-library/no-node-access
     expect(document.querySelector('svg')).toBeInTheDocument();
 
     await userEvent.unhover(screen.getByText('My Button'));
@@ -62,7 +68,8 @@ describe('Tooltip', () => {
     const {rerender} = render(
       <Tooltip title="test">
         <button>My Button</button>
-      </Tooltip>
+      </Tooltip>,
+      {wrapper: ThemeWrapper}
     );
 
     // Change title
@@ -85,7 +92,8 @@ describe('Tooltip', () => {
     render(
       <Tooltip title="test" disabled>
         <button>My Button</button>
-      </Tooltip>
+      </Tooltip>,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.hover(screen.getByText('My Button'));
@@ -99,7 +107,8 @@ describe('Tooltip', () => {
     const {rerender} = render(
       <Tooltip title="test" disabled={false}>
         <button>My Button</button>
-      </Tooltip>
+      </Tooltip>,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.hover(screen.getByText('My Button'));
@@ -125,7 +134,8 @@ describe('Tooltip', () => {
     render(
       <Tooltip title="">
         <button>My Button</button>
-      </Tooltip>
+      </Tooltip>,
+      {wrapper: ThemeWrapper}
     );
     await userEvent.hover(screen.getByText('My Button'));
 
@@ -141,7 +151,8 @@ describe('Tooltip', () => {
     render(
       <Tooltip title="test" showOnlyOnOverflow>
         <div>This text overflows</div>
-      </Tooltip>
+      </Tooltip>,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.hover(screen.getByText('This text overflows'));
@@ -165,7 +176,8 @@ describe('Tooltip', () => {
     render(
       <Tooltip title="test" showOnlyOnOverflow>
         <div>This text changes size</div>
-      </Tooltip>
+      </Tooltip>,
+      {wrapper: ThemeWrapper}
     );
 
     const trigger = screen.getByText('This text changes size');
@@ -189,7 +201,8 @@ describe('Tooltip', () => {
     render(
       <Tooltip title="test" showOnlyOnOverflow>
         <div>This text does not overflow</div>
-      </Tooltip>
+      </Tooltip>,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.hover(screen.getByText('This text does not overflow'));
@@ -205,7 +218,8 @@ describe('Tooltip', () => {
         <Tooltip title={<span>Copy</span>} forceVisible>
           <div>Trigger</div>
         </Tooltip>
-      </button>
+      </button>,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.click(screen.getByText('Copy'));
@@ -217,10 +231,13 @@ describe('Tooltip', () => {
       render(
         <Tooltip title={title}>
           <button>My Button</button>
-        </Tooltip>
+        </Tooltip>,
+        {wrapper: ThemeWrapper}
       );
       await userEvent.hover(screen.getByText('My Button'));
 
+      // These assertions verify the generated CSS targets and section DOM structure.
+      // oxlint-disable-next-line testing-library/no-node-access
       const content = document.querySelector('[data-tooltip]');
       expect(content).toBeInTheDocument();
     }
@@ -232,14 +249,20 @@ describe('Tooltip', () => {
       // uses a preceding section instead.
       await showTooltip(<Tooltip.Header>test</Tooltip.Header>);
 
+      // These assertions verify the generated CSS targets and section DOM structure.
+      // oxlint-disable-next-line testing-library/no-node-access
       const section = document.querySelector('[data-tooltip-section]');
       expect(section).toBeInTheDocument();
+      // These assertions verify the generated CSS targets and section DOM structure.
+      // oxlint-disable-next-line testing-library/no-node-access
       expect(section).not.toBe(section!.parentElement!.firstElementChild);
     });
 
     it('marks a section composed directly into the title', async () => {
       await showTooltip(<Tooltip.Header>test</Tooltip.Header>);
 
+      // These assertions verify the generated CSS targets and section DOM structure.
+      // oxlint-disable-next-line testing-library/no-node-access
       expect(document.querySelector('[data-tooltip-section]')).toBeInTheDocument();
     });
 
@@ -249,12 +272,16 @@ describe('Tooltip', () => {
       // which is what the rules above select on.
       await showTooltip(<SectionCard />);
 
+      // These assertions verify the generated CSS targets and section DOM structure.
+      // oxlint-disable-next-line testing-library/no-node-access
       expect(document.querySelector('[data-tooltip-section]')).toBeInTheDocument();
     });
 
     it('leaves a plain sentence unmarked, so nothing is pulled out', async () => {
       await showTooltip('just a sentence');
 
+      // These assertions verify the generated CSS targets and section DOM structure.
+      // oxlint-disable-next-line testing-library/no-node-access
       expect(document.querySelector('[data-tooltip-section]')).not.toBeInTheDocument();
     });
   });
@@ -266,7 +293,8 @@ describe('Tooltip', () => {
           title={<Tooltip.Header trailingItems="8mo ago">Last Seen</Tooltip.Header>}
         >
           <button>My Button</button>
-        </Tooltip>
+        </Tooltip>,
+        {wrapper: ThemeWrapper}
       );
 
       await userEvent.hover(screen.getByText('My Button'));
@@ -281,7 +309,8 @@ describe('Tooltip', () => {
           title={<Tooltip.Footer trailingItems="UTC">Times shown in</Tooltip.Footer>}
         >
           <button>My Button</button>
-        </Tooltip>
+        </Tooltip>,
+        {wrapper: ThemeWrapper}
       );
 
       await userEvent.hover(screen.getByText('My Button'));
@@ -305,7 +334,8 @@ describe('Tooltip', () => {
           }
         >
           <button>My Button</button>
-        </Tooltip>
+        </Tooltip>,
+        {wrapper: ThemeWrapper}
       );
 
       await userEvent.hover(screen.getByText('My Button'));
@@ -332,13 +362,18 @@ describe('Tooltip', () => {
           }
         >
           <button>My Button</button>
-        </Tooltip>
+        </Tooltip>,
+        {wrapper: ThemeWrapper}
       );
 
       await userEvent.hover(screen.getByText('My Button'));
 
       // All three land in the same grid, in the order the tracks expect.
+      // These assertions verify the generated CSS targets and section DOM structure.
+      // oxlint-disable-next-line testing-library/no-node-access
       const row = screen.getByText('PDT').parentElement;
+      // These assertions verify the generated CSS targets and section DOM structure.
+      // oxlint-disable-next-line testing-library/no-node-access
       expect(Array.from(row?.children ?? []).map(cell => cell.textContent)).toEqual([
         'PDT',
         'Jul 28, 2026',
@@ -363,17 +398,24 @@ describe('Tooltip', () => {
           }
         >
           <button>My Button</button>
-        </Tooltip>
+        </Tooltip>,
+        {wrapper: ThemeWrapper}
       );
 
       await userEvent.hover(screen.getByText('My Button'));
 
       // Sharing one grid is what keeps a column aligned between the rows when
       // one row's cell is wider than the other's.
+      // These assertions verify the generated CSS targets and section DOM structure.
+      // oxlint-disable-next-line testing-library/no-node-access
       const firstRow = screen.getByText('PDT').parentElement;
+      // These assertions verify the generated CSS targets and section DOM structure.
+      // oxlint-disable-next-line testing-library/no-node-access
       const secondRow = screen.getByText('UTC').parentElement;
 
       expect(firstRow).toBeInTheDocument();
+      // These assertions verify the generated CSS targets and section DOM structure.
+      // oxlint-disable-next-line testing-library/no-node-access
       expect(firstRow?.parentElement).toBe(secondRow?.parentElement);
     });
 
@@ -383,7 +425,8 @@ describe('Tooltip', () => {
       render(
         <Tooltip title={<Tooltip.Header>Last Seen</Tooltip.Header>}>
           <button>My Button</button>
-        </Tooltip>
+        </Tooltip>,
+        {wrapper: ThemeWrapper}
       );
 
       await userEvent.hover(screen.getByText('My Button'));
@@ -392,3 +435,7 @@ describe('Tooltip', () => {
     });
   });
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}

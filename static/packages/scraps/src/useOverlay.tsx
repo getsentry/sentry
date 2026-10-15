@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useMemo, useRef, useState} from 'react';
 import type {
   Boundary,
@@ -28,14 +29,14 @@ import type {
   OverlayAnchor,
   OverlayPlacement,
   ShiftOverlayOptions,
-} from 'sentry/utils/overlayPositioning';
+} from '@sentry/scraps/overlayPositioning';
 import {
   anchoredStyles,
   anchorOverlay,
   arrowOverlay,
   placementMiddleware,
   shiftOverlay,
-} from 'sentry/utils/overlayPositioning';
+} from '@sentry/scraps/overlayPositioning';
 
 /**
  * Floating UI middleware to change the overlay's width/height to prevent
