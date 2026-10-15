@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 
 from django.db import router, transaction
@@ -10,10 +11,11 @@ from sentry import audit_log
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.middleware import is_frontend_request
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.search.eap.occurrences.common_queries import get_group_to_trace_ids_map
 from sentry.search.eap.occurrences.query_utils import build_snuba_params_from_ids
@@ -84,6 +86,15 @@ def signal_monitor_created(project: Project, user, from_upsert: bool, monitor: M
     }
 
     create_audit_log(**kwargs)
+
+
+def get_monitor_environment_ids(monitor: Monitor, environments: Sequence[Environment]) -> list[int]:
+    monitor_environments = MonitorEnvironment.objects.filter(monitor_id=monitor.id)
+    if environments:
+        monitor_environments = monitor_environments.filter(
+            environment_id__in=[e.id for e in environments]
+        )
+    return list(monitor_environments.values_list("id", flat=True))
 
 
 def get_max_runtime(max_runtime: int | None) -> timedelta:
