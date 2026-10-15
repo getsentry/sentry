@@ -147,12 +147,13 @@ def smooth_timeseries(
         asap: Automatically select a moving-average window for each contiguous run
             of observations. Minimize the variance of adjacent differences without
             decreasing Pearson kurtosis, scoring complete windows as in Stanford's
-            ASAP-simple reference. Search windows from round(run_length / 10) down
-            to two, retaining the original values when none improves the objective.
+            ASAP-simple reference. Round run_length / 10 half up to set the largest
+            window, then search down to two. Retain the original values when no
+            window improves the objective.
             Return partial windows at the start to preserve bucket alignment; these
             startup values do not participate in the selection metrics. Missing
-            buckets stay None and separate independent runs. Observations must be
-            finite. window_size and smoothing_factor do not apply to asap.
+            buckets stay None and separate independent runs. Only non-None values
+            must be finite. window_size and smoothing_factor do not apply to asap.
     """
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
@@ -228,6 +229,7 @@ def _smooth_asap(values: Sequence[float]) -> list[float]:
     alignment, excluding them from selection metrics. The caller handles missing
     buckets by smoothing each observed run independently.
     """
+    # Match the reference's Math.round by adding half the divisor before integer division.
     max_window = (len(values) + 5) // 10
     if max_window < 2 or min(values) == max(values):
         return list(values)
