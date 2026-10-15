@@ -19,12 +19,9 @@ FILL_MODE_LINEAR: Final = "linear"
 
 SMOOTH_MODE_SMA: Final = "sma"
 
-FillMode = Literal["locf", "zero", "linear"]
-SmoothMode = Literal["sma"]
-
 
 class FillTransformation(BaseModel):
-    mode: FillMode
+    mode: Literal["locf", "zero", "linear"]
 
     class Config:
         extra = "forbid"
@@ -33,7 +30,7 @@ class FillTransformation(BaseModel):
 
 
 class SmoothTransformation(BaseModel):
-    mode: SmoothMode
+    mode: Literal["sma"]
     window_size: int = 3
 
     class Config:
