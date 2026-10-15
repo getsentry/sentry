@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import trimStart from 'lodash/trimStart';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -12,26 +11,20 @@ import type {Release} from 'sentry/types/release';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import {TAG_VALUE_ESCAPE_PATTERN} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ReleasesConfig} from 'sentry/views/dashboards/datasetConfig/releases';
-import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/datasetConfig/utils/releaseQueryFields';
+import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
   DEFAULT_TABLE_LIMIT,
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
-import {
-  DERIVED_STATUS_METRICS_PATTERN,
-  DerivedStatusFields,
-  DISABLED_SORT,
-  METRICS_EXPRESSION_TO_FIELD,
-} from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
 
 import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
 import {useGenericWidgetQueries} from './genericWidgetQueries';
@@ -52,10 +45,6 @@ interface ReleaseWidgetQueriesProps {
   widgetInterval?: string;
 }
 
-export function derivedMetricsToField(field: string): string {
-  return METRICS_EXPRESSION_TO_FIELD[field] ?? field;
-}
-
 function getReleasesQuery(releases: Release[]): {
   releaseQueryString: string;
   releasesUsed: string[];
@@ -73,68 +62,6 @@ function getReleasesQuery(releases: Release[]): {
     return getReleasesQuery(releases.slice(0, -10));
   }
   return {releaseQueryString: releaseCondition, releasesUsed: releasesArray};
-}
-
-/**
- * Given a list of requested fields, this function returns
- * 'aggregates' which is a list of aggregate functions that
- * can be passed to either Metrics or Sessions endpoints,
- * 'derivedStatusFields' which need to be requested from the
- * Metrics endpoint and 'injectFields' which are fields not
- * requested but required to calculate the value of a derived
- * status field so will need to be stripped away in post processing.
- */
-export function resolveDerivedStatusFields(
-  fields: string[],
-  orderby: string,
-  useSessionAPI: boolean
-): {
-  aggregates: string[];
-  derivedStatusFields: string[];
-  injectedFields: string[];
-} {
-  const aggregates = fields.map(stripDerivedMetricsPrefix);
-  const derivedStatusFields = aggregates.filter(agg =>
-    Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
-  );
-
-  const injectedFields: string[] = [];
-
-  const rawOrderby = trimStart(orderby, '-');
-  const unsupportedOrderby =
-    DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
-
-  if (rawOrderby && !unsupportedOrderby && !fields.includes(rawOrderby)) {
-    if (!injectedFields.includes(rawOrderby)) {
-      injectedFields.push(rawOrderby);
-    }
-  }
-
-  if (!useSessionAPI) {
-    return {aggregates, derivedStatusFields, injectedFields};
-  }
-
-  derivedStatusFields.forEach(field => {
-    const result = field.match(DERIVED_STATUS_METRICS_PATTERN);
-    if (result) {
-      if (result[2] === 'user' && !aggregates.includes('count_unique(user)')) {
-        injectedFields.push('count_unique(user)');
-        aggregates.push('count_unique(user)');
-      }
-      if (result[2] === 'session' && !aggregates.includes('sum(session)')) {
-        injectedFields.push('sum(session)');
-        aggregates.push('sum(session)');
-      }
-    }
-  });
-
-  return {aggregates, derivedStatusFields, injectedFields};
-}
-
-export function requiresCustomReleaseSorting(query: WidgetQuery): boolean {
-  const useMetricsAPI = !query.columns.includes('session.status');
-  const rawOrderby = trimStart(query.orderby, '-');
-  return useMetricsAPI && rawOrderby === 'release';
 }
 
 function getLimit(displayType: DisplayType, limit?: number) {
