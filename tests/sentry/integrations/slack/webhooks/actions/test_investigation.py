@@ -19,6 +19,8 @@ from sentry.integrations.slack.webhooks.actions.investigation import (
 from sentry.investigations.models import Investigation
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.notifications.platform.tracking import NotificationLink
+from sentry.notifications.platform.types import NotificationSource
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.slack.entrypoint import (
     SlackInvestigationCachePayload,
@@ -27,6 +29,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -234,6 +237,9 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert not Investigation.objects.exists()
 
     @with_feature(FEATURES)
+    @override_options(
+        {"notifications.tracking.sources": [NotificationSource.SEER_INVESTIGATION_STARTED]}
+    )
     @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
     @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
     def test_creates_investigation(
@@ -260,7 +266,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert update_kwargs["ts"] == MESSAGE_TS
         (button,) = update_kwargs["attachments"][0]["blocks"][1]["elements"]
         assert button["text"]["text"] == "Open investigation"
-        assert button["url"] == link
+        assert button["url"].startswith(f"{link}?referrer=seer-investigation-started-slack")
 
         post_kwargs = self.mock_post_message.call_args.kwargs
         assert post_kwargs["channel"] == CHANNEL_ID
@@ -269,7 +275,9 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert post_kwargs["text"] == (
             f"<@{self.external_id}> started a Seer investigation for this alert."
         )
-        mock_record_sent.assert_called_once()
+        alert_update_call, thread_post_call = mock_record_sent.call_args_list
+        assert alert_update_call.kwargs["links"] == {NotificationLink.INVESTIGATION}
+        assert not thread_post_call.kwargs.get("links")
 
         assert SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
             entrypoint_key="slack", investigation_id=investigation.id
@@ -333,7 +341,8 @@ class SeerInvestigationStartActionTest(BaseEventTest):
 
         assert response.status_code == 200
         (investigation,) = self.investigations()
-        mock_record_sent.assert_not_called()
+        # Only the alert update is recorded, not the failed thread post.
+        mock_record_sent.assert_called_once()
         cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
             entrypoint_key="slack", investigation_id=investigation.id
         )

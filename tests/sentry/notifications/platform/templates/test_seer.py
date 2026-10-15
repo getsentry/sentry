@@ -143,7 +143,11 @@ class SeerAgentErrorTemplateTest(TestCase):
 class SeerInvestigationStartedTemplateTest(TestCase):
     def test_render(self) -> None:
         rendered = SeerInvestigationStartedTemplate().render(
-            SeerInvestigationStarted(organization_id=1, slack_user_id="U0123456789")
+            SeerInvestigationStarted(
+                organization_id=1,
+                slack_user_id="U0123456789",
+                investigation_url="https://example.sentry.io/explore/investigations/1/",
+            )
         )
 
         assert rendered.subject == "Seer investigation started"

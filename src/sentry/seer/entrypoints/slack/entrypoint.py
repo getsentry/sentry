@@ -10,7 +10,6 @@ from sentry.investigations.models import Investigation, InvestigationOrchestrati
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
@@ -21,7 +20,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerInvestigationStarted,
 )
 from sentry.notifications.platform.types import NotificationData
-from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
+from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import PendingUserInput
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
@@ -30,10 +29,6 @@ from sentry.seer.endpoints.agent_request import (
     AgentApprovalRequestSerializer,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
-from sentry.seer.entrypoints.metrics import (
-    SlackEntrypointEventLifecycleMetric,
-    SlackEntrypointInteractionType,
-)
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
     autofix_entrypoint_registry,
@@ -43,6 +38,7 @@ from sentry.seer.entrypoints.slack.messaging import (
     schedule_all_thread_updates,
     send_thread_update,
     update_existing_message,
+    update_investigation_alert_message,
 )
 from sentry.seer.entrypoints.types import (
     SeerAgentEntrypoint,
@@ -51,7 +47,7 @@ from sentry.seer.entrypoints.types import (
     SeerInvestigationEntrypoint,
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
-from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
@@ -59,7 +55,6 @@ from sentry.utils.locking import UnableToAcquireLock
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from sentry.integrations.slack.message_builder.types import SlackBlock
     from sentry.integrations.slack.requests.action import SlackActionRequest
     from sentry.models.group import Group
 
@@ -717,58 +712,6 @@ class SlackInvestigationEntrypoint(
     def has_access(organization: Organization) -> bool:
         return features.has("organizations:investigations-slack", organization)
 
-    def _replace_investigation_button(self, block: SlackBlock, link: str) -> SlackBlock:
-        from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
-        from sentry.integrations.slack.message_builder.types import SlackAction
-
-        if block.get("type") != "actions":
-            return block
-        elements = [
-            (
-                BlockSlackMessageBuilder.get_button_action(
-                    MessageAction(name="view_investigation", label="Open investigation", url=link)
-                )
-                if element.get("action_id", "").startswith(SlackAction.SEER_INVESTIGATION_START)
-                else element
-            )
-            for element in block.get("elements", [])
-        ]
-        return {**block, "elements": elements}
-
-    def _update_alert_message(self, link: str) -> None:
-        with SlackEntrypointEventLifecycleMetric(
-            interaction_type=SlackEntrypointInteractionType.UPDATE_EXISTING_MESSAGE,
-            integration_id=self.install.model.id,
-            organization_id=self.organization.id,
-        ).capture() as lifecycle:
-            lifecycle.add_extras({"channel_id": self.channel_id, "message_ts": self.message_ts})
-            try:
-                message = self.slack_request.data["message"]
-                original_attachments = message["attachments"]
-                text = message["text"]
-            except (KeyError, TypeError) as e:
-                lifecycle.record_failure(failure_reason=e)
-                return
-
-            attachments = [
-                {
-                    **attachment,
-                    "blocks": [
-                        self._replace_investigation_button(block, link)
-                        for block in attachment.get("blocks", [])
-                    ],
-                }
-                for attachment in original_attachments
-            ]
-            try:
-                self.install.update_message(
-                    channel_id=self.channel_id,
-                    message_ts=self.message_ts,
-                    renderable=SlackRenderable(blocks=[], attachments=attachments, text=text),
-                )
-            except (IntegrationError, IntegrationConfigurationError) as e:
-                lifecycle.record_halt(halt_reason=e)
-
     def _send_thread_update(
         self, data: NotificationData, ephemeral_user_id: str | None = None
     ) -> None:
@@ -790,13 +733,19 @@ class SlackInvestigationEntrypoint(
         )
 
     def on_trigger_investigation_success(self, *, investigation: Investigation) -> None:
-        link = investigation.get_absolute_url()
-        self._update_alert_message(link)
-        self._send_thread_update(
-            SeerInvestigationStarted(
-                organization_id=self.organization.id, slack_user_id=self.slack_user_id
-            )
+        data = SeerInvestigationStarted(
+            organization_id=self.organization.id,
+            slack_user_id=self.slack_user_id,
+            investigation_url=investigation.get_absolute_url(),
         )
+        update_investigation_alert_message(
+            request=self.slack_request,
+            install=self.install,
+            channel_id=self.channel_id,
+            message_ts=self.message_ts,
+            data=data,
+        )
+        self._send_thread_update(data)
 
     def create_investigation_cache_payload(self) -> SlackInvestigationCachePayload:
         return SlackInvestigationCachePayload(

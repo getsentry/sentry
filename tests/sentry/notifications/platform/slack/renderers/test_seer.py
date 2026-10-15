@@ -492,7 +492,11 @@ class SeerAgentWriteApprovalSlackRendererTest(TestCase):
 class SeerSlackRendererInvestigationTest(TestCase):
     def test_render_investigation_started(self) -> None:
         renderable, _ = NotificationService.render_template(
-            data=SeerInvestigationStarted(organization_id=1, slack_user_id="U0123456789"),
+            data=SeerInvestigationStarted(
+                organization_id=1,
+                slack_user_id="U0123456789",
+                investigation_url="https://example.sentry.io/explore/investigations/1/",
+            ),
             template=SeerInvestigationStartedTemplate(),
             provider=SlackNotificationProvider,
         )
@@ -502,6 +506,32 @@ class SeerSlackRendererInvestigationTest(TestCase):
         (block,) = renderable["blocks"]
         assert isinstance(block, MarkdownBlock)
         assert block.text == text
+
+    @override_options(
+        {
+            "notifications.tracking.sources": ["seer-investigation-started"],
+            "system.url-prefix": "https://sentry.io",
+        }
+    )
+    def test_render_investigation_link_button(self) -> None:
+        url = "https://acme.sentry.io/explore/investigations/1/"
+        data = SeerInvestigationStarted(
+            organization_id=1, slack_user_id="U0123456789", investigation_url=url
+        )
+        link_decorator = NotificationLinkDecorator(
+            data=data, provider=NotificationProviderKey.SLACK
+        )
+
+        button = SeerSlackRenderer.render_investigation_link_button(
+            data=data, link_decorator=link_decorator
+        )
+
+        assert button.text is not None
+        assert button.text.text == "Open investigation"
+        assert button.url is not None
+        assert button.url.startswith(f"{url}?referrer=seer-investigation-started-slack")
+        assert button.value == "link_clicked"
+        assert link_decorator.links == {NotificationLink.INVESTIGATION}
 
     def test_render_investigation_error(self) -> None:
         renderable, _ = NotificationService.render_template(

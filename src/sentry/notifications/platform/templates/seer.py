@@ -237,13 +237,18 @@ class SeerInvestigationStarted(NotificationData):
     """Posted in the alert's Slack thread when someone starts a Seer investigation."""
 
     slack_user_id: str
+    investigation_url: str
     source: NotificationSource = NotificationSource.SEER_INVESTIGATION_STARTED
 
 
 @template_registry.register(NotificationSource.SEER_INVESTIGATION_STARTED)
 class SeerInvestigationStartedTemplate(NotificationTemplate[SeerInvestigationStarted]):
     category = NotificationCategory.SEER
-    example_data = SeerInvestigationStarted(organization_id=1, slack_user_id="U0123456789")
+    example_data = SeerInvestigationStarted(
+        organization_id=1,
+        slack_user_id="U0123456789",
+        investigation_url="https://example.sentry.io/explore/investigations/1/",
+    )
     hide_from_debugger = True
 
     def render(self, data: SeerInvestigationStarted) -> NotificationRenderedTemplate:
