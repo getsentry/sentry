@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {AttributeDetails} from 'sentry/components/attributes/attributeDetails';
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
-import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/utils';
+import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/getKeyLabel';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {

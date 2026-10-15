@@ -35,14 +35,13 @@ import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widget
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useSaveMultiQuery} from 'sentry/views/explore/hooks/useSaveMultiQuery';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
+import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/constants';
 import {
   useAddQuery,
   useReadQueriesFromLocation,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {QueryRow} from 'sentry/views/explore/multiQueryMode/queryRow';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-
-export const MAX_QUERIES_ALLOWED = 5;
 
 interface ContentProps {
   datePageFilterProps: DatePageFilterProps;

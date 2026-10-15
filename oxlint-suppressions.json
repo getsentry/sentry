@@ -2286,7 +2286,7 @@
   },
   "static/app/views/explore/releases/list/releaseCard/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 5
+      "count": 4
     }
   },
   "static/app/views/explore/releases/list/releaseCard/releaseCardCommits.tsx": {
