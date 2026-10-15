@@ -12,6 +12,11 @@ from rest_framework.request import Request
 
 from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from sentry.api.endpoints.timeseries import IncompleteReason
+from sentry.api.helpers.timeseries_processing import (
+    FillTransformation,
+    SmoothTransformation,
+    Transformation,
+)
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -24,29 +29,27 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
     [
         ("", {}),
         ("transformationsExtra=ignored&query=anything", {}),
-        ("transformations[0]=fill(locf)", {0: ["fill(locf)"]}),
+        ("transformations[0]=fill(locf)", {0: [FillTransformation(mode="locf")]}),
         (
             "yAxis=count()&yAxis=count()&transformations%5B1%5D=fill%28locf%29"
             "&transformations%5B1%5D=smooth%28sma%29&transformations%5B0%5D=fill%28zero%29",
-            {1: ["fill(locf)", "smooth(sma)"], 0: ["fill(zero)"]},
+            {
+                1: [FillTransformation(mode="locf"), SmoothTransformation(mode="sma")],
+                0: [FillTransformation(mode="zero")],
+            },
         ),
         (
             "yAxis=count()&yAxis=avg(span.duration)&yAxis=p90(span.duration)"
             "&transformations[2]=smooth(sma)",
-            {2: ["smooth(sma)"]},
+            {2: [SmoothTransformation(mode="sma")]},
         ),
         (
             "transformations[0]=fill(locf)&transformations[0]=fill(locf)",
-            {0: ["fill(locf)", "fill(locf)"]},
-        ),
-        ("transformations[0]=", {0: [""]}),
-        (
-            "transformations[0]=[fill(locf), smooth(sma)]",
-            {0: ["[fill(locf), smooth(sma)]"]},
+            {0: [FillTransformation(mode="locf"), FillTransformation(mode="locf")]},
         ),
     ],
 )
-def test_decode_transformations(query: str, expected: dict[int, list[str]]) -> None:
+def test_decode_transformations(query: str, expected: dict[int, list[Transformation]]) -> None:
     request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
 
     assert OrganizationEventsTimeseriesEndpoint().get_transformations(request) == expected
@@ -89,6 +92,16 @@ def test_decode_transformations_index_out_of_range(query: str) -> None:
         OrganizationEventsTimeseriesEndpoint().get_transformations(request)
 
 
+@pytest.mark.parametrize("value", ["", "[fill(locf), smooth(sma)]", "fill(sma)"])
+def test_decode_transformations_invalid_value(value: str) -> None:
+    request = Request(
+        RequestFactory().get("/events-timeseries/", {"transformations[0]": ["fill(locf)", value]})
+    )
+
+    with pytest.raises(ParseError, match=r"transformations\[0\]:"):
+        OrganizationEventsTimeseriesEndpoint().get_transformations(request)
+
+
 class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
     endpoint = "sentry-api-0-organization-events-timeseries"
 
@@ -110,6 +123,21 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
 
         assert response.data == {"detail": "Invalid transformations index"}
 
+    def test_invalid_transformation_function_with_no_projects(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
+            }
+        ):
+            response = self.get_error_response(
+                self.org.slug, **{"transformations[0]": ["smooth(linear)"]}, status_code=400
+            )
+
+        assert response.data == {
+            "detail": "transformations[0]: smooth(linear): mode argument invalid: expected one of ['sma']"
+        }
+
     def test_transformations_ignored_when_feature_disabled(self) -> None:
         with self.feature(
             {
@@ -118,7 +146,8 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             }
         ):
             response = self.get_success_response(
-                self.org.slug, **{"transformations[-1]": ["fill(locf)"]}
+                self.org.slug,
+                **{"transformations[-1]": ["fill(locf)"], "transformations[0]": ["fill(sma)"]},
             )
 
         assert response.data == {"timeSeries": []}

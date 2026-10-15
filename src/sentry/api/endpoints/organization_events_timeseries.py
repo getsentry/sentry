@@ -31,12 +31,14 @@ from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
     serialize_ingestion_status,
 )
+from sentry.api.helpers.timeseries_processing import Transformation, parse_transformation
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_TOP_EVENTS
+from sentry.exceptions import InvalidSearchQuery
 from sentry.ingestion_delay.status import IngestionDelayStatus
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -154,9 +156,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         else:
             return None
 
-    def get_transformations(self, request: Request) -> dict[int, list[str]]:
-        """Decode ordered transformation strings by zero-based request yAxis position."""
-        transformations: dict[int, list[str]] = {}
+    def get_transformations(self, request: Request) -> dict[int, list[Transformation]]:
+        """Parse ordered transformations by zero-based request yAxis position."""
+        transformations: dict[int, list[Transformation]] = {}
         axis_count = len(request.GET.getlist("yAxis", ["count()"]))
         for key, values in request.GET.lists():
             if key != "transformations" and not key.startswith("transformations["):
@@ -170,7 +172,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 raise ParseError(detail="Invalid transformations index")
             if index >= axis_count:
                 raise ParseError(detail="transformations index must match a yAxis position")
-            transformations[index] = values
+            try:
+                transformations[index] = [parse_transformation(value) for value in values]
+            except InvalidSearchQuery as error:
+                raise ParseError(detail=f"{key}: {error}") from error
         return transformations
 
     @extend_schema(
