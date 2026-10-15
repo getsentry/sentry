@@ -127,7 +127,9 @@ def get_max_timeout_at(checkin: MonitorCheckIn) -> datetime:
 def get_new_timeout_at(
     checkin: MonitorCheckIn, new_status: int, date_updated: datetime
 ) -> datetime | None:
-    timeout_at = get_timeout_at(checkin.monitor.get_validated_config(), new_status, date_updated)
+    timeout_at = get_timeout_at(
+        checkin.monitor_environment.monitor.get_validated_config(), new_status, date_updated
+    )
     if timeout_at is None:
         return None
 
