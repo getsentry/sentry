@@ -21,6 +21,7 @@ import type {
   MetricDetectorConfig,
 } from 'sentry/types/workflowEngine/detectors';
 import {axisLabelFormatterUsingAggregateOutputType} from 'sentry/utils/discover/charts';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
@@ -76,12 +77,12 @@ function anomalyMarklineTooltip(ctx: AnomalyTooltipContext) {
   ].join('');
 }
 
-function ChartError() {
+function ChartMessage({message}: {message: string}) {
   return (
     <Flex justify="center" align="center" height={`${CHART_HEIGHT}px`}>
       <ErrorPanel>
         <IconWarning variant="muted" size="lg" />
-        <div>{t('Error loading chart data')}</div>
+        <div>{message}</div>
       </ErrorPanel>
     </Flex>
   );
@@ -182,6 +183,8 @@ export function MetricDetectorChart({
     ? ExtrapolationMode.CLIENT_AND_SERVER_WEIGHTED
     : extrapolationMode;
 
+  const isEmptyEquation = isEquation(aggregate) && !stripEquationPrefix(aggregate).trim();
+
   const {
     series,
     comparisonSeries,
@@ -201,6 +204,7 @@ export function MetricDetectorChart({
     comparisonDelta,
     eventTypes,
     extrapolationMode: adjustedExtrapolationMode,
+    options: {enabled: !isEmptyEquation},
   });
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
@@ -213,7 +217,7 @@ export function MetricDetectorChart({
 
   const isAnomalyDetection = detectionType === 'dynamic';
   const shouldFetchAnomalies =
-    isAnomalyDetection && !isLoading && !error && series.length > 0;
+    isAnomalyDetection && !isEmptyEquation && !isLoading && !error && series.length > 0;
 
   // Fetch anomaly data when detection type is dynamic and series data is ready
   const {
@@ -234,7 +238,7 @@ export function MetricDetectorChart({
     interval,
     thresholdType,
     sensitivity,
-    enabled: isAnomalyDetection,
+    enabled: isAnomalyDetection && !isEmptyEquation,
   });
 
   // Create anomaly marker rendering from pre-grouped anomaly periods
@@ -368,10 +372,12 @@ export function MetricDetectorChart({
 
   return (
     <ChartContainer>
-      {isLoading ? (
+      {isEmptyEquation ? (
+        <ChartMessage message={t('Enter an equation to preview results')} />
+      ) : isLoading ? (
         <ChartLoading />
       ) : error ? (
-        <ChartError />
+        <ChartMessage message={t('Error loading chart data')} />
       ) : (
         <AreaChart
           isGroupedByDate

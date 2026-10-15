@@ -2696,20 +2696,25 @@ class TestMigrations(TransactionTestCase):
         self.setup_initial_state()
 
         executor = MigrationExecutor(conn)
-        old_apps = executor.loader.project_state(migrate_from).apps
 
         # Reverse to the original migration
         # XXX: We don't pass project state here, since Django doesn't use it when rolling back migrations.
         self._project_state_cache = executor.migrate(migrate_from)
 
-        self.setup_before_migration(old_apps)
+        # Reuse the states `migrate` returns rather than rebuilding them from the whole
+        # migration history with `loader.project_state()`, which takes several seconds.
+        # These reflect what's applied in the database, so they also include migrations in
+        # other apps that stay applied, even if the target doesn't depend on them. The graph
+        # state only follows the target's dependencies. See
+        # `ExecutorStateTest` in tests/sentry/new_migrations/test_migrations.py.
+        self.setup_before_migration(self._project_state_cache.apps)
 
         # Run the migration to test
         executor = MigrationExecutor(conn)
         executor.loader.build_graph()  # reload.
         self._project_state_cache = executor.migrate(migrate_to, state=self._project_state_cache)
 
-        self.apps = executor.loader.project_state(migrate_to).apps
+        self.apps = self._project_state_cache.apps
 
     def tearDown(self):
         super().tearDownClass()
@@ -3500,9 +3505,10 @@ class OurLogTestCase(BaseTestCase, TraceItemTestCase):
             attributes_proto["sentry.observed_timestamp_nanos"] = AnyValue(
                 int_value=int(timestamp.timestamp() * 1e9)
             )
-        attributes_proto["sentry.timestamp_precise"] = AnyValue(
-            int_value=int(timestamp.timestamp() * 1e9)
-        )
+        if "sentry.timestamp_precise" not in attributes:
+            attributes_proto["sentry.timestamp_precise"] = AnyValue(
+                int_value=int(timestamp.timestamp() * 1e9)
+            )
 
         return TraceItem(
             organization_id=organization.id,
