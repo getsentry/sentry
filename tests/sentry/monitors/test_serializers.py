@@ -149,21 +149,18 @@ class MonitorCheckInSerializerTest(TestCase):
         legacy = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=monitor.project_id,
             status=CheckInStatus.OK,
             monitor_config=config,
         )
         snapshot = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=monitor.project_id,
             status=CheckInStatus.OK,
             checkin_config_id=get_checkin_config_id(config),
         )
         no_config = MonitorCheckIn.objects.create(
             monitor=monitor,
             monitor_environment=monitor_env,
-            project_id=monitor.project_id,
             status=CheckInStatus.OK,
         )
 
