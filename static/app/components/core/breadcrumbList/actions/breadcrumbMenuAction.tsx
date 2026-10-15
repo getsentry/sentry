@@ -5,10 +5,10 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 export interface BreadcrumbMenuActionProps {
   /** Menu entries rendered inside the dropdown. */
   items: MenuItemProps[];
+  /** Icon rendered inside the icon-only trigger button. */
+  triggerIcon: NonNullable<React.ReactNode>;
   /** Accessible name for the trigger button. */
   triggerLabel: string;
-  /** Icon rendered inside the icon-only trigger button. */
-  triggerIcon?: React.ReactNode;
 }
 
 /**
@@ -29,7 +29,7 @@ export function BreadcrumbMenuAction({
           {...triggerProps}
           size="zero"
           variant="transparent"
-          icon={triggerIcon ?? null}
+          icon={triggerIcon}
           aria-label={triggerLabel}
           aria-expanded={isOpen}
         />
