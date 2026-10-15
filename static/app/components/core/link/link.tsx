@@ -40,7 +40,7 @@ export interface LinkProps
 }
 
 /**
- * Where something leads: a route inside the product, or an absolute URL
+ * Where something leads: a route inside the product, or an external URL
  * outside it. The two are mutually exclusive, so a component can pick `Link`
  * or `ExternalLink` from whichever one it was handed.
  */
