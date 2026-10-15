@@ -10,9 +10,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = ModalRenderProps & {
   onAction: (data: any) => void;
@@ -45,11 +45,7 @@ export function MergeAccountsModal(props: Props) {
   const doMergeMutation = useMutation({
     mutationFn: (userIds: string[]) => {
       addLoadingMessage();
-      return fetchMutation({
-        url: endpoint,
-        method: 'POST',
-        data: {users: userIds},
-      });
+      return apiFetch({queryKey: [endpoint, {method: 'POST', data: {users: userIds}}]});
     },
     onSuccess: () => {
       clearIndicators();

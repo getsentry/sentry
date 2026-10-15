@@ -9,8 +9,8 @@ import {Heading} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -74,27 +74,34 @@ export function AddPromoCodeModal({
     mutationFn: (values: z.infer<typeof promoCodeSchema>) => {
       const {amount, trialDays, duration, isTrialPromo, setExpiration, ...otherValues} =
         values;
-      return fetchMutation<PromoCode>({
-        url: promoCode
-          ? getApiUrl('/promocodes/$code/', {path: {code: promoCode.code}})
-          : getApiUrl('/promocodes/'),
-        method: promoCode ? 'PUT' : 'POST',
-        data: {
-          ...otherValues,
-          ...(promoCode ? (isTrialPromo ? {amount: null} : {trialDays: null}) : {}),
-          ...(isTrialPromo ? {trialDays: String(trialDays)} : {amount: String(amount)}),
-          ...(!isTrialPromo && {duration}),
-          maxClaims: String(values.maxClaims),
-          dateExpires: setExpiration && values.dateExpires ? values.dateExpires : null,
-        },
+      return apiFetch<PromoCode>({
+        queryKey: [
+          promoCode
+            ? getApiUrl('/promocodes/$code/', {path: {code: promoCode.code}})
+            : getApiUrl('/promocodes/'),
+          {
+            method: promoCode ? 'PUT' : 'POST',
+            data: {
+              ...otherValues,
+              ...(promoCode ? (isTrialPromo ? {amount: null} : {trialDays: null}) : {}),
+              ...(isTrialPromo
+                ? {trialDays: String(trialDays)}
+                : {amount: String(amount)}),
+              ...(!isTrialPromo && {duration}),
+              maxClaims: String(values.maxClaims),
+              dateExpires:
+                setExpiration && values.dateExpires ? values.dateExpires : null,
+            },
+          },
+        ],
       });
     },
-    onSuccess: newCode => {
-      onSubmit?.(newCode);
+    onSuccess: response => {
+      onSubmit?.(response.json);
       if (promoCode) {
         closeModal();
       } else {
-        navigate(`/_admin/promocodes/${newCode.code}/`);
+        navigate(`/_admin/promocodes/${response.json.code}/`);
       }
     },
     onError: error => {

@@ -12,9 +12,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type CategoryInfo = {
@@ -70,15 +70,13 @@ function DeleteBillingMetricHistoryModal({
 
   const mutation = useMutation({
     mutationFn: (dataCategory: number) =>
-      fetchMutation({
-        url: getApiUrl(
-          `/customers/$organizationIdOrSlug/delete-billing-metric-history/`,
-          {
+      apiFetch({
+        queryKey: [
+          getApiUrl(`/customers/$organizationIdOrSlug/delete-billing-metric-history/`, {
             path: {organizationIdOrSlug: orgSlug},
-          }
-        ),
-        method: 'POST',
-        data: {data_category: dataCategory},
+          }),
+          {method: 'POST', data: {data_category: dataCategory}},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage('Successfully deleted billing metric history.');

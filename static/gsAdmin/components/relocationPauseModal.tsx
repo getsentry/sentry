@@ -5,8 +5,8 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {Relocation} from 'admin/types';
@@ -42,17 +42,17 @@ export function RelocationPauseModal({
 
   const mutation = useMutation({
     mutationFn: (data: {atStep?: string}) =>
-      fetchMutation<Relocation>({
-        method: 'PUT',
-        url: getApiUrl('/relocations/$relocationUuid/pause/', {
-          path: {relocationUuid: relocation.uuid},
-        }),
-        data,
-        options: {host: relocation.region.url},
+      apiFetch<Relocation>({
+        queryKey: [
+          getApiUrl('/relocations/$relocationUuid/pause/', {
+            path: {relocationUuid: relocation.uuid},
+          }),
+          {method: 'PUT', data, host: relocation.region.url},
+        ],
       }),
-    onSuccess: rawRelocation => {
+    onSuccess: response => {
       addSuccessMessage('An autopause has been scheduled for this relocation.');
-      onSuccess?.(rawRelocation);
+      onSuccess?.(response.json);
       closeModal();
     },
     onError: (error: unknown) => {

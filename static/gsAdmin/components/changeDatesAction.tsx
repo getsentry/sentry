@@ -9,8 +9,8 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
@@ -42,15 +42,19 @@ function ChangeDatesModal({
 }: ChangeDatesModalProps) {
   const mutation = useMutation({
     mutationFn: (data: FormValues) =>
-      fetchMutation({
-        url: getApiUrl('/customers/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: orgId},
-        }),
-        method: 'PUT',
-        // A blank field means "keep the current date", so omit it from the update.
-        data: Object.fromEntries(
-          Object.entries(data).filter(([, value]) => value !== '')
-        ),
+      apiFetch({
+        queryKey: [
+          getApiUrl('/customers/$organizationIdOrSlug/', {
+            path: {organizationIdOrSlug: orgId},
+          }),
+          {
+            method: 'PUT',
+            // A blank field means "keep the current date", so omit it from the update.
+            data: Object.fromEntries(
+              Object.entries(data).filter(([, value]) => value !== '')
+            ),
+          },
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage('Contract and on-demand period dates updated');

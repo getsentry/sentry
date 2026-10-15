@@ -8,8 +8,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
@@ -64,10 +64,11 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
-      fetchMutation({
-        url: getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}}),
-        method: 'PUT',
-        data: payload,
+      apiFetch({
+        queryKey: [
+          getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}}),
+          {method: 'PUT', data: payload},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage('Broadcast updated.');

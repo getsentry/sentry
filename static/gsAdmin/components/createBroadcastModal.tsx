@@ -11,8 +11,8 @@ import {Heading} from '@sentry/scraps/text';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Broadcast} from 'sentry/types/system';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -65,12 +65,10 @@ export function CreateBroadcastModal({
   const navigate = useNavigate();
   const mutation = useMutation({
     mutationFn: (data: CreateBroadcastPayload) =>
-      fetchMutation<Broadcast>({
-        url: getApiUrl('/broadcasts/'),
-        method: 'POST',
-        data,
+      apiFetch<Broadcast>({
+        queryKey: [getApiUrl('/broadcasts/'), {method: 'POST', data}],
       }),
-    onSuccess: data => navigate(`/_admin/broadcasts/${data.id}/`),
+    onSuccess: response => navigate(`/_admin/broadcasts/${response.json.id}/`),
     onError: error => {
       if (
         error instanceof RequestError &&

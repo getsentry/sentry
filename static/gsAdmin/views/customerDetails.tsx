@@ -16,13 +16,14 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getLocalities} from 'sentry/utils/cells';
 import {defined} from 'sentry/utils/defined';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -172,12 +173,13 @@ export function CustomerDetails() {
 
   const onGenerateSpikeProjectionsMutation = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl(
-          '/_admin/customers/$organizationIdOrSlug/queue-spike-projection/',
-          {path: {organizationIdOrSlug: orgId}}
-        ),
-        method: 'POST',
+      apiFetch({
+        queryKey: [
+          getApiUrl('/_admin/customers/$organizationIdOrSlug/queue-spike-projection/', {
+            path: {organizationIdOrSlug: orgId},
+          }),
+          {method: 'POST'},
+        ],
       }),
     onSuccess: () => {
       addSuccessMessage('Queued spike projection generation task.');
@@ -195,12 +197,13 @@ export function CustomerDetails() {
 
   const onSetTestFlagMutation = useMutation({
     mutationFn: (params: {isTest: boolean; notes?: string}) =>
-      fetchMutation<{isTest: boolean}>({
-        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/test-flag/', {
-          path: {organizationIdOrSlug: orgId},
-        }),
-        method: 'PUT',
-        data: params,
+      apiFetch<{isTest: boolean}>({
+        queryKey: [
+          getApiUrl('/_admin/customers/$organizationIdOrSlug/test-flag/', {
+            path: {organizationIdOrSlug: orgId},
+          }),
+          {method: 'PUT', data: params},
+        ],
       }),
     onSuccess: async () => {
       await refetchSubscription();
@@ -213,15 +216,16 @@ export function CustomerDetails() {
 
   const onToggleBillingPlatformMigrationMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
-      fetchMutation({
-        url: getApiUrl(
-          '/_admin/customers/$organizationIdOrSlug/billing-platform-migration/',
-          {
-            path: {organizationIdOrSlug: orgId},
-          }
-        ),
-        method: 'POST',
-        data: params,
+      apiFetch({
+        queryKey: [
+          getApiUrl(
+            '/_admin/customers/$organizationIdOrSlug/billing-platform-migration/',
+            {
+              path: {organizationIdOrSlug: orgId},
+            }
+          ),
+          {method: 'POST', data: params},
+        ],
       }),
     onMutate: () => addLoadingMessage('Saving changes\u2026'),
     onSuccess: (_data, variables) => {

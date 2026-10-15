@@ -10,9 +10,9 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ResultTable} from 'sentry/components/resultTable';
 import type {User} from 'sentry/types/user';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {SelectableContainerPanel} from 'admin/components/selectableContainer';
 
@@ -42,12 +42,13 @@ export function UserEmailLog({user, Panel}: Props) {
   );
   const removeBounce = useMutation({
     mutationFn: (email: string) =>
-      fetchMutation({
-        method: 'DELETE',
-        options: {query: {email}},
-        url: getApiUrl('/_admin/users/$userId/email-bounces/', {
-          path: {userId: user.id},
-        }),
+      apiFetch({
+        queryKey: [
+          getApiUrl('/_admin/users/$userId/email-bounces/', {
+            path: {userId: user.id},
+          }),
+          {method: 'DELETE', query: {email}},
+        ],
       }),
     onSuccess: (_, email) => {
       setRemovedBounces(emails => [...emails, email]);

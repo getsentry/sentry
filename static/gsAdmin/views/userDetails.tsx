@@ -15,9 +15,10 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
 import type {InternalAppApiToken, User} from 'sentry/types/user';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -123,10 +124,11 @@ export function UserDetails() {
 
   const suspendMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
-      fetchMutation({
-        url: getApiUrl('/_admin/users/$userId/suspend/', {path: {userId}}),
-        method: 'POST',
-        data: params,
+      apiFetch({
+        queryKey: [
+          getApiUrl('/_admin/users/$userId/suspend/', {path: {userId}}),
+          {method: 'POST', data: params},
+        ],
       }),
     onMutate: () => {
       addLoadingMessage('Saving changes...');
