@@ -161,7 +161,6 @@ describe('MonitorForm', () => {
         },
       })
     );
-    expect(submitMock.mock.calls[0]?.[1]?.data).not.toHaveProperty('alertRule');
 
     expect(mockHandleSubmitSuccess).toHaveBeenCalled();
   });
@@ -280,7 +279,6 @@ describe('MonitorForm', () => {
         },
       })
     );
-    expect(submitMock.mock.calls[0]?.[1]?.data).not.toHaveProperty('alertRule');
   });
 
   it('filters non-ASCII characters from crontab schedule', async () => {

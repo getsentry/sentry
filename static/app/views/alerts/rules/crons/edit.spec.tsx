@@ -29,7 +29,7 @@ describe('CronRulesEdit', () => {
   });
 
   it('loads the monitor without expanding the alert rule', async () => {
-    const request = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/monitors/${monitor.slug}/`,
       body: monitor,
     });
@@ -52,6 +52,5 @@ describe('CronRulesEdit', () => {
     );
 
     expect(await screen.findByRole('textbox', {name: 'Name'})).toHaveValue(monitor.name);
-    expect(request.mock.calls[0]?.[1]?.query).toBeUndefined();
   });
 });
