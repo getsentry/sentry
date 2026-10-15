@@ -60,7 +60,29 @@ DATASETS = {
     ExploreSavedQueryDataset.METRICS: TraceMetrics,
 }
 
-PREBUILT_FORMULAS = [
+
+class ExploreSavedReference(TypedDict):
+    name: str
+    value: str
+
+
+class ExploreSavedParam(ExploreSavedReference):
+    type: str
+    order: int
+
+
+class PrebuiltFormula(TypedDict):
+    prebuilt_id: int
+    name: str
+    description: str
+    formula: str
+    unit: str | None
+    dataset: str
+    references: list[ExploreSavedReference]
+    params: list[ExploreSavedParam]
+
+
+PREBUILT_FORMULAS: list[PrebuiltFormula] = [
     {
         "prebuilt_id": 1,
         "name": "formula.apdex",
@@ -103,7 +125,7 @@ PREBUILT_FORMULAS = [
         "prebuilt_id": 2,
         "name": "formula.user_misery",
         "description": "Calculates a user misery score that tries to not let low throughput transactions have a high score using weights, 5.8875 in the numerator and 111.8625 in the denominator",
-        "formula": "({miserable_users} + 5.8875) / ({total_unique_users} + 111.8625)",
+        "formula": "({miserable_users} + 5.8875) / ({total_unique_users} + 111.8625 + 5.8875)",
         "unit": None,
         "dataset": "spans",
         "references": [
@@ -113,7 +135,7 @@ PREBUILT_FORMULAS = [
             },
             {
                 "name": "total_unique_users",
-                "value": "count_unique(`is_transaction:True and has:{duration}`, user)",
+                "value": "count_unique_if(`is_transaction:True and has:{duration}`, user)",
             },
         ],
         "params": [
@@ -138,16 +160,6 @@ PREBUILT_FORMULAS = [
         ],
     },
 ]
-
-
-class ExploreSavedReference(TypedDict):
-    name: str
-    value: str
-
-
-class ExploreSavedParam(ExploreSavedReference):
-    type: str
-    order: int
 
 
 class ExploreSavedFormulaResponse(TypedDict):
@@ -390,6 +402,7 @@ def sync_prebuilt_formulas(organization: Organization) -> None:
         )
 
         saved_prebuilt_query_ids = set(saved_prebuilt_queries.values_list("prebuilt_id", flat=True))
+        saved_prebuilt_names = set(saved_prebuilt_queries.values_list("name", flat=True))
 
         # Create prebuilt formulas if they don't exist
         formulas_to_create = []
@@ -398,6 +411,8 @@ def sync_prebuilt_formulas(organization: Organization) -> None:
         for prebuilt_formula in PREBUILT_FORMULAS:
             # Users can update the prebuilts so if its already there don't touch it again
             if prebuilt_formula["prebuilt_id"] in saved_prebuilt_query_ids:
+                continue
+            if prebuilt_formula["name"] in saved_prebuilt_names:
                 continue
             # Ensure the prebuilt query is valid also provides mapping for some fields such as the dataset string `spans` into the int `0`
             serializer = FormulaSerializer(
@@ -412,7 +427,7 @@ def sync_prebuilt_formulas(organization: Organization) -> None:
                         formula=data["formula"],
                         dataset=data["dataset"],
                         created_by_id=None,
-                        prebuilt_id=int(prebuilt_formula["prebuilt_id"]),
+                        prebuilt_id=prebuilt_formula["prebuilt_id"],
                     )
                 )
                 validated_formulas.append(data)
