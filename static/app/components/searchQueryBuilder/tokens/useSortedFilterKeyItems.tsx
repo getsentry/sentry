@@ -22,7 +22,7 @@ import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import type {Tag} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
-import {FieldKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
+import {FieldKey, FieldKind, isTypedTagKey, prettifyTagKey} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 
 type FilterKeySearchItem = {
@@ -161,35 +161,26 @@ function getValueSuggestionsFromSearchResult(
  * attribute directly after the known attribute.
  */
 function placeUserAttributesAfterKnownKeys(items: SearchKeyItem[]): SearchKeyItem[] {
-  const isUserAttribute = (item: SearchKeyItem) =>
-    item.type === 'item' &&
-    item.tag.attributeSource === 'user' &&
-    prettifyTagKey(item.value) !== item.value;
-  const sentryKeyValues = new Set(
-    items
-      .filter(item => item.type === 'item' && !isUserAttribute(item))
-      .map(item => item.value)
+  const values = new Set(items.map(item => item.value));
+  const collisions = items.filter(
+    item =>
+      item.type === 'item' &&
+      isTypedTagKey(item.value) &&
+      values.has(prettifyTagKey(item.value))
   );
-
-  const userAttributesByName = new Map<string, SearchKeyItem[]>();
-  const rest: SearchKeyItem[] = [];
-  for (const item of items) {
-    const name = prettifyTagKey(item.value);
-    if (isUserAttribute(item) && sentryKeyValues.has(name)) {
-      userAttributesByName.set(name, [...(userAttributesByName.get(name) ?? []), item]);
-    } else {
-      rest.push(item);
-    }
-  }
-
-  if (userAttributesByName.size === 0) {
+  if (collisions.length === 0) {
     return items;
   }
 
-  return rest.flatMap(item =>
-    item.type === 'item' && !isUserAttribute(item)
-      ? [item, ...(userAttributesByName.get(item.value) ?? [])]
-      : [item]
+  return items.flatMap(item =>
+    collisions.includes(item)
+      ? []
+      : [
+          item,
+          ...collisions.filter(
+            collision => prettifyTagKey(collision.value) === item.value
+          ),
+        ]
   );
 }
 

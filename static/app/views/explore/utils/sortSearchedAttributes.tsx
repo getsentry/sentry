@@ -7,6 +7,7 @@ import type {
 
 import {
   getFieldDefinition,
+  isTypedTagKey,
   prettifyTagKey,
   type GetFieldDefinitionType,
 } from 'sentry/utils/fields';
@@ -104,18 +105,11 @@ export function sortKnownAttributes<Value extends SelectOption<string>>(
   // Keeps known and user attributes with the same name in a stable order,
   // e.g. `message` then `tags[message,string]`.
   if (prettifyTagKey(a.value) === prettifyTagKey(b.value)) {
-    return Number(isWrappedTagKey(a.value)) - Number(isWrappedTagKey(b.value));
+    return Number(isTypedTagKey(a.value)) - Number(isTypedTagKey(b.value));
   }
   const aLabel = typeof a.label === 'string' ? a.label : (a.textValue ?? '');
   const bLabel = typeof b.label === 'string' ? b.label : (b.textValue ?? '');
   return aLabel.localeCompare(bLabel);
-}
-
-/**
- * Whether the key uses the explicitly typed `tags[name,type]` syntax.
- */
-function isWrappedTagKey(key: string) {
-  return prettifyTagKey(key) !== key;
 }
 
 /**
@@ -127,7 +121,6 @@ function isKnownAttribute(key: string, fieldDefinitionType: SortFieldDefinitionT
     return true;
   }
   return (
-    isWrappedTagKey(key) &&
-    getFieldDefinition(prettifyTagKey(key), definitionType) !== null
+    isTypedTagKey(key) && getFieldDefinition(prettifyTagKey(key), definitionType) !== null
   );
 }
