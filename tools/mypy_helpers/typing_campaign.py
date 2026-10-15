@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import gzip
 import hashlib
 import io
 import json
@@ -1193,6 +1194,13 @@ def _snapshot_environment(root: Path) -> dict[str, str]:
     return environment
 
 
+def _write_worker_stdout(profile: Profile, profile_dir: Path, content: bytes) -> None:
+    if profile == Profile.PRECISION:
+        (profile_dir / "worker.stdout.gz").write_bytes(gzip.compress(content, mtime=0))
+    else:
+        (profile_dir / "worker.stdout").write_bytes(content)
+
+
 def run_profile(
     profile: Profile,
     root: Path,
@@ -1245,7 +1253,7 @@ def run_profile(
         worker_stdout, worker_stderr = process.communicate(timeout=timeout_seconds)
     except subprocess.TimeoutExpired as exc:
         _kill_process_group(process)
-        (profile_dir / "worker.stdout").write_bytes(exc.stdout or b"")
+        _write_worker_stdout(profile, profile_dir, exc.stdout or b"")
         (profile_dir / "worker.stderr").write_bytes(exc.stderr or b"")
         raise InvalidMeasurement(
             f"{profile.value} profile timed out after {timeout_seconds} seconds",
@@ -1255,7 +1263,7 @@ def run_profile(
             },
         ) from exc
     elapsed = time.monotonic() - started
-    (profile_dir / "worker.stdout").write_bytes(worker_stdout)
+    _write_worker_stdout(profile, profile_dir, worker_stdout)
     (profile_dir / "worker.stderr").write_bytes(worker_stderr)
     if process.returncode != 0 or worker_stderr:
         raise InvalidMeasurement(
@@ -2204,8 +2212,36 @@ def _safe_input_widening(previous: str, candidate: str) -> bool:
     )
 
 
+def _signature_any_positions(
+    obligations: Iterable[AnyObligation],
+    signature_keys: Iterable[tuple[str, str, str]],
+) -> dict[tuple[str, str], set[str]]:
+    selected_anchors = {(path, f"signature:{symbol}") for path, symbol, _ in signature_keys}
+    positions: dict[tuple[str, str], set[str]] = {}
+    for obligation in obligations:
+        key = (obligation.path, obligation.anchor)
+        if key in selected_anchors:
+            positions.setdefault(key, set()).add(obligation.type_position)
+    return positions
+
+
+def _has_signature_any(
+    positions: Mapping[tuple[str, str], set[str]],
+    path: str,
+    symbol: str,
+    position: str,
+) -> bool:
+    return any(
+        type_position.startswith(position)
+        for type_position in positions.get((path, f"signature:{symbol}"), ())
+    )
+
+
 def _signature_regressions(
-    parent: TreeMeasurement, candidate: TreeMeasurement
+    parent: TreeMeasurement,
+    candidate: TreeMeasurement,
+    parent_any_positions: Mapping[tuple[str, str], set[str]],
+    candidate_any_positions: Mapping[tuple[str, str], set[str]],
 ) -> tuple[str, ...]:
     reasons: list[str] = []
     removed = set(parent.signatures) - set(candidate.signatures)
@@ -2223,14 +2259,8 @@ def _signature_regressions(
             continue
         if position.startswith("parameter:") and _safe_input_widening(previous, current):
             continue
-        previous_any = any(
-            item.path == path and item.anchor == f"signature:{symbol}" and item.type_position.startswith(position)
-            for item in parent.any_obligations
-        )
-        current_any = any(
-            item.path == path and item.anchor == f"signature:{symbol}" and item.type_position.startswith(position)
-            for item in candidate.any_obligations
-        )
+        previous_any = _has_signature_any(parent_any_positions, path, symbol, position)
+        current_any = _has_signature_any(candidate_any_positions, path, symbol, position)
         if previous_any and not current_any:
             continue
         reasons.append(
@@ -2241,7 +2271,10 @@ def _signature_regressions(
 
 
 def _signature_improvements(
-    parent: TreeMeasurement, candidate: TreeMeasurement
+    parent: TreeMeasurement,
+    candidate: TreeMeasurement,
+    parent_any_positions: Mapping[tuple[str, str], set[str]],
+    candidate_any_positions: Mapping[tuple[str, str], set[str]],
 ) -> tuple[tuple[str, str, str], ...]:
     improvements = []
     for key in sorted(set(parent.signatures) & set(candidate.signatures)):
@@ -2254,14 +2287,8 @@ def _signature_improvements(
         if position.startswith("parameter:") and _safe_input_widening(previous, current):
             improvements.append(key)
             continue
-        previous_any = any(
-            item.path == path and item.anchor == f"signature:{symbol}" and item.type_position.startswith(position)
-            for item in parent.any_obligations
-        )
-        current_any = any(
-            item.path == path and item.anchor == f"signature:{symbol}" and item.type_position.startswith(position)
-            for item in candidate.any_obligations
-        )
+        previous_any = _has_signature_any(parent_any_positions, path, symbol, position)
+        current_any = _has_signature_any(candidate_any_positions, path, symbol, position)
         if previous_any and not current_any:
             improvements.append(key)
     return tuple(improvements)
@@ -2426,8 +2453,23 @@ def decide_candidate(
         for item in sorted(any_additions, key=lambda obligation: obligation.key)
     )
 
-    source_signature_changes = _signature_regressions(parent, candidate)
-    signature_improvements = _signature_improvements(parent, candidate)
+    changed_signature_keys = {
+        key
+        for key in set(parent.signatures) & set(candidate.signatures)
+        if parent.signatures[key] != candidate.signatures[key]
+    }
+    parent_any_positions = _signature_any_positions(
+        parent.any_obligations, changed_signature_keys
+    )
+    candidate_any_positions = _signature_any_positions(
+        candidate.any_obligations, changed_signature_keys
+    )
+    source_signature_changes = _signature_regressions(
+        parent, candidate, parent_any_positions, candidate_any_positions
+    )
+    signature_improvements = _signature_improvements(
+        parent, candidate, parent_any_positions, candidate_any_positions
+    )
     if source_changes and not (
         precision_calibrated
         and Profile.PRECISION in parent.profiles

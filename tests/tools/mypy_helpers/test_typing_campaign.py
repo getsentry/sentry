@@ -1,16 +1,20 @@
 from __future__ import annotations
 
 import ast
+import gzip
 import hashlib
 import subprocess
 from dataclasses import replace
 from pathlib import Path
+from typing import cast
 from unittest.mock import patch
 
 import pytest
 
+from sentry.utils import json
 from tools.mypy_helpers.typing_campaign import (
     ERROR_SECTION,
+    EXPECTED_MYPY_VERSION,
     WEAK_SECTION,
     AnyObligation,
     Decision,
@@ -1290,8 +1294,12 @@ mapping: dict[str, list[Any]]
     source_file.parent.mkdir(parents=True)
     source_file.write_text(source)
     module = ast.parse(source)
-    callback_annotation = ast.dump(module.body[4].annotation, include_attributes=False)
-    mapping_annotation = ast.dump(module.body[5].annotation, include_attributes=False)
+    callback_node = module.body[4]
+    mapping_node = module.body[5]
+    assert isinstance(callback_node, ast.AnnAssign)
+    assert isinstance(mapping_node, ast.AnnAssign)
+    callback_annotation = ast.dump(callback_node.annotation, include_attributes=False)
+    mapping_annotation = ast.dump(mapping_node.annotation, include_attributes=False)
 
     bypasses, signatures, omissions, obligations = _source_contracts(source_path, tmp_path)
 
@@ -1493,15 +1501,26 @@ def test_precision_adapter_exports_stable_any_obligations(tmp_path: Path) -> Non
 
     assert measurement.adapter_status == 0
     assert measurement.checker_status in (0, 1)
+    compressed_worker_output = (measurement.output_dir / "worker.stdout.gz").read_bytes()
+    worker_output = json.loads(gzip.decompress(compressed_worker_output))
+    assert worker_output["mypy_version"] == EXPECTED_MYPY_VERSION
+    assert not (measurement.output_dir / "worker.stdout").exists()
     assert all("unused section(s)" not in item.message for item in measurement.diagnostics)
     assert any(item.origin == "explicit" for item in measurement.any_obligations)
     assert all(not item.anchor.startswith("unanchored:") for item in measurement.any_obligations)
-    alias_value = ast.parse(example_path.read_text()).body[1].value
+    example_module = ast.parse(example_path.read_text())
+    alias_node = example_module.body[1]
+    pep695_alias_node = example_module.body[2]
+    assert isinstance(alias_node, ast.AnnAssign)
+    assert isinstance(pep695_alias_node, ast.TypeAlias)
+    assert alias_node.value is not None
+    assert pep695_alias_node.value is not None
+    alias_value = alias_node.value
     alias_fingerprint = hashlib.sha256(
         ast.dump(alias_value, include_attributes=False).encode()
     ).hexdigest()[:20]
     alias_anchor = f"ast:{alias_fingerprint}#0"
-    pep695_value = ast.parse(example_path.read_text()).body[2].value
+    pep695_value = pep695_alias_node.value
     pep695_fingerprint = hashlib.sha256(
         ast.dump(pep695_value, include_attributes=False).encode()
     ).hexdigest()[:20]
@@ -2241,7 +2260,7 @@ def test_precision_residual_in_unchanged_file_allows_measuring_other_source_chan
 
     assert decision.outcome == Outcome.COMPLETE, decision.reasons
     assert decision.precision_complete
-    residual_details = decision.details["precision_residuals"]
+    residual_details = cast(dict[str, object], decision.details["precision_residuals"])
     assert residual_details["parent"] == {
         "expression_count": 1,
         "obligation_count": 1,
@@ -2296,7 +2315,7 @@ def test_precision_residual_in_changed_file_blocks_precision_completeness() -> N
         and residual_path in reason
         for reason in decision.reasons
     )
-    residual_details = decision.details["precision_residuals"]
+    residual_details = cast(dict[str, object], decision.details["precision_residuals"])
     assert residual_details["non_unchanged_source_obligation_count"] == 2
     assert residual_details["non_unchanged_source_residual_paths"] == [residual_path]
 
@@ -2422,6 +2441,36 @@ def test_return_broadening_is_rejected_even_with_precision() -> None:
     assert any("precision-erasing signature change" in reason for reason in decision.reasons)
 
 
+def test_signature_any_obligations_allow_a_precise_return_improvement() -> None:
+    source_path = "src/sentry/example.py"
+    symbol = "sentry.example.lookup#1"
+    key = (source_path, symbol, "return")
+    obligation = AnyObligation(source_path, f"signature:{symbol}", "return:0", "explicit")
+    parent = _tree(
+        weak=frozenset({("sentry.example", "disallow_untyped_defs")}),
+        any_obligations=frozenset({obligation}),
+        precision_any_obligations=(obligation,),
+        signatures={key: "Any"},
+        source_digests={source_path: "before"},
+        profiles=tuple(Profile),
+    )
+    candidate = _tree(
+        signatures={key: "User"},
+        source_digests={source_path: "after"},
+        profiles=tuple(Profile),
+    )
+
+    decision = decide_candidate(
+        parent,
+        candidate,
+        require_adoption_credit=True,
+        precision_calibrated=True,
+    )
+
+    assert decision.outcome == Outcome.COMPLETE, decision.reasons
+    assert decision.details["signature_improvements"] == [key]
+
+
 def test_new_owned_source_cannot_hide_missing_signatures() -> None:
     parent = _tree()
     candidate = _tree(
@@ -2471,7 +2520,8 @@ def test_terminal_completion_keeps_precision_residuals_as_outstanding_debt() -> 
     assert decision.outcome == Outcome.REJECTED
     assert not decision.precision_complete
     assert any("Any expressions lack stable AST anchors" in reason for reason in decision.reasons)
-    assert decision.details["precision_residuals"]["paths"] == [residual_path]
+    precision_residuals = cast(dict[str, object], decision.details["precision_residuals"])
+    assert precision_residuals["paths"] == [residual_path]
 
 
 def test_guard_cli_defaults_to_head_tree(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
