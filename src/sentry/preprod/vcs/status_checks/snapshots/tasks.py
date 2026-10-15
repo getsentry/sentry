@@ -359,6 +359,7 @@ def _compute_snapshot_status(
     changes_map: dict[int, bool],
 ) -> StatusCheckStatus:
     has_in_progress = False
+    needs_approval = False
 
     for artifact in artifacts:
         metrics = snapshot_metrics_map.get(artifact.id)
@@ -378,7 +379,10 @@ def _compute_snapshot_status(
                     return StatusCheckStatus.FAILURE
             case PreprodSnapshotComparison.State.SUCCESS:
                 if changes_map.get(artifact.id, False) and artifact.id not in approvals_map:
-                    return StatusCheckStatus.FAILURE
+                    needs_approval = True
+
+    if needs_approval:
+        return StatusCheckStatus.ACTION_REQUIRED
 
     if has_in_progress:
         return StatusCheckStatus.IN_PROGRESS
@@ -466,7 +470,7 @@ def post_snapshot_status_check_task(
             return
 
     if (
-        status_enum == StatusCheckStatus.FAILURE
+        status_enum in (StatusCheckStatus.FAILURE, StatusCheckStatus.ACTION_REQUIRED)
         and preprod_artifact.commit_comparison_id is not None
     ):
         superseded = (
@@ -480,11 +484,13 @@ def post_snapshot_status_check_task(
                 artifact_type=preprod_artifact.artifact_type,
                 build_configuration_id=preprod_artifact.build_configuration_id,
                 date_added__gt=preprod_artifact.date_added,
-                # Only a newer SUCCESS supersedes: an in-flight (PENDING/PROCESSING) sibling
-                # will post its own result when it finishes, so suppressing on those risks a
-                # hung newer attempt silently swallowing this legitimate failure forever.
-                preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=(
-                    PreprodSnapshotComparison.State.SUCCESS
+                # Only a newer finished (SUCCESS/FAILED) comparison supersedes: an in-flight
+                # (PENDING/PROCESSING) sibling will post its own result when it finishes, so
+                # suppressing on those risks a hung newer attempt silently swallowing this
+                # legitimate failure forever.
+                preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state__in=(
+                    PreprodSnapshotComparison.State.SUCCESS,
+                    PreprodSnapshotComparison.State.FAILED,
                 ),
             )
             .exclude(id=preprod_artifact_id)

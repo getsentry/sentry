@@ -5,6 +5,7 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -13,7 +14,6 @@ from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.snuba import discover
 from sentry.utils.hashlib import md5_text
-from sentry.utils.tracing import start_span
 
 MEASUREMENT_TYPES = {
     "web": [
@@ -59,7 +59,7 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsEndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        with start_span(op="discover.endpoint", name="parse params"):
+        with traces.start_span(name="parse params", attributes={"sentry.op": "discover.endpoint"}):
             try:
                 snuba_params = self.get_snuba_params(request, organization)
 

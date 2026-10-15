@@ -27,6 +27,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
+from sentry_sdk import traces
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -51,7 +52,12 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    mark_parameter_experimental,
+)
 from sentry.apidocs.response_types import (
     DetailResponse,
     ValidationErrorResponse,
@@ -110,7 +116,6 @@ from sentry.tagstore.types import TagValue, TagValueSerializerResponse
 from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.tracing import set_span_data, start_span
 
 SCALAR_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
 POSSIBLE_ATTRIBUTE_TYPES = [*SCALAR_ATTRIBUTE_TYPES, "array"]
@@ -218,21 +223,21 @@ VALUE_SUBSTRING_MATCH_QUERY_PARAM = OpenApiParameter(
     description="Restrict results to attribute values containing this substring.",
 )
 
-EXPAND_QUERY_PARAM = OpenApiParameter(
-    name="expand",
-    location="query",
-    required=False,
-    many=True,
-    type=str,
-    enum=["context"],
-    # Withheld from the public OpenAPI spec because the context shape it returns
-    # is still evolving. The matching half is ``omit_from_public_schema`` on
-    # ``TraceItemAttributeKey``, which keeps that shape out of the spec too.
-    exclude=True,
-    description=(
-        "Optional fields to expand. Pass `context` to include attribute metadata "
-        "(brief, examples, deprecation, etc.)."
-    ),
+# The endpoint is PUBLIC, but the context shape is still evolving, so only this
+# parameter is flagged experimental.
+EXPAND_QUERY_PARAM = mark_parameter_experimental(
+    OpenApiParameter(
+        name="expand",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        enum=["context"],
+        description=(
+            "Optional fields to expand. Pass `context` to include attribute metadata "
+            "(brief, examples, deprecation, etc.)."
+        ),
+    )
 )
 
 
@@ -728,6 +733,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         """
         List the attribute keys available on a given trace item dataset (spans, logs,
         trace metrics, etc.), with optional substring and structured filtering.
+
+        Pass `expand=context` (experimental) to include each attribute's metadata:
+        a brief description, examples, and deprecation details.
         """
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -877,7 +885,9 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
             attribute_type, AttributeKey.Type.TYPE_STRING
         )
-        with start_span(op="filter", name="hardcoded_aliases") as span:
+        with traces.start_span(
+            name="hardcoded_aliases", attributes={"sentry.op": "filter"}
+        ) as span:
             all_aliased_attributes = []
             # our aliases don't exist in the db, so filter over our aliases
             # virtually page through defined aliases before we hit the db
@@ -942,7 +952,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                                 )
                             )
             aliased_attributes = all_aliased_attributes[offset : offset + limit]
-        with start_span(op="query", name="attribute_names") as span:
+        with traces.start_span(name="attribute_names", attributes={"sentry.op": "query"}) as span:
             if len(aliased_attributes) < limit:
                 offset -= len(all_aliased_attributes) - len(aliased_attributes)
                 limit -= len(aliased_attributes)
@@ -966,7 +976,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             else:
                 rpc_response = TraceItemAttributeNamesResponse()
 
-        with start_span(op="query", name="serialize") as span:
+        with traces.start_span(name="serialize", attributes={"sentry.op": "query"}) as span:
             attributes = self.serialize_trace_attributes(
                 rpc_response,
                 attribute_type,
@@ -981,8 +991,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
 
             sentry_sdk.set_context("api_response", {"attributes": attributes})
             sentry_sdk.set_attribute("api_response.attributes", str(attributes))
-            set_span_data(span, "attribute_count", len(attributes))
-            set_span_data(span, "attribute_type", attribute_type)
+            span.set_attribute("attribute_count", len(attributes))
+            span.set_attribute("attribute_type", attribute_type)
         return attributes, debug_info
 
     def serialize_trace_attributes(

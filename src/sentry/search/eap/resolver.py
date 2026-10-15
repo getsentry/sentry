@@ -37,7 +37,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 )
 from sentry_sdk import traces
 
-from sentry import features
 from sentry.api import event_search
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
@@ -298,14 +297,7 @@ class SearchResolver:
         )
 
     def _allows_regex(self) -> bool:
-        organization = self.params.organization
-        return (
-            self.definitions.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
-            and organization is not None
-            and features.has(
-                "organizations:ourlogs-regex-searches", organization, actor=self.params.user
-            )
-        )
+        return self.definitions.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
 
     def collect_terms(self, parsed_terms: Sequence[event_search.QueryToken]) -> list[str]:
         """Helper function to collect all the search terms from a parsed query ignoring the actual query tree"""
@@ -1337,8 +1329,12 @@ class SearchResolver:
                     extra={
                         "organization_id": self.params.organization_id,
                         "function_name": function_name,
+                        "column": column,
+                        "query_string": self.params.query_string,
                     },
                 )
+                if self.config.disable_deprecated_functions:
+                    raise
                 return self._resolve_function(
                     deprecated_definition, function_name, alias, columns, default_value
                 )

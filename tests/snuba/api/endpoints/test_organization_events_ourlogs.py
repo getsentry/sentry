@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timedelta, timezone
 from unittest.mock import ANY, patch
 from uuid import uuid4
@@ -171,7 +172,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -196,7 +196,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -223,7 +222,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -263,7 +261,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
@@ -289,29 +286,10 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 200, response.content
         assert [log["log.body"] for log in response.data["data"]] == ["Error: disk full"]
-
-    def test_regex_shaped_value_is_a_literal_without_the_feature(self) -> None:
-        logs = [
-            self.create_ourlog({"body": "//^ERROR//"}, timestamp=self.ten_mins_ago),
-            self.create_ourlog({"body": "ERROR [1] disk full"}, timestamp=self.nine_mins_ago),
-        ]
-        self.store_eap_items(logs)
-        response = self.do_request(
-            {
-                "field": ["log.body"],
-                "query": "message://^ERROR//",
-                "project": self.project.id,
-                "dataset": self.dataset,
-            }
-        )
-
-        assert response.status_code == 200, response.content
-        assert [log["log.body"] for log in response.data["data"]] == ["//^ERROR//"]
 
     def test_regex_filter_rejects_an_invalid_pattern(self) -> None:
         response = self.do_request(
@@ -321,7 +299,6 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
                 "project": self.project.id,
                 "dataset": self.dataset,
             },
-            features={"organizations:ourlogs-regex-searches": True},
         )
 
         assert response.status_code == 400, response.content
@@ -1255,6 +1232,29 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         response = self.do_request(request)
         assert response.status_code == 200
         assert response.data["data"] == [{"p50_if(`message:log`,payload_size)": 1234567}]
+
+    def test_any_function(self):
+        log = self.create_ourlog(
+            {"body": "log"},
+            attributes={"sentry.payload_size_bytes": 1234567},
+            timestamp=self.ten_mins_ago,
+        )
+        self.store_eap_items([log])
+        request = {
+            "field": ["any(trace)", "any(timestamp)"],
+            "project": self.project.id,
+            "dataset": self.dataset,
+            "statsPeriod": "1h",
+        }
+
+        response = self.do_request(request)
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "any(trace)": log.trace_id,
+                "any(timestamp)": math.floor(self.ten_mins_ago.timestamp()),
+            }
+        ]
 
     def test_aggregate_condition_filters_grouped_logs(self) -> None:
         self.store_eap_items(

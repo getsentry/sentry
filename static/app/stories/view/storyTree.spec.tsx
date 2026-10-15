@@ -12,7 +12,7 @@ jest.mock('sentry/stories/storyManifest.generated', () => ({
   },
 }));
 
-jest.mock('sentry/stories/view', () => ({
+jest.mock('sentry/stories/view/useStoryParams', () => ({
   useStoryParams: () => ({}),
 }));
 

@@ -713,9 +713,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Desired chunk size for TUS uploads.
+# Desired chunk max size for TUS uploads.
 register(
-    "relay.upload-chunk.size",
+    "relay.upload-max-chunk.size",
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1598,6 +1598,13 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Stops logging FIRST_SEEN when ingest creates a group.
+register(
+    "issues.action_log.first_seen_on_create.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "issues.backfill_group_action_log.killswitch",
     type=Bool,
@@ -1789,7 +1796,7 @@ register(
 )
 # Suppresses working-cache keys only for events entering in the inline cohort.
 # Keyless events remain inline after rollout changes; keyed events keep writing.
-# Unprocessed backups and cleanup remain in Redis.
+# Unprocessed backups are also passed inline instead of being written to Redis.
 register(
     "store.disable-processing-store",
     type=Bool,
@@ -4663,5 +4670,12 @@ register(
     "ingestion-delay.measurement-cache-seconds",
     type=Int,
     default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "integrations.client.disable_retries",
+    default=False,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
