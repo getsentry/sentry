@@ -20,8 +20,6 @@ import {
   UNLIMITED,
   UNLIMITED_RESERVED,
 } from 'getsentry/constants';
-
-export {MILLISECONDS_IN_HOUR};
 import {
   AddOnCategory,
   CREDIT_INVOICE_ITEM_TYPES,
