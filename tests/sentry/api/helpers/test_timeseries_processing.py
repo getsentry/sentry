@@ -1,3 +1,4 @@
+import sys
 from collections.abc import Sequence
 from typing import Any, Literal
 
@@ -7,6 +8,7 @@ from sentry.api.helpers.timeseries_processing import (
     FILL_MODE_LINEAR,
     FILL_MODE_LOCF,
     FILL_MODE_ZERO,
+    SMOOTH_MODE_ASAP,
     SMOOTH_MODE_EMA,
     SMOOTH_MODE_SMA,
     fill_timeseries,
@@ -337,10 +339,10 @@ def test_smooth_timeseries_rejects_nonpositive_window(
         smooth_timeseries([0.0], [1.0], mode=mode, window_size=window_size)
 
 
-@pytest.mark.parametrize("mode", [SMOOTH_MODE_SMA, SMOOTH_MODE_EMA])
+@pytest.mark.parametrize("mode", [SMOOTH_MODE_SMA, SMOOTH_MODE_EMA, SMOOTH_MODE_ASAP])
 @pytest.mark.parametrize("timestamps, values", [([0.0], []), ([], [1.0])])
 def test_smooth_timeseries_rejects_mismatched_lengths(
-    timestamps: list[float], values: list[float | None], mode: Literal["sma", "ema"]
+    timestamps: list[float], values: list[float | None], mode: Literal["sma", "ema", "asap"]
 ) -> None:
     with pytest.raises(ValueError, match="Timestamps and values must have the same length"):
         smooth_timeseries(timestamps, values, mode=mode)
@@ -350,3 +352,163 @@ def test_smooth_timeseries_rejects_mismatched_lengths(
 def test_smooth_timeseries_rejects_unsupported_modes(mode: Any) -> None:
     with pytest.raises(ValueError, match="Unsupported smoothing mode"):
         smooth_timeseries([0.0], [1.0], mode=mode)
+
+
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        pytest.param([], [], id="empty"),
+        pytest.param([None, None], [None, None], id="all-missing"),
+        pytest.param((None, 0.0, None), [None, 0.0, None], id="single-zero-observation"),
+        pytest.param([2.0, -4.0, 8.0], [2.0, -4.0, 8.0], id="short-series"),
+        pytest.param([0.0] * 20, [0.0] * 20, id="constant-zero"),
+        pytest.param([5.0] * 20, [5.0] * 20, id="constant-nonzero"),
+        pytest.param(tuple(range(20)), list(range(20)), id="constant-differences"),
+        pytest.param(
+            [0.0] * 10 + [20.0] + [0.0] * 9,
+            [0.0] * 10 + [20.0] + [0.0] * 9,
+            id="kurtosis-rejects-smoothing-a-spike",
+        ),
+        pytest.param(
+            [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 5,
+            [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 5,
+            id="fourteen-buckets-have-no-candidate",
+        ),
+        pytest.param(
+            [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 5 + [-1.0],
+            [4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 10,
+            id="fifteen-buckets-round-up-to-window-two",
+        ),
+    ],
+)
+def test_smooth_timeseries_asap(
+    values: Sequence[float | None], expected: list[float | None]
+) -> None:
+    timestamps = tuple(float(index**2) for index in range(len(values)))
+    original_values = tuple(values)
+
+    result = smooth_timeseries(timestamps, values, mode=SMOOTH_MODE_ASAP)
+
+    assert result == pytest.approx(expected)
+    assert result is not values
+    assert tuple(values) == original_values
+    assert timestamps == tuple(float(index**2) for index in range(len(values)))
+
+
+@pytest.mark.parametrize(
+    "offset, scale",
+    [(0.0, 1e-300), (0.0, 1.0), (0.0, 1e300), (1e308, 1e307), (-1e308, 1e307), (1e16, 4.0)],
+)
+def test_smooth_timeseries_asap_selects_window_two(offset: float, scale: float) -> None:
+    values = tuple(offset + value * scale for value in [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 8)
+
+    result = smooth_timeseries(list(range(20)), values, mode="asap")
+
+    assert [(value - offset) / scale for value in result if value is not None] == pytest.approx(
+        [4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 15
+    )
+
+
+def test_smooth_timeseries_asap_selects_different_windows_across_gaps() -> None:
+    values = (
+        [None]
+        + [4.0, 6.0, 4.0, 6.0]
+        + [-1.0, 1.0] * 8
+        + [None, None]
+        + [
+            8.0,
+            7.0,
+            8.0,
+            5.0,
+            2.0,
+            7.0,
+            6.0,
+            1.0,
+            8.0,
+            5.0,
+            2.0,
+            1.0,
+            0.0,
+            5.0,
+            6.0,
+            9.0,
+            6.0,
+            5.0,
+            6.0,
+            9.0,
+            6.0,
+            7.0,
+            8.0,
+            9.0,
+            8.0,
+        ]
+        + [None, 100.0, -100.0, None]
+    )
+    original_values = values.copy()
+
+    result = smooth_timeseries(list(range(len(values))), values, mode=SMOOTH_MODE_ASAP)
+
+    assert result == pytest.approx(
+        [None, 4.0, 5.0, 5.0, 5.0, 2.5]
+        + [0.0] * 15
+        + [None, None]
+        + [
+            8.0,
+            7.5,
+            23 / 3,
+            20 / 3,
+            5.0,
+            14 / 3,
+            5.0,
+            14 / 3,
+            5.0,
+            14 / 3,
+            5.0,
+            8 / 3,
+            1.0,
+            2.0,
+            11 / 3,
+            20 / 3,
+            7.0,
+            20 / 3,
+            17 / 3,
+            20 / 3,
+            7.0,
+            22 / 3,
+            7.0,
+            8.0,
+            25 / 3,
+        ]
+        + [None, 100.0, -100.0, None]
+    )
+    assert values == original_values
+
+
+def test_smooth_timeseries_asap_composes_with_filling_in_either_order() -> None:
+    timestamps = list(range(21))
+    values = [4.0, 6.0, 4.0, 6.0] + [-1.0, 1.0] * 8 + [None]
+
+    filled = fill_timeseries(timestamps, values, mode=FILL_MODE_ZERO)
+    fill_then_smooth = smooth_timeseries(timestamps, filled.values, mode=SMOOTH_MODE_ASAP)
+    smoothed = smooth_timeseries(timestamps, values, mode=SMOOTH_MODE_ASAP)
+    smooth_then_fill = fill_timeseries(timestamps, smoothed, mode=FILL_MODE_ZERO)
+
+    assert fill_then_smooth == pytest.approx([4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 15 + [0.5])
+    assert smooth_then_fill.values == pytest.approx([4.0, 5.0, 5.0, 5.0, 2.5] + [0.0] * 16)
+    assert filled.filled == smooth_then_fill.filled == [False] * 20 + [True]
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_smooth_timeseries_asap_rejects_nonfinite_observations(value: float) -> None:
+    with pytest.raises(ValueError, match="ASAP observations must be finite"):
+        smooth_timeseries([0.0, 1.0], [1.0, value], mode=SMOOTH_MODE_ASAP)
+
+
+def test_smooth_timeseries_asap_preserves_values_when_rescaling_overflows() -> None:
+    offsets = [0, 0, 0, 1, 0, 1, 1, 2, 3, 0, 0, 65, 43, 0, 25]
+    values = [(1 - offset * 2**-53) * sys.float_info.max for offset in offsets]
+
+    result = smooth_timeseries(list(range(15)), values, mode=SMOOTH_MODE_ASAP)
+
+    assert result == values
+    assert result is not values

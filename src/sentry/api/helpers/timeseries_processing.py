@@ -1,5 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
+from itertools import groupby
+from math import fsum, isfinite
 from typing import Final, Literal, overload
 
 FILL_MODE_LOCF: Final = "locf"
@@ -8,6 +10,7 @@ FILL_MODE_LINEAR: Final = "linear"
 
 SMOOTH_MODE_SMA: Final = "sma"
 SMOOTH_MODE_EMA: Final = "ema"
+SMOOTH_MODE_ASAP: Final = "asap"
 
 
 @dataclass(frozen=True)
@@ -85,6 +88,15 @@ def smooth_timeseries(
     timestamps: Sequence[float],
     values: Sequence[float | None],
     *,
+    mode: Literal["asap"],
+) -> list[float | None]: ...
+
+
+@overload
+def smooth_timeseries(
+    timestamps: Sequence[float],
+    values: Sequence[float | None],
+    *,
     mode: Literal["sma"],
     window_size: int = 3,
 ) -> list[float | None]: ...
@@ -105,7 +117,7 @@ def smooth_timeseries(
     timestamps: Sequence[float],
     values: Sequence[float | None],
     *,
-    mode: Literal["sma", "ema"],
+    mode: Literal["sma", "ema", "asap"],
     window_size: int = 3,
     smoothing_factor: float | None = None,
 ) -> list[float | None]:
@@ -131,6 +143,15 @@ def smooth_timeseries(
             An explicit smoothing_factor in (0, 1] overrides the span-derived factor.
             The default span of three gives a factor of 0.5. smoothing_factor applies
             only to ema.
+        asap: Automatically select a moving-average window for each contiguous run
+            of observations. Minimize the variance of adjacent differences without
+            decreasing Pearson kurtosis, scoring complete windows as in Stanford's
+            ASAP-simple reference. Search windows from round(run_length / 10) down
+            to two, retaining the original values when none improves the objective.
+            Return partial windows at the start to preserve bucket alignment; these
+            startup values do not participate in the selection metrics. Missing
+            buckets stay None and separate independent runs. Observations must be
+            finite. window_size and smoothing_factor do not apply to asap.
     """
     if len(timestamps) != len(values):
         raise ValueError("Timestamps and values must have the same length.")
@@ -178,5 +199,61 @@ def smooth_timeseries(
                 ema_values.append(average)
 
         return ema_values
+    elif mode == SMOOTH_MODE_ASAP:
+        if any(value is not None and not isfinite(value) for value in values):
+            raise ValueError("ASAP observations must be finite.")
+
+        asap_values: list[float | None] = []
+        for observed, group in groupby(values, key=lambda value: value is not None):
+            if observed:
+                asap_values.extend(_smooth_asap([value for value in group if value is not None]))
+            else:
+                asap_values.extend(group)
+        return asap_values
     else:
         raise ValueError(f"Unsupported smoothing mode: {mode}")
+
+
+def _smooth_asap(values: Sequence[float]) -> list[float]:
+    max_window = (len(values) + 5) // 10
+    if max_window < 2 or min(values) == max(values):
+        return list(values)
+
+    scale = max(abs(value) for value in values)
+    normalized = [value / scale for value in values]
+    min_roughness, original_kurtosis = _asap_metrics(normalized)
+    best_values = list(values)
+    for window_size in range(max_window, 1, -1):
+        smoothed = _asap_moving_average(normalized, window_size)
+        roughness, kurtosis = _asap_metrics(smoothed[window_size - 1 :])
+        if roughness < min_roughness and kurtosis >= original_kurtosis:
+            min_roughness = roughness
+            best_values = [value * scale for value in smoothed]
+
+    return best_values if all(isfinite(value) for value in best_values) else list(values)
+
+
+def _asap_moving_average(values: Sequence[float], window_size: int) -> list[float]:
+    smoothed: list[float] = []
+    window_sum = 0.0
+    for index, value in enumerate(values):
+        expired = values[index - window_size] if index >= window_size else 0.0
+        window_sum = fsum((window_sum, value, -expired))
+        smoothed.append(window_sum / min(index + 1, window_size))
+    return smoothed
+
+
+def _asap_metrics(values: Sequence[float]) -> tuple[float, float]:
+    mean = fsum(values) / len(values)
+    deviations = [value - mean for value in values]
+    deviation_scale = max(abs(value) for value in deviations)
+    kurtosis = 0.0
+    if deviation_scale:
+        centered = [value / deviation_scale for value in deviations]
+        second_moment = fsum(value**2 for value in centered)
+        kurtosis = len(values) * fsum(value**4 for value in centered) / second_moment**2
+
+    differences = [right - left for left, right in zip(values, values[1:])]
+    mean_difference = fsum(differences) / len(differences)
+    roughness = fsum((value - mean_difference) ** 2 for value in differences) / len(differences)
+    return roughness, kurtosis
