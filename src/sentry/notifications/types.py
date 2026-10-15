@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, NamedTuple
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass(eq=False, frozen=True)
 class NotificationOrigin:
@@ -19,6 +22,16 @@ class NotificationOrigin:
     environment_id: int | None
     workflow_id: int | None
     legacy_rule_id: int | None
+
+    def __post_init__(self) -> None:
+        # identifier and link_id assume at least one ID is set; log where an origin
+        # without one is created rather than only failing when it's later used.
+        if self.workflow_id is None and self.legacy_rule_id is None:
+            logger.warning(
+                "notifications.origin.missing_identity",
+                extra={"label": self.label, "environment_id": self.environment_id},
+                stack_info=True,
+            )
 
     def is_test_notification(self) -> bool:
         return (

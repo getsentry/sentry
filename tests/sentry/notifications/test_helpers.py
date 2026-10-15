@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 from sentry.models.rule import Rule
@@ -152,6 +153,21 @@ class NotificationHelpersTest(TestCase):
         )
 
         assert origin.is_test_notification()
+
+    def test_notification_origin_logs_missing_identity(self) -> None:
+        with patch("sentry.notifications.types.logger") as logger:
+            NotificationOrigin(
+                label="No identity", environment_id=None, workflow_id=None, legacy_rule_id=None
+            )
+            NotificationOrigin(
+                label="Workflow", environment_id=None, workflow_id=1, legacy_rule_id=None
+            )
+
+        logger.warning.assert_called_once_with(
+            "notifications.origin.missing_identity",
+            extra={"label": "No identity", "environment_id": None},
+            stack_info=True,
+        )
 
     def test_get_email_link_extra_params(self) -> None:
         rule: Rule = self.create_project_rule(self.project)
