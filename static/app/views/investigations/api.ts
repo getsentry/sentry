@@ -78,6 +78,33 @@ export function investigationCommentsQueryOptions({
   );
 }
 
+/** Page-level comment, or a block comment when `blockId` is set. */
+export function useCreateInvestigationCommentMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<InvestigationComment, {body: string; blockId?: string}>
+) {
+  const queryClient = useQueryClient();
+  const [commentsUrl] = investigationCommentsQueryOptions({
+    organizationSlug,
+    investigationId,
+  }).queryKey;
+
+  return useMutation({
+    ...options,
+    mutationFn: ({body, blockId}) =>
+      fetchMutation<InvestigationComment>({
+        url: commentsUrl,
+        method: 'POST',
+        data: blockId === undefined ? {body} : {body, blockId},
+      }),
+    onSuccess: async (comment, variables, onMutateResult, context) => {
+      await queryClient.invalidateQueries({queryKey: [commentsUrl]});
+      await options?.onSuccess?.(comment, variables, onMutateResult, context);
+    },
+  });
+}
+
 export function investigationExecutionDetailQueryOptions({
   organizationSlug,
   investigationId,

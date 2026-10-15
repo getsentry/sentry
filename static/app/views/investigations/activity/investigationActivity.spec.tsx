@@ -1,6 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
@@ -27,6 +33,13 @@ function renderPage() {
 
 function findActivity() {
   return screen.findByRole('list', {name: 'Activity'});
+}
+
+async function findEditor(name: string) {
+  const editor = await screen.findByRole('combobox', {name});
+  // user-event does not yet recognize contenteditable="plaintext-only".
+  editor.setAttribute('contenteditable', 'true');
+  return editor;
 }
 
 describe('InvestigationActivity', () => {
@@ -78,5 +91,64 @@ describe('InvestigationActivity', () => {
     expect(
       within(await findActivity()).getByText('Showing the latest 100 comments.')
     ).toBeInTheDocument();
+  });
+
+  it('posts a comment with Enter', async () => {
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    const request = MockApiClient.addMockResponse({
+      url: commentsUrl,
+      method: 'POST',
+      body: InvestigationCommentFixture({body: 'Looks like the deploy'}),
+    });
+    renderPage();
+
+    const input = await findEditor('Add a comment');
+    await userEvent.type(input, '  Looks like the deploy  {Enter}');
+
+    expect(request).toHaveBeenCalledWith(
+      commentsUrl,
+      expect.objectContaining({data: {body: 'Looks like the deploy'}})
+    );
+    await waitFor(() => expect(input).toHaveTextContent(/^$/));
+  });
+
+  it('hides the composer on an archived investigation', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({status: 'archived'}),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    renderPage();
+
+    await findActivity();
+    expect(
+      screen.queryByRole('combobox', {name: 'Add a comment'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Comment'})).not.toBeInTheDocument();
+  });
+
+  it('keeps the comment count on an archived investigation', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({status: 'archived'}),
+    });
+    MockApiClient.addMockResponse({
+      url: commentsUrl,
+      body: [InvestigationCommentFixture()],
+    });
+    renderPage();
+
+    expect(await screen.findByRole('button', {name: '1 comment'})).toBeEnabled();
+  });
+
+  it('jumps to the composer from the comment count', async () => {
+    MockApiClient.addMockResponse({
+      url: commentsUrl,
+      body: [InvestigationCommentFixture({id: '2'}), InvestigationCommentFixture()],
+    });
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', {name: '2 comments'}));
+    expect(screen.getByRole('combobox', {name: 'Add a comment'})).toHaveFocus();
   });
 });

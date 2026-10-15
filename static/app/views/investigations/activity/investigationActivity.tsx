@@ -1,6 +1,5 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -12,10 +11,9 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {ProgressState} from 'sentry/types/group';
-import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {investigationCommentsQueryOptions} from 'sentry/views/investigations/api';
+import {CommentComposer} from 'sentry/views/investigations/comments/commentComposer';
+import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/cell';
 import type {
   InvestigationComment,
@@ -29,22 +27,14 @@ import {
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {ActivityProgressMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker/progressMarker';
 
-function useInvestigationComments(investigationId: string) {
-  const organization = useOrganization();
-  return useQuery({
-    ...investigationCommentsQueryOptions({
-      organizationSlug: organization.slug,
-      investigationId,
-    }),
-    refetchInterval: 10_000,
-    select: selectJsonWithHeaders,
-  });
-}
-
 export function InvestigationActivity({
   investigation,
+  composerRef,
+  ref,
 }: {
   investigation: InvestigationDetail;
+  composerRef?: React.Ref<HTMLDivElement>;
+  ref?: React.Ref<HTMLElement>;
 }) {
   const {data, isPending, refetch} = useInvestigationComments(investigation.id);
   const blockTitles = useMemo(
@@ -58,10 +48,13 @@ export function InvestigationActivity({
   const hasOlder = parseLinkHeader(data?.headers.Link ?? null).next?.results === true;
 
   return (
-    <Stack as="section" gap="lg" paddingTop="2xl" borderTop="primary">
+    <Stack ref={ref} as="section" gap="lg" paddingTop="2xl" borderTop="primary">
       <Heading as="h2" size="lg">
         {t('Activity')}
       </Heading>
+      {investigation.status === 'archived' ? null : (
+        <CommentComposer investigationId={investigation.id} inputRef={composerRef} />
+      )}
       {isPending ? (
         <LoadingIndicator mini />
       ) : data === undefined ? (
