@@ -81,7 +81,7 @@ describe('Event flamegraph', () => {
       statusCode: 500,
       body: {detail: 'Attachments unavailable.'},
     });
-    await act(async () => {
+    act(() => {
       render(<EventFlamegraph event={event} project={project} />, {organization});
     });
     await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
