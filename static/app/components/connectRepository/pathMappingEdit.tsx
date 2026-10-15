@@ -149,18 +149,24 @@ export const PathMappingEdit = withFieldGroup({
                     'What to replace it with, so the path points to your repo.'
                   )}
                 >
-                  <PathPrefixCombobox
-                    aria-label={t('Repository prefix')}
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    options={repoPrefixes.data?.prefixes ?? []}
-                    isLoading={repoPrefixes.isLoading}
-                    placeholder={SOURCE_ROOT_PLACEHOLDER}
-                    disabled={hasCodeOwner}
-                    menuAlign="end"
-                    menuWidth={PREFIX_MENU_WIDTH}
-                    maxMenuHeight={PREFIX_MENU_MAX_HEIGHT}
-                  />
+                  <field.Base<HTMLInputElement> disabled={hasCodeOwner}>
+                    {({ref: _ref, ...baseProps}) => (
+                      <Container flex={1} minWidth={0}>
+                        <PathPrefixCombobox
+                          {...baseProps}
+                          aria-label={t('Repository prefix')}
+                          value={field.state.value}
+                          onChange={field.handleChange}
+                          options={repoPrefixes.data?.prefixes ?? []}
+                          isLoading={repoPrefixes.isLoading}
+                          placeholder={SOURCE_ROOT_PLACEHOLDER}
+                          menuAlign="end"
+                          menuWidth={PREFIX_MENU_WIDTH}
+                          maxMenuHeight={PREFIX_MENU_MAX_HEIGHT}
+                        />
+                      </Container>
+                    )}
+                  </field.Base>
                 </field.Layout.Stack>
               )}
             </group.AppField>
