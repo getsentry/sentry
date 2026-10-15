@@ -3,6 +3,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 from uuid import uuid4
 
+import pytest
 from snuba_sdk import Column, Condition, Op
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
@@ -372,6 +373,28 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase, PerformanceIssueTestCase):
         assert prev_event is None
         assert next_event is None
         bulk_raw_query.assert_not_called()
+
+    def test_get_adjacent_event_ids_propagates_query_construction_error(self) -> None:
+        event = self.event2
+        event_filter = Filter(project_ids=[event.project_id], group_ids=[event.group_id])
+
+        with mock.patch(
+            "sentry.utils.snuba.SnubaQueryParams",
+            side_effect=snuba.SnubaError("Unexpected query failure"),
+        ):
+            with pytest.raises(snuba.SnubaError, match="Unexpected query failure"):
+                self.eventstore.get_adjacent_event_ids(event, filter=event_filter)
+
+    def test_get_adjacent_event_ids_propagates_query_execution_error(self) -> None:
+        event = self.event2
+        event_filter = Filter(project_ids=[event.project_id], group_ids=[event.group_id])
+
+        with mock.patch(
+            "sentry.utils.snuba.bulk_raw_query",
+            side_effect=RuntimeError("Unexpected query failure"),
+        ):
+            with pytest.raises(RuntimeError, match="Unexpected query failure"):
+                self.eventstore.get_adjacent_event_ids(event, filter=event_filter)
 
     def test_adjacent_event_ids_same_timestamp(self) -> None:
         project = self.create_project()
