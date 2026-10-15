@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from typing import Any
 from unittest import mock
@@ -12,6 +13,11 @@ from rest_framework.request import Request
 
 from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from sentry.api.endpoints.timeseries import IncompleteReason
+from sentry.api.helpers.timeseries_processing import (
+    FillTransformation,
+    SmoothTransformation,
+    Transformation,
+)
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -24,29 +30,43 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
     [
         ("", {}),
         ("transformationsExtra=ignored&query=anything", {}),
-        ("transformations[0]=fill(locf)", {0: ["fill(locf)"]}),
+        ("transformations[0]=fill(locf)", {0: [FillTransformation(mode="locf")]}),
+        (
+            "transformations[0]=smooth(sma,,5)",
+            {0: [SmoothTransformation(mode="sma", window_size=5)]},
+        ),
+        (
+            "transformations[0]=smooth%28sma%2C5%29&transformations[0]=smooth(sma,3)",
+            {
+                0: [
+                    SmoothTransformation(mode="sma", window_size=5),
+                    SmoothTransformation(mode="sma", window_size=3),
+                ]
+            },
+        ),
         (
             "yAxis=count()&yAxis=count()&transformations%5B1%5D=fill%28locf%29"
-            "&transformations%5B1%5D=smooth%28sma%29&transformations%5B0%5D=fill%28zero%29",
-            {1: ["fill(locf)", "smooth(sma)"], 0: ["fill(zero)"]},
+            "&transformations%5B1%5D=smooth%28sma%2C3%29&transformations%5B0%5D=fill%28zero%29",
+            {
+                1: [
+                    FillTransformation(mode="locf"),
+                    SmoothTransformation(mode="sma", window_size=3),
+                ],
+                0: [FillTransformation(mode="zero")],
+            },
         ),
         (
             "yAxis=count()&yAxis=avg(span.duration)&yAxis=p90(span.duration)"
-            "&transformations[2]=smooth(sma)",
-            {2: ["smooth(sma)"]},
+            "&transformations[2]=smooth(sma,3)",
+            {2: [SmoothTransformation(mode="sma", window_size=3)]},
         ),
         (
             "transformations[0]=fill(locf)&transformations[0]=fill(locf)",
-            {0: ["fill(locf)", "fill(locf)"]},
-        ),
-        ("transformations[0]=", {0: [""]}),
-        (
-            "transformations[0]=[fill(locf), smooth(sma)]",
-            {0: ["[fill(locf), smooth(sma)]"]},
+            {0: [FillTransformation(mode="locf"), FillTransformation(mode="locf")]},
         ),
     ],
 )
-def test_decode_transformations(query: str, expected: dict[int, list[str]]) -> None:
+def test_decode_transformations(query: str, expected: dict[int, list[Transformation]]) -> None:
     request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
 
     assert OrganizationEventsTimeseriesEndpoint().get_transformations(request) == expected
@@ -89,6 +109,42 @@ def test_decode_transformations_index_out_of_range(query: str) -> None:
         OrganizationEventsTimeseriesEndpoint().get_transformations(request)
 
 
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("", " is not a valid transformation"),
+        ("[fill(locf), smooth(sma)]", "[fill(locf), smooth(sma)] is not a valid transformation"),
+        (
+            "fill(sma)",
+            "fill(sma): mode argument invalid: expected one of locf, zero, linear",
+        ),
+        (
+            "smooth(sma,0)",
+            "smooth(sma,0): window_size argument invalid: Window size must be positive.",
+        ),
+        ("fill()", "fill(): argument count must be 1"),
+        ("smooth()", "smooth(): argument count must be 2"),
+        ("smooth(sma)", "smooth(sma): argument count must be 2"),
+        ("fill(locf,zero)", "fill(locf,zero): argument count must be 1"),
+        ("smooth(sma,5,6)", "smooth(sma,5,6): argument count must be 2"),
+    ],
+)
+def test_decode_transformations_invalid_value(
+    value: str, expected: str, caplog: pytest.LogCaptureFixture
+) -> None:
+    request = Request(
+        RequestFactory().get("/events-timeseries/", {"transformations[0]": ["fill(locf)", value]})
+    )
+
+    with caplog.at_level(logging.INFO, logger="sentry.api.utils"):
+        with pytest.raises(ParseError) as error:
+            OrganizationEventsTimeseriesEndpoint().get_transformations(request)
+
+    assert error.value.detail == expected
+    assert caplog.record_tuples == [("sentry.api.utils", logging.INFO, "A query error was handled")]
+    assert getattr(caplog.records[0], "query.error_reason") == expected
+
+
 class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
     endpoint = "sentry-api-0-organization-events-timeseries"
 
@@ -110,6 +166,21 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
 
         assert response.data == {"detail": "Invalid transformations index"}
 
+    def test_invalid_transformation_function_with_no_projects(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
+            }
+        ):
+            response = self.get_error_response(
+                self.org.slug, **{"transformations[0]": ["smooth(linear,3)"]}, status_code=400
+            )
+
+        assert response.data == {
+            "detail": "smooth(linear,3): mode argument invalid: expected one of sma"
+        }
+
     def test_transformations_ignored_when_feature_disabled(self) -> None:
         with self.feature(
             {
@@ -118,7 +189,8 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             }
         ):
             response = self.get_success_response(
-                self.org.slug, **{"transformations[-1]": ["fill(locf)"]}
+                self.org.slug,
+                **{"transformations[-1]": ["fill(locf)"], "transformations[0]": ["fill(sma)"]},
             )
 
         assert response.data == {"timeSeries": []}
@@ -216,7 +288,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "end": self.end,
                 "interval": "1h",
                 "project": [self.project.id, self.project2.id],
-                "transformations[0]": ["fill(locf)", "smooth(sma)"],
+                "transformations[0]": ["fill(locf)", "smooth(sma,3)"],
             },
             features={
                 "organizations:discover-basic": True,
