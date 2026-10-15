@@ -1,4 +1,31 @@
-import {reasonDescription, reasonTitle} from './outcomes';
+import {ThemeFixture} from 'sentry-fixture/theme';
+
+import {
+  getOutcomeColors,
+  reasonDescription,
+  reasonLongDescription,
+  reasonTitle,
+} from './outcomes';
+
+describe('getOutcomeColors', () => {
+  it('assigns the same colors regardless of input order', () => {
+    const theme = ThemeFixture();
+
+    expect(
+      getOutcomeColors(['rate_limited', 'client_discard', 'invalid'], theme)
+    ).toEqual(getOutcomeColors(['invalid', 'rate_limited', 'client_discard'], theme));
+  });
+
+  it('gives each outcome a distinct color', () => {
+    const colors = getOutcomeColors(
+      ['client_discard', 'filtered', 'invalid', 'client_discard'],
+      ThemeFixture()
+    );
+
+    expect(Object.keys(colors).sort()).toEqual(['client_discard', 'filtered', 'invalid']);
+    expect(new Set(Object.values(colors)).size).toBe(3);
+  });
+});
 
 describe('reasonTitle', () => {
   it('maps a known reason code to its human title', () => {
@@ -46,5 +73,30 @@ describe('reasonDescription', () => {
 
   it('returns undefined for an unknown reason', () => {
     expect(reasonDescription('some_new_reason', 'span')).toBeUndefined();
+  });
+
+  it('describes the cors reason', () => {
+    expect(reasonTitle('cors')).toBe('Disallowed origin');
+    expect(reasonDescription('cors', 'span')).toBe(
+      "Origin not in project's Allowed Domains."
+    );
+  });
+});
+
+describe('reasonLongDescription', () => {
+  it('returns the long description for a known reason', () => {
+    expect(reasonLongDescription('send_error')).toBe(
+      'The event reached Sentry but was rejected with an error code.'
+    );
+  });
+
+  it('describes category-prefixed quota reasons', () => {
+    expect(reasonLongDescription('span_usage_exceeded')).toBe(
+      reasonLongDescription('usage_exceeded')
+    );
+  });
+
+  it('returns undefined for an unknown reason', () => {
+    expect(reasonLongDescription('some_new_reason')).toBeUndefined();
   });
 });

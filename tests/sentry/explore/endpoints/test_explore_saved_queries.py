@@ -496,6 +496,29 @@ class ExploreSavedQueriesTest(APITestCase):
         assert "Test query" not in names
         assert str(own_query.id) in {item["id"] for item in response.data}
 
+    def test_sync_prebuilt_llm_calls_without_message_filter(self) -> None:
+        sync_prebuilt_queries(self.org)
+
+        saved_query = ExploreSavedQuery.objects.get(organization=self.org, prebuilt_id=5)
+        assert saved_query.prebuilt_version == 2
+        assert saved_query.query["query"][0]["query"] == "gen_ai.operation.type:ai_client"
+
+    def test_sync_prebuilt_llm_calls_updates_existing_message_filter(self) -> None:
+        sync_prebuilt_queries(self.org)
+        saved_query = ExploreSavedQuery.objects.get(organization=self.org, prebuilt_id=5)
+        saved_query.prebuilt_version = 1
+        saved_query.query["query"][0]["query"] = (
+            "gen_ai.operation.type:ai_client has:gen_ai.output.messages"
+        )
+        saved_query.save(update_fields=["prebuilt_version", "query"])
+
+        sync_prebuilt_queries(self.org)
+
+        saved_query.refresh_from_db()
+        assert saved_query.prebuilt_version == 2
+        assert saved_query.query["query"][0]["query"] == "gen_ai.operation.type:ai_client"
+        assert ExploreSavedQuery.objects.filter(organization=self.org, prebuilt_id=5).count() == 1
+
     def test_sync_prebuilt_starred_alphabetical_for_new_user(self) -> None:
         sync_prebuilt_queries(self.org)
         sync_prebuilt_queries_starred(self.org, self.user)

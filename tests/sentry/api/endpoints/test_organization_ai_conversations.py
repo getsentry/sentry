@@ -800,6 +800,26 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert response.has_header("X-Sentry-Direct-Hit")
         assert response["X-Sentry-Direct-Hit"] == "1"
 
+    def test_direct_hit_header_not_set_for_negated_id_query(self) -> None:
+        now = before_now(days=15).replace(microsecond=0)
+        conversation_id_1 = uuid4().hex
+        conversation_id_2 = uuid4().hex
+        self._store_minimal_conversation(conversation_id_1, now)
+        self._store_minimal_conversation(conversation_id_2, now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+            "query": f"gen_ai.conversation.id:!={conversation_id_1}",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["conversationId"] == conversation_id_2
+        assert not response.has_header("X-Sentry-Direct-Hit")
+
     def test_direct_hit_header_not_set_for_non_id_query(self) -> None:
         """A non-ID query resolving to a single conversation does not set the header."""
         now = before_now(days=16).replace(microsecond=0)

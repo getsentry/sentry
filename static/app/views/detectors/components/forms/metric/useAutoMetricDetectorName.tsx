@@ -8,7 +8,7 @@ import {useSetAutomaticName} from 'sentry/views/detectors/components/forms/commo
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   type MetricDetectorFormData,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 

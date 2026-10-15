@@ -340,6 +340,7 @@ export function collectRouteMap(
 export const ROUTE_OVERRIDE_HOOKS = [
   'routes:root',
   'routes:org-settings',
+  'routes:project-settings',
   'routes:subscription-settings',
   'routes:legacy-organization-redirects',
 ] as const;

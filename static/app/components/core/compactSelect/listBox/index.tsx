@@ -11,10 +11,9 @@ import {
   ListSeparator,
   ListWrap,
   SizeLimitMessage,
-  useVirtualizedItems,
-} from '@sentry/scraps/compactSelect';
-import type {SelectKey} from '@sentry/scraps/compactSelect';
-import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
+} from '@sentry/scraps/compactSelect/styles';
+import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
+import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
 import {Container} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 

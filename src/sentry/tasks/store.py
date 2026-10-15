@@ -8,6 +8,8 @@ from typing import Any
 
 import orjson
 from sentry_relay.processing import StoreNormalizer
+from sentry_sdk import traces
+from taskbroker_client.constants import CompressionType
 
 from sentry import features, options, reprocessing2
 from sentry.attachments import delete_cached_and_ratelimited_attachments, get_attachments_for_event
@@ -16,7 +18,11 @@ from sentry.event_preprocessors import get_event_preprocessors
 from sentry.feedback.usecases.ingest.save_event_feedback import (
     save_event_feedback as save_event_feedback_impl,
 )
-from sentry.ingest.event_payload import load_event_payload, prepare_submit
+from sentry.ingest.event_payload import (
+    get_event_payload_transport,
+    load_event_payload,
+    prepare_submit,
+)
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
@@ -39,7 +45,6 @@ from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
-from sentry.utils.tracing import set_span_data, start_span, trace
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 error_logger = logging.getLogger("sentry.errors.events")
@@ -70,6 +75,7 @@ def submit_process(
     from_symbolicate: bool = False,
     has_attachments: bool = False,
     data: MutableMapping[str, Any] | None = None,
+    unprocessed: MutableMapping[str, Any] | None = None,
 ) -> None:
     data, cache_key = prepare_submit(data, cache_key, event_id)
     if from_reprocessing:
@@ -84,6 +90,7 @@ def submit_process(
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
         data=data,
+        unprocessed=unprocessed,
     )
 
 
@@ -101,6 +108,7 @@ def submit_save_event(
     start_time: float | None,
     data: MutableMapping[str, Any] | None,
     inline: bool = False,
+    unprocessed: MutableMapping[str, Any] | None = None,
 ) -> None:
     data, cache_key = prepare_submit(data, cache_key, event_id)
 
@@ -116,6 +124,7 @@ def submit_save_event(
         "start_time": start_time,
         "event_id": event_id,
         "project_id": project_id,
+        "unprocessed": unprocessed,
     }
 
     if inline:
@@ -234,7 +243,9 @@ def _do_preprocess_event(
                 "symbolication_function": symbolication_function_name,
             },
         ):
-            reprocessing2.backup_unprocessed_event(data=original_data)
+            transport = get_event_payload_transport(event_id)
+            if transport.cache:
+                reprocessing2.backup_unprocessed_event(data=original_data)
 
             submit_symbolicate(
                 SymbolicatorTaskKind(
@@ -247,6 +258,7 @@ def _do_preprocess_event(
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
                 data=data,
+                unprocessed_pending=transport.inline,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
@@ -337,7 +349,7 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
     return random.random() < rollout_rate
 
 
-@trace
+@traces.trace
 def normalize_event(data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     normalizer = StoreNormalizer(
         remove_other=False,
@@ -357,6 +369,7 @@ def do_process_event(
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
+    unprocessed: MutableMapping[str, Any] | None = None,
 ) -> None:
     data = load_event_payload(data, cache_key, processing.event_processing_store)
 
@@ -389,15 +402,16 @@ def do_process_event(
             event_id=data_event_id,
             start_time=start_time,
             data=data,
+            unprocessed=unprocessed,
         )
 
     if is_process_disabled(project_id, data_event_id, data.get("platform") or "null"):
         return _continue_to_save_event()
 
     # NOTE: This span ranges in the 1-2ms range.
-    with start_span(
-        op="tasks.store.process_event.get_project_from_cache",
+    with traces.start_span(
         name="tasks.store.process_event.get_project_from_cache",
+        attributes={"sentry.op": "tasks.store.process_event.get_project_from_cache"},
     ):
         project = Project.objects.get_from_cache(id=project_id)
 
@@ -427,10 +441,13 @@ def do_process_event(
     # Default event processors.
     preprocessors = get_event_preprocessors(data)
 
-    with start_span(
-        op="task.store.process_event.preprocessors", name="task.store.process_event.preprocessors"
-    ) as span:
-        set_span_data(span, "from_symbolicate", from_symbolicate)
+    with traces.start_span(
+        name="task.store.process_event.preprocessors",
+        attributes={
+            "sentry.op": "task.store.process_event.preprocessors",
+            "from_symbolicate": from_symbolicate,
+        },
+    ):
         for processor in preprocessors:
             try:
                 result = processor(data)
@@ -467,6 +484,7 @@ def do_process_event(
     namespace=ingest_errors_tasks,
     processing_deadline_duration=65,
     silo_mode=SiloMode.CELL,
+    compression_type=CompressionType.ZSTD,
 )
 def process_event(
     cache_key: str | None = None,
@@ -476,6 +494,7 @@ def process_event(
     from_symbolicate: bool = False,
     has_attachments: bool = False,
     data: MutableMapping[str, Any] | None = None,
+    unprocessed: MutableMapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -497,6 +516,7 @@ def process_event(
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
         data=data,
+        unprocessed=unprocessed,
     )
 
 
@@ -505,6 +525,7 @@ def process_event(
     namespace=issues_tasks,
     processing_deadline_duration=65,
     silo_mode=SiloMode.CELL,
+    compression_type=CompressionType.ZSTD,
 )
 def process_event_from_reprocessing(
     cache_key: str | None = None,
@@ -514,6 +535,7 @@ def process_event_from_reprocessing(
     from_symbolicate: bool = False,
     has_attachments: bool = False,
     data: MutableMapping[str, Any] | None = None,
+    unprocessed: MutableMapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     return do_process_event(
@@ -525,6 +547,7 @@ def process_event_from_reprocessing(
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
         data=data,
+        unprocessed=unprocessed,
     )
 
 
@@ -535,6 +558,7 @@ def _do_save_event(
     project_id: int | None = None,
     has_attachments: bool = False,
     consumer_type: str | None = None,
+    unprocessed: MutableMapping[str, Any] | None = None,
     **kwargs: Any,
 ) -> None:
     """
@@ -622,6 +646,7 @@ def _do_save_event(
                     start_time=start_time,
                     cache_key=cache_key,
                     attachments=attachments,
+                    unprocessed=unprocessed,
                 )
         except HashDiscarded:
             # Mark all the attachments as `rate_limited`, so they are being properly cleaned up in the `finally` block:
@@ -662,6 +687,7 @@ def _do_save_event(
     namespace=ingest_errors_tasks,
     processing_deadline_duration=65,
     silo_mode=SiloMode.CELL,
+    compression_type=CompressionType.ZSTD,
 )
 def save_event(
     cache_key: str | None = None,
@@ -737,6 +763,7 @@ def save_event_feedback(
     namespace=ingest_attachments_tasks,
     processing_deadline_duration=65,
     silo_mode=SiloMode.CELL,
+    compression_type=CompressionType.ZSTD,
 )
 def save_event_attachments(
     cache_key: str | None = None,

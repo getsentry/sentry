@@ -74,6 +74,7 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/seer/`,
           title: t('Seer'),
+          show: () => !isSelfHosted,
         },
         {
           path: `${pathPrefix}/user-feedback/`,
