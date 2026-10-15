@@ -59,16 +59,6 @@ describe('IssueCronCheckTimeline', () => {
     ],
   });
 
-  const baseIssueDetailsContext = {
-    sectionData: {},
-    detectorDetails: {},
-    isSidebarOpen: true,
-    navScrollMargin: 0,
-    eventCount: 0,
-    eventNavigationHeight: 0,
-    dispatch: jest.fn(),
-  };
-
   beforeEach(() => {
     GroupStore.init();
     GroupStore.add([group]);
@@ -230,7 +220,17 @@ describe('IssueCronCheckTimeline', () => {
     });
 
     render(
-      <IssueDetailsContext value={{...baseIssueDetailsContext, dispatch}}>
+      <IssueDetailsContext
+        value={{
+          sectionData: {},
+          detectorDetails: {},
+          isSidebarOpen: true,
+          navScrollMargin: 0,
+          eventCount: 0,
+          eventNavigationHeight: 0,
+          dispatch,
+        }}
+      >
         <IssueCronCheckTimeline group={group} />
       </IssueDetailsContext>,
       {organization}
