@@ -98,9 +98,6 @@
     "./trackingContext": {
       "types": "./dist/trackingContext.d.ts",
       "import": "./dist/trackingContext.js"
-    },
-    "./variants": {
-      "types": "./dist/variants.d.ts"
     }
   },
   "publishConfig": {

@@ -100,21 +100,14 @@ try {
   for (const subpath of Object.keys(packageJson.exports)) {
     const specifier =
       subpath === '.' ? '@sentry/scraps' : `@sentry/scraps/${subpath.slice(2)}`;
-    const typeOnly = !packageJson.exports[subpath].import;
     await writeFile(
       join(consumer, 'entry.mts'),
-      typeOnly
-        ? `import type * as entry from '${specifier}';\ntype Entry = typeof entry;\n`
-        : `import * as entry from '${specifier}';\nvoid entry;\n`
+      `import * as entry from '${specifier}';\nvoid entry;\n`
     );
     execFileSync('tsc', ['--project', 'tsconfig.json'], {
       cwd: consumer,
       stdio: 'inherit',
     });
-    if (typeOnly) {
-      console.log(`Verified ${specifier} (types)`);
-      continue;
-    }
     const runtime = await import(join(installed, packageJson.exports[subpath].import));
     if (!Object.keys(runtime).length) {
       throw new Error(`Empty runtime entry: ${specifier}`);

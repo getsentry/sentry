@@ -4,9 +4,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {getTextStyles} from '@sentry/scraps/text/text';
-import type {Theme} from '@sentry/scraps/theme';
+import type {ButtonVariant, Theme} from '@sentry/scraps/theme';
 import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
-import type {ButtonVariant} from '@sentry/scraps/variants';
 
 import {useLinkBehavior} from './linkBehaviorContext';
 
