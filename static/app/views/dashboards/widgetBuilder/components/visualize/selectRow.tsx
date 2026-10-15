@@ -47,10 +47,10 @@ import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTrace
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
-  parseConditionalAggregate,
   supportsConditionalAggregateFilter,
   withBaseConditionalAggregateField,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 type AggregateFunction = [

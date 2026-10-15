@@ -8,16 +8,16 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
   valid: [
     {
       name: 'await act returning async flush after local declaration',
-      code: `beforeEach(() => jest.useFakeTimers()); afterEach(async () => {const value = 1; await act(() => jest.runOnlyPendingTimersAsync()); jest.useRealTimers();});`,
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(async () => {try {const value = 1; await act(() => jest.runOnlyPendingTimersAsync());} finally {jest.useRealTimers();}});`,
     },
 
     {
       name: 'ancestor cleanup applies to nested test',
-      code: `afterEach(() => {jest.runOnlyPendingTimers(); jest.useRealTimers();}); describe('inner', () => {test.each([1])('case', () => {jest.useFakeTimers();});});`,
+      code: `afterEach(() => {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}}); describe('inner', () => {test.each([1])('case', () => {jest.useFakeTimers();});});`,
     },
     {
       name: 'awaited async flush wrapped in act',
-      code: `test('case', () => {jest.useFakeTimers();}); afterEach(async () => {await act(async () => {await jest.runOnlyPendingTimersAsync();}); jest.useRealTimers();});`,
+      code: `test('case', () => {jest.useFakeTimers();}); afterEach(async () => {try {await act(async () => {await jest.runOnlyPendingTimersAsync();});} finally {jest.useRealTimers();}});`,
     },
 
     {
@@ -25,8 +25,11 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
       code: `
         describe('test', () => {
           afterEach(() => {
-            jest.runOnlyPendingTimers();
-            jest.useRealTimers();
+            try {
+              jest.runOnlyPendingTimers();
+            } finally {
+              jest.useRealTimers();
+            }
           });
           it.only('works', () => {
             jest.useFakeTimers();
@@ -40,8 +43,11 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
       code: `
         describe('test', () => {
           afterEach(() => {
-            jest.runOnlyPendingTimers();
-            jest.useRealTimers();
+            try {
+              jest.runOnlyPendingTimers();
+            } finally {
+              jest.useRealTimers();
+            }
           });
           test('works', () => {
             jest.useFakeTimers();
@@ -55,8 +61,11 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
       code: `
         describe('test', () => {
           afterEach(() => {
-            jest.runOnlyPendingTimers();
-            jest.useRealTimers();
+            try {
+              jest.runOnlyPendingTimers();
+            } finally {
+              jest.useRealTimers();
+            }
           });
           it('works', () => {
             jest.useFakeTimers();
@@ -83,8 +92,11 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
             jest.useFakeTimers();
           });
           afterEach(() => {
-            jest.runOnlyPendingTimers();
-            jest.useRealTimers();
+            try {
+              jest.runOnlyPendingTimers();
+            } finally {
+              jest.useRealTimers();
+            }
           });
           it('works', () => {
             jest.advanceTimersByTime(1000);
@@ -100,8 +112,11 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
             jest.useFakeTimers();
           });
           afterAll(() => {
-            jest.runOnlyPendingTimers();
-            jest.useRealTimers();
+            try {
+              jest.runOnlyPendingTimers();
+            } finally {
+              jest.useRealTimers();
+            }
           });
           it('works', () => {
             jest.advanceTimersByTime(1000);
@@ -117,10 +132,13 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
             jest.useFakeTimers();
           });
           afterEach(() => {
-            act(() => {
-              jest.runOnlyPendingTimers();
-            });
-            jest.useRealTimers();
+            try {
+              act(() => {
+                jest.runOnlyPendingTimers();
+              });
+            } finally {
+              jest.useRealTimers();
+            }
           });
           it('works', () => {
             jest.advanceTimersByTime(1000);
@@ -137,8 +155,11 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
               jest.useFakeTimers();
             });
             afterEach(() => {
-              jest.runOnlyPendingTimers();
-              jest.useRealTimers();
+              try {
+                jest.runOnlyPendingTimers();
+              } finally {
+                jest.useRealTimers();
+              }
             });
             it('works', () => {
               jest.advanceTimersByTime(1000);
@@ -149,6 +170,31 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
     },
   ],
   invalid: [
+    {
+      name: 'try without finally cannot borrow a later restore',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {cleanup();} catch (error) {} jest.runOnlyPendingTimers(); jest.useRealTimers();});`,
+      errors: [{messageId: 'missingCleanup'}],
+    },
+    {
+      name: 'straight-line teardown does not guarantee restoration',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {jest.runOnlyPendingTimers(); jest.useRealTimers();});`,
+      errors: [{messageId: 'missingFinally'}],
+    },
+    {
+      name: 'cleanup before try can skip restoration',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {cleanup(); try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+      errors: [{messageId: 'missingFinally'}],
+    },
+    {
+      name: 'initialized declaration before try can skip restoration',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {const value = cleanup(); try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+      errors: [{messageId: 'missingFinally'}],
+    },
+    {
+      name: 'restore inside act is not a direct finally restoration',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {act(() => {jest.runOnlyPendingTimers(); jest.useRealTimers();});});`,
+      errors: [{messageId: 'missingFinally'}],
+    },
     {
       name: 'child cleanup does not apply to parent',
       code: `beforeEach(() => jest.useFakeTimers()); describe('child', () => {afterEach(() => {jest.runOnlyPendingTimers(); jest.useRealTimers();});});`,

@@ -79,6 +79,7 @@ export const traceMetricsResponseTransforms: Pick<
           timeSeries,
         }),
         timeSeries,
+        ingestion: data.meta?.ingestion,
       };
     });
   },

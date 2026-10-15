@@ -21,7 +21,7 @@ import {
   StyledArithmeticInput,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/utils';
 import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 type VisualizeGhostFieldProps = {
   activeId: number;

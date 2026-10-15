@@ -21,7 +21,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {modifyFilterValue} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
-import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
 import {
   escapeTagValueForSearch,
   getFilterValueType,

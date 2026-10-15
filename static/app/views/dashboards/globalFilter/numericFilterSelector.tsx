@@ -12,7 +12,7 @@ import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
 import {
   TermOperator,
   Token,
