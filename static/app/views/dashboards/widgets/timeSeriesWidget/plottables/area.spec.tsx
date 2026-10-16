@@ -33,6 +33,23 @@ describe('Area', () => {
     }
   );
 
+  it('stacks areas with different stack names separately', () => {
+    const plottingOptions = {
+      color: '#7553FF',
+      unit: timeSeries.meta.valueUnit,
+      yAxisPosition: 'left' as const,
+    };
+    const p50 = new Area(timeSeries, {stack: 'p50'}).toSeries(plottingOptions);
+    const otherP50 = new Area(TimeSeriesFixture({...timeSeries, yAxis: 'other()'}), {
+      stack: 'p50',
+    }).toSeries(plottingOptions);
+    const p99 = new Area(timeSeries, {stack: 'p99'}).toSeries(plottingOptions);
+
+    expect(p50.map(series => series.stack)).toEqual(otherP50.map(series => series.stack));
+    expect(p50[0]!.stack).not.toBe(p99[0]!.stack);
+    expect(p50[1]!.stack).not.toBe(p99[1]!.stack);
+  });
+
   it('does not stack complete or incomplete data across Y axes', () => {
     const area = new Area(timeSeries);
     const plottingOptions = {color: '#7553FF', unit: timeSeries.meta.valueUnit};
