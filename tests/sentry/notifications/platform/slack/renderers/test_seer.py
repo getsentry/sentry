@@ -15,6 +15,7 @@ from slack_sdk.models.blocks import (
 )
 
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
+from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
 from sentry.notifications.platform.slack.renderers.seer import AUTOFIX_CONFIG, SeerSlackRenderer
 from sentry.notifications.platform.slack.renderers.seer_agent_write_approval import (
@@ -27,6 +28,10 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixCodeChange,
     SeerAutofixPullRequest,
     SeerAutofixUpdate,
+    SeerInvestigationError,
+    SeerInvestigationErrorTemplate,
+    SeerInvestigationStarted,
+    SeerInvestigationStartedTemplate,
 )
 from sentry.notifications.platform.tracking import NotificationLink, NotificationLinkDecorator
 from sentry.notifications.platform.types import (
@@ -482,3 +487,61 @@ class SeerAgentWriteApprovalSlackRendererTest(TestCase):
         assert [reject_button.text.text, approve_button.text.text] == ["Reject", "Approve"]
         assert reject_button.value == "link_clicked"
         assert approve_button.value == "link_clicked"
+
+
+class SeerSlackRendererInvestigationTest(TestCase):
+    def test_render_investigation_started(self) -> None:
+        renderable, _ = NotificationService.render_template(
+            data=SeerInvestigationStarted(
+                organization_id=1,
+                slack_user_id="U0123456789",
+                investigation_url="https://example.sentry.io/explore/investigations/1/",
+            ),
+            template=SeerInvestigationStartedTemplate(),
+            provider=SlackNotificationProvider,
+        )
+
+        text = "<@U0123456789> started a Seer investigation for this alert."
+        assert renderable["text"] == text
+        (block,) = renderable["blocks"]
+        assert isinstance(block, MarkdownBlock)
+        assert block.text == text
+
+    @override_options(
+        {
+            "notifications.tracking.sources": ["seer-investigation-started"],
+            "system.url-prefix": "https://sentry.io",
+        }
+    )
+    def test_render_investigation_link_button(self) -> None:
+        url = "https://acme.sentry.io/explore/investigations/1/"
+        data = SeerInvestigationStarted(
+            organization_id=1, slack_user_id="U0123456789", investigation_url=url
+        )
+        link_decorator = NotificationLinkDecorator(
+            data=data, provider=NotificationProviderKey.SLACK
+        )
+
+        button = SeerSlackRenderer.render_investigation_link_button(
+            data=data, link_decorator=link_decorator
+        )
+
+        assert button.text is not None
+        assert button.text.text == "Open investigation"
+        assert button.url is not None
+        assert button.url.startswith(f"{url}?referrer=seer-investigation-started-slack")
+        assert button.value == "link_clicked"
+        assert link_decorator.links == {NotificationLink.INVESTIGATION}
+
+    def test_render_investigation_error(self) -> None:
+        renderable, _ = NotificationService.render_template(
+            data=SeerInvestigationError(organization_id=1, error_message="Something broke"),
+            template=SeerInvestigationErrorTemplate(),
+            provider=SlackNotificationProvider,
+        )
+
+        text = "Seer couldn't start an investigation: Something broke"
+        assert renderable["text"] == text
+        (block,) = renderable["blocks"]
+        assert isinstance(block, MarkdownBlock)
+        assert block.text == text

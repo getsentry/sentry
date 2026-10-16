@@ -20,7 +20,7 @@ describe('trace table cells', () => {
     const cell = screen.getByRole('cell', {name: 'Span breakdown'});
     expect(cell.tagName).toBe('TD');
     const styles = getEmotionRules(cell).join(' ');
-    expect(styles).toMatch(/--highlightedSlice-database-opacity:\s*1\.0/);
+    expect(styles).toMatch(/--highlightedSlice-database-opacity:\s*1;/);
     expect(cell).not.toHaveAttribute('highlightedSliceName');
   });
 });

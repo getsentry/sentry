@@ -111,7 +111,7 @@
     "@react-aria/visually-hidden": "3.9.1",
     "@react-stately/slider": "3.8.1",
     "@sentry/icons": "workspace:*",
-    "@sentry/react": "11.6.0",
+    "@sentry/react": "11.7.0",
     "@types/react": "19.3.0",
     "framer-motion": "12.38.0"
   },

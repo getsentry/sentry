@@ -123,13 +123,11 @@ function GridList<T extends ListItemBase>({
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       {overlayIsOpen && (
-        // oxlint-disable-next-line react/refs
         <Container ref={virtualizer.scrollElementRef} height="100%" overflowY="auto">
           {/* oxlint-disable-next-line react/refs */}
           <Container {...virtualizer.wrapperProps}>
             <ListWrap
               {...mergedProps}
-              // oxlint-disable-next-line react/refs
               style={{...mergedProps.style, ...virtualizer.listWrapStyle}}
               onKeyDown={onKeyDown}
               ref={ref}

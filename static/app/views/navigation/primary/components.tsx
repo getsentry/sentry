@@ -117,7 +117,7 @@ interface PrimaryNavigationItemBaseProps {
 function PrimaryNavigationListItem({children, ...props}: FlexProps<'li'>) {
   return (
     <Flex as="li" justify="center" align="center" width="100%" {...props}>
-      <IconDefaultsProvider legacySize="24px">{children}</IconDefaultsProvider>
+      <IconDefaultsProvider size="lg">{children}</IconDefaultsProvider>
     </Flex>
   );
 }
