@@ -2130,6 +2130,9 @@
     }
   },
   "static/app/views/discover/results/resultsChart.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
