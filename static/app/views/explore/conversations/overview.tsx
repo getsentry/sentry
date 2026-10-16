@@ -35,6 +35,7 @@ import {
   type AgentsTableTab,
 } from 'sentry/views/explore/conversations/components/agentsTable';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
+import {ErrorsOnlyToggle} from 'sentry/views/explore/conversations/components/errorsOnlyToggle';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
 import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
@@ -275,10 +276,11 @@ function ConversationsOverviewPage() {
   const resetParamsOnFilterChange = [TableUrlParams.CURSOR, SPANS_CURSOR_URL_PARAM];
   const showSearch = !isOnboardingLoading && !selectedTabShowsOnboarding;
   const tableSearchBar = showSearch ? (
-    <Flex gap="md" width="100%">
+    <Flex gap="md" width="100%" align="center">
       <Flex flex={1} minWidth="0">
         <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
       </Flex>
+      {isConversationsTab && <ErrorsOnlyToggle />}
       {isConversationsTab && <SaveConversationQueryButton />}
     </Flex>
   ) : null;

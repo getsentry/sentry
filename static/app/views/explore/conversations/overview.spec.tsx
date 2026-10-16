@@ -181,6 +181,48 @@ describe('ConversationsOverviewPage', () => {
     expect(conversationsRequest).toHaveBeenCalledTimes(1);
   });
 
+  it('filters conversations to those with errors', async () => {
+    const errorsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [],
+      match: [MockApiClient.matchQuery({query: 'conversation.errors:>0'})],
+    });
+    const {router} = render(<ConversationsOverviewPage />, {organization});
+
+    const toggle = await screen.findByRole('checkbox', {name: 'Errors only'});
+    expect(toggle).not.toBeChecked();
+    expect(errorsRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(toggle);
+    await waitFor(() => expect(errorsRequest).toHaveBeenCalled());
+    expect(router.location.query.errorsOnly).toBe('true');
+
+    await waitFor(() =>
+      expect(screen.getByRole('checkbox', {name: 'Errors only'})).toBeChecked()
+    );
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Errors only'}));
+    await waitFor(() => expect(router.location.query.errorsOnly).toBeUndefined());
+  });
+
+  it('hides the errors toggle outside the Conversations tab', async () => {
+    render(<ConversationsOverviewPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/explore/agents/`,
+          query: {table: 'traces'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by trace ID, operation, service, or user'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', {name: 'Errors only'})).not.toBeInTheDocument();
+  });
+
   it('tailors the search placeholder to the selected table', async () => {
     render(<ConversationsOverviewPage />, {organization});
 

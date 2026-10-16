@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {FieldValueType} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useErrorsOnlyFilter} from 'sentry/views/explore/conversations/hooks/useErrorsOnlyFilter';
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
@@ -129,7 +130,8 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
   const organization = useOrganization();
   const {cursor, setCursor, unsetCursor} = useTableCursor();
   const pageFilters = usePageFilters();
-  const combinedQuery = useCombinedQuery();
+  const {errorsOnlyQuery} = useErrorsOnlyFilter();
+  const combinedQuery = useCombinedQuery(errorsOnlyQuery);
   const [sort, setSort] = useQueryState(
     'sort',
     parseAsStringLiteral(CONVERSATION_SORTS).withDefault(
