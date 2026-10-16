@@ -29,6 +29,58 @@ class OAuthAuthorizeCodeTest(TestCase):
             owner=self.user, redirect_uris="https://example.com"
         )
 
+    def test_blank_pkce_challenge_returns_oauth_error(self) -> None:
+        response = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "code_challenge": "",
+                "code_challenge_method": "S256",
+            },
+        )
+        assert response.status_code == 302
+        assert parse_qs(urlparse(response["Location"]).query)["error"] == ["invalid_request"]
+
+    def test_invalid_pkce_method_returns_oauth_error(self) -> None:
+        response = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "code_challenge": "a" * 43,
+                "code_challenge_method": "plain",
+            },
+        )
+        assert response.status_code == 302
+        assert parse_qs(urlparse(response["Location"]).query)["error"] == ["invalid_request"]
+
+    def test_unregistered_callback_with_invalid_pkce(self) -> None:
+        response = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "redirect_uri": "https://other.example/callback",
+                "code_challenge": "invalid",
+            },
+        )
+        assert response.status_code == 400
+        assert response.context["error"] == "Missing or invalid <em>redirect_uri</em> parameter."
+
+    def test_state_whitespace_is_preserved(self) -> None:
+        response = self.client.get(
+            self.path,
+            {
+                "client_id": self.application.client_id,
+                "response_type": "code",
+                "scope": "invalid",
+                "state": "  opaque state  ",
+            },
+        )
+        assert response.status_code == 302
+        assert parse_qs(urlparse(response["Location"]).query)["state"] == ["  opaque state  "]
+
     def test_unauthenticated_missing_client_id(self) -> None:
         resp = self.client.get(self.path, {"response_type": "code"})
 

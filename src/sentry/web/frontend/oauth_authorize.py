@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import logging
-import re
 import secrets
 import time
 from typing import Any, Literal
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import urlparse
 
-from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
@@ -19,6 +17,12 @@ from django.views.decorators.cache import never_cache
 
 from sentry import analytics
 from sentry.analytics.events.oauth_consent import OAuthConsentEvent
+from sentry.api.helpers.oauth_authorize.request import build_authorization_request
+from sentry.api.helpers.oauth_authorize.response import (
+    InvalidAuthorizationRequest,
+    OAuthRedirectError,
+    build_redirect_url,
+)
 from sentry.api.helpers.oauth_consent import (
     InvalidOrganizationSelection,
     OrganizationSelectionError,
@@ -27,6 +31,7 @@ from sentry.api.helpers.oauth_consent import (
     persist_authorization,
     resolve_organization,
 )
+from sentry.api.serializers.rest_framework.oauth_authorize import OAuthAuthorizeQuerySerializer
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -39,11 +44,6 @@ from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, control_silo_view
 
 logger = logging.getLogger("sentry.oauth")
-
-# RFC 7636 §4.2: code_challenge is 43-128 unreserved characters (same format as verifier)
-# ABNF: code-challenge = 43*128unreserved
-# unreserved = ALPHA / DIGIT / "-" / "." / "_" / "~"
-CODE_CHALLENGE_REGEX = re.compile(r"^[A-Za-z0-9\-._~]{43,128}$")
 
 # How long an unused oa2:{tx_id} session entry is kept before pruning on the
 # next GET. Abandoned tabs would otherwise accumulate until session expiry.
@@ -95,19 +95,9 @@ class OAuthAuthorizeView(BaseView):
         }
 
     def redirect_response(self, response_type, redirect_uri, params):
-        if response_type == "token":
-            final_uri = (
-                f"{redirect_uri}#{urlencode([(k, v) for k, v in params.items() if v is not None])}"
-            )
-        else:
-            parts = list(urlparse(redirect_uri))
-            query = parse_qsl(parts[4])
-            for key, value in params.items():
-                if value is not None:
-                    query.append((key, value))
-            parts[4] = urlencode(query)
-            final_uri = urlunparse(parts)
+        return self.redirect_to_callback(build_redirect_url(response_type, redirect_uri, params))
 
+    def redirect_to_callback(self, final_uri: str) -> HttpResponseBase:
         # Django's HttpResponseRedirect blocks custom URL schemes for security.
         # For OAuth redirects to Sentry Apple apps, we need to support the
         # sentry-apple:// scheme, so we use HttpResponse with a Location
@@ -149,152 +139,35 @@ class OAuthAuthorizeView(BaseView):
         return self.redirect_response(response_type, redirect_uri, {"error": name, "state": state})
 
     def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
-        response_type = request.GET.get("response_type")
-        client_id = request.GET.get("client_id")
-        redirect_uri = request.GET.get("redirect_uri")
-        state = request.GET.get("state")
-        force_prompt = request.GET.get("force_prompt")
-
-        if not client_id:
-            return self.error(
-                request=request,
-                client_id=client_id,
-                response_type=response_type,
-                redirect_uri=redirect_uri,
-                name="unauthorized_client",
-                err_response="client_id",
-            )
-
         try:
-            application = ApiApplication.objects.get(
-                client_id=client_id, status=ApiApplicationStatus.active
-            )
-        except ApiApplication.DoesNotExist:
-            return self.error(
-                request=request,
-                client_id=client_id,
-                response_type=response_type,
-                redirect_uri=redirect_uri,
-                name="unauthorized_client",
-                err_response="client_id",
-            )
-
-        # Spec references:
-        #   - RFC 6749 §3.1.2.3 (Redirection Endpoint): redirect_uri must match a pre-registered value; if
-        #     multiple redirect URIs are registered, the client MUST include redirect_uri in the request.
-        #     https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
-        #   - RFC 8252 §8.4 (Native Apps): loopback redirect considerations (ephemeral ports).
-        #     https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
-        if not redirect_uri:
-            # If multiple redirect URIs are registered, require the client to provide an
-            # exact redirect_uri.
-            # See RFC 6749 §3.1.2.3: https://datatracker.ietf.org/doc/html/rfc6749#section-3.1.2.3
-            uris = application.get_redirect_uris()
-            if len(uris) != 1:
-                return self.error(
-                    request=request,
-                    client_id=client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="invalid_request",
-                    err_response="redirect_uri",
+            serializer = OAuthAuthorizeQuerySerializer(data=request.GET)
+            if not serializer.is_valid():
+                raise InvalidAuthorizationRequest(
+                    "Missing or invalid client_id parameter.", parameter="client_id"
                 )
-            redirect_uri = application.get_default_redirect_uri()
-        elif not application.is_valid_redirect_uri(redirect_uri):
+
+            authorization = build_authorization_request(serializer.validated_data)
+        except InvalidAuthorizationRequest as exc:
             return self.error(
                 request=request,
-                client_id=client_id,
-                response_type=response_type,
-                redirect_uri=redirect_uri,
+                client_id=request.GET.get("client_id"),
+                response_type=request.GET.get("response_type"),
+                redirect_uri=request.GET.get("redirect_uri"),
                 name="invalid_request",
-                err_response="redirect_uri",
+                err_response=exc.parameter,
             )
+        except OAuthRedirectError as exc:
+            return self.redirect_to_callback(exc.redirect_url)
 
-        # Canonicalize the redirect URI so the Location header in the redirect
-        # response matches exactly what was validated.  Without this, an attacker
-        # could submit a non-canonical URI (e.g. with path traversal or extra
-        # slashes) that normalizes to a registered URI for validation but
-        # redirects to a raw, different-looking URL.
-        redirect_uri = application.normalize_url(redirect_uri)
-
-        if not application.is_allowed_response_type(response_type):
-            return self.error(
-                request=request,
-                client_id=client_id,
-                response_type=response_type,
-                redirect_uri=redirect_uri,
-                name="unsupported_response_type",
-                err_response="client_id",
-            )
-
-        scopes_s = request.GET.get("scope")
-        if scopes_s:
-            scopes = scopes_s.split(" ")
-        else:
-            scopes = []
-        if application.requires_org_level_access:
-            # Applications that require org level access have a maximum scope limit set
-            # in admin that should not pass
-            max_scopes = application.scopes
-            for scope in scopes:
-                if scope not in max_scopes:
-                    return self.error(
-                        request=request,
-                        client_id=client_id,
-                        response_type=response_type,
-                        redirect_uri=redirect_uri,
-                        name="invalid_scope",
-                        state=state,
-                    )
-
-        for scope in scopes:
-            if scope not in settings.SENTRY_SCOPES:
-                return self.error(
-                    request=request,
-                    client_id=client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="invalid_scope",
-                    state=state,
-                )
-
-        # PKCE support (RFC 7636): accept code_challenge and code_challenge_method.
-        # This implementation only supports S256 method (plain method not supported for security).
-        # Note: OAuth 2.1 requires S256 to be implemented; plain is still allowed in narrow cases.
-        # Reference: https://datatracker.ietf.org/doc/html/rfc7636#section-4.2
-        code_challenge = request.GET.get("code_challenge")
-        code_challenge_method = request.GET.get("code_challenge_method")
-
-        if code_challenge is not None:
-            # Validate code_challenge format per RFC 7636 §4.2: 43-128 unreserved chars
-            if not CODE_CHALLENGE_REGEX.match(code_challenge):
-                return self.error(
-                    request=request,
-                    client_id=client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="invalid_request",
-                    state=state,
-                )
-
-            # Require S256 method explicitly (plain method not supported for security)
-            if code_challenge_method != "S256":
-                logger.error(
-                    "oauth.pkce.invalid-method",
-                    extra={
-                        "client_id": client_id,
-                        "application_id": application.id if application else None,
-                        "method": code_challenge_method,
-                    },
-                )
-                return self.error(
-                    request=request,
-                    client_id=client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="invalid_request",
-                    state=state,
-                )
+        application = authorization.application
+        client_id = application.client_id
+        response_type = authorization.response_type
+        redirect_uri = authorization.redirect_uri
+        scopes = authorization.scopes
+        state = authorization.state
+        code_challenge = authorization.code_challenge
+        code_challenge_method = authorization.code_challenge_method
+        force_prompt = request.GET.get("force_prompt")
 
         if super().is_auth_required(request, **kwargs):
             return self.handle_auth_required(request, **kwargs)
