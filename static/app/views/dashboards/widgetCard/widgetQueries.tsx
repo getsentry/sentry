@@ -82,6 +82,10 @@ export function WidgetQueries({
 
   return (
     <WidgetQueriesWithConfig
+      // useGenericWidgetQueries calls the config's optional query hooks, so the
+      // config must not change for a mounted card. Remount when the dataset
+      // changes so hooks from different configs never share hook state.
+      key={widget.widgetType ?? WidgetType.ERRORS}
       widget={widget}
       dashboardFilters={dashboardFilters}
       cursor={cursor}

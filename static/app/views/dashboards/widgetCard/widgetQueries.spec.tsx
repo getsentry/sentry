@@ -6,7 +6,11 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {PageFilters} from 'sentry/types/core';
-import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
+import {
+  DashboardFilterKeys,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
@@ -671,6 +675,48 @@ describe('Dashboards > WidgetQueries', () => {
     expect(childProps.timeseriesResults![0]!.seriesName).toBe(
       'this query alias changed : count()'
     );
+  });
+
+  it('remounts without breaking hooks when the widget dataset changes', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: EventsStatsFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+    });
+    const transactionsWidget = {
+      ...singleQueryWidget,
+      widgetType: WidgetType.TRANSACTIONS,
+    };
+
+    const {rerender} = renderWithProviders(
+      <WidgetQueries widget={transactionsWidget}>
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>,
+      {organization: initialData.organization}
+    );
+    expect(await screen.findByTestId('child')).toBeInTheDocument();
+
+    // Switching datasets swaps the dataset config (and its query hooks).
+    rerender(
+      <WidgetQueryQueueProvider>
+        <WidgetQueries widget={{...transactionsWidget, widgetType: WidgetType.ERRORS}}>
+          {() => <div data-test-id="child" />}
+        </WidgetQueries>
+      </WidgetQueryQueueProvider>
+    );
+    expect(await screen.findByTestId('child')).toBeInTheDocument();
+
+    rerender(
+      <WidgetQueryQueueProvider>
+        <WidgetQueries widget={{...transactionsWidget, widgetType: undefined}}>
+          {() => <div data-test-id="child" />}
+        </WidgetQueries>
+      </WidgetQueryQueueProvider>
+    );
+    expect(await screen.findByTestId('child')).toBeInTheDocument();
   });
 
   it('does not inject equation aliases for top N requests', async () => {
