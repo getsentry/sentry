@@ -1,6 +1,9 @@
 import {ContinuousProfile} from 'sentry/utils/profiling/profile/continuousProfile';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
-import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
+import {
+  eventedProfileToSampledProfile,
+  importProfile,
+} from 'sentry/utils/profiling/profile/importProfile';
 import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
@@ -159,5 +162,47 @@ describe('importProfile', () => {
         'flamechart'
       )
     ).toThrow();
+  });
+});
+
+describe('eventedProfileToSampledProfile', () => {
+  it('skips profiles with null events without throwing', () => {
+    const profileWithNullEvents = {
+      name: 'main',
+      startValue: 0,
+      endValue: 1000,
+      threadID: 1,
+      unit: 'milliseconds',
+      type: 'evented' as const,
+      events: null,
+    };
+
+    expect(() =>
+      eventedProfileToSampledProfile(0, [profileWithNullEvents])
+    ).not.toThrow();
+
+    const result = eventedProfileToSampledProfile(0, [profileWithNullEvents]);
+    expect(result.samples).toHaveLength(0);
+    expect(result.stacks).toHaveLength(0);
+  });
+
+  it('skips profiles with empty events array without throwing', () => {
+    const profileWithEmptyEvents = {
+      name: 'main',
+      startValue: 0,
+      endValue: 1000,
+      threadID: 1,
+      unit: 'milliseconds',
+      type: 'evented' as const,
+      events: [],
+    };
+
+    expect(() =>
+      eventedProfileToSampledProfile(0, [profileWithEmptyEvents])
+    ).not.toThrow();
+
+    const result = eventedProfileToSampledProfile(0, [profileWithEmptyEvents]);
+    expect(result.samples).toHaveLength(0);
+    expect(result.stacks).toHaveLength(0);
   });
 });

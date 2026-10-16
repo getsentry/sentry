@@ -160,7 +160,7 @@ declare namespace Profiling {
 
   // Android traces follow this format
   interface EventedProfile extends RawProfileBase {
-    events: ReadonlyArray<Event>;
+    events: ReadonlyArray<Event> | null;
     type: 'evented';
   }
 

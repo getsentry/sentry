@@ -281,6 +281,10 @@ export function eventedProfileToSampledProfile(
       name: profile.name,
     };
 
+    if (!profile.events?.length) {
+      continue;
+    }
+
     stack.push(profile.events[0]!.frame);
     samples.push({
       stack_id: stackId,
