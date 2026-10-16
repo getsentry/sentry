@@ -12,6 +12,7 @@ const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}']
 export const incubator = defineConfig({
   rules: {
     '@sentry/scraps/prefer-primitives': 'error',
+    'react/incompatible-library': 'error',
     'react/rule-suppression': 'error',
     'react/todo': 'error',
   },
@@ -750,7 +751,6 @@ const config = defineConfig({
     'react/globals': 'error',
     'react/hooks': 'error',
     'react/immutability': 'error',
-    'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/invariant': 'error',
     'react/jsx-boolean-value': ['error', 'never'],
     'react/jsx-fragments': ['error', 'element'],
@@ -792,6 +792,7 @@ const config = defineConfig({
     'react/syntax': 'error',
     'react/unsupported-syntax': 'error',
     'react/use-memo': 'error',
+    'react/void-use-memo': 'error',
     'react/no-did-mount-set-state': 'error',
     'react/no-did-update-set-state': 'error',
     'react/no-redundant-should-component-update': 'error',
