@@ -31,6 +31,7 @@ import {
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
   InvestigationAgenticDetailFixture,
+  InvestigationCommentFixture,
   InvestigationDetailFixture,
   InvestigationOrchestrationFixture,
   InvestigationQueryOutputFixture,
@@ -120,6 +121,7 @@ async function chooseCellAction(cellTitle: string, action: 'Delete' | 'Refine') 
 
 describe('Investigation detail', () => {
   beforeEach(() => {
+    MockApiClient.addMockResponse({url: `${detailUrl}comment-counts/`, body: {}});
     jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
     createFeedbackForm.mockClear();
@@ -129,6 +131,7 @@ describe('Investigation detail', () => {
       method: 'PUT',
       body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
+    MockApiClient.addMockResponse({url: `${detailUrl}comments/`, body: []});
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -2129,6 +2132,14 @@ describe('Investigation detail', () => {
       body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/investigation-2/comments/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/investigation-2/comment-counts/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/investigation-2/',
       body: InvestigationDetailFixture({id: 'investigation-2'}),
     });
@@ -2169,6 +2180,24 @@ describe('Investigation detail', () => {
         `${window.location.origin}/explore/investigations/investigation-1/`
       )
     );
+  });
+
+  it('shows a capped comment count when more comments exist', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigationWithQueryResult(),
+    });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}comments/`,
+      body: [InvestigationCommentFixture()],
+      headers: {
+        Link: `<${detailUrl}comments/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"`,
+      },
+    });
+
+    renderView();
+
+    expect(await screen.findByRole('button', {name: '1+ comments'})).toBeInTheDocument();
   });
 
   describe('deletes after confirmation and returns to the list with fake timers', () => {

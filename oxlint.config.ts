@@ -214,6 +214,66 @@ const storyFilesPolicy = {
   ],
 };
 
+const SCRAPS_PROCESS_MESSAGE =
+  'Scraps runs in browsers without `process`. Only `process.env.NODE_ENV` is allowed; let the app pass other configuration in.';
+
+const restrictedSyntax = [
+  {
+    selector:
+      "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='forwardRef']",
+    message:
+      'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+  },
+  {
+    selector:
+      "CallExpression[callee.object.name='React'][callee.property.name='forwardRef']",
+    message:
+      'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
+  },
+  {
+    selector: "MemberExpression[object.name='React'][property.name='Fragment']",
+    message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
+  },
+  {
+    selector: "JSXMemberExpression[object.name='React'][property.name='Fragment']",
+    message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
+  },
+  {
+    // Require an annotation for uninitialized let declarations, except in
+    // for...of and for...in loops.
+    selector:
+      'VariableDeclaration[kind = "let"]:not(ForOfStatement > VariableDeclaration, ForInStatement > VariableDeclaration) > VariableDeclarator[init = null]:not([id.typeAnnotation])',
+    message: 'Provide a type annotation',
+  },
+  {
+    // IIFEs obscure JSX children, attribute values, and spreads.
+    selector:
+      'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
+    message: 'Do not use IIFEs inside JSX.',
+  },
+  {
+    selector:
+      "TSIndexedAccessType > TSTypeReference.objectType[typeName.name='CSSProperties']",
+    message: CSS_TYPES_MESSAGE,
+  },
+  {
+    selector:
+      "TSIndexedAccessType > TSTypeReference.objectType > TSQualifiedName.typeName[left.name='React'][right.name='CSSProperties']",
+    message: CSS_TYPES_MESSAGE,
+  },
+  {
+    selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
+    message:
+      "Use dynamic import for type-loader imports (for example: `import('!!type-loader!@sentry/scraps/alert')`), not `import ... from '!!type-loader!...'`.",
+  },
+  {
+    // Absolute URLs belong in ExternalLink, not the internal router Link.
+    selector:
+      "JSXOpeningElement[name.name='Link'] JSXAttribute[name.name='to'] Literal[value=/^https?:/i]",
+    message: "Do not pass an absolute URL to Link's to=. Use ExternalLink instead.",
+  },
+];
+
 /**
  * Import linting uses two complementary approaches:
  *
@@ -601,6 +661,7 @@ const config = defineConfig({
     '@sentry/scraps/no-token-import': 'error',
     '@sentry/scraps/prefer-info-text': 'error',
     '@sentry/scraps/prefer-stack-for-column-flex': 'error',
+    '@sentry/scraps/require-field-component': 'error',
     '@sentry/scraps/require-render-prop-spread': 'error',
     '@sentry/scraps/use-semantic-token': [
       'error',
@@ -685,7 +746,7 @@ const config = defineConfig({
     'react/globals': 'error',
     'react/hooks': 'error',
     'react/immutability': 'error',
-    'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/incompatible-library': 'error',
     'react/invariant': 'error',
     'react/jsx-boolean-value': ['error', 'never'],
     'react/jsx-fragments': ['error', 'element'],
@@ -726,9 +787,10 @@ const config = defineConfig({
     'react/set-state-in-render': 'error',
     'react/static-components': 'error',
     'react/syntax': 'error',
-    'react/todo': 'off',
+    'react/todo': 'error',
     'react/unsupported-syntax': 'error',
     'react/use-memo': 'error',
+    'react/void-use-memo': 'error',
     'react/no-did-mount-set-state': 'error',
     'react/no-did-update-set-state': 'error',
     'react/no-redundant-should-component-update': 'error',
@@ -1226,6 +1288,7 @@ const config = defineConfig({
     'typescript/no-extra-non-null-assertion': 'error',
     'typescript/no-extraneous-class': 'error',
     'typescript/no-for-in-array': 'error',
+    'typescript/no-generated-empty-object-type': 'error',
     'typescript/no-implied-eval': 'error',
     'typescript/no-meaningless-void-operator': 'error',
     'typescript/no-misused-new': 'error',
@@ -1311,63 +1374,7 @@ const config = defineConfig({
     'eslint-js/multiline-comment-style': ['error', 'separate-lines'],
     'eslint-js/no-octal': ['error'],
     'eslint-js/no-octal-escape': ['error'],
-    'eslint-js/no-restricted-syntax': [
-      'error',
-      {
-        selector:
-          "ImportDeclaration[source.value='react'] > ImportSpecifier[imported.name='forwardRef']",
-        message:
-          'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
-      },
-      {
-        selector:
-          "CallExpression[callee.object.name='React'][callee.property.name='forwardRef']",
-        message:
-          'Since React 19, it is no longer necessary to use forwardRef - refs can be passed as a normal prop',
-      },
-      {
-        selector: "MemberExpression[object.name='React'][property.name='Fragment']",
-        message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
-      },
-      {
-        selector: "JSXMemberExpression[object.name='React'][property.name='Fragment']",
-        message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
-      },
-      {
-        // Require an annotation for uninitialized let declarations, except in
-        // for...of and for...in loops.
-        selector:
-          'VariableDeclaration[kind = "let"]:not(ForOfStatement > VariableDeclaration, ForInStatement > VariableDeclaration) > VariableDeclarator[init = null]:not([id.typeAnnotation])',
-        message: 'Provide a type annotation',
-      },
-      {
-        // IIFEs obscure JSX children, attribute values, and spreads.
-        selector:
-          'JSXExpressionContainer > CallExpression[callee.type="ArrowFunctionExpression"], JSXExpressionContainer > CallExpression[callee.type="FunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="ArrowFunctionExpression"], JSXSpreadAttribute > CallExpression[callee.type="FunctionExpression"]',
-        message: 'Do not use IIFEs inside JSX.',
-      },
-      {
-        selector:
-          "TSIndexedAccessType > TSTypeReference.objectType[typeName.name='CSSProperties']",
-        message: CSS_TYPES_MESSAGE,
-      },
-      {
-        selector:
-          "TSIndexedAccessType > TSTypeReference.objectType > TSQualifiedName.typeName[left.name='React'][right.name='CSSProperties']",
-        message: CSS_TYPES_MESSAGE,
-      },
-      {
-        selector: 'ImportDeclaration[source.value=/^!!type-loader!/]',
-        message:
-          "Use dynamic import for type-loader imports (for example: `import('!!type-loader!@sentry/scraps/alert')`), not `import ... from '!!type-loader!...'`.",
-      },
-      {
-        // Absolute URLs belong in ExternalLink, not the internal router Link.
-        selector:
-          "JSXOpeningElement[name.name='Link'] JSXAttribute[name.name='to'] Literal[value=/^https?:/i]",
-        message: "Do not pass an absolute URL to Link's to=. Use ExternalLink instead.",
-      },
-    ],
+    'eslint-js/no-restricted-syntax': ['error', ...restrictedSyntax],
     'eslint-js/spaced-comment': [
       'error',
       'always',
@@ -1654,10 +1661,9 @@ const config = defineConfig({
         'import/no-relative-parent-imports': 'off',
       },
     },
-    // Scraps is its own component library rather than ordinary app code, and a
-    // handful of its internal imports are deliberately parent-relative.
+    // Legacy app core components still use parent-relative imports.
     {
-      files: coreComponentFiles,
+      files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
       rules: {
         'import/no-relative-parent-imports': 'off',
       },
@@ -1693,8 +1699,25 @@ const config = defineConfig({
       files: ['static/packages/scraps/src/**/*.{ts,tsx}'],
       // Re-enable these rules when Scraps has its own stricter lint config.
       rules: {
+        '@sentry/no-global-react': 'error',
         'boundaries/no-unknown-files': 'off',
         'no-shadow': 'off',
+        'eslint-js/no-restricted-syntax': [
+          'error',
+          ...restrictedSyntax,
+          {
+            // Scraps is published for browsers, where `process` is undefined.
+            // Bundlers only replace `process.env.NODE_ENV` consistently.
+            selector:
+              "Identifier[name='process']:not(MemberExpression > Identifier.property, Property > Identifier.key, MemberExpression[property.name='NODE_ENV'] > MemberExpression.object[property.name='env'] > Identifier.object)",
+            message: SCRAPS_PROCESS_MESSAGE,
+          },
+          {
+            selector:
+              "MemberExpression[object.name=/^(globalThis|self|window)$/][property.name='process']",
+            message: SCRAPS_PROCESS_MESSAGE,
+          },
+        ],
       },
     },
     {
@@ -1817,7 +1840,6 @@ const config = defineConfig({
         'static/packages/icons/test/**/*.{ts,tsx,mjs}',
       ],
       rules: {
-        'import/no-relative-parent-imports': 'off',
         'import/no-nodejs-modules': 'off',
         'no-restricted-imports': [
           'error',

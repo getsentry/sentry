@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from types import SimpleNamespace
 from typing import Any, Mapping, TypedDict
 
+import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import extend_schema
@@ -33,6 +34,7 @@ from sentry.discover.arithmetic import (
     parse_arithmetic,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.explore.endpoints.bases import ExploreSavedFormulaPermission
 from sentry.explore.models import (
     ExploreSavedFormula,
     ExploreSavedQueryDataset,
@@ -40,6 +42,7 @@ from sentry.explore.models import (
     KindItemTypes,
     ParamItemTypes,
 )
+from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import parse_formula
@@ -50,6 +53,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.locking import UnableToAcquireLock
 
 DATASETS = {
     ExploreSavedQueryDataset.SPANS: Spans,
@@ -68,6 +72,97 @@ class ExploreSavedParam(ExploreSavedReference):
     order: int
 
 
+class PrebuiltFormula(TypedDict):
+    prebuilt_id: int
+    name: str
+    description: str
+    formula: str
+    unit: str | None
+    dataset: str
+    references: list[ExploreSavedReference]
+    params: list[ExploreSavedParam]
+
+
+PREBUILT_FORMULAS: list[PrebuiltFormula] = [
+    {
+        "prebuilt_id": 1,
+        "name": "formula.apdex",
+        "description": "(Application Performance Index) Calculates apdex a weighted average of user experiences",
+        "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
+        "unit": None,
+        "dataset": "spans",
+        "references": [
+            {
+                "name": "count_satisfied",
+                "value": "count_if(`{duration}:<{threshold}`)",
+            },
+            {
+                "name": "count_tolerating",
+                "value": "count_if(`{duration}:>={threshold} and {duration}:<={frustrated}`)",
+            },
+        ],
+        "params": [
+            {
+                "name": "duration",
+                "type": "column",
+                "order": 0,
+                "value": "",
+            },
+            {
+                "name": "threshold",
+                "type": "number",
+                "order": 1,
+                "value": "",
+            },
+            {
+                "name": "frustrated",
+                "type": "calculation",
+                "order": 2,
+                "value": "{threshold} * 4",
+            },
+        ],
+    },
+    {
+        "prebuilt_id": 2,
+        "name": "formula.user_misery",
+        "description": "Calculates a user misery score that tries to not let low throughput transactions have a high score using weights, 5.8875 in the numerator and 111.8625 in the denominator",
+        "formula": "({miserable_users} + 5.8875) / ({total_unique_users} + 111.8625 + 5.8875)",
+        "unit": None,
+        "dataset": "spans",
+        "references": [
+            {
+                "name": "miserable_users",
+                "value": "count_unique_if(`is_transaction:True and {duration}:>{frustrated}`, user)",
+            },
+            {
+                "name": "total_unique_users",
+                "value": "count_unique_if(`is_transaction:True and has:{duration}`, user)",
+            },
+        ],
+        "params": [
+            {
+                "name": "duration",
+                "type": "column",
+                "order": 0,
+                "value": "",
+            },
+            {
+                "name": "threshold",
+                "type": "number",
+                "order": 1,
+                "value": "",
+            },
+            {
+                "name": "frustrated",
+                "type": "calculation",
+                "order": 2,
+                "value": "{threshold} * 4",
+            },
+        ],
+    },
+]
+
+
 class ExploreSavedFormulaResponse(TypedDict):
     formula: str
     id: str
@@ -77,6 +172,7 @@ class ExploreSavedFormulaResponse(TypedDict):
     dataset: str
     type: str
     unit: str | None
+    prebuilt: bool
 
 
 class ExploreSavedReferencesSerializer(Serializer[ExploreSavedReference]):
@@ -138,6 +234,7 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
             ),
             "type": obj.formula_type,
             "unit": obj.unit,
+            "prebuilt": obj.prebuilt_id is not None,
         }
         return data
 
@@ -168,9 +265,13 @@ class ReferenceSerializer(RequestSerializer):
     value = CharField(max_length=200, allow_blank=True)
 
     def validate_value(self, value: str) -> str:
+        value = value.lower()
         if len(value) == 0:
             raise ValidationError("References must have a value")
         return value
+
+    def validate_name(self, name: str) -> str:
+        return name.lower()
 
 
 class ParamSerializer(ReferenceSerializer):
@@ -212,6 +313,15 @@ class FormulaSerializer(RequestSerializer):
         required=True,
     )
 
+    def validate_formula(self, formula: str) -> str:
+        return formula.lower()
+
+    def validate_name(self, name: str) -> str:
+        name = name.lower()
+        if not name.startswith("formula."):
+            raise ValidationError("Formula names must begin with `formula`")
+        return name
+
     def validate_dataset(self, dataset: str) -> int:
         dataset_id = ExploreSavedQueryDataset.get_id_for_type_name(dataset)
         if dataset_id is None:
@@ -221,11 +331,6 @@ class FormulaSerializer(RequestSerializer):
                 f"{dataset} is not supported yet, currently only Spans and Logs are supported"
             )
         return dataset_id
-
-    def validate_name(self, name: str) -> str:
-        if not name.startswith("formula."):
-            raise ValidationError("Formula names must begin with `formula`")
-        return name
 
     def validate(self, data: FormulaData) -> FormulaData:
         # Convert the dicts to simplenamespace objects so they; can be used in parse_formula
@@ -273,6 +378,7 @@ class FormulaSerializer(RequestSerializer):
 
 class OrganizationExploreFormulaBase(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
+    permission_classes = (ExploreSavedFormulaPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
@@ -294,6 +400,78 @@ def write_formula_to_db() -> Iterator[None]:
             raise ParseError("Orderby values must be unique")
         # If its not one of our known integrity errors raise it again
         raise
+
+
+def sync_prebuilt_formulas(organization: Organization) -> None:
+    """
+    Queries the database to check if prebuilt formulas have an ExploreSavedFormula record and
+    creates them if they don't
+    """
+    with transaction.atomic(router.db_for_write(ExploreSavedFormula)):
+        saved_prebuilt_queries = ExploreSavedFormula.objects.filter(
+            organization=organization,
+            prebuilt_id__isnull=False,
+        )
+
+        saved_prebuilt_query_ids = set(saved_prebuilt_queries.values_list("prebuilt_id", flat=True))
+        saved_prebuilt_names = set(saved_prebuilt_queries.values_list("name", flat=True))
+
+        # Create prebuilt formulas if they don't exist
+        formulas_to_create = []
+        variables_to_create = []
+        validated_formulas = []
+        for prebuilt_formula in PREBUILT_FORMULAS:
+            # Users can update the prebuilts so if its already there don't touch it again
+            if prebuilt_formula["prebuilt_id"] in saved_prebuilt_query_ids:
+                continue
+            if prebuilt_formula["name"] in saved_prebuilt_names:
+                continue
+            # Ensure the prebuilt query is valid also provides mapping for some fields such as the dataset string `spans` into the int `0`
+            serializer = FormulaSerializer(
+                data=prebuilt_formula,
+            )
+            if serializer.is_valid():
+                data = serializer.validated_data
+                formulas_to_create.append(
+                    ExploreSavedFormula(
+                        organization=organization,
+                        name=data["name"],
+                        formula=data["formula"],
+                        dataset=data["dataset"],
+                        created_by_id=None,
+                        prebuilt_id=prebuilt_formula["prebuilt_id"],
+                    )
+                )
+                validated_formulas.append(data)
+            else:
+                continue
+        if len(formulas_to_create) > 0:
+            created = ExploreSavedFormula.objects.bulk_create(formulas_to_create)
+            for formula, data in zip(created, validated_formulas):
+                for param in data["params"]:
+                    variables_to_create.append(
+                        ExploreSavedVariable(
+                            organization=organization,
+                            explore_saved_formula=formula,
+                            name=param["name"],
+                            value=param["value"],
+                            param_type=param["param_type"],
+                            order=param["order"],
+                            kind=KindItemTypes.PARAM,
+                        )
+                    )
+                for param in data["references"]:
+                    variables_to_create.append(
+                        ExploreSavedVariable(
+                            organization=organization,
+                            explore_saved_formula=formula,
+                            name=param["name"],
+                            value=param["value"],
+                            kind=KindItemTypes.REFERENCE,
+                        )
+                    )
+            if len(variables_to_create) > 0:
+                ExploreSavedVariable.objects.bulk_create(variables_to_create)
 
 
 @extend_schema(tags=["Explore"])
@@ -322,8 +500,25 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
+        # Explore has prebuilt formulas that are created lazily on read.
+        try:
+            lock = locks.get(
+                f"explore:sync_prebuilt_formulas:{organization.id}",
+                duration=10,
+                name="sync_prebuilt_formulas",
+            )
+            with lock.acquire():
+                sync_prebuilt_formulas(organization)
+        except UnableToAcquireLock:
+            pass
+        except IntegrityError as err:
+            if "explore_exploresavedformula_unique_name_per_organization" not in str(err):
+                sentry_sdk.capture_exception(err)
+        except Exception as err:
+            sentry_sdk.capture_exception(err)
+
         queryset = (
-            ExploreSavedFormula.objects.filter(organization=organization)
+            ExploreSavedFormula.objects.filter(organization=organization, prebuilt_deleted=False)
             .prefetch_related(
                 "variables"
                 # TODO: add an orderby parameter, sorting by name for now
@@ -417,6 +612,7 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
             kwargs["formula"] = ExploreSavedFormula.objects.prefetch_related("variables").get(
                 id=id,
                 organization=kwargs["organization"],
+                prebuilt_deleted=False,
             )
         except ExploreSavedFormula.DoesNotExist:
             raise ResourceDoesNotExist

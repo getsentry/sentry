@@ -201,6 +201,36 @@ export function ConditionalDemo() {
 
 // fields.mdx demos
 
+export function CompactSelectFieldDemo() {
+  const {t} = useTranslation();
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {country: null as string | null},
+    validators: {onDynamic: z.object({country: z.string().nullable()})},
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="country">
+        {field => (
+          <field.Layout.Row label={t('Country')}>
+            <field.CompactSelect
+              clearable
+              search
+              value={field.state.value}
+              onChange={field.handleChange}
+              options={[
+                {value: 'us', label: t('United States')},
+                {value: 'uk', label: t('United Kingdom')},
+              ]}
+            />
+          </field.Layout.Row>
+        )}
+      </form.AppField>
+    </form.AppForm>
+  );
+}
+
 export function NumberFieldDemo() {
   const {t} = useTranslation();
   const defaultValues: {amount: number | null} = {amount: 0};

@@ -167,11 +167,6 @@
       "count": 1
     }
   },
-  "static/app/components/core/useScrollLock.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
   "static/app/components/customCommitsResolutionModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2289,11 +2284,6 @@
       "count": 1
     }
   },
-  "static/app/views/explore/releases/list/releaseCard/releaseCardProjectRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "static/app/views/explore/releases/list/releaseCard/releaseCardStatsPeriod.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3019,11 +3009,6 @@
       "count": 1
     }
   },
-  "static/app/views/preprod/buildComparison/header/buildCompareHeaderContent.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/preprod/buildComparison/main/sizeCompareSelectedBuilds.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3035,11 +3020,6 @@
     }
   },
   "static/app/views/preprod/buildDetails/main/insights/insightInfoModal.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -3132,11 +3112,6 @@
   "static/app/views/projectInstall/otherPlatformsInfo.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/projectsDashboard/deploys.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
     }
   },
   "static/app/views/projectsDashboard/noEvents.tsx": {
@@ -3452,11 +3427,6 @@
       "count": 4
     }
   },
-  "static/app/views/settings/organizationIntegrations/integrationCodeMappings.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/organizationIntegrations/integrationListDirectory.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3472,17 +3442,7 @@
       "count": 1
     }
   },
-  "static/app/views/settings/organizationIntegrations/integrationServerlessRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "static/app/views/settings/organizationIntegrations/repositoryProjectPathConfigForm.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/settings/organizationIntegrations/repositoryProjectPathConfigRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }

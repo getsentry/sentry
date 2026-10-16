@@ -140,6 +140,7 @@ function RunSeerActionButton({
       await action();
     } catch {
       // Errors are handled in the caller and shown in the autofix panel
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsStartingAction(false);
     }

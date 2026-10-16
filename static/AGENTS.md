@@ -29,14 +29,18 @@
 
 ### Routing
 
-- Routes defined in `static/app/routes.tsx`
-- The app still runs React Router V6; follow V6 routing patterns and behavior.
+- Routes defined in `static/app/router/routes.tsx`
+- Local development and deploy previews run React Router V8. Production remains
+  on V6. Application tests and typechecks run against both versions; set
+  `SENTRY_REACT_ROUTER_VERSION=6` or `8` to run `test-ci` or `typecheck` against one.
+  `build-utils/react-router.ts` selects the build runtime and Nuqs adapter together.
 - Use V8 import paths: import router APIs and types from `react-router`, and
   `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
-  runtime through `static/app/utils/reactRouterV6`.
+  runtime through `static/app/utils/reactRouterV6` in V6 builds.
 - Only the compatibility modules may import `react-router-dom` or
   `@remix-run/router` directly. Keep using Sentry's routing helpers where required.
-  Nuqs adapters and Sentry tracing integrations remain V6.
+  Use Sentry's version-neutral router tracing integration and wrapper. Keep the
+  Nuqs V6 adapter import; V8 builds and tests alias it to the V8 adapter.
 - Lazy load route components when possible
 
 ### Frontend API Calls
@@ -51,6 +55,10 @@ Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecat
 4. ALWAYS use TypeScript
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
+
+## Linting
+
+Incubator rules show as warnings in editors but fail `pnpm run lint:js`, prek, and CI. `oxlint-suppressions.json` caps existing debt per file and rule, and successful fixes lower its counts automatically. Run `pnpm run lint:js --help` for the suppression maintenance flags (`--prune`, `--enroll`, `--backlog`).
 
 ## Refs
 

@@ -3,8 +3,7 @@ import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 import type {StackProps} from '@sentry/scraps/layout';
-
-import {Text} from '../text';
+import {Text} from '@sentry/scraps/text/text';
 
 // interface + type union because `extends` doesn't play nicely with generics
 interface QuoteBaseProps {

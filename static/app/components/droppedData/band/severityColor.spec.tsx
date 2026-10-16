@@ -1,4 +1,4 @@
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 
 import {severityColor, withAlpha} from './severityColor';
 

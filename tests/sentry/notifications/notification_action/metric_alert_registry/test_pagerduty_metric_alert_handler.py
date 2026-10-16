@@ -109,6 +109,8 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             target_display=None,
             sentry_app_config={"priority": "default"},
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         self.assert_alert_context(
@@ -194,6 +196,8 @@ class TestPagerDutyMetricAlertHandler(MetricAlertHandlerBase):
             target_display=None,
             sentry_app_config={"priority": "default"},
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
 
         self.assert_alert_context(
