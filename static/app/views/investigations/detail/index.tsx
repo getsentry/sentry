@@ -2,7 +2,6 @@ import {Fragment, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChat} from '@sentry/icons/chat';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {IconIssues} from '@sentry/icons/issues';
 import {IconStack} from '@sentry/icons/stack';
 import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
@@ -12,7 +11,6 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -55,6 +53,7 @@ import {
 import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
 import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
+import {InvestigationSourceLink} from 'sentry/views/investigations/detail/sourceLink';
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
@@ -311,7 +310,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     shouldDisplayInvestigationBlock(block)
   );
   const awaitingReportCell = isAwaitingReportCell(investigation);
-  const source = getInvestigationSource(investigation);
   const hasDetails =
     Boolean(investigation.orchestration) ||
     visibleBlocks.length > 0 ||
@@ -402,22 +400,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             </Grid>
             <Flex align="center" justify="between" gap="md" wrap="wrap">
               <Flex align="center" gap="sm" wrap="wrap">
-                {source.groupId ? (
-                  <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/issues/${source.groupId}/`
-                    )}
-                  >
-                    <Flex as="span" align="center" gap="xs">
-                      <IconIssues size="xs" />
-                      {source.monitorName ?? t('View issue')}
-                    </Flex>
-                  </Link>
-                ) : (
-                  <Text variant="muted">
-                    {formatSourceType(investigation.sourceType)}
-                  </Text>
-                )}
+                <InvestigationSourceLink investigation={investigation} />
                 <MetaDivider />
                 <Text variant="muted">
                   {tct('Last update: [date]', {
@@ -584,40 +567,6 @@ function getInvestigationPath(organizationSlug: string, investigationId: string)
   return normalizeUrl(
     `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
   );
-}
-
-function getRecord(value: unknown, key: string): Record<string, unknown> | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-  const field: unknown = (value as Record<string, unknown>)[key];
-  return field && typeof field === 'object' ? (field as Record<string, unknown>) : null;
-}
-
-function getString(value: Record<string, unknown> | null, key: string): string | null {
-  const field = value?.[key];
-  return typeof field === 'string' && field ? field : null;
-}
-
-// A breached metric investigation references the metric issue it was started
-// from, and snapshots that issue's monitor. Older investigations may predate the
-// snapshot, but still carry the issue reference.
-function getInvestigationSource(investigation: InvestigationDetail) {
-  const {source} = investigation;
-  return {
-    groupId: getString(getRecord(source, 'ref'), 'groupId'),
-    monitorName: getString(getRecord(getRecord(source, 'snapshot'), 'monitor'), 'name'),
-  };
-}
-
-function formatSourceType(sourceType: string) {
-  if (sourceType === 'metric_open_period') {
-    return t('Breached metric');
-  }
-  if (sourceType === 'manual') {
-    return t('Manual investigation');
-  }
-  return sourceType.replaceAll('_', ' ');
 }
 
 const NotebookTitleInput = styled(Input)`
