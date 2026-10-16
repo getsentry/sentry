@@ -151,6 +151,23 @@ describe('AttributeDetailsTooltip', () => {
     expect(await screen.findByText('Added by Sentry')).toBeInTheDocument();
   });
 
+  it('describes a typed convention attribute with its convention', async () => {
+    render(
+      <AttributeDetailsTooltip
+        attributeKey="tags[app.in_foreground,boolean]"
+        fieldDefinitionType="span"
+        name="app.in_foreground"
+      />
+    );
+
+    await userEvent.hover(screen.getByText('app.in_foreground'));
+
+    expect(
+      await screen.findByText('Whether the application is currently in the foreground.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+  });
+
   it('describes an unknown attribute as a tag and credits nobody', async () => {
     render(
       <AttributeDetailsTooltip

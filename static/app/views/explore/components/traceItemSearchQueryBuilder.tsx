@@ -15,11 +15,8 @@ import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils
 import {t, tct} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
-import {
-  ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
-  FieldKind,
-  getFieldDefinition,
-} from 'sentry/utils/fields';
+import {ATTRIBUTE_SEARCH_SECONDARY_ALIASES, FieldKind} from 'sentry/utils/fields';
+import {getTraceItemAttributeDefinition} from 'sentry/utils/fields/getTraceItemAttributeDefinition';
 import {getHasTag} from 'sentry/utils/tag';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
@@ -98,7 +95,7 @@ function getTraceItemFieldDefinitionFunction(
     // Array membership keys carry a `[*]` suffix (eg. `foo[*]`); strip it so the
     // field definition resolves to the attribute's stored backend key.
     const baseKey = stripArrayMembershipOperator(key);
-    return getFieldDefinition(
+    return getTraceItemAttributeDefinition(
       baseKey,
       typeMap[itemType],
       options?.kind ?? tags[baseKey]?.kind
