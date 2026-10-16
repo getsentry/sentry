@@ -93,6 +93,8 @@ function BaseDateRange({
   const utcInputId = useId();
   const [hasStartErrors, setHasStartErrors] = useState(false);
   const [hasEndErrors, setHasEndErrors] = useState(false);
+  // Capture "now" once on mount so render stays pure. Can't select dates in the future.
+  const [now] = useState(() => new Date());
 
   const handleSelectDateRange = (range: Range) => {
     const {startDate, endDate} = range;
@@ -185,9 +187,9 @@ function BaseDateRange({
   // Subtract additional day  because we force the end date to be inclusive,
   // so when you pick Jan 1 the time becomes Jan 1 @ 23:59:59,
   // (or really, Jan 2 @ 00:00:00 - 1 second), while the start time is at 00:00
-  let minDate = getStartOfPeriodAgo('days', (maxPickableDays ?? MAX_PICKABLE_DAYS) - 1);
+  let minDate = getStartOfPeriodAgo('days', maxPickableDays - 1);
 
-  let maxDate = new Date();
+  let maxDate = now;
 
   // if the start and end date are the same, it means the user can still select another date,
   // at this point we want to apply the maxDateRange
