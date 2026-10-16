@@ -207,10 +207,17 @@ def test_group_filter_accepts_long_text() -> None:
     assert having is not None
 
 
-@pytest.mark.parametrize("key", ["gen_ai.conversation.id", "conversation.conversationId"])
-def test_group_filter_compiles_exact_id(key: str) -> None:
+def test_group_filter_compiles_exact_id_as_indexed_filter() -> None:
     resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
-    assert compile_conversation_query(f'{key}:"session:123"', resolver) == (
+    assert compile_conversation_query('gen_ai.conversation.id:"session:123"', resolver) == (
+        "has:gen_ai.conversation.id has:gen_ai.operation.type AND "
+        '(gen_ai.conversation.id:"session:123")'
+    )
+
+
+def test_group_filter_compiles_conversation_id_alias() -> None:
+    resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
+    assert compile_conversation_query('conversation.conversationId:"session:123"', resolver) == (
         "has:gen_ai.conversation.id has:gen_ai.operation.type AND "
         '(count_if(`gen_ai.conversation.id:"session:123"`,span.duration):>0)'
     )
@@ -294,6 +301,25 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert query["orderby"] == ["-max(timestamp)", "gen_ai.conversation.id"]
         assert query["config"].disable_aggregate_extrapolation is True
         assert query["sampling_mode"] == "HIGHEST_ACCURACY"
+
+    @patch(
+        "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
+        return_value={"data": []},
+    )
+    def test_exact_conversation_id_uses_indexed_filter(self, run_table_query: MagicMock) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "query": 'gen_ai.conversation.id:"conversation-a"',
+            }
+        )
+
+        assert response.status_code == 200, response.data
+        query = run_table_query.call_args.kwargs
+        assert query["query_string"] == (
+            "has:gen_ai.conversation.id has:gen_ai.operation.type AND "
+            '(gen_ai.conversation.id:"conversation-a")'
+        )
 
     @patch(
         "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
