@@ -1,6 +1,7 @@
 from django.test import override_settings
 
 from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
 
 
@@ -11,6 +12,7 @@ class CreateOrganizationTest(AcceptanceTestCase):
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
+    @with_feature("organizations:onboarding-scm-project-creation")
     @override_settings(
         PRIVACY_URL="https://sentry.io/privacy/", TERMS_URL="https://sentry.io/terms/"
     )
@@ -24,5 +26,5 @@ class CreateOrganizationTest(AcceptanceTestCase):
             self.browser.element('input[name="agreeTerms"]').click()
             self.browser.click('button[type="submit"]')
             # After creating an org should end up on create project
-            self.browser.wait_until_test_id("platform-javascript-react")
-            assert self.browser.element_exists_by_test_id("create-project")
+            self.browser.wait_until(xpath='//h4[text()="Repository"]')
+            assert self.browser.element_exists(xpath='//button[contains(., "Create project")]')
