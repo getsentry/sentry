@@ -172,6 +172,11 @@
       "count": 2
     }
   },
+  "static/app/components/core/modal/index.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    }
+  },
   "static/app/components/core/relativeTime/relativeTime.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
