@@ -9,6 +9,7 @@ import sentry_sdk.scope
 from django.conf import settings
 from django.db import OperationalError
 from django.http import HttpRequest
+from django.test import override_settings
 from rest_framework.request import Request
 from sentry_sdk import Scope
 from sentry_sdk.types import Log
@@ -816,3 +817,35 @@ def test_before_send_error_level() -> None:
     event_with_before_send = sdk.before_send(event, hint)  # type: ignore[arg-type]
     assert event_with_before_send
     assert event_with_before_send["level"] == "warning"
+
+
+@override_settings(SENTRY_SELF_HOSTED=True, IS_DEV=False)
+def test_before_send_drops_self_hosted_check_ins() -> None:
+    event = {"type": "check_in", "monitor_slug": "send-beacon"}
+    assert sdk.before_send(event, {}) is None  # type: ignore[arg-type]
+
+
+@override_settings(
+    SENTRY_SELF_HOSTED=True, IS_DEV=False, SENTRY_SELF_HOSTED_REPORT_CRON_CHECKINS=True
+)
+def test_before_send_keeps_self_hosted_check_ins_when_enabled() -> None:
+    event = {"type": "check_in", "monitor_slug": "send-beacon"}
+    assert sdk.before_send(event, {}) is event  # type: ignore[arg-type]
+
+
+@override_settings(SENTRY_SELF_HOSTED=False, IS_DEV=False)
+def test_before_send_keeps_saas_check_ins() -> None:
+    event = {"type": "check_in", "monitor_slug": "send-beacon"}
+    assert sdk.before_send(event, {}) is event  # type: ignore[arg-type]
+
+
+@override_settings(SENTRY_SELF_HOSTED=True, IS_DEV=True)
+def test_before_send_keeps_dev_check_ins() -> None:
+    event = {"type": "check_in", "monitor_slug": "send-beacon"}
+    assert sdk.before_send(event, {}) is event  # type: ignore[arg-type]
+
+
+@override_settings(SENTRY_SELF_HOSTED=True, IS_DEV=False)
+def test_before_send_keeps_self_hosted_errors() -> None:
+    event = {"level": "error"}
+    assert sdk.before_send(event, {}) is event  # type: ignore[arg-type]
