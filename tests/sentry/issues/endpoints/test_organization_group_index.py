@@ -712,12 +712,94 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["id"] == str(event.group.id)
         assert response.data[0]["matchingEventId"] == event_id
 
+    def test_lookup_by_event_id_with_filters(self) -> None:
+        event_id = "c" * 32
+        event = self.store_event(
+            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
+            project_id=self.project.id,
+        )
+        event.group.update(status=GroupStatus.RESOLVED, substatus=None)
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"is:unresolved {event_id} issue.priority:high")
+        assert response["X-Sentry-Direct-Hit"] == "1"
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+        assert response.data[0]["matchingEventId"] == event_id
+
+    def test_lookup_by_event_id_formats_with_filter(self) -> None:
+        event_id = uuid4()
+        event = self.store_event(
+            data={"event_id": event_id.hex, "timestamp": self.min_ago.isoformat()},
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"{event_id} is:unresolved")
+        assert response["X-Sentry-Direct-Hit"] == "1"
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+        assert response.data[0]["matchingEventId"] == event_id.hex
+
+        response = self.get_success_response(query=f"is:unresolved {event_id.hex} {event_id}")
+        assert response["X-Sentry-Direct-Hit"] == "1"
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group.id)
+        assert response.data[0]["matchingEventId"] == event_id.hex
+
+    def test_lookup_by_multiple_event_ids_with_filter(self) -> None:
+        self.store_event(
+            data={"event_id": "c" * 32, "timestamp": self.min_ago.isoformat()},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"is:unresolved {'c' * 32} {'d' * 32}")
+        assert response.get("X-Sentry-Direct-Hit") != "1"
+
+    def test_event_id_in_tag_value_is_not_direct_hit(self) -> None:
+        self.store_event(
+            data={"event_id": "c" * 32, "timestamp": self.min_ago.isoformat()},
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_success_response(query=f"is:unresolved transaction:{'c' * 32}")
+        assert response.get("X-Sentry-Direct-Hit") != "1"
+        assert len(response.data) == 0
+
+    def test_lookup_by_event_id_with_filter_no_project_access(self) -> None:
+        private_team = self.create_team(organization=self.organization)
+        private_project = self.create_project(organization=self.organization, teams=[private_team])
+        event_id = "c" * 32
+        self.store_event(
+            data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
+            project_id=private_project.id,
+        )
+        user = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            user=user,
+            teams=[self.team],
+            has_global_access=False,
+        )
+
+        self.login_as(user=user)
+        response = self.get_success_response(
+            query=f"is:unresolved {event_id}", project=[self.project.id]
+        )
+        assert response.get("X-Sentry-Direct-Hit") != "1"
+        assert len(response.data) == 0
+
     def test_lookup_by_unknown_event_id(self) -> None:
         self.create_group()
         self.create_group()
 
         self.login_as(user=self.user)
         response = self.get_success_response(query="c" * 32)
+        assert len(response.data) == 0
+
+        response = self.get_success_response(query=f"is:unresolved {'c' * 32}")
+        assert response.get("X-Sentry-Direct-Hit") != "1"
         assert len(response.data) == 0
 
     def test_lookup_by_short_id(self) -> None:
