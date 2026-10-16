@@ -21,6 +21,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.types import NotificationActionContext, NotificationOrigin
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
+from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
 
 
 def create_notification_origin(rule: Rule) -> NotificationOrigin:
@@ -38,9 +39,37 @@ def create_notification_origin(rule: Rule) -> NotificationOrigin:
     )
 
 
-def create_notification_action_context(rule: Rule) -> NotificationActionContext:
+def create_workflow_notification_origin(rule: Rule) -> NotificationOrigin:
+    mapping = AlertRuleWorkflow.objects.filter(rule_id=rule.id).select_related("workflow").first()
+    if mapping is None:
+        workflow = Workflow.objects.create(
+            organization=rule.project.organization,
+            name=rule.label,
+            environment_id=rule.environment_id,
+            config={},
+        )
+        AlertRuleWorkflow.objects.create(rule_id=rule.id, workflow=workflow)
+    else:
+        workflow = mapping.workflow
+        workflow.update(name=rule.label, environment_id=rule.environment_id)
+
+    return NotificationOrigin(
+        label=workflow.name,
+        environment_id=workflow.environment_id,
+        workflow_id=workflow.id,
+        legacy_rule_id=rule.id,
+    )
+
+
+def create_notification_action_context(
+    rule: Rule, *, with_workflow: bool = True
+) -> NotificationActionContext:
     return NotificationActionContext(
-        origin=create_notification_origin(rule),
+        origin=(
+            create_workflow_notification_origin(rule)
+            if with_workflow
+            else create_notification_origin(rule)
+        ),
         action_id=rule.id,
         project=rule.project,
     )
