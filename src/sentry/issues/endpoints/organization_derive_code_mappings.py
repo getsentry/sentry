@@ -30,7 +30,11 @@ from sentry.issues.auto_source_code_config.derived_code_mappings_endpoint import
     get_code_mapping_from_request,
     get_file_and_repo_matches,
 )
-from sentry.issues.auto_source_code_config.errors import NeedsExtension, UnsupportedFrameInfo
+from sentry.issues.auto_source_code_config.errors import (
+    MissingModuleOrAbsPath,
+    NeedsExtension,
+    UnsupportedFrameInfo,
+)
 from sentry.issues.auto_source_code_config.integration_utils import (
     InstallationCannotGetTreesError,
     InstallationNotFoundError,
@@ -75,7 +79,8 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         description=(
             "Find repository files that match the supplied stack trace filename. This endpoint "
             "uses the organization's first active supported integration (GitHub or Cursor). "
-            "Errors are returned as an object with a `text` field."
+            "When `platform` is `java`, both `absPath` and `module` must be nonempty; otherwise "
+            "the request returns 400. Errors are returned as an object with a `text` field."
         ),
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
@@ -89,9 +94,15 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
                 "platform", type=str, description="The platform associated with the frame."
             ),
             OpenApiParameter(
-                "absPath", type=str, description="The absolute path of the stack frame, if known."
+                "absPath",
+                type=str,
+                description="The absolute path of the stack frame. Required and nonempty when platform is java.",
             ),
-            OpenApiParameter("module", type=str, description="The module name, if known."),
+            OpenApiParameter(
+                "module",
+                type=str,
+                description="The module name. Required and nonempty when platform is java.",
+            ),
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -149,6 +160,11 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             return self.respond(
                 {"text": "Missing required parameters"}, status=status.HTTP_400_BAD_REQUEST
             )
+        except MissingModuleOrAbsPath:
+            return self.respond(
+                {"text": "absPath and module are required for Java frames"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except UnsupportedFrameInfo:
             return self.respond(
                 {"text": "Unsupported frame info"}, status=status.HTTP_400_BAD_REQUEST
@@ -161,7 +177,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             "Derive and save a repository path mapping for a project from a stack trace frame "
             "and repository name. This endpoint uses the organization's first active supported "
             "integration (GitHub or Cursor), and may create a Repository in Sentry. If a mapping "
-            "already exists for the same project, stack root, and source root, it is updated. "
+            "already exists for the same project, repository, stack root, and source root, it is updated. "
             "Errors are returned as an object with a `text` field."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
@@ -179,10 +195,14 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
                 ),
                 "stackRoot": serializers.CharField(
                     allow_blank=True,
-                    help_text="The path prefix used to match stack frame filenames.",
+                    help_text="The path prefix to strip from matching stack frame filenames before adding sourceRoot.",
                 ),
                 "sourceRoot": serializers.CharField(
-                    allow_blank=True, help_text="The path prefix to remove from source file paths."
+                    allow_blank=True,
+                    help_text=(
+                        "The repository path prefix that replaces stackRoot. For example, "
+                        "/app/pkg/file.py with stackRoot=/app/ and sourceRoot=src/ resolves to src/pkg/file.py."
+                    ),
                 ),
             },
         ),

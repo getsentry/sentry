@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.urls import reverse
 
 from sentry.models.commit import Commit
@@ -8,6 +9,18 @@ from sentry.testutils.cases import APITestCase
 
 
 class ProjectReleaseSetupCompletionTest(APITestCase):
+    endpoint = "sentry-api-0-project-releases-completion-status"
+
+    def test_ignores_organization_repository_cache(self) -> None:
+        project = self.create_project()
+        cache.set(f"onboard_repo:1:{project.id}", True, 3600)
+        self.login_as(self.user)
+
+        response = self.get_success_response(project.organization.slug, project.slug)
+
+        assert response.data[1] == {"step": "repo", "complete": False}
+        assert cache.get(f"onboard_repo:2:{project.id}") is False
+
     def test_simple(self) -> None:
         project = self.create_project()
         release = self.create_release(project, self.user)

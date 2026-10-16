@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Collection
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 from django.http import QueryDict
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -55,13 +55,16 @@ class StacktraceLinkContext(TypedDict):
     sdk_name: str | None
 
 
-class StacktraceLinkResponse(TypedDict):
+class StacktraceLinkResponseOptional(TypedDict, total=False):
+    sourcePath: str | None
+    attemptedUrl: str | None
+
+
+class StacktraceLinkResponse(StacktraceLinkResponseOptional):
     error: str | None
     config: RepositoryProjectPathConfigSerializerResponse | None
     sourceUrl: str | None
     integrations: list[IntegrationSerializerResponse]
-    sourcePath: NotRequired[str | None]
-    attemptedUrl: NotRequired[str | None]
 
 
 def generate_context(parameters: QueryDict) -> StacktraceLinkContext:

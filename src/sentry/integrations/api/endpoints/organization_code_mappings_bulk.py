@@ -56,10 +56,14 @@ MAX_MAPPINGS = 300
 
 class MappingItemSerializer(serializers.Serializer[dict[str, object]]):
     stack_root = gen_path_regex_field(
-        help_text="The path prefix used to match stack frame filenames."
+        help_text="The path prefix to strip from matching stack frame filenames before adding sourceRoot."
     )
     source_root = gen_path_regex_field(
-        validate_source=True, help_text="The path prefix to remove from source file paths."
+        validate_source=True,
+        help_text=(
+            "The repository path prefix that replaces stackRoot. For example, "
+            "/app/pkg/file.py with stackRoot=/app/ and sourceRoot=src/ resolves to src/pkg/file.py."
+        ),
     )
 
 
@@ -232,11 +236,14 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                     name="BulkCodeMappingItemRequest",
                     fields={
                         "stackRoot": gen_path_regex_field(
-                            help_text="The path prefix used to match stack frame filenames."
+                            help_text="The path prefix to strip from matching stack frame filenames before adding sourceRoot."
                         ),
                         "sourceRoot": gen_path_regex_field(
                             validate_source=True,
-                            help_text="The path prefix to remove from source file paths.",
+                            help_text=(
+                                "The repository path prefix that replaces stackRoot. For example, "
+                                "/app/pkg/file.py with stackRoot=/app/ and sourceRoot=src/ resolves to src/pkg/file.py."
+                            ),
                         ),
                     },
                     many=True,

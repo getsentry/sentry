@@ -338,16 +338,25 @@ class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer):
     agent = serializers.ChoiceField(
         choices=[*AutomationCodingAgent],
         required=False,
-        help_text="The agent to use for project automation.",
+        help_text=(
+            "The agent to use for project automation. External agents require integrationId; "
+            "seer must not be paired with integrationId."
+        ),
     )
     integration_id = serializers.IntegerField(
         required=False,
-        help_text="The installed integration ID to use when an external coding agent is selected.",
+        help_text=(
+            "The installed integration ID. Required with an external agent; "
+            "providing it also requires agent to be an external coding agent."
+        ),
     )
     stopping_point = serializers.ChoiceField(
         choices=[*AutofixStoppingPoint],
         required=False,
-        help_text="The point in the workflow at which Seer should stop.",
+        help_text=(
+            "The point in the workflow at which Seer should stop. Seat-based plans accept "
+            "root_cause, code_changes, and open_pr; solution is only available on usage-based plans."
+        ),
     )
     scanner_automation = serializers.BooleanField(
         required=False, help_text="Whether scanner automation is enabled for the project."
@@ -440,16 +449,25 @@ class ProjectSeerSettingsRequestSerializer(serializers.Serializer):
     agent = serializers.ChoiceField(
         choices=[*AutomationCodingAgent],
         required=False,
-        help_text="The agent to use for project automation.",
+        help_text=(
+            "The agent to use for project automation. External agents require integrationId; "
+            "seer must not be paired with integrationId."
+        ),
     )
     integrationId = serializers.IntegerField(
         required=False,
-        help_text="The installed integration ID to use when an external coding agent is selected.",
+        help_text=(
+            "The installed integration ID. Required with an external agent; "
+            "providing it also requires agent to be an external coding agent."
+        ),
     )
     stoppingPoint = serializers.ChoiceField(
         choices=[*AutofixStoppingPoint],
         required=False,
-        help_text="The point in the workflow at which Seer should stop.",
+        help_text=(
+            "The point in the workflow at which Seer should stop. Seat-based plans accept "
+            "root_cause, code_changes, and open_pr; solution is only available on usage-based plans."
+        ),
     )
     scannerAutomation = serializers.BooleanField(
         required=False, help_text="Whether scanner automation is enabled for the project."
@@ -499,11 +517,12 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
         operation_id="updateProjectSeerSettings",
         summary="Update Seer Settings for a Project",
         description=(
-            "Update one or more Seer automation settings. Available tuning and stopping-point "
-            "choices depend on the organization's Seer plan. On seat-based Seer plans "
-            "(when `is_seer_seat_based_tier_enabled` is enabled), `autoCreatePr` is ignored, "
-            "`automationTuning` accepts only `off` or `medium`, and valid `stoppingPoint` "
-            "values depend on `get_valid_automated_run_stopping_points`."
+            "Update one or more Seer automation settings. An external `agent` requires "
+            "`integrationId`, and providing `integrationId` requires an external `agent`; "
+            "`agent: seer` must not be paired with `integrationId`. On seat-based Seer plans, "
+            "`autoCreatePr` is ignored, `automationTuning` accepts only `off` or `medium`, and "
+            "`stoppingPoint` accepts `root_cause`, `code_changes`, or `open_pr`. "
+            "The `solution` stopping point is only available on usage-based plans."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=ProjectSeerSettingsRequestSerializer,
@@ -659,11 +678,13 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
         summary="Update Seer Settings for Organization Projects",
         description=(
             "Apply one or more Seer setting changes to projects matching the optional `query`. "
-            "If `query` is omitted or empty, the update applies to every project the user can "
-            "access in the organization. On seat-based Seer plans "
-            "(when `is_seer_seat_based_tier_enabled` is enabled), `autoCreatePr` is ignored, "
-            "`automationTuning` accepts only `off` or `medium`, and valid `stoppingPoint` "
-            "values depend on `get_valid_automated_run_stopping_points`."
+            "If `query` is omitted, the update applies to every project the user can access "
+            "in the organization; an explicitly empty `query` is rejected. An external `agent` "
+            "requires `integrationId`, and providing `integrationId` requires an external "
+            "`agent`; `agent: seer` must not be paired with `integrationId`. On seat-based Seer "
+            "plans, `autoCreatePr` is ignored, `automationTuning` accepts only `off` or `medium`, "
+            "and `stoppingPoint` accepts `root_cause`, `code_changes`, or `open_pr`. "
+            "The `solution` stopping point is only available on usage-based plans."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=OrganizationSeerProjectSettingsRequestSerializer,

@@ -26,6 +26,7 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.issues.auto_source_code_config.code_mapping import find_roots
 from sentry.issues.auto_source_code_config.errors import (
+    MissingModuleOrAbsPath,
     UnexpectedPathException,
     UnsupportedFrameInfo,
 )
@@ -69,13 +70,13 @@ class PathMappingSerializer(CamelSnakeSerializer[PathMappingData]):
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="The absolute path of the file in the stack trace frame.",
+        help_text="The absolute path of the file in the stack trace frame. Required and nonempty when platform is java.",
     )
     module = serializers.CharField(
         required=False,
         allow_null=True,
         allow_blank=True,
-        help_text="The module containing the stack trace frame.",
+        help_text="The module containing the stack trace frame. Required and nonempty when platform is java.",
     )
     platform = serializers.CharField(
         required=False,
@@ -174,7 +175,8 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         summary="Parse a Repository Path Mapping",
         description=(
             "Derive the code-mapping settings that match a stack frame path to a file in the "
-            "connected source repository."
+            "connected source repository. When `platform` is `java`, both `absPath` and `module` "
+            "must be nonempty; otherwise the request returns 400."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=inline_serializer(
@@ -190,13 +192,13 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
                     required=False,
                     allow_null=True,
                     allow_blank=True,
-                    help_text="The absolute path of the file in the stack trace frame.",
+                    help_text="The absolute path of the file in the stack trace frame. Required and nonempty when platform is java.",
                 ),
                 "module": serializers.CharField(
                     required=False,
                     allow_null=True,
                     allow_blank=True,
-                    help_text="The module containing the stack trace frame.",
+                    help_text="The module containing the stack trace frame. Required and nonempty when platform is java.",
                 ),
                 "platform": serializers.CharField(
                     required=False,
@@ -238,6 +240,11 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
                     "module": data.get("module"),
                 },
                 data.get("platform"),
+            )
+        except MissingModuleOrAbsPath:
+            return self.respond(
+                {"detail": "absPath and module are required for Java frames"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except UnsupportedFrameInfo:
             return self.respond(

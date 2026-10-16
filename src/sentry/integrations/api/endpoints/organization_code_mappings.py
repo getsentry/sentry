@@ -224,11 +224,11 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
             ),
             OpenApiParameter(
                 "project",
-                type=int,
+                type=str,
                 many=True,
                 description=(
-                    "Filter by project ID. Pass `-1` to include all projects the user can access. "
-                    "When omitted, mappings are limited to projects the user is a member of."
+                    "Filter by project ID or slug. Pass `-1` to include all projects the user can access. "
+                    "When omitted, mappings include all projects the user can access."
                 ),
             ),
             CursorQueryParam,
@@ -257,7 +257,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :qparam int integrationId: the optional integration id.
-        :qparam int project: Optional. Pass "-1" to filter to 'all projects user has access to'. Omit to filter for 'all projects user is a member of'.
+        :qparam string project: Optional project ID or slug. Pass "-1" or omit to include all projects the user can access.
         :qparam int per_page: Pagination size.
         :qparam string cursor: Pagination cursor.
         :auth: required
@@ -310,11 +310,14 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
                 ),
                 "stackRoot": serializers.CharField(
                     allow_blank=True,
-                    help_text="The path prefix used to match stack frame filenames.",
+                    help_text="The path prefix to strip from matching stack frame filenames before adding sourceRoot.",
                 ),
                 "sourceRoot": serializers.CharField(
                     allow_blank=True,
-                    help_text="The path prefix to remove from source file paths.",
+                    help_text=(
+                        "The repository path prefix that replaces stackRoot. For example, "
+                        "/app/pkg/file.py with stackRoot=/app/ and sourceRoot=src/ resolves to src/pkg/file.py."
+                    ),
                 ),
                 "defaultBranch": serializers.CharField(
                     allow_blank=True,

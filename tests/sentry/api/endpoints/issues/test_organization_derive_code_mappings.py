@@ -68,6 +68,22 @@ class OrganizationDeriveCodeMappingsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == expected_matches
 
+    def test_get_java_requires_abs_path_and_module(self) -> None:
+        frame_variants = [
+            {},
+            {"absPath": "Example.java"},
+            {"module": "com.example.Example"},
+            {"absPath": "", "module": "com.example.Example"},
+            {"absPath": "Example.java", "module": ""},
+        ]
+        for frame_fields in frame_variants:
+            response = self.client.get(
+                self.url,
+                data={"stacktraceFilename": "Example.java", "platform": "java", **frame_fields},
+            )
+            assert response.status_code == 400, response.content
+            assert response.data == {"text": "absPath and module are required for Java frames"}
+
     @patch("sentry.integrations.github.integration.GitHubIntegration.get_trees_for_org")
     def test_get_frame_with_module(self, mock_get_trees_for_org: Any) -> None:
         config_data = {

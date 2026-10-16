@@ -108,11 +108,14 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
                 ),
                 "stackRoot": serializers.CharField(
                     allow_blank=True,
-                    help_text="The path prefix used to match stack frame filenames.",
+                    help_text="The path prefix to strip from matching stack frame filenames before adding sourceRoot.",
                 ),
                 "sourceRoot": serializers.CharField(
                     allow_blank=True,
-                    help_text="The path prefix to remove from source file paths.",
+                    help_text=(
+                        "The repository path prefix that replaces stackRoot. For example, "
+                        "/app/pkg/file.py with stackRoot=/app/ and sourceRoot=src/ resolves to src/pkg/file.py."
+                    ),
                 ),
                 "defaultBranch": serializers.CharField(
                     allow_blank=True,

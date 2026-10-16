@@ -307,6 +307,30 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "defaultBranch": "master",
         }
 
+    def test_java_requires_abs_path_and_module(self) -> None:
+        self.login_as(self.user)
+        frame_variants: list[dict[str, str | None]] = [
+            {},
+            {"absPath": "Example.java"},
+            {"module": "com.example.Example"},
+            {"absPath": None, "module": "com.example.Example"},
+            {"absPath": "Example.java", "module": None},
+            {"absPath": "", "module": "com.example.Example"},
+            {"absPath": "Example.java", "module": ""},
+        ]
+        for frame_fields in frame_variants:
+            response = self.get_error_response(
+                self.org.slug,
+                self.project.slug,
+                method="post",
+                sourceUrl="https://github.com/getsentry/sentry/blob/master/src/Example.java",
+                stackPath="Example.java",
+                platform="java",
+                **frame_fields,
+                status_code=400,
+            )
+            assert response.data == {"detail": "absPath and module are required for Java frames"}
+
     def test_java_path(self) -> None:
         src_file = "src/com/example/foo/Bar.kt"
         source_url = f"https://github.com/getsentry/sentry/blob/master/{src_file}"
