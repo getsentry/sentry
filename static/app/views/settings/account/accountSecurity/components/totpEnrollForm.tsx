@@ -44,12 +44,12 @@ export function TotpEnrollForm({
       }),
     },
     onSubmit: async ({value}) => {
-      if (!authenticator.secret) {
+      if (!value.secret) {
         return;
       }
 
       try {
-        await enrollAuthenticator({...value, secret: authenticator.secret});
+        await enrollAuthenticator(value);
       } catch (caughtError) {
         addErrorMessage(
           getRequestErrorUserMessage(
