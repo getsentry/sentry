@@ -5,10 +5,10 @@ from collections.abc import Mapping
 
 import orjson
 from cryptography.exceptions import InvalidSignature
+from django.conf import settings
 from rest_framework import status
 from rest_framework.request import Request
 
-from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import RpcIdentityProvider
 from sentry.identity.services.identity.model import RpcIdentity
@@ -157,7 +157,7 @@ class DiscordRequest:
         self._validate_identity()
 
     def authorize(self) -> None:
-        public_key: str = options.get("discord.public-key")
+        public_key: str = settings.SENTRY_DISCORD_PUBLIC_KEY
         signature: str | None = self.request.META.get("HTTP_X_SIGNATURE_ED25519")
         timestamp: str | None = self.request.META.get("HTTP_X_SIGNATURE_TIMESTAMP")
         body: str = self._body

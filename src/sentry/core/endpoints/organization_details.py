@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 from typing import TypedDict
 from urllib.parse import urlsplit
 
+from django.conf import settings
 from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
@@ -16,7 +17,7 @@ from rest_framework.exceptions import PermissionDenied
 from sentry_sdk import capture_exception
 
 from bitfield.types import BitHandler
-from sentry import analytics, audit_log, options, roles
+from sentry import analytics, audit_log, roles
 from sentry.analytics.events.organization_removed import OrganizationRemoved
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ONE_DAY, cell_silo_endpoint
@@ -1423,7 +1424,7 @@ def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
     }
 
     message = MessageBuilder(
-        subject="{}Organization Queued for Deletion".format(options.get("mail.subject-prefix")),
+        subject=f"{settings.EMAIL_SUBJECT_PREFIX}Organization Queued for Deletion",
         template="sentry/emails/org_delete_confirm.txt",
         html_template="sentry/emails/org_delete_confirm.html",
         type="org.confirm_delete",

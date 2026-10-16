@@ -9,7 +9,7 @@ import responses
 from django.utils import timezone
 
 import sentry
-from sentry import options
+from sentry import application_state, options
 from sentry.constants import DataCategory
 from sentry.debug.utils.packages import get_all_package_versions
 from sentry.models.broadcast import Broadcast
@@ -137,7 +137,7 @@ class SendBeaconTest(OutcomesSnubaTest):
         assert options.set("beacon.record_cpu_ram_usage", True)
         send_beacon()
 
-        install_id = options.get("sentry:install-id")
+        install_id = application_state.get("sentry:install-id")
         assert install_id and len(install_id) == 40
 
         safe_urlopen.assert_called_once_with(
@@ -171,7 +171,7 @@ class SendBeaconTest(OutcomesSnubaTest):
         )
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
-        assert options.get("sentry:latest_version") == "1.0.0"
+        assert application_state.get("sentry:latest_version") == "1.0.0"
 
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")
@@ -197,7 +197,7 @@ class SendBeaconTest(OutcomesSnubaTest):
         assert options.set("beacon.record_cpu_ram_usage", False)
         send_beacon()
 
-        install_id = options.get("sentry:install-id")
+        install_id = application_state.get("sentry:install-id")
         assert install_id and len(install_id) == 40
 
         safe_urlopen.assert_called_once_with(
@@ -231,7 +231,7 @@ class SendBeaconTest(OutcomesSnubaTest):
         )
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
-        assert options.get("sentry:latest_version") == "1.0.0"
+        assert application_state.get("sentry:latest_version") == "1.0.0"
 
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")
@@ -257,7 +257,7 @@ class SendBeaconTest(OutcomesSnubaTest):
         assert options.set("beacon.record_cpu_ram_usage", True)
         send_beacon()
 
-        install_id = options.get("sentry:install-id")
+        install_id = application_state.get("sentry:install-id")
         assert install_id and len(install_id) == 40
 
         safe_urlopen.assert_called_once_with(
@@ -290,7 +290,7 @@ class SendBeaconTest(OutcomesSnubaTest):
         )
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
-        assert options.get("sentry:latest_version") == "1.0.0"
+        assert application_state.get("sentry:latest_version") == "1.0.0"
 
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")
@@ -418,7 +418,7 @@ class SendBeaconTest(OutcomesSnubaTest):
 
         send_beacon_metric(metrics=metrics)
 
-        install_id = options.get("sentry:install-id")
+        install_id = application_state.get("sentry:install-id")
         assert install_id and len(install_id) == 40
 
         assert safe_urlopen.call_count == 1

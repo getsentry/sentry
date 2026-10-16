@@ -5,9 +5,9 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from urllib.parse import quote, unquote, urlencode, urlparse
 
+from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 
-from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import (
@@ -332,7 +332,7 @@ def build_install_url(state: str, redirect_uri: str, scopes: Sequence[str] | Non
     """Where a workspace admin is sent to grant the app access to their codebase."""
     return f"{CURSOR_ORIGIN_INSTALL_URL}?" + urlencode(
         {
-            "client_id": options.get("cursor-origin-app.id"),
+            "client_id": settings.SENTRY_CURSOR_ORIGIN_APP_ID,
             "scope": " ".join(scopes or CURSOR_ORIGIN_SCOPES),
             "redirect_uri": redirect_uri,
             "state": state,

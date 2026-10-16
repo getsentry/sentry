@@ -173,7 +173,7 @@ class MessageBuilder:
     ) -> EmailMultiAlternatives:
         headers = {**self.headers}
 
-        if options.get("mail.enable-replies") and "X-Sentry-Reply-To" in headers:
+        if settings.SENTRY_MAIL_ENABLE_REPLIES and "X-Sentry-Reply-To" in headers:
             reply_to = headers["X-Sentry-Reply-To"]
         else:
             reply_to = set(reply_to or ())

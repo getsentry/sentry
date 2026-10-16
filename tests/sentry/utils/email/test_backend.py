@@ -28,3 +28,14 @@ class GetMailBackendTest(TestCase):
                 RuntimeError, match="Console email backend is only available in debug mode"
             ):
                 get_mail_backend()
+
+    @override_settings(DEBUG=False, EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend")
+    def test_normalized_console_backend_outside_debug_mode(self) -> None:
+        with pytest.raises(
+            RuntimeError, match="Console email backend is only available in debug mode"
+        ):
+            get_mail_backend()
+
+    @override_settings(EMAIL_BACKEND="smtp")
+    def test_direct_setting_preserves_alias(self) -> None:
+        assert get_mail_backend() == "django.core.mail.backends.smtp.EmailBackend"

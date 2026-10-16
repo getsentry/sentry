@@ -22,7 +22,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from sentry_sdk import traces
 
-from sentry import analytics, options
+from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationMissingPermissionsEvent,
 )
@@ -410,7 +410,7 @@ class GitHubWebhook(SCMWebhook, ABC):
         return f"github:{username}"
 
     def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
-        return options.get("github-app.id")
+        return str(settings.SENTRY_GITHUB_APP_ID)
 
     def maybe_create_external_actor(
         self,
@@ -1433,7 +1433,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         }
 
     def get_secret(self) -> str | None:
-        return options.get("github-app.webhook-secret")
+        return settings.SENTRY_GITHUB_APP_WEBHOOK_SECRET
 
     def post(self, request: HttpRequest) -> HttpResponse:
         with action_context_scope(ActionSource.GITHUB, resolve_action_actor(request)):

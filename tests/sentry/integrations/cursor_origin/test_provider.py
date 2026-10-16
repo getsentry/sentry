@@ -8,6 +8,7 @@ import pytest
 import responses
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from django.test import override_settings
 
 from sentry.integrations.base import (
     INTEGRATION_TYPE_TO_PROVIDER,
@@ -49,9 +50,8 @@ PRIVATE_KEY_PEM = (
 )
 # Applied per test: as a class decorator this context manager replaces the class with a
 # function, and pytest then collects nothing from it.
-APP_OPTIONS = override_options(
-    {"cursor-origin-app.id": APP_ID, "cursor-origin-app.private-key": PRIVATE_KEY_PEM}
-)
+APP_OPTIONS = override_options({"cursor-origin-app.id": APP_ID})
+APP_SETTINGS = override_settings(SENTRY_CURSOR_ORIGIN_APP_PRIVATE_KEY=PRIVATE_KEY_PEM)
 SYNC_TASK = "sentry.integrations.cursor_origin.integration.sync_repos_for_org"
 
 
@@ -102,6 +102,7 @@ class BuildIntegrationTest(TestCase):
         }
 
     @APP_OPTIONS
+    @APP_SETTINGS
     @responses.activate
     def test_names_the_integration_after_the_codebase(self) -> None:
         responses.add(responses.GET, self.url, json=self._installation())
@@ -118,6 +119,7 @@ class BuildIntegrationTest(TestCase):
         assert pyjwt.get_unverified_header(token)["kid"] == APP_ID
 
     @APP_OPTIONS
+    @APP_SETTINGS
     @responses.activate
     def test_a_suspended_installation_is_refused(self) -> None:
         """Installing cannot unsuspend, so enabling would claim a health we cannot deliver."""
@@ -135,6 +137,7 @@ class BuildIntegrationTest(TestCase):
         assert "suspended" in str(excinfo.value)
 
     @APP_OPTIONS
+    @APP_SETTINGS
     @responses.activate
     def test_an_unreadable_installation_is_rejected(self) -> None:
         responses.add(responses.GET, self.url, json={"code": 5, "message": "nope"}, status=404)

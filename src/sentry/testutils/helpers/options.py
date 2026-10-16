@@ -18,6 +18,7 @@ def override_options(options):
 
     from sentry.options import default_manager
     from sentry.options.manager import OptionsManager
+    from sentry.runner.initializer import migrated_options_mapper, options_mapper
 
     wrapped = default_manager.store.get
     original_lookup = OptionsManager.lookup_key
@@ -38,7 +39,13 @@ def override_options(options):
     # Patch options into SENTRY_OPTIONS as well
     new_options = settings.SENTRY_OPTIONS.copy()
     new_options.update(options)
-    with override_settings(SENTRY_OPTIONS=new_options):
+    # Consumers of migrated options read Django settings. Keep overrides of the
+    # old option keys visible to them until callers override the settings.
+    settings_mapper = {**options_mapper, **migrated_options_mapper}
+    migrated_settings = {
+        settings_mapper[key]: value for key, value in options.items() if key in settings_mapper
+    }
+    with override_settings(SENTRY_OPTIONS=new_options, **migrated_settings):
         with (
             patch.object(default_manager.store, "get", side_effect=new_get),
             patch("sentry.options.OptionsManager.lookup_key", new=new_lookup),

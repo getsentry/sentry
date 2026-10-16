@@ -15,7 +15,7 @@ from packaging.version import parse as parse_version
 from rest_framework.request import Request
 
 import sentry
-from sentry import features, options
+from sentry import application_state, features, options
 from sentry.api.utils import generate_locality_url
 from sentry.auth import superuser
 from sentry.auth.services.auth import AuthenticationContext
@@ -66,7 +66,7 @@ def _get_support_mail() -> str | None:
 def _get_version_info():
     current = sentry.VERSION
 
-    latest = options.get("sentry:latest_version") or current
+    latest = application_state.get("sentry:latest_version") or current
     upgrade_available = parse_version(latest) > parse_version(current)
     build = sentry.__build__ or current
 
@@ -79,7 +79,7 @@ def _get_version_info():
 
 
 def _needs_upgrade():
-    version_configured = options.get("sentry:version-configured")
+    version_configured = application_state.get("sentry:version-configured")
     if not version_configured:
         # If we were never previously upgraded (being a new install)
         # we want to force an upgrade, even if the values are set.
@@ -100,7 +100,7 @@ def _needs_upgrade():
 
     if version_configured != sentry.get_version():
         # Everything looks good, but version changed, so let's bump it
-        options.set("sentry:version-configured", sentry.get_version())
+        application_state.set("sentry:version-configured", sentry.get_version())
 
     return False
 

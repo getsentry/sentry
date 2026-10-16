@@ -3,6 +3,7 @@ from typing import Any
 from urllib.parse import urlencode
 from uuid import uuid4
 
+from django.conf import settings
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
@@ -155,7 +156,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             "requester": request.user,
         }
         MessageBuilder(
-            subject="{}Request for Project Transfer".format(options.get("mail.subject-prefix")),
+            subject=f"{settings.EMAIL_SUBJECT_PREFIX}Request for Project Transfer",
             template="sentry/emails/transfer_project.txt",
             html_template="sentry/emails/transfer_project.html",
             type="org.confirm_project_transfer_request",

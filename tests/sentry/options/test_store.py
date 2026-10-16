@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid1
 
@@ -7,11 +8,122 @@ from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 from django.test import override_settings
 
+from sentry import application_state
 from sentry.models.options.option import Option
 from sentry.options.manager import OptionsManager, UpdateChannel
 from sentry.options.store import OptionsStore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("sentry:system-token", 123),
+        ("sentry:install-id", ["invalid"]),
+        ("sentry:last_worker_ping", True),
+        ("sentry:last_worker_ping", [123]),
+    ],
+)
+def test_state_read_validation_rejects_invalid_stored_values(
+    name: application_state.StateKey, value: object
+) -> None:
+    store = MagicMock(spec=OptionsStore)
+    store.get.return_value = value
+    with patch.object(application_state, "default_store", store):
+        with pytest.raises(TypeError, match="Application state"):
+            application_state.get(name)
+    store.set_cache.assert_not_called()
+
+
+# Direct settings exercise fallback after a store miss; the option helper also
+# replaces store reads and would obscure that boundary.
+@pytest.mark.parametrize("setting_name", ["SENTRY_OPTIONS", "SENTRY_DEFAULT_OPTIONS"])
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("sentry:system-token", 123),
+        ("sentry:install-id", ["invalid"]),
+        ("sentry:last_worker_ping", True),
+        ("sentry:last_worker_ping", [123]),
+        ("sentry:system-token", None),
+        ("sentry:last_worker_ping", None),
+    ],
+)
+def test_state_read_validation_rejects_invalid_configured_values(
+    setting_name: str, name: application_state.StateKey, value: object
+) -> None:
+    store = MagicMock(spec=OptionsStore)
+    store.get.return_value = None
+    with (
+        override_settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}),  # noqa: S011
+        override_settings(**{setting_name: {name: value}}),
+        patch.object(application_state, "default_store", store),
+        pytest.raises(TypeError, match="Application state"),
+    ):
+        application_state.get(name)
+    store.set_cache.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("sentry:system-token", "existing-token"),
+        ("sentry:install-id", "existing-installation"),
+        ("sentry:latest_version", "1.2.3"),
+        ("sentry:last_worker_version", "1.2.3"),
+        ("sentry:version-configured", "1.2.3"),
+        ("sentry:last_worker_ping", 1234.5),
+        ("sentry:last_worker_ping", 1234),
+        ("sentry:last_worker_ping", ""),
+        ("sentry:last_worker_ping", "legacy-timestamp"),
+    ],
+)
+def test_state_read_validation_preserves_valid_stored_values(
+    name: application_state.StateKey, value: str | float
+) -> None:
+    store = MagicMock(spec=OptionsStore)
+    store.get.return_value = value
+    with patch.object(application_state, "default_store", store):
+        assert application_state.get(name) is value
+    store.set_cache.assert_not_called()
+
+
+# Keep configured fallback lookup separate from the mocked store read.
+@pytest.mark.parametrize("setting_name", ["SENTRY_OPTIONS", "SENTRY_DEFAULT_OPTIONS"])
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("sentry:install-id", "configured-installation"),
+        ("sentry:last_worker_ping", 1234.5),
+        ("sentry:last_worker_ping", 1234),
+        ("sentry:last_worker_ping", ""),
+    ],
+)
+def test_state_read_validation_preserves_valid_configured_values(
+    setting_name: str, name: application_state.StateKey, value: str | float
+) -> None:
+    store = MagicMock(spec=OptionsStore)
+    store.get.return_value = None
+    with (
+        override_settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}),  # noqa: S011
+        override_settings(**{setting_name: {name: value}}),
+        patch.object(application_state, "default_store", store),
+    ):
+        assert application_state.get(name) is value
+    assert store.set_cache.call_args.args[1] is value
+
+
+# An empty settings dictionary must reach the legacy fallback after a store miss.
+def test_state_read_validation_preserves_missing_value_fallback() -> None:
+    store = MagicMock(spec=OptionsStore)
+    store.get.return_value = None
+    with (
+        override_settings(SENTRY_OPTIONS={}, SENTRY_DEFAULT_OPTIONS={}),  # noqa: S011
+        patch.object(application_state, "default_store", store),
+    ):
+        assert application_state.get("sentry:last_worker_ping") == ""
+    assert store.set_cache.call_args.args[1] == ""
 
 
 @no_silo_test
@@ -176,3 +288,119 @@ class OptionsStoreTest(TestCase):
         mocked_time.return_value = 26
         store.clean_local_cache()
         assert not store._local_cache
+
+
+@no_silo_test
+class ApplicationStateTest(TestCase):
+    @cached_property
+    def store(self):
+        c = LocMemCache("application-state-test", {})
+        c.clear()
+        return OptionsStore(cache=c)
+
+    @cached_property
+    def manager(self):
+        return OptionsManager(store=self.store)
+
+    @pytest.fixture(autouse=True)
+    def application_state_store(self):
+        from sentry import application_state
+
+        with patch.object(application_state, "default_store", self.store):
+            yield
+
+    def test_state_round_trip_uses_existing_storage(self) -> None:
+        from sentry import application_state
+
+        string_states: list[tuple[application_state.StringStateKey, str]] = [
+            ("sentry:system-token", "existing-system-token"),
+            ("sentry:install-id", "existing-installation"),
+            ("sentry:latest_version", "1.2.3"),
+            ("sentry:last_worker_version", "1.2.3"),
+            ("sentry:version-configured", "1.2.3"),
+        ]
+        for name, value in string_states:
+            with self.subTest(name=name):
+                self.manager.set(name, value)
+                assert application_state.get(name) == value
+                assert application_state.set(name, value)
+                assert Option.objects.get(key=name).value == value
+                assert self.manager.get(name) == value
+                assert self.store.cache.get(self.manager.lookup_key(name).cache_key) == value
+                assert application_state.delete(name)
+                assert not Option.objects.filter(key=name).exists()
+                assert application_state.get(name) == ""
+
+    def test_timestamp_state_round_trip_uses_existing_storage(self) -> None:
+        from sentry import application_state
+
+        name = "sentry:last_worker_ping"
+        value = 1234.5
+        self.manager.set(name, value)
+        assert application_state.get("sentry:last_worker_ping") == value
+        assert application_state.set("sentry:last_worker_ping", value)
+        assert Option.objects.get(key=name).value == value
+        assert self.manager.get(name) == value
+        assert self.store.cache.get(self.manager.lookup_key(name).cache_key) == value
+        assert application_state.delete("sentry:last_worker_ping")
+        assert not Option.objects.filter(key=name).exists()
+        assert application_state.get("sentry:last_worker_ping") == ""
+
+    # Observe persisted state replacing configured fallbacks and deletion exposing
+    # the fallback again; the option helper would mask those store transitions.
+    def test_state_preserves_self_hosted_fallbacks(self) -> None:
+        from sentry import application_state
+
+        with self.settings(
+            SENTRY_OPTIONS={"sentry:install-id": "configured-installation"},  # noqa: S011
+            SENTRY_DEFAULT_OPTIONS={"sentry:install-id": "default-installation"},
+        ):
+            assert application_state.get("sentry:install-id") == "configured-installation"
+            application_state.set("sentry:install-id", "stored-installation")
+            assert application_state.get("sentry:install-id") == "stored-installation"
+            application_state.delete("sentry:install-id")
+        with self.settings(SENTRY_DEFAULT_OPTIONS={"sentry:install-id": "default-installation"}):
+            assert application_state.get("sentry:install-id") == "default-installation"
+
+    def test_state_bypasses_option_resolution(self) -> None:
+        from sentry import application_state, options
+
+        application_state.set("sentry:system-token", "existing-system-token")
+        with patch.object(options.default_manager, "lookup_key", side_effect=AssertionError):
+            with patch.object(options.default_manager, "_read_hook", side_effect=AssertionError):
+                assert application_state.get("sentry:system-token") == "existing-system-token"
+
+    def test_state_rejects_configuration_and_scoped_keys(self) -> None:
+        from sentry import application_state
+
+        invalid_names: list[str] = [
+            "system.url-prefix",
+            "sentry:skip-record-onboarding-tasks-if-complete",
+            "sentry:_last_auto_resolve",
+            "sentry:unknown",
+            "getsentry:unknown",
+        ]
+        for invalid_name in invalid_names:
+            # Exercise runtime validation with names outside the typed contract.
+            name = cast(application_state.StringStateKey, invalid_name)
+            with self.subTest(name=name):
+                with pytest.raises(ValueError, match="Unknown application state key"):
+                    application_state.get(name)
+                with pytest.raises(ValueError, match="Unknown application state key"):
+                    application_state.set(name, "value")
+                with pytest.raises(ValueError, match="Unknown application state key"):
+                    application_state.delete(name)
+                assert not Option.objects.filter(key=name).exists()
+
+    def test_state_does_not_coerce_values(self) -> None:
+        from sentry import application_state
+
+        # Exercise runtime validation without loosening the production API.
+        invalid_string = cast(str, 123)
+        invalid_timestamp = cast(float, "123")
+        with pytest.raises(TypeError):
+            application_state.set("sentry:system-token", invalid_string)
+        with pytest.raises(TypeError):
+            application_state.set("sentry:last_worker_ping", invalid_timestamp)
+        assert not Option.objects.filter(key="sentry:system-token").exists()
+        assert not Option.objects.filter(key="sentry:last_worker_ping").exists()
