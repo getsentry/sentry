@@ -1,0 +1,57 @@
+---
+title: Menu
+description: Compose action menus from a trigger, searchable header, sections, items, separators, and footer.
+category: controls
+source: '@sentry/scraps/menu'
+resources:
+  a11y:
+    WAI-ARIA Menu Button: https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/
+    WAI-ARIA Menu: https://www.w3.org/WAI/ARIA/apg/patterns/menu/
+---
+
+import {Menu} from '@sentry/scraps/menu';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/menu');
+
+Use `Menu` when the content needs custom structure. The pieces are composed directly in JSX. `Menu.List` contains the menu items; `Menu.Header` and `Menu.Footer` stay outside its scrolling area. `Menu.Search` filters items by their string `label`, or by `textValue` when the label is custom content.
+
+`DropdownMenu` and `CompactSelect` continue to support their existing array APIs.
+
+## Searchable submenu
+
+<Storybook.Demo>
+  <Menu>
+    <Menu.Trigger>Actions</Menu.Trigger>
+    <Menu.Content>
+      <Menu.List aria-label="Actions">
+        <Menu.Submenu label="Choose project">
+          <Menu.Content>
+            <Menu.Header title="Projects">
+              <Menu.Search aria-label="Search projects" placeholder="Search projects" />
+            </Menu.Header>
+            <Menu.List aria-label="Projects">
+              <Menu.Section>
+                <Menu.SectionLabel>Favorites</Menu.SectionLabel>
+                <Menu.ListItem label="Alpha" onAction={() => {}} />
+                <Menu.ListItem label="Beta" onAction={() => {}} />
+              </Menu.Section>
+              <Menu.SectionSeparator />
+              <Menu.Section>
+                <Menu.SectionLabel>Other projects</Menu.SectionLabel>
+                <Menu.ListItem label="Gamma" onAction={() => {}} />
+              </Menu.Section>
+            </Menu.List>
+            <Menu.Footer>
+              <Text size="sm" variant="muted">
+                Type to filter projects
+              </Text>
+            </Menu.Footer>
+          </Menu.Content>
+        </Menu.Submenu>
+      </Menu.List>
+    </Menu.Content>
+  </Menu>
+</Storybook.Demo>
