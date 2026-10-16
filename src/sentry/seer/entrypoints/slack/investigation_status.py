@@ -7,7 +7,12 @@ from typing import Any
 
 import orjson
 
-from sentry.api.event_search import SearchFilter, parse_search_query
+from sentry.api.event_search import (
+    ParenExpression,
+    SearchConfig,
+    SearchFilter,
+    parse_search_query,
+)
 from sentry.exceptions import InvalidSearchQuery
 from sentry.investigations.models import Investigation
 from sentry.issues.issue_search import issue_search_config
@@ -28,6 +33,8 @@ STEP_DETAIL_PREFIXES = {
     "stalled": "Stalled: ",
     "queued": "",
 }
+# Alert queries can use AND and OR, which the issue search config rejects.
+ENDPOINT_SEARCH_CONFIG = SearchConfig.create_from(issue_search_config, allow_boolean=True)
 
 HYPOTHESIS_LABELS = {
     "pending": VERIFYING_LABEL,
@@ -82,8 +89,10 @@ def get_status_title(source: Mapping[str, Any]) -> str:
 
 def _get_endpoint(query: str) -> str | None:
     try:
-        tokens = parse_search_query(query, config=issue_search_config)
+        tokens = parse_search_query(query, config=ENDPOINT_SEARCH_CONFIG)
     except InvalidSearchQuery:
+        return None
+    if any(token == "OR" or isinstance(token, ParenExpression) for token in tokens):
         return None
     endpoints = [
         token.value.raw_value
