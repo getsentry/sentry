@@ -87,7 +87,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enables the use of the events timeseries endpoint for dashboard widgets
     manager.add("organizations:dashboards-widgets-use-events-timeseries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the events timeseries spot check for dashboard widgets
-    manager.add("organizations:dashboards-widgets-events-timeseries-spot-check", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy v2 (with Break the Glass feature)
