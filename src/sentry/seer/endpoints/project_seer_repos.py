@@ -264,6 +264,48 @@ class SeerProjectReposBulkSerializer(CamelSnakeSerializer):
         return value
 
 
+class BranchOverrideRequestSerializer(serializers.Serializer):
+    tagName = serializers.CharField(
+        required=True, help_text="The tag name that selects this branch override."
+    )
+    tagValue = serializers.CharField(
+        required=True, help_text="The tag value that selects this branch override."
+    )
+    branchName = serializers.CharField(
+        required=True, help_text="The repository branch to use when the tag matches."
+    )
+
+
+class SeerProjectRepoRequestSerializer(serializers.Serializer):
+    repositoryId = serializers.IntegerField(
+        required=True, help_text="The ID of an active, supported repository in the organization."
+    )
+    branchName = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Override the default branch for this repository.",
+    )
+    instructions = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Instructions Seer should follow when working with this repository.",
+    )
+    branchOverrides = BranchOverrideRequestSerializer(
+        many=True,
+        required=False,
+        allow_null=False,
+        help_text="Branch overrides selected by matching tags.",
+    )
+
+
+class SeerProjectReposRequestSerializer(serializers.Serializer):
+    repos = SeerProjectRepoRequestSerializer(
+        many=True, required=True, allow_empty=True, help_text="Repository settings to apply."
+    )
+
+
 @cell_silo_endpoint
 class ProjectSeerRepoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ML_AI
@@ -435,7 +477,7 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             "branchName, instructions, and branchOverrides; omitted values are cleared."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
-        request=SeerProjectReposBulkSerializer,
+        request=SeerProjectReposRequestSerializer,
         responses={
             204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
@@ -472,7 +514,7 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             "An empty `repos` list removes every Seer repository from the project."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
-        request=SeerProjectReposBulkSerializer,
+        request=SeerProjectReposRequestSerializer,
         responses={
             204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,

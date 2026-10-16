@@ -3,7 +3,7 @@ from typing import Literal, NotRequired, TypedDict
 
 from django.db import IntegrityError, router, transaction
 from django.utils.translation import gettext_lazy as _
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -198,7 +198,45 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
             "Mappings with matching project, stack root, and source root are updated."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        request=BulkCodeMappingsRequestSerializer,
+        request=inline_serializer(
+            name="BulkCodeMappingsRequest",
+            fields={
+                "project": ProjectIdOrSlugField(
+                    required=True, help_text="The ID or slug of the project to configure."
+                ),
+                "repository": serializers.CharField(
+                    required=True, help_text="The repository name as it appears in Sentry."
+                ),
+                "provider": serializers.CharField(
+                    required=False,
+                    allow_blank=True,
+                    allow_null=True,
+                    help_text="Optional repository provider used to disambiguate or find the repository.",
+                ),
+                "defaultBranch": serializers.RegexField(
+                    r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
+                    required=False,
+                    allow_blank=True,
+                    help_text="The repository branch to use; inferred from the integration when omitted.",
+                    error_messages={"invalid": _(BRANCH_NAME_ERROR_MESSAGE)},
+                ),
+                "mappings": inline_serializer(
+                    name="BulkCodeMappingItemRequest",
+                    fields={
+                        "stackRoot": gen_path_regex_field(
+                            help_text="The path prefix used to match stack frame filenames."
+                        ),
+                        "sourceRoot": gen_path_regex_field(
+                            validate_source=True,
+                            help_text="The path prefix to remove from source file paths.",
+                        ),
+                    },
+                    many=True,
+                    required=True,
+                    help_text="One or more stack-root and source-root mappings (maximum 300).",
+                ),
+            },
+        ),
         responses={
             200: inline_sentry_response_serializer(
                 "BulkCodeMappingsResponse", BulkCodeMappingsResponse

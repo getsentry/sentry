@@ -436,6 +436,38 @@ class LegacyProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer
         return super()._update_fields() | {"auto_create_pr"}
 
 
+class ProjectSeerSettingsRequestSerializer(serializers.Serializer):
+    agent = serializers.ChoiceField(
+        choices=[*AutomationCodingAgent],
+        required=False,
+        help_text="The agent to use for project automation.",
+    )
+    integrationId = serializers.IntegerField(
+        required=False,
+        help_text="The installed integration ID to use when an external coding agent is selected.",
+    )
+    stoppingPoint = serializers.ChoiceField(
+        choices=[*AutofixStoppingPoint],
+        required=False,
+        help_text="The point in the workflow at which Seer should stop.",
+    )
+    scannerAutomation = serializers.BooleanField(
+        required=False, help_text="Whether scanner automation is enabled for the project."
+    )
+    automationTuning = serializers.ChoiceField(
+        choices=[*AutofixAutomationTuningSettings],
+        required=False,
+        help_text="The level of automated Seer activity for the project.",
+    )
+    prIteration = serializers.BooleanField(
+        required=False, help_text="Whether Seer should iterate on pull requests."
+    )
+    autoCreatePr = serializers.BooleanField(
+        required=False,
+        help_text="Whether Seer may automatically create a pull request (legacy setting).",
+    )
+
+
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectSeerSettingsEndpoint(ProjectEndpoint):
@@ -474,7 +506,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
             "values depend on `get_valid_automated_run_stopping_points`."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
-        request=LegacyProjectSettingsUpdateSerializer,
+        request=ProjectSeerSettingsRequestSerializer,
         responses={
             200: inline_sentry_response_serializer(
                 "ProjectSeerSettingsResponse", SeerProjectSettingsResponse
@@ -522,6 +554,14 @@ class BulkProjectSettingsUpdateSerializer(ProjectSettingsUpdateSerializer):
 
 
 class LegacyBulkProjectSettingsUpdateSerializer(LegacyProjectSettingsUpdateSerializer):
+    query = serializers.CharField(
+        required=False,
+        default="",
+        help_text="Apply the update to projects matching the Seer project search query.",
+    )
+
+
+class OrganizationSeerProjectSettingsRequestSerializer(ProjectSeerSettingsRequestSerializer):
     query = serializers.CharField(
         required=False,
         default="",
@@ -626,7 +666,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
             "values depend on `get_valid_automated_run_stopping_points`."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        request=LegacyBulkProjectSettingsUpdateSerializer,
+        request=OrganizationSeerProjectSettingsRequestSerializer,
         responses={
             204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
