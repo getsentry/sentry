@@ -34,7 +34,7 @@ export function NewWelcomeProductCard({product}: NewWelcomeProductCardProps) {
       <Flex area="cell1" align="center">
         {icon}
       </Flex>
-      <Flex area="cell2" gap="md">
+      <Flex area="cell2" gap="md" align="center">
         <Container>
           <Heading as="h4">{title}</Heading>
         </Container>
