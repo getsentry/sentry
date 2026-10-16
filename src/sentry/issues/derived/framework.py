@@ -20,10 +20,8 @@ class _Missing:
 _MISSING = _Missing()
 
 
-class DerivedDataError(ValueError):
+class DerivedDataError(Exception):
     """A codec or aggregator failed; the original exception is chained as its cause."""
-
-    # Preserve compatibility with readers catching ValueError during rollout.
 
     def __init__(
         self,
