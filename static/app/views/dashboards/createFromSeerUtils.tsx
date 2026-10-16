@@ -64,13 +64,26 @@ export function applySeerWidgetDefaults(widgets: Widget[]): Widget[] {
   return widgets.map(widget => {
     const layout = applyLayoutDefaults(widget.layout, widget.displayType);
     const limit = applyLimitDefaults(widget.limit);
+    const queries = (widget.queries ?? []).map(applyQueryDefaults);
 
     return {
       ...widget,
       layout,
       limit,
+      queries,
     };
   });
+}
+
+function applyQueryDefaults(query: Widget['queries'][number]): Widget['queries'][number] {
+  return {
+    ...query,
+    aggregates: query.aggregates ?? [],
+    columns: query.columns ?? [],
+    conditions: query.conditions ?? '',
+    name: query.name ?? '',
+    orderby: query.orderby ?? '',
+  };
 }
 
 function applyLayoutDefaults(
