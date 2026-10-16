@@ -34,10 +34,7 @@ export const canUseMetricsEquationsInAlerts = (organization: Organization) => {
 };
 
 export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-pii-scrubbing-ui')
-  );
+  return canUseMetricsUI(organization);
 };
 
 export const canUseMetricsHeatMap = (organization: Organization) => {
