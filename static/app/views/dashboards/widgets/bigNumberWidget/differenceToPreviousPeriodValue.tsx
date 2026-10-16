@@ -56,12 +56,19 @@ export function DifferenceToPreviousPeriodValue({
 const Difference = styled(ColorizedRating)`
   display: flex;
   gap: ${p => p.theme.space['2xs']};
-  /* Ease between the compact and roomy spacing around a 50px widget height. */
-  margin-bottom: clamp(6cqh, calc(200cqh - 97px), 10cqh);
+  margin-bottom: 6cqh;
+
+  @container (min-height: 50px) {
+    margin-bottom: 10cqh;
+  }
 `;
 
 const Text = styled('div')`
-  font-size: clamp(14px, calc(10px + 4cqi), 30cqh);
+  font-size: 14px;
+
+  @container (min-height: 50px) {
+    font-size: clamp(14px, calc(10px + 4cqi), 30cqh);
+  }
 `;
 
 const Deemphasize = styled('span')`
