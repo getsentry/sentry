@@ -31,7 +31,8 @@
 
 - Routes defined in `static/app/router/routes.tsx`
 - Local development and deploy previews run React Router V8. Production remains
-  on V6. Application tests and typechecks run against both versions.
+  on V6. Application tests and typechecks run against both versions; set
+  `SENTRY_REACT_ROUTER_VERSION=6` or `8` to run `test-ci` or `typecheck` against one.
   `build-utils/react-router.ts` selects the build runtime and Nuqs adapter together.
 - Use V8 import paths: import router APIs and types from `react-router`, and
   `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
@@ -54,6 +55,10 @@ Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecat
 4. ALWAYS use TypeScript
 5. ALWAYS colocate tests
 6. Lazy load routes: `React.lazy(() => import('...'))`
+
+## Linting
+
+Incubator rules show as warnings in editors but fail `pnpm run lint:js`, prek, and CI. `oxlint-suppressions.json` caps existing debt per file and rule, and successful fixes lower its counts automatically. Run `pnpm run lint:js --help` for the suppression maintenance flags (`--prune`, `--enroll`, `--backlog`).
 
 ## Refs
 

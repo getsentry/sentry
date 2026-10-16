@@ -13,18 +13,19 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteFormula} from 'sentry/views/explore/hooks/useDeleteFormula';
 import type {
   FormulaDataset,
   SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
-import {useFormulaBuilderUrl} from 'sentry/views/explore/savedFormulas/formulaBuilderUrl';
 import {
   buildTokenMap,
   FormulaToken,
   FormulaTokens,
 } from 'sentry/views/explore/savedFormulas/formulaTokens';
+import {makeSavedFormulasPathname} from 'sentry/views/explore/savedFormulas/pathnames';
 
 const DATASET_LABEL_MAP: Record<FormulaDataset, string> = {
   spans: t('Spans'),
@@ -78,7 +79,7 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
 }
 
 function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean}) {
-  const makeBuilderUrl = useFormulaBuilderUrl();
+  const organization = useOrganization();
   const {deleteFormula} = useDeleteFormula();
   const name = stripNamePrefix(formula.name);
 
@@ -103,7 +104,10 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
   return (
     <SavedEntityTable.Row isFirst={isFirst}>
       <SavedEntityTable.Cell>
-        <SavedEntityTable.CellName to={makeBuilderUrl(formula.id)} title={name}>
+        <SavedEntityTable.CellName
+          to={makeSavedFormulasPathname({organization, path: `/${formula.id}/`})}
+          title={name}
+        >
           {name}
         </SavedEntityTable.CellName>
       </SavedEntityTable.Cell>
