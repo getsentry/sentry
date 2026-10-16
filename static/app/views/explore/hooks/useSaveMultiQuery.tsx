@@ -8,6 +8,7 @@ import {decodeScalar, encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {withSavedQueryStatsPeriod} from 'sentry/views/explore/hooks/savedQueryPeriod';
 import {
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
@@ -40,7 +41,7 @@ export function useSaveMultiQuery() {
       dataset: TRACE_EXPLORER_DATASET, // Only supported for trace explorer for now
       start,
       end,
-      range: period,
+      statsPeriod: period,
       interval,
       projects,
       environment: environments,
@@ -65,11 +66,11 @@ export function useSaveMultiQuery() {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: {
+        data: withSavedQueryStatsPeriod({
           ...data,
           name,
           starred,
-        },
+        }),
       }),
     onSuccess: () => {
       invalidateSavedQueries();
@@ -83,7 +84,7 @@ export function useSaveMultiQuery() {
           path: {organizationIdOrSlug: organization.slug, id: String(id)},
         }),
         method: 'PUT',
-        data,
+        data: withSavedQueryStatsPeriod(data),
       }),
     onSuccess: () => {
       invalidateSavedQueries();

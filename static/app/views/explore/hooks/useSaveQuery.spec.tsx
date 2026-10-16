@@ -76,6 +76,7 @@ describe('useSpansSaveQuery', () => {
           start: '2024-01-01T00:00:00.000Z',
           end: '2024-01-01T01:00:00.000Z',
           range: '1h',
+          statsPeriod: '1h',
           query: [
             expect.objectContaining({
               fields: ['span.op', 'span.duration'],
