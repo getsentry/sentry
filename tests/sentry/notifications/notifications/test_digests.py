@@ -23,7 +23,7 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import create_workflow_notification_origin
+from sentry.testutils.helpers.notifications import create_workflow_notification_origin_for_rule
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user_option import UserOption
@@ -68,7 +68,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             )
 
         assert event is not None
-        origin = create_workflow_notification_origin(self.rule)
+        origin = create_workflow_notification_origin_for_rule(self.rule)
         backend.add(
             self.key,
             event_to_record(as_group_event(event), [origin]),
@@ -371,7 +371,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         timestamp = before_now(days=1).isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
         rule = self.create_project_rule(project=self.project)
-        origin = create_workflow_notification_origin(rule)
+        origin = create_workflow_notification_origin_for_rule(rule)
         notification_uuid = str(uuid.uuid4())
 
         # Create 17 events to exceed 48 blocks (each event generates ~3 blocks)
