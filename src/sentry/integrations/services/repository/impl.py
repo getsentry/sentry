@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from functools import partial
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
@@ -10,13 +11,19 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.integrations.gitlab.tasks import update_all_project_webhooks
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.repository import RepositoryService, RpcRepository
-from sentry.integrations.services.repository.model import RpcCreateRepository
+from sentry.integrations.services.repository.model import (
+    RpcCreateRepository,
+    RpcRepointIntegrationResult,
+)
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.integrations.source_code_management.auto_link_repos import auto_link_repos_by_name
 from sentry.models.code_review_event import CodeReviewEvent
 from sentry.models.commit import Commit
+from sentry.models.grouplink import GroupLink
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.projectcodeowners import ProjectCodeOwners
@@ -25,6 +32,15 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.users.services.user.model import RpcUser
+
+
+def _reload_project_option_caches(project_ids: tuple[int, ...], option_key: str) -> None:
+    for project_id in project_ids:
+        ProjectOption.objects.reload_cache(
+            project_id,
+            "repository_service.repoint_organization_integration_data",
+            option_key,
+        )
 
 
 class DatabaseBackedRepositoryService(RepositoryService):
@@ -200,6 +216,101 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 organization_integration_id=organization_integration_id,
             )
         return True
+
+    def repoint_organization_integration_data(
+        self,
+        *,
+        organization_id: int,
+        old_integration_id: int,
+        new_integration_id: int,
+    ) -> RpcRepointIntegrationResult:
+        if old_integration_id == new_integration_id:
+            return RpcRepointIntegrationResult(
+                repositories=0,
+                code_mappings=0,
+                external_issues=0,
+                external_actors=0,
+                project_options=0,
+            )
+
+        option_key = "sentry:seer_automation_handoff_integration_id"
+        database = router.db_for_write(Repository)
+        with transaction.atomic(database):
+            repositories = Repository.objects.filter(
+                organization_id=organization_id,
+                integration_id=old_integration_id,
+            ).update(integration_id=new_integration_id)
+            code_mappings = RepositoryProjectPathConfig.objects.filter(
+                organization_id=organization_id,
+                integration_id=old_integration_id,
+            ).update(integration_id=new_integration_id)
+            old_issue_keys = ExternalIssue.objects.filter(
+                organization_id=organization_id,
+                integration_id=old_integration_id,
+            ).values("key")
+            target_issues = {
+                issue.key: issue
+                for issue in ExternalIssue.objects.select_for_update().filter(
+                    organization_id=organization_id,
+                    integration_id=new_integration_id,
+                    key__in=old_issue_keys,
+                )
+            }
+            conflicting_issues = list(
+                ExternalIssue.objects.select_for_update().filter(
+                    organization_id=organization_id,
+                    integration_id=old_integration_id,
+                    key__in=target_issues,
+                )
+            )
+            for stale_issue in conflicting_issues:
+                survivor = target_issues[stale_issue.key]
+                stale_links = GroupLink.objects.filter(
+                    linked_type=GroupLink.LinkedType.issue,
+                    linked_id=stale_issue.id,
+                )
+                already_linked_group_ids = GroupLink.objects.filter(
+                    linked_type=GroupLink.LinkedType.issue,
+                    linked_id=survivor.id,
+                ).values_list("group_id", flat=True)
+                stale_links.exclude(group_id__in=already_linked_group_ids).update(
+                    linked_id=survivor.id
+                )
+                stale_links.delete()
+                stale_issue.delete()
+
+            moved_external_issues = ExternalIssue.objects.filter(
+                organization_id=organization_id,
+                integration_id=old_integration_id,
+            ).update(integration_id=new_integration_id)
+            external_issues = len(conflicting_issues) + moved_external_issues
+            external_actors = ExternalActor.objects.filter(
+                organization_id=organization_id,
+                integration_id=old_integration_id,
+            ).update(integration_id=new_integration_id)
+
+            affected_project_options = ProjectOption.objects.filter(
+                project__organization_id=organization_id,
+                key=option_key,
+                value__in=[old_integration_id, new_integration_id],
+            )
+            project_ids = tuple(affected_project_options.values_list("project_id", flat=True))
+            updated_project_options = affected_project_options.filter(
+                value=old_integration_id
+            ).update(value=new_integration_id)
+            if project_ids:
+                transaction.on_commit(
+                    partial(_reload_project_option_caches, project_ids, option_key),
+                    using=database,
+                )
+
+        return RpcRepointIntegrationResult(
+            repositories=repositories,
+            code_mappings=code_mappings,
+            external_issues=external_issues,
+            external_actors=external_actors,
+            project_options=updated_project_options,
+        )
 
     def disable_repositories_for_integration(
         self, *, organization_id: int, integration_id: int, provider: str
