@@ -537,7 +537,6 @@ class ExhaustiveFixtures(Fixtures):
         RuleActivity.objects.create(
             rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
         )
-        self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
 
         # Environment*
         self.create_environment(project=project)
