@@ -4384,23 +4384,6 @@ register(
 )
 
 
-# Cells
-
-# Whether or not provisioning analytics and audits are made in the provision_organization RPC call
-register(
-    "provision_organization.override.mapping",
-    type=Dict,
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "provision_organization.override.rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
 # human feedback resets the streak. See ``automated_streak_cap_reached``.
 register(
