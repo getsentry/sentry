@@ -25,10 +25,6 @@ class ProjectReplayEndpoint(ProjectEndpoint):
     def convert_args(
         self, request: Request, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
-        """
-        Return a 404 for malformed replay ids before any handler runs. Downstream lookups
-        parse the id with `uuid.UUID` and would otherwise surface a `ValueError` as a 500.
-        """
         args, kwargs = super().convert_args(request, *args, **kwargs)
 
         replay_id = kwargs.get("replay_id")
