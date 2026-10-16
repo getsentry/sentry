@@ -28,6 +28,7 @@ from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
+INVESTIGATION_SCOPES = frozenset({"org:read", "org:write", "org:admin"})
 INVESTIGATION_UNAVAILABLE_MESSAGE = "Seer can't start an investigation for this alert."
 INVESTIGATION_NOT_MEMBER_MESSAGE = (
     "You must be a member of the *{org_name}* Sentry organization to start a Seer investigation."
@@ -46,6 +47,7 @@ class InvestigationUnavailableReason(StrEnum):
     ORGANIZATION_NOT_FOUND = "organization_not_found"
     NO_ACCESS = "no_access"
     CLOSED_MEMBERSHIP = "closed_membership"
+    MISSING_SCOPE = "missing_scope"
     INVALID_ACTION = "invalid_action"
     SOURCE_NOT_FOUND = "source_not_found"
     INVALID_SOURCE = "invalid_source"
@@ -150,6 +152,10 @@ def handle_seer_investigation_start(
         )
     if not organization.flags.allow_joinleave:
         log_unavailable(InvestigationUnavailableReason.CLOSED_MEMBERSHIP)
+        return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
+    # Matches InvestigationPermission, so a role like billing can't start a run it can't open.
+    if not member.get_scopes() & INVESTIGATION_SCOPES:
+        log_unavailable(InvestigationUnavailableReason.MISSING_SCOPE)
         return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
 
     try:
