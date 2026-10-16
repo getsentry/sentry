@@ -43,7 +43,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by built-in stacktrace rule (family:native function:main | [package:**/UnityPlayer.*] -app)",
                     "id": "frame",
                     "name": null,
                     "values": [

@@ -13,7 +13,7 @@ app:
         value (ignored because stacktrace takes precedence)
           "Attempted to dereference null pointer."
         stacktrace*
-          frame (non app frame)
+          frame (marked out of app by built-in stacktrace rule (family:native function:main | [package:**/UnityPlayer.*] -app))
             function*
               "main"
           frame (marked out of app by built-in stacktrace rule (category:framework -app))
