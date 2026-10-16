@@ -1,3 +1,4 @@
+import {useEffect, useState, type ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -7,7 +8,11 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {
+  LLMContextProvider,
+  useLLMContext,
+} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useChatSuggestions} from './useChatSuggestions';
 
@@ -17,11 +22,64 @@ const DEFAULT_FALLBACK_SUGGESTIONS = [
   {text: 'What else should I set up to get more out of Sentry?'},
 ];
 
+const ISSUE_FALLBACK_SUGGESTIONS = [
+  {text: "What's the likely root cause of this issue?"},
+  {text: 'When did this start, and what changed around then?'},
+  {text: 'Are other issues failing for the same reason?'},
+];
+
+const IssueDetailNode = registerLLMContext(
+  'issue-detail',
+  ({children}: {children?: ReactNode}) => children
+);
+
+function IssueDetailPage({children}: {children?: ReactNode}) {
+  return (
+    <LLMContextProvider>
+      <IssueDetailNode>{children}</IssueDetailNode>
+    </LLMContextProvider>
+  );
+}
+
+const LoadedIssueDetailNode = registerLLMContext('issue-detail', () => {
+  useLLMContext({shortId: 'ISSUE-1'});
+  return null;
+});
+
+function makeSlowIssueDetailPage(loadAfterMs: number) {
+  return function SlowIssueDetailPage({children}: {children?: ReactNode}) {
+    const [isLoaded, setIsLoaded] = useState(false);
+    useEffect(() => {
+      const timeoutId = window.setTimeout(() => setIsLoaded(true), loadAfterMs);
+      return () => window.clearTimeout(timeoutId);
+    }, []);
+    return (
+      <LLMContextProvider>
+        {isLoaded && <LoadedIssueDetailNode />}
+        {children}
+      </LLMContextProvider>
+    );
+  };
+}
+
 describe('useChatSuggestions', () => {
   const organization = OrganizationFixture({
     features: ['seer-chat-suggestions'],
   });
   const url = `/organizations/${organization.slug}/seer/chat-suggestions/`;
+  const issuePageRouterConfig = {
+    location: {
+      pathname: `/organizations/${organization.slug}/issues/1/`,
+    },
+    route: '/organizations/:orgId/',
+    children: [
+      {
+        path: 'issues/:groupId/',
+        element: null,
+        handle: {path: '/issues/:groupId/'},
+      },
+    ],
+  };
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([ProjectFixture({id: '1', hasInsightsDb: false})]);
@@ -187,12 +245,80 @@ describe('useChatSuggestions', () => {
       );
 
       expect(result.current).toEqual({isLoading: true});
-      act(() => jest.advanceTimersByTime(4000));
+      await act(() => jest.advanceTimersByTimeAsync(5000));
       await waitFor(() =>
         expect(result.current).toEqual({
           isLoading: false,
           source: 'fallback',
           suggestions: DEFAULT_FALLBACK_SUGGESTIONS,
+        })
+      );
+    });
+
+    it('returns fallback suggestions when the request finishes after the timeout', async () => {
+      MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {suggestions: [{text: 'Late'}]},
+        asyncDelay: new Promise(resolve => window.setTimeout(resolve, 7000)),
+      });
+
+      const {result} = renderHookWithProviders(
+        () => useChatSuggestions({enabled: true, allowStructuredContext: false}),
+        {organization, additionalWrapper: LLMContextProvider}
+      );
+
+      await act(() => jest.advanceTimersByTimeAsync(5000));
+      expect(result.current).toEqual({
+        isLoading: false,
+        source: 'fallback',
+        suggestions: DEFAULT_FALLBACK_SUGGESTIONS,
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(3000));
+      expect(result.current).toEqual({
+        isLoading: false,
+        source: 'fallback',
+        suggestions: DEFAULT_FALLBACK_SUGGESTIONS,
+      });
+    });
+
+    it('returns generated suggestions when navigating to another page after a timeout', async () => {
+      MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {suggestions: [{text: 'Too late'}]},
+        asyncDelay: new Promise(() => {}),
+      });
+
+      const {result, router} = renderHookWithProviders(
+        () => useChatSuggestions({enabled: true, allowStructuredContext: true}),
+        {
+          organization,
+          additionalWrapper: IssueDetailPage,
+          initialRouterConfig: issuePageRouterConfig,
+        }
+      );
+
+      await act(() => jest.advanceTimersByTimeAsync(5000));
+      expect(result.current).toEqual({
+        isLoading: false,
+        source: 'fallback',
+        suggestions: ISSUE_FALLBACK_SUGGESTIONS,
+      });
+
+      MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {suggestions: [{text: 'Issue 2'}]},
+      });
+      router.navigate(`/organizations/${organization.slug}/issues/2/`);
+
+      await waitFor(() =>
+        expect(result.current).toEqual({
+          isLoading: false,
+          source: 'generated',
+          suggestions: [{text: 'Issue 2'}],
         })
       );
     });
@@ -209,20 +335,8 @@ describe('useChatSuggestions', () => {
       () => useChatSuggestions({enabled: true, allowStructuredContext: false}),
       {
         organization,
-        additionalWrapper: LLMContextProvider,
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/issues/1/`,
-          },
-          route: '/organizations/:orgId/',
-          children: [
-            {
-              path: 'issues/:groupId/',
-              element: null,
-              handle: {path: '/issues/:groupId/'},
-            },
-          ],
-        },
+        additionalWrapper: IssueDetailPage,
+        initialRouterConfig: issuePageRouterConfig,
       }
     );
 
@@ -230,13 +344,121 @@ describe('useChatSuggestions', () => {
       expect(result.current).toEqual({
         isLoading: false,
         source: 'fallback',
-        suggestions: [
-          {text: "What's the likely root cause of this issue?"},
-          {text: 'When did this start, and what changed around then?'},
-          {text: 'Are other issues failing for the same reason?'},
-        ],
+        suggestions: ISSUE_FALLBACK_SUGGESTIONS,
       })
     );
+  });
+
+  describe('page loading', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      try {
+        act(() => jest.runOnlyPendingTimers());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('returns fallback suggestions when the page never loads', async () => {
+      const request = MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {suggestions: [{text: 'Generated'}]},
+      });
+
+      const {result} = renderHookWithProviders(
+        () => useChatSuggestions({enabled: true, allowStructuredContext: true}),
+        {
+          organization,
+          additionalWrapper: LLMContextProvider,
+          initialRouterConfig: issuePageRouterConfig,
+        }
+      );
+
+      expect(result.current).toEqual({isLoading: true});
+      await act(() => jest.advanceTimersByTimeAsync(5000));
+      await waitFor(() =>
+        expect(result.current).toEqual({
+          isLoading: false,
+          source: 'fallback',
+          suggestions: ISSUE_FALLBACK_SUGGESTIONS,
+        })
+      );
+      expect(request).not.toHaveBeenCalled();
+    });
+
+    it('returns fallback suggestions when the page finishes loading after the timeout', async () => {
+      const request = MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {suggestions: [{text: 'Generated'}]},
+      });
+
+      const {result} = renderHookWithProviders(
+        () => useChatSuggestions({enabled: true, allowStructuredContext: true}),
+        {
+          organization,
+          additionalWrapper: makeSlowIssueDetailPage(6000),
+          initialRouterConfig: issuePageRouterConfig,
+        }
+      );
+
+      await act(() => jest.advanceTimersByTimeAsync(5000));
+      expect(request).not.toHaveBeenCalled();
+      expect(result.current).toEqual({
+        isLoading: false,
+        source: 'fallback',
+        suggestions: ISSUE_FALLBACK_SUGGESTIONS,
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(1000));
+      expect(request).not.toHaveBeenCalled();
+      expect(result.current).toEqual({
+        isLoading: false,
+        source: 'fallback',
+        suggestions: ISSUE_FALLBACK_SUGGESTIONS,
+      });
+    });
+
+    it('returns generated suggestions when the page finishes loading', async () => {
+      const request = MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {suggestions: [{text: 'Generated'}]},
+      });
+
+      const {result} = renderHookWithProviders(
+        () => useChatSuggestions({enabled: true, allowStructuredContext: true}),
+        {
+          organization,
+          additionalWrapper: makeSlowIssueDetailPage(500),
+          initialRouterConfig: issuePageRouterConfig,
+        }
+      );
+
+      await act(() => jest.advanceTimersByTimeAsync(400));
+      expect(request).not.toHaveBeenCalled();
+
+      await act(() => jest.advanceTimersByTimeAsync(100));
+      await waitFor(() =>
+        expect(result.current).toEqual({
+          isLoading: false,
+          source: 'generated',
+          suggestions: [{text: 'Generated'}],
+        })
+      );
+      expect(request).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            page_context: expect.stringContaining('ISSUE-1'),
+          }),
+        })
+      );
+    });
   });
 
   it.each([

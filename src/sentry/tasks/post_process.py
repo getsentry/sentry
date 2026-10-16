@@ -697,6 +697,20 @@ def post_process_group(
                 tags=metric_tags,
             )
 
+            nodestore_insert = event.data.get("nodestore_insert")
+            if nodestore_insert is not None:
+                # Measures latency from the Nodestore write to post-processing completion.
+                metrics.timing(
+                    "events.nodestore_to_post_process",
+                    time() - nodestore_insert,
+                    instance=event.data.get("platform") or None,
+                    tags={
+                        **metric_tags,
+                        "reprocessing": "true" if is_reprocessed else "false",
+                        "type": event.data.get("type"),
+                    },
+                )
+
 
 def run_post_process_job(job: PostProcessJob) -> None:
     from sentry.issues.action_log.publish import action_context_scope

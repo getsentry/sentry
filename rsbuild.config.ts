@@ -25,6 +25,7 @@ import {
 } from './build-utils/dev-server-host-check.ts';
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
+import {getReactRouterConfig} from './build-utils/react-router.ts';
 import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
 import packageJson from './package.json' with {type: 'json'};
 
@@ -53,6 +54,7 @@ const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const IS_ADMIN_UI_DEV = !!env.SENTRY_ADMIN_UI_DEV;
 
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
+const reactRouterConfig = getReactRouterConfig(env);
 const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
 const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
@@ -239,10 +241,7 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
       tsx: true,
     },
     transform: {
-      // TODO: Enable in production
-      reactCompiler:
-        options.reactCompiler &&
-        (IS_DEPLOY_PREVIEW || IS_ACCEPTANCE_TEST || IS_UI_DEV_ONLY),
+      reactCompiler: options.reactCompiler,
       react: {
         runtime: 'automatic',
         development: DEV_MODE,
@@ -327,21 +326,7 @@ const appConfig: Configuration = {
      */
     rules: [
       ...workspaceResolutionRules,
-      {
-        // Only first-party imports use V8 paths. Leave dependencies and the
-        // compatibility implementation on the original V6 package resolution.
-        include: [staticPrefix, path.join(import.meta.dirname, 'tests/js')],
-        exclude: [path.join(staticPrefix, 'app/utils/reactRouterV6'), /node_modules/],
-        resolve: {
-          alias: {
-            'react-router$': path.join(staticPrefix, 'app/utils/reactRouterV6/index.ts'),
-            'react-router/dom$': path.join(
-              staticPrefix,
-              'app/utils/reactRouterV6/dom.ts'
-            ),
-          },
-        },
-      },
+      ...reactRouterConfig.rules,
       {
         test: /\.(?:tsx?|jsx?)$/,
         oneOf: [
@@ -516,6 +501,7 @@ const appConfig: Configuration = {
 
   resolve: {
     alias: {
+      ...reactRouterConfig.alias,
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),

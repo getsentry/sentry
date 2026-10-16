@@ -116,12 +116,13 @@ function chatStateReducer(
   }
 }
 
-const SeerExplorerChatStateContext = createContext<SeerExplorerChatState>({
+// Exported for stories, which supply a run without the provider's sessionStorage persistence.
+export const SeerExplorerChatStateContext = createContext<SeerExplorerChatState>({
   runId: null,
   chatPrompt: null,
   chatStates: {},
 });
-const SeerExplorerChatDispatchContext = createContext<Dispatch<ChatStateAction>>(
+export const SeerExplorerChatDispatchContext = createContext<Dispatch<ChatStateAction>>(
   () => {}
 );
 

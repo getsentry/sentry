@@ -227,6 +227,8 @@ export function RepoLockedConnectForm({
                 <PathMappingList
                   key={selectedProject.id}
                   form={form}
+                  projectSlug={selectedProject.slug}
+                  repositoryId={repositoryId}
                   providerKey={providerKey ?? undefined}
                   defaultBranch={defaultBranch ?? undefined}
                   existingMappings={existingMappings}

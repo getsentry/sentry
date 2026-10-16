@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
+from urllib3.exceptions import TimeoutError
 
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.seer.models import SeerApiError
@@ -94,9 +95,11 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_returns_502_when_seer_errors(self, mock_run_oneshot: MagicMock) -> None:
-        mock_run_oneshot.side_effect = SeerApiError("Seer request failed", 500)
+        for seer_status in (400, 500):
+            with self.subTest(seer_status=seer_status):
+                mock_run_oneshot.side_effect = SeerApiError("Seer request failed", seer_status)
 
-        self.get_error_response(self.organization.slug, status_code=502, **PAYLOAD)
+                self.get_error_response(self.organization.slug, status_code=502, **PAYLOAD)
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_returns_502_when_seer_times_out(self, mock_run_oneshot: MagicMock) -> None:

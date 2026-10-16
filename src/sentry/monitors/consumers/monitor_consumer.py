@@ -413,11 +413,7 @@ def update_existing_check_in(
     monitor = monitor_environment.monitor
     processing_errors: list[ProcessingError] = []
 
-    if (
-        existing_check_in.project_id != project_id
-        or existing_check_in.monitor_id != monitor.id
-        or existing_check_in.monitor_environment_id != monitor_environment.id
-    ):
+    if existing_check_in.monitor_environment_id != monitor_environment.id:
         mismatch_error: CheckinGuidProjectMismatch = {
             "type": ProcessingErrorType.CHECKIN_GUID_PROJECT_MISMATCH,
             "guid": existing_check_in.guid.hex,
@@ -433,7 +429,7 @@ def update_existing_check_in(
             "monitors.consumer.guid_exists",
             extra={
                 "guid": existing_check_in.guid.hex,
-                "slug": existing_check_in.monitor.slug,
+                "slug": existing_check_in.monitor_environment.monitor.slug,
                 "payload_slug": monitor.slug,
             },
         )
@@ -486,7 +482,7 @@ def update_existing_check_in(
             "monitors.consumer.check_in_closed",
             extra={
                 "guid": existing_check_in.guid.hex,
-                "slug": existing_check_in.monitor.slug,
+                "slug": monitor.slug,
                 "status": existing_check_in.status,
                 "updated_status": updated_status,
             },
@@ -518,7 +514,7 @@ def update_existing_check_in(
             "monitors.consumer.invalid_implicit_duration",
             extra={
                 "guid": existing_check_in.guid.hex,
-                "slug": existing_check_in.monitor.slug,
+                "slug": monitor.slug,
                 "duration": updated_duration,
             },
         )
@@ -577,11 +573,9 @@ def update_existing_check_in(
 
 
 def _cache_checkin_relations(
-    check_in: MonitorCheckIn, monitor: Monitor, monitor_environment: MonitorEnvironment
+    check_in: MonitorCheckIn, monitor_environment: MonitorEnvironment
 ) -> None:
     # Avoid re-fetching already loaded objects; only when the ids match
-    if check_in.monitor_id == monitor.id:
-        check_in.monitor = monitor
     if check_in.monitor_environment_id == monitor_environment.id:
         check_in.monitor_environment = monitor_environment
 
@@ -1028,7 +1022,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                         }
                         raise ProcessingErrorsException([env_mismatch_error], monitor)
 
-                _cache_checkin_relations(check_in, monitor, monitor_environment)
+                _cache_checkin_relations(check_in, monitor_environment)
                 span.set_attribute("outcome", "process_existing_checkin")
                 update_existing_check_in(
                     span,
@@ -1067,8 +1061,6 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
 
                 lookup = {
                     "guid": guid,
-                    "project_id": project_id,
-                    "monitor": monitor,
                     "monitor_environment": monitor_environment,
                 }
                 # The guid lookup above found nothing, so create directly
@@ -1103,7 +1095,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                 # XXX(epurkhiser): Is this needed since we're already
                 # locking this entire process?
                 if not created:
-                    _cache_checkin_relations(check_in, monitor, monitor_environment)
+                    _cache_checkin_relations(check_in, monitor_environment)
                     span.set_attribute("outcome", "process_existing_checkin_race_condition")
                     update_existing_check_in(
                         span,

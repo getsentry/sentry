@@ -1,9 +1,16 @@
+import pytest
 from django.contrib.sessions.backends.base import SessionBase
 from django.test import RequestFactory
 from rest_framework.views import APIView
 
-from sentry.api.bases.project import ProjectAndStaffPermission, ProjectEndpoint, ProjectPermission
+from sentry.api.bases.project import (
+    ProjectAndStaffPermission,
+    ProjectDoesNotExist,
+    ProjectEndpoint,
+    ProjectPermission,
+)
 from sentry.auth.access import from_request
+from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.models.apitoken import ApiToken
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
@@ -56,6 +63,15 @@ class ProjectEndpointViewerContextTest(TestCase):
         assert ctx is not None
         assert ctx.user_id == self.user.id
         assert ctx.organization_id == self.organization.id
+
+    def test_convert_args_with_out_of_range_project_id(self) -> None:
+        endpoint = ProjectEndpoint()
+        request = drf_request_from_request(RequestFactory().get("/"))
+
+        with pytest.raises(ProjectDoesNotExist):
+            endpoint.convert_args(
+                request, self.organization.slug, str(BoundedBigAutoField.MAX_VALUE + 1)
+            )
 
 
 class ProjectPermissionTest(ProjectPermissionBase):
