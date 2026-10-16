@@ -20,7 +20,12 @@ from sentry.notifications.platform.types import (
     NotificationSource,
 )
 from sentry.notifications.utils.actions import BlockKitMessageAction
-from sentry.seer.agent.client_models import PendingUserInput
+from sentry.seer.agent.client_models import (
+    MemoryBlock,
+    Message,
+    PendingUserInput,
+    SeerRunState,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
@@ -664,6 +669,32 @@ class SlackAutofixEntrypointTest(TestCase):
         mock_update_message.assert_not_called()
 
 
+def _agent_state(
+    summary: str | None, pending_user_input: PendingUserInput | None = None
+) -> SeerRunState:
+    """A finished run with one turn, which ends with `summary` if given."""
+    blocks = [
+        MemoryBlock(
+            id="b1", message=Message(role="user", content="hi"), timestamp="2024-01-01T00:00:00Z"
+        )
+    ]
+    if summary:
+        blocks.append(
+            MemoryBlock(
+                id="b2",
+                message=Message(role="assistant", content=summary),
+                timestamp="2024-01-01T00:00:01Z",
+            )
+        )
+    return SeerRunState(
+        run_id=12345,
+        blocks=blocks,
+        status="completed",
+        updated_at="2024-01-01T00:00:00Z",
+        pending_user_input=pending_user_input,
+    )
+
+
 class SlackAgentEntrypointTest(TestCase):
     def setUp(self) -> None:
         self.slack_user_id = "UXXXXXXXXX2"
@@ -794,8 +825,8 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="Test summary",
             run_id=run_id,
+            state=_agent_state("Test summary"),
         )
 
         mock_schedule_all_thread_updates.assert_called_once_with(
@@ -816,14 +847,33 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary=None,
             run_id=12345,
+            state=_agent_state(None),
         )
 
         mock_schedule_all_thread_updates.assert_called_once()
         call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
         assert isinstance(call_data, SeerAgentError)
         assert call_data.error_message == "Seer was unable to generate a response."
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    def test_on_agent_update_does_not_reuse_the_previous_turns_answer(
+        self, mock_schedule_all_thread_updates
+    ):
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("First answer")
+        state.blocks.append(
+            MemoryBlock(
+                id="b3",
+                message=Message(role="user", content="follow-up"),
+                timestamp="2024-01-01T00:00:02Z",
+            )
+        )
+
+        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
+
+        call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerAgentError)
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
     @patch("sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval")
@@ -835,12 +885,14 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary=None,
             run_id=12345,
-            pending_user_input=PendingUserInput(
-                id="approval-1",
-                input_type="agent_write_approval",
-                data={"required_scopes": ["org:write"], "session_id": "12345"},
+            state=_agent_state(
+                None,
+                pending_user_input=PendingUserInput(
+                    id="approval-1",
+                    input_type="agent_write_approval",
+                    data={"required_scopes": ["org:write"], "session_id": "12345"},
+                ),
             ),
         )
 
@@ -868,12 +920,14 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary=None,
             run_id=12345,
-            pending_user_input=PendingUserInput(
-                id="approval-1",
-                input_type="agent_write_approval",
-                data={"required_scopes": ["org:write"], "session_id": "12345"},
+            state=_agent_state(
+                None,
+                pending_user_input=PendingUserInput(
+                    id="approval-1",
+                    input_type="agent_write_approval",
+                    data={"required_scopes": ["org:write"], "session_id": "12345"},
+                ),
             ),
         )
 
@@ -887,12 +941,14 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="Prior summary",
             run_id=12345,
-            pending_user_input=PendingUserInput(
-                id="approval-1",
-                input_type="agent_write_approval",
-                data={"required_scopes": ["org:write"]},
+            state=_agent_state(
+                "Prior summary",
+                pending_user_input=PendingUserInput(
+                    id="approval-1",
+                    input_type="agent_write_approval",
+                    data={"required_scopes": ["org:write"]},
+                ),
             ),
         )
 
@@ -914,8 +970,8 @@ class SlackAgentEntrypointTest(TestCase):
         ):
             SlackAgentEntrypoint.on_agent_update(
                 cache_payload=cache_payload,
-                summary=None,
                 run_id=12345,
+                state=_agent_state(None),
             )
 
         # Still schedules the thread update even without a fresh integration
@@ -933,8 +989,8 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="Test summary",
             run_id=12345,
+            state=_agent_state("Test summary"),
         )
 
         call_data = mock_schedule.call_args.kwargs["data"]
@@ -956,8 +1012,8 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="Test summary",
             run_id=12345,
+            state=_agent_state("Test summary"),
         )
 
         call_data = mock_schedule.call_args.kwargs["data"]
@@ -978,8 +1034,8 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="First response",
             run_id=12345,
+            state=_agent_state("First response"),
         )
         first_data = mock_schedule.call_args.kwargs["data"]
         assert first_data.missing_scope_settings_url is not None
@@ -988,8 +1044,8 @@ class SlackAgentEntrypointTest(TestCase):
 
         SlackAgentEntrypoint.on_agent_update(
             cache_payload=cache_payload,
-            summary="Second response",
             run_id=12346,
+            state=_agent_state("Second response"),
         )
         second_data = mock_schedule.call_args.kwargs["data"]
         assert second_data.missing_scope_settings_url is None
