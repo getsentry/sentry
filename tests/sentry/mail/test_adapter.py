@@ -60,7 +60,7 @@ from sentry.testutils.helpers.analytics import (
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import (
     create_notification_action_context,
-    create_notification_origin,
+    create_workflow_notification_origin_for_rule,
 )
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -211,7 +211,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule: Rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=create_notification_origin(rule))
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -273,7 +275,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=create_notification_origin(rule))
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -295,7 +299,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule", environment_id=environment.id)
         ProjectOwnership.objects.create(project_id=self.project.id)
 
-        notification = Notification(event=event, rule=create_notification_origin(rule))
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -345,7 +351,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=create_notification_origin(rule))
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -401,7 +409,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=create_notification_origin(rule))
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -421,7 +431,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=create_notification_origin(rule))
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -501,7 +513,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(project=self.project)
         with self.tasks():
             AlertRuleNotification(
-                Notification(event=event, rules=[create_notification_origin(rule)]),
+                Notification(
+                    event=event, rules=[create_workflow_notification_origin_for_rule(rule)]
+                ),
                 ActionTargetType.ISSUE_OWNERS,
                 fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
             ).send()
@@ -1291,7 +1305,9 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=create_notification_origin(rule))
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -1334,7 +1350,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=project)
-        origin = create_notification_origin(rule)
+        origin = create_workflow_notification_origin_for_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
             project,
@@ -1395,7 +1411,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=project)
-        origin = create_notification_origin(rule)
+        origin = create_workflow_notification_origin_for_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
             project,
@@ -1428,7 +1444,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     def test_notify_digest_single_record(self, send_async: MagicMock, notify: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(project=self.project)
-        origin = create_notification_origin(rule)
+        origin = create_workflow_notification_origin_for_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(self.project, (event_to_record(as_group_event(event), (origin,)),))
         self.adapter.notify_digest(
@@ -1456,7 +1472,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=self.project)
-        origin = create_notification_origin(rule)
+        origin = create_workflow_notification_origin_for_rule(rule)
 
         digest = build_digest(
             self.project,
@@ -1502,7 +1518,7 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             "targetIdentifier": str(444),
         }
         rule = self.create_project_rule(name="a rule", action_data=[action_data])
-        origin = create_notification_origin(rule)
+        origin = create_workflow_notification_origin_for_rule(rule)
 
         digest = build_digest(
             project,
@@ -1595,8 +1611,8 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     ) -> None:
         digests.backend.enabled.return_value = True
         event = self.store_event(data={}, project_id=self.project.id)
-        rule = self.create_project_rule(project=self.project, include_workflow_id=False)
-        future = RuleFuture(create_notification_action_context(rule), {})
+        rule = self.create_project_rule(project=self.project)
+        future = RuleFuture(create_notification_action_context(rule, with_workflow=False), {})
 
         self.adapter.rule_notify(as_group_event(event), [future], ActionTargetType.ISSUE_OWNERS)
 
