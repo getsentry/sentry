@@ -1,11 +1,8 @@
-import type * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-function defined(value: boolean | undefined): boolean {
-  return value !== undefined && value !== null;
-}
+import {defined} from 'sentry/utils/defined';
 
 interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
   as?: React.ElementType;

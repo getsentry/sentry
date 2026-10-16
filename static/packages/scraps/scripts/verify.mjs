@@ -118,7 +118,7 @@ try {
   await writeFile(
     join(consumer, 'private.mjs'),
     `import {rejects} from 'node:assert/strict';
-for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes', 'code/inlineCode', 'hotkey/kbd', 'interactionStateLayer']) {
+for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes', 'code/inlineCode', 'hotkey/kbd']) {
   await rejects(import('@sentry/scraps/' + subpath), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
 }
 `
