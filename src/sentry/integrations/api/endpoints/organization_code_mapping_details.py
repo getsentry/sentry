@@ -55,7 +55,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         self,
         request: Request,
         organization_id_or_slug: int | str,
-        config_id: str,
+        config_id: int,
         *args: Any,
         **kwargs: Any,
     ) -> tuple[tuple[Any, ...], dict[str, Any]]:
@@ -92,7 +92,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
                 "config_id",
-                type=str,
+                type=int,
                 location=OpenApiParameter.PATH,
                 description="The ID of the code mapping to update.",
             ),
@@ -191,13 +191,14 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
                 "config_id",
-                type=str,
+                type=int,
                 location=OpenApiParameter.PATH,
                 description="The ID of the code mapping to delete.",
             ),
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
+            401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
             409: RESPONSE_CONFLICT,

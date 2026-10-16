@@ -18,6 +18,7 @@ from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
@@ -140,6 +141,7 @@ class OrganizationCodeMappingRepoPrefixesEndpoint(OrganizationEndpoint):
         responses={
             200: inline_sentry_response_serializer("RepoPrefixesResponse", RepoPrefixesResponse),
             400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
             502: OpenApiResponse(description="The repository provider could not return its files."),

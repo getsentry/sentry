@@ -13,7 +13,7 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.validators.project_codeowners import CodeOwnersErrors, build_codeowners_associations
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.services.integration import integration_service
@@ -50,7 +50,9 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
                 "OrganizationCodeOwnersAssociationsResponse",
                 dict[str, CodeOwnersProjectAssociationsResponse],
             ),
+            401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(

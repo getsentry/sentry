@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -96,6 +97,8 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             ),
             204: RESPONSE_NO_CONTENT,
             400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
     )
@@ -178,6 +181,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
                 "OrganizationCodeMappingResponse", RepositoryProjectPathConfigSerializerResponse
             ),
             400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
