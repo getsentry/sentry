@@ -1057,15 +1057,8 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
             lifecycle.record_halt(halt_reason="no_operator_access")
             return
 
-        summary: str | None = None
         try:
             state = fetch_run_status(run_id, organization)
-            for block in reversed(state.blocks):
-                if block.message.role == "user":
-                    break
-                if block.message.role == "assistant" and block.message.content:
-                    summary = block.message.content
-                    break
         except Exception as e:
             lifecycle.record_failure(failure_reason=e)
             return
@@ -1100,9 +1093,8 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
                 try:
                     entrypoint_cls.on_agent_update(
                         cache_payload=cache_payload,
-                        summary=summary,
                         run_id=run_id,
-                        pending_user_input=state.pending_user_input,
+                        state=state,
                     )
                 except IntegrationError:
                     # The refresh task retries integration errors.
