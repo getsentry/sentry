@@ -27,6 +27,7 @@ from sentry_relay.exceptions import UnpackError
 
 from sentry import features, options
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.auth.superuser import resolve_superuser_access
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, compare_signature
@@ -920,9 +921,9 @@ class ViewerContextAuthentication(BaseAuthentication):
     Used by trusted services (e.g., Seer) that echo back the viewer context
     originally signed by Sentry.
 
-    The user is resolved via user_service.get_user() (RPC-backed, cached).
-    Sets request.auth = None so that determine_access derives permissions
-    from the user's OrganizationMember role — identical to session auth.
+    Identity-only contexts derive access from organization membership. An optional
+    Sentry-signed superuser context instead produces an org-bound credential;
+    shared access checks validate it again and cap it to read-only scopes.
     """
 
     def authenticate(self, request: Request) -> tuple[Any, Any] | None:
@@ -978,6 +979,38 @@ class ViewerContextAuthentication(BaseAuthentication):
         # session-like for permission derivation, but mark it so org access can
         # avoid requiring browser-session SSO state on service callbacks.
         setattr(request, "user_from_viewer_context", True)
+
+        if vc.superuser is not None:
+            org_context = (
+                organization_service.get_organization_by_id(
+                    id=vc.organization_id,
+                    user_id=user.id,
+                    include_projects=False,
+                    include_teams=False,
+                )
+                if vc.organization_id is not None
+                else None
+            )
+            delegated = (
+                resolve_superuser_access(vc.superuser, user, org_context)
+                if org_context is not None
+                else None
+            )
+            if delegated is None:
+                raise AuthenticationFailed("Invalid superuser access")
+            scopes, _ = delegated
+            credential = AuthenticatedToken(
+                kind="viewer_context",
+                user_id=user.id,
+                organization_id=vc.organization_id,
+                scopes=sorted(scopes),
+                superuser=vc.superuser,
+            )
+            # Org-bound access must not enable global staff/superuser bypasses.
+            user = user.copy(
+                update={"is_staff": False, "is_superuser": False, "permissions": frozenset()}
+            )
+            return (user, credential)
 
         # Return None for auth to match session behavior —
         # determine_access will derive scopes from org membership role.
