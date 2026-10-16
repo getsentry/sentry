@@ -534,10 +534,18 @@ class SeerAgentOperator[CachePayloadT]:
             )
 
             enable_code_mode_tools = "off"
+            has_create_pr = False
             if category_key == "slack_thread" and features.has(
                 "organizations:seer-slack-code-mode", organization
             ):
                 enable_code_mode_tools = "only"
+                # Same gate as Ask Seer; Seer only exposes write_pull_request with coding and bash on.
+                has_create_pr = features.has(
+                    "organizations:ask-seer-create-pr", organization, actor=user
+                )
+            enable_coding = has_create_pr and organization.get_option(
+                "sentry:enable_seer_coding", False
+            )
 
             try:
                 # RpcUser is not in SeerAgentClient's type signature but works at runtime
@@ -548,7 +556,10 @@ class SeerAgentOperator[CachePayloadT]:
                     category_value=category_value,
                     on_completion_hook=SeerOperatorCompletionHook,
                     is_interactive=True,
-                    enable_coding=False,
+                    enable_coding=enable_coding,
+                    # The client still requires seer-explorer-allow-bash-mode.
+                    enable_bash_mode=enable_coding,
+                    enable_write_pull_request=enable_coding,
                     enable_code_mode_tools=enable_code_mode_tools,
                     # Entrypoints (e.g. Slack) render responses as plain markdown and
                     # can't display embed widgets, so the raw Markdoc tags would leak as
