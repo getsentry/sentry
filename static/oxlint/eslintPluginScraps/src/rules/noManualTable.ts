@@ -68,7 +68,7 @@ function isIterated(node: ESTree.Node): boolean {
     const parent: ESTree.Node | null = current.parent;
     if (
       parent?.type === 'CallExpression' &&
-      parent.arguments.includes(current as ESTree.Expression) &&
+      parent.arguments.some(argument => argument === current) &&
       parent.callee.type === 'MemberExpression' &&
       parent.callee.property.type === 'Identifier' &&
       ITERATING_METHODS.has(parent.callee.property.name)
@@ -108,6 +108,12 @@ export const noManualTable = defineRule({
       }
     }
 
+    function addStyledUses(key: unknown, node: ESTree.Node, repetitions: boolean[]) {
+      for (const repeated of repetitions) {
+        addTemplateUse(key, {node, repeated});
+      }
+    }
+
     function constantInit(node: ESTree.Node): ESTree.Node | null {
       const definition = importTracker.resolveVariable(node)?.defs[0];
       if (
@@ -134,6 +140,16 @@ export const noManualTable = defineRule({
         }
         return importTracker.resolveVariable(node) ?? `name:${node.name}`;
       }
+      if (node.type === 'ObjectExpression') {
+        const tracks = node.properties.map(property => {
+          const value =
+            property.type === 'Property' ? staticString(property.value) : null;
+          return value === null ? Infinity : countTracks(value);
+        });
+        if (Math.max(...tracks) < MINIMUM_SHARED_TRACKS) {
+          return null;
+        }
+      }
       return `source:${normalizeSpace(context.sourceCode.getText(node))}`;
     }
 
@@ -147,18 +163,21 @@ export const noManualTable = defineRule({
         : GRID_MIXIN_NAME.test(node.name);
     }
 
-    function styledRepeated(node: ESTree.Node): boolean {
+    function styledRepetitions(node: ESTree.Node): boolean[] {
       const declarator = node.parent;
       if (
         declarator?.type !== 'VariableDeclarator' ||
         declarator.id.type !== 'Identifier'
       ) {
-        return false;
+        return [false];
       }
-      const variable = importTracker.resolveVariable(declarator.id);
-      return (
-        variable?.references.some(reference => isIterated(reference.identifier)) ?? false
-      );
+      const reads =
+        importTracker
+          .resolveVariable(declarator.id)
+          ?.references.filter(reference => reference.isRead()) ?? [];
+      return reads.length > 0
+        ? reads.map(reference => isIterated(reference.identifier))
+        : [false];
     }
 
     function checkStyled(node: ESTree.TaggedTemplateExpression | ESTree.CallExpression) {
@@ -209,9 +228,9 @@ export const noManualTable = defineRule({
         return;
       }
 
-      const repeated = styledRepeated(node);
+      const repetitions = styledRepetitions(node);
       for (const mixin of mixins) {
-        addTemplateUse(importTracker.resolveVariable(mixin), {node, repeated});
+        addStyledUses(importTracker.resolveVariable(mixin), node, repetitions);
       }
       if (!columns) {
         return;
@@ -222,13 +241,13 @@ export const noManualTable = defineRule({
       if (columns.interpolations.length === 1 && interpolation) {
         const key = templateKey(interpolation.expression);
         if (key !== null) {
-          addTemplateUse(key, {node, repeated});
+          addStyledUses(key, node, repetitions);
         }
       } else if (
         columns.interpolations.length === 0 &&
         countTracks(columns.value) >= MINIMUM_SHARED_TRACKS
       ) {
-        addTemplateUse(`literal:${normalizeSpace(columns.value)}`, {node, repeated});
+        addStyledUses(`literal:${normalizeSpace(columns.value)}`, node, repetitions);
       }
     }
 
@@ -265,8 +284,8 @@ export const noManualTable = defineRule({
       'Program:exit'() {
         for (const uses of templateUses.values()) {
           if (uses.some(use => use.repeated) && uses.some(use => !use.repeated)) {
-            for (const use of uses) {
-              context.report({node: use.node, messageId: 'sharedGridTemplate'});
+            for (const node of new Set(uses.map(use => use.node))) {
+              context.report({node, messageId: 'sharedGridTemplate'});
             }
           }
         }

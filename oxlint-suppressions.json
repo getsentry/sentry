@@ -3314,6 +3314,9 @@
     }
   },
   "static/app/views/settings/account/notifications/notificationSettingsByEntity.tsx": {
+    "@sentry/scraps/no-manual-table": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }

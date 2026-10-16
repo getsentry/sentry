@@ -80,6 +80,22 @@ ruleTester.run('no-manual-table', noManualTable, {
     },
     {
       code: `
+        import {Grid} from '@sentry/scraps/layout';
+        const header = <Grid columns={{zero: '1fr', sm: '1fr auto'}}>a</Grid>;
+        const rows = items.map(item => <Grid columns={{zero: '1fr', sm: '1fr auto'}}>{item}</Grid>);
+      `,
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        const Row = styled('div')\`
+          grid-template-columns: 1fr 200px 150px;
+        \`;
+        const rows = items.map(item => <Row key={item} />);
+      `,
+    },
+    {
+      code: `
         import styled from '@emotion/styled';
         const Layout = styled('div')\`
           display: grid;
@@ -180,6 +196,16 @@ ruleTester.run('no-manual-table', noManualTable, {
         const x = <div><Header />{items.map(item => <Row key={item} />)}</div>;
       `,
       errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        const Row = styled('div')\`
+          grid-template-columns: 1fr 200px 150px;
+        \`;
+        const x = <div><Row />{items.map(item => <Row key={item} />)}</div>;
+      `,
+      errors: [{messageId: 'sharedGridTemplate'}],
     },
   ],
 });
