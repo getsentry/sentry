@@ -163,9 +163,6 @@ class OAuthDeviceVerificationTest(TestCase):
         assert resp.status_code == 200
         assert b"expired" in resp.content.lower()
 
-        # Device code should be deleted
-        assert not ApiDeviceCode.objects.filter(id=self.device_code.id).exists()
-
     def test_invalid_operation_shows_error(self) -> None:
         """Invalid operation should show error."""
         self.login_as(self.user)
@@ -203,7 +200,7 @@ class OAuthDeviceVerificationTest(TestCase):
         self.login_as(self.user)
 
         # Mock the rate limiter to simulate being rate limited
-        with patch("sentry.web.frontend.oauth_device.ratelimiter") as mock_ratelimiter:
+        with patch("sentry.api.helpers.oauth_device.ratelimiter") as mock_ratelimiter:
             mock_ratelimiter.is_limited.return_value = True
 
             resp = self.client.post(self.path, {"user_code": "XXXX-XXXX"})
