@@ -1,3 +1,5 @@
+import functools
+
 from django.db.migrations import RemoveField
 from django.db.models import Field, ManyToManyField
 from django.db.models.fields import NOT_PROVIDED
@@ -22,10 +24,35 @@ def deconstruct(self):
     return name, path, args, kwargs
 
 
+def is_move_to_pending(operation) -> bool:
+    return getattr(operation, "deletion_action", None) == DeletionAction.MOVE_TO_PENDING
+
+
+def reduce_preserving_pending(original):
+    """Keep baked pending-deletion pairs intact: collapsing them would drop the
+    registry entry the eventual DELETE migration needs."""
+
+    @functools.wraps(original)
+    def reduce(self, operation, app_label):
+        result = original(self, operation, app_label)
+        # a list result means the original wanted to merge/annihilate the pair;
+        # True/False are pass-through verdicts we must not disturb.
+        if isinstance(result, list) and is_move_to_pending(operation):
+            return False
+        return result
+
+    return reduce
+
+
 class SafeRemoveField(RemoveField):
-    def __init__(self, *args, deletion_action: DeletionAction, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, model_name, name, field=None, *, deletion_action: DeletionAction) -> None:
+        super().__init__(model_name, name, field)
         self.deletion_action = deletion_action
+
+    def deconstruct(self):
+        name, args, kwargs = super().deconstruct()
+        kwargs["deletion_action"] = self.deletion_action
+        return name, args, kwargs
 
     def state_forwards(self, app_label: str, state: SentryProjectState) -> None:  # type: ignore[override]
         if self.deletion_action == DeletionAction.MOVE_TO_PENDING:
