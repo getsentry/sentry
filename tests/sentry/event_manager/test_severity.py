@@ -295,6 +295,43 @@ class TestGetEventSeverity(TestCase):
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
+        return_value=HTTPResponse(body=b"<html>Service Unavailable</html>", status=503),
+    )
+    @patch("sentry.event_manager.sentry_sdk.capture_exception")
+    @patch("sentry.event_manager.metrics.incr")
+    def test_http_error_response(
+        self,
+        mock_metrics_incr: MagicMock,
+        mock_capture_exception: MagicMock,
+        _mock_urlopen: MagicMock,
+    ) -> None:
+        """A non-2xx HTTP response (e.g. 503) should be handled gracefully without raising JSONDecodeError."""
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "NopeError",
+                            "value": "Nopey McNopeface",
+                            "mechanism": {"type": "generic", "handled": True},
+                        }
+                    ]
+                },
+                platform="python",
+            )
+        )
+        event = manager.save(self.project.id)
+
+        severity, reason = _get_severity_score(event)
+
+        mock_capture_exception.assert_called_once_with()
+        mock_metrics_incr.assert_any_call("issues.severity.error", tags={"reason": "unknown"})
+        assert severity == 1.0
+        assert reason == "microservice_error"
+        assert cache.get(SEER_ERROR_COUNT_KEY) == 1
+
+    @patch(
+        "sentry.event_manager.severity_connection_pool.urlopen",
         side_effect=Exception("It broke"),
     )
     @patch("sentry.event_manager.sentry_sdk.capture_exception")
