@@ -3,6 +3,7 @@ import {createRef, Fragment} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {render, screen} from '@testing-library/react';
 import {expectTypeOf} from 'expect-type';
+import {getEmotionRules} from 'scraps-test/getEmotionRules';
 
 import {lightTheme as theme} from '@sentry/scraps/theme';
 
@@ -10,32 +11,6 @@ import {Text, type TextProps, type TextPropsWithRenderFunction} from './index';
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={theme}>{children}</ThemeProvider>;
-}
-
-/**
- * Emotion injects its styles through the CSSOM (`insertRule`), so they are not
- * reflected in `getComputedStyle` under jsdom. Read the generated rules for an
- * element directly off `document.styleSheets` instead.
- */
-function getEmotionRules(element: HTMLElement): string[] {
-  const classes = element.className.split(' ').filter(cls => cls.startsWith('css-'));
-  const rules: string[] = [];
-  for (const sheet of Array.from(document.styleSheets)) {
-    let sheetRules: CSSRuleList;
-    try {
-      sheetRules = sheet.cssRules;
-    } catch {
-      continue;
-    }
-    for (const rule of Array.from(sheetRules)) {
-      if (classes.some(cls => rule.cssText.includes(cls))) {
-        // CSSOM formatting varies between DOM implementations. Tests care about
-        // the generated declarations, not whether an at-rule contains newlines.
-        rules.push(rule.cssText.replace(/\s+/g, ' '));
-      }
-    }
-  }
-  return rules;
 }
 
 /** The `display` value of the always-applied base declaration (no at-rule). */

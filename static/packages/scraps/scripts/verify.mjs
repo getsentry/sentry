@@ -142,6 +142,12 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
     Kbd,
     IndeterminateLoader,
     Switch,
+    Image,
+    DescriptionList,
+    Prose,
+    Radio,
+    StatusIndicator,
+    Hotkey,
     Link,
     ExternalLink,
     lightTheme,
@@ -175,6 +181,20 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
           createElement(Kbd, null, 'Kbd'),
           createElement(IndeterminateLoader),
           createElement(Switch, {'aria-label': 'Switch'}),
+          createElement(Image, {
+            src: 'https://example.com/image.png',
+            alt: 'Package image',
+          }),
+          createElement(
+            DescriptionList,
+            null,
+            createElement(DescriptionList.Term, null, 'Term'),
+            createElement(DescriptionList.Details, null, 'Details')
+          ),
+          createElement(Prose, null, createElement('code', null, 'Prose code')),
+          createElement(Radio, {'aria-label': 'Package radio'}),
+          createElement(StatusIndicator, {variant: 'success', 'aria-label': 'Online'}),
+          createElement(Hotkey, {value: 'shift+k'}),
           createElement(
             Link,
             {to: {pathname: '/issues/', query: {query: 'error'}, hash: 'details'}},
@@ -198,6 +218,13 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
       'data-icon="close"',
       'Package link',
       'External link',
+      'Package image',
+      '<dt',
+      '<dd',
+      'Prose code',
+      'type="radio"',
+      'aria-label="Online"',
+      'aria-label="⇧"',
     ]) {
       if (!html.includes(label)) {
         throw new Error(`Server render failed for ${label}`);
