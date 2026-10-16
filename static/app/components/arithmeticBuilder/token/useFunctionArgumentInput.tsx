@@ -287,7 +287,8 @@ const StyledArgumentGridCell = styled(Flex)`
 
   /* Expanded bars: grow into the remaining args column (beside the function
      name), not the full chip width. */
-  [data-expanded='true'] & ${UnstyledInput} {
+  [data-expanded='true'] & ${UnstyledInput},
+  [data-truncate-arguments='false'] & ${UnstyledInput} {
     max-width: 100%;
   }
 `;

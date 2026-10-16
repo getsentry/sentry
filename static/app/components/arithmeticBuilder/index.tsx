@@ -54,6 +54,11 @@ interface ArithmeticBuilderProps {
    */
   references?: Set<string>;
   setExpression?: (expression: Expression) => void;
+  /**
+   * Caps function argument inputs to a narrow width with an ellipsis, for
+   * builders rendered in constrained spaces like sidebars.
+   */
+  truncateArguments?: boolean;
 }
 
 export const VALID_REFERENCE_PATTERN = /^[\w.]+$/;
@@ -71,6 +76,7 @@ export function ArithmeticBuilder({
   className,
   disabled,
   references,
+  truncateArguments = true,
 }: ArithmeticBuilderProps) {
   if (references) {
     for (const reference of references) {
@@ -130,6 +136,7 @@ export function ArithmeticBuilder({
             className={className}
             aria-disabled={disabled}
             data-test-id={dataTestId ?? 'arithmetic-builder'}
+            data-truncate-arguments={truncateArguments}
             state={state.expression.isValid ? 'valid' : 'invalid'}
             disabled={disabled}
           >

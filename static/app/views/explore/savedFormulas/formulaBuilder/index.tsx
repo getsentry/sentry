@@ -31,6 +31,7 @@ import {
   type SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useSaveFormula} from 'sentry/views/explore/hooks/useSaveFormula';
+import {FIELD_MAX_WIDTH} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
 import {
   stripNamePrefix,
   toDraft,
@@ -38,6 +39,7 @@ import {
   variableNames,
   type FormulaDraft,
 } from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
+import {OptionSizedLabel} from 'sentry/views/explore/savedFormulas/formulaBuilder/optionSizedLabel';
 import {ParametersSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/parametersSection';
 import {ReferencesSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/referencesSection';
 import {FormulaEquationInput} from 'sentry/views/explore/savedFormulas/formulaEquationInput';
@@ -160,8 +162,12 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
               <CompactSelect
                 value={draft.dataset}
                 options={DATASET_OPTIONS}
-                trigger={triggerProps => (
-                  <OverlayTrigger.Button {...triggerProps} aria-label={t('Dataset')} />
+                trigger={({children, ...triggerProps}) => (
+                  <OverlayTrigger.Button {...triggerProps} aria-label={t('Dataset')}>
+                    <OptionSizedLabel options={DATASET_OPTIONS}>
+                      {children}
+                    </OptionSizedLabel>
+                  </OverlayTrigger.Button>
                 )}
                 onChange={option => setDraft({...draft, dataset: option.value})}
               />
@@ -170,8 +176,10 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
               <CompactSelect
                 value={draft.unit ?? NO_UNIT}
                 options={UNIT_OPTIONS}
-                trigger={triggerProps => (
-                  <OverlayTrigger.Button {...triggerProps} aria-label={t('Unit')} />
+                trigger={({children, ...triggerProps}) => (
+                  <OverlayTrigger.Button {...triggerProps} aria-label={t('Unit')}>
+                    <OptionSizedLabel options={UNIT_OPTIONS}>{children}</OptionSizedLabel>
+                  </OverlayTrigger.Button>
                 )}
                 onChange={option =>
                   setDraft({
@@ -207,11 +215,13 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
                 'Combines the parameters and references into the value the formula returns.'
               )}
             >
-              <FormulaEquationInput
-                value={draft.formula}
-                names={variableNames(draft)}
-                onChange={expression => setDraft({...draft, formula: expression})}
-              />
+              <LayoutContainer maxWidth={FIELD_MAX_WIDTH}>
+                <FormulaEquationInput
+                  value={draft.formula}
+                  names={variableNames(draft)}
+                  onChange={expression => setDraft({...draft, formula: expression})}
+                />
+              </LayoutContainer>
             </FormSection>
           </Container>
         </Stack>
