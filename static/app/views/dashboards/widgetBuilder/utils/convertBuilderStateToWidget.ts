@@ -2,6 +2,7 @@ import {defined} from 'sentry/utils/defined';
 import {
   generateFieldAsString,
   getEquation,
+  isAggregateField,
   isEquation,
 } from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
@@ -57,6 +58,26 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
         )
         .map(generateFieldAsString)
         .filter(f => f && (!isEquation(f) || getEquation(f).trim() !== '')) ?? [];
+  }
+
+  const sortField = state.sort?.[0]?.field;
+
+  // Tables can sort by aggregate functions that are not currently visualized.
+  // The aggregate only needs to be added to the query aggregates so the backend
+  // can compute the sort — it is never rendered as a column because table
+  // columns are derived from `state.fields`. Only inject valid aggregate
+  // functions; ordinary columns and equation aliases are left as orderby only.
+  // Non-table displays (timeseries, categorical bars) render their aggregates as
+  // series, so injecting a sort aggregate would surface an extra y-axis/series.
+  if (
+    sortField &&
+    sortField !== '' &&
+    !isEquation(sortField) &&
+    !aggregates.includes(sortField) &&
+    (state.displayType === DisplayType.TABLE || state.displayType === DisplayType.DETAILS) &&
+    isAggregateField(sortField)
+  ) {
+    aggregates = [...aggregates, sortField];
   }
 
   const columns = state.fields
