@@ -1,10 +1,10 @@
 import {useEffect} from 'react';
 
-import {getDuration} from 'sentry/utils/duration/getDuration';
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {widenDateRangeToInterval} from 'sentry/views/detectors/utils/widenDateRangeToInterval';
 
 export const useDetectorStatsPeriods = (intervalSeconds: number) => {
   const location = useLocation();
@@ -15,33 +15,24 @@ export const useDetectorStatsPeriods = (intervalSeconds: number) => {
       return;
     }
 
-    const statsPeriod = decodeScalar(location.query?.statsPeriod);
-    const start = decodeScalar(location.query?.start);
-    const end = decodeScalar(location.query?.end);
+    const dateRange = {
+      statsPeriod: decodeScalar(location.query?.statsPeriod),
+      start: decodeScalar(location.query?.start),
+      end: decodeScalar(location.query?.end),
+    };
 
-    let periodSeconds: number;
-    if (statsPeriod) {
-      periodSeconds = intervalToMilliseconds(statsPeriod) / 1000;
-    } else if (start && end) {
-      periodSeconds = (new Date(end).getTime() - new Date(start).getTime()) / 1000;
-    } else {
-      return;
-    }
-
-    if (periodSeconds >= intervalSeconds) {
-      return;
-    }
-
-    // If the url's period is smaller than the detector interval,
-    // replace the period with the interval so subsequent lookups work.
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        start: undefined,
-        end: undefined,
-        statsPeriod: getDuration(intervalSeconds, 0, false, true),
-      },
+    const widenedDateRange = widenDateRangeToInterval({
+      dateRange,
+      intervalSeconds,
+      nowMilliseconds: Date.now(),
     });
+
+    // Replace so the back button skips the range that was too short to chart
+    navigateIfQueryChanged(
+      navigate,
+      location,
+      {query: {...location.query, ...widenedDateRange}},
+      {replace: true}
+    );
   }, [location, navigate, intervalSeconds]);
 };

@@ -7,8 +7,8 @@ import type {UserAvatar} from '@sentry/scraps/avatar';
 import {METADATA_TEXT_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
-import type {LinkProps} from '@sentry/scraps/link';
-import {Link} from '@sentry/scraps/link';
+import type {LinkDestination} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -44,11 +44,7 @@ export type EntityHeaderMetadataItemProps = EntityHeaderMetadataItemBase &
         value: React.ReactNode;
         variant?: 'primary' | 'muted' | 'danger' | 'success' | 'warning';
       }
-    | {
-        to: LinkProps['to'];
-        type: 'link';
-        value: string;
-      }
+    | ({type: 'link'; value: string} & LinkDestination)
   );
 
 export function EntityHeaderMetadataItemSkeleton() {
@@ -65,12 +61,21 @@ function MetadataValue(props: EntityHeaderMetadataItemProps) {
   if (props.type === 'link') {
     return (
       <Text {...TEXT_STYLES} variant="accent">
-        {styleProps => {
-          const link = (
-            <Link to={props.to} aria-label={`${label} ${props.value}`} {...styleProps}>
-              {props.value}
-            </Link>
-          );
+        {textProps => {
+          const link =
+            props.externalHref === undefined ? (
+              <Link to={props.to} aria-label={`${label} ${props.value}`} {...textProps}>
+                {props.value}
+              </Link>
+            ) : (
+              <ExternalLink
+                href={props.externalHref}
+                aria-label={`${label} ${props.value}`}
+                {...textProps}
+              >
+                {props.value}
+              </ExternalLink>
+            );
           return tooltip ? (
             <Tooltip title={tooltip} skipWrapper showUnderline>
               {link}

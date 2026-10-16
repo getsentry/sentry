@@ -142,3 +142,65 @@ class DatabaseBackedUserService(TestCase):
             },
         )
         assert result is None
+
+
+@control_silo_test
+class EmailMatchingCollationTest(TestCase):
+    """Email lookups must not depend on the database collation.
+
+    ``__iexact`` / ``in_iexact`` compile to a locale-aware ``UPPER()`` comparison,
+    which can fold some non-ASCII code points onto ASCII letters. The user service
+    re-checks results with ASCII-only case folding, so only ASCII case differences
+    are treated as the same address.
+    """
+
+    EMAIL = "owner@example-corp.example"
+    # differs from EMAIL by one non-ASCII character in the domain
+    NON_ASCII_VARIANT = "owner@example-corp.exımple"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user(email=self.EMAIL)
+
+    def test_get_many_by_email_requires_ascii_match(self) -> None:
+        assert (
+            user_service.get_many_by_email(emails=[self.NON_ASCII_VARIANT], is_verified=False) == []
+        )
+        assert [u.id for u in user_service.get_many_by_email(emails=[self.EMAIL])] == [self.user.id]
+        assert [u.id for u in user_service.get_many_by_email(emails=[self.EMAIL.upper()])] == [
+            self.user.id
+        ]
+
+    def test_get_user_by_email_matches_ascii_case(self) -> None:
+        found = user_service.get_user_by_email(email=self.EMAIL.upper())
+        assert found is not None and found.id == self.user.id
+
+    def test_get_or_create_by_email_treats_non_ascii_variant_as_new(self) -> None:
+        result = user_service.get_or_create_by_email(email=self.NON_ASCII_VARIANT)
+        assert result.created is True
+        assert result.user.id != self.user.id
+
+    def test_verify_any_email_requires_ascii_match(self) -> None:
+        UserEmail.objects.filter(user=self.user).update(is_verified=False)
+        assert user_service.verify_any_email(email=self.NON_ASCII_VARIANT) is False
+        assert UserEmail.objects.get(user=self.user, email=self.EMAIL).is_verified is False
+        assert user_service.verify_any_email(email=self.EMAIL.upper()) is True
+        assert UserEmail.objects.get(user=self.user, email=self.EMAIL).is_verified is True
+
+    def test_verify_user_email_requires_ascii_match(self) -> None:
+        UserEmail.objects.filter(user=self.user).update(is_verified=False)
+        assert (
+            user_service.verify_user_email(email=self.NON_ASCII_VARIANT, user_id=self.user.id)
+            is False
+        )
+        assert UserEmail.objects.get(user=self.user, email=self.EMAIL).is_verified is False
+
+    def test_verify_user_emails_requires_ascii_match(self) -> None:
+        result = user_service.verify_user_emails(
+            user_id_emails=[{"user_id": self.user.id, "email": self.NON_ASCII_VARIANT}]
+        )
+        assert result[self.user.id].exists is False
+        result = user_service.verify_user_emails(
+            user_id_emails=[{"user_id": self.user.id, "email": self.EMAIL.upper()}]
+        )
+        assert result[self.user.id].exists is True

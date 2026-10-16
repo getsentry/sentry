@@ -22,7 +22,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
+import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
 import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
@@ -155,7 +155,7 @@ export function useErrorsSeriesQuery(
   });
 
   useEventsTimeseriesSpotCheck({
-    config: ErrorsConfig,
+    config: eventsResponseTransforms,
     enabled,
     statsQueryResults: queryResults,
     organization,
@@ -192,7 +192,7 @@ export function useErrorsSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = ErrorsConfig.transformSeries!(
+      const transformedResult = eventsResponseTransforms.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -209,11 +209,11 @@ export function useErrorsSeriesQuery(
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      const resultTypes = ErrorsConfig.getSeriesResultType?.(
+      const resultTypes = eventsResponseTransforms.getSeriesResultType?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
-      const resultUnits = ErrorsConfig.getSeriesResultUnit?.(
+      const resultUnits = eventsResponseTransforms.getSeriesResultUnit?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
@@ -356,7 +356,7 @@ export function useErrorsTableQuery(
       const responseData = q.data.json;
 
       const transformedDataItem: TableDataWithTitle = {
-        ...ErrorsConfig.transformTable(
+        ...eventsResponseTransforms.transformTable(
           responseData,
           filteredWidget.queries[i]!,
           organization,

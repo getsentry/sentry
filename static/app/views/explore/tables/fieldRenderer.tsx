@@ -48,7 +48,7 @@ import {
   isPartialSpanOrTraceData,
 } from 'sentry/views/explore/tables/tracesTable/utils';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 interface FieldProps {

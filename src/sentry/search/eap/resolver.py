@@ -1329,6 +1329,8 @@ class SearchResolver:
                     extra={
                         "organization_id": self.params.organization_id,
                         "function_name": function_name,
+                        "column": column,
+                        "query_string": self.params.query_string,
                     },
                 )
                 if self.config.disable_deprecated_functions:

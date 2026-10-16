@@ -25,6 +25,7 @@ const REASON_TITLES: Record<string, string> = {
   buffer_overflow: t('SDK buffer overflow'),
   ignore_spans: t('Dropped by ignored spans'),
   network_error: t('Unretried network error'),
+  no_parent_span: t('Missing parent span'),
   queue_overflow: t('SDK queue overflow'),
   ratelimit_backoff: t('SDK rate-limit backoff'),
   sample_rate: t('Dropped by sample rate'),
@@ -33,13 +34,16 @@ const REASON_TITLES: Record<string, string> = {
   'filtered-transaction': t('Filtered transaction'),
   'ip-address': t('IP address filter'),
   'legacy-browsers': t('Legacy browser filter'),
+  localhost: t('Localhost filter'),
   'release-version': t('Release version filter'),
   'web-crawlers': t('Web crawler filter'),
+  cors: t('Disallowed origin'),
   internal: t('Sentry processing error'),
   invalid_dsc: t('Invalid trace context'),
   invalid_json: t('Malformed JSON payload'),
   invalid_transaction: t('Invalid transaction data'),
   missing_dsc: t('Missing trace context'),
+  timestamp: t('Invalid timestamp'),
   'too_large:event': t('Event payload too large'),
   'too_large:log': t('Log payload too large'),
   'too_large:profile': t('Profile payload too large'),
@@ -53,6 +57,9 @@ const REASON_TITLES: Record<string, string> = {
 };
 
 function normalizeReason(reason: string): string {
+  if (reason === 'ignored') {
+    return 'ignore_spans';
+  }
   return reason.endsWith('_usage_exceeded') ? 'usage_exceeded' : reason;
 }
 
@@ -69,6 +76,7 @@ const REASON_DESCRIPTIONS: Record<
   buffer_overflow: t('SDK buffer filled before data could be sent.'),
   ignore_spans: t('Span dropped by your ignored spans configuration.'),
   network_error: t('Request failed before reaching Sentry.'),
+  no_parent_span: t('Span skipped because no parent span was active.'),
   queue_overflow: t("SDK's send queue was full."),
   sample_rate: t('Event dropped by your configured sample rate.'),
   send_error: t('Sentry rejected the event with an error response.'),
@@ -76,13 +84,16 @@ const REASON_DESCRIPTIONS: Record<
   'filtered-transaction': t('Transaction matched the default health check filter.'),
   'ip-address': t('Event IP address matched one of your custom filters.'),
   'legacy-browsers': t('Browser matched your legacy browser filter.'),
+  localhost: t('Event was sent from a local address.'),
   'release-version': t('Event release matched one of your custom filters.'),
   'web-crawlers': t("User agent matched Sentry's known crawler list."),
+  cors: t("Origin not in project's Allowed Domains."),
   internal: t('Sentry failed to process the event.'),
   invalid_dsc: t('Trace header did not match the spans sent.'),
   invalid_json: t('Event rejected due to invalid JSON.'),
   invalid_transaction: t('Transaction contained invalid data.'),
   missing_dsc: t('Envelope was missing the required trace header.'),
+  timestamp: t('Event timestamp was too far in the past or future.'),
   'too_large:event': dataType =>
     dataType
       ? t('The %s event exceeded maximum payload size.', dataType)
@@ -106,7 +117,7 @@ const REASON_DESCRIPTIONS: Record<
       : t('Your organization hit its quota for this event type.'),
 };
 
-export function dataCategoryInfo(category: string) {
+function dataCategoryInfo(category: string) {
   return Object.values(DATA_CATEGORY_INFO).find(info => info.name === category);
 }
 
@@ -117,7 +128,7 @@ export function reasonDescription(reason: string, category: string): string | un
     : description;
 }
 
-export function buildInvestigatePrompt(args: {
+export function buildTroubleshootPrompt(args: {
   category: string;
   dataset: DiscoverDatasets;
   outcome: string;

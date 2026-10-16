@@ -19,10 +19,6 @@ const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 const COMPONENT_MAP = {
   [SentryInitRenderReactComponent.SETUP_WIZARD]: () =>
     import(/* webpackChunkName: "SetupWizard" */ 'sentry/views/setupWizard'),
-  [SentryInitRenderReactComponent.SU_STAFF_ACCESS_FORM]: () =>
-    import(
-      /* webpackChunkName: "SuperuserStaffAccessForm" */ 'sentry/components/superuserStaffAccessForm'
-    ),
 };
 
 interface SimpleRouterProps {
@@ -32,7 +28,7 @@ interface SimpleRouterProps {
 function SimpleRouter({element}: SimpleRouterProps) {
   const [router] = useState(() => createBrowserRouter([{path: '*', element}]));
 
-  return <RouterProvider router={router} />;
+  return <RouterProvider router={router} useTransitions={false} />;
 }
 
 async function processItem(initConfig: OnSentryInitConfiguration) {
