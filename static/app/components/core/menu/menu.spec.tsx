@@ -13,7 +13,7 @@ import {Menu} from '@sentry/scraps/menu';
 function CheckboxMenu() {
   const [checked, setChecked] = useState(false);
   return (
-    <Menu>
+    <Menu.Root>
       <Menu.Trigger>Choose options</Menu.Trigger>
       <Menu.Content>
         <Menu.List aria-label="Options">
@@ -24,7 +24,7 @@ function CheckboxMenu() {
           />
         </Menu.List>
       </Menu.Content>
-    </Menu>
+    </Menu.Root>
   );
 }
 
@@ -48,18 +48,18 @@ describe('Menu', () => {
   it('requires search to be inside the header', () => {
     expect(() =>
       render(
-        <Menu defaultOpen>
+        <Menu.Root defaultOpen>
           <Menu.Content>
             <Menu.Search aria-label="Search" />
           </Menu.Content>
-        </Menu>
+        </Menu.Root>
       )
     ).toThrow('Menu.Search must be used inside Menu.Header');
   });
 
   it('opens from the keyboard, skips disabled items, and closes with Escape', async () => {
     render(
-      <Menu>
+      <Menu.Root>
         <Menu.Trigger>More actions</Menu.Trigger>
         <Menu.Content>
           <Menu.List aria-label="More actions">
@@ -67,7 +67,7 @@ describe('Menu', () => {
             <Menu.ListItem label="Available" />
           </Menu.List>
         </Menu.Content>
-      </Menu>
+      </Menu.Root>
     );
 
     screen.getByRole('button', {name: 'More actions'}).focus();
@@ -87,7 +87,7 @@ describe('Menu', () => {
     const onSelect = jest.fn();
 
     render(
-      <Menu>
+      <Menu.Root>
         <Menu.Trigger>Choose project</Menu.Trigger>
         <Menu.Content>
           <Menu.Header title="Projects">
@@ -107,7 +107,7 @@ describe('Menu', () => {
           </Menu.List>
           <Menu.Footer>Manage projects</Menu.Footer>
         </Menu.Content>
-      </Menu>
+      </Menu.Root>
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Choose project'}));
@@ -138,7 +138,7 @@ describe('Menu', () => {
     const onSelect = jest.fn();
 
     render(
-      <Menu>
+      <Menu.Root>
         <Menu.Trigger>Actions</Menu.Trigger>
         <Menu.Content>
           <Menu.List aria-label="Actions">
@@ -158,7 +158,7 @@ describe('Menu', () => {
             </Menu.Submenu>
           </Menu.List>
         </Menu.Content>
-      </Menu>
+      </Menu.Root>
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Actions'}));

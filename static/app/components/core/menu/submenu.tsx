@@ -31,6 +31,7 @@ export function MenuSubmenu({label, children, disabled, textValue}: MenuSubmenuP
   const searchRef = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState('');
   const [isFocused, setFocused] = useState(false);
+  const [isHovered, setHovered] = useState(false);
   const hidden = isMenuItemHidden(parent.search, label, textValue);
   useSectionItemVisibility(!hidden);
 
@@ -45,7 +46,7 @@ export function MenuSubmenu({label, children, disabled, textValue}: MenuSubmenuP
         as="div"
         label={label}
         disabled={disabled}
-        isFocused={isFocused}
+        isFocused={isFocused || isHovered}
         trailingItems={<IconChevron size="xs" direction="right" aria-hidden="true" />}
         innerWrapProps={{
           role: 'menuitem',
@@ -56,7 +57,13 @@ export function MenuSubmenu({label, children, disabled, textValue}: MenuSubmenuP
           ref: overlay.triggerProps.ref,
           onFocus: () => setFocused(true),
           onBlur: () => setFocused(false),
-          onMouseEnter: () => !disabled && setOpen(true),
+          onMouseEnter: () => {
+            if (!disabled) {
+              setHovered(true);
+              setOpen(true);
+            }
+          },
+          onMouseLeave: () => setHovered(false),
           onClick: () => !disabled && setOpen(value => !value),
           onKeyDown: event => {
             if (

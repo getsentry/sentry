@@ -8,6 +8,7 @@ import {MenuSubmenu} from './submenu';
 export function Menu(props: MenuProps) {
   return <MenuRoot {...props} />;
 }
+Menu.Root = MenuRoot;
 Menu.Trigger = MenuTrigger;
 Menu.Content = MenuContent;
 Menu.Header = MenuHeader;

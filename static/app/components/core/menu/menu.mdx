@@ -18,7 +18,7 @@ import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/menu');
 
-Use `Menu` to build an action menu with a custom layout. Compose its parts in JSX: put items in `Menu.List`, with an optional `Menu.Header` above it and `Menu.Footer` below it. The header and footer remain visible when the list scrolls.
+Use `Menu.Root` to build an action menu with a custom layout. Compose its parts in JSX: put items in `Menu.List`, with an optional `Menu.Header` above it and `Menu.Footer` below it. The header and footer remain visible when the list scrolls.
 
 To filter items, place `Menu.Search` inside `Menu.Header`. Search uses each item's `label`; provide `textValue` when the label contains custom content.
 
@@ -28,8 +28,8 @@ For an action menu defined by an array of items, use `DropdownMenu`. For choosin
 
 Use `Menu.Section` and `Menu.SectionLabel` to group related actions. Add `Menu.SectionSeparator` between groups when a divider helps distinguish them.
 
-<Storybook.Demo align="start">
-  <Menu>
+<Storybook.Demo align="start" minHeight="96px" padding="lg xl">
+  <Menu.Root>
     <Menu.Trigger>Grouped actions</Menu.Trigger>
     <Menu.Content>
       <Menu.Header title="Actions">
@@ -54,11 +54,11 @@ Use `Menu.Section` and `Menu.SectionLabel` to group related actions. Add `Menu.S
         </Text>
       </Menu.Footer>
     </Menu.Content>
-  </Menu>
+  </Menu.Root>
 </Storybook.Demo>
 
 ```jsx
-<Menu>
+<Menu.Root>
   <Menu.Trigger>Grouped actions</Menu.Trigger>
   <Menu.Content>
     <Menu.Header title="Actions">
@@ -83,7 +83,7 @@ Use `Menu.Section` and `Menu.SectionLabel` to group related actions. Add `Menu.S
       </Text>
     </Menu.Footer>
   </Menu.Content>
-</Menu>
+</Menu.Root>
 ```
 
 ## Checkbox Items
@@ -94,7 +94,7 @@ export function CheckboxItemsDemo() {
   const [includeDetails, setIncludeDetails] = useState(true);
   const [includeHistory, setIncludeHistory] = useState(false);
   return (
-    <Menu>
+    <Menu.Root>
       <Menu.Trigger>View options</Menu.Trigger>
       <Menu.Content>
         <Menu.List aria-label="View options">
@@ -110,11 +110,11 @@ export function CheckboxItemsDemo() {
           />
         </Menu.List>
       </Menu.Content>
-    </Menu>
+    </Menu.Root>
   );
 }
 
-<Storybook.Demo align="start">
+<Storybook.Demo align="start" minHeight="96px" padding="lg xl">
   <CheckboxItemsDemo />
 </Storybook.Demo>
 
@@ -124,7 +124,7 @@ function CheckboxItemsDemo() {
   const [includeHistory, setIncludeHistory] = useState(false);
 
   return (
-    <Menu>
+    <Menu.Root>
       <Menu.Trigger>View options</Menu.Trigger>
       <Menu.Content>
         <Menu.List aria-label="View options">
@@ -140,7 +140,7 @@ function CheckboxItemsDemo() {
           />
         </Menu.List>
       </Menu.Content>
-    </Menu>
+    </Menu.Root>
   );
 }
 ```
@@ -149,8 +149,8 @@ function CheckboxItemsDemo() {
 
 Use `Menu.Submenu` for actions that open another menu. Its header can include search for the submenu's items.
 
-<Storybook.Demo align="start">
-  <Menu>
+<Storybook.Demo align="start" minHeight="96px" padding="lg xl">
+  <Menu.Root>
     <Menu.Trigger>Actions</Menu.Trigger>
     <Menu.Content>
       <Menu.List aria-label="Actions">
@@ -175,11 +175,11 @@ Use `Menu.Submenu` for actions that open another menu. Its header can include se
         </Menu.Submenu>
       </Menu.List>
     </Menu.Content>
-  </Menu>
+  </Menu.Root>
 </Storybook.Demo>
 
 ```jsx
-<Menu>
+<Menu.Root>
   <Menu.Trigger>Actions</Menu.Trigger>
   <Menu.Content>
     <Menu.List aria-label="Actions">
@@ -204,5 +204,5 @@ Use `Menu.Submenu` for actions that open another menu. Its header can include se
       </Menu.Submenu>
     </Menu.List>
   </Menu.Content>
-</Menu>
+</Menu.Root>
 ```

@@ -53,6 +53,7 @@ function BaseMenuItem({
 }: BaseMenuItemProps) {
   const {search, close} = useMenuContext();
   const [isFocused, setFocused] = useState(false);
+  const [isHovered, setHovered] = useState(false);
   const hidden = isMenuItemHidden(search, label, textValue);
   useSectionItemVisibility(!hidden);
 
@@ -68,7 +69,7 @@ function BaseMenuItem({
         {...props}
         label={label}
         disabled={disabled}
-        isFocused={isFocused}
+        isFocused={isFocused || isHovered}
         isSelected={checked}
         innerWrapProps={{
           role,
@@ -77,6 +78,8 @@ function BaseMenuItem({
           'aria-checked': role === 'menuitemcheckbox' ? checked : undefined,
           onFocus: () => setFocused(true),
           onBlur: () => setFocused(false),
+          onMouseEnter: () => !disabled && setHovered(true),
+          onMouseLeave: () => setHovered(false),
           onClick: () => {
             if (disabled) {
               return;

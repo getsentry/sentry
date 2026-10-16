@@ -55,7 +55,7 @@ export function MenuHeader({title, children, ...props}: MenuHeaderProps) {
   const menu = useMenuContext();
   return (
     <MenuHeaderContext value={menu}>
-      <Stack borderBottom="muted" padding="xs" gap="xs" {...props}>
+      <Stack borderBottom="muted" padding="xs" gap="0" {...props}>
         {title && (
           <Container padding="md lg">
             <Text
@@ -79,9 +79,14 @@ export function MenuHeader({title, children, ...props}: MenuHeaderProps) {
 
 type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input>;
 
-export function SearchInput(props: SearchInputProps) {
+export function SearchInput({
+  containerPadding = 'xs',
+  ...props
+}: SearchInputProps & {
+  containerPadding?: React.ComponentProps<typeof Container>['padding'];
+}) {
   return (
-    <Container padding="xs">
+    <Container padding={containerPadding}>
       <InputGroup>
         <InputGroup.LeadingItems disablePointerEvents>
           <Flex paddingLeft="2xs" align="center" justify="center">
@@ -106,6 +111,7 @@ export function MenuSearch(props: MenuSearchProps) {
   return (
     <SearchInput
       {...props}
+      containerPadding="0 xs xs xs"
       ref={searchRef}
       size="md"
       css={css`
