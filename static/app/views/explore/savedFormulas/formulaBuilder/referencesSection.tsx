@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
@@ -88,11 +89,11 @@ export function ReferencesSection({dataset, params, references, onChange}: Props
         'Named equations the formula combines. Parameters can be used anywhere an attribute can.'
       )}
     >
-      <Stack gap="md">
+      <Stack gap="lg">
         {references.map(reference => (
           <Grid
             key={reference.key}
-            columns="140px minmax(0, 1fr) max-content"
+            columns="200px minmax(0, 1fr) max-content"
             align="center"
             gap="md"
           >
@@ -125,10 +126,11 @@ export function ReferencesSection({dataset, params, references, onChange}: Props
         ))}
         <Flex>
           <Button
-            variant="link"
+            size="sm"
+            icon={<IconAdd />}
             onClick={() => onChange([...references, newReference()])}
           >
-            {t('+ Add reference')}
+            {t('Add Reference')}
           </Button>
         </Flex>
       </Stack>
