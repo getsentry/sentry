@@ -483,15 +483,27 @@ export function SudoModal({
         <Footer>
           {isAccessStep ? (
             <Flex width="100%" justify="between" align="center" gap="md">
-              <superuserForm.SubmitButton
-                variant="secondary"
-                onClick={() => {
-                  superuserForm.setFieldValue('superuserAccessCategory', 'cops_csm');
-                  superuserForm.setFieldValue('superuserReason', 'COPS and CSM use');
-                }}
-              >
-                {t('COPS/CSM')}
-              </superuserForm.SubmitButton>
+              {/* Not a submit button: as the first submit button in the form,
+                  pressing Enter in the reason field would trigger it and
+                  overwrite the typed reason with the COPS/CSM preset. */}
+              <superuserForm.Subscribe selector={state => state.isSubmitting}>
+                {isSubmitting => (
+                  <Button
+                    variant="secondary"
+                    disabled={isSubmitting}
+                    onClick={() => {
+                      superuserForm.setFieldValue(
+                        'superuserAccessCategory',
+                        'cops_csm'
+                      );
+                      superuserForm.setFieldValue('superuserReason', 'COPS and CSM use');
+                      superuserForm.handleSubmit();
+                    }}
+                  >
+                    {t('COPS/CSM')}
+                  </Button>
+                )}
+              </superuserForm.Subscribe>
               <superuserForm.SubmitButton>{t('Continue')}</superuserForm.SubmitButton>
             </Flex>
           ) : (
