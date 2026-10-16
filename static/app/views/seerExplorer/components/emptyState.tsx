@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 
 import {Button} from '@sentry/scraps/button';
-import {Container as LayoutContainer, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -48,7 +48,7 @@ export function EmptyState({
         // with no way out.
         <Fragment>
           <IconSeer size="xl" />
-          <LayoutContainer marginTop="xl" maxWidth="300px">
+          <Container marginTop="xl" maxWidth="300px">
             <Text as="div" align="center" variant="secondary" density="comfortable">
               {errorStatusCode === 404
                 ? tct('Session not found (run_id=[runIdDisplay]).', {
@@ -56,36 +56,36 @@ export function EmptyState({
                   })
                 : t('There was a problem loading the conversation.')}
             </Text>
-          </LayoutContainer>
+          </Container>
           {onStartNewChat && (
             // The composer is disabled on this screen: sending would post into the
             // run that just failed rather than open a fresh one, so this is the way out.
-            <LayoutContainer marginTop="xl" maxWidth="300px">
+            <Container marginTop="xl" maxWidth="300px">
               <Text as="div" align="center" variant="secondary" density="comfortable">
                 <Button variant="link" size="zero" onClick={onStartNewChat}>
                   {t('Start a new chat')}
                 </Button>
               </Text>
-            </LayoutContainer>
+            </Container>
           )}
         </Fragment>
       ) : isLoading ? (
         <Fragment>
           <LoadingIndicator size={32} />
-          <LayoutContainer marginTop="xl" maxWidth="300px">
+          <Container marginTop="xl" maxWidth="300px">
             <Text as="div" align="center" variant="secondary" density="comfortable">
               {t('Ask Seer anything about your application.')}
             </Text>
-          </LayoutContainer>
+          </Container>
         </Fragment>
       ) : (
         <Fragment>
           <IconSeer size="xl" animation="idle" />
-          <LayoutContainer marginTop="xl" maxWidth="300px">
+          <Container marginTop="xl" maxWidth="300px">
             <Text as="div" align="center" variant="secondary" density="comfortable">
               {t('Ask Seer anything about your application.')}
             </Text>
-          </LayoutContainer>
+          </Container>
           {onSuggestionClick && suggestions && (
             <Stack
               align="center"
@@ -103,7 +103,7 @@ export function EmptyState({
                     />
                   ))
                 : suggestions.suggestions.map((suggestion, index) => (
-                    <LayoutContainer
+                    <Container
                       key={index}
                       flexGrow={{zero: 1, sm: 0}}
                       width={{zero: '100%', sm: 'auto'}}
@@ -114,18 +114,18 @@ export function EmptyState({
                       >
                         {suggestion.text}
                       </SuggestionButton>
-                    </LayoutContainer>
+                    </Container>
                   ))}
             </Stack>
           )}
           {displaySlackAgentReminder && (
-            <LayoutContainer marginTop="xl" maxWidth="300px">
+            <Container marginTop="xl" maxWidth="300px">
               <Text as="div" align="center" variant="secondary" density="comfortable">
                 {t(
                   'Want to chat in Slack? Just @ Sentry to debug and investigate issues.'
                 )}
               </Text>
-            </LayoutContainer>
+            </Container>
           )}
         </Fragment>
       )}
