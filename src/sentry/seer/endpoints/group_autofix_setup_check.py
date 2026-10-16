@@ -113,7 +113,11 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         operation_id="getIssueAutofixSetupCheck",
         summary="Check Autofix Setup for an Issue",
         description="Check whether an issue's organization and project meet Autofix setup requirements.",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, IssueParams.ISSUE_ID],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+        ],
         responses={
             200: inline_sentry_response_serializer(
                 "GroupAutofixSetupCheckResponse", GroupAutofixSetupCheckResponse

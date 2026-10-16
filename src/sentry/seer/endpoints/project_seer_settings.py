@@ -444,6 +444,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="getProjectSeerSettings",
         summary="Get Seer Settings for a Project",
+        description="Return the current Seer automation settings configured for the project.",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         responses={
             200: inline_sentry_response_serializer(
