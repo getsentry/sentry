@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {useMatches} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 
@@ -12,17 +12,15 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
+import {
+  usePageContextCapture,
+  usePageContextReady,
+} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 import type {ChatSuggestion} from 'sentry/views/seerExplorer/types';
 
-const SUGGESTIONS_TIMEOUT_MS = 4000;
-
-class SuggestionsTimeoutError extends Error {
-  constructor() {
-    super('Timed out generating suggestions');
-    this.name = 'SuggestionsTimeoutError';
-  }
-}
+// How long the placeholders show before the fixed suggestions replace them.
+// Covers both the page loading its context and the request itself.
+const SUGGESTIONS_TIMEOUT_MS = 5000;
 
 const LEGACY_SUGGESTIONS: ChatSuggestion[] = [
   {text: t('Which of my open issues are getting worse, not better?')},
@@ -46,6 +44,41 @@ function getFallbackChatSuggestions(route: string, hasDbData: boolean): ChatSugg
       ? {text: t('What are my slowest DB queries?')}
       : {text: t('What else should I set up to get more out of Sentry?')},
   ];
+}
+
+type TimeoutReason = 'timeout' | 'incomplete_context';
+
+/**
+ * Calls `onTimeout` with a reason once `isWaiting` has held for SUGGESTIONS_TIMEOUT_MS.
+ * Restarts when `queryKey` changes so navigating with the panel open starts a fresh wait.
+ */
+function useSuggestionsTimeout({
+  queryKey,
+  isWaiting,
+  isPageReady,
+  onTimeout,
+}: {
+  isPageReady: boolean;
+  isWaiting: boolean;
+  onTimeout: (reason: TimeoutReason) => void;
+  queryKey: string;
+}): void {
+  // Read when the timer fires, without restarting it when the page becomes ready.
+  const isPageReadyRef = useRef(isPageReady);
+  useEffect(() => {
+    isPageReadyRef.current = isPageReady;
+  });
+
+  useEffect(() => {
+    if (!isWaiting) {
+      return;
+    }
+    const timeoutId = window.setTimeout(() => {
+      onTimeout(isPageReadyRef.current ? 'timeout' : 'incomplete_context');
+    }, SUGGESTIONS_TIMEOUT_MS);
+    return () => window.clearTimeout(timeoutId);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- queryKey restarts the timer for a new query.
+  }, [queryKey, isWaiting, onTimeout]);
 }
 
 export type ChatSuggestionsState =
@@ -76,6 +109,60 @@ export function useChatSuggestions({
   const {selection} = usePageFilters();
   const {projects} = useProjects();
   const capturePageContext = usePageContextCapture();
+  const isPageReady = usePageContextReady(route);
+
+  const queryKey = [
+    'seer-chat-suggestions',
+    organization?.slug,
+    route,
+    params,
+    selection.projects,
+    allowStructuredContext,
+  ];
+  const serializedQueryKey = JSON.stringify(queryKey);
+
+  // Latched so a late response doesn't swap out suggestions the user is reading.
+  const [timeoutReason, setTimeoutReason] = useState<TimeoutReason | null>(null);
+  const hasTimedOut = timeoutReason !== null;
+
+  // Clear the timeout when the query changes, e.g. navigating with the panel open.
+  const [prevQueryKey, setPrevQueryKey] = useState(serializedQueryKey);
+  if (serializedQueryKey !== prevQueryKey) {
+    setPrevQueryKey(serializedQueryKey);
+    setTimeoutReason(null);
+  }
+
+  const query = useQuery({
+    queryKey,
+    queryFn: () => {
+      const {screenshot: pageContext} = capturePageContext({
+        route,
+        allowStructured: allowStructuredContext,
+      });
+      return fetchMutation<{suggestions: ChatSuggestion[]}>({
+        method: 'POST',
+        url: getApiUrl('/organizations/$organizationIdOrSlug/seer/chat-suggestions/', {
+          path: {organizationIdOrSlug: organization?.slug ?? ''},
+        }),
+        data: {
+          route,
+          route_params: params,
+          page_context: pageContext ?? '',
+          project_ids: selection.projects,
+        },
+      });
+    },
+    enabled: enabled && hasLlmChatSuggestions && isPageReady && !hasTimedOut,
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  });
+
+  useSuggestionsTimeout({
+    queryKey: serializedQueryKey,
+    isWaiting: enabled && hasLlmChatSuggestions && query.isPending && !hasTimedOut,
+    isPageReady,
+    onTimeout: setTimeoutReason,
+  });
 
   // For the fallback suggestions: do any selected projects (or member projects, if none are selected) send DB data?
   const isProjectSelectionExplicit =
@@ -88,63 +175,33 @@ export function useChatSuggestions({
         : project.isMember)
   );
 
-  const query = useQuery({
-    queryKey: [
-      'seer-chat-suggestions',
-      organization?.slug,
-      route,
-      params,
-      selection.projects,
-      allowStructuredContext,
-    ],
-    queryFn: () => {
-      const {screenshot: pageContext} = capturePageContext({
-        route,
-        allowStructured: allowStructuredContext,
-      });
-      return Promise.race([
-        fetchMutation<{suggestions: ChatSuggestion[]}>({
-          method: 'POST',
-          url: getApiUrl('/organizations/$organizationIdOrSlug/seer/chat-suggestions/', {
-            path: {organizationIdOrSlug: organization?.slug ?? ''},
-          }),
-          data: {
-            route,
-            route_params: params,
-            page_context: pageContext ?? '',
-            project_ids: selection.projects,
-          },
-        }),
-        new Promise<never>((_, reject) =>
-          window.setTimeout(
-            () => reject(new SuggestionsTimeoutError()),
-            SUGGESTIONS_TIMEOUT_MS
-          )
-        ),
-      ]);
-    },
-    enabled: enabled && hasLlmChatSuggestions,
-    staleTime: 10 * 60 * 1000,
-    retry: false,
-  });
+  // Stable fallback state so a late response doesn't re-fire the analytics.
+  const fallbackState = useMemo(
+    (): ChatSuggestionsState => ({
+      isLoading: false,
+      source: 'fallback',
+      suggestions: getFallbackChatSuggestions(route, hasDbData),
+    }),
+    [route, hasDbData]
+  );
 
   const state = useMemo((): ChatSuggestionsState => {
     if (!hasLlmChatSuggestions) {
       return {isLoading: false, source: 'legacy', suggestions: LEGACY_SUGGESTIONS};
     }
+    if (hasTimedOut) {
+      return fallbackState;
+    }
     if (query.isPending) {
       return {isLoading: true};
     }
-    const generatedSuggestions = query.data?.suggestions ?? [];
-    if (generatedSuggestions.length > 0) {
-      return {isLoading: false, source: 'generated', suggestions: generatedSuggestions};
+    if (query.data?.suggestions.length) {
+      return {isLoading: false, source: 'generated', suggestions: query.data.suggestions};
     }
-    return {
-      isLoading: false,
-      source: 'fallback',
-      suggestions: getFallbackChatSuggestions(route, hasDbData),
-    };
-  }, [hasLlmChatSuggestions, query.isPending, query.data, route, hasDbData]);
+    return fallbackState;
+  }, [hasLlmChatSuggestions, hasTimedOut, query.isPending, query.data, fallbackState]);
+
+  const fallbackReason = timeoutReason ?? (query.isError ? 'error' : 'empty');
 
   useEffect(() => {
     if (!enabled || state.isLoading) {
@@ -154,20 +211,13 @@ export function useChatSuggestions({
       organization,
       referrer: route,
       source: state.source,
-      fallback_reason:
-        state.source === 'fallback'
-          ? query.error instanceof SuggestionsTimeoutError
-            ? 'timeout'
-            : query.isError
-              ? 'error'
-              : 'empty'
-          : undefined,
+      fallback_reason: state.source === 'fallback' ? fallbackReason : undefined,
       count: state.suggestions.length,
       action_types: state.suggestions.flatMap(suggestion =>
         suggestion.action_type ? [suggestion.action_type] : []
       ),
     });
-  }, [enabled, state, organization, route, query.error, query.isError]);
+  }, [enabled, state, organization, route, fallbackReason]);
 
   return state;
 }

@@ -6,6 +6,9 @@
   "exports": {
     ".": "./index.ts"
   },
+  "scripts": {
+    "test": "sentry-test --watch --config jest.config.mjs"
+  },
   "dependencies": {
     "@oxlint/plugins": "1.85.0"
   },

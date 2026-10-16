@@ -1,10 +1,9 @@
 from collections.abc import Sequence
-from typing import TypedDict, overload
+from typing import overload
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
 
-from bitfield import typed_dict_bitfield
 from sentry.conf.server import SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
 
 
@@ -81,41 +80,6 @@ class HasApiScopes(models.Model):
     class Meta:
         abstract = True
 
-    # List of scopes in bit form
-    ScopesDict = TypedDict(
-        "ScopesDict",
-        {
-            "project:read": bool,
-            "project:write": bool,
-            "project:admin": bool,
-            "project:releases": bool,
-            "team:read": bool,
-            "team:write": bool,
-            "team:admin": bool,
-            "event:read": bool,
-            "event:write": bool,
-            "event:admin": bool,
-            "org:read": bool,
-            "org:write": bool,
-            "org:admin": bool,
-            "member:read": bool,
-            "member:write": bool,
-            "member:admin": bool,
-            "org:integrations": bool,
-            "alerts:read": bool,
-            "alerts:write": bool,
-            "member:invite": bool,
-            "project:distribution": bool,
-            "org:ci": bool,
-            "dashboard:read": bool,
-            "dashboard:write": bool,
-            "dashboard:delete": bool,
-            "dashboard:create": bool,
-        },
-    )
-    assert set(ScopesDict.__annotations__) == set(ApiScopes())
-    scopes = typed_dict_bitfield(ScopesDict)
-
     # Human readable list of scopes
     scope_list = ArrayField(models.TextField(), default=list)
 
@@ -123,9 +87,7 @@ class HasApiScopes(models.Model):
         """
         Returns a list of the token's scopes in alphabetical order.
         """
-        if self.scope_list:
-            return sorted(self.scope_list)
-        return sorted([k for k, v in self.scopes.items() if v])
+        return sorted(self.scope_list)
 
     def has_scope(self, scope: str) -> bool:
         """

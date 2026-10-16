@@ -31,6 +31,7 @@ import {
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
   InvestigationAgenticDetailFixture,
+  InvestigationCommentFixture,
   InvestigationDetailFixture,
   InvestigationOrchestrationFixture,
   InvestigationQueryOutputFixture,
@@ -129,6 +130,7 @@ describe('Investigation detail', () => {
       method: 'PUT',
       body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
+    MockApiClient.addMockResponse({url: `${detailUrl}comments/`, body: []});
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -758,8 +760,11 @@ describe('Investigation detail', () => {
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('renders the persisted title when completion has no preview', async () => {
@@ -913,8 +918,11 @@ describe('Investigation detail', () => {
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('keeps polling while an auto-run cell is waiting to start', async () => {
@@ -1914,8 +1922,11 @@ describe('Investigation detail', () => {
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('optimistically renames and debounces persistence', async () => {
@@ -2061,8 +2072,11 @@ describe('Investigation detail', () => {
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('polls for and displays a generated title after block execution finishes', async () => {
@@ -2117,6 +2131,10 @@ describe('Investigation detail', () => {
       body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/investigation-2/comments/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/investigation-2/',
       body: InvestigationDetailFixture({id: 'investigation-2'}),
     });
@@ -2159,14 +2177,35 @@ describe('Investigation detail', () => {
     );
   });
 
+  it('shows a capped comment count when more comments exist', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigationWithQueryResult(),
+    });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}comments/`,
+      body: [InvestigationCommentFixture()],
+      headers: {
+        Link: `<${detailUrl}comments/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"`,
+      },
+    });
+
+    renderView();
+
+    expect(await screen.findByRole('button', {name: '1+ comments'})).toBeInTheDocument();
+  });
+
   describe('deletes after confirmation and returns to the list with fake timers', () => {
     beforeEach(() => {
       jest.useFakeTimers();
     });
 
     afterEach(async () => {
-      await act(() => jest.runOnlyPendingTimersAsync());
-      jest.useRealTimers();
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('deletes after confirmation and returns to the list', async () => {

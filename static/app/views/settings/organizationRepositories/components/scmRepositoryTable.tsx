@@ -22,6 +22,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Table, type TableColumnConfig} from '@sentry/scraps/table';
@@ -694,7 +695,7 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
               position="bottom-end"
               strategy="fixed"
               trigger={triggerProps => (
-                <Button
+                <OverlayTrigger.IconButton
                   {...triggerProps}
                   size="xs"
                   variant="transparent"

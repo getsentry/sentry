@@ -10,11 +10,11 @@ import sentry
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.models.projectownership import ProjectOwnership
-from sentry.notifications.types import NotificationOrigin
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -43,7 +43,7 @@ class DeliverDigestTest(TestCase):
                 project_id=self.project.id,
             )
             notification_uuid = str(uuid.uuid4())
-            origin = NotificationOrigin.from_legacy_rule(rule)
+            origin = create_notification_origin(rule)
             backend.add(
                 key,
                 event_to_record(as_group_event(event), [origin], notification_uuid),

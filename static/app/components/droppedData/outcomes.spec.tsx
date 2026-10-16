@@ -33,6 +33,18 @@ describe('reasonTitle', () => {
     expect(reasonTitle('log_bytes_usage_exceeded')).toBe('Quota exceeded');
   });
 
+  it('titles the localhost filter and invalid timestamp reasons', () => {
+    expect(reasonTitle('localhost')).toBe('Localhost filter');
+    expect(reasonTitle('timestamp')).toBe('Invalid timestamp');
+  });
+
+  it("maps the JavaScript SDK's ignored reason to the ignored spans title", () => {
+    expect(reasonTitle('ignored')).toBe('Dropped by ignored spans');
+    expect(reasonDescription('ignored', 'span')).toBe(
+      'Span dropped by your ignored spans configuration.'
+    );
+  });
+
   it('falls back to the raw code for an unknown reason', () => {
     expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
   });
@@ -68,5 +80,12 @@ describe('reasonDescription', () => {
 
   it('returns undefined for an unknown reason', () => {
     expect(reasonDescription('some_new_reason', 'span')).toBeUndefined();
+  });
+
+  it('describes the cors reason', () => {
+    expect(reasonTitle('cors')).toBe('Disallowed origin');
+    expect(reasonDescription('cors', 'span')).toBe(
+      "Origin not in project's Allowed Domains."
+    );
   });
 });

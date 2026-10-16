@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import {getSpacing, rc, type Responsive} from '@sentry/scraps/layout';
-
-import type {SpaceSize} from 'sentry/utils/theme';
+import type {SpaceSize} from '@sentry/scraps/theme';
 
 export interface DescriptionListProps extends React.HTMLAttributes<HTMLDListElement> {
   /**

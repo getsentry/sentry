@@ -101,9 +101,12 @@ describe('MetricsTabContent', () => {
     route: '/organizations/:orgId/explore/metrics/',
   };
 
+  const scrollIntoView = jest.fn();
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     trackAnalyticsMock.mockClear();
+    Element.prototype.scrollIntoView = scrollIntoView;
     resetMockDate();
     setupPageFilters();
 
@@ -227,6 +230,33 @@ describe('MetricsTabContent', () => {
     expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
   });
+
+  it.each(['Add Metric', 'Add Equation'])(
+    'scrolls the new panel into view when %s is clicked',
+    async buttonName => {
+      render(
+        <ProviderWrapper>
+          <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        </ProviderWrapper>,
+        {
+          initialRouterConfig,
+          organization,
+        }
+      );
+
+      expect(await screen.findAllByTestId('metric-panel')).toHaveLength(1);
+
+      await userEvent.click(screen.getAllByRole('button', {name: buttonName})[0]!);
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
+      });
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      expect(scrollIntoView.mock.contexts[0]).toBe(
+        screen.getAllByTestId('metric-panel')[1]
+      );
+    }
+  );
 
   describe('when another chart fetches new data', () => {
     function renderWithTwoPanels() {

@@ -1,7 +1,10 @@
 name: migrations-drift
 on:
   pull_request:
-    paths: ['src/sentry/**/migrations/**.py', '.github/workflows/migrations-drift.yml']
+    paths:
+      - 'src/sentry/**/migrations/**.py'
+      - 'tools/migrations/drop_pending_deletions.py'
+      - '.github/workflows/migrations-drift.yml'
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -49,6 +52,10 @@ jobs:
         env:
           SENTRY_NO_CREATE_DEFAULT_PROJECT: 1
         run: make apply-migrations
+
+      # The squashed state has no tables or columns that are pending deletion.
+      - name: drop pending deletions
+        run: python3 -um tools.migrations.drop_pending_deletions
 
       - name: capture database schema before
         run: docker exec postgres-postgres-1 bash -c 'pg_dumpall -U postgres -s --restrict-key=driftcheck' > schema-before

@@ -1361,9 +1361,11 @@ export interface GroupOpenPeriod {
   activities: GroupOpenPeriodActivity[];
   duration: string;
   end: string | null;
+  groupId: string;
   id: string;
   isOpen: boolean;
   lastChecked: string;
+  shortId: string | null;
   start: string;
 }
 
