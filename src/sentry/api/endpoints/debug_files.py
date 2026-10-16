@@ -56,6 +56,8 @@ from sentry.models.debugfile import (
     find_existing_dif,
     get_debug_id_from_dif_request,
     get_dif_download_filename,
+    wasm_legacy_code_id,
+    wasm_legacy_debug_id,
 )
 from sentry.models.files.file import File
 from sentry.models.organizationmember import OrganizationMember
@@ -246,6 +248,54 @@ DSYM_FILE_FORMATS_PARAM = OpenApiParameter(
 )
 
 
+def code_id_query(code_id: str) -> Q:
+    """Returns a query that, for a given code ID:
+       1. compares it to the `code_id` field.
+       2. compares it to the `wasm_legacy_code_id` field.
+       3. compares the corresponding "legacy" code ID to the `code_id` field, if it is defined.
+
+    This exists to deal with a longstanding bug in both `symbolic` and the JS SDK that caused
+    code and debug IDs to be read incorrectly from WASM files. By querying the `wasm_legacy_code_id`
+    field, we catch cases where the file is uploaded with the correct ID, but the event still contains
+    the incorrect one. By computing the legacy code ID and comparing it to `code_id`, we catch the
+    converse case.
+
+    Clauses (2) and (3) are only relevant for WASM files. No non-WASM file has a
+    `wasm_legacy_code_id`, and the "legacy" code ID is extremely unlikely to be a match for
+    any file that never suffered from the WASM build ID bug.
+    """
+    query = Q(code_id__exact=code_id) | Q(wasm_legacy_code_id__exact=code_id)
+
+    if legacy_id := wasm_legacy_code_id(code_id):
+        query |= Q(code_id__exact=legacy_id)
+
+    return query
+
+
+def debug_id_query(debug_id: str) -> Q:
+    """Returns a query that, for a given debug ID:
+       1. compares it to the `debug_id` field.
+       2. compares it to the `wasm_legacy_debug_id` field.
+       3. compares the corresponding "legacy" debug ID to the `debug_id` field, if it is defined.
+
+    This exists to deal with a longstanding bug in both `symbolic` and the JS SDK that caused
+    code and debug IDs to be read incorrectly from WASM files. By querying the `wasm_legacy_debug_id`
+    field, we catch cases where the file is uploaded with the correct ID, but the event still contains
+    the incorrect one. By computing the legacy debug ID and comparing it to `debug_id`, we catch the
+    converse case.
+
+    Clauses (2) and (3) are only relevant for WASM files. No non-WASM file has a
+    `wasm_legacy_debug_id`, and the "legacy" debug ID is extremely unlikely to be a match for
+    any file that never suffered from the WASM build ID bug.
+    """
+    query = Q(debug_id__exact=debug_id) | Q(wasm_legacy_debug_id__exact=debug_id)
+
+    if legacy_id := wasm_legacy_debug_id(debug_id):
+        query |= Q(debug_id__exact=legacy_id)
+
+    return query
+
+
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
@@ -371,22 +421,24 @@ class DebugFilesEndpoint(ProjectEndpoint):
             # Ideally debug- and code-id yield the same files, but especially on Windows it is possible
             # that the debug id does not perfectly match due to 'age' differences, but the code-id
             # will match.
-            debug_id_qs = ProjectDebugFile.objects.filter(Q(debug_id__exact=debug_id) & q)
+            debug_id_qs = ProjectDebugFile.objects.filter(debug_id_query(debug_id) & q)
             queryset = debug_id_qs.select_related("file").union(
-                ProjectDebugFile.objects.filter(Q(code_id__exact=code_id) & q)
+                ProjectDebugFile.objects.filter(code_id_query(code_id) & q)
                 # Only return any code id matches if there are *no* debug id matches.
                 .filter(~Exists(debug_id_qs))
                 .select_related("file")
             )
         elif debug_id:
-            q &= Q(debug_id__exact=debug_id)
+            q &= debug_id_query(debug_id)
         elif code_id:
-            q &= Q(code_id__exact=code_id)
+            q &= code_id_query(code_id)
         elif query:
             query_q = (
                 Q(object_name__icontains=query)
                 | Q(debug_id__icontains=query)
                 | Q(code_id__icontains=query)
+                | Q(wasm_legacy_debug_id__icontains=query)
+                | Q(wasm_legacy_code_id__icontains=query)
                 | Q(cpu_name__icontains=query)
                 | Q(file__headers__icontains=query)
                 | Q(content_type__icontains=query)
