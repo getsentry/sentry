@@ -154,7 +154,7 @@ export default withPageFilters(ProjectBaseEventsChart);
 <GENERAL RULES RELEVANT TO THIS FILE>
 
 <general_rules>
-Here are some rules that you should follow. Please ignore any rules that are not relevant to the current task, or that ask you to run code (as you are unable to do so): 
+Here are some rules that you should follow. Please ignore any rules that are not relevant to the current task, or that ask you to run code (as you are unable to do so):
 ### Rule
 @AGENTS.md
 ### Rule
