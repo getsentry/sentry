@@ -116,7 +116,7 @@
     "query-string": "7.0.1",
     "re2js": "^2.8.6",
     "react": "19.3.0",
-    "react-date-range": "^1.4.0",
+    "react-date-range": "^2.0.1",
     "react-docgen-typescript": "2.4.0",
     "react-dom": "19.3.0",
     "react-grid-layout": "1.5.3",
