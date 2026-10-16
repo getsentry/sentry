@@ -330,6 +330,11 @@
       "count": 6
     }
   },
+  "static/app/components/events/highlights/highlightsDataSection.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    }
+  },
   "static/app/components/events/highlights/highlightsIconSummary.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3

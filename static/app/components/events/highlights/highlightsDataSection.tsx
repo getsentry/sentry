@@ -327,4 +327,9 @@ const highlightModalCss = (theme: Theme) => css`
   width: 850px;
   padding: 0 ${theme.space.xl};
   margin: ${theme.space.xl} 0;
+  /* Disable overriding margins with breakpoint on default modal */
+  @media (min-width: ${theme.breakpoints.md}) {
+    margin: ${theme.space.xl} 0;
+    padding: 0 ${theme.space.xl};
+  }
 `;
