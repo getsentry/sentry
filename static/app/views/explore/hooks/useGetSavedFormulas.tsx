@@ -32,11 +32,11 @@ export type SavedFormula = {
   /** Prefixed with `formula.` so it cannot collide with a built in function. */
   name: string;
   params: FormulaParam[];
+  /** True for the formulas Sentry ships, which cannot be edited. */
+  prebuilt: boolean;
   references: FormulaReference[];
   type: FormulaType;
   unit: string | null;
-  /** Set on the formulas Sentry ships, which cannot be edited. */
-  prebuiltId?: number | null;
 };
 
 function savedFormulasApiOptions(
