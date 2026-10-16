@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {IconFire} from '@sentry/icons/fire';
 import {IconStats} from '@sentry/icons/stats';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Stack, Grid} from '@sentry/scraps/layout';
 
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -83,7 +83,7 @@ function ExceededInfo({getActionSentence, primaryCTA, subscription}: ExceededInf
       data-test-id="usage-exceeded-alert"
     >
       <SubscriptionBody withPadding>
-        <UsageInfo>
+        <Grid gap="md" columns="max-content auto">
           <IconFire size="md" variant="danger" />
           <div>
             <h3>{t('Usage Exceeded')}</h3>
@@ -95,7 +95,7 @@ function ExceededInfo({getActionSentence, primaryCTA, subscription}: ExceededInf
               {getActionSentence()}
             </Description>
           </div>
-        </UsageInfo>
+        </Grid>
         {primaryCTA}
       </SubscriptionBody>
     </Container>
@@ -243,7 +243,7 @@ export function UsageAlert({subscription, usage}: Props) {
       data-test-id="projected-overage-alert"
     >
       <SubscriptionBody withPadding>
-        <UsageInfo>
+        <Grid gap="md" columns="max-content auto">
           <IconStats size="md" variant="accent" />
           <div>
             <h3>{t('Projected Overage')}</h3>
@@ -255,7 +255,7 @@ export function UsageAlert({subscription, usage}: Props) {
               {getActionSentence()}
             </Description>
           </div>
-        </UsageInfo>
+        </Grid>
         <PrimaryCTA
           alertType="projected-overage"
           organization={organization}
@@ -284,12 +284,6 @@ export function UsageAlert({subscription, usage}: Props) {
     </Stack>
   );
 }
-
-const UsageInfo = styled('div')`
-  display: grid;
-  grid-template-columns: max-content auto;
-  gap: ${p => p.theme.space.md};
-`;
 
 const Description = styled(TextBlock)`
   font-size: ${p => p.theme.font.size.md};

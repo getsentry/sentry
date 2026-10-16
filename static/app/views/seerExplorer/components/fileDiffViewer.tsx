@@ -5,7 +5,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 
 import {getPrismLanguage} from '@sentry/scraps/code';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -165,7 +165,7 @@ export function FileDiffViewer({
             <DiffContainer>
               {patch.hunks.map((hunk, hunkIndex) => (
                 <Fragment key={hunkIndex}>
-                  <HunkHeaderEmptySpace />
+                  <Container background="secondary" column="1 / 3" />
                   <HunkHeader
                     sourceStart={hunk.source_start}
                     sourceLength={hunk.source_length}
@@ -269,11 +269,6 @@ const DiffContainer = styled('div')`
   display: grid;
   grid-template-columns: auto auto 1fr;
   overflow-x: auto;
-`;
-
-const HunkHeaderEmptySpace = styled('div')`
-  grid-column: 1 / 3;
-  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HunkHeaderContent = styled('div')`
