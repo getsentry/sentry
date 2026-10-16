@@ -1,5 +1,4 @@
 import logging
-import time
 from typing import Any, NotRequired, TypedDict
 
 from taskbroker_client.retry import Retry
@@ -53,7 +52,6 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 
 SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
@@ -96,9 +94,6 @@ logger = logging.getLogger(__name__)
 PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
 
 AGENT_REFRESH_TIMEOUT_SECONDS = 60
-# How far apart two hosts' clocks may be when comparing a refresh's start to a task's queue time.
-AGENT_REFRESH_CLOCK_SKEW_SECONDS = 1
-AGENT_REFRESH_STARTED_TTL_SECONDS = 60 * 60 * 24  # 1 day
 
 
 def has_seer_autofix_entrypoint_access(
@@ -960,7 +955,7 @@ def get_autofix_explorer_status(
     processing_deadline_duration=AGENT_REFRESH_TIMEOUT_SECONDS,
     retry=Retry(times=10, delay=10, on=(IntegrationError, UnableToAcquireLock)),
 )
-def refresh_agent_run(*, organization_id: int, run_id: int, queued_at: float) -> None:
+def refresh_agent_run(*, organization_id: int, run_id: int) -> None:
     """Make every entrypoint for a Seer Agent run match the run's latest state."""
     try:
         organization = Organization.objects.get_from_cache(id=organization_id)
@@ -974,25 +969,11 @@ def refresh_agent_run(*, organization_id: int, run_id: int, queued_at: float) ->
         name="seer_operator_agent_refresh",
     )
     with lock.acquire():
-        # A refresh that started after this task was queued already read the state it was queued for.
-        last_started_at = cache.get(_agent_refresh_started_key(run_id))
-        if last_started_at and last_started_at > queued_at + AGENT_REFRESH_CLOCK_SKEW_SECONDS:
-            return
-        started_at = time.time()
-        if _refresh_agent_run(organization, run_id):
-            cache.set(
-                _agent_refresh_started_key(run_id),
-                started_at,
-                timeout=AGENT_REFRESH_STARTED_TTL_SECONDS,
-            )
+        _refresh_agent_run(organization, run_id)
 
 
-def _agent_refresh_started_key(run_id: int) -> str:
-    return f"seer:operator:agent-refresh:started:{run_id}"
-
-
-def _refresh_agent_run(organization: Organization, run_id: int) -> bool:
-    """Notify each entrypoint that has a cached payload for the run. False if the run wasn't read."""
+def _refresh_agent_run(organization: Organization, run_id: int) -> None:
+    """Notify each entrypoint that has a cached payload for the run."""
     with SeerOperatorEventLifecycleMetric(
         interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_AGENT_COMPLETION,
     ).capture() as lifecycle:
@@ -1005,7 +986,7 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> bool:
 
         if not SeerAgentOperator.has_access(organization=organization):
             lifecycle.record_halt(halt_reason="no_operator_access")
-            return True
+            return
 
         summary: str | None = None
         try:
@@ -1018,7 +999,7 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> bool:
                     break
         except Exception as e:
             lifecycle.record_failure(failure_reason=e)
-            return False
+            return
 
         for (
             entrypoint_key,
@@ -1041,7 +1022,7 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> bool:
                 # have a cache entry per run. An org mismatch here is anomalous;
                 # return rather than continue to abort the entire method.
                 lifecycle.record_failure(failure_reason="org_mismatch")
-                return True
+                return
 
             with SeerOperatorEventLifecycleMetric(
                 interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_AGENT_UPDATE,
@@ -1059,7 +1040,6 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> bool:
                     raise
                 except Exception as e:
                     ept_lifecycle.record_failure(failure_reason=e)
-        return True
 
 
 class SeerOperatorCompletionHook(AgentOnCompletionHook):
