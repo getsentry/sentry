@@ -83,7 +83,9 @@ describe('InvestigationHypotheses', () => {
     renderHypotheses({phase: 'completed', status: 'completed'});
 
     const toggle = await screen.findByRole('button', {name: /Hypotheses/});
-    expect(toggle).toHaveTextContent('1 supported • 1 inconclusive • 1 refuted');
+    expect(toggle).toHaveAccessibleName(
+      'Hypotheses 1 supported • 1 inconclusive • 1 refuted'
+    );
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 
