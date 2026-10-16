@@ -391,7 +391,6 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
   // the only thing we care about.
   const feedbackEvents = useMemo(() => {
     return rawFeedbackEvents;
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawFeedbackEvents?.length]);
 

@@ -41,7 +41,6 @@ export function SuspendAccountAction({
     // Only register the callback once on mount. setConfirmCallback is recreated
     // on every parent render and updates parent state, so depending on it would
     // cause an infinite render loop.
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

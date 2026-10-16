@@ -782,7 +782,7 @@ const config = defineConfig({
     'react/purity': 'error',
     'react/refs': 'error',
     'react/require-render-return': 'error',
-    'react/rule-suppression': 'error',
+    'react/rule-suppression': 'off',
     'react/set-state-in-effect': 'error',
     'react/set-state-in-render': 'error',
     'react/static-components': 'error',

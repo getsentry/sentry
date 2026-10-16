@@ -112,7 +112,6 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
     const clamped = clampSize(options.initialSize ?? 0, options.min, options.max);
     options.onResize?.(clamped, size, false);
     setSize(clamped);
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options.direction]);
 

@@ -187,7 +187,6 @@ export function FlamegraphStateQueryParamSync() {
       {replace: true}
     );
     // We only want to sync the query params when the state changes
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 

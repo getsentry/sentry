@@ -11,7 +11,6 @@ const useMemoWithPrevious = <T>(
   const previous = usePrevious<T | null>(value);
 
   // Dependencies are explicitly managed and the deps warning is enabled for the custom hook.
-  // oxlint-disable-next-line react/rule-suppression
   /* eslint-disable react-hooks/exhaustive-deps */
   useEffectAfterFirstRender(() => {
     setValue(factory(previous));

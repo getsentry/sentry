@@ -61,7 +61,6 @@ export function useIssuesTraceTree({trace, replay}: UseTraceTreeParams): IssuesT
       return;
     }
 
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organization, replay, trace.status, trace.data]);
 

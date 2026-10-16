@@ -183,7 +183,6 @@ function IssueListOverviewInner({
     if (!isEqual(groupIds, storeGroupIds)) {
       setGroupIds(storeGroupIds);
     }
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [groups]);
 
@@ -591,7 +590,6 @@ function IssueListOverviewInner({
       // request will be repeated in componentDidUpdate
       fetchData();
     }
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

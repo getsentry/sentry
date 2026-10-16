@@ -47,7 +47,6 @@ export function useTraceTree({trace, replay}: UseTraceTreeParams): TraceTree {
       newTree.build();
       return;
     }
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps -- Preference updates modify the existing tree; rebuilding it would discard expansion, zoom, and selection state.
   }, [organization, replay, trace.status, trace.data]);
 

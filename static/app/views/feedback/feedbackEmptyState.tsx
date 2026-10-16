@@ -48,7 +48,6 @@ export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
     if (issueTab) {
       setProjId();
     }
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

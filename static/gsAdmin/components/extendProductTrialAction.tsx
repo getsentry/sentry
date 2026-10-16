@@ -44,7 +44,6 @@ export function ExtendProductTrialAction({
       });
     });
     // Only set up the callback once on mount, using ref for latest value
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
