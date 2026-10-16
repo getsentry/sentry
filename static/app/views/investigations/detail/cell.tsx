@@ -58,12 +58,14 @@ type InvestigationCellProps = {
   block: InvestigationBlock;
   canRun: boolean;
   investigation: InvestigationDetail;
+  onComment?: (blockId: string) => void;
 };
 
 export function InvestigationCell({
   block,
   canRun,
   investigation,
+  onComment,
 }: InvestigationCellProps) {
   const organizationSlug = useOrganization().slug;
   const activeExecutionId = isExecutionActive(block.currentExecution?.status)
@@ -158,6 +160,12 @@ export function InvestigationCell({
 
   const actionItems: MenuItemProps[] = [
     {
+      key: 'comment',
+      label: t('Comment'),
+      hidden: !onComment,
+      onAction: () => onComment?.(block.id),
+    },
+    {
       key: 'refine',
       label: t('Refine'),
       disabled: waitingForDependencies,
@@ -224,6 +232,7 @@ export function InvestigationCell({
   return (
     <Stack
       as="section"
+      id={getBlockElementId(block.id)}
       width="100%"
       padding="0"
       data-test-id={`investigation-cell-${block.id}`}
@@ -1162,6 +1171,10 @@ type RenderableQueryOutput = Pick<
   InvestigationQueryOutput,
   'chart' | 'preferredView' | 'tableMarkdown' | 'isEmpty'
 >;
+
+export function getBlockElementId(blockId: string) {
+  return `investigation-block-${blockId}`;
+}
 
 export function getBlockDisplayTitle(block: InvestigationBlock) {
   const chartTitle =
