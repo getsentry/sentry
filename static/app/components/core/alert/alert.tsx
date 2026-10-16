@@ -138,6 +138,18 @@ function generateAlertBackground(
   `;
 }
 
+const StyledTrailingItems = styled(Grid)`
+  font-size: ${p => p.theme.font.size.md};
+
+  > svg {
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    align-self: center;
+  }
+`;
+
 const StyledMessage = styled('div')`
   line-height: ${p => p.theme.font.lineHeight.comfortable};
   place-content: center;
@@ -212,7 +224,7 @@ export function Alert({
         )}
         <StyledMessage>{children}</StyledMessage>
         {!!trailingItems && (
-          <Grid
+          <StyledTrailingItems
             flow="column"
             autoColumns="max-content"
             rows="100%"
@@ -223,20 +235,9 @@ export function Alert({
             minHeight="28px"
             padding="2xs 0"
             onClick={e => e.stopPropagation()}
-            css={theme => css`
-              font-size: ${theme.font.size.md};
-
-              > svg {
-                width: 16px;
-                height: 16px;
-                display: flex;
-                align-items: center;
-                align-self: center;
-              }
-            `}
           >
             {trailingItems}
-          </Grid>
+          </StyledTrailingItems>
         )}
         {showExpand && (
           <Flex align="center" alignSelf="flex-start">
