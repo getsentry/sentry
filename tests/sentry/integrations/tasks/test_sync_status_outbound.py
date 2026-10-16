@@ -57,6 +57,18 @@ class TestSyncStatusOutbound(TestCase):
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(ExampleIntegration, "sync_status_outbound")
+    def test_uses_requested_status_when_group_status_is_stale(
+        self, mock_sync_status: mock.MagicMock, mock_record_event: mock.MagicMock
+    ) -> None:
+        external_issue: ExternalIssue = self.create_integration_external_issue(
+            group=self.group, key="foo_integration", integration=self.example_integration
+        )
+
+        sync_status_outbound(self.group.id, external_issue_id=external_issue.id, is_resolved=True)
+        mock_sync_status.assert_called_once_with(external_issue, True, self.group.project_id)
+
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch.object(ExampleIntegration, "sync_status_outbound")
     @mock.patch.object(ExampleIntegration, "should_sync")
     def test_should_not_sync(
         self,
