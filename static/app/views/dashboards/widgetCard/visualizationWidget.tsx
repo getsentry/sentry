@@ -24,6 +24,7 @@ import {
   WidgetType,
   type DashboardFilters,
   type Widget as TWidget,
+  type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {applyDashboardFilters, usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
@@ -250,9 +251,6 @@ function VisualizationWidgetContent({
   const location = useLocation();
   const {selection} = usePageFilters();
 
-  const firstWidgetQuery = widget.queries[0];
-  const columns = firstWidgetQuery?.columns ?? []; // All widget queries have the same columns
-
   const timeSeriesWithPlottable = timeseriesResults
     .map(series => {
       const transformed = transformWidgetSeriesToTimeSeries(
@@ -282,10 +280,11 @@ function VisualizationWidgetContent({
       const queryIndex = widget.queries.indexOf(widgetQuery);
       const tableData = tableResults?.[queryIndex]?.data;
 
-      return [timeSeries, plottable, tableData] satisfies [
+      return [timeSeries, plottable, tableData, widgetQuery] satisfies [
         TimeSeries,
         Plottable,
         TableDataWithTitle['data'] | undefined,
+        WidgetQuery,
       ];
     })
     .filter(defined);
@@ -311,17 +310,17 @@ function VisualizationWidgetContent({
     tableResults &&
     tableResults.length > 0;
 
-  // We only support one column for legend breakdown right now
-  const firstColumn = columns[0];
-  const linkedDashboard = findLinkedDashboardForField(firstWidgetQuery, firstColumn);
-
   const footerTable = showBreakdownData ? (
     <WidgetFooterTable>
-      {timeSeriesWithPlottable.map(([timeSeries, plottable, tableDataRows], index) => {
+      {timeSeriesWithPlottable.map((series, index) => {
+        const [timeSeries, plottable, tableDataRows, widgetQuery] = series;
         if (timeSeries.meta.isOther) {
           return null;
         }
 
+        // Linked dashboards and custom labels use the query's first grouping column.
+        const firstColumn = widgetQuery.columns[0];
+        const linkedDashboard = findLinkedDashboardForField(widgetQuery, firstColumn);
         const yAxis = timeSeries.yAxis;
         const firstColumnGroupByValue = timeSeries.groupBy?.find(
           groupBy => groupBy.key === firstColumn
@@ -341,16 +340,16 @@ function VisualizationWidgetContent({
 
         let labelContent = <Text>{labelDisplay}</Text>;
 
-        // TODO: to simplify things, we only support one widget query for explore urls right now
-        // Otherwise we have to map the correct widget query to the timeseries result
         if (
           organization.features.includes('visibility-explore-view') &&
-          firstColumn &&
-          typeof firstColumnGroupByValue === 'string' &&
-          widget.queries.length === 1 &&
+          ((firstColumn &&
+            (firstColumnGroupByValue === null ||
+              typeof firstColumnGroupByValue === 'string')) ||
+            (!firstColumn && widgetQuery.seriesLabel === 'query')) &&
+          (widget.queries.length === 1 || widgetQuery.seriesLabel) &&
           widget.widgetType === WidgetType.SPANS
         ) {
-          const exploreQuery = new MutableSearch(widget.queries[0]?.conditions ?? '');
+          const exploreQuery = new MutableSearch(widgetQuery.conditions);
           for (const {key, value: groupByValue} of timeSeries.groupBy ?? []) {
             if (groupByValue === null) {
               exploreQuery.addFilterValue('!has', key);
@@ -370,7 +369,7 @@ function VisualizationWidgetContent({
               baseQuery: exploreQuery.formatString(),
               dashboardFilters: withGlobalFilterFallback(
                 dashboardFilters,
-                widget.queries[0]?.globalFilterFallback
+                widgetQuery.globalFilterFallback
               ),
               widgetType: widget.widgetType,
             }),

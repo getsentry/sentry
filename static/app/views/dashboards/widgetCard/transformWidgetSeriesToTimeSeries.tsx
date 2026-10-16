@@ -31,10 +31,7 @@ export function transformWidgetSeriesToTimeSeries(
   if (!firstQuery) {
     return null;
   }
-  const aggregates = firstQuery?.aggregates ?? [];
-  const columns = firstQuery?.columns ?? [];
-
-  const seriesName = series.seriesName ?? aggregates[0] ?? '';
+  const seriesName = series.seriesName ?? firstQuery.aggregates[0] ?? '';
 
   // The query prefix (alias or conditions) is separated by ' > ' from the
   // rest of the series name. This is set by transformEventsResponseToSeries
@@ -65,12 +62,18 @@ export function transformWidgetSeriesToTimeSeries(
     widget.queries.find(({name}) => name && queryName === name) ??
     widget.queries.find(({name}) => name && splitSeriesName.includes(name)) ??
     firstQuery;
-  const effectiveQueryName = queryName ?? (widgetQuery?.name || undefined);
-
-  // Pass the unprefixed series name so transformLegacySeriesToTimeSeries
-  // doesn't misinterpret the query prefix as a group-by value.
-  const effectiveSeries =
-    queryDelimiterIndex >= 0 ? {...series, seriesName: unprefixedName} : series;
+  const {aggregates, columns} = widgetQuery;
+  const aliasPrefix = widgetQuery.name
+    ? `${widgetQuery.name}${SERIES_NAME_PART_DELIMITER}`
+    : undefined;
+  // Remove only the prefix: a group value may equal the query's alias.
+  const effectiveSeriesName =
+    queryDelimiterIndex >= 0
+      ? unprefixedName
+      : aliasPrefix && seriesName.startsWith(aliasPrefix)
+        ? seriesName.slice(aliasPrefix.length)
+        : seriesName;
+  const effectiveSeries = {...series, seriesName: effectiveSeriesName};
 
   const yAxis =
     aggregates.find(aggregate => {
@@ -87,8 +90,7 @@ export function transformWidgetSeriesToTimeSeries(
     timeseriesResultsTypes,
     timeseriesResultsUnits,
     columns,
-    yAxis,
-    effectiveQueryName
+    yAxis
   );
 
   if (!timeSeriesFromLegacySeries) {
