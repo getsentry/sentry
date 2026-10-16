@@ -254,7 +254,7 @@ export const useFetchProguardMappingFiles = ({
     const threads: Thread[] =
       event.entries?.find(e => e.type === EntryType.THREADS)?.data?.values ?? [];
 
-    const bestThread = findBestThread(threads);
+    const bestThread = findBestThread(threads, event);
     const hasThreadOrExceptionMinifiedData = hasThreadOrExceptionMinifiedFrameData(
       event,
       bestThread
