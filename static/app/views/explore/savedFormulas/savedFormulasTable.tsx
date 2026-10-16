@@ -20,6 +20,7 @@ import type {
   FormulaDataset,
   SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
+import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
 import {useFormulaBuilderUrl} from 'sentry/views/explore/savedFormulas/formulaBuilderUrl';
 import {
   buildTokenMap,
@@ -35,10 +36,10 @@ const DATASET_LABEL_MAP: Record<FormulaDataset, string> = {
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 'minmax(200px, 2fr)'},
-  {key: 'params', visible: {xl: true}, width: 'minmax(auto, 180px)'},
-  {key: 'formula', width: 'minmax(0, 3fr)'},
   {key: 'dataset', width: 'max-content'},
   {key: 'unit', visible: {xl: true}, width: 'max-content'},
+  {key: 'params', visible: {xl: true}, width: 'max-content'},
+  {key: 'formula', width: 'minmax(0, 3fr)'},
   {key: 'created-by', width: 'min-content'},
   {key: 'actions', width: '48px'},
 ];
@@ -62,10 +63,10 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
           <SavedEntityTable.HeaderCell divider={false}>
             {t('Name')}
           </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell>{t('Parameters')}</SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell>{t('Formula')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Dataset')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Unit')}</SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell>{t('Parameters')}</SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell>{t('Formula')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Creator')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell />
         </SavedEntityTable.Header>
@@ -82,10 +83,11 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
   const makeBuilderUrl = useFormulaBuilderUrl();
   const {deleteFormula} = useDeleteFormula();
   const isPrebuilt = defined(formula.prebuiltId);
+  const name = stripNamePrefix(formula.name);
 
   function confirmDelete() {
     openConfirmModal({
-      message: t('Are you sure you want to delete the formula "%s"?', formula.name),
+      message: t('Are you sure you want to delete the formula "%s"?', name),
       isDangerous: true,
       confirmText: t('Delete Formula'),
       priority: 'danger',
@@ -105,14 +107,24 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
     <SavedEntityTable.Row isFirst={isFirst}>
       <SavedEntityTable.Cell>
         {isPrebuilt ? (
-          <InfoText title={formula.name} mode="overflowOnly" monospace>
-            {formula.name}
+          <InfoText title={name} mode="overflowOnly" monospace>
+            {name}
           </InfoText>
         ) : (
-          <SavedEntityTable.CellName to={makeBuilderUrl(formula.id)} title={formula.name}>
-            {formula.name}
+          <SavedEntityTable.CellName to={makeBuilderUrl(formula.id)} title={name}>
+            {name}
           </SavedEntityTable.CellName>
         )}
+      </SavedEntityTable.Cell>
+      <SavedEntityTable.Cell>
+        <SavedEntityTable.CellTextContent>
+          {DATASET_LABEL_MAP[formula.dataset]}
+        </SavedEntityTable.CellTextContent>
+      </SavedEntityTable.Cell>
+      <SavedEntityTable.Cell>
+        <SavedEntityTable.CellTextContent>
+          {formula.unit ?? formula.type}
+        </SavedEntityTable.CellTextContent>
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell>
         <SavedEntityTable.CellTextContent>
@@ -141,16 +153,6 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
             </Text>
           </SavedEntityTable.CellTextContent>
         </Tooltip>
-      </SavedEntityTable.Cell>
-      <SavedEntityTable.Cell>
-        <SavedEntityTable.CellTextContent>
-          {DATASET_LABEL_MAP[formula.dataset]}
-        </SavedEntityTable.CellTextContent>
-      </SavedEntityTable.Cell>
-      <SavedEntityTable.Cell>
-        <SavedEntityTable.CellTextContent>
-          {formula.unit ?? formula.type}
-        </SavedEntityTable.CellTextContent>
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell>
         {isPrebuilt ? (

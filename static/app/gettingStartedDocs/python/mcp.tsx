@@ -62,9 +62,9 @@ from sentry_sdk.integrations.mcp import MCPIntegration
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
-    # Add data like inputs and responses to/from MCP servers;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    # To customize collected data (AI inputs/outputs, user info, request bodies),
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    # data_collection={"gen_ai": {"inputs": False, "outputs": False}},
     integrations=[
         MCPIntegration(),
     ],

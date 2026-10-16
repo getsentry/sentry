@@ -369,7 +369,7 @@ function savedQueryColumns(): TableColumnConfig[] {
     {
       key: 'dataset',
       visible: {xl: true},
-      width: 'min-content',
+      width: 'max-content',
     } satisfies TableColumnConfig,
     {key: 'project', visible: {xl: true}, width: 'minmax(auto, 120px)'},
     {key: 'envs', visible: {'3xl': true}, width: 'minmax(auto, 120px)'},

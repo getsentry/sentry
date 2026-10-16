@@ -1,15 +1,15 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconEdit} from '@sentry/icons/edit';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {IdBadge} from 'sentry/components/idBadge';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
@@ -28,24 +28,28 @@ export function RepositoryProjectPathConfigRow({
   onDelete,
 }: Props) {
   return (
-    <Fragment>
-      <NameRepoColumn>
-        <Stack>
-          <RepoName>{pathConfig.repoName}</RepoName>
-          <ProjectAndBranch>
-            <IdBadge
-              project={project}
-              avatarSize={14}
-              displayName={project.slug}
-              avatarProps={{consistentWidth: true}}
-            />
-            <BranchWrapper>&nbsp;|&nbsp;{pathConfig.defaultBranch}</BranchWrapper>
-          </ProjectAndBranch>
-        </Stack>
-      </NameRepoColumn>
-      <OutputPathColumn>{pathConfig.sourceRoot}</OutputPathColumn>
-      <InputPathColumn>{pathConfig.stackRoot}</InputPathColumn>
-      <ButtonWrapper>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell direction="column" align="start" gap="md">
+        <Text wordBreak="break-word">{pathConfig.repoName}</Text>
+        <Flex align="center">
+          <IdBadge
+            project={project}
+            avatarSize={14}
+            displayName={project.slug}
+            avatarProps={{consistentWidth: true}}
+          />
+          <Text variant="muted" wordBreak="break-word">
+            &nbsp;|&nbsp;{pathConfig.defaultBranch}
+          </Text>
+        </Flex>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <Text wordBreak="break-word">{pathConfig.stackRoot}</Text>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <Text wordBreak="break-word">{pathConfig.sourceRoot}</Text>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end" gap="md">
         <Button
           size="sm"
           icon={<IconEdit size="sm" />}
@@ -75,44 +79,7 @@ export function RepositoryProjectPathConfigRow({
             </Tooltip>
           )}
         </Access>
-      </ButtonWrapper>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
-}
-
-const RepoName = styled('span')`
-  padding-bottom: ${p => p.theme.space.md};
-`;
-
-const ProjectAndBranch = styled('div')`
-  display: flex;
-  flex-direction: row;
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-// match the line height of the badge
-const BranchWrapper = styled('div')`
-  line-height: 1.2;
-`;
-
-// Columns below
-const Column = styled('span')`
-  overflow: hidden;
-  overflow-wrap: break-word;
-`;
-
-export const NameRepoColumn = styled(Column)`
-  grid-area: name-repo;
-`;
-
-export const OutputPathColumn = styled(Column)`
-  grid-area: output-path;
-`;
-
-export const InputPathColumn = styled(Column)`
-  grid-area: input-path;
-`;
-
-export function ButtonWrapper(props: Exclude<FlexProps<'span'>, {as?: never}>) {
-  return <Flex as="span" gap="md" {...props} />;
 }

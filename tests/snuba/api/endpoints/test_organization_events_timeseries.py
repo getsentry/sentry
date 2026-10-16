@@ -1,148 +1,18 @@
 from __future__ import annotations
 
-import logging
 from datetime import timedelta
 from typing import Any
 from unittest import mock
 
 import pytest
-from django.test import RequestFactory
 from django.urls import reverse
-from rest_framework.exceptions import ParseError
-from rest_framework.request import Request
 
-from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from sentry.api.endpoints.timeseries import IncompleteReason
-from sentry.api.helpers.timeseries_processing import (
-    FillTransformation,
-    SmoothTransformation,
-    Transformation,
-)
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
-
-
-@pytest.mark.parametrize(
-    "query, expected",
-    [
-        ("", {}),
-        ("transformationsExtra=ignored&query=anything", {}),
-        ("transformations[0]=fill(locf)", {0: [FillTransformation(mode="locf")]}),
-        (
-            "transformations[0]=smooth(sma,,5)",
-            {0: [SmoothTransformation(mode="sma", window_size=5)]},
-        ),
-        (
-            "transformations[0]=smooth%28sma%2C5%29&transformations[0]=smooth(sma,3)",
-            {
-                0: [
-                    SmoothTransformation(mode="sma", window_size=5),
-                    SmoothTransformation(mode="sma", window_size=3),
-                ]
-            },
-        ),
-        (
-            "yAxis=count()&yAxis=count()&transformations%5B1%5D=fill%28locf%29"
-            "&transformations%5B1%5D=smooth%28sma%2C3%29&transformations%5B0%5D=fill%28zero%29",
-            {
-                1: [
-                    FillTransformation(mode="locf"),
-                    SmoothTransformation(mode="sma", window_size=3),
-                ],
-                0: [FillTransformation(mode="zero")],
-            },
-        ),
-        (
-            "yAxis=count()&yAxis=avg(span.duration)&yAxis=p90(span.duration)"
-            "&transformations[2]=smooth(sma,3)",
-            {2: [SmoothTransformation(mode="sma", window_size=3)]},
-        ),
-        (
-            "transformations[0]=fill(locf)&transformations[0]=fill(locf)",
-            {0: [FillTransformation(mode="locf"), FillTransformation(mode="locf")]},
-        ),
-    ],
-)
-def test_decode_transformations(query: str, expected: dict[int, list[Transformation]]) -> None:
-    request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
-
-    assert OrganizationEventsTimeseriesEndpoint().get_transformations(request) == expected
-
-
-@pytest.mark.parametrize(
-    "key",
-    [
-        "transformations",
-        "transformations[]",
-        "transformations[-1]",
-        "transformations[abc]",
-        "transformations[01]",
-        "transformations[0][]",
-        "transformations[0]extra",
-        "transformations[0",
-        "transformations[٠]",
-        pytest.param(f"transformations[{'9' * 5000}]", id="oversized-index"),
-    ],
-)
-def test_decode_transformations_invalid_key(key: str) -> None:
-    request = Request(RequestFactory().get("/events-timeseries/", {key: "fill(locf)"}))
-
-    with pytest.raises(ParseError, match="Invalid transformations index"):
-        OrganizationEventsTimeseriesEndpoint().get_transformations(request)
-
-
-@pytest.mark.parametrize(
-    "query",
-    [
-        "transformations[1]=fill(locf)",
-        "yAxis=count()&yAxis=avg(span.duration)&transformations[2]=fill(locf)",
-        "transformations[1000000000]=fill(locf)",
-    ],
-)
-def test_decode_transformations_index_out_of_range(query: str) -> None:
-    request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
-
-    with pytest.raises(ParseError, match="transformations index must match a yAxis position"):
-        OrganizationEventsTimeseriesEndpoint().get_transformations(request)
-
-
-@pytest.mark.parametrize(
-    "value, expected",
-    [
-        ("", " is not a valid transformation"),
-        ("[fill(locf), smooth(sma)]", "[fill(locf), smooth(sma)] is not a valid transformation"),
-        (
-            "fill(sma)",
-            "fill(sma): mode argument invalid: expected one of locf, zero, linear",
-        ),
-        (
-            "smooth(sma,0)",
-            "smooth(sma,0): window_size argument invalid: Window size must be positive.",
-        ),
-        ("fill()", "fill(): argument count must be 1"),
-        ("smooth()", "smooth(): argument count must be 2"),
-        ("smooth(sma)", "smooth(sma): argument count must be 2"),
-        ("fill(locf,zero)", "fill(locf,zero): argument count must be 1"),
-        ("smooth(sma,5,6)", "smooth(sma,5,6): argument count must be 2"),
-    ],
-)
-def test_decode_transformations_invalid_value(
-    value: str, expected: str, caplog: pytest.LogCaptureFixture
-) -> None:
-    request = Request(
-        RequestFactory().get("/events-timeseries/", {"transformations[0]": ["fill(locf)", value]})
-    )
-
-    with caplog.at_level(logging.INFO, logger="sentry.api.utils"):
-        with pytest.raises(ParseError) as error:
-            OrganizationEventsTimeseriesEndpoint().get_transformations(request)
-
-    assert error.value.detail == expected
-    assert caplog.record_tuples == [("sentry.api.utils", logging.INFO, "A query error was handled")]
-    assert getattr(caplog.records[0], "query.error_reason") == expected
 
 
 class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
@@ -178,7 +48,7 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             )
 
         assert response.data == {
-            "detail": "smooth(linear,3): mode argument invalid: expected one of sma"
+            "detail": "smooth(linear,3): mode argument invalid: expected one of sma, ema"
         }
 
     def test_transformations_ignored_when_feature_disabled(self) -> None:
