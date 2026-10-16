@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -50,6 +50,10 @@ const StyledLayoutHeader = styled(Layout.Header)`
   background-color: ${p => p.theme.tokens.background.primary};
 `;
 
+const HeaderInner = styled(Container)`
+  grid-template-columns: minmax(0, 1fr) auto;
+`;
+
 interface RequiredChildren {
   children: React.ReactNode;
 }
@@ -65,14 +69,13 @@ function Header({
 }: HeaderProps & {maxWidth?: CSS['maxWidth']}) {
   return (
     <StyledLayoutHeader noActionWrap={noActionWrap}>
-      <Grid
+      <HeaderInner
         display={{zero: 'contents', '3xl': 'grid'}}
-        columns="minmax(0, 1fr) auto"
         maxWidth={maxWidth}
         width="100%"
       >
         {children}
-      </Grid>
+      </HeaderInner>
     </StyledLayoutHeader>
   );
 }

@@ -63,7 +63,7 @@ interface GridLayoutProps {
   /**
    * Determines the grid display type.
    */
-  display?: Responsive<'grid' | 'inline-grid' | 'contents' | 'none'>;
+  display?: Responsive<'grid' | 'inline-grid' | 'none'>;
   /**
    * Controls the auto-placement algorithm for grid items.
    * Uses CSS grid-auto-flow property.
