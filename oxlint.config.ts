@@ -13,7 +13,6 @@ export const incubator = defineConfig({
   rules: {
     '@sentry/scraps/prefer-primitives': 'error',
     'react/rule-suppression': 'error',
-    'react/todo': 'error',
   },
   overrides: [
     {
@@ -790,6 +789,7 @@ const config = defineConfig({
     'react/set-state-in-render': 'error',
     'react/static-components': 'error',
     'react/syntax': 'error',
+    'react/todo': 'error',
     'react/unsupported-syntax': 'error',
     'react/use-memo': 'error',
     'react/no-did-mount-set-state': 'error',

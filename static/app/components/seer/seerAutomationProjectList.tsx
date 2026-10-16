@@ -257,6 +257,7 @@ export function SeerAutomationProjectList() {
       addSuccessMessage('Projects updated successfully');
     } catch {
       addErrorMessage('Failed to update some projects');
+      // oxlint-disable-next-line react/todo
     } finally {
       Array.from(selected).forEach(projectId => {
         const project = projects.find(p => p.id === projectId);
@@ -305,6 +306,7 @@ export function SeerAutomationProjectList() {
       addSuccessMessage('Projects updated successfully');
     } catch {
       addErrorMessage('Failed to update some projects');
+      // oxlint-disable-next-line react/todo
     } finally {
       Array.from(selected).forEach(projectId => {
         const project = projects.find(p => p.id === projectId);

@@ -406,6 +406,7 @@ function CreatedProjects({projectSlugs}: {projectSlugs: string[]}) {
 
 export function AgenticProgress({
   run,
+  // oxlint-disable-next-line react/todo
   onboardingCode = run.onboardingCode,
   issueLinkReferrer = 'onboarding-agentic-first-issue',
 }: {

@@ -154,6 +154,7 @@ export function useScmProjectCreation({
 
       isCreatingRef.current = true;
       setIsCreating(true);
+      // oxlint-disable-next-line react/todo
       try {
         const creation = await createProjectAndRules
           .mutateAsync({

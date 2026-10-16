@@ -111,6 +111,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
   const prevQueryKeys = useRef<AggregatableQueryKey[]>([]);
 
   const readCache = useCallback(
+    // oxlint-disable-next-line react/todo
     (aggregates = prevQueryKeys.current) =>
       queryClient
         .getQueriesData<ApiResponse<ResponseData>>({

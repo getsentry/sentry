@@ -521,6 +521,7 @@ function AutoTriggerFixesButton({
       setCurrentStep(enableIssueScansStepNumber);
     } catch (err) {
       addErrorMessage(t('Failed to enable automation for some projects'));
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsLoading(false);
     }
@@ -603,6 +604,7 @@ function EnableIssueScansButton({
       setCurrentStep(reviewCustomizeStepNumber);
     } catch (err) {
       addErrorMessage(t('Failed to enable issue scans for some projects'));
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsLoading(false);
     }
