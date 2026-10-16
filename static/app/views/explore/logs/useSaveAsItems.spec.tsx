@@ -303,6 +303,7 @@ describe('useSaveAsItems', () => {
             start: '2024-01-01T00:00:00.000Z',
             end: '2024-01-01T01:00:00.000Z',
             range: '1h',
+            statsPeriod: '1h',
             environment: ['production'],
             interval: '1m',
             query: [
