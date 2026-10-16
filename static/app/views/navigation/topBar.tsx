@@ -99,7 +99,6 @@ function TopBarContent() {
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}
-      wrap="wrap"
     >
       <SizeProvider size="sm">
         {/*
