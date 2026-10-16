@@ -725,8 +725,8 @@ from sentry.workflow_engine.endpoints import urls as workflow_urls
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
-from .endpoints.agent_problem_reports import AgentProblemReportsEndpoint
 from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
+from .endpoints.agent_problem_reports import AgentProblemReportsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_application_rotate_secret import ApiApplicationRotateSecretEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
