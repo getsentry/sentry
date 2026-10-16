@@ -1,32 +1,8 @@
+import {RESERVED_PROJECT_SLUGS} from 'sentry/constants';
 import type {Repository} from 'sentry/types/integrations';
 import {slugify} from 'sentry/utils/slugify';
 
 const MAX_PROJECT_NAME_LENGTH = 50;
-
-/**
- * Mirrors sentry.constants.RESERVED_PROJECT_SLUGS.
- * Keep in sync with src/sentry/constants.py when adding or removing entries.
- */
-const RESERVED_PROJECT_SLUGS = new Set([
-  '$all',
-  'api-keys',
-  'audit-log',
-  'auth',
-  'members',
-  'projects',
-  'rate-limits',
-  'repos',
-  'settings',
-  'teams',
-  'billing',
-  'payments',
-  'legal',
-  'subscription',
-  'support',
-  'integrations',
-  'developer-settings',
-  'usage',
-]);
 
 interface Options {
   platformKey: string | undefined;
