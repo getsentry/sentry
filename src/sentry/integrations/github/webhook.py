@@ -63,8 +63,8 @@ from sentry.issues.action_log import (
     ActionSource,
     GroupActionActor,
     action_context_scope,
-    resolve_action_actor,
 )
+from sentry.issues.action_log.request import resolve_action_actor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
