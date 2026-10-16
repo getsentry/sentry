@@ -914,6 +914,7 @@ def regenerate_stale_derived_data_batch(
     from taskbroker_client.state import current_task
 
     from sentry import options
+    from sentry.issues.action_log.backfill import backfill_first_seen_actions
     from sentry.issues.derived.promote import build_and_promote_batch
     from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
@@ -952,6 +953,10 @@ def regenerate_stale_derived_data_batch(
     range_overflow = len(group_ids) > batch_size
     if range_overflow:
         group_ids = group_ids[:batch_size]
+
+    # Temporary: a pipeline hash bump sweeps every group with derived data, which gives
+    # older groups their FIRST_SEEN entry. Inserted before the rebuild so it's included.
+    backfill_first_seen_actions(group_ids)
 
     result = build_and_promote_batch(
         group_ids,
