@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from typing import TypedDict
+
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,6 +11,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
@@ -16,6 +22,13 @@ from sentry.models.repositorysettings import RepositorySettings
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+
+class OrganizationSeerOnboardingCheckResponse(TypedDict):
+    hasSupportedScmIntegration: bool
+    isCodeReviewEnabled: bool
+    isAutofixEnabled: bool
+    isSeerConfigured: bool
 
 
 def has_supported_scm_integration(organization: Organization) -> bool:
@@ -62,10 +75,11 @@ def is_autofix_enabled(organization: Organization) -> bool:
     ).exists()
 
 
+@extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.CODING_WORKFLOWS
     enforce_rate_limit = True
@@ -81,7 +95,26 @@ class OrganizationSeerOnboardingCheck(OrganizationEndpoint):
         }
     )
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="getOrganizationSeerOnboardingCheck",
+        summary="Check Seer Onboarding for an Organization",
+        description=(
+            "Check whether the organization has a supported source control integration, code review "
+            "or Autofix enabled, and Seer configured."
+        ),
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationSeerOnboardingCheckResponse", OrganizationSeerOnboardingCheckResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[OrganizationSeerOnboardingCheckResponse]:
         """Check if the organization has completed Seer onboarding/configuration."""
         autofix_enabled = is_autofix_enabled(organization)
         has_scm_integration = has_supported_scm_integration(organization)

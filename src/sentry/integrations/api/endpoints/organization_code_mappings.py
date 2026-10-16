@@ -3,6 +3,7 @@ from typing import Any
 from django.db import router, transaction
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,6 +19,17 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.integrations.api.serializers.models.repository_project_path_config import (
+    RepositoryProjectPathConfigSerializerResponse,
+)
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.path import normalize_repository_source_root
@@ -38,11 +50,12 @@ def validate_source_root(path: str) -> None:
         raise serializers.ValidationError(_(INVALID_SOURCE_ROOT_ERROR_MESSAGE))
 
 
-def gen_path_regex_field(*, validate_source: bool = False):
+def gen_path_regex_field(*, validate_source: bool = False, help_text: str | None = None):
     return serializers.RegexField(
         r"^[^\s'\"]+$",  # may need to add more characters to prevent in the future
         required=True,
         allow_blank=True,
+        help_text=help_text,
         validators=[validate_source_root] if validate_source else [],
         error_messages={"invalid": _("Path may not contain spaces or quotations")},
     )
@@ -188,23 +201,63 @@ class OrganizationIntegrationMixin:
             raise Http404
 
 
+@extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationCodeMappings",
+        summary="List an Organization's Code Mappings",
+        description="Return repository path mappings for projects the user can access.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                "integrationId",
+                type=str,
+                description="Filter mappings to a specific installed integration.",
+            ),
+            OpenApiParameter(
+                "project",
+                type=str,
+                many=True,
+                description=(
+                    "Filter by project ID or slug. Pass `-1` to include all projects the user can access. "
+                    "When omitted, mappings include all projects the user can access."
+                ),
+            ),
+            CursorQueryParam,
+            OpenApiParameter(
+                "per_page",
+                type=int,
+                description="The maximum number of mappings to return per page.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListOrganizationCodeMappingsResponse",
+                list[RepositoryProjectPathConfigSerializerResponse],
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[RepositoryProjectPathConfigSerializerResponse]]:
         """
         Get the list of repository project path configs
 
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :qparam int integrationId: the optional integration id.
-        :qparam int project: Optional. Pass "-1" to filter to 'all projects user has access to'. Omit to filter for 'all projects user is a member of'.
+        :qparam string project: Optional project ID or slug. Pass "-1" or omit to include all projects the user can access.
         :qparam int per_page: Pagination size.
         :qparam string cursor: Pagination cursor.
         :auth: required
@@ -238,7 +291,54 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    @extend_schema(
+        operation_id="createOrganizationCodeMapping",
+        summary="Create an Organization Code Mapping",
+        description="Create a repository path mapping for a project and installed integration.",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=inline_serializer(
+            name="CreateOrganizationCodeMappingRequest",
+            fields={
+                "integrationId": serializers.IntegerField(
+                    help_text="The ID of the installed integration that provides the repository."
+                ),
+                "repositoryId": serializers.IntegerField(
+                    help_text="The ID of the repository to map."
+                ),
+                "projectId": serializers.IntegerField(
+                    help_text="The ID of the project to map to the repository."
+                ),
+                "stackRoot": serializers.CharField(
+                    allow_blank=True,
+                    help_text="The path prefix to strip from matching stack frame filenames before adding sourceRoot.",
+                ),
+                "sourceRoot": serializers.CharField(
+                    allow_blank=True,
+                    help_text=(
+                        "The repository path prefix that replaces stackRoot. For example, "
+                        "/app/pkg/file.py with stackRoot=/app/ and sourceRoot=src/ resolves to src/pkg/file.py."
+                    ),
+                ),
+                "defaultBranch": serializers.CharField(
+                    allow_blank=True,
+                    required=False,
+                    help_text="The repository branch used when a release has no branch specified.",
+                ),
+            },
+        ),
+        responses={
+            201: inline_sentry_response_serializer(
+                "OrganizationCodeMappingResponse", RepositoryProjectPathConfigSerializerResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[RepositoryProjectPathConfigSerializerResponse]:
         """
         Create a new repository project path config
         ``````````````````
