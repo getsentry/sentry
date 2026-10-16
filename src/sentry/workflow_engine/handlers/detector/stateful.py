@@ -2,7 +2,7 @@ import abc
 import dataclasses
 import logging
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, ClassVar, override
 from uuid import uuid4
 
@@ -73,6 +73,9 @@ class DetectorStateData:
     counter_updates: DetectorCounters
 
     activation_id: int | None = None
+
+    # When the detector state last changed. `None` means the detector has never triggered.
+    date_updated: datetime | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -332,6 +335,7 @@ class DetectorStateManager:
                 dedupe_value=group_key_dedupe_values[group_key],
                 counter_updates=counter_updates.get(group_key, {}),
                 activation_id=detector_state.activation_id if detector_state else None,
+                date_updated=detector_state.date_updated if detector_state else None,
             )
         return results
 
@@ -347,9 +351,13 @@ class StatefulDetectorHandler(
     Stateful Detectors are provided as a base class for new detectors that need to track state.
     """
 
-    # If this flag is true, unique issues will be generated for each open period
+    # If this flag is true, unique issues will be generated for each activation
     # If this flag is false, a new open period will regress a previous issue instead.
     activation_creates_new_issue: ClassVar[bool] = False
+
+    # A detector must stay OK for this long before its next trigger starts a new activation.
+    # Triggering sooner keeps the previous activation, which regresses the previous issue.
+    activation_cooldown: ClassVar[timedelta] = timedelta(hours=24)
 
     def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
         super().__init__(detector)
@@ -735,7 +743,7 @@ class StatefulDetectorHandler(
 
     def _should_rotate_activation_id(self) -> bool:
         """
-        Whether this detector should start a new activation on each OK -> non-OK transition.
+        Whether this detector may start a new activation when it leaves the OK state.
         For some detectors this is never the case, while for others it depends on the
         organization's feature flag
         """
@@ -763,10 +771,18 @@ class StatefulDetectorHandler(
             and new_priority != DetectorPriorityLevel.OK
         )
 
-        if is_leaving_ok_state:
+        if is_leaving_ok_state and self._has_been_ok_for_activation_cooldown(state_data):
             return _get_unix_epoch_time_in_milliseconds()
 
         return state_data.activation_id
+
+    def _has_been_ok_for_activation_cooldown(self, state_data: DetectorStateData) -> bool:
+        if state_data.date_updated is None:
+            return True
+
+        time_in_ok_state = timezone.now() - state_data.date_updated
+
+        return time_in_ok_state >= self.activation_cooldown
 
     def _get_detector_organization(self) -> Organization:
         """
