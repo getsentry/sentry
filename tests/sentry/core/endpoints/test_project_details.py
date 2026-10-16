@@ -21,7 +21,7 @@ from sentry.ingest.legacy_filter_lists import STAGE_OPTION
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.environment import EnvironmentProject
 from sentry.models.options.organization_option import OrganizationOption
@@ -640,6 +640,32 @@ class ProjectUpdateTest(APITestCase):
             response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         assert response.data["options"]["filters:error_messages"] == "\n".join(lines)
         assert response.data["options"]["filters:releases"] == "1.*"
+
+    @override_options({STAGE_OPTION: {"error_messages": "v2"}})
+    def test_filter_list_at_v2_reads_its_row_and_writes_it_with_the_option(self) -> None:
+        self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="error",
+            conditions=[{"type": "error_message", "value": ["Stored*"]}],
+            legacy_filter=LegacyFilter.ERROR_MESSAGE,
+        )
+        self.project.update_option("sentry:error_messages", ["stale"])
+
+        with self.feature("projects:custom-inbound-filters"):
+            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
+        assert response.data["options"]["filters:error_messages"] == "Stored*"
+
+        with self.feature("projects:custom-inbound-filters"):
+            self.get_success_response(
+                self.org_slug,
+                self.proj_slug,
+                options={"filters:error_messages": "TypeError*\n# old"},
+            )
+
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:error_messages") == ["TypeError*", "# old"]
+        row = CustomInboundFilter.objects.get(project_id=project.id, legacy_filter="error-message")
+        assert row.conditions == [{"type": "error_message", "value": ["TypeError*", "# old"]}]
 
     def test_options(self) -> None:
         options: dict[str, Any] = {
