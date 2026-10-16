@@ -1,10 +1,8 @@
 import type {MouseEvent as ReactMouseEvent} from 'react';
 import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {IconSettings} from '@sentry/icons/settings';
 import moment from 'moment-timezone';
 
-import {LinkButton} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -31,7 +29,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUserTimezone, shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
@@ -93,7 +90,6 @@ export function getEndpointQueryDatetime(dataDatetime: DateTimeObject) {
 
 export function getEndpointQuery({
   dataDatetime,
-  organization,
   projectIds,
   dataCategoryApiName,
   endpointQueryDatetime,
@@ -101,18 +97,12 @@ export function getEndpointQuery({
   dataCategoryApiName: string;
   dataDatetime: DateTimeObject;
   endpointQueryDatetime: DateTimeObject;
-  organization: Organization;
   projectIds: number[];
 }) {
   const queryDatetime = endpointQueryDatetime;
 
   const groupBy = ['outcome', 'reason'];
   const category: string[] = [dataCategoryApiName];
-
-  if (hasDynamicSamplingCustomFeature(organization) && dataCategoryApiName === 'span') {
-    groupBy.push('category');
-    category.push('span_indexed');
-  }
 
   return {
     ...queryDatetime,
@@ -351,12 +341,11 @@ export function UsageStatsOrganization({
       getEndpointQuery({
         dataCategoryApiName,
         dataDatetime,
-        organization,
         projectIds,
         endpointQueryDatetime: getEndpointQueryDatetime(dataDatetime),
       })
     );
-  }, [endpointQuery, dataCategoryApiName, dataDatetime, organization, projectIds]);
+  }, [endpointQuery, dataCategoryApiName, dataDatetime, projectIds]);
 
   const orgStatsReponse = useApiQuery<UsageSeries | undefined>(
     [
@@ -519,7 +508,7 @@ export function UsageStatsOrganization({
         score: accepted,
         trend:
           dataCategoryApiName === 'span' && accepted_stored ? (
-            <SpansStored organization={organization} acceptedStored={accepted_stored} />
+            <SpansStored acceptedStored={accepted_stored} />
           ) : (
             <UsageStatsPerMin
               dataCategoryApiName={dataCategoryApiName}
@@ -671,32 +660,8 @@ const FooterDate = styled('div')`
   }
 `;
 
-type SpansStoredProps = {
-  acceptedStored: string;
-  organization: Organization;
-};
-
-const StyledSettingsButton = styled(LinkButton)`
-  top: 2px;
-`;
-
-function SpansStored({organization, acceptedStored}: SpansStoredProps) {
-  return (
-    <Container minHeight="22px">
-      {t('%s stored', acceptedStored)}{' '}
-      {organization.access.includes('org:read') &&
-        hasDynamicSamplingCustomFeature(organization) && (
-          <StyledSettingsButton
-            variant="transparent"
-            size="zero"
-            icon={<IconSettings variant="muted" />}
-            tooltipProps={{title: t('Dynamic Sampling Settings')}}
-            aria-label={t('Dynamic Sampling Settings')}
-            to={`/settings/${organization.slug}/dynamic-sampling/`}
-          />
-        )}
-    </Container>
-  );
+function SpansStored({acceptedStored}: {acceptedStored: string}) {
+  return <Container minHeight="22px">{t('%s stored', acceptedStored)}</Container>;
 }
 
 export const UsageStatsOrgComponents = {

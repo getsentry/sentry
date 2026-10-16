@@ -21,7 +21,6 @@ import type {DataCategoryInfo} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -88,28 +87,17 @@ export function UsageStatsProjects({
             statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD,
           };
 
-    const groupBy = ['outcome', 'project'];
-    const category: string[] = [dataCategory.name];
-
-    if (
-      hasDynamicSamplingCustomFeature(organization) &&
-      dataCategory.name === DataCategoryExact.SPAN
-    ) {
-      groupBy.push('category');
-      category.push(DataCategoryExact.SPAN_INDEXED);
-    }
-
     // We do not need more granularity in the data so interval is '1d'
     return {
       ...queryDatetime,
       interval: getSeriesApiInterval(dataDatetime),
-      groupBy,
+      groupBy: ['outcome', 'project'],
       field: ['sum(quantity)'],
       // If only one project is in selected, display the entire project list
       project: isSingleProject ? [ALL_ACCESS_PROJECTS] : projectIds,
-      category,
+      category: [dataCategory.name],
     };
-  }, [organization, dataDatetime, dataCategory, isSingleProject, projectIds]);
+  }, [dataDatetime, dataCategory, isSingleProject, projectIds]);
 
   const {
     data: projectStats,
@@ -446,16 +434,14 @@ export function UsageStatsProjects({
 
   const tableData = useMemo(() => {
     const showStoredOutcome =
-      hasDynamicSamplingCustomFeature(organization) &&
-      dataCategory.name === DataCategoryExact.SPAN &&
-      seriesData.hasStoredOutcome;
+      dataCategory.name === DataCategoryExact.SPAN && seriesData.hasStoredOutcome;
 
     return {
       headers: getTableHeader({showStoredOutcome}),
       showStoredOutcome,
       ...seriesData,
     };
-  }, [organization, dataCategory, seriesData, getTableHeader]);
+  }, [dataCategory, seriesData, getTableHeader]);
 
   /**
    * OrganizationStatsEndpointV2 does not have any performance issues. We use
