@@ -9,7 +9,6 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
-from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import reverse
@@ -20,6 +19,14 @@ from django.views.decorators.cache import never_cache
 
 from sentry import analytics
 from sentry.analytics.events.oauth_consent import OAuthConsentEvent
+from sentry.api.helpers.oauth_consent import (
+    InvalidOrganizationSelection,
+    OrganizationSelectionError,
+    get_organization_options,
+    get_permission_descriptions,
+    persist_authorization,
+    resolve_organization,
+)
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -27,7 +34,6 @@ from sentry.models.apitoken import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
-from sentry.users.services.user.service import user_service
 from sentry.utils import auth, metrics
 from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, control_silo_view
@@ -347,37 +353,16 @@ class OAuthAuthorizeView(BaseView):
                         code_challenge_method=payload.get("ccm"),
                     )
 
-        permissions = []
-        if scopes:
-            pending_scopes = set(scopes)
-            matched_sets = set()
-            for scope_set in settings.SENTRY_SCOPE_SETS:
-                for scope, description in scope_set:
-                    if scope_set in matched_sets and scope in pending_scopes:
-                        pending_scopes.remove(scope)
-                    elif scope in pending_scopes:
-                        permissions.append(description)
-                        matched_sets.add(scope_set)
-                        pending_scopes.remove(scope)
-
-            if pending_scopes:
-                raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
-
-        if application.requires_org_level_access:
-            organization_options = user_service.get_organizations(
-                user_id=request.user.id, only_visible=True
+        permissions = get_permission_descriptions(scopes)
+        organization_options = get_organization_options(application, request.user.id)
+        if application.requires_org_level_access and not organization_options:
+            return self.respond(
+                "sentry/oauth-error.html",
+                {
+                    "error": "This authorization flow is only available for users who are members of an organization."
+                },
+                status=400,
             )
-            if not organization_options:
-                return self.respond(
-                    "sentry/oauth-error.html",
-                    {
-                        "error": "This authorization flow is only available for users who are members of an organization."
-                    },
-                    status=400,
-                )
-        else:
-            # If application is not org level we should not show organizations to choose from at all
-            organization_options = []
 
         context = {
             "user": request.user,
@@ -522,70 +507,25 @@ class OAuthAuthorizeView(BaseView):
         code_challenge=None,
         code_challenge_method=None,
     ) -> HttpResponseBase:
-        # Some applications require org level access, so user who approves only gives
-        # access to that organization by selecting one. If None, means the application
-        # has user level access and will be able to have access to all the organizations of that user.
-        selected_organization_id = request.POST.get("selected_organization_id")
-
-        # Validate organization selection for org-level access applications
-        # This prevents privilege escalation and ensures apps that require org-level
-        # access always have an organization_id set
-        if application.requires_org_level_access:
-            # Organization ID is required for org-level access applications
-            if not selected_organization_id:
-                return self.error(
-                    request=request,
-                    client_id=application.client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="invalid_request",
-                    state=state,
-                )
-
-            user_orgs = user_service.get_organizations(user_id=user.id, only_visible=True)
-            org_ids = {org.id for org in user_orgs}
-
-            try:
-                selected_org_id_int = int(selected_organization_id)
-            except (ValueError, TypeError):
-                return self.error(
-                    request=request,
-                    client_id=application.client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="unauthorized_client",
-                    state=state,
-                )
-
-            if selected_org_id_int not in org_ids:
-                return self.error(
-                    request=request,
-                    client_id=application.client_id,
-                    response_type=response_type,
-                    redirect_uri=redirect_uri,
-                    name="unauthorized_client",
-                    state=state,
-                )
-
         try:
-            with transaction.atomic(router.db_for_write(ApiAuthorization)):
-                ApiAuthorization.objects.create(
-                    application=application,
-                    user_id=user.id,
-                    scope_list=scopes,
-                    organization_id=selected_organization_id,
-                )
-        except IntegrityError:
-            if scopes:
-                auth = ApiAuthorization.objects.get(
-                    application=application,
-                    user_id=user.id,
-                    organization_id=selected_organization_id,
-                )
-                for scope in scopes:
-                    if scope not in auth.scope_list:
-                        auth.scope_list.append(scope)
-                auth.save()
+            selected_organization_id = resolve_organization(
+                application, user.id, request.POST.get("selected_organization_id")
+            )
+        except InvalidOrganizationSelection as exc:
+            return self.error(
+                request=request,
+                client_id=application.client_id,
+                response_type=response_type,
+                redirect_uri=redirect_uri,
+                name=(
+                    "invalid_request"
+                    if exc.reason == OrganizationSelectionError.REQUIRED
+                    else "unauthorized_client"
+                ),
+                state=state,
+            )
+
+        persist_authorization(application, user.id, scopes, selected_organization_id)
 
         metrics.incr(
             "oauth_authorize.get.approve",
