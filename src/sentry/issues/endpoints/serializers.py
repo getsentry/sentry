@@ -21,31 +21,23 @@ from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.utils.codeowners import MAX_RAW_LENGTH
 
 
-class ProjectCodeOwnersCreateRequestSerializer(serializers.Serializer[dict[str, str | int]]):
+class ProjectCodeOwnersCreateRequestSerializer(serializers.Serializer[dict[str, str]]):
     raw = serializers.CharField(
         help_text="The raw contents of the CODEOWNERS file.",
     )
-    codeMappingId = serializers.IntegerField(
-        help_text="The numeric ID of an existing code mapping for this project, used to translate repository paths to stack trace paths.",
-    )
-    dateUpdated = serializers.CharField(
-        required=False,
-        help_text="Optional timestamp. Sentry refreshes this value when an existing configuration is updated.",
+    codeMappingId = serializers.CharField(
+        help_text="The ID of the code mapping used to translate repository paths to stack trace paths.",
     )
 
 
-class ProjectCodeOwnersUpdateRequestSerializer(serializers.Serializer[dict[str, str | int]]):
+class ProjectCodeOwnersUpdateRequestSerializer(serializers.Serializer[dict[str, str]]):
     raw = serializers.CharField(
         required=False,
         help_text="The raw contents of the CODEOWNERS file.",
     )
-    codeMappingId = serializers.IntegerField(
+    codeMappingId = serializers.CharField(
         required=False,
-        help_text="The numeric ID of an existing code mapping for this project, used to translate repository paths to stack trace paths.",
-    )
-    dateUpdated = serializers.CharField(
-        required=False,
-        help_text="Optional timestamp. Sentry refreshes this value when an existing configuration is updated.",
+        help_text="The ID of the code mapping used to translate repository paths to stack trace paths.",
     )
 
 

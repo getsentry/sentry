@@ -3,7 +3,7 @@ from typing import Any
 
 from django.http import Http404
 from drf_spectacular.utils import extend_schema
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -28,23 +28,6 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.team import Team
 
 logger = logging.getLogger(__name__)
-
-
-class ExternalTeamUpdateRequestSerializer(serializers.Serializer):
-    externalId = serializers.CharField(
-        required=False, allow_null=True, help_text="The external provider's ID for this team."
-    )
-    externalName = serializers.CharField(
-        required=False, help_text="The team's name or handle in the external provider."
-    )
-    provider = serializers.ChoiceField(
-        choices=ExternalTeamSerializer().fields["provider"].choices,
-        required=False,
-        help_text="The external provider.",
-    )
-    integrationId = serializers.IntegerField(
-        required=False, help_text="The Sentry integration ID for the external provider."
-    )
 
 
 @cell_silo_endpoint
@@ -93,18 +76,12 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
     @extend_schema(
         operation_id="updateTeamExternalTeam",
         summary="Update an External Team",
-        description=(
-            "Updates an external-team mapping. To move a mapping to another Sentry team, use the "
-            "existing mapping ID with the destination team's URL. The URL determines the target "
-            "team; a `teamId` supplied in the request body is ignored. The response does not "
-            "include `teamId`."
-        ),
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.TEAM_ID_OR_SLUG,
             OrganizationParams.EXTERNAL_TEAM_ID,
         ],
-        request=ExternalTeamUpdateRequestSerializer,
+        request=ExternalTeamSerializer,
         responses={
             200: ExternalActorSerializer,
             400: RESPONSE_BAD_REQUEST,
