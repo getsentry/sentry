@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import math
 from datetime import datetime, timedelta
@@ -28,6 +29,13 @@ from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.memory import track_memory_usage
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    set_viewer_context_project,
+    viewer_context_scope,
+)
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.data_packet import process_data_packet
@@ -120,7 +128,20 @@ class SubscriptionProcessor:
 
         # Create processor and run
         processor = cls(subscription, detector)
-        return processor.process_update(subscription_update)
+        scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+        if get_viewer_context() is None:
+            scope = viewer_context_scope(
+                ViewerContext(
+                    organization_id=organization.id,
+                    project_id=project.id,
+                    actor_type=ActorType.SYSTEM,
+                )
+            )
+        else:
+            set_viewer_context_project(project.id)
+
+        with scope:
+            return processor.process_update(subscription_update)
 
     def get_crash_rate_alert_metrics_aggregation_value(
         self, subscription_update: QuerySubscriptionUpdate

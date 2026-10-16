@@ -16,6 +16,7 @@ from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
 from sentry.snuba.models import QuerySubscription
+from sentry.viewer_context import set_viewer_context_project
 from sentry.workflow_engine.models import Detector
 
 logger = logging.getLogger(__name__)
@@ -105,6 +106,7 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
         if not request.access.has_project_access(query_subscription.project):
             raise PermissionDenied
 
+        set_viewer_context_project(query_subscription.project_id)
         data = get_anomaly_threshold_data_from_seer(
             subscription=query_subscription, start=start_float, end=end_float
         )
