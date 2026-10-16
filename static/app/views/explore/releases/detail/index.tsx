@@ -47,6 +47,7 @@ import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathname
 import {useReleaseMeta} from 'sentry/views/explore/releases/utils/useReleaseMeta';
 
 import {ReleaseHeader} from './header/releaseHeader';
+import {normalizeProjectParam} from './utils';
 
 type ReleaseContextType = {
   deploys: Deploy[];
@@ -256,7 +257,27 @@ function ReleasesDetailContainer() {
     }
   }, [location, navigate]);
 
+  useEffect(() => {
+    const rawProject = location.query.project;
+    const normalizedProject = normalizeProjectParam(rawProject);
+
+    if (normalizedProject !== rawProject) {
+      navigate(
+        {...location, query: {...location.query, project: normalizedProject}},
+        {replace: true}
+      );
+    }
+  }, [location, navigate]);
+
   const {data: releaseMeta, isPending, isError, error} = useReleaseMeta({release});
+
+  if (normalizeProjectParam(location.query.project) !== location.query.project) {
+    return (
+      <Stack flex={1}>
+        <LoadingIndicator />
+      </Stack>
+    );
+  }
 
   if (isPending) {
     return (
