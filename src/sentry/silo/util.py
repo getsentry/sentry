@@ -17,6 +17,14 @@ PROXY_TIMEOUT_HEADER = "X-Sentry-Subnet-Timeout"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 PROXY_APIGATEWAY_HEADER = "X-Apigateway"
 
+PROXY_INTERNAL_FAILURE_HEADER = "X-Sentry-Internal-Proxy-Failure"
+"""
+Set by the integration proxy on every response it returns: ``true`` when the proxy itself
+failed, ``false`` when the response reflects a real answer (or a real failure) from the
+third party. The status code alone cannot distinguish the two, since every code the proxy
+emits collides with one a provider can emit.
+"""
+
 INVALID_PROXY_HEADERS = {"Host", "X-Forwarded-Proto", "Content-Length", "Content-Encoding"}
 INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
     PROXY_OI_HEADER,
@@ -24,6 +32,7 @@ INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
     PROXY_BASE_URL_HEADER,
     PROXY_PATH,
     PROXY_TIMEOUT_HEADER,
+    PROXY_INTERNAL_FAILURE_HEADER,
 }
 
 # url_names whose request body is forwarded raw through the gateway and whose

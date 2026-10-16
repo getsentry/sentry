@@ -12,8 +12,9 @@ import sentry_sdk
 import urllib3
 from django.conf import settings
 from django.utils.encoding import force_str
-from requests import PreparedRequest
+from requests import PreparedRequest, Response
 from requests.adapters import Retry
+from requests.exceptions import ChunkedEncodingError
 
 from sentry import options
 from sentry.constants import ObjectStatus
@@ -22,11 +23,17 @@ from sentry.http import build_session
 from sentry.integrations.client import ApiClient
 from sentry.integrations.services.integration.service import integration_service
 from sentry.net.http import SafeSession
+from sentry.shared_integrations.client.base import SessionSettings
+from sentry.shared_integrations.exceptions import (
+    ApiConnectionResetError,
+    IntegrationProxyInternalError,
+)
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.silo.util import (
     DEFAULT_REQUEST_BODY,
     PROXY_BASE_PATH,
     PROXY_BASE_URL_HEADER,
+    PROXY_INTERNAL_FAILURE_HEADER,
     PROXY_KEYID_HEADER,
     PROXY_OI_HEADER,
     PROXY_PATH,
@@ -168,6 +175,36 @@ class IntegrationProxyClient(ApiClient):
                 ),
             )
         return build_session()
+
+    def _do_send(
+        self, session: SafeSession, request: PreparedRequest, session_settings: SessionSettings
+    ) -> Response:
+        try:
+            response = super()._do_send(session, request, session_settings)
+        except ChunkedEncodingError as e:
+            if not self._should_proxy_to_control:
+                raise
+            # The Control Silo aborted its StreamingHttpResponse partway through the body
+            # meaning the response is truncated. We still want to track this, as
+            #  well as raise this to the caller potentially.
+            self.track_response_data("chunked_encoding_error", e)
+            raise ApiConnectionResetError("Proxied response truncated", url=request.url) from e
+
+        if (
+            self._should_proxy_to_control
+            and response.headers.get(PROXY_INTERNAL_FAILURE_HEADER) == "true"
+        ):
+            # The PROXY_INTERNAL_FAILURE_HEADER is set by the proxy when it
+            # either encounters an internal error, or validation fails.
+            error = IntegrationProxyInternalError(
+                response.text, response.status_code, url=request.url
+            )
+            # Raising here would normally skip response metrics tracking, so
+            # we explicitly track it here instead.
+            self.track_response_data(response.status_code, error, resp=response)
+            raise error
+
+        return response
 
     @staticmethod
     def determine_whether_should_proxy_to_control() -> bool:
