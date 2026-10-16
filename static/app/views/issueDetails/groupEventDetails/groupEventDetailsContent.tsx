@@ -61,6 +61,7 @@ import {LowValueSpanProblemSection} from 'sentry/views/issueDetails/configuratio
 import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanTroubleshootingSection';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+import {GenerativeReportSection} from 'sentry/views/issueDetails/generativeReport/generativeReportSection';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 import {getHangProfileData} from 'sentry/views/issueDetails/metricKitHangProfileSection';
 import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
@@ -120,6 +121,9 @@ export function EventDetailsContent({
       {issueTypeConfig.tags.enabled && (
         <HighlightsDataSection event={event} project={project} />
       )}
+      <ErrorBoundary mini>
+        <GenerativeReportSection group={group} />
+      </ErrorBoundary>
       {isMobilePlatform(project.platform) && (
         <ProfilePreviewSection event={event} project={project} />
       )}
