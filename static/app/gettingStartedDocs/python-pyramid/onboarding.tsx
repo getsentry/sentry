@@ -16,9 +16,9 @@ import sentry_sdk
 
 sentry_sdk.init(
     dsn="${params.dsn.public}",
-    # Add data like request headers and IP for users,
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    data_collection={"user_info": True},
+    # To customize collected data (user info, request bodies, AI inputs/outputs),
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    # data_collection={"user_info": False},
 )
 `;
 

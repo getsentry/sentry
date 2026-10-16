@@ -22,19 +22,19 @@ export const mcp: OnboardingConfig = {
             text:
               params.platformOptions?.integration === 'mcp_sdk'
                 ? tct(
-                    'To enable MCP monitoring for the [code:fastmcp] and [code:mcp] packages, you need to install the Sentry SDK with a minimum version of [code:2.70.0] or higher.',
+                    'To enable MCP monitoring for the [code:fastmcp] and [code:mcp] packages, you need to install the Sentry SDK with a minimum version of [code:2.43.0] or higher.',
                     {
                       code: <code />,
                     }
                   )
                 : tct(
-                    'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:2.70.0] or higher.',
+                    'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:2.43.0] or higher.',
                     {
                       code: <code />,
                     }
                   ),
           },
-          getPythonInstallCodeBlock({packageName, minimumVersion: '2.70.0'}),
+          getPythonInstallCodeBlock({packageName}),
         ],
       },
     ];
@@ -62,9 +62,9 @@ from sentry_sdk.integrations.mcp import MCPIntegration
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
-    # Add data like inputs and responses to/from MCP servers;
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
+    # To customize collected data (AI inputs/outputs, user info, request bodies),
+    # see https://docs.sentry.io/platforms/python/data-management/data-collected/
+    # data_collection={"gen_ai": {"inputs": False, "outputs": False}},
     integrations=[
         MCPIntegration(),
     ],
