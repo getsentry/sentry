@@ -725,6 +725,7 @@ from sentry.workflow_engine.endpoints import urls as workflow_urls
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
+from .endpoints.agent_problem_reports import AgentProblemReportsEndpoint
 from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_application_rotate_secret import ApiApplicationRotateSecretEndpoint
@@ -3851,6 +3852,11 @@ urlpatterns = [
         r"^assistant/$",
         AssistantEndpoint.as_view(),
         name="sentry-api-0-assistant",
+    ),
+    re_path(
+        r"^agent-problem-reports/$",
+        AgentProblemReportsEndpoint.as_view(),
+        name="sentry-api-0-agent-problem-reports",
     ),
     re_path(
         r"^api-applications/$",
