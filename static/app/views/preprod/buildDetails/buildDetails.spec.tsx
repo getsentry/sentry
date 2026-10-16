@@ -180,6 +180,45 @@ describe('BuildDetails', () => {
     }
   );
 
+  it('enables Install once the build reports itself installable', async () => {
+    MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: QUOTA_STATE_URL,
+      method: 'GET',
+      body: {hasSizeQuota: true, hasDistributionQuota: true},
+    });
+
+    const installable = PreprodBuildDetailsWithSizeInfoFixture({
+      state: BuildDetailsSizeAnalysisState.COMPLETED,
+      size_metrics: [],
+      base_size_metrics: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: BUILD_DETAILS_URL,
+      method: 'GET',
+      body: {
+        ...installable,
+        distribution_info: {...installable.distribution_info, is_installable: true},
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: SIZE_ANALYSIS_URL,
+      method: 'GET',
+      body: createMockSizeAnalysisData(),
+    });
+
+    render(<BuildDetails />, {organization, initialRouterConfig});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Build Actions'}));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Install'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
+  });
+
   it('shows the app metadata in the entity header and the actions in the more menu', async () => {
     MockApiClient.clearMockResponses();
 
@@ -259,6 +298,13 @@ describe('BuildDetails', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Delete Build'})).toBeInTheDocument();
+
+    // The fixture is not installable, so Install is offered but inert rather
+    // than opening a modal with nothing behind it.
+    expect(screen.getByRole('menuitemradio', {name: 'Install'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
 
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Compare Build'}));
 

@@ -23,6 +23,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {BuildEntityHeader} from 'sentry/views/preprod/components/buildEntityHeader';
+import {getDistributionErrorTooltip} from 'sentry/views/preprod/components/installDetailsContent';
 import {openInstallModal} from 'sentry/views/preprod/components/installModal';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
@@ -183,11 +184,18 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           ];
 
           if (projectSlug) {
+            const {is_installable, error_code, error_message} =
+              buildDetailsData.distribution_info;
+
             menuItems.push({
               key: 'install',
               label: t('Install'),
               leadingItems: <IconMobile variant="muted" />,
               onAction: handleInstallClick,
+              disabled: !is_installable,
+              tooltip: is_installable
+                ? undefined
+                : getDistributionErrorTooltip(error_code, error_message),
             });
           }
 
