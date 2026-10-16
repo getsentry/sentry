@@ -78,6 +78,14 @@ logger = logging.getLogger("sentry.tasks.seer.agentic_triage")
 
 AGENTIC_TRIAGE_SPREAD_DURATION = timedelta(hours=1)
 
+
+def _strip_null(value: str | None) -> str | None:
+    """Strip null bytes that PostgreSQL jsonb cannot store (\\u0000 / \\x00)."""
+    if value is None:
+        return None
+    return value.replace("\x00", "")
+
+
 BATCH_FEATURE_NAMES = [
     "organizations:seer-night-shift",
 ]
@@ -818,8 +826,8 @@ def _build_shard_plans(
             candidates=[
                 TriageCandidate(
                     group_id=candidate.group.id,
-                    title=candidate.group.title,
-                    culprit=candidate.group.culprit,
+                    title=_strip_null(candidate.group.title),
+                    culprit=_strip_null(candidate.group.culprit),
                     fixability=candidate.fixability,
                     times_seen=candidate.group.times_seen,
                     first_seen=candidate.group.first_seen.isoformat(),
@@ -832,7 +840,9 @@ def _build_shard_plans(
             tweaks=TriageTweaks(
                 intelligence_level=resolved_options["intelligence_level"],
                 reasoning_effort=resolved_options["reasoning_effort"],
-                extra_triage_instructions=resolved_options["extra_triage_instructions"],
+                extra_triage_instructions=_strip_null(
+                    resolved_options["extra_triage_instructions"]
+                ),
             ),
         )
         num_candidates = len(payload.candidates)
