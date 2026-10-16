@@ -99,21 +99,22 @@ class AlertRuleNotification(ProjectNotification):
         self.fallthrough_choice = fallthrough_choice
         self.rules = notification.rules
 
-        if group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL or group.issue_type.type_id in (
-            PerformanceP95EndpointRegressionGroupType.type_id,
-            ProfileFunctionRegressionType.type_id,
-        ):
+        is_profile_issue = (
+            isinstance(event, GroupEvent)
+            and event.occurrence is not None
+            and event.occurrence.evidence_data.get("template_name") == "profile"
+        ) or group.issue_type is ProfileFunctionRegressionType
+
+        if is_profile_issue:
             # profile issues use the generic template for now
-            if (
-                isinstance(event, GroupEvent)
-                and event.occurrence
-                and event.occurrence.evidence_data.get("template_name") == "profile"
-            ):
-                email_template_name = GENERIC_TEMPLATE_NAME
-            elif group.issue_category in PERFORMANCE_ISSUE_CATEGORIES:
-                email_template_name = "performance"
-            else:
-                email_template_name = group.issue_category.name.lower()
+            email_template_name = GENERIC_TEMPLATE_NAME
+        elif (
+            group.issue_category in PERFORMANCE_ISSUE_CATEGORIES
+            or group.issue_type is PerformanceP95EndpointRegressionGroupType
+        ):
+            email_template_name = "performance"
+        elif group.issue_category in GROUP_CATEGORIES_CUSTOM_EMAIL:
+            email_template_name = group.issue_category.name.lower()
         else:
             email_template_name = GENERIC_TEMPLATE_NAME
 
