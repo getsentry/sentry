@@ -63,3 +63,22 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             )
 
         assert str(other_project.id) in str(response.data["detail"])
+
+    def test_owner_can_grant_projects_outside_their_teams(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            project = self.create_project(
+                organization=self.organization,
+                teams=[self.create_team(organization=self.organization)],
+            )
+
+        with self.feature(FEATURE_FLAG):
+            response = self.get_success_response(
+                self.organization.slug,
+                method="post",
+                name="nightly-triage",
+                scopes=["event:read"],
+                projectIds=[project.id],
+                status_code=201,
+            )
+
+        assert response.data["projectIds"] == [str(project.id)]

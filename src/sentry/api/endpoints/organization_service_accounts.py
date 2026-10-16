@@ -123,10 +123,11 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
     def validate_projectIds(self, project_ids: list[int] | None) -> list[int]:
         if not project_ids:
             return []
-        org_project_ids = {project.id for project in self.context["organization"].projects}
-        ungrantable = set(project_ids) - (
-            org_project_ids & self.context["access"].accessible_project_ids
-        )
+        access = self.context["access"]
+        grantable = {project.id for project in self.context["organization"].projects}
+        if not access.has_global_access:
+            grantable &= access.accessible_project_ids
+        ungrantable = set(project_ids) - grantable
         if ungrantable:
             raise serializers.ValidationError(
                 f"You can't grant access to projects: {', '.join(map(str, sorted(ungrantable)))}"
