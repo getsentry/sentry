@@ -44,7 +44,7 @@ function hasOnlyAllowedMediaDeclarations(
     if (isNonLayoutMediaQuery(query[0])) {
       return true;
     }
-    const declarations = query[1]!
+    const declarations = (query[1] ?? '')
       .split(';')
       .map(declaration => declaration.trim())
       .filter(Boolean);
@@ -197,7 +197,11 @@ export const preferContainerResponsiveProps = defineRule({
           return;
         }
         const query = keyName?.match(STYLE_QUERY)?.[0];
-        if (query && (query === '@container' || !isNonLayoutMediaQuery(keyName!))) {
+        if (
+          query &&
+          keyName &&
+          (query === '@container' || !isNonLayoutMediaQuery(keyName))
+        ) {
           context.report({node: key, messageId: 'forbidden'});
         }
       },
