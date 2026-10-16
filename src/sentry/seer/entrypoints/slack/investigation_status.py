@@ -21,6 +21,13 @@ MAX_STATUS_TEXT_LENGTH = 300
 VERIFYING_LABEL = "● Verifying"
 NOT_COMPLETED_LABEL = "● Not completed"
 NOT_COMPLETED_DETAIL = "Verification stopped before this explanation could be assessed."
+STEP_DETAIL_PREFIXES = {
+    "running": "",
+    "reauth_required": "Needs re-authentication: ",
+    "blocked": "Blocked: ",
+    "stalled": "Stalled: ",
+    "queued": "",
+}
 
 HYPOTHESIS_LABELS = {
     "pending": VERIFYING_LABEL,
@@ -116,10 +123,11 @@ def _get_detail(hypothesis: Mapping[str, Any]) -> str:
         step for step in hypothesis.get("verificationSteps") or [] if isinstance(step, Mapping)
     ]
     steps.sort(key=lambda step: step.get("order", 0))
-    for status in ("running", "queued"):
+    # A step that is stuck explains more than one that is still queued behind it.
+    for status, prefix in STEP_DETAIL_PREFIXES.items():
         for step in steps:
             if step.get("status") == status and step.get("title"):
-                return _truncate(str(step["title"]))
+                return _truncate(f"{prefix}{step['title']}")
 
     return _truncate(str(hypothesis.get("rationale") or ""))
 
