@@ -87,11 +87,24 @@ interface SpansTabOnboardingProps {
   project: Project;
 }
 
-export function SpansTabOnboarding({
+function SpansTabOnboardingInner({
   datePageFilterProps,
   organization,
   project,
 }: SpansTabOnboardingProps) {
+  const selectedProjects = useSelectedProjectsForLLMContext();
+
+  useLLMContext({
+    contextHint:
+      'Sentry traces explorer page. Shows setup instructions because the selected projects have not sent any spans yet. ' +
+      'onboardingProject is the project the setup instructions are for. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
+    onboarding: true,
+    onboardingProject: {slug: project.slug, platform: project.platform},
+    ...toLLMContextProjectFields(selectedProjects),
+  });
+
   return (
     <Layout.Body>
       <PageFilterBar condensed>
@@ -379,6 +392,11 @@ function SpanTabContentSectionInner({
     </ExploreContentSection>
   );
 }
+
+export const SpansTabOnboarding = registerLLMContext(
+  'traces-explorer',
+  SpansTabOnboardingInner
+);
 
 const SpanTabContentSection = registerLLMContext(
   'traces-explorer',

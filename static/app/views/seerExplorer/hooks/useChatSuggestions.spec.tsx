@@ -166,8 +166,11 @@ describe('useChatSuggestions', () => {
     });
 
     afterEach(() => {
-      act(() => jest.runOnlyPendingTimers());
-      jest.useRealTimers();
+      try {
+        act(() => jest.runOnlyPendingTimers());
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('returns fallback suggestions when the request times out', async () => {

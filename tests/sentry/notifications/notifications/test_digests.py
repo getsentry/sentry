@@ -14,7 +14,6 @@ from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.projectownership import ProjectOwnership
-from sentry.notifications.types import NotificationOrigin
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest, TestCase
@@ -23,6 +22,7 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user_option import UserOption
@@ -68,7 +68,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             )
 
         assert event is not None
-        origin = NotificationOrigin.from_legacy_rule(self.rule)
+        origin = create_notification_origin(self.rule)
         backend.add(
             self.key,
             event_to_record(as_group_event(event), [origin]),
@@ -302,7 +302,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             project_id=self.project.id,
         )
         notification_uuid = str(uuid.uuid4())
-        origin = NotificationOrigin.from_legacy_rule(rule)
+        origin = create_notification_origin(rule)
         backend.add(
             key,
             event_to_record(as_group_event(event1), [origin], notification_uuid),
@@ -364,7 +364,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         timestamp = before_now(days=1).isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
         rule = self.create_project_rule(project=self.project)
-        origin = NotificationOrigin.from_legacy_rule(rule)
+        origin = create_notification_origin(rule)
         notification_uuid = str(uuid.uuid4())
 
         # Create 17 events to exceed 48 blocks (each event generates ~3 blocks)

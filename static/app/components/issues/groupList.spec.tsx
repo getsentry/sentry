@@ -5,7 +5,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {GroupStore} from 'sentry/stores/groupStore';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -60,6 +66,24 @@ describe('GroupList', () => {
     expect(screen.getByText('327K')).toBeInTheDocument();
     // Users
     expect(screen.getByText('35K')).toBeInTheDocument();
+  });
+
+  it('renders a header for each column of the rows', async () => {
+    render(
+      <GroupList
+        numPlaceholderRows={1}
+        queryParams={defaultQueryParams}
+        withColumns={['firstSeen', 'lastSeen', 'event', 'priority', 'assigneeAvatar']}
+      />,
+      {organization, initialRouterConfig}
+    );
+
+    const row = await screen.findByTestId('group');
+
+    expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(
+      ['Issue', 'Last Seen', 'Age', 'Graph', 'Events', 'Priority', 'Assignee']
+    );
+    expect(within(row).getAllByRole('cell')).toHaveLength(7);
   });
 
   it('renders empty state when no groups are returned', async () => {

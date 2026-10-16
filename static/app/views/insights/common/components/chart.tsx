@@ -39,21 +39,13 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
+
+export {ChartType, isChartType} from 'sentry/views/insights/common/components/chartTypes';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
 
 type PairOfSeries = [Series[], Series[]];
-
-export enum ChartType {
-  BAR = 0,
-  LINE = 1,
-  AREA = 2,
-  HEATMAP = 3,
-}
-
-export function isChartType(value: any): value is ChartType {
-  return typeof value === 'number' && Object.values(ChartType).includes(value);
-}
 
 interface ChartRenderingProps {
   height: number;

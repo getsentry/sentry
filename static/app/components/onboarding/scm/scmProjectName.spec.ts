@@ -25,4 +25,21 @@ describe('getScmDefaultProjectName', () => {
     const repository = RepositoryFixture({name: '---'});
     expect(getScmDefaultProjectName({repository, platformKey: 'python'})).toBe('python');
   });
+
+  it('falls back to the platform key when the repo name is a reserved slug', () => {
+    const repository = RepositoryFixture({name: 'acme/settings'});
+    expect(getScmDefaultProjectName({repository, platformKey: 'python'})).toBe('python');
+  });
+
+  it('is case-insensitive when checking reserved slugs', () => {
+    const repository = RepositoryFixture({name: 'acme/Auth'});
+    expect(getScmDefaultProjectName({repository, platformKey: 'python'})).toBe('python');
+  });
+
+  it('does not fall back for a name that merely contains a reserved word', () => {
+    const repository = RepositoryFixture({name: 'acme/settings-ui'});
+    expect(getScmDefaultProjectName({repository, platformKey: 'python'})).toBe(
+      'settings-ui'
+    );
+  });
 });
