@@ -21,6 +21,8 @@ from sentry.utils import json
 from sentry.utils.dates import to_datetime
 
 FALSY_ATTRIBUTE_VALUE_ALLOWLIST = (False, 0)
+# Catch-all prefix for request headers which don't have their own dedicated attribute
+REQUEST_HEADER_ATTRIBUTE_PREFIX = ATTRIBUTE_NAMES.HTTP_REQUEST_HEADER_KEY.removesuffix("<key>")
 
 TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
@@ -86,6 +88,10 @@ REQUEST_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.URL_QUERY: "query_string",
     ATTRIBUTE_NAMES.HTTP_REQUEST_BODY_DATA: "data",
 }
+REQUEST_HEADERS_BY_ATTRIBUTE_NAME = {
+    "http.user_agent": "user-agent",
+    ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL: "user-agent",
+}
 
 SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_NORMALIZED_DESCRIPTION: "description",
@@ -96,13 +102,16 @@ SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     "sentry.system": "system",
 }
 
-KNOWN_NON_TAG_ATTRIBUTE_PREFIXES = frozenset({"sentry.", "user.", "browser.web_vital."})
+KNOWN_NON_TAG_ATTRIBUTE_PREFIXES = frozenset(
+    {"sentry.", "user.", "browser.web_vital.", REQUEST_HEADER_ATTRIBUTE_PREFIX}
+)
 KNOWN_NON_TAG_ATTRIBUTES = frozenset().union(
     TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     USER_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     GEO_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     SDK_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     REQUEST_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    REQUEST_HEADERS_BY_ATTRIBUTE_NAME.keys(),
     SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     *(inner_dict.keys() for inner_dict in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.values()),
 )
@@ -229,8 +238,52 @@ def _get_event_user(segment_span: CompatibleSpan) -> dict[str, Any] | None:
     return user_data
 
 
+def _get_request_headers(segment_span: CompatibleSpan) -> list[list[str]]:
+    """
+    Build the request's `headers` value from the segment span's `http.request.header.<name>`
+    attributes, plus any headers which have their own dedicated attributes.
+    """
+    attributes = segment_span.get("attributes") or {}
+    headers = []
+
+    # Handle headers which have their own, dedicated attribute names
+    header_data = _extract_attribute_values(segment_span, REQUEST_HEADERS_BY_ATTRIBUTE_NAME)
+
+    # Handle headers from `http.request.header.<key>` attributes
+    for attribute_name in filter(
+        lambda attribute_name: attribute_name.startswith(REQUEST_HEADER_ATTRIBUTE_PREFIX),
+        attributes.keys(),
+    ):
+        header_value = attribute_value(segment_span, attribute_name)
+
+        if not header_value:
+            continue
+
+        header_name = attribute_name.removeprefix(REQUEST_HEADER_ATTRIBUTE_PREFIX)
+
+        # Handle cases where the SDK hasn't already joined multi-valued headers into a single string
+        if isinstance(header_value, list):
+            header_value = ", ".join(str(element) for element in header_value)
+
+        header_data[header_name] = header_value
+
+    # Convert header data from a dict to the list of key-value pairs expected by ingest, and header
+    # names from lowercase to the more familiar titlecase format
+    for lowercase_header_name, header_value in header_data.items():
+        titlecase_header_name = "-".join(
+            word.capitalize() for word in lowercase_header_name.split("-")
+        )
+        headers.append([titlecase_header_name, str(header_value)])
+
+    return headers
+
+
 def _get_event_request(segment_span: CompatibleSpan) -> dict[str, Any]:
     request_data = _extract_attribute_values(segment_span, REQUEST_FIELDS_BY_ATTRIBUTE_NAME)
+
+    headers = _get_request_headers(segment_span)
+    if headers:
+        request_data["headers"] = headers
 
     if "query_string" in request_data:
         # Convert from a single string to a list of key-value pairs
