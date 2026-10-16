@@ -230,6 +230,10 @@ export function GroupDetailsLayout({
                   </div>
                 )}
               </SharedTourElement>
+              {/* Fill the column beside the sidebar so a short tab keeps the secondary
+                  background and the scroll position stable. Below this width the sidebar
+                  stacks under the content, and the floor would only push it a full viewport
+                  down. That is the common case once the Seer panel narrows the app content. */}
               {isAutofixTab ? (
                 // The autofix section. Same chrome and tab navigation as the
                 // event pages — the navigation is the only way back out of the
@@ -244,9 +248,12 @@ export function GroupDetailsLayout({
                         hasToggleSidebar={!hasFilterBar}
                       />
                     )}
-                  <ContentPadding minHeight={{zero: 'auto', '4xl': '100vh'}}>
+                  <Container
+                    padding="0 xl 2xl xl"
+                    minHeight={{zero: 'auto', '4xl': '100vh'}}
+                  >
                     {children}
-                  </ContentPadding>
+                  </Container>
                 </EventDetailsSection>
               ) : (
                 <SharedTourElement<IssueDetailsTour>
@@ -270,9 +277,12 @@ export function GroupDetailsLayout({
                               hasToggleSidebar={!hasFilterBar}
                             />
                           )}
-                        <ContentPadding minHeight={{zero: 'auto', '4xl': '100vh'}}>
+                        <Container
+                          padding="0 xl 2xl xl"
+                          minHeight={{zero: 'auto', '4xl': '100vh'}}
+                        >
                           {children}
-                        </ContentPadding>
+                        </Container>
                       </EventDetailsSection>
                     </div>
                   )}
@@ -334,9 +344,4 @@ const NavigationSidebarWrapper = styled(Sticky, {
   &[data-stuck] {
     z-index: ${p => p.theme.zIndex.stickyHeader + 1};
   }
-`;
-
-const ContentPadding = styled(Container)`
-  padding: 0 var(--issue-details-inset, ${p => p.theme.space['2xl']})
-    ${p => p.theme.space['2xl']} var(--issue-details-inset, ${p => p.theme.space['2xl']});
 `;
