@@ -33,24 +33,20 @@ import * as Storybook from 'sentry/stories';
   </DropdownMenu>
 </Storybook.Demo>
 
-`Menu.SearchField` is controlled. Filter the declared options in the caller; `CompactSelect`'s existing `search` prop remains available for array based options.
+Search belongs to `CompactSelect`. Its `search` prop filters composed options as well as array based options.
 
 export function SearchableComposedSelect() {
-  const [query, setQuery] = useState('');
   const [value, setValue] = useState();
   return (
-    <CompactSelect value={value} onChange={option => setValue(option.value)}>
-      <Menu.Header>
-        <Menu.SearchField aria-label="Filter fruit" value={query} onChange={setQuery} />
-      </Menu.Header>
+    <CompactSelect
+      value={value}
+      onChange={option => setValue(option.value)}
+      search={{placeholder: 'Filter fruit'}}
+    >
       <Menu.Section sectionKey="fruit">
         <Menu.SectionLabel>Fruit</Menu.SectionLabel>
-        {'Apple'.toLowerCase().includes(query.toLowerCase()) && (
-          <Menu.ListItem value="apple" label="Apple" />
-        )}
-        {'Pear'.toLowerCase().includes(query.toLowerCase()) && (
-          <Menu.ListItem value="pear" label="Pear" />
-        )}
+        <Menu.ListItem value="apple" label="Apple" />
+        <Menu.ListItem value="pear" label="Pear" />
       </Menu.Section>
       <Menu.Footer>Choose one fruit</Menu.Footer>
     </CompactSelect>

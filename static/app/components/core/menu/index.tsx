@@ -7,12 +7,10 @@ import {
   Submenu,
 } from './declarations';
 import {MenuFooter, MenuHeader} from './layout';
-import {MenuSearchField} from './searchField';
 
 export const Menu = {
   Header: MenuHeader,
   Footer: MenuFooter,
-  SearchField: MenuSearchField,
   Item: MenuItem,
   ListItem,
   Section: MenuSection,
@@ -21,5 +19,4 @@ export const Menu = {
   Submenu,
 };
 
-export type {MenuSearchFieldProps} from './searchField';
 export type {MenuSectionProps, SubmenuProps} from './declarations';

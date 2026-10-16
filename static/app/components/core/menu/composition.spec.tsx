@@ -77,27 +77,19 @@ describe('composed menu primitives', () => {
     expect(await screen.findByRole('menuitemradio', {name: 'JSON'})).toBeInTheDocument();
   });
 
-  it('keeps header search and footer actions outside the listbox', async () => {
+  it('searches composed options and keeps footer actions outside the listbox', async () => {
     function Example() {
-      const [query, setQuery] = useState('');
       const [value, setValue] = useState<string>();
       return (
-        <CompactSelect value={value} onChange={option => setValue(option.value)}>
-          <Menu.Header>
-            <Menu.SearchField
-              aria-label="Filter options"
-              value={query}
-              onChange={setQuery}
-            />
-          </Menu.Header>
+        <CompactSelect
+          value={value}
+          onChange={option => setValue(option.value)}
+          search={{placeholder: 'Filter options'}}
+        >
           <Menu.Section sectionKey="fruit">
             <Menu.SectionLabel>Fruit</Menu.SectionLabel>
-            {'Apple'.toLowerCase().includes(query.toLowerCase()) && (
-              <Menu.ListItem value="apple" label="Apple" />
-            )}
-            {'Pear'.toLowerCase().includes(query.toLowerCase()) && (
-              <Menu.ListItem value="pear" label="Pear" />
-            )}
+            <Menu.ListItem value="apple" label="Apple" />
+            <Menu.ListItem value="pear" label="Pear" />
           </Menu.Section>
           <Menu.Footer>Selection is immediate</Menu.Footer>
         </CompactSelect>
@@ -108,12 +100,10 @@ describe('composed menu primitives', () => {
     await userEvent.click(screen.getByRole('button', {name: 'None'}));
     const listbox = screen.getByRole('listbox');
     expect(screen.getByRole('group', {name: 'Fruit'})).toBeInTheDocument();
-    expect(listbox).not.toContainElement(
-      screen.getByRole('textbox', {name: 'Filter options'})
-    );
+    expect(listbox).not.toContainElement(screen.getByPlaceholderText('Filter options'));
     expect(listbox).not.toContainElement(screen.getByText('Selection is immediate'));
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Filter options'}), 'pear');
+    await userEvent.type(screen.getByPlaceholderText('Filter options'), 'pear');
     expect(screen.queryByRole('option', {name: 'Apple'})).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('option', {name: 'Pear'}));
     expect(screen.getByRole('button', {name: 'Pear'})).toBeInTheDocument();
