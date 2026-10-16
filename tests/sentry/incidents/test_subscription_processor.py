@@ -1,7 +1,10 @@
 import copy
 import math
+from collections.abc import Generator
 from datetime import timedelta
 from functools import cached_property
+from random import randint
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 from uuid import uuid4
 
@@ -11,8 +14,16 @@ from django.utils import timezone
 from urllib3.response import HTTPResponse
 
 from sentry.constants import ObjectStatus
-from sentry.incidents.subscription_processor import SubscriptionProcessor
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.subscription_processor import (
+    SubscriptionProcessor,
+    store_detector_last_update,
+)
+from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.incidents.utils.types import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    QuerySubscriptionUpdate,
+)
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
@@ -23,19 +34,272 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.testutils.cases import BaseMetricsTestCase
+from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
+from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
+from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.models import DataSource, DataSourceDetector, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel
-from tests.sentry.incidents.subscription_processor.test_subscription_processor_base import (
-    ProcessUpdateBaseClass,
-)
 
 EMPTY = object()
 pytestmark = [pytest.mark.sentry_metrics]
+
+
+@freeze_time()
+class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
+    @pytest.fixture(autouse=True)
+    def _setup_metrics_patch(self) -> Generator[None]:
+        with patch("sentry.incidents.subscription_processor.metrics") as self.metrics:
+            yield
+
+    def setUp(self) -> None:
+        super().setUp()
+        self._run_tasks = self.tasks()
+        self._run_tasks.__enter__()
+        self.detector = self.metric_detector
+
+    def tearDown(self) -> None:
+        super().tearDown()
+        self._run_tasks.__exit__(None, None, None)
+
+    @cached_property
+    def sub(self) -> QuerySubscription:
+        data_source = self.metric_detector.data_sources.first()
+        assert data_source is not None
+        subscription_id = int(data_source.source_id)
+        return QuerySubscription.objects.get(id=subscription_id)
+
+    def create_detector_data_source_and_data_conditions(self) -> Detector:
+        detector = self.create_detector(
+            project=self.project,
+            workflow_condition_group=self.create_data_condition_group(),
+            type=MetricIssue.slug,
+            created_by_id=self.user.id,
+        )
+        self.create_detector_state(detector=detector)
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[
+                    SnubaQueryEventType.EventType.ERROR,
+                    SnubaQueryEventType.EventType.DEFAULT,
+                ],
+            )
+            query_subscription = create_snuba_subscription(
+                project=detector.linked_project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=snuba_query,
+            )
+        data_source = self.create_data_source(
+            organization=self.organization,
+            source_id=str(query_subscription.id),
+            type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+        )
+        self.create_data_source_detector(data_source, detector)
+
+        self.set_up_data_conditions(detector, Condition.GREATER, 100, None, 10)
+
+        return detector
+
+    def set_up_data_conditions(
+        self,
+        detector: Detector,
+        threshold_type: Condition,
+        critical_threshold: int,
+        warning_threshold: int | None = None,
+        resolve_threshold: int | None = None,
+    ) -> None:
+        if resolve_threshold is None:
+            resolve_threshold = (
+                critical_threshold if warning_threshold is None else warning_threshold
+            )
+        resolve_threshold_type = (
+            Condition.LESS_OR_EQUAL
+            if threshold_type == Condition.GREATER
+            else Condition.GREATER_OR_EQUAL
+        )
+
+        self.create_data_condition(
+            type=threshold_type,
+            comparison=critical_threshold,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=detector.workflow_condition_group,
+        )
+        if warning_threshold is not None:
+            self.create_data_condition(
+                type=threshold_type,
+                comparison=warning_threshold,
+                condition_result=DetectorPriorityLevel.MEDIUM,
+                condition_group=detector.workflow_condition_group,
+            )
+        self.create_data_condition(
+            type=resolve_threshold_type,
+            comparison=resolve_threshold,
+            condition_result=DetectorPriorityLevel.OK,
+            condition_group=detector.workflow_condition_group,
+        )
+
+    @cached_property
+    def metric_detector(self) -> Detector:
+        return self.create_detector_data_source_and_data_conditions()
+
+    @cached_property
+    def critical_threshold(self) -> float:
+        critical_detector_trigger = DataCondition.objects.get(
+            condition_group=self.metric_detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.HIGH,
+        )
+        return critical_detector_trigger.comparison
+
+    @cached_property
+    def warning_threshold(self) -> float:
+        warning_detector_trigger = DataCondition.objects.get(
+            condition_group=self.metric_detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.MEDIUM,
+        )
+        return warning_detector_trigger.comparison
+
+    @cached_property
+    def resolve_threshold(self) -> float:
+        resolve_detector_trigger = DataCondition.objects.get(
+            condition_group=self.metric_detector.workflow_condition_group,
+            condition_result=DetectorPriorityLevel.OK,
+        )
+        return resolve_detector_trigger.comparison
+
+    def get_snuba_query(self, detector: Detector) -> SnubaQuery:
+        data_source_detector = DataSourceDetector.objects.get(detector=detector)
+        data_source = DataSource.objects.get(id=data_source_detector.data_source.id)
+        query_subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
+        return snuba_query
+
+    def update_threshold(
+        self, detector: Detector, priority_level: DetectorPriorityLevel, new_threshold: float
+    ) -> None:
+        detector_trigger = DataCondition.objects.get(
+            condition_group=detector.workflow_condition_group,
+            condition_result=priority_level,
+        )
+        detector_trigger.comparison = new_threshold
+        detector_trigger.save()
+
+    def build_subscription_update(
+        self,
+        subscription: QuerySubscription | None,
+        time_delta: timedelta | None = None,
+        value: object = EMPTY,
+    ) -> QuerySubscriptionUpdate:
+        if time_delta is not None:
+            timestamp = timezone.now() + time_delta
+        else:
+            timestamp = timezone.now()
+        timestamp = timestamp.replace(microsecond=0)
+
+        data: dict[str, Any] = {}
+
+        if subscription:
+            data = {"some_col_name": randint(0, 100) if value is EMPTY else value}
+        return {
+            "entity": "",
+            "subscription_id": (str(subscription.subscription_id) if subscription else uuid4().hex),
+            "values": {"data": [data]},
+            "timestamp": timestamp,
+        }
+
+    def send_update(
+        self,
+        value: object,
+        time_delta: timedelta | None = None,
+        subscription: QuerySubscription | None = None,
+    ) -> bool:
+        if time_delta is None:
+            time_delta = timedelta()
+        if subscription is None:
+            subscription = self.sub
+        message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
+        with (
+            self.feature(
+                [
+                    "organizations:performance-view",
+                    "organizations:visibility-explore-view",
+                ]
+            ),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            return SubscriptionProcessor.process(subscription, message)
+
+    def get_detector_state(self, detector: Detector) -> int:
+        detector_state = DetectorState.objects.get(detector=detector)
+        return int(detector_state.state)
+
+
+class TestSubscriptionProcessorLastUpdate(ProcessUpdateBaseClass):
+    def test_uses_stored_last_update_value(self) -> None:
+        stored_timestamp = timezone.now() + timedelta(minutes=10)
+        store_detector_last_update(self.metric_detector, self.project.id, stored_timestamp)
+
+        old_update_message = self.build_subscription_update(
+            self.sub, value=self.critical_threshold + 1, time_delta=timedelta(minutes=5)
+        )
+
+        with (
+            self.feature(
+                [
+                    "organizations:performance-view",
+                    "organizations:visibility-explore-view",
+                ]
+            ),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            result = SubscriptionProcessor.process(self.sub, old_update_message)
+
+        assert result is False
+
+    def test_no_detector_returns_false_without_exception(self) -> None:
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                query_type=SnubaQuery.Type.ERROR,
+                dataset=Dataset.Events,
+                query="",
+                aggregate="count()",
+                time_window=timedelta(minutes=1),
+                resolution=timedelta(minutes=1),
+                environment=self.environment,
+                event_types=[
+                    SnubaQueryEventType.EventType.ERROR,
+                    SnubaQueryEventType.EventType.DEFAULT,
+                ],
+            )
+            subscription_without_detector = create_snuba_subscription(
+                project=self.project,
+                subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+                snuba_query=snuba_query,
+            )
+
+        message = self.build_subscription_update(subscription_without_detector, value=100)
+        with (
+            self.feature(
+                [
+                    "organizations:performance-view",
+                    "organizations:visibility-explore-view",
+                ]
+            ),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            result = SubscriptionProcessor.process(subscription_without_detector, message)
+
+        assert result is False
 
 
 class ProcessUpdateTest(ProcessUpdateBaseClass):
@@ -173,7 +437,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
 class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
     @cached_property
-    def comparison_detector_above(self):
+    def comparison_detector_above(self) -> Detector:
         self.detector.config.update({"comparison_delta": 60 * 60})
         self.detector.save()
         self.update_threshold(self.detector, DetectorPriorityLevel.HIGH, 150)
@@ -183,7 +447,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         return self.detector
 
     @cached_property
-    def comparison_detector_below(self):
+    def comparison_detector_below(self) -> Detector:
         self.detector.config.update({"comparison_delta": 60 * 60})
         self.detector.save()
         DataCondition.objects.filter(
@@ -195,7 +459,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         return self.detector
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_above(self, helper_metrics):
+    def test_comparison_alert_above(self, helper_metrics: MagicMock) -> None:
         detector = self.comparison_detector_above
         comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
         self.send_update(self.critical_threshold + 1, timedelta(minutes=-10))
@@ -244,7 +508,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_below(self, helper_metrics):
+    def test_comparison_alert_below(self, helper_metrics: MagicMock) -> None:
         detector = self.comparison_detector_below
         comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
         self.send_update(self.critical_threshold - 1, timedelta(minutes=-10))
@@ -294,7 +558,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_eap(self, helper_metrics):
+    def test_comparison_alert_eap(self, helper_metrics: MagicMock) -> None:
         detector = self.comparison_detector_above
         self.snuba_query.update(
             aggregate="count(span.duration)",
@@ -357,7 +621,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_is_unresolved_comparison_query(self, helper_metrics):
+    def test_is_unresolved_comparison_query(self, helper_metrics: MagicMock) -> None:
         """
         Test that uses the ErrorsQueryBuilder (because of the specific query)
         """
@@ -422,7 +686,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_is_unresolved_different_aggregate(self, helper_metrics):
+    def test_is_unresolved_different_aggregate(self, helper_metrics: MagicMock) -> None:
         detector = self.comparison_detector_above
         comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
         snuba_query = self.get_snuba_query(detector)
@@ -569,12 +833,12 @@ class ProcessUpdateUpsampledCountTest(ProcessUpdateBaseClass):
 
 class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)
-    def _setup_metrics_patcher(self):
+    def _setup_metrics_patcher(self) -> Generator[None]:
         with patch("sentry.snuba.entity_subscription.metrics") as self.entity_subscription_metrics:
             yield
 
     @cached_property
-    def crash_rate_detector(self):
+    def crash_rate_detector(self) -> Detector:
         detector = self.metric_detector
         DataCondition.objects.filter(condition_group=detector.workflow_condition_group).delete()
         self.set_up_data_conditions(
@@ -605,10 +869,13 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
                 )
             )
 
-    def send_crash_rate_detector_update(self, value, subscription, time_delta=None, count=EMPTY):
-        if time_delta is None:
-            time_delta = timedelta()
-
+    def send_crash_rate_detector_update(
+        self,
+        value: float | None,
+        subscription: QuerySubscription,
+        time_delta: timedelta | None = None,
+        count: int | None = None,
+    ) -> None:
         if time_delta is not None:
             timestamp = timezone.now() + time_delta
         else:
@@ -622,7 +889,7 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
             if value is None:
                 numerator, denominator = 0, 0
             else:
-                if count is EMPTY:
+                if count is None:
                     numerator, denominator = value.as_integer_ratio()
                 else:
                     denominator = count
@@ -631,9 +898,7 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
                 subscription,
                 {
                     "entity": "entity",
-                    "subscription_id": (
-                        subscription.subscription_id if subscription else uuid4().hex
-                    ),
+                    "subscription_id": str(subscription.subscription_id),
                     "values": {
                         "data": [
                             {
@@ -677,8 +942,8 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
         "sentry.seer.anomaly_detection.get_anomaly_data.SEER_ANOMALY_DETECTION_CONNECTION_POOL.urlopen"
     )
     def test_dynamic_crash_rate_detector_for_sessions_with_auto_resolve_critical(
-        self, mock_seer_request
-    ):
+        self, mock_seer_request: MagicMock
+    ) -> None:
         """
         Test that ensures that a dynamic critical monitor is triggered when `crash_free_percentage` falls
         below the critical threshold and then is resolved once `crash_free_percentage` goes above
@@ -877,8 +1142,8 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
     @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_crash_rate_detector_when_session_count_is_lower_than_minimum_threshold(
-        self, helper_metrics
-    ):
+        self, helper_metrics: MagicMock
+    ) -> None:
         # Send Critical Update
         update_value = (1 - self.critical_threshold / 100) + 0.05
         self.send_crash_rate_detector_update(
@@ -943,8 +1208,8 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
     @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_multiple_threshold_trigger_is_reset_when_count_is_lower_than_min_threshold(
-        self, helper_metrics
-    ):
+        self, helper_metrics: MagicMock
+    ) -> None:
         update_value = (1 - self.critical_threshold / 100) + 0.05
         subscription = self.sub
 
@@ -975,14 +1240,14 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
 
     @patch("sentry.incidents.utils.process_update_helpers.metrics")
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
-        self, helper_metrics
-    ):
+        self, helper_metrics: MagicMock
+    ) -> None:
         with self.feature("organizations:performance-view"):
             SubscriptionProcessor.process(
                 self.sub,
                 {
                     "entity": "entity",
-                    "subscription_id": self.sub.subscription_id,
+                    "subscription_id": str(self.sub.subscription_id),
                     "values": {
                         # 1001 is a random int that doesn't map to anything in the indexer
                         "data": [
