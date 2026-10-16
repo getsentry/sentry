@@ -72,6 +72,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         Body: ``{"sessionId": str, "requestedScopes"?: [str]}``. The token's scopes are the
         caller's own scopes intersected with read-only plus any approved grants for this
         org and session; ``requestedScopes`` can only narrow further. No token is stored.
+        Propagated superuser elevation always remains read-only, including with write grants.
         """
         if not features.has(agent_token.FEATURE_FLAG, organization, actor=request.user):
             raise ResourceDoesNotExist

@@ -197,10 +197,7 @@ class SuperuserAgentTokenTest(APITestCase):
     def test_invalid_expiry_cannot_mint(self):
         self._chat_authorization()
         with self.feature(FLAG):
-            assert (
-                self._mint(SuperuserAccess.construct(expires_at=True, read_only=True)).status_code
-                == 401
-            )
+            assert self._mint(SuperuserAccess.construct(expires_at=True)).status_code == 401
 
     def test_expired_elevation_cannot_mint_or_be_used(self):
         grant = self._chat_authorization()
@@ -231,6 +228,14 @@ class SuperuserAgentTokenTest(APITestCase):
             assert self._read(minted.data["token"]).status_code == 401
 
     def test_delegated_token_cannot_write_remint_or_cross_org(self):
+        self._assert_read_only_delegated_token()
+
+    def test_writable_browser_cannot_delegate_agent_writes(self):
+        self.add_user_permission(self.employee, "superuser.write")
+        with self.options({"superuser.read-write.ga-rollout": True}):
+            self._assert_read_only_delegated_token()
+
+    def _assert_read_only_delegated_token(self):
         grant = self._chat_authorization()
         other_org = self.create_organization()
         self.create_seer_agent_write_grant(
@@ -239,6 +244,7 @@ class SuperuserAgentTokenTest(APITestCase):
         with self.feature(FLAG):
             minted = self._mint(grant)
             assert minted.status_code == 200, minted.content
+            assert set(minted.data["scopes"]) <= agent_token.readonly_scopes()
             client = APIClient()
             client.credentials(HTTP_AUTHORIZATION=f"Bearer {minted.data['token']}")
             assert client.put(self.path, {}, format="json").status_code == 403
@@ -305,7 +311,7 @@ class SuperuserAgentTokenTest(APITestCase):
         with self.feature(FLAG):
             expiry = get_superuser_access_expiry(request.superuser, self.org.id)
             assert expiry is not None
-            grant = SuperuserAccess(expires_at=expiry, read_only=False)
+            grant = SuperuserAccess(expires_at=expiry)
             minted = self._mint(grant)
             assert minted.status_code == 200, minted.content
             claims = agent_token.decode_agent_token(minted.data["token"])
