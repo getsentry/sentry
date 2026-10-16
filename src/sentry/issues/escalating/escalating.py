@@ -472,7 +472,7 @@ def is_escalating(group: Group) -> tuple[bool, int | None]:
             },
         )
 
-    forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group.project.id, group.id)
+    forecast_today = EscalatingGroupForecast.fetch_todays_forecast(group)
     # Check if current event occurrence is greater than forecast for today's date
     if forecast_today and group_hourly_count > forecast_today:
         return True, forecast_today
