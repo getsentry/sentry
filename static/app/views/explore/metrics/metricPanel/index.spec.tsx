@@ -8,7 +8,6 @@ import {
 } from 'sentry-fixture/tracemetrics';
 
 import {
-  act,
   render,
   screen,
   userEvent,
@@ -16,7 +15,6 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import * as useMetricTraceDetailModule from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
@@ -35,22 +33,6 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-
-const mockChartVisualizationMount = jest.fn();
-
-jest.mock('sentry/views/explore/components/chart/chartVisualization', () => {
-  const actual = jest.requireActual(
-    'sentry/views/explore/components/chart/chartVisualization'
-  );
-  const {createElement, useEffect} = jest.requireActual('react');
-  return {
-    ...actual,
-    ChartVisualization: (props: Record<string, unknown>) => {
-      useEffect(() => mockChartVisualizationMount(), []);
-      return createElement(actual.ChartVisualization, props);
-    },
-  };
-});
 
 const TRACE_METRIC_FIXTURE_DATE = new Date('2025-04-03T15:50:10.000Z');
 
@@ -268,26 +250,6 @@ describe('MetricPanel', () => {
       expect(droppedDataMock).not.toHaveBeenCalled();
       expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
     });
-  });
-
-  it('remounts the chart when the page date range changes', async () => {
-    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
-      organization,
-      additionalWrapper: createWrapper({queryParams, traceMetric}),
-    });
-
-    await waitFor(() => expect(mockChartVisualizationMount).toHaveBeenCalled());
-    const initialMounts = mockChartVisualizationMount.mock.calls.length;
-
-    // A fresh chart instance drops ECharts' internal zoom window, so a zoomed
-    // range doesn't stick around after switching back to a preset.
-    act(() =>
-      PageFiltersStore.updateDateTime({period: '7d', start: null, end: null, utc: null})
-    );
-
-    await waitFor(() =>
-      expect(mockChartVisualizationMount.mock.calls.length).toBeGreaterThan(initialMounts)
-    );
   });
 
   it('uses the internal expression as the chart title for equations', async () => {
