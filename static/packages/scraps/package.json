@@ -11,9 +11,13 @@
   ],
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "./code/inlineCode": {
+      "types": "./dist/code/inlineCode.d.ts",
+      "import": "./dist/code/inlineCode.js"
+    },
+    "./hotkey/kbd": {
+      "types": "./dist/hotkey/kbd.d.ts",
+      "import": "./dist/hotkey/kbd.js"
     },
     "./theme": {
       "types": "./dist/theme/index.d.ts",

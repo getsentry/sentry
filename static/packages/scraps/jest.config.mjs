@@ -3,7 +3,6 @@ const config = {
   setupFilesAfterEnv: ['<rootDir>/test/env/setup.ts'],
   testMatch: ['<rootDir>/src/**/*.spec.tsx'],
   moduleNameMapper: {
-    '^@sentry/scraps$': '<rootDir>/src/index.ts',
     '^@sentry/scraps/(.*)$': '<rootDir>/src/$1',
   },
   transform: {
