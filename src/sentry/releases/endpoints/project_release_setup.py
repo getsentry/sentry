@@ -14,9 +14,9 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.deploy import Deploy
 from sentry.models.group import Group
-from sentry.models.projectrepository import ProjectRepository
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.repository import Repository
 from sentry.utils.hashlib import hash_values
 
 
@@ -38,8 +38,13 @@ class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
         operation_id="getProjectReleaseSetupCompletion",
         summary="Retrieve a Project's Release Setup Progress",
         description=(
-            "Return whether the project has reported an event, linked a repository, "
-            "associated commits, and reported a deploy."
+            "Return the project's release-setup progress for these steps:\n\n"
+            "- `tag`: The project has an issue with a recorded first release.\n"
+            "- `repo`: The organization has at least one repository.\n"
+            "- `commit`: At least one of the project's 1,000 most recent releases "
+            "(by release ID) has an associated commit.\n"
+            "- `deploy`: At least one of the project's releases has a deploy.\n\n"
+            "Results are cached for one hour when a step is complete and one minute otherwise."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         responses={
@@ -53,23 +58,23 @@ class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
     )
     def get(self, request: Request, project) -> Response[list[ReleaseSetupStepResponse]]:
         """
-        Return the release-setup onboarding progress for a project: whether the project
-        has reported an event, linked a repo, associated commits, and reported a deploy.
+        Return release-setup progress based on issues with a first release, organization
+        repositories, commits associated with project releases, and deploys of project releases.
         """
         tag_key = "onboard_tag:1:%s" % (project.id)
-        repo_key = "onboard_repo:1:%s" % (project.id)
+        repo_key = "onboard_repo:1:%s" % (project.organization_id)
         commit_key = "onboard_commit:1:%s" % hash_values([project.organization_id, project.id])
         deploy_key = "onboard_deploy:1:%s" % hash_values([project.organization_id, project.id])
         onboard_cache = cache.get_many([tag_key, repo_key, commit_key, deploy_key])
 
         tag = onboard_cache.get(tag_key)
         if tag is None:
-            tag = Group.objects.filter(project=project.id).exists()
+            tag = Group.objects.filter(project=project.id, first_release__isnull=False).exists()
             cache.set(tag_key, tag, 3600 if tag else 60)
 
         repo = onboard_cache.get(repo_key)
         if repo is None:
-            repo = ProjectRepository.objects.filter(project=project.id).exists()
+            repo = Repository.objects.filter(organization_id=project.organization_id).exists()
             cache.set(repo_key, repo, 3600 if repo else 60)
 
         commit = onboard_cache.get(commit_key)
