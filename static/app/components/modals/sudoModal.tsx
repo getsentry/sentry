@@ -40,6 +40,7 @@ type AuthPayload = {
   password?: string;
   response?: string;
   superuserAccessCategory?: string;
+  superuserOrgSlug?: string;
   superuserReason?: string;
 };
 
@@ -249,10 +250,14 @@ export function SudoModal({
         return;
       }
 
+      // Starting a superuser session doesn't authorize the current org by
+      // itself. Without the slug, the post-login reload 403s on the org and
+      // prompts for the same access reason again.
       try {
         await authenticate({
           isSuperuserModal: true,
           ...access,
+          ...(orgSlug ? {superuserOrgSlug: orgSlug} : {}),
         });
       } catch {
         superuserForm.reset();
@@ -284,11 +289,14 @@ export function SudoModal({
       if (webAuthnAccess) {
         payload.superuserAccessCategory = webAuthnAccess.superuserAccessCategory;
         payload.superuserReason = webAuthnAccess.superuserReason;
+        if (orgSlug) {
+          payload.superuserOrgSlug = orgSlug;
+        }
       }
       // It's ok to throw from here, u2fInterface will handle it.
       await authenticate(payload);
     },
-    [authenticate, isSuperuser, webAuthnAccess]
+    [authenticate, isSuperuser, orgSlug, webAuthnAccess]
   );
 
   const getAuthLoginPath = (): string => {
