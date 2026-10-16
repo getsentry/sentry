@@ -32,11 +32,27 @@ const cases: Array<[string, NodeJS.ProcessEnv, '8.4.0' | '6.30.6']> = [
   [
     'development deploy preview',
     {NODE_ENV: 'development', NOW_GITHUB_DEPLOYMENT: '1'},
-    '6.30.6',
+    '8.4.0',
   ],
   [
     'production deploy preview',
     {NODE_ENV: 'production', NOW_GITHUB_DEPLOYMENT: '1'},
+    '8.4.0',
+  ],
+  [
+    'CI deploy preview',
+    {NODE_ENV: 'production', NOW_GITHUB_DEPLOYMENT: '1', CI: '1'},
+    '8.4.0',
+  ],
+  ['deploy preview test mode', {NODE_ENV: 'test', NOW_GITHUB_DEPLOYMENT: '1'}, '6.30.6'],
+  [
+    'deploy preview test suite',
+    {NODE_ENV: 'production', NOW_GITHUB_DEPLOYMENT: '1', TEST_SUITE: '1'},
+    '6.30.6',
+  ],
+  [
+    'deploy preview acceptance tests',
+    {NODE_ENV: 'production', NOW_GITHUB_DEPLOYMENT: '1', IS_ACCEPTANCE_TEST: '1'},
     '6.30.6',
   ],
   ['CI', {NODE_ENV: 'development', CI: '1'}, '6.30.6'],
