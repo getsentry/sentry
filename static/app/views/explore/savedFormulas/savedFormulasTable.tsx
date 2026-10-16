@@ -20,6 +20,7 @@ import type {
   FormulaDataset,
   SavedFormula,
 } from 'sentry/views/explore/hooks/useGetSavedFormulas';
+import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
 import {useFormulaBuilderUrl} from 'sentry/views/explore/savedFormulas/formulaBuilderUrl';
 import {
   buildTokenMap,
@@ -82,10 +83,11 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
   const makeBuilderUrl = useFormulaBuilderUrl();
   const {deleteFormula} = useDeleteFormula();
   const isPrebuilt = defined(formula.prebuiltId);
+  const name = stripNamePrefix(formula.name);
 
   function confirmDelete() {
     openConfirmModal({
-      message: t('Are you sure you want to delete the formula "%s"?', formula.name),
+      message: t('Are you sure you want to delete the formula "%s"?', name),
       isDangerous: true,
       confirmText: t('Delete Formula'),
       priority: 'danger',
@@ -105,12 +107,12 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
     <SavedEntityTable.Row isFirst={isFirst}>
       <SavedEntityTable.Cell>
         {isPrebuilt ? (
-          <InfoText title={formula.name} mode="overflowOnly" monospace>
-            {formula.name}
+          <InfoText title={name} mode="overflowOnly" monospace>
+            {name}
           </InfoText>
         ) : (
-          <SavedEntityTable.CellName to={makeBuilderUrl(formula.id)} title={formula.name}>
-            {formula.name}
+          <SavedEntityTable.CellName to={makeBuilderUrl(formula.id)} title={name}>
+            {name}
           </SavedEntityTable.CellName>
         )}
       </SavedEntityTable.Cell>
