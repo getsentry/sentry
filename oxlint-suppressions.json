@@ -1969,7 +1969,7 @@
   },
   "static/app/views/dashboards/widgetBuilder/components/widgetPreviewContainer.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 13
+      "count": 6
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/widgetTemplatesList.tsx": {

@@ -5,8 +5,6 @@ import styled from '@emotion/styled';
 import {motion, type MotionNodeAnimationOptions} from 'framer-motion';
 import omit from 'lodash/omit';
 
-import {Container} from '@sentry/scraps/layout';
-
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
@@ -132,7 +130,12 @@ export function WidgetPreviewContainer({
     top: isDragEnabled ? (top ?? 0) : undefined,
     left: isDragEnabled ? (left ?? 0) : undefined,
     opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragEnabled || !isSmallScreen ? theme.zIndex.modal : theme.zIndex.initial,
+    zIndex: isDragEnabled
+      ? theme.zIndex.modal
+      : isSmallScreen
+        ? theme.zIndex.initial
+        : // if not responsive, set z-index to default in styled component
+          undefined,
     cursor: isDragEnabled ? 'grab' : undefined,
     margin: isDragEnabled ? '0' : undefined,
     alignSelf: isDragEnabled ? 'flex-start' : undefined,
@@ -187,81 +190,41 @@ export function WidgetPreviewContainer({
         {...attributes}
         {...listeners}
       >
-        <Container
-          width={{
-            zero: '100%',
-            'screen:sm': '40vw',
-            'screen:md': '30vw',
-            'screen:lg': '40vw',
-          }}
-          minWidth={{
-            zero: '100%',
-            'screen:sm': '300px',
-            'screen:md': '100px',
-            'screen:lg': '300px',
+        <SampleWidgetCard
+          {...animatedProps}
+          style={{
+            width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
+            height: getPreviewHeight(),
+            outline: isDragEnabled
+              ? // eslint-disable-next-line @sentry/scraps/use-semantic-token
+                `8px solid ${theme.tokens.border.primary}`
+              : undefined,
           }}
         >
-          {containerProps => (
-            <SampleWidgetCard
-              {...containerProps}
-              {...animatedProps}
-              style={{
-                width: isDragEnabled ? DRAGGABLE_PREVIEW_WIDTH_PX : undefined,
-                height: getPreviewHeight(),
-                zIndex: isSmallScreen ? theme.zIndex.initial : theme.zIndex.modal,
-                outline: isDragEnabled
-                  ? // eslint-disable-next-line @sentry/scraps/use-semantic-token
-                    `8px solid ${theme.tokens.border.primary}`
-                  : undefined,
-              }}
-            >
-              {openWidgetTemplates && !hasUrlParams ? (
-                <WidgetPreviewPlaceholder>
-                  {/* eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing heading moved from newWidgetBuilder.tsx. */}
-                  <h6 style={{margin: 0}}>{t('Widget Title')}</h6>
-                  <TemplateWidgetPreviewPlaceholder>
-                    <p style={{margin: 0}}>{t('Select a widget to preview')}</p>
-                  </TemplateWidgetPreviewPlaceholder>
-                </WidgetPreviewPlaceholder>
-              ) : (
-                <WidgetPreview
-                  dashboardFilters={dashboardFilters}
-                  dashboard={dashboard}
-                  widgetInterval={widgetInterval}
-                  previewStatus={previewStatus}
-                  onDataFetched={onDataFetched}
-                  shouldForceDescriptionTooltip={!isSmallScreen}
-                />
-              )}
-            </SampleWidgetCard>
+          {openWidgetTemplates && !hasUrlParams ? (
+            <WidgetPreviewPlaceholder>
+              {/* eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing heading moved from newWidgetBuilder.tsx. */}
+              <h6 style={{margin: 0}}>{t('Widget Title')}</h6>
+              <TemplateWidgetPreviewPlaceholder>
+                <p style={{margin: 0}}>{t('Select a widget to preview')}</p>
+              </TemplateWidgetPreviewPlaceholder>
+            </WidgetPreviewPlaceholder>
+          ) : (
+            <WidgetPreview
+              dashboardFilters={dashboardFilters}
+              dashboard={dashboard}
+              widgetInterval={widgetInterval}
+              previewStatus={previewStatus}
+              onDataFetched={onDataFetched}
+              shouldForceDescriptionTooltip={!isSmallScreen}
+            />
           )}
-        </Container>
+        </SampleWidgetCard>
 
         {!isSmallScreen && (
-          <Container
-            width={{
-              zero: 'auto',
-              'screen:sm': '40vw',
-              'screen:md': '30vw',
-              'screen:lg': '40vw',
-            }}
-            minWidth={{
-              zero: 'auto',
-              'screen:sm': '300px',
-              'screen:md': '100px',
-              'screen:lg': '300px',
-            }}
-          >
-            {containerProps => (
-              <FilterBarContainer
-                {...containerProps}
-                {...animatedProps}
-                style={{zIndex: theme.zIndex.modal}}
-              >
-                <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
-              </FilterBarContainer>
-            )}
-          </Container>
+          <FilterBarContainer {...animatedProps}>
+            <WidgetBuilderFilterBar releases={dashboard.filters?.release ?? []} />
+          </FilterBarContainer>
         )}
       </DraggableWidgetContainer>
     </Fragment>
@@ -289,11 +252,26 @@ function Droppable({id}: {id: string}) {
 }
 
 const SampleWidgetCard = styled(motion.div)`
+  width: 100%;
+  min-width: 100%;
   border: 1px dashed ${p => p.theme.colors.gray400};
   background-color: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
+  z-index: ${p => p.theme.zIndex.initial};
   position: relative;
-  cursor: auto;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    width: 40vw;
+    min-width: 300px;
+    z-index: ${p => p.theme.zIndex.modal};
+    cursor: auto;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.lg}) and (min-width: ${p =>
+    p.theme.breakpoints.md}) {
+    width: 30vw;
+    min-width: 100px;
+  }
 `;
 
 const DraggableWidgetContainer = styled('div')`
@@ -302,6 +280,12 @@ const DraggableWidgetContainer = styled('div')`
   position: relative;
   margin: auto;
   cursor: auto;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    z-index: ${p => p.theme.zIndex.modal};
+    transform: none;
+    cursor: auto;
+  }
 `;
 
 // eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing styles moved from newWidgetBuilder.tsx.
@@ -342,5 +326,17 @@ const FilterBarContainer = styled(motion.div)`
   margin-top: ${p => p.theme.space.md};
   background-color: ${p => p.theme.tokens.background.primary};
   border-radius: ${p => p.theme.radius.md};
-  cursor: auto;
+
+  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+    width: 40vw;
+    min-width: 300px;
+    z-index: ${p => p.theme.zIndex.modal};
+    cursor: auto;
+  }
+
+  @media (max-width: ${p => p.theme.breakpoints.lg}) and (min-width: ${p =>
+    p.theme.breakpoints.md}) {
+    width: 30vw;
+    min-width: 100px;
+  }
 `;
