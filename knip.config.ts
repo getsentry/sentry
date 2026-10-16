@@ -157,9 +157,13 @@ const config: KnipConfig = {
     },
   },
   ignoreExportsUsedInFile: isProductionMode,
+  cycles: {
+    dynamicImports: false,
+  },
   rules: {
     binaries: 'off',
     enumMembers: 'off',
+    cycles: 'error',
   },
   include: ['nsExports', 'nsTypes'],
   mdx: {

@@ -150,20 +150,19 @@ jobs:
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
-    name: knip
+    name: ${{ matrix.command }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        command: [knip, 'knip:prod', 'knip:cycles']
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      - name: knip
-        id: knip
-        run: pnpm run knip
-
-      - name: knip-prod
-        id: knip-prod
-        run: pnpm run knip:prod
+      - name: ${{ matrix.command }}
+        run: pnpm run ${{ matrix.command }}
 
   jest-config:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
