@@ -1,11 +1,6 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {
-  getOutcomeColors,
-  reasonDescription,
-  reasonLongDescription,
-  reasonTitle,
-} from './outcomes';
+import {getOutcomeColors, reasonDescription, reasonTitle} from './outcomes';
 
 describe('getOutcomeColors', () => {
   it('assigns the same colors regardless of input order', () => {
@@ -36,6 +31,18 @@ describe('reasonTitle', () => {
   it('maps category-prefixed quota reasons to the quota title', () => {
     expect(reasonTitle('span_usage_exceeded')).toBe('Quota exceeded');
     expect(reasonTitle('log_bytes_usage_exceeded')).toBe('Quota exceeded');
+  });
+
+  it('titles the localhost filter and invalid timestamp reasons', () => {
+    expect(reasonTitle('localhost')).toBe('Localhost filter');
+    expect(reasonTitle('timestamp')).toBe('Invalid timestamp');
+  });
+
+  it("maps the JavaScript SDK's ignored reason to the ignored spans title", () => {
+    expect(reasonTitle('ignored')).toBe('Dropped by ignored spans');
+    expect(reasonDescription('ignored', 'span')).toBe(
+      'Span dropped by your ignored spans configuration.'
+    );
   });
 
   it('falls back to the raw code for an unknown reason', () => {
@@ -80,23 +87,5 @@ describe('reasonDescription', () => {
     expect(reasonDescription('cors', 'span')).toBe(
       "Origin not in project's Allowed Domains."
     );
-  });
-});
-
-describe('reasonLongDescription', () => {
-  it('returns the long description for a known reason', () => {
-    expect(reasonLongDescription('send_error')).toBe(
-      'The event reached Sentry but was rejected with an error code.'
-    );
-  });
-
-  it('describes category-prefixed quota reasons', () => {
-    expect(reasonLongDescription('span_usage_exceeded')).toBe(
-      reasonLongDescription('usage_exceeded')
-    );
-  });
-
-  it('returns undefined for an unknown reason', () => {
-    expect(reasonLongDescription('some_new_reason')).toBeUndefined();
   });
 });

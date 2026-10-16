@@ -194,6 +194,7 @@ oxlint-suppressions.json                                 @getsentry/design-engin
 /scripts/custom-oxlint.ts                                @getsentry/owners-js-build
 jest-balance.json                                        @getsentry/owners-js-build
 /jest.config.mjs                                         @getsentry/owners-js-build
+/rsbuild.config.ts                                       @getsentry/owners-js-build
 /tests/js/test-balancer/                                 @getsentry/owners-js-build
 tsconfig.*                                               @getsentry/owners-js-build
 .node-version                                            @getsentry/owners-js-deps
@@ -362,8 +363,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/ingestion_delay/                                       @getsentry/data-browsing
 /src/sentry/api/helpers/ingestion_delay.py                           @getsentry/data-browsing
 
-/src/sentry/api/helpers/timeseries_processing.py                     @getsentry/app-backend @getsentry/data-browsing
-/tests/sentry/api/helpers/test_timeseries_processing.py              @getsentry/app-backend @getsentry/data-browsing
+/src/sentry/api/helpers/timeseries_transformations.py                @getsentry/app-backend @getsentry/data-browsing
+/tests/sentry/api/helpers/test_timeseries_transformations.py         @getsentry/app-backend @getsentry/data-browsing
 
 
 /src/sentry/api/endpoints/organization_explore_formulas.py                          @getsentry/data-browsing

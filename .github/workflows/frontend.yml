@@ -49,7 +49,13 @@ jobs:
   typescript:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
-    name: typescript
+    name: typescript (router v${{ matrix.router }})
+    strategy:
+      fail-fast: false
+      matrix:
+        router: ['6', '8']
+    env:
+      SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -150,20 +156,19 @@ jobs:
   knip:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
-    name: knip
+    name: ${{ matrix.command }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        command: [knip, 'knip:prod', 'knip:cycles']
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      - name: knip
-        id: knip
-        run: pnpm run knip
-
-      - name: knip-prod
-        id: knip-prod
-        run: pnpm run knip:prod
+      - name: ${{ matrix.command }}
+        run: pnpm run ${{ matrix.command }}
 
   jest-config:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
@@ -203,7 +208,7 @@ jobs:
   jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     needs: [files-changed, jest-config]
-    name: Jest
+    name: Jest (router v${{ matrix.router }}, shard ${{ matrix.index }})
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
     runs-on: ubuntu-24.04
@@ -212,7 +217,12 @@ jobs:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
-      matrix: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix) }}
+      matrix:
+        index: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).index }}
+        total: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).total }}
+        router: ['6', '8']
+    env:
+      SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -228,10 +238,10 @@ jobs:
               path: |
                 .cache/jest
                 ~/.cache/swc
-              key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-${{ matrix.index }}
+              key: jest-cache-${{ runner.os }}-router${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-${{ matrix.index }}
               restore-keys: |
-                jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-
-                jest-cache-${{ runner.os }}-
+                jest-cache-${{ runner.os }}-router${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-
+                jest-cache-${{ runner.os }}-router${{ matrix.router }}-
 
           - name: Download jest-test-files.json
             uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0

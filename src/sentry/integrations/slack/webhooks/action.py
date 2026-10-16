@@ -46,6 +46,9 @@ from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
+from sentry.integrations.slack.webhooks.actions.investigation import (
+    handle_seer_investigation_start,
+)
 from sentry.integrations.slack.webhooks.actions.seer_agent import (
     SEER_AGENT_WRITE_APPROVAL_ACTIONS,
     handle_seer_agent_write_approval,
@@ -351,14 +354,27 @@ class SlackActionEndpoint(Endpoint):
             )
         )
 
+    def _respond_link_identity(self, slack_request: SlackActionRequest) -> Response:
+        from sentry.integrations.slack.views.link_identity import build_linking_url
+
+        # if we don't have user_id or channel_id, we can't link the identity
+        if not slack_request.user_id or not slack_request.channel_id:
+            return self.respond_ephemeral(NO_IDENTITY_MESSAGE)
+
+        associate_url = build_linking_url(
+            integration=slack_request.integration,
+            slack_id=slack_request.user_id,
+            channel_id=slack_request.channel_id,
+            response_url=slack_request.response_url,
+        )
+        return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
+
     def _handle_group_actions(
         self,
         slack_request: SlackActionRequest,
         request: Request,
         action_list: Sequence[BlockKitMessageAction],
     ) -> Response:
-        from sentry.integrations.slack.views.link_identity import build_linking_url
-
         group = get_group(slack_request)
         if not group:
             return self.respond(status=403)
@@ -380,17 +396,7 @@ class SlackActionEndpoint(Endpoint):
         identity_user = slack_request.get_identity_user()
 
         if not identity or not identity_user:
-            # if we don't have user_id or channel_id, we can't link the identity
-            if not slack_request.user_id or not slack_request.channel_id:
-                return self.respond_ephemeral(NO_IDENTITY_MESSAGE)
-
-            associate_url = build_linking_url(
-                integration=slack_request.integration,
-                slack_id=slack_request.user_id,
-                channel_id=slack_request.channel_id,
-                response_url=slack_request.response_url,
-            )
-            return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
+            return self._respond_link_identity(slack_request)
 
         original_tags_from_request = slack_request.get_tags()
 
@@ -804,6 +810,17 @@ class SlackActionEndpoint(Endpoint):
                 slack_request=slack_request,
                 action=SlackAction(action_id),
                 organization_id=routing_data.organization_id,
+            )
+
+        if action_id == SlackAction.SEER_INVESTIGATION_START.value:
+            identity_user = slack_request.get_identity_user()
+            if not identity_user:
+                return self._respond_link_identity(slack_request)
+            routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
+            return handle_seer_investigation_start(
+                slack_request=slack_request,
+                organization_id=routing_data.organization_id,
+                identity_user=identity_user,
             )
 
         # If a user is just clicking a button link we return a 200

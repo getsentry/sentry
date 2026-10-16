@@ -11,6 +11,7 @@ import {noDefaultExports} from './noDefaultExports.ts';
 import {noDigitsInTn} from './noDigitsInTn.ts';
 import {noDynamicTranslations} from './noDynamicTranslations.ts';
 import {noFlagComments} from './noFlagComments.ts';
+import {noGlobalReact} from './noGlobalReact.ts';
 import {noLegacyRouterImports} from './noLegacyRouterImports.ts';
 import {noQueryDataTypeParameters} from './noQueryDataTypeParameters.ts';
 import {noRawCssInStyled} from './noRawCssInStyled.ts';
@@ -34,6 +35,7 @@ export const rules = {
   'no-digits-in-tn': noDigitsInTn,
   'no-dynamic-translations': noDynamicTranslations,
   'no-flag-comments': noFlagComments,
+  'no-global-react': noGlobalReact,
   'no-legacy-router-imports': noLegacyRouterImports,
   'no-query-data-type-parameters': noQueryDataTypeParameters,
   'no-raw-css-in-styled': noRawCssInStyled,

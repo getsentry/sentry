@@ -38,7 +38,7 @@ describe('OrganizationSampling', () => {
   it('renders initial state with correct input value and button states', () => {
     render(<OrganizationSampling />, {organization});
 
-    expect(screen.getByRole('spinbutton')).toHaveValue(50);
+    expect(screen.getByRole('spinbutton', {name: 'Target Sample Rate'})).toHaveValue(50);
     expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Reset'})).toBeDisabled();
   });
@@ -82,6 +82,10 @@ describe('OrganizationSampling', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
 
     expect(await screen.findByText('Please enter a valid number')).toBeInTheDocument();
+    expect(screen.getByRole('spinbutton', {name: 'Target Sample Rate'})).toHaveAttribute(
+      'aria-invalid',
+      'true'
+    );
   });
 
   it('calls the API with the correct payload on save', async () => {

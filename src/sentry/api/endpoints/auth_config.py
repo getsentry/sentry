@@ -126,10 +126,8 @@ class AuthConfigEndpoint(Endpoint, OrganizationMixin):
         if "session_expired" in request.COOKIES:
             context["warning"] = str(WARN_SESSION_EXPIRED)
 
-        raw_additional_login_context = additional_context.run_callbacks(request)
-        raw_additional_login_context.pop("login_banner_legacy_html", None)
         additional_login_context = convert_dict_key_case(
-            raw_additional_login_context, snake_to_camel_case
+            additional_context.run_callbacks(request), snake_to_camel_case
         )
         context.update(additional_login_context)
 

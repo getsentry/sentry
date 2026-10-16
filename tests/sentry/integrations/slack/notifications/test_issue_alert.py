@@ -34,6 +34,7 @@ from sentry.plugins.base import Notification
 from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.testutils.helpers.notifications import (
     TEST_ISSUE_OCCURRENCE,
     TEST_PERF_ISSUE_OCCURRENCE,
@@ -42,7 +43,6 @@ from sentry.testutils.helpers.notifications import (
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.identity import Identity, IdentityStatus
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import Workflow
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
