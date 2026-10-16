@@ -139,6 +139,27 @@ class BuildInvestigationStatusTest(TestCase):
         assert [hypothesis["statement"] for hypothesis in data.hypotheses] == ["First", "Second"]
         assert data.hypotheses[1]["detail"] == "Server response time rose with the breach."
 
+    def test_stuck_step_is_named_instead_of_rationale(self) -> None:
+        data, _fingerprint = self._build(
+            [
+                _hypothesis(
+                    id=f"h{order}",
+                    order=order,
+                    verificationSteps=[
+                        {"id": "s1", "order": 0, "title": "Query traces", "status": status},
+                        {"id": "s2", "order": 1, "title": "Read the logs", "status": "queued"},
+                    ],
+                )
+                for order, status in enumerate(("reauth_required", "blocked", "stalled"))
+            ]
+        )
+
+        assert [hypothesis["detail"] for hypothesis in data.hypotheses] == [
+            "Needs re-authentication: Query traces",
+            "Blocked: Query traces",
+            "Stalled: Query traces",
+        ]
+
     def test_hypotheses_are_capped(self) -> None:
         data, _fingerprint = self._build(
             [_hypothesis(id=f"h{order}", order=order) for order in range(12)]
