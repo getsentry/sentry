@@ -584,10 +584,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 processed_timeseries.sampling_rate,
                 processed_timeseries.confidence,
             ):
-                value["sampleCount"] = count[axis]
+                value["sampleCount"] = count.get(axis)
                 # We want to null sample rates that are 0 since that means we received no data during this bucket
-                value["sampleRate"] = null_zero(rate[axis])
-                value["confidence"] = confidence[axis]
+                value["sampleRate"] = null_zero(rate.get(axis))
+                value["confidence"] = confidence.get(axis)
 
         timeseries["values"] = timeseries_values
 
