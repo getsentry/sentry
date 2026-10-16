@@ -96,13 +96,7 @@ const GLYPH_SLOT_WIDTH = '16px';
 // Holds the status glyph. One title line tall (at the title's font size), so the
 // glyph centers on the first line of a wrapped title instead of the whole block.
 // Styled because `1lh` needs the title's font size, which no layout primitive sets.
-const GlyphSlot = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: ${GLYPH_SLOT_WIDTH};
-  height: 1lh;
+const GlyphSlot = styled(Flex)`
   font-size: ${p => p.theme.font.size.sm};
 `;
 
@@ -111,16 +105,15 @@ const GlyphSlot = styled('div')`
 // `TitleFlow` dissolves so the title spans both rows and the reference takes the
 // trailing column's first row; the chip then auto-places into the next free row
 // of that column, stacking under the reference (or on the first row when there
-// is none). The font size matches the title so `1lh` measures one title line.
-const TitleGrid = styled(Grid)`
-  font-size: ${p => p.theme.font.size.sm};
-`;
+// is none).
 
 // Below the breakpoint a block, so the reference flows inline right after the
 // title text and wraps with it. From the breakpoint up, `display: contents` lifts
-// the title (its first child) and the reference into `TitleGrid`'s cells.
+// the title (its first child) and the reference into the grid's cells.
 // Styled because no layout primitive can switch between block and contents.
 const TitleFlow = styled(Container)`
+  font-size: ${p => p.theme.font.size.sm};
+
   > :first-child {
     ${p => rc('grid-column', {zero: 'auto', sm: '1'}, p.theme)}
     ${p => rc('grid-row', {zero: 'auto', sm: '1 / span 2'}, p.theme)}
@@ -133,10 +126,7 @@ const TitleFlow = styled(Container)`
 // Instead, make the wrapper exactly one line tall, pin it to the top of the
 // line box, and center the button inside it. No layout primitive exposes
 // `vertical-align`, hence the styled wrapper.
-const InlineReference = styled(Container)`
-  display: inline-flex;
-  align-items: center;
-  height: 1lh;
+const InlineReference = styled(Flex)`
   vertical-align: top;
 `;
 
@@ -315,13 +305,19 @@ export function ToolCall({
   return (
     <Stack gap="xs" flex={1} minWidth={0} width="100%" containerType="inline-size">
       <Flex gap="md" align="start" width="100%">
-        <GlyphSlot>
+        <GlyphSlot
+          align="center"
+          justify="center"
+          flexShrink={0}
+          width={GLYPH_SLOT_WIDTH}
+          height="1lh"
+        >
           <ToolCallIndicator
             status={status}
             aria-label={getToolCallStatusLabel(status, t)}
           />
         </GlyphSlot>
-        <TitleGrid
+        <Grid
           flex={1}
           minWidth={0}
           columns="minmax(0, 1fr) auto"
@@ -338,6 +334,9 @@ export function ToolCall({
                 {' '}
                 <InlineReference
                   as="span"
+                  display="inline-flex"
+                  align="center"
+                  height="1lh"
                   column={{zero: 'auto', sm: '2'}}
                   row={{zero: 'auto', sm: '1'}}
                   justifySelf={{zero: 'auto', sm: 'end'}}
@@ -357,7 +356,7 @@ export function ToolCall({
               <FailureChip label={failureLabel ?? t('Failed')} />
             </Flex>
           ) : null}
-        </TitleGrid>
+        </Grid>
       </Flex>
 
       {hasDetail ? (
