@@ -1,4 +1,4 @@
-import type {ComponentProps} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Grid, type GridProps} from '@sentry/scraps/layout';
@@ -13,7 +13,7 @@ const StyledSubscriptionBody = styled(PanelBody)`
   }
 `;
 
-export function SubscriptionBody(props: ComponentProps<typeof PanelBody>) {
+export function SubscriptionBody({children}: {children: ReactNode}) {
   return (
     <Grid
       flow={{zero: 'row', xl: 'column'}}
@@ -21,7 +21,11 @@ export function SubscriptionBody(props: ComponentProps<typeof PanelBody>) {
       justify="between"
       gap={{zero: 'md', xl: '3xl'}}
     >
-      {containerProps => <StyledSubscriptionBody {...props} {...containerProps} />}
+      {containerProps => (
+        <StyledSubscriptionBody withPadding {...containerProps}>
+          {children}
+        </StyledSubscriptionBody>
+      )}
     </Grid>
   );
 }
