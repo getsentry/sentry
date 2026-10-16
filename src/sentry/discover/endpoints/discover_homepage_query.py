@@ -9,7 +9,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
@@ -32,10 +31,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.EXPLORE
 
-    permission_classes = (
-        SentryIsAuthenticated,
-        DiscoverSavedQueryPermission,
-    )
+    permission_classes = (DiscoverSavedQueryPermission,)
 
     def has_feature(self, organization, request):
         return features.has("organizations:discover-query", organization, actor=request.user)
