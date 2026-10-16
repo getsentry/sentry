@@ -20,7 +20,7 @@ type Props = {orgId: string} & AdminConfirmRenderProps;
 /**
  * Rendered as part of a openAdminConfirmModal call
  */
-function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
+export function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
   const api = useApi();
   const [dryRun, setDryRun] = useState(false);
   const [targetEmail, setTargetEmail] = useState('');
@@ -98,5 +98,3 @@ function SendWeeklyEmailAction({orgId, setConfirmCallback}: Props) {
     </div>
   );
 }
-
-export default SendWeeklyEmailAction;
