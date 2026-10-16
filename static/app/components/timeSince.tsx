@@ -121,7 +121,7 @@ export function TimeSince({
   return (
     <InfoText
       as="time"
-      dateTime={dateObj?.toISOString()}
+      dateTime={dateObj && !isNaN(dateObj.getTime()) ? dateObj.toISOString() : undefined}
       variant={variant}
       maxWidth={maxWidth ?? (showsCard ? RELATIVE_TIME_MAX_WIDTH : undefined)}
       title={
