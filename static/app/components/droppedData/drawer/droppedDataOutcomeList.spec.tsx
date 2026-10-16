@@ -209,21 +209,20 @@ describe('DroppedDataOutcomeList', () => {
       />
     );
 
-    // The fix-this affordance is hidden until the reason chevron is clicked.
-    expect(screen.queryByRole('button', {name: 'Learn more'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Reason actions'})
+    ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
 
-    expect(screen.getByRole('button', {name: 'Learn more'})).toBeInTheDocument();
-
-    // Collapsing hides it again.
+    expect(screen.getByRole('button', {name: 'Reason actions'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    expect(screen.queryByRole('button', {name: 'Learn more'})).not.toBeInTheDocument();
-
-    // The toggle is reachable from the keyboard.
+    expect(
+      screen.queryByRole('button', {name: 'Reason actions'})
+    ).not.toBeInTheDocument();
     act(() => screen.getByRole('button', {name: 'Toggle fix options'}).focus());
     await userEvent.keyboard('{Enter}');
-    expect(screen.getByRole('button', {name: 'Learn more'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Reason actions'})).toBeInTheDocument();
   });
 
   it('shows the long description when a reason row is expanded', async () => {
@@ -271,7 +270,7 @@ describe('DroppedDataOutcomeList', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Learn more'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reason actions'}));
 
     // Project settings deep-links to the usage stats page scoped to the
     // reason's data category.
@@ -309,7 +308,7 @@ describe('DroppedDataOutcomeList', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle fix options'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Learn more'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reason actions'}));
 
     expect(
       screen.getByRole('menuitemradio', {name: 'Project Settings'})

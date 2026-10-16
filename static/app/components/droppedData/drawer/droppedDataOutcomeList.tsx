@@ -1,5 +1,6 @@
 import {Fragment, useId, useState} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer, useDrawerContentContext} from '@sentry/scraps/drawer';
@@ -86,15 +87,14 @@ function FixThisMenu({
       usePortal
       portalContainerRef={panelRef}
       trigger={(triggerProps, isOpen) => (
-        <OverlayTrigger.Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
-          showChevron={false}
-          variant="primary"
-          size="sm"
+          size="xs"
+          variant="transparent"
+          icon={<IconEllipsis />}
+          aria-label={t('Reason actions')}
           aria-expanded={isOpen}
-        >
-          {t('Learn more')}
-        </OverlayTrigger.Button>
+        />
       )}
     />
   );
