@@ -13,9 +13,11 @@ from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import 
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.search.events.types import SnubaParams
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba_rpc import SnubaRPCTimeout
 
@@ -57,6 +59,25 @@ def test_conversation_probe_fetches_only_span_id() -> None:
     assert run_query.call_args.kwargs["offset"] == 0
     assert run_query.call_args.kwargs["limit"] == 1
     assert run_query.call_args.kwargs["config"].auto_fields is False
+
+
+def test_conversation_probes_use_disjoint_windows() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    now = before_now()
+
+    with patch.object(
+        endpoint, "_conversation_exists", side_effect=[False, False, True]
+    ) as conversation_exists:
+        resolved = endpoint._resolve_time_window(SnubaParams(), None, now, "conversation-id")
+
+    assert resolved.start == now - timedelta(days=30)
+    assert [
+        (probe.args[0].start, probe.args[0].end) for probe in conversation_exists.mock_calls
+    ] == [
+        (now - timedelta(days=7), now),
+        (now - timedelta(days=14), now - timedelta(days=7)),
+        (now - timedelta(days=30), now - timedelta(days=14)),
+    ]
 
 
 def test_parent_repair_uses_spans_from_page() -> None:
@@ -435,6 +456,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         now = before_now(days=20).replace(microsecond=0)
         conversation_id = uuid4().hex
 
+        records = [{"content": "User prefers dark mode", "score": 0.95}]
         self.store_ai_span(
             conversation_id=conversation_id,
             timestamp=now,
@@ -445,6 +467,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             memory_query_text="dietary preferences",
             memory_record_id="mem_123",
             memory_record_count=3,
+            memory_records=records,
             trace_id=uuid4().hex,
         )
 
@@ -464,6 +487,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.memory.query.text"] == "dietary preferences"
         assert span["gen_ai.memory.record.id"] == "mem_123"
         assert span["gen_ai.memory.record.count"] == 3
+        assert json.loads(span["gen_ai.memory.records"]) == records
 
     def test_single_trace_conversation(self) -> None:
         now = before_now(days=20).replace(microsecond=0)
@@ -1015,7 +1039,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert ai_client_span["gen_ai.usage.total_tokens"] == 100
         assert ai_client_span["gen_ai.cost.total_tokens"] == 0.01
 
-    def test_returns_full_conversation_stats_on_each_page(self) -> None:
+    def test_returns_full_conversation_stats_on_first_page(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         conversation_id = uuid4().hex
         trace_id = uuid4().hex
@@ -1074,12 +1098,15 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 1
         expected_stats = {
+            "cacheReadTokens": 30,
+            "cacheWriteTokens": 15,
             "endTimestamp": int(now.timestamp() * 1000),
             "errors": 1,
             "errorToolNames": ["database"],
             "inputTokens": 190,
             "llmCalls": 2,
             "outputTokens": 110,
+            "reasoningTokens": 12,
             "startTimestamp": int((now - timedelta(seconds=2)).timestamp() * 1000),
             "toolCalls": 1,
             "toolErrors": 1,
@@ -1122,12 +1149,15 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         links = parse_link_header(response.headers["Link"])
         query["cursor"] = next(link for link in links.values() if link["rel"] == "next")["cursor"]
-        next_response = self.do_request(conversation_id, query)
+        run_bulk_table_queries = Spans.run_bulk_table_queries
+        with patch.object(
+            Spans, "run_bulk_table_queries", side_effect=run_bulk_table_queries
+        ) as mock_run_bulk:
+            next_response = self.do_request(conversation_id, query)
 
         assert next_response.status_code == 200
-        next_stats = next_response.data["stats"]
-        assert {field: next_stats[field] for field in expected_stats} == expected_stats
-        assert next_stats["usageByModel"] == expected_usage_by_model
+        assert next_response.data["stats"] is None
+        assert len(mock_run_bulk.call_args.args[0]) == 1
 
     def test_timeout_returns_504(self) -> None:
         conversation_id = uuid4().hex

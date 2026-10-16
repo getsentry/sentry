@@ -38,6 +38,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {getEvaluationPreview} from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {getMemoryPreview} from 'sentry/views/insights/pages/agents/utils/memory';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {detectAIContentType} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
@@ -135,6 +136,18 @@ export function MessagesPanel({
           if (message.role === 'evaluation') {
             return (
               <EvaluationTurn
+                key={message.id}
+                message={message}
+                node={nodeMap.get(message.nodeId)}
+                isSelected={message.nodeId === selectedNodeId}
+                onSelectNode={onSelectNode}
+              />
+            );
+          }
+
+          if (message.role === 'memory') {
+            return (
+              <MemoryTurn
                 key={message.id}
                 message={message}
                 node={nodeMap.get(message.nodeId)}
@@ -432,6 +445,46 @@ const EvaluationTurn = memo(function EvaluationTurnImpl({
         tag={<ToolTag name={evaluator} hasError={node ? hasError(node) : false} />}
         preview={getEvaluationPreview(message.evaluation)}
         meta={<AssistantMeta cost={cost} duration={message.duration} />}
+      />
+    </MessageRow>
+  );
+});
+
+// Standalone row for a memory operation span, positioned by its own timestamp
+// like embeddings and styled like a tool call: the operation, a one-line
+// preview and its duration. Selecting it opens the span detail with the full
+// input and output.
+const MemoryTurn = memo(function MemoryTurnImpl({
+  message,
+  node,
+  isSelected,
+  onSelectNode,
+}: {
+  isSelected: boolean;
+  message: ConversationMessage;
+  node: AITraceSpanNode | undefined;
+  onSelectNode: (node: AITraceSpanNode) => void;
+}) {
+  const organization = useOrganization();
+  const operation = message.memory?.operation ?? t('memory');
+
+  const selectMemory = () => {
+    trackAnalytics('conversations.message.click-memory', {organization});
+    if (node) {
+      onSelectNode(node);
+    }
+  };
+
+  return (
+    <MessageRow from="assistant" density="compact">
+      <TranscriptSpanRow
+        node={node}
+        isSelected={isSelected}
+        ariaLabel={t('Select memory %s', operation)}
+        onSelect={selectMemory}
+        tag={<ToolTag name={operation} hasError={node ? hasError(node) : false} />}
+        preview={getMemoryPreview(message.memory)}
+        meta={<AssistantMeta duration={message.duration} />}
       />
     </MessageRow>
   );

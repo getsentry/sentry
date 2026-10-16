@@ -1,9 +1,10 @@
+import {IconRuler} from '@sentry/icons/ruler';
+
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconRuler} from 'sentry/icons/iconRuler';
 import {t} from 'sentry/locale';
 import {toPercent} from 'sentry/utils/number/toPercent';
 import {useReplayPlayerSize} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';

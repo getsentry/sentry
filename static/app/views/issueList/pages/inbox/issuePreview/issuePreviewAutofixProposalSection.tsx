@@ -91,6 +91,7 @@ export function IssuePreviewAutofixProposalSection({
                     <FileDiffViewer
                       key={patch.patch.path}
                       patch={patch.patch}
+                      fileUrl={patch.code_url}
                       repoName={repoName}
                       showBorder
                       collapsible

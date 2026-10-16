@@ -1,16 +1,14 @@
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconSpan} from '@sentry/icons/span';
 
-import {
-  DropdownButton,
-  DropdownMenu,
-  type MenuItemProps,
-} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {IconChevron, IconSpan} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -123,7 +121,7 @@ const MenuTraceIcon = styled(IconSpan)`
   align-self: center;
 `;
 
-const TraceTrigger = styled(DropdownButton)`
+const TraceTrigger = styled(OverlayTrigger.Button)`
   color: ${p => p.theme.tokens.interactive.link.accent.rest};
 
   &:hover {

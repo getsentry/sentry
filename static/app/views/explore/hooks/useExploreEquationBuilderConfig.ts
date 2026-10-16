@@ -5,11 +5,10 @@ import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {TagCollection} from 'sentry/types/group';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {
+  ALLOWED_EXPLORE_EQUATION_AGGREGATES,
   FieldKind,
-  getExploreEquationAggregates,
   getExploreEquationFieldDefinition,
 } from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
@@ -52,9 +51,8 @@ interface ExploreEquationBuilderConfig {
     key: string,
     attributeTexts?: readonly string[]
   ) => FieldDefinition | null;
+  getFilterTagValues: GetTagValues;
   getSuggestedKey: (key: string) => string | null;
-  hasConditionalAggregates: boolean;
-  getFilterTagValues?: GetTagValues;
 }
 
 export function useExploreEquationBuilderConfig({
@@ -63,16 +61,6 @@ export function useExploreEquationBuilderConfig({
   stringTags,
   booleanTags,
 }: UseExploreEquationBuilderConfigOptions): ExploreEquationBuilderConfig {
-  const organization = useOrganization();
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
-
-  const aggregations = useMemo(
-    () => getExploreEquationAggregates(hasConditionalAggregates),
-    [hasConditionalAggregates]
-  );
-
   const functionArguments = useMemo(
     () => traceItemTagsToFunctionArguments(numberTags, stringTags, booleanTags),
     [booleanTags, numberTags, stringTags]
@@ -81,14 +69,9 @@ export function useExploreEquationBuilderConfig({
   const getFieldDefinition = useCallback(
     (key: string, attributeTexts?: readonly string[]) => {
       const tag = numberTags[key] ?? stringTags[key] ?? booleanTags[key];
-      return getExploreEquationFieldDefinition(
-        key,
-        tag?.kind,
-        hasConditionalAggregates,
-        attributeTexts
-      );
+      return getExploreEquationFieldDefinition(key, tag?.kind, attributeTexts);
     },
-    [booleanTags, hasConditionalAggregates, numberTags, stringTags]
+    [booleanTags, numberTags, stringTags]
   );
 
   const getSuggestedKey = useExploreSuggestedAttribute({
@@ -103,11 +86,10 @@ export function useExploreEquationBuilderConfig({
   });
 
   return {
-    aggregations,
+    aggregations: ALLOWED_EXPLORE_EQUATION_AGGREGATES,
     functionArguments,
     getFieldDefinition,
     getSuggestedKey,
-    getFilterTagValues: hasConditionalAggregates ? getFilterTagValues : undefined,
-    hasConditionalAggregates,
+    getFilterTagValues,
   };
 }

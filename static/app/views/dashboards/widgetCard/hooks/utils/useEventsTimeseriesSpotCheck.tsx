@@ -2,8 +2,11 @@ import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {useQueries} from '@tanstack/react-query';
 
+import {NODE_ENV} from 'sentry/constants/env';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useParams} from 'sentry/utils/useParams';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {convertEventStatsRequestDataToEventTimeseriesQueryParams} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
@@ -13,7 +16,9 @@ import {findSeriesDifferences} from 'sentry/views/dashboards/widgetCard/hooks/ut
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 
 const {warn} = Sentry.logger;
-const SAMPLE_RATE = 0.1;
+// Never sampled in tests, since the extra request would otherwise be unmocked in
+// every widget test. Tests opt in by mocking `Math.random` to return less than 0.
+const SAMPLE_RATE = NODE_ENV === 'test' ? 0 : 0.1;
 
 type SpotCheckQuery = {
   // Same request the widget would send to `/events-timeseries/`
@@ -47,11 +52,15 @@ export function useEventsTimeseriesSpotCheck({
   widget: Widget;
 }) {
   const [isSampled] = useState(() => Math.random() < SAMPLE_RATE);
+  const {dashboardId: routeDashboardId} = useParams<{dashboardId?: string}>();
+  const dashboardId = widget.dashboardId ?? routeDashboardId;
+  const dashboardUrl = dashboardId
+    ? `${window.location.origin}${normalizeUrl(
+        `/organizations/${organization.slug}/dashboard/${dashboardId}/`
+      )}`
+    : undefined;
   const isSpotCheckEnabled =
-    enabled &&
-    isSampled &&
-    !shouldUseEventsTimeseries(organization) &&
-    organization.features.includes('dashboards-widgets-events-timeseries-spot-check');
+    enabled && isSampled && !shouldUseEventsTimeseries(organization);
 
   const activeTimeSeriesQueries = timeSeriesQueries.flatMap(
     (query, originalQueryIndex) => (query ? [{...query, originalQueryIndex}] : [])
@@ -105,11 +114,16 @@ export function useEventsTimeseriesSpotCheck({
       );
 
       if (differences.length > 0) {
+        // Only field names are logged, since group by values can contain user data
         warn('Dashboard widget `/events-timeseries/` spot-check mismatch', {
           dataset: params.dataset,
           displayType: widget.displayType,
+          dashboardId,
+          dashboardUrl,
           widgetId: widget.id,
           queryIndex: originalQueryIndex,
+          groupBy: widgetQuery.columns.join(','),
+          yAxis: widgetQuery.aggregates.join(','),
           differences: JSON.stringify(differences.slice(0, 5)),
         });
       }

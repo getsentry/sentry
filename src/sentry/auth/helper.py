@@ -24,7 +24,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import audit_log, features, options
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
-from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
+from sentry.auth.email import AmbiguousUserFromEmail, emails_match, resolve_email_to_user
 from sentry.auth.email_verification import (
     hash_email,
     is_email_verified_by_trusted_provider,
@@ -574,11 +574,16 @@ class AuthIdentityHandler:
         return response
 
     def has_verified_account(self, verification_value: dict[str, Any]) -> bool:
-        return bool(
-            verification_value["email"] == self.identity["email"]
-            and verification_value["user_id"] == self.user.id
-            and verification_value.get("organization_id") == self.organization.id
-        )
+        """Whether a one-time account-confirmation key authorizes linking this IdP
+        identity to ``self.user``: same user, same organization, same IdP identity."""
+        if self.user.id is None or verification_value.get("user_id") != self.user.id:
+            return False
+        if verification_value.get("organization_id") != self.organization.id:
+            return False
+        if verification_value.get("identity_id") != str(self.identity["id"]):
+            return False
+        stored_email = verification_value.get("email")
+        return isinstance(stored_email, str) and emails_match(stored_email, self.identity["email"])
 
     @property
     def _logged_in_user(self) -> User | None:

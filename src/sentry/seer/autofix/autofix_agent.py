@@ -3,13 +3,12 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Literal, cast
 
-import sentry_sdk
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
+from sentry_sdk import traces
 
 from sentry import features, quotas
 from sentry.analytics.events.autofix_events import (
@@ -40,6 +39,8 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.dispatch import (
     AutofixFeatureArgs,
+    autofix_run_targets_other_issue,
+    require_autofix_run_for_group,
     trigger_autofix_feature,
 )
 from sentry.seer.autofix.feature.models import (
@@ -57,6 +58,11 @@ from sentry.seer.autofix.pr_iteration.constants import (
     REVIEW_REQUEST_FLAG,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.iterations import (
+    PrIterationNoPullRequestException,
+    get_iteration_for_insert_index,
+    get_open_iteration_index,
+)
 from sentry.seer.autofix.prompts import (
     PromptBuilder,
     code_changes_prompt,
@@ -85,21 +91,15 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import json, metrics
-from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
 
     from sentry.models.organization import Organization
-    from sentry.seer.agent.client_models import MemoryBlock
     from sentry.users.models.user import User
     from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
-
-
-class PrIterationNoPullRequestException(Exception):
-    pass
 
 
 class StepConfig:
@@ -317,78 +317,6 @@ def _handle_step_started_events(
     )
 
 
-@dataclass(frozen=True)
-class Iteration:
-    index: int
-    start_index: int
-    blocks: list[MemoryBlock]
-
-
-def get_iterations(state: SeerRunState) -> list[Iteration]:
-    """PR iterations in order, each holding its own blocks. A PR_ITERATION block
-    opens an iteration; every following block belongs to it until the next
-    PR_ITERATION block."""
-    iterations: list[Iteration] = []
-    for i, block in enumerate(state.blocks):
-        metadata = block.message.metadata or {}
-
-        if metadata.get("step") == AutofixStep.PR_ITERATION.value:
-            iter_idx = metadata.get("iteration_index")
-            assert iter_idx is not None, "PR_ITERATION block missing iteration_index"
-
-            # PR_ITERATION is always started with feedback today (UI + consume
-            # queue). Missing metadata is unexpected; report but keep going.
-            raw_feedback = metadata.get("feedback")
-            if not raw_feedback or (isinstance(raw_feedback, str) and not raw_feedback.strip()):
-                sentry_sdk.capture_message(
-                    "PR_ITERATION block missing feedback metadata",
-                    level="warning",
-                    extras={
-                        "run_id": state.run_id,
-                        "block_index": i,
-                        "iteration_index": iter_idx,
-                        "block_id": block.id,
-                    },
-                )
-
-            iterations.append(Iteration(index=int(iter_idx), start_index=i, blocks=[block]))
-        elif iterations:
-            iterations[-1].blocks.append(block)
-
-    return iterations
-
-
-def iteration_repos(iteration: Iteration) -> set[str]:
-    """The repositories this iteration changed."""
-    return {
-        patch.repo_name for block in iteration.blocks for patch in (block.merged_file_patches or [])
-    }
-
-
-def get_latest_iteration_index(state: SeerRunState) -> int:
-    try:
-        iterations = get_iterations(state)
-    except Exception:
-        logger.exception("autofix.get_latest_iteration_index.failed")
-        return 0
-    return iterations[-1].index if iterations else 0
-
-
-def get_open_iteration_index(state: SeerRunState) -> int:
-    """The index of the iteration a drain has claimed but not started yet.
-
-    Its row stores no index, and the run state only gains the iteration once
-    the agent starts it, so the index is one past the last one the state holds.
-    """
-    return get_latest_iteration_index(state) + 1
-
-
-def get_iteration_for_insert_index(state: SeerRunState, insert_index: int) -> int:
-    block = state.blocks[insert_index]
-    metadata = block.message.metadata or {}
-    return int(metadata["iteration_index"])
-
-
 def get_current_step(
     state: SeerRunState,
 ) -> tuple[AutofixStep, AutofixReferrer | None] | tuple[None, None]:
@@ -505,13 +433,21 @@ def get_autofix_run_state(group: Group, run_id: int) -> SeerRunState:
     return _get_group_run_state(client, group, run_id)
 
 
-def _validate_run_belongs_to_group(state: SeerRunState, group: Group) -> None:
-    group_id = state.metadata.get("group_id") if state.metadata else None
-    if group_id != group.id:
+def _reject_foreign_autofix_run(group: Group, run_id: int) -> None:
+    if autofix_run_targets_other_issue(group, run_id):
         raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 
 
+def _validate_run_belongs_to_group(state: SeerRunState, group: Group) -> None:
+    # The local mirror is the access check. Seer session metadata is fetched
+    # with the caller-supplied run_id, so it cannot authorize the run.
+    _reject_foreign_autofix_run(group, state.run_id)
+
+
 def _get_group_run_state(client: SeerAgentClient, group: Group, run_id: int) -> SeerRunState:
+    # Reject a foreign run before asking Seer for it, so a swapped run_id never
+    # reads or continues another project's session.
+    _reject_foreign_autofix_run(group, run_id)
     try:
         state = client.get_run(run_id)
     except ValueError:
@@ -580,17 +516,10 @@ def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None
 
 
 def _assert_existing_run_belongs_to_group(group: Group, run_id: int) -> None:
-    has_matching_run = SeerRun.objects.filter(
-        organization_id=group.organization.id,
-        seer_run_state_id=run_id,
-        agent__group_id=group.id,
-        agent__source__in=(FEATURE_ID, LEGACY_FEATURE_ID),
-    ).exists()
-    if not has_matching_run:
-        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+    require_autofix_run_for_group(group, run_id)
 
 
-@trace
+@traces.trace
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,

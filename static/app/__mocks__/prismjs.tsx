@@ -2,9 +2,8 @@ import prismComponents from 'prismjs/components';
 
 const Prism = {
   manual: false,
-  languages: Object.keys(prismComponents.languages).reduce(
-    (acc, language) => ({...acc, [language]: {}}),
-    {}
+  languages: Object.fromEntries(
+    Object.keys(prismComponents.languages).map(language => [language, {}])
   ),
   tokenize: (code: string) => [code],
   highlightElement: () => {},

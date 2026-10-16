@@ -11,8 +11,7 @@ from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
-from sentry.models.rule import Rule
-from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
@@ -46,23 +45,23 @@ class OpsgenieClient(ApiClient):
         path = f"/alerts?limit={limit}"
         return self.get(path=path, headers=self._get_auth_headers())
 
-    def _get_workflow_links(self, group: Group, rules: Sequence[Rule]) -> list[tuple[str, str]]:
+    def _get_workflow_links(
+        self, group: Group, rules: Sequence[NotificationOrigin]
+    ) -> list[tuple[str, str]]:
         """
         Returns (label, url) pairs for each rule that carries a workflow id.
         """
         organization = group.project.organization
         links = []
         for rule in rules:
-            action = rule.data.get("actions", [{}])[0]
-            workflow_id = action.get("workflow_id")
+            workflow_id = rule.workflow_id
             if workflow_id is None:
                 # Test notifications have no backing workflow, so nothing to link to.
-                if action.get("legacy_rule_id") != TEST_NOTIFICATION_ID:
+                if not rule.is_test_notification():
                     logger.warning(
                         "opsgenie.issue_alert.missing_workflow_id",
                         extra={
-                            "rule_id": rule.id,
-                            "legacy_rule_id": action.get("legacy_rule_id"),
+                            "legacy_rule_id": rule.legacy_rule_id,
                             "group_id": group.id,
                             "project_id": group.project_id,
                             "organization_id": organization.id,
@@ -82,7 +81,7 @@ class OpsgenieClient(ApiClient):
     def build_issue_alert_payload(
         self,
         data,
-        rules,
+        rules: Sequence[NotificationOrigin],
         event: Event | GroupEvent,
         group: Group | None,
         priority: OpsgeniePriority | None = "P3",

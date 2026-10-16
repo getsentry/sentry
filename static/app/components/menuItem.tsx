@@ -255,7 +255,7 @@ const MenuListItem = styled('li')<MenuListItemProps>`
       height: 1px;
       margin: ${p.theme.space.xs} 0;
       overflow: hidden;
-      /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+      /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
       background-color: ${p.theme.tokens.border.secondary};
     `}
   ${p =>

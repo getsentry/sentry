@@ -5,6 +5,7 @@ from typing import TypedDict
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.expressions import Limit, Offset
 from snuba_sdk.function import Function
@@ -26,7 +27,6 @@ from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import raw_snql_query
-from sentry.utils.tracing import start_span
 
 
 class TrendColumns(TypedDict):
@@ -311,7 +311,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response([])
 
-        with start_span(op="discover.endpoint", name="trend_dates"):
+        with traces.start_span(name="trend_dates", attributes={"sentry.op": "discover.endpoint"}):
             middle_date = request.GET.get("middle")
             if middle_date:
                 try:

@@ -3,11 +3,11 @@ from sentry.notifications.platform.templates.activity.base import (
     AssignedNotificationData,
     build_footer,
     build_issue_link,
+    build_subject_prefix,
     create_activity_notification_example,
     get_issue_description,
 )
 from sentry.notifications.platform.types import (
-    CodeTextBlock,
     LinkTextBlock,
     NotificationCategory,
     NotificationRenderedTemplate,
@@ -29,12 +29,7 @@ def get_assignee_label(data: AssignedNotificationData) -> str:
 
 
 def get_assigned_subject(data: AssignedNotificationData) -> list[NotificationTextBlock]:
-    blocks: list[NotificationTextBlock] = []
-    if data.issue_short_id:
-        blocks.append(CodeTextBlock(text=data.issue_short_id))
-    else:
-        blocks.append(PlainTextBlock(text="An Issue"))
-
+    blocks: list[NotificationTextBlock] = [build_subject_prefix(data=data)]
     assignee_label = get_assignee_label(data)
     assignment_verb = "auto-assigned" if data.is_automated else "assigned"
     blocks.append(PlainTextBlock(text=f"was {assignment_verb} to {assignee_label}"))

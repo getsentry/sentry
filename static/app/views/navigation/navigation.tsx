@@ -1,5 +1,11 @@
 import {Fragment, type PropsWithChildren, type RefObject, useMemo, useRef} from 'react';
 import {mergeProps} from '@react-aria/utils';
+import {IconCompass} from '@sentry/icons/compass';
+import {IconDashboard} from '@sentry/icons/dashboard';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconSiren} from '@sentry/icons/siren';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {Stack, Flex} from '@sentry/scraps/layout';
@@ -8,14 +14,6 @@ import {SizeProvider} from '@sentry/scraps/sizeContext';
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
-import {
-  IconCompass,
-  IconDashboard,
-  IconGraph,
-  IconIssues,
-  IconSettings,
-  IconSiren,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
@@ -46,6 +44,7 @@ import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigatio
 import {useCollapsedNavigation} from 'sentry/views/navigation/useCollapsedNavigation';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function NavigationImpl() {
   const organization = useOrganization({allowNull: true});
@@ -153,6 +152,7 @@ interface PrimaryNavigationItemsProps {
 
 export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization({allowNull: true});
+  const settingsV3 = useSettingsV3();
 
   const fallbackRef = useRef<HTMLUListElement>(null);
 
@@ -304,7 +304,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
         </PrimaryNavigation.Link>
       </PrimaryNavigation.ListItem>
 
-      {settingsItem}
+      {settingsV3 ? null : settingsItem}
     </Fragment>
   );
 }

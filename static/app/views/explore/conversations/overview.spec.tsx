@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
@@ -119,17 +120,21 @@ describe('ConversationsOverviewPage', () => {
       'aria-selected',
       'true'
     );
-    const agentRunsChartTitle = await screen.findByText('Agent runs');
+    const agentRunsChartTitle = await screen.findByText('Agent Runs');
     const estimatedCostChartTitle = screen.getByText('Estimated Cost');
-    expect(screen.getByText('Tool calls')).toBeInTheDocument();
+    expect(screen.getByText('Tool Calls')).toBeInTheDocument();
     expect(
       estimatedCostChartTitle.compareDocumentPosition(agentRunsChartTitle) &
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
 
-    const chartInterval = screen.getByRole('button', {name: /^Chart interval:/});
+    const chartInterval = screen.getByRole('button', {
+      name: /^Chart interval:/,
+    });
     const tabList = screen.getByRole('tablist');
-    const tableSearch = screen.getByRole('combobox', {name: 'Add a search term'});
+    const tableSearch = screen.getByRole('combobox', {
+      name: 'Add a search term',
+    });
     expect(
       chartInterval.compareDocumentPosition(tabList) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -207,7 +212,12 @@ describe('ConversationsOverviewPage', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      match: [MockApiClient.matchQuery({referrer: Referrer.CHART, query: LLM_QUERY})],
+      match: [
+        MockApiClient.matchQuery({
+          referrer: Referrer.CHART,
+          query: LLM_QUERY,
+        }),
+      ],
       body: {data: [{id: 'llm-span-id'}]},
     });
     MockApiClient.addMockResponse({
@@ -227,9 +237,9 @@ describe('ConversationsOverviewPage', () => {
     expect(
       await screen.findByRole('button', {name: /^Chart interval:/})
     ).toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
     expect(screen.queryByText('Estimated Cost')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tool calls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tool Calls')).not.toBeInTheDocument();
 
     finishAgentOrToolRequest();
 
@@ -239,8 +249,8 @@ describe('ConversationsOverviewPage', () => {
       'href',
       AI_AGENTS_GETTING_STARTED_DOCS_LINK
     );
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tool calls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tool Calls')).not.toBeInTheDocument();
     expect(
       banner.compareDocumentPosition(costChartTitle) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
@@ -259,15 +269,19 @@ describe('ConversationsOverviewPage', () => {
     render(<ConversationsOverviewPage />, {organization});
 
     expect(await screen.findByText('Estimated Cost')).toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tool calls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tool Calls')).not.toBeInTheDocument();
     expect(screen.queryByText(MISSING_AGENT_SPANS_MESSAGE)).not.toBeInTheDocument();
   });
 
   it('does not apply the table search to agent charts', async () => {
     const chartRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
-      match: [MockApiClient.matchQuery({referrer: 'api.dashboards.widget.bar-chart'})],
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.dashboards.widget.bar-chart',
+        }),
+      ],
       body: {data: []},
     });
 
@@ -281,7 +295,7 @@ describe('ConversationsOverviewPage', () => {
       },
     });
 
-    expect(await screen.findByText('Agent runs')).toBeInTheDocument();
+    expect(await screen.findByText('Agent Runs')).toBeInTheDocument();
     await waitFor(() => expect(chartRequest).toHaveBeenCalled());
     const chartQueries = chartRequest.mock.calls.map(([, options]) =>
       JSON.stringify(options.query)
@@ -305,6 +319,7 @@ describe('ConversationsOverviewPage', () => {
 
   it('defaults to traces and shows conversation onboarding on demand', async () => {
     localStorage.clear();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     render(<ConversationsOverviewPage />, {organization});
 
     expect(await screen.findByRole('tab', {name: 'Traces'})).toHaveAttribute(
@@ -320,7 +335,7 @@ describe('ConversationsOverviewPage', () => {
     expect(
       screen.queryByRole('combobox', {name: 'Add a search term'})
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Agent runs')).toBeInTheDocument();
+    expect(screen.getByText('Agent Runs')).toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
   });
 
@@ -334,7 +349,6 @@ describe('ConversationsOverviewPage', () => {
       body: [
         {
           conversationId: 'abcdef12',
-          duration: 1000,
           endTimestamp: 2000,
           errors: 0,
           firstInput: null,
@@ -345,6 +359,7 @@ describe('ConversationsOverviewPage', () => {
           outputTokens: 0,
           projectId: null,
           startTimestamp: 1000,
+          timeSpan: 1000,
           toolCalls: 0,
           toolErrors: 0,
           toolNames: [],
@@ -375,6 +390,7 @@ describe('ConversationsOverviewPage', () => {
 
   it('shows conversation onboarding without data tabs when there are no gen AI spans', async () => {
     localStorage.clear();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '1', hasInsightsAgentMonitoring: false}),
     ]);
@@ -385,11 +401,83 @@ describe('ConversationsOverviewPage', () => {
     expect(screen.queryByRole('tab', {name: 'Conversations'})).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Traces'})).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'LLM Calls'})).not.toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
+    expect(screen.queryByText('Agent Runs')).not.toBeInTheDocument();
+  });
+
+  it('shows agent data without the project flag or conversation IDs', async () => {
+    localStorage.clear();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', hasInsightsAgentMonitoring: false}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          query: '(has:gen_ai.operation.type OR has:gen_ai.conversation.id)',
+        }),
+      ],
+      body: {data: [{id: 'llm-span-id'}]},
+    });
+
+    render(<ConversationsOverviewPage />, {organization});
+
+    expect(
+      await screen.findByRole('tab', {name: 'Traces', selected: true})
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Agent Runs')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Copy prompt'})).not.toBeInTheDocument();
+  });
+
+  it('shows conversations without the project flag', async () => {
+    localStorage.clear();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', hasInsightsAgentMonitoring: false}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [MockApiClient.matchQuery({query: 'has:gen_ai.conversation.id'})],
+      body: {data: [{id: 'conversation-span-id'}]},
+    });
+
+    render(<ConversationsOverviewPage />, {organization});
+
+    expect(
+      await screen.findByRole('tab', {name: 'Conversations', selected: true})
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Agent Runs')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Copy prompt'})).not.toBeInTheDocument();
+  });
+
+  it('keeps data tabs available if the availability check fails', async () => {
+    localStorage.clear();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', hasInsightsAgentMonitoring: false}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [
+        MockApiClient.matchQuery({
+          query: '(has:gen_ai.operation.type OR has:gen_ai.conversation.id)',
+        }),
+      ],
+      statusCode: 500,
+      body: {detail: 'Unavailable'},
+    });
+
+    render(<ConversationsOverviewPage />, {organization});
+
+    expect(
+      await screen.findByRole('tab', {name: 'Traces', selected: true})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Copy prompt'})).not.toBeInTheDocument();
   });
 
   it('shows agentic spans in the LLM Calls tab', async () => {
     localStorage.clear();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     render(<ConversationsOverviewPage />, {organization});
 
     await userEvent.click(await screen.findByRole('tab', {name: 'LLM Calls'}));
@@ -406,13 +494,13 @@ describe('ConversationsOverviewPage', () => {
       body: [
         {
           conversationId: 'conversation-id',
-          duration: 1000,
           endTimestamp: 2000,
           errors: 0,
           firstInput: null,
           lastOutput: null,
           llmCalls: 1,
           startTimestamp: 1000,
+          timeSpan: 1000,
           toolCalls: 0,
           toolErrors: 0,
           toolNames: [],
@@ -465,8 +553,16 @@ describe('ConversationsOverviewPage', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [
-        {key: 'ai.toolCall.args', name: 'ai.toolCall.args', attributeType: 'string'},
-        {key: 'ai.toolCall.result', name: 'ai.toolCall.result', attributeType: 'string'},
+        {
+          key: 'ai.toolCall.args',
+          name: 'ai.toolCall.args',
+          attributeType: 'string',
+        },
+        {
+          key: 'ai.toolCall.result',
+          name: 'ai.toolCall.result',
+          attributeType: 'string',
+        },
         {
           key: 'ai.response.toolCalls',
           name: 'ai.response.toolCalls',
@@ -505,7 +601,7 @@ describe('ConversationsOverviewPage', () => {
 
     const aliases = [
       'conversation.age',
-      'conversation.duration',
+      'conversation.timeSpan',
       'conversation.generationDuration',
       'conversation.errors',
       'conversation.messages',

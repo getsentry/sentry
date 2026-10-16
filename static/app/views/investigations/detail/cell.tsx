@@ -1,5 +1,10 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconClose} from '@sentry/icons/close';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconReturn} from '@sentry/icons/return';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -21,7 +26,6 @@ import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {COLUMN_ALIGN_JUSTIFY} from 'sentry/components/tables/sortableHeaderCell';
-import {IconArrow, IconClose, IconEllipsis, IconReturn, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -54,12 +58,14 @@ type InvestigationCellProps = {
   block: InvestigationBlock;
   canRun: boolean;
   investigation: InvestigationDetail;
+  onComment?: (blockId: string) => void;
 };
 
 export function InvestigationCell({
   block,
   canRun,
   investigation,
+  onComment,
 }: InvestigationCellProps) {
   const organizationSlug = useOrganization().slug;
   const activeExecutionId = isExecutionActive(block.currentExecution?.status)
@@ -103,14 +109,7 @@ export function InvestigationCell({
       isExecutionActive(query.state.data?.json.status) ? 500 : false,
   });
 
-  const chartTitle =
-    block.kind === 'query'
-      ? getRenderableChart(getQueryOutput(block.output)?.chart ?? null)?.title
-      : null;
-  const displayTitle =
-    block.title ||
-    chartTitle ||
-    (block.kind === 'query' ? t('Untitled query') : t('Untitled cell'));
+  const displayTitle = getBlockDisplayTitle(block);
   const deleteMutation = useDeleteInvestigationBlockMutation(
     organizationSlug,
     investigation.id,
@@ -160,6 +159,12 @@ export function InvestigationCell({
   }
 
   const actionItems: MenuItemProps[] = [
+    {
+      key: 'comment',
+      label: t('Comment'),
+      hidden: !onComment,
+      onAction: () => onComment?.(block.id),
+    },
     {
       key: 'refine',
       label: t('Refine'),
@@ -227,6 +232,7 @@ export function InvestigationCell({
   return (
     <Stack
       as="section"
+      id={getBlockElementId(block.id)}
       width="100%"
       padding="0"
       data-test-id={`investigation-cell-${block.id}`}
@@ -1165,6 +1171,22 @@ type RenderableQueryOutput = Pick<
   InvestigationQueryOutput,
   'chart' | 'preferredView' | 'tableMarkdown' | 'isEmpty'
 >;
+
+export function getBlockElementId(blockId: string) {
+  return `investigation-block-${blockId}`;
+}
+
+export function getBlockDisplayTitle(block: InvestigationBlock) {
+  const chartTitle =
+    block.kind === 'query'
+      ? getRenderableChart(getQueryOutput(block.output)?.chart ?? null)?.title
+      : null;
+  return (
+    block.title ||
+    chartTitle ||
+    (block.kind === 'query' ? t('Untitled query') : t('Untitled cell'))
+  );
+}
 
 function getQueryOutput(output: unknown): RenderableQueryOutput | null {
   if (

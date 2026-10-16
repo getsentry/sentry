@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from django.http import HttpRequest
@@ -223,6 +225,36 @@ class GetRateLimitKeyTest(TestCase):
             assert SentryAppInstallationToken.objects.filter(
                 api_token_id=self.request.auth.entity_id
             )
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == f"org:default:APITestEndpoint:GET:{self.organization.id}"
+        )
+
+    @mock.patch("sentry.ratelimits.utils.get_organization_id_from_token")
+    def test_integration_tokens_use_token_organization(self, mock_get_org: mock.MagicMock) -> None:
+        self._populate_public_integration_request(self.request)
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == f"org:default:APITestEndpoint:GET:{self.organization.id}"
+        )
+
+        self._populate_internal_integration_request(self.request)
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == f"org:default:APITestEndpoint:GET:{self.organization.id}"
+        )
+        mock_get_org.assert_not_called()
+
+    def test_integration_token_without_organization_falls_back(self) -> None:
+        self._populate_public_integration_request(self.request)
+        assert isinstance(self.request.auth, AuthenticatedToken)
+        self.request.auth = self.request.auth.copy(update={"organization_id": None})
         assert (
             get_rate_limit_key(
                 self.view, self.request, self.rate_limit_group, self.rate_limit_config

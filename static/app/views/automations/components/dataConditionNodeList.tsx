@@ -1,11 +1,11 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {
@@ -201,7 +201,15 @@ function Node() {
   const node = dataConditionNodesMap.get(condition.type);
 
   const Component = node?.dataCondition;
-  return Component ? <Component /> : node?.label;
+  return Component ? (
+    <Component getDefaultComparison={getDefaultComparison} />
+  ) : (
+    node?.label
+  );
+}
+
+function getDefaultComparison(type: DataConditionType) {
+  return dataConditionNodesMap.get(type)?.defaultComparison;
 }
 
 /**

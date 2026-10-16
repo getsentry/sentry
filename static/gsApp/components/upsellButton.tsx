@@ -1,6 +1,7 @@
+import {IconBusiness} from '@sentry/icons/business';
+
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
-import {IconBusiness} from 'sentry/icons';
 import type {Organization} from 'sentry/types/organization';
 
 import UpsellProvider from 'getsentry/components/upsellProvider';

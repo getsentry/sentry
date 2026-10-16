@@ -6,6 +6,14 @@ import {ListKeyboardDelegate, useSelectableCollection} from '@react-aria/selecti
 import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useTreeState} from '@react-stately/tree';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconClose} from '@sentry/icons/close';
+import {IconLink} from '@sentry/icons/link';
+import {IconMegaphone} from '@sentry/icons/megaphone';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useIsFetching} from '@tanstack/react-query';
 import {animate, AnimatePresence, motion} from 'framer-motion';
@@ -21,6 +29,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
+import type {Theme} from '@sentry/scraps/theme';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
@@ -38,19 +47,8 @@ import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCo
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {
-  IconArrow,
-  IconClose,
-  IconLink,
-  IconMegaphone,
-  IconOpen,
-  IconSearch,
-  IconSeer,
-} from 'sentry/icons';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
-import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useNavigate} from 'sentry/utils/useNavigate';

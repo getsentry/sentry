@@ -1,5 +1,7 @@
 import {Component, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import type {Location, LocationDescriptor} from 'history';
@@ -12,6 +14,7 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
@@ -41,8 +44,6 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconEllipsis} from 'sentry/icons';
-import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {DataCategory, type PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
@@ -85,9 +86,9 @@ import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart'
 import {ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
 import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
-import Tags from 'sentry/views/discover/results/tags';
+import {Tags} from 'sentry/views/discover/results/tags';
+import {getDatasetFromLocationOrSavedQueryDataset} from 'sentry/views/discover/savedQuery/datasets';
 import {
-  getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
   getSavedQueryWithDataset,
   getTransactionDeprecationMessage,
@@ -1190,15 +1191,10 @@ function DiscoverContextMenu({
     <DropdownMenu
       items={items}
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           aria-label={t('Discover Context Menu')}
           size="sm"
-          onClick={e => {
-            e.stopPropagation();
-            e.preventDefault();
-            triggerProps.onClick?.(e);
-          }}
           icon={<IconEllipsis />}
         />
       )}
@@ -1410,19 +1406,15 @@ function SaveQueryButton({
       position="bottom-end"
       offset={4}
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.Button
           {...triggerProps}
+          showChevron={false}
           size="sm"
           variant="primary"
           aria-label={t('Save as')}
-          onClick={e => {
-            e.stopPropagation();
-            e.preventDefault();
-            triggerProps.onClick?.(e);
-          }}
         >
           {t('Save as')}
-        </Button>
+        </OverlayTrigger.Button>
       )}
     />
   );

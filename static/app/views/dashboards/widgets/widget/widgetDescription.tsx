@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 export interface WidgetDescriptionProps {

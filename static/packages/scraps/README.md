@@ -17,6 +17,11 @@ pnpm --dir static/packages/scraps test
 pnpm --dir static/packages/scraps typecheck
 ```
 
+Typechecking checks source and tests together and emits declarations into the
+ignored `.types` directory. The app uses these declarations through a TypeScript
+project reference. Run `pnpm run typecheck` to check the full project in
+dependency order. The release build continues to use `dist`.
+
 To check package imports through the Sentry app's aliases, run the app integration test:
 
 ```sh
@@ -50,6 +55,8 @@ pnpm --dir static/packages/scraps verify
 Verification deletes `dist` before packing to exercise `prepack`, checks the
 tarball contents and dependencies, typechecks and imports each public export,
 and server renders representative components in both themes.
+The verifier compiles a temporary copy of the source-only icons workspace for
+the test consumer. It does not change or publish the icons package.
 
 Consumers provide Emotion's `ThemeProvider` with `lightTheme` or `darkTheme`.
 The package does not include application providers, global CSS, or fonts.

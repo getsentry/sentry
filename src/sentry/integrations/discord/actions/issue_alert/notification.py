@@ -50,7 +50,8 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
             return
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
-            rules = [f.rule for f in futures]
+            contexts = [future.context for future in futures]
+            rules = [context.origin for context in contexts]
             message = DiscordIssuesMessageBuilder(
                 event.group, event=event, tags=tags, rules=rules
             ).build(notification_uuid=notification_uuid)
@@ -79,8 +80,8 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
                     lifecycle.record_failure(e)
 
-            rule = rules[0] if rules else None
-            self.record_notification_sent(event, channel_id, rule, notification_uuid)
+            context = contexts[0] if contexts else None
+            self.record_notification_sent(event, channel_id, context, notification_uuid)
 
         key = f"discord:{integration.id}:{channel_id}"
 

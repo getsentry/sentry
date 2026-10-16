@@ -1,6 +1,7 @@
 import type {MouseEventHandler, ReactNode} from 'react';
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconHide} from '@sentry/icons/hide';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -13,12 +14,10 @@ import {
 } from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {IconHide} from 'sentry/icons/iconHide';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, FieldKind} from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -60,9 +59,10 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
-  parseConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 interface ToolbarVisualizeProps {
   allowEquations: boolean;
@@ -204,11 +204,6 @@ function ToolbarVisualizeItem({
   const visualize = visualizes[0]!;
   const [search, setSearch] = useState<string | undefined>(undefined);
   const [debouncedSearch] = useDebouncedValue(search, {wait: 200});
-  const organization = useOrganization();
-  const hasConditionalAggregates = organization.features.includes(
-    'explore-conditional-aggregates'
-  );
-
   const {attributes: stringTags, isLoading: stringTagsLoading} = useSpanItemAttributes(
     {search: debouncedSearch},
     'string'
@@ -245,12 +240,7 @@ function ToolbarVisualizeItem({
     traceItemType: TraceItemDataset.SPANS,
   });
 
-  // Filters only survive a swap to another aggregate that supports them, and are dropped
-  // entirely while the feature is off so that toggling it never leaves a stale filter.
-  const filter = useMemo(
-    () => (hasConditionalAggregates ? (parsedFunction?.filter ?? '') : ''),
-    [hasConditionalAggregates, parsedFunction?.filter]
-  );
+  const filter = parsedFunction?.filter ?? '';
 
   const onChangeAggregates = useCallback(
     (newAggregates: string[]) => {
@@ -325,9 +315,9 @@ function ToolbarVisualizeItem({
     [onReplace, visualizes]
   );
 
-  const showFilterSearchBar =
-    hasConditionalAggregates &&
-    supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
+  const showFilterSearchBar = supportsConditionalAggregateFilter(
+    parsedFunction?.name ?? ''
+  );
 
   return (
     <ToolbarVisualizeDropdown
@@ -489,10 +479,6 @@ interface VisualizeLabelProps {
   index: number;
   onClick: MouseEventHandler<HTMLDivElement>;
   visualize: Visualize;
-}
-
-export function getFunctionLabel(index: number) {
-  return String.fromCharCode('A'.charCodeAt(0) + index);
 }
 
 function getEquationLabel(index: number) {

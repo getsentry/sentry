@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import {AggregationKey} from 'sentry/utils/fields';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 /**
  * Aggregates that can be selected together and plotted on one chart, grouped

@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -71,9 +72,9 @@ from sentry.seer.endpoints.seer_rpc import (
 )
 from sentry.seer.endpoints.utils import accept_organization_id_param, map_org_id_param
 from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_query, utils
+from sentry.seer.public_caller import bind_public_seer_caller
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
-from sentry.utils.tracing import trace
 from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
 
 logger = logging.getLogger(__name__)
@@ -280,7 +281,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         return result
 
-    @trace
+    @traces.trace
     def _dispatch_to_local_method(
         self,
         request: Request,
@@ -294,7 +295,10 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
         if method_name in public_org_seer_method_registry:
             method = public_org_seer_method_registry[method_name]
             arguments["organization_id"] = organization.id
-            result = method(**arguments)
+            # These helpers also serve the internal Seer RPC, where org-wide reads are
+            # intended. Binding the member's access keeps them to the member's projects.
+            with bind_public_seer_caller(request.access):
+                result = method(**arguments)
             if method_name in _issue_scoped_org_methods:
                 result = self._filter_issue_scoped_result(request, method_name, result)
             return _serialize_result(result)
@@ -318,7 +322,7 @@ class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
 
         raise RpcResolutionException(f"Unknown method {method_name}")
 
-    @trace
+    @traces.trace
     def post(self, request: Request, organization: Organization, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
         sentry_sdk.set_attribute("rpc.method", method_name)

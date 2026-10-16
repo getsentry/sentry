@@ -10,6 +10,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -23,6 +24,7 @@ from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleArchive,
+    ArtifactBundleIndex,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
@@ -56,6 +58,13 @@ NO_DEBUG_ID_SDKS = {
 
 # This number will equate to an upper bound of file lookups/downloads
 ARTIFACT_INDEX_LOOKUP_LIMIT = 25
+
+# Upper bound for `sourcemaps.source-map-debug.debug-id-check-max-bundles`, whose bundle ids end
+# up in a single query.
+DEBUG_ID_CHECK_MAX_BUNDLES_LIMIT = 10_000
+
+# Upper bound on the number of bundles whose files `get_release_bundle_urls` reads.
+URL_MATCH_MAX_BUNDLES = 1000
 
 
 class ScrapingResultSuccess(TypedDict):
@@ -220,27 +229,18 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
 
         has_uploaded_some_artifact_with_a_debug_id = bool(
             debug_ids_with_uploaded_source_file or debug_ids_with_uploaded_source_map
-        ) or (
-            DebugIdArtifactBundle.objects.filter(
-                organization_id=project.organization_id,
-            )
-            .filter(
-                Exists(
-                    ProjectArtifactBundle.objects.filter(
-                        artifact_bundle_id=OuterRef("artifact_bundle_id"),
-                        project_id=project.id,
-                    )
-                )
-            )
-            .exists()
-        )
+        ) or project_has_some_artifact_with_a_debug_id(project)
 
         # Get all abs paths and query for their existence so that we can match release artifacts
         release_process_abs_path_data = {}
         if release is not None:
             abs_paths = get_abs_paths_in_event(event_data)
+            # Read once for all the frames.
+            release_bundle_urls = get_release_bundle_urls(project, release) if abs_paths else None
             for abs_path in abs_paths:
-                path_data = ReleaseLookupData(abs_path, project, release, event).to_dict()
+                path_data = ReleaseLookupData(
+                    abs_path, project, release, event, release_bundle_urls
+                ).to_dict()
                 release_process_abs_path_data[abs_path] = path_data
 
         # Get a map that maps from abs_path to scraping data
@@ -333,12 +333,19 @@ def get_scraping_data_for_frame(
 
 class ReleaseLookupData:
     def __init__(
-        self, abs_path: str, project: Project, release: Release, event: Event | GroupEvent
+        self,
+        abs_path: str,
+        project: Project,
+        release: Release,
+        event: Event | GroupEvent,
+        release_bundle_urls: Mapping[str, set[int]] | None = None,
     ) -> None:
         self.abs_path = abs_path
         self.project = project
         self.release = release
         self.event = event
+        # See `get_release_bundle_urls`.
+        self.release_bundle_urls = release_bundle_urls
 
         self.matching_source_file_names = ReleaseFile.normalize(abs_path)
 
@@ -492,12 +499,8 @@ class ReleaseLookupData:
         if self.source_file_lookup_result == "found":
             return
 
-        possible_release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
-            organization_id=self.project.organization.id,
-            release_name=self.release.version,
-            artifact_bundle__projectartifactbundle__project_id=self.project.id,
-            artifact_bundle__artifactbundleindex__organization_id=self.project.organization.id,
-            artifact_bundle__artifactbundleindex__url__in=self.matching_source_file_names,
+        possible_release_artifact_bundles = self._get_release_artifact_bundles_with_url(
+            self.matching_source_file_names
         )
         if len(possible_release_artifact_bundles) > 0:
             self.source_file_lookup_result = "wrong-dist"
@@ -582,12 +585,8 @@ class ReleaseLookupData:
         if self.source_map_lookup_result == "found":
             return
 
-        possible_release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
-            organization_id=self.project.organization.id,
-            release_name=self.release.version,
-            artifact_bundle__projectartifactbundle__project_id=self.project.id,
-            artifact_bundle__artifactbundleindex__organization_id=self.project.organization.id,
-            artifact_bundle__artifactbundleindex__url=matching_source_map_name,
+        possible_release_artifact_bundles = self._get_release_artifact_bundles_with_url(
+            [matching_source_map_name]
         )
         if len(possible_release_artifact_bundles) > 0:
             self.source_map_lookup_result = "wrong-dist"
@@ -595,6 +594,35 @@ class ReleaseLookupData:
             if possible_release_artifact_bundle.dist_name == (self.event.dist or ""):
                 self.source_map_lookup_result = "found"
                 return
+
+    def _get_release_artifact_bundles_with_url(
+        self, urls: list[str]
+    ) -> list[ReleaseArtifactBundle]:
+        """
+        Returns the links of the release's bundles, of any dist, that contain a file at one of
+        the `urls`.
+        """
+        if self.release_bundle_urls is None:
+            return list(
+                ReleaseArtifactBundle.objects.filter(
+                    organization_id=self.project.organization.id,
+                    release_name=self.release.version,
+                    artifact_bundle__projectartifactbundle__project_id=self.project.id,
+                    artifact_bundle__artifactbundleindex__organization_id=self.project.organization.id,
+                    artifact_bundle__artifactbundleindex__url__in=urls,
+                )
+            )
+
+        bundle_ids = {
+            bundle_id for url in urls for bundle_id in self.release_bundle_urls.get(url, ())
+        }
+        return list(
+            ReleaseArtifactBundle.objects.filter(
+                organization_id=self.project.organization_id,
+                release_name=self.release.version,
+                artifact_bundle_id__in=bundle_ids,
+            ).order_by("-artifact_bundle_id")
+        )
 
     def _get_artifact_index_release_files(self) -> list[ReleaseFile]:
         # Cache result
@@ -633,6 +661,57 @@ class ReleaseLookupData:
         return self.dist_matched_artifact_index_release_file
 
 
+def get_release_bundle_urls(project: Project, release: Release) -> dict[str, set[int]] | None:
+    """
+    Returns the URLs of the files in the release's newest bundles linked to the project, of any
+    dist, each mapped to the ids of the bundles that contain it. Returns `None` to look up each
+    URL in all the release's bundles instead.
+
+    Looking up a URL in all the release's bundles uses the `(url, artifact_bundle_id)` index of
+    `ArtifactBundleIndex`. With `sourcemaps.source-map-debug.url-match-max-index-rows` set, the
+    `ArtifactBundleIndex` rows of the newest bundles are read by bundle instead, newest first, as
+    long as the bundles' files add up to at most that many rows. The newest bundle is always read,
+    up to that many rows if it alone has more files. Files only found in older bundles, or beyond
+    the rows read, are reported as not found.
+    """
+    max_index_rows = options.get("sourcemaps.source-map-debug.url-match-max-index-rows")
+    if max_index_rows <= 0:
+        return None
+
+    newest_bundles = (
+        ReleaseArtifactBundle.objects.filter(
+            organization_id=project.organization_id,
+            release_name=release.version,
+            artifact_bundle__projectartifactbundle__project_id=project.id,
+        )
+        .values_list("artifact_bundle_id", "artifact_bundle__artifact_count")
+        .order_by("-artifact_bundle_id")[:URL_MATCH_MAX_BUNDLES]
+    )
+    # Using a dict to keep the order and drop bundles repeated by links to several dists.
+    bundle_ids: dict[int, None] = {}
+    index_rows = 0
+    for bundle_id, artifact_count in newest_bundles:
+        if bundle_id in bundle_ids:
+            continue
+        if bundle_ids and index_rows + artifact_count > max_index_rows:
+            break
+        bundle_ids[bundle_id] = None
+        index_rows += artifact_count
+
+    # The bundles all belong to the project's organization, and filtering on it as well could make
+    # Postgres also read the organization's slice of the organization index. The limit holds the
+    # rows read to the budget even when the newest bundle alone has more files.
+    index_rows_query = (
+        ArtifactBundleIndex.objects.filter(artifact_bundle_id__in=list(bundle_ids))
+        .order_by("-artifact_bundle_id")
+        .values_list("artifact_bundle_id", "url")[:max_index_rows]
+    )
+    release_bundle_urls: dict[str, set[int]] = {}
+    for bundle_id, url in index_rows_query:
+        release_bundle_urls.setdefault(url, set()).add(bundle_id)
+    return release_bundle_urls
+
+
 def get_matching_source_map_location(source_file_path: str, source_map_reference: str) -> str:
     return non_standard_url_join(force_str(source_file_path), force_str(source_map_reference))
 
@@ -646,6 +725,46 @@ def event_has_debug_ids(event_data: Mapping[str, Any]) -> bool:
             if debug_image["type"] == "sourcemap":
                 return True
         return False
+
+
+def project_has_some_artifact_with_a_debug_id(project: Project) -> bool:
+    """
+    Whether any artifact bundle of the project contains a file with a debug ID.
+
+    Without `sourcemaps.source-map-debug.debug-id-check-max-bundles`, this reads the
+    organization's debug-ID rows until one of them is in a bundle of the project, which for a
+    project without any means all of them. With it, only the project's newest bundles are
+    checked, so a project whose debug IDs are all in older bundles counts as having none.
+    """
+    max_bundles = min(
+        options.get("sourcemaps.source-map-debug.debug-id-check-max-bundles"),
+        DEBUG_ID_CHECK_MAX_BUNDLES_LIMIT,
+    )
+    if max_bundles <= 0:
+        return (
+            DebugIdArtifactBundle.objects.filter(
+                organization_id=project.organization_id,
+            )
+            .filter(
+                Exists(
+                    ProjectArtifactBundle.objects.filter(
+                        artifact_bundle_id=OuterRef("artifact_bundle_id"),
+                        project_id=project.id,
+                    )
+                )
+            )
+            .exists()
+        )
+
+    # Bundle ids follow upload order, so this reads the `(project_id, artifact_bundle_id)` index
+    # backwards and stops after `max_bundles` rows.
+    newest_bundle_ids = list(
+        ProjectArtifactBundle.objects.filter(project_id=project.id)
+        .order_by("-artifact_bundle_id")
+        .values_list("artifact_bundle_id", flat=True)[:max_bundles]
+    )
+    # One lookup per bundle in the debug-ID rows' `artifact_bundle_id` index.
+    return DebugIdArtifactBundle.objects.filter(artifact_bundle_id__in=newest_bundle_ids).exists()
 
 
 def get_sdk_debug_id_support(

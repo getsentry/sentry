@@ -32,6 +32,7 @@ const config: Pick<DatasetConfig<any, any>, 'transformSeries'> = {
 describe('useEventsTimeseriesSpotCheck', () => {
   const pageFilters = PageFiltersFixture();
   const widget = WidgetFixture({
+    dashboardId: '42',
     displayType: DisplayType.LINE,
     queries: [
       {
@@ -97,13 +98,12 @@ describe('useEventsTimeseriesSpotCheck', () => {
     });
   }
 
-  const spotCheckOrganization = OrganizationFixture({
-    features: ['dashboards-widgets-events-timeseries-spot-check'],
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    jest.spyOn(Math, 'random').mockReturnValue(0);
+    // The sample rate is 0 in tests, so return less than 0 to opt in
+    jest.spyOn(Math, 'random').mockReturnValue(-1);
     jest.spyOn(Sentry.logger, 'warn').mockImplementation(() => {});
   });
 
@@ -113,30 +113,29 @@ describe('useEventsTimeseriesSpotCheck', () => {
 
   it('logs a warning when the responses differ', async () => {
     mockTimeSeriesResponse([100, 250, 300]);
-    renderSpotCheck(spotCheckOrganization);
+    renderSpotCheck(organization);
 
     await waitFor(() => expect(Sentry.logger.warn).toHaveBeenCalledTimes(1));
     expect(Sentry.logger.warn).toHaveBeenCalledWith(
       'Dashboard widget `/events-timeseries/` spot-check mismatch',
       expect.objectContaining({
         dataset: 'ourlogs',
-        differences: JSON.stringify([{reason: 'value'}]),
+        dashboardId: '42',
+        dashboardUrl: 'http://localhost/organizations/org-slug/dashboard/42/',
+        groupBy: '',
+        yAxis: 'count()',
+        differences: JSON.stringify([
+          {reason: 'value', legacyValue: 200, timeSeriesValue: 250},
+        ]),
       })
     );
   });
 
   it('does not log when the responses match', async () => {
     const request = mockTimeSeriesResponse([100, 200, 300]);
-    renderSpotCheck(spotCheckOrganization);
+    renderSpotCheck(organization);
 
     await waitFor(() => expect(request).toHaveBeenCalled());
     expect(Sentry.logger.warn).not.toHaveBeenCalled();
-  });
-
-  it('does not fetch events-timeseries without the spot-check flag', () => {
-    const request = mockTimeSeriesResponse([100, 250, 300]);
-    renderSpotCheck(OrganizationFixture());
-
-    expect(request).not.toHaveBeenCalled();
   });
 });

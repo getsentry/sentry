@@ -29,14 +29,17 @@
 
 ### Routing
 
-- Routes defined in `static/app/routes.tsx`
-- The app still runs React Router V6; follow V6 routing patterns and behavior.
+- Routes defined in `static/app/router/routes.tsx`
+- Local development runs React Router V8. Production and deploy previews remain
+  on V6. Application tests and typechecks run against both versions.
+  `build-utils/react-router.ts` selects the build runtime and Nuqs adapter together.
 - Use V8 import paths: import router APIs and types from `react-router`, and
   `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
-  runtime through `static/app/utils/reactRouterV6`.
+  runtime through `static/app/utils/reactRouterV6` outside local development.
 - Only the compatibility modules may import `react-router-dom` or
   `@remix-run/router` directly. Keep using Sentry's routing helpers where required.
-  Nuqs adapters and Sentry tracing integrations remain V6.
+  Use Sentry's version-neutral router tracing integration and wrapper. Keep the
+  Nuqs V6 adapter import; V8 builds and tests alias it to the V8 adapter.
 - Lazy load route components when possible
 
 ### Frontend API Calls
@@ -99,7 +102,7 @@ Use core primitives from `@sentry/scraps` instead of hand-rolling styled compone
 
 - **Avatars**: use `<UserAvatar/>`/`<TeamAvatar/>`/`<ProjectAvatar/>`/etc. from `static/app/components/core/avatar` (and `<AvatarList>` for lists) — never raw `<img>`.
 - **Disclosure**: use the core `<Disclosure>` component — don't hand-roll expand/collapse.
-- **Icons**: import from `sentry/icons`; keep icons in `static/app/icons`, never inline SVGs. Optimize with svgo/svgomg.
+- **Icons**: import SVG icons from explicit `@sentry/icons` subpaths (for example, `@sentry/icons/add`). Keep SvgIcon-based icons in `static/packages/icons/src`; keep app asset wrappers in `static/app/icons`. The icons package must not depend on scraps or app code. Never inline SVGs. Optimize with svgo/svgomg.
 - **Images**: import via the `sentry-images` alias (webpack loader); keep them in `static/app/images`, never reference by static path.
 
 For worked examples of all of the above, use the **`design-system`** skill.

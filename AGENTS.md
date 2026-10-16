@@ -76,7 +76,9 @@ Dev server URLs: full devserver `http://dev.getsentry.net:8000`; frontend-only `
 
 #### Typechecking
 
-Run the `pnpm run typecheck` script. It checks the whole project and does not accept file paths. DO NOT use `tsc` directly.
+Run `pnpm run typecheck` to check the app against React Router V6 and V8, plus the service worker and referenced workspace packages in dependency order. Set `SENTRY_REACT_ROUTER_VERSION=6` or `8` to check one version. Package checks emit declarations into ignored `.types` directories; the app check uses those declarations. CI uses the same command in a router-version matrix. It does not accept file paths. Add new isolated packages to the root tsconfig references. DO NOT use `tsc` directly.
+
+Extend `tsconfig.base.json` for shared compiler checks. Keep app aliases, environment types, and emit settings in each project config.
 
 #### Linting
 
@@ -93,7 +95,12 @@ Incubator rules appear as warnings in editors. The lint wrapper promotes them to
 ```bash
 pnpm test-ci <file_path>                       # run tests
 pnpm test-ci components/avatar.spec.tsx        # specific file(s)
+pnpm --filter @sentry-internal/app test        # watch Sentry app tests
 ```
+
+`test-ci` runs app tests against React Router V6 and V8, then workspace package tests once. File arguments select app tests. Set `SENTRY_REACT_ROUTER_VERSION=6` or `8` to run one version. CI uses the existing shards for each router version; only V6 shard 0 runs package tests and router build checks.
+
+`pnpm test` uses one Jest watcher for app, lint, and test-support tests. `pnpm test-all` runs all workspace test scripts once with watch mode disabled. App, lint, and test-support scripts have scoped Jest configs.
 
 ### Context-Aware Loading
 

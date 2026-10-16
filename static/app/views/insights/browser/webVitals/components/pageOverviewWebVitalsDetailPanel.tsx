@@ -5,15 +5,16 @@ import styled from '@emotion/styled';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Link} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import type {
-  GridColumnHeader,
-  GridColumnOrder,
-  GridColumnSortBy,
-} from 'sentry/components/tables/gridEditable';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {
+  DataGrid,
+  type GridColumnHeader,
+  type GridColumnOrder,
+  type GridColumnSortBy,
+} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -48,7 +49,7 @@ import {
 } from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 type Column = GridColumnHeader;
@@ -367,7 +368,7 @@ export function PageOverviewWebVitalsDetailPanel({
             )}
           </ChartContainer>
           <TableContainer>
-            <GridEditable
+            <DataGrid
               data={spansTableData}
               isLoading={isSpansLoading}
               columnOrder={

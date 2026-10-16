@@ -303,14 +303,20 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
     if not perf_settings.get("ai_issue_detection_enabled", True):
         return
 
-    budget_response = make_signed_seer_api_request(
-        seer_issue_detection_connection_pool,
-        f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/{org_id}?plan_tier={plan_tier}",
-        body=b"",
-        metrics_endpoint=f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/:organization_id",
-        method="GET",
-        timeout=SEER_TIMEOUT_S,
+    system_viewer_context = ViewerContext(
+        organization_id=org_id,
+        project_id=project_id,
+        actor_type=ActorType.SYSTEM,
     )
+    with viewer_context_scope(system_viewer_context):
+        budget_response = make_signed_seer_api_request(
+            seer_issue_detection_connection_pool,
+            f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/{org_id}?plan_tier={plan_tier}",
+            body=b"",
+            metrics_endpoint=f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/:organization_id",
+            method="GET",
+            timeout=SEER_TIMEOUT_S,
+        )
     if budget_response.status == 200:
         # fail-open since there is an additional budget check on the seer side
         try:
@@ -357,9 +363,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
         plan_tier=plan_tier,
     )
 
-    with viewer_context_scope(
-        ViewerContext(organization_id=org_id, project_id=project_id, actor_type=ActorType.SYSTEM)
-    ):
+    with viewer_context_scope(system_viewer_context):
         viewer_context = SeerViewerContext(organization_id=org_id)
         response = make_issue_detection_request(
             seer_request,

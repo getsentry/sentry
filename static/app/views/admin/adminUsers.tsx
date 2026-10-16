@@ -19,6 +19,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 const USERS_COLUMNS: TableColumnConfig[] = [
   {key: 'user', width: 'minmax(0, 1fr)'},
@@ -67,6 +68,7 @@ export default function AdminUsers() {
 
   return (
     <Fragment>
+      <BreadcrumbTitle title={t('Users')} />
       <Flex align="center" gap="md" paddingBottom="xl">
         <Container flexGrow={1}>
           {containerProps => (
