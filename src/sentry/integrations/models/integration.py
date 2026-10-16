@@ -147,10 +147,13 @@ class Integration(DefaultFieldsModelExisting):
                             org_integration.update(default_auth_id=default_auth_id)
                         return org_integration
 
+                    update_values: dict[str, Any]
                     if default_auth_id is None:
-                        raise AssertionError(
-                            "Rejecting pending deletion requires a default identity"
-                        )
+                        # Providers without a default identity still need an atomic
+                        # status check without clearing an existing default identity.
+                        update_values = {"status": models.F("status")}
+                    else:
+                        update_values = {"default_auth_id": default_auth_id}
 
                     with outbox_context(
                         transaction.atomic(using=router.db_for_write(OrganizationIntegration)),
@@ -159,8 +162,8 @@ class Integration(DefaultFieldsModelExisting):
                         updated = OrganizationIntegration.objects.filter(
                             id=org_integration.id,
                             status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
-                        ).update(default_auth_id=default_auth_id)
-                        if updated:
+                        ).update(**update_values)
+                        if updated and default_auth_id is not None:
                             org_integration.default_auth_id = default_auth_id
                             for outbox in org_integration.outboxes_for_update():
                                 outbox.save()
