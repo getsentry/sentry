@@ -21,7 +21,7 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
-import * as apiFetchModule from 'sentry/utils/api/apiFetch';
+import * as queryClient from 'sentry/utils/queryClient';
 
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
 
@@ -749,14 +749,9 @@ describe('ScmPlatformFeatures', () => {
       const repositoryLink = new Promise<void>(resolve => {
         resolveRepositoryLink = resolve;
       });
-      const originalApiFetch = apiFetchModule.apiFetch;
-      const apiFetchSpy = jest
-        .spyOn(apiFetchModule, 'apiFetch')
-        .mockImplementation(context =>
-          String(context.queryKey[0]).endsWith('/repo/')
-            ? repositoryLink.then(() => ({json: undefined, headers: {}}))
-            : originalApiFetch(context)
-        );
+      const fetchMutationSpy = jest
+        .spyOn(queryClient, 'fetchMutation')
+        .mockReturnValue(repositoryLink);
       const createdProject = ProjectFixture({
         slug: 'javascript-nextjs',
         platform: 'javascript-nextjs',
@@ -792,7 +787,7 @@ describe('ScmPlatformFeatures', () => {
         await repositoryLink;
       });
       await waitFor(() => expect(props.onComplete).toHaveBeenCalled());
-      apiFetchSpy.mockRestore();
+      fetchMutationSpy.mockRestore();
     });
 
     it('reuses the existing project when the platform is unchanged', async () => {
