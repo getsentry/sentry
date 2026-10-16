@@ -54,7 +54,7 @@ class RepositorySettingsSerializer(serializers.Serializer):
         return data
 
 
-@extend_schema(tags=["Organizations"])
+@extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
     """Bulk endpoint for managing repository settings."""

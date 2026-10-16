@@ -145,6 +145,8 @@ class PathMappingSerializerTest(TestCase):
 
 
 class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
+    endpoint = "sentry-api-0-project-repo-path-parsing"
+
     def setUp(self) -> None:
         super().setUp()
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -246,6 +248,45 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "provider": "github",
             "stackRoot": "sentry/",
             "sourceRoot": "src/sentry/",
+            "defaultBranch": "master",
+        }
+
+    def test_snake_case_fields(self) -> None:
+        self.login_as(self.user)
+        resp = self.get_success_response(
+            self.org.slug,
+            self.project.slug,
+            method="post",
+            source_url="https://github.com/getsentry/sentry/blob/master/src/sentry/api/endpoints/project_stacktrace_link.py",
+            stack_path="sentry/api/endpoints/project_stacktrace_link.py",
+        )
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "sentry/",
+            "sourceRoot": "src/sentry/",
+            "defaultBranch": "master",
+        }
+
+    def test_snake_case_java_fields(self) -> None:
+        self.login_as(self.user)
+        resp = self.get_success_response(
+            self.org.slug,
+            self.project.slug,
+            method="post",
+            source_url="https://github.com/getsentry/sentry/blob/master/src/com/example/foo/Bar.kt",
+            stack_path="Bar.kt",
+            abs_path="Bar.kt",
+            module="com.example.foo.Bar",
+            platform="java",
+        )
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "com/example/foo/",
+            "sourceRoot": "src/com/example/foo/",
             "defaultBranch": "master",
         }
 

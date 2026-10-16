@@ -43,7 +43,7 @@ def get_codeowner_contents(config):
         return install.get_codeowner_file(repository, ref=config.default_branch)
 
 
-@extend_schema(tags=["Organizations"])
+@extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES

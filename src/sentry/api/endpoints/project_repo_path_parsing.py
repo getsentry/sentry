@@ -1,5 +1,5 @@
 from pathlib import PurePath, PureWindowsPath
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 from urllib.parse import unquote, urlparse, urlunparse
 
 from drf_spectacular.utils import extend_schema
@@ -29,7 +29,7 @@ from sentry.issues.auto_source_code_config.errors import (
     UnexpectedPathException,
     UnsupportedFrameInfo,
 )
-from sentry.issues.auto_source_code_config.frame_info import FrameInfo, create_frame_info
+from sentry.issues.auto_source_code_config.frame_info import create_frame_info
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 
@@ -50,12 +50,38 @@ def unquote_source_url_path(source_url: str) -> str:
     return urlunparse(parsed._replace(path=unquote(parsed.path)))
 
 
-class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
+class PathMappingData(TypedDict):
+    stack_path: str
+    source_url: str
+    abs_path: NotRequired[str | None]
+    module: NotRequired[str | None]
+    platform: NotRequired[str | None]
+
+
+class PathMappingSerializer(CamelSnakeSerializer[PathMappingData]):
     stack_path = serializers.CharField(
         help_text="A file path as it appears in a stack trace frame."
     )
     source_url = serializers.URLField(
         help_text="The URL of the same file in the connected source code repository."
+    )
+    abs_path = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The absolute path of the file in the stack trace frame.",
+    )
+    module = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The module containing the stack trace frame.",
+    )
+    platform = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The platform of the event containing the stack trace frame.",
     )
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -177,7 +203,14 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
         data = serializer.validated_data
         source_url = data["source_url"]
         try:
-            frame_info = get_frame_info_from_request(request)
+            frame_info = create_frame_info(
+                {
+                    "abs_path": data.get("abs_path"),
+                    "filename": data["stack_path"],
+                    "module": data.get("module"),
+                },
+                data.get("platform"),
+            )
         except UnsupportedFrameInfo:
             return self.respond(
                 {"detail": "Unsupported frame info"}, status=status.HTTP_400_BAD_REQUEST
@@ -217,12 +250,3 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
                 "defaultBranch": branch,
             }
         )
-
-
-def get_frame_info_from_request(request: Request) -> FrameInfo:
-    frame = {
-        "abs_path": request.data.get("absPath"),
-        "filename": request.data["stackPath"],
-        "module": request.data.get("module"),
-    }
-    return create_frame_info(frame, request.data.get("platform"))

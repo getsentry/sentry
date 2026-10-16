@@ -26,7 +26,7 @@ class CodeOwnersProjectAssociationsResponse(TypedDict):
     errors: CodeOwnersErrors
 
 
-@extend_schema(tags=["Organizations"])
+@extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
