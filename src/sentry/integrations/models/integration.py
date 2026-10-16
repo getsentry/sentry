@@ -45,7 +45,8 @@ class OrganizationIntegrationDeletionInProgress(Exception):
 class Integration(DefaultFieldsModelExisting):
     """
     An integration tied to a particular instance of a third-party provider (a single Slack
-    workspace, a single GH org, etc.), which can be shared by multiple Sentry orgs.
+    workspace, a single GH org, etc.). An integration can be shared by multiple Sentry orgs,
+    or a provider can guarantee that each integration belongs to only one Sentry org.
     """
 
     __relocation_scope__ = RelocationScope.Global
@@ -53,9 +54,8 @@ class Integration(DefaultFieldsModelExisting):
     provider = models.CharField(max_length=64)
     external_id = models.CharField(max_length=256)
     name = models.CharField(max_length=200)
-    # metadata might be used to store things like credentials, but it should NOT
-    # be used to store organization-specific information, as an Integration
-    # instance can be shared by multiple organizations
+    # Organization-specific metadata is only safe when the provider guarantees that the
+    # Integration instance belongs to one organization.
     metadata = EncryptedJSONField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
