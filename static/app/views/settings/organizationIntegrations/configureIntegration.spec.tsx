@@ -520,7 +520,9 @@ describe('ConfigureIntegration GCP re-verification', () => {
     const field = await screen.findByRole('textbox', {name: 'Customer Service Account'});
     await userEvent.clear(field);
     await userEvent.type(field, value);
-    await userEvent.tab();
+    // jsdom can't evaluate container queries, so it treats the next breadcrumb as
+    // hidden and won't tab to it. Click away to blur the field instead.
+    await userEvent.click(document.body);
   }
 
   it('shows the connection status for a GCP integration', async () => {

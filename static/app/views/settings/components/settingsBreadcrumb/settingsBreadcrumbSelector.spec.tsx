@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbTitle} from './breadcrumbTitle';
 import {SettingsBreadcrumbSelector} from './settingsBreadcrumbSelector';
@@ -52,7 +52,11 @@ describe('SettingsBreadcrumbSelector', () => {
     await userEvent.hover(label);
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     await userEvent.click(trigger);
-    await userEvent.type(await screen.findByPlaceholderText('Search Projects'), 'python');
+    // jsdom can't evaluate container queries, so it treats the crumb as hidden
+    // and won't focus the input. Set the value directly instead of typing.
+    fireEvent.change(await screen.findByPlaceholderText('Search Projects'), {
+      target: {value: 'python'},
+    });
     expect(onSearch).toHaveBeenLastCalledWith('python');
 
     rerender(
