@@ -82,7 +82,6 @@ REQUEST_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.URL_TEMPLATE: "url",
     ATTRIBUTE_NAMES.HTTP_ROUTE: "url",
     ATTRIBUTE_NAMES.URL_PATH: "url",
-    ATTRIBUTE_NAMES.URL_FULL: "url",
     "sentry.transaction.method": "method",
     ATTRIBUTE_NAMES.HTTP_REQUEST_METHOD: "method",
     ATTRIBUTE_NAMES.URL_QUERY: "query_string",
@@ -91,6 +90,14 @@ REQUEST_FIELDS_BY_ATTRIBUTE_NAME = {
 REQUEST_HEADERS_BY_ATTRIBUTE_NAME = {
     "http.user_agent": "user-agent",
     ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL: "user-agent",
+}
+REQUEST_URL_PARTS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.URL_SCHEME: "scheme",
+    ATTRIBUTE_NAMES.URL_DOMAIN: "host",
+    ATTRIBUTE_NAMES.SERVER_ADDRESS: "host",
+    ATTRIBUTE_NAMES.URL_PATH: "path",
+    ATTRIBUTE_NAMES.URL_PORT: "port",
+    ATTRIBUTE_NAMES.SERVER_PORT: "port",
 }
 
 SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
@@ -112,6 +119,7 @@ KNOWN_NON_TAG_ATTRIBUTES = frozenset().union(
     SDK_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     REQUEST_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     REQUEST_HEADERS_BY_ATTRIBUTE_NAME.keys(),
+    REQUEST_URL_PARTS_BY_ATTRIBUTE_NAME.keys(),
     SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     *(inner_dict.keys() for inner_dict in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.values()),
 )
@@ -238,6 +246,40 @@ def _get_event_user(segment_span: CompatibleSpan) -> dict[str, Any] | None:
     return user_data
 
 
+def _reconstruct_url(segment_span: CompatibleSpan) -> str | None:
+    """
+    Rebuild the request URL from parts, if possible. Useful for spans like those sent by OTel SDKs,
+    which send URL parts but no full URL.
+    """
+    url_data = _extract_attribute_values(segment_span, REQUEST_URL_PARTS_BY_ATTRIBUTE_NAME)
+
+    scheme = url_data.get("scheme", "http")
+    host = url_data.get("host")
+    port = url_data.get("port")
+    path = url_data.get("path", "/")
+
+    if not host or not isinstance(host, str):
+        return None
+
+    # Add brackets to unbracketed IPv6-like values
+    if host.count(":") > 1 and not host.startswith("["):
+        host = f"[{host}]"
+
+    # Include the port if it's something other than the default for the scheme. Wrapped in a
+    # `try-except` in case the port value is something bogus and un-int-able.
+    try:
+        if port and int(port) != (443 if scheme == "https" else 80):
+            host = f"{host}:{port}"
+    except Exception:
+        pass
+
+    # Ensure path has a leading slash
+    if path and not str(path).startswith("/"):
+        path = f"/{path}"
+
+    return f"{scheme}://{host}{path}"
+
+
 def _get_request_headers(segment_span: CompatibleSpan) -> list[list[str]]:
     """
     Build the request's `headers` value from the segment span's `http.request.header.<name>`
@@ -280,6 +322,15 @@ def _get_request_headers(segment_span: CompatibleSpan) -> list[list[str]]:
 
 def _get_event_request(segment_span: CompatibleSpan) -> dict[str, Any]:
     request_data = _extract_attribute_values(segment_span, REQUEST_FIELDS_BY_ATTRIBUTE_NAME)
+
+    # The `_extract_attribute_values` call above may have already set a `url` value, but a full URL
+    # is better if we either have it or can reconstruct it. (This is handled outside of
+    # `_extract_attribute_values` to allow for the reconstructed fallback.)
+    full_url = attribute_value(segment_span, ATTRIBUTE_NAMES.URL_FULL) or _reconstruct_url(
+        segment_span
+    )
+    if full_url:
+        request_data["url"] = full_url
 
     headers = _get_request_headers(segment_span)
     if headers:
