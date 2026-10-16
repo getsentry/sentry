@@ -8,7 +8,7 @@ import classNames from 'classnames';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex, Grid, rc} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
@@ -405,9 +405,11 @@ function DefaultLine({isExpandable, isSubFrame, ...props}: DefaultLineProps) {
           font-family: ${theme.font.family.sans};
         }
 
-        &:has([data-has-setup]) {
-          ${rc('--default-line-columns', {zero: '1fr', xl: 'minmax(0, 1fr) max-content'}, theme)}
-          ${rc('row-gap', {zero: theme.space.xs, xl: '0'}, theme)}
+        @container (max-width: ${theme.container.xl}) {
+          &:has([data-has-setup]) {
+            --default-line-columns: 1fr;
+            row-gap: ${theme.space.xs};
+          }
         }
       `}
       minHeight="40px"

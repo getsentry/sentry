@@ -377,6 +377,11 @@
       "count": 3
     }
   },
+  "static/app/components/events/interfaces/frame/deprecatedLine.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    }
+  },
   "static/app/components/events/interfaces/frame/openInContextLine.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
