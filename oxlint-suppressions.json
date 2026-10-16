@@ -3014,11 +3014,6 @@
       "count": 1
     }
   },
-  "static/app/views/preprod/buildComparison/header/buildCompareHeaderContent.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/preprod/buildComparison/main/sizeCompareSelectedBuilds.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3030,11 +3025,6 @@
     }
   },
   "static/app/views/preprod/buildDetails/main/insights/insightInfoModal.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
