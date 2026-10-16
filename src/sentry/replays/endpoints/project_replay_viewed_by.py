@@ -60,11 +60,6 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
         """Return a list of users who have viewed a replay."""
         self.check_replay_access(request, project)
 
-        try:
-            uuid.UUID(replay_id)
-        except ValueError:
-            return Response(status=404)
-
         # query for user ids who viewed the replay
         filter_params = self.get_filter_params(request, project, date_filter_optional=False)
 
@@ -101,10 +96,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
 
         self.check_replay_access(request, project)
 
-        try:
-            replay_id = str(uuid.UUID(replay_id))
-        except ValueError:
-            return Response(status=404)
+        replay_id = str(uuid.UUID(replay_id))
 
         user_orgs = user_service.get_organizations(user_id=request.user.id)
         if project.organization.id not in [org.id for org in user_orgs]:
