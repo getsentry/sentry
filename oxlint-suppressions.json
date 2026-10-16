@@ -2102,6 +2102,11 @@
       "count": 2
     }
   },
+  "static/app/views/detectors/components/forms/uptime/styles.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    }
+  },
   "static/app/views/detectors/components/uptime/assertions/index.stories.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1

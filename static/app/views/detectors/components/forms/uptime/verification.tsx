@@ -20,11 +20,7 @@ export function UptimeDetectorVerificationSection({step}: {step?: number}) {
           ) : undefined
         }
       >
-        <UptimeSectionGrid
-          columns={{zero: 'minmax(0, 1fr)', xl: 'fit-content(250px) minmax(0, 1fr)'}}
-          align="center"
-          gap="0 xl"
-        >
+        <UptimeSectionGrid>
           <UptimeAssertionsField
             name="assertion"
             label={t('Assertions')}

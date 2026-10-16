@@ -63,11 +63,7 @@ export function UptimeDetectorFormDetectSection({step}: {step?: number}) {
   return (
     <Container>
       <FormSection step={step} title={t('Issue Detection')}>
-        <UptimeSectionGrid
-          columns={{zero: 'minmax(0, 1fr)', xl: 'fit-content(250px) minmax(0, 1fr)'}}
-          align="center"
-          gap="0 xl"
-        >
+        <UptimeSectionGrid>
           <SelectField
             options={VALID_INTERVALS_SEC.map(value => ({
               value,
