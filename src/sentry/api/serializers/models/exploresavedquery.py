@@ -77,6 +77,7 @@ class ExploreSavedQueryResponseOptional(TypedDict, total=False):
     interval: str
     crossEvents: list[CrossEventResponseType]
     agent: list[str]
+    errorsOnly: bool
 
 
 class ExploreSavedQueryChangedReasonType(TypedDict):
@@ -161,6 +162,7 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             "interval",
             "crossEvents",
             "agent",
+            "errorsOnly",
         ]
         data: ExploreSavedQueryResponse = {
             "id": str(obj.id),
