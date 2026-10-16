@@ -16,6 +16,7 @@ interface Props {
   organization: Organization;
   team: Team;
   disabled?: boolean;
+  menuPortalTarget?: ControlProps['menuPortalTarget'];
   size?: ControlProps['size'];
 }
 
@@ -25,6 +26,7 @@ export function TeamRoleSelect({
   member,
   onChangeTeamRole,
   disabled,
+  menuPortalTarget,
   size,
 }: Props) {
   const {orgRoleList, teamRoleList, features} = organization;
@@ -66,6 +68,7 @@ export function TeamRoleSelect({
       roles={teamRoleList}
       value={teamRole.id}
       onChange={option => onChangeTeamRole(option.value)}
+      menuPortalTarget={menuPortalTarget}
       size={size}
     />
   );
