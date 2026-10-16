@@ -4,7 +4,6 @@ import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
-from botocore.exceptions import ClientError
 from django.http.request import HttpRequest
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
@@ -266,6 +265,9 @@ class CloudFormationApiStep:
         pipeline.bind_state("account_number", account_number)
         pipeline.bind_state("region", region)
         pipeline.bind_state("aws_external_id", aws_external_id)
+
+        # Imported here so web workers do not load botocore at boot.
+        from botocore.exceptions import ClientError
 
         try:
             gen_aws_client(account_number, region, aws_external_id)
