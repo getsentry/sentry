@@ -1,7 +1,19 @@
 import {defineRule, type ESTree} from '@oxlint/plugins';
 
-const STYLE_QUERY = /@(?:media|container)\b/;
+const STYLE_QUERY = /@(?:media|container)\b/g;
 const WIDTH_QUERY = /(?:min-|max-)?width\s*[:<>=]/;
+const LAYOUT_MEDIA_FEATURE = /\b(?:width|height|aspect-ratio|orientation)\b/;
+const NON_LAYOUT_MEDIA_FEATURE =
+  /\b(?:prefers-[\w-]+|hover|pointer|forced-colors|color-gamut|dynamic-range|resolution|print)\b/;
+
+function isNonLayoutMediaQuery(text: string): boolean {
+  const condition = text.match(/^@media\b([^{}]*)/i)?.[1];
+  return Boolean(
+    condition &&
+    !LAYOUT_MEDIA_FEATURE.test(condition) &&
+    NON_LAYOUT_MEDIA_FEATURE.test(condition)
+  );
+}
 
 function enclosingStyleName(node: ESTree.Node): string | undefined {
   for (let parent = node.parent; parent; parent = parent.parent) {
@@ -15,38 +27,66 @@ function enclosingStyleName(node: ESTree.Node): string | undefined {
   return undefined;
 }
 
-function allowsViewportSizing(node: ESTree.Node, filename: string): boolean {
-  const name = enclosingStyleName(node);
-  if (filename.endsWith('/static/app/components/core/drawer/components.tsx')) {
-    return name === 'DrawerContainer' || name === 'DrawerSlidePanel';
-  }
-  return (
-    filename.endsWith('/static/app/components/core/slideOverPanel/slideOverPanel.tsx') &&
-    name === '_SlideOverPanel'
-  );
-}
-
-function isModalSizingQuery(node: ESTree.TaggedTemplateExpression): boolean {
-  if (enclosingStyleName(node) !== 'modalCss') {
-    return false;
-  }
-  const css = node.quasi.quasis.map(quasi => quasi.value.raw).join('VALUE');
+function hasOnlyAllowedMediaDeclarations(
+  node: ESTree.TaggedTemplateExpression,
+  property: RegExp,
+  allowDynamicBody = false
+): boolean {
+  const css = node.quasi.quasis
+    .map(quasi => quasi.value.raw)
+    .join('VALUE')
+    .replace(/\/\*[\s\S]*?\*\//g, '');
   const queries = [...css.matchAll(/@media\b[^{}]*\{([^{}]*)\}/g)];
   if (queries.length === 0 || queries.length !== [...css.matchAll(/@media\b/g)].length) {
     return false;
   }
   return queries.every(query => {
+    if (isNonLayoutMediaQuery(query[0])) {
+      return true;
+    }
     const declarations = query[1]!
       .split(';')
       .map(declaration => declaration.trim())
       .filter(Boolean);
     return (
       declarations.length > 0 &&
-      declarations.every(declaration =>
-        /^(?:(?:min|max)-)?(?:width|height)\s*:/.test(declaration)
+      declarations.every(
+        declaration =>
+          property.test(declaration) || (allowDynamicBody && declaration === 'VALUE')
       )
     );
   });
+}
+
+function allowsViewportSizing(
+  node: ESTree.TaggedTemplateExpression,
+  filename: string
+): boolean {
+  const name = enclosingStyleName(node);
+  if (name === 'modalCss') {
+    return hasOnlyAllowedMediaDeclarations(
+      node,
+      /^(?:(?:min|max)-)?(?:width|height)\s*:/
+    );
+  }
+  if (
+    filename.endsWith('/static/app/components/core/drawer/components.tsx') &&
+    (name === 'DrawerContainer' || name === 'DrawerSlidePanel')
+  ) {
+    return hasOnlyAllowedMediaDeclarations(
+      node,
+      /^(?:overflow-x|pointer-events|top|right|bottom|left|border|box-shadow|overscroll-behavior-x|(?:(?:min|max)-)?(?:width|height))\s*:/
+    );
+  }
+  return (
+    filename.endsWith('/static/app/components/core/slideOverPanel/slideOverPanel.tsx') &&
+    name === '_SlideOverPanel' &&
+    hasOnlyAllowedMediaDeclarations(
+      node,
+      /^(?:position|top|right|bottom|left|(?:(?:min|max)-)?(?:width|height))\s*:/,
+      true
+    )
+  );
 }
 
 export const preferContainerResponsiveProps = defineRule({
@@ -58,7 +98,7 @@ export const preferContainerResponsiveProps = defineRule({
     schema: [],
     messages: {
       forbidden:
-        'Use primitive responsive props instead of CSS queries. Viewport sizing for modal and drawer shells may use @media.',
+        'Use primitive responsive props instead of layout CSS queries. Modal and drawer sizing and non-layout media features may use @media.',
     },
   },
   create(context) {
@@ -109,15 +149,14 @@ export const preferContainerResponsiveProps = defineRule({
           return;
         }
         for (const quasi of node.quasi.quasis) {
-          const hasMedia = /@media\b/.test(quasi.value.raw);
-          const hasContainer = /@container\b/.test(quasi.value.raw);
-          if (
-            hasContainer ||
-            (hasMedia &&
-              !allowsViewportSizing(node, context.filename) &&
-              !isModalSizingQuery(node))
-          ) {
-            context.report({node: quasi, messageId: 'forbidden'});
+          for (const match of quasi.value.raw.matchAll(STYLE_QUERY)) {
+            if (
+              match[0] === '@container' ||
+              (!isNonLayoutMediaQuery(quasi.value.raw.slice(match.index)) &&
+                !allowsViewportSizing(node, context.filename))
+            ) {
+              context.report({node: quasi, messageId: 'forbidden'});
+            }
           }
         }
       },
@@ -145,10 +184,7 @@ export const preferContainerResponsiveProps = defineRule({
               ? key.name
               : undefined;
         const query = keyName?.match(STYLE_QUERY)?.[0];
-        if (
-          query &&
-          (query === '@container' || !allowsViewportSizing(node, context.filename))
-        ) {
+        if (query && (query === '@container' || !isNonLayoutMediaQuery(keyName!))) {
           context.report({node: key, messageId: 'forbidden'});
         }
       },

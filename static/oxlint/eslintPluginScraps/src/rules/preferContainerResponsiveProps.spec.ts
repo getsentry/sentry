@@ -13,7 +13,23 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
     },
     {
       filename,
+      code: "import {css} from '@emotion/react'; const modalCss = css`@media (min-width: 800px) { width: 80%; } @media (prefers-reduced-motion: reduce) { animation: none; }`;",
+    },
+    {
+      filename,
       code: "import {useMedia} from 'sentry/utils/useMedia'; useMedia('(hover: hover)');",
+    },
+    {
+      filename,
+      code: "import styled from '@emotion/styled'; const Box = styled.div`@media (prefers-reduced-motion: reduce) { animation: none; } @media (prefers-color-scheme: dark) { color: white; }`;",
+    },
+    {
+      filename,
+      code: "import styled from '@emotion/styled'; const Box = styled.div`@media (hover: hover) and (pointer: fine) { cursor: pointer; }`;",
+    },
+    {
+      filename,
+      code: "const style = {'@media (prefers-reduced-motion: reduce)': {animation: 'none'}, '@media (hover: hover) and (pointer: fine)': {cursor: 'pointer'}, '@media (prefers-color-scheme: dark)': {color: 'white'}};",
     },
     {
       filename,
@@ -32,6 +48,10 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
       code: "import styled from '@emotion/styled'; const DrawerSlidePanel = styled.div`@media (max-width: 800px) { width: 100%; }`;",
     },
     {
+      filename: '/project/static/app/components/core/drawer/components.tsx',
+      code: "import styled from '@emotion/styled'; const DrawerContainer = styled.div`@media (max-width: 800px) { overflow-x: auto; pointer-events: auto; }`;",
+    },
+    {
       filename: '/project/static/app/components/core/slideOverPanel/slideOverPanel.tsx',
       code: "import styled from '@emotion/styled'; const _SlideOverPanel = styled.div`@media (max-width: 800px) { width: 100%; }`;",
     },
@@ -44,12 +64,12 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
     },
     {
       filename,
-      code: "import styled from '@emotion/styled'; const Box = styled.div`@media (prefers-reduced-motion: reduce) { color: red; }`;",
+      code: "import styled from '@emotion/styled'; const Box = styled.div`@media (hover: hover) and (max-width: 800px) { color: red; }`;",
       errors: [{messageId: 'forbidden'}],
     },
     {
       filename,
-      code: "const style = {'@media (prefers-reduced-motion: reduce)': {color: 'red'}};",
+      code: "const style = {'@media (prefers-color-scheme: dark) and (max-width: 800px)': {color: 'red'}};",
       errors: [{messageId: 'forbidden'}],
     },
     {
@@ -120,6 +140,21 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
     {
       filename: '/project/static/app/components/core/drawer/components.tsx',
       code: "import styled from '@emotion/styled'; const DrawerSlidePanel = styled.div`@container (max-width: 800px) { width: 100%; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename: '/project/static/app/components/core/drawer/components.tsx',
+      code: "import styled from '@emotion/styled'; const DrawerSlidePanel = styled.div`@media (max-width: 800px) { width: 100%; } @media (max-width: 900px) { color: red; }`;",
+      errors: [{messageId: 'forbidden'}, {messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "import styled from '@emotion/styled'; const Svg = styled.svg`@media (max-height: 600px) and (max-width: 1000px) { margin-left: 40%; } @media (max-height: 600px) and (max-width: 1300px) { margin-top: 240px; }`;",
+      errors: [{messageId: 'forbidden'}, {messageId: 'forbidden'}],
+    },
+    {
+      filename: '/project/static/app/views/example.spec.tsx',
+      code: "import styled from '@emotion/styled'; const Box = styled.div`@media (max-width: 800px) { width: 100%; }`;",
       errors: [{messageId: 'forbidden'}],
     },
   ],

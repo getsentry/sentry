@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
+import {useWindowSize} from 'sentry/utils/window/useWindowSize';
+
 const random = (min: number, max: number) =>
   Math.floor(Math.random() * (max - min)) + min;
 
@@ -88,8 +90,18 @@ type Props = {
 };
 
 export function PerformanceBackground({anchorRef}: Props) {
+  const {innerHeight, innerWidth} = useWindowSize();
+  const isShortViewport = innerHeight <= 600;
+
   return (
-    <StyledSvg viewBox="0 0 754 553" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      viewBox="0 0 754 553"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{
+        marginLeft: isShortViewport && innerWidth <= 1000 ? '40%' : undefined,
+        marginTop: isShortViewport && innerWidth <= 1300 ? 240 : undefined,
+      }}
+    >
       <Background variants={backgroundAnimateIn} id="background">
         <path
           d="M628.29 324.28l20.65-3.28.84-22.88 58.88-5.12v-54.67l-30.14 2.79-1.67-18.42-18.42-.56-.56-17.86h12.28l.56-12.84 40.18-1.67-1.67-25.12-49.67 1.12.55 17.3-18.41 1.67-1.12-21.21 12.84-1.11.55-24-9.48.56v-12.84h40.18L685.78 72l-17.3-.56-1.68-61.39-64.18-2.24V0l-50.24 4.47 2.24 43L549 48l2.79 28.46 32.94 2.8-1.12 62.51 16.21 2.23 1.12 27.35-23.44.56-.56 27.35-15.63.55v23.45l-10 .55v16.75l-13.4.56v-21.77l-25.11.56v9.48l-49.68.56v43l-10.6.56-.56-5.58-46.96 3.88v-16.74l-21.76.56.56 19-17.87.56.56-6.7-34-1.11v11.72l-20.1.56 1.12 26.79-16.74.56v19.53H285l-.55 43.16 70.88-24.93 61.21-3.53 211.75-16.96z"
@@ -1981,15 +1993,6 @@ export function PerformanceBackground({anchorRef}: Props) {
         />
       </motion.g>
       <foreignObject ref={anchorRef} x="45" y="250" height="1" width="450" />
-    </StyledSvg>
+    </svg>
   );
 }
-
-const StyledSvg = styled('svg')`
-  @media (max-height: 600px) and (max-width: 1000px) {
-    margin-left: 40%;
-  }
-  @media (max-height: 600px) and (max-width: 1300px) {
-    margin-top: 240px;
-  }
-`;
