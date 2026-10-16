@@ -192,7 +192,6 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             alert_rule=alert_rule,
             date_started=calculated_start_date,
             date_detected=open_period.date_started,
-            projects=[group.project],
             subscription=subscription,
         )
         # XXX: if this is the very first open period, or if the priority didn't change from the last priority on the last open period,

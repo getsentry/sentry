@@ -39,6 +39,9 @@ class DeleteAlertRuleTest(BaseWorkflowTest, HybridCloudTestMixin):
             projects=[self.project],
             alert_rule=alert_rule,
         )
+        # Existing join rows still need deletion until IncidentProject is retired.
+        incident.projects.add(self.project)
+
         one_minute = before_now(minutes=1).isoformat()
         event = self.store_event(
             data={"timestamp": one_minute, "fingerprint": ["group1"]}, project_id=self.project.id
