@@ -1149,32 +1149,16 @@ class SlackInvestigationEntrypointTest(TestCase):
             if block.type == "rich_text"
         ]
 
-    def test_trigger_success_posts_status_message_and_caches_ts(self) -> None:
+    def test_trigger_success_leaves_status_message_to_updates(self) -> None:
         entrypoint = self._get_entrypoint()
 
         entrypoint.on_trigger_investigation_success(investigation=self.investigation)
 
-        _started_call, status_call = self.mock_post_message.call_args_list
-        assert status_call.kwargs["thread_ts"] == self.message_ts
-        assert status_call.kwargs["text"] == "Investigating FCP on organization login pages"
-        cache_payload = entrypoint.create_investigation_cache_payload()
-        assert cache_payload["status_message_ts"] == self.status_ts
-        assert cache_payload["last_sent_state"] is not None
-
-    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_trigger_status_message_error_is_swallowed(self, mock_record: Mock) -> None:
-        entrypoint = self._get_entrypoint()
-        self.mock_post_message.side_effect = [
-            _slack_response({"ok": True, "ts": "1712345678.000001"}),
-            SlackApiError("error", _slack_response({"ok": False, "error": "channel_not_found"})),
-        ]
-
-        entrypoint.on_trigger_investigation_success(investigation=self.investigation)
-
+        (started_call,) = self.mock_post_message.call_args_list
+        assert started_call.kwargs["text"] != "Investigating FCP on organization login pages"
         cache_payload = entrypoint.create_investigation_cache_payload()
         assert cache_payload["status_message_ts"] is None
         assert cache_payload["last_sent_state"] is None
-        assert_halt_metric(mock_record, IntegrationError())
 
     def test_update_with_hypotheses_updates_status_message(self) -> None:
         self._set_cache()
@@ -1202,11 +1186,11 @@ class SlackInvestigationEntrypointTest(TestCase):
     )
     @patch("sentry.seer.entrypoints.slack.entrypoint.record_sent")
     def test_status_message_links_are_tracked(self, mock_record_sent: Mock) -> None:
-        self._get_entrypoint().on_trigger_investigation_success(investigation=self.investigation)
-        self._set_cache()
+        self._set_cache(status_message_ts=None)
+        self._update([])
         self._update([_hypothesis()])
 
-        _started_call, status_call = self.mock_post_message.call_args_list
+        (status_call,) = self.mock_post_message.call_args_list
         referrer = (
             f"{self.investigation.get_absolute_url()}?referrer=seer-investigation-status-slack"
         )
