@@ -74,7 +74,6 @@ class DetectorStateData:
 
     activation_id: int | None = None
 
-    # When the detector state last changed. `None` means the detector has never triggered.
     date_updated: datetime | None = None
 
 
@@ -351,12 +350,12 @@ class StatefulDetectorHandler(
     Stateful Detectors are provided as a base class for new detectors that need to track state.
     """
 
-    # If this flag is true, unique issues will be generated for each activation
+    # If this flag is true, the detector may create a new issue when the detector fires if enough time has passed since the last issue was created
     # If this flag is false, a new open period will regress a previous issue instead.
     activation_creates_new_issue: ClassVar[bool] = False
 
-    # A detector must stay OK for this long before its next trigger starts a new activation.
-    # Triggering sooner keeps the previous activation, which regresses the previous issue.
+    # A detector must stay OK for this long before its next trigger starts a new activation
+    # Triggering sooner keeps the previous activation, which regresses the previous issue
     activation_cooldown: ClassVar[timedelta] = timedelta(hours=24)
 
     def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
