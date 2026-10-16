@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
+
+import orjson
 
 from sentry import features
 from sentry.constants import ObjectStatus
@@ -23,7 +26,12 @@ from sentry.notifications.platform.templates.seer import (
 from sentry.notifications.platform.types import NotificationData
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.agent.client_models import PendingUserInput, SeerRunState
+from sentry.seer.agent.client_models import (
+    AgentTurn,
+    PendingUserInput,
+    PushLogEntry,
+    SeerRunState,
+)
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.endpoints.agent_request import (
     AgentApprovalRequestData,
@@ -37,6 +45,7 @@ from sentry.seer.entrypoints.registry import (
 )
 from sentry.seer.entrypoints.slack.cache import SlackSeerAgentReply, SlackSeerAgentReplyCache
 from sentry.seer.entrypoints.slack.messaging import (
+    edit_thread_message,
     schedule_all_thread_updates,
     send_thread_update,
     update_existing_message,
@@ -619,11 +628,8 @@ class SlackAgentEntrypoint(
         run_id: int,
         state: SeerRunState,
     ) -> None:
-        """Post the run's latest reply to the thread, once."""
+        """Make the thread match the run: post its latest reply once, then keep PR links current."""
         from sentry.integrations.slack.integration import SlackIntegration
-
-        if state.status == "processing":
-            return
 
         organization_id = cache_payload["organization_id"]
         integration_id = cache_payload["integration_id"]
@@ -640,17 +646,67 @@ class SlackAgentEntrypoint(
             return
         install = SlackIntegration(model=integration, organization_id=organization_id)
 
+        thread = cache_payload["thread"]
+
         # The operator's per-run lock makes this read-then-write safe.
         replies = SlackSeerAgentReplyCache.get(run_id=run_id)
-        next_reply = _next_agent_reply(cache_payload=cache_payload, state=state, replies=replies)
-        if not next_reply:
-            return
-        key, data = next_reply
-        message_ts = send_thread_update(install=install, thread=cache_payload["thread"], data=data)
-        if message_ts:
-            SlackSeerAgentReplyCache.set(
-                run_id=run_id, key=key, reply=SlackSeerAgentReply(message_ts=message_ts)
+
+        next_reply = None
+        if state.status != "processing":
+            next_reply = _next_agent_reply(
+                cache_payload=cache_payload, state=state, replies=replies
             )
+        if next_reply:
+            key, data = next_reply
+            message_ts = send_thread_update(install=install, thread=thread, data=data)
+            if message_ts:
+                reply = SlackSeerAgentReply(message_ts=message_ts)
+                if isinstance(data, SeerAgentResponse):
+                    reply["pushes_hash"] = _hash_pushes(data.pushes)
+                    reply["missing_scope_settings_url"] = data.missing_scope_settings_url
+                SlackSeerAgentReplyCache.set(run_id=run_id, key=key, reply=reply)
+
+        # Redraw answers whose PR pushes changed, rebuilt from the run state.
+        for turn in state.get_turns():
+            answer = turn.answer
+            posted = replies.get(answer.id) if answer else None
+            if answer is None or posted is None or "pushes_hash" not in posted:
+                continue
+            pushes = _get_turn_pushes(state, turn)
+            pushes_hash = _hash_pushes(pushes)
+            if pushes_hash == posted["pushes_hash"]:
+                continue
+            edit_thread_message(
+                install=install,
+                channel_id=thread["channel_id"],
+                message_ts=posted["message_ts"],
+                data=SeerAgentResponse(
+                    run_id=state.run_id,
+                    organization_id=organization_id,
+                    summary=answer.message.content or "",
+                    pushes=pushes,
+                    missing_scope_settings_url=posted.get("missing_scope_settings_url"),
+                ),
+            )
+            SlackSeerAgentReplyCache.set(
+                run_id=run_id, key=answer.id, reply={**posted, "pushes_hash": pushes_hash}
+            )
+
+
+def _get_turn_pushes(state: SeerRunState, turn: AgentTurn) -> list[PushLogEntry]:
+    """The PR pushes the turn queued, in call order."""
+    push_log = state.get_push_log_index()
+    return [
+        push
+        for call in turn.get_code_mode_calls()
+        if (push := push_log.get(call.params.get("idempotency_key", "")))
+    ]
+
+
+def _hash_pushes(pushes: Sequence[PushLogEntry]) -> str:
+    """A stable hash of the pushes, to tell when an answer needs redrawing."""
+    payload = orjson.dumps([push.dict() for push in pushes], option=orjson.OPT_SORT_KEYS)
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _next_agent_reply(
@@ -705,21 +761,24 @@ def _next_agent_reply(
             f"<@{slack_user_id}> I need your approval to make changes in Sentry. "
             "I sent you a message."
         )
+        pushes: list[PushLogEntry] = []
     else:
-        answer = next((turn.answer for turn in reversed(state.get_turns()) if turn.answer), None)
-        if answer is None:
+        turn = next((turn for turn in reversed(state.get_turns()) if turn.answer), None)
+        if turn is None or turn.answer is None:
             # The run finished without ever answering.
             key = "error"
             return None if key in replies else (key, error)
-        key = answer.id
+        key = turn.answer.id
         if key in replies:
             return None
-        summary = answer.message.content or ""
+        summary = turn.answer.message.content or ""
+        pushes = _get_turn_pushes(state, turn)
 
     return key, SeerAgentResponse(
         run_id=state.run_id,
         organization_id=organization_id,
         summary=summary,
+        pushes=pushes,
         missing_scope_settings_url=_get_missing_scope_settings_url(
             integration_id=integration_id,
             organization_id=organization_id,
