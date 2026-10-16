@@ -3,7 +3,6 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import type {RequestOptions} from 'sentry/api';
 import type {ResponseMeta} from 'sentry/types/api';
-import type {Group} from 'sentry/types/group';
 import {QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
@@ -35,8 +34,6 @@ type InvestigationFixtureApiProps = {
   details?: InvestigationDetail[];
   executions?: Record<string, InvestigationExecutionDetail>;
   featureEnabled?: boolean;
-  /** Issues to return for issue requests, keyed by group id. */
-  groups?: Record<string, Pick<Group, 'id' | 'shortId' | 'title'>>;
   list?: InvestigationListItem[];
   mode?: FixtureApiMode;
   openMembership?: boolean;
@@ -75,7 +72,6 @@ export function InvestigationFixtureApi({
   details = [],
   executions = {},
   featureEnabled = true,
-  groups = {},
   list = [],
   mode = 'success',
   openMembership = true,
@@ -103,7 +99,6 @@ export function InvestigationFixtureApi({
       details,
       executions,
       featureEnabled,
-      groups,
       list,
       mode,
       openMembership,
@@ -196,27 +191,7 @@ function createFixtureHandler(config: FixtureApiConfig): FixtureHandler {
   const basePath = `/organizations/${config.organizationSlug}/investigations/`;
   const state = createFixtureState(config);
 
-  const issuesPath = `/organizations/${config.organizationSlug}/issues/`;
-
   return (path, options) => {
-    // Serve issue requests from `groups`. Unknown issues return a 404, so
-    // stories never call the real API.
-    if (path.startsWith(issuesPath)) {
-      const group = config.groups?.[path.slice(issuesPath.length).replace(/\/$/, '')];
-      if (group) {
-        return Promise.resolve({body: cloneFixture(group)});
-      }
-      const response: ResponseMeta = {
-        status: 404,
-        statusText: 'Not Found',
-        responseJSON: {detail: 'The requested resource does not exist'},
-        responseText: 'Not Found',
-        getResponseHeader: () => null,
-      };
-      return Promise.reject(
-        new RequestError('GET', path, new Error('Fixture issue not found'), response)
-      );
-    }
     if (!path.startsWith(basePath)) {
       return NO_MATCH;
     }

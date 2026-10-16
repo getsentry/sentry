@@ -447,13 +447,6 @@ export default Storybook.story('Investigations — Detail', story => {
       organizationSlug="storybook-investigation-agentic-report"
       details={[agenticReportInvestigation]}
       orchestration={{[agenticReportInvestigation.id]: agenticReportOrchestration}}
-      groups={{
-        'metric-alert-42': {
-          id: 'metric-alert-42',
-          shortId: 'PAYMENTS-API-42',
-          title: 'Checkout p95 latency',
-        },
-      }}
     >
       <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
         <InvestigationBootstrapPage investigationId={agenticReportInvestigation.id} />

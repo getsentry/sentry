@@ -25,7 +25,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct, tn} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -56,7 +55,6 @@ import {
 import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
 import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
-import {useInvestigationSourceIssue} from 'sentry/views/investigations/detail/useInvestigationSourceIssue';
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
@@ -314,8 +312,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
   const awaitingReportCell = isAwaitingReportCell(investigation);
   const source = getInvestigationSource(investigation);
-  const {data: sourceIssue, isPending: isSourceIssuePending} =
-    useInvestigationSourceIssue(source.groupId);
   const hasDetails =
     Boolean(investigation.orchestration) ||
     visibleBlocks.length > 0 ||
@@ -407,30 +403,16 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             <Flex align="center" justify="between" gap="md" wrap="wrap">
               <Flex align="center" gap="sm" wrap="wrap">
                 {source.groupId ? (
-                  <Fragment>
-                    <Link
-                      to={normalizeUrl(
-                        `/organizations/${organization.slug}/issues/${source.groupId}/`
-                      )}
-                    >
-                      <Flex as="span" align="center" gap="xs">
-                        <IconIssues size="xs" />
-                        {sourceIssue ? (
-                          sourceIssue.shortId
-                        ) : isSourceIssuePending ? (
-                          <Placeholder width="80px" height="14px" />
-                        ) : (
-                          t('View issue')
-                        )}
-                      </Flex>
-                    </Link>
-                    {source.monitorName ? (
-                      <Fragment>
-                        <MetaDivider />
-                        <Text variant="muted">{source.monitorName}</Text>
-                      </Fragment>
-                    ) : null}
-                  </Fragment>
+                  <Link
+                    to={normalizeUrl(
+                      `/organizations/${organization.slug}/issues/${source.groupId}/`
+                    )}
+                  >
+                    <Flex as="span" align="center" gap="xs">
+                      <IconIssues size="xs" />
+                      {source.monitorName ?? t('View issue')}
+                    </Flex>
+                  </Link>
                 ) : (
                   <Text variant="muted">
                     {formatSourceType(investigation.sourceType)}

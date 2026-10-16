@@ -1,6 +1,5 @@
 import {useEffect, type ReactNode} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
-import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
@@ -197,7 +196,7 @@ describe('Investigation detail', () => {
     });
   });
 
-  it('links the issue by short ID and names the monitor beside it', async () => {
+  it('links a breached metric investigation to its issue by monitor name', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: InvestigationDetailFixture({
@@ -209,48 +208,12 @@ describe('Investigation detail', () => {
         },
       }),
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/123/',
-      body: GroupFixture({id: '123', shortId: 'CHECKOUT-231'}),
-    });
 
     renderView();
 
-    expect(await screen.findByRole('link', {name: 'CHECKOUT-231'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/issues/123/'
-    );
-    expect(screen.getByText('Checkout error rate')).toBeInTheDocument();
     expect(
-      screen.queryByRole('link', {name: 'Checkout error rate'})
-    ).not.toBeInTheDocument();
-  });
-
-  it('falls back to "View issue" when the issue cannot be loaded', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: InvestigationDetailFixture({
-        sourceType: 'metric_open_period',
-        source: {
-          type: 'metric_open_period',
-          ref: {groupId: '123', openPeriodId: '456'},
-          snapshot: {monitor: {id: '789', name: 'Checkout error rate'}},
-        },
-      }),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/123/',
-      statusCode: 404,
-      body: {detail: 'Not found'},
-    });
-
-    renderView();
-
-    expect(await screen.findByRole('link', {name: 'View issue'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/issues/123/'
-    );
-    expect(screen.getByText('Checkout error rate')).toBeInTheDocument();
+      await screen.findByRole('link', {name: 'Checkout error rate'})
+    ).toHaveAttribute('href', '/organizations/org-slug/issues/123/');
   });
 
   it('links the issue of a breached metric investigation without a snapshot', async () => {
@@ -263,11 +226,6 @@ describe('Investigation detail', () => {
           ref: {groupId: '123', openPeriodId: '456'},
         },
       }),
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/123/',
-      statusCode: 404,
-      body: {detail: 'Not found'},
     });
 
     renderView();
