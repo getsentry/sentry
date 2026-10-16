@@ -14,11 +14,10 @@ from sentry.api.helpers.timeseries_transformations import (
     FillTransformation,
     SmaSmoothTransformation,
     Transformation,
-    fill_timeseries,
     parse_transformation,
-    smooth_timeseries,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.snuba.rpc_dataset_common import RPCBase
 
 
 @pytest.mark.parametrize(
@@ -127,9 +126,9 @@ def test_parsed_transformations_with_processing_helpers() -> None:
     assert isinstance(smooth, SmaSmoothTransformation)
 
     timestamps = [0.0, 1.0, 2.0]
-    filled = fill_timeseries(timestamps, [1.0, None, 5.0], config=fill)
+    filled = RPCBase.fill_timeseries(timestamps, [1.0, None, 5.0], config=fill)
     assert filled.values == [1.0, 3.0, 5.0]
-    assert smooth_timeseries(timestamps, filled.values, config=smooth) == [1.0, 2.0, 4.0]
+    assert RPCBase.smooth_timeseries(timestamps, filled.values, config=smooth) == [1.0, 2.0, 4.0]
 
 
 @pytest.mark.parametrize(
@@ -143,7 +142,10 @@ def test_parsed_ema_with_processing_helper(transformation: str, expected: list[f
     config = parse_transformation(transformation)
     assert isinstance(config, EmaSmoothTransformation)
 
-    assert smooth_timeseries([0.0, 1.0, 2.0, 3.0], [2.0, 4.0, 6.0, 8.0], config=config) == expected
+    assert (
+        RPCBase.smooth_timeseries([0.0, 1.0, 2.0, 3.0], [2.0, 4.0, 6.0, 8.0], config=config)
+        == expected
+    )
 
 
 @pytest.mark.parametrize(
@@ -181,7 +183,9 @@ def test_fill_timeseries_locf(
     timestamps = [float(index) for index in range(len(values))]
     original_values = tuple(values)
 
-    result = fill_timeseries(timestamps, values, config=FillTransformation(mode=FILL_MODE_LOCF))
+    result = RPCBase.fill_timeseries(
+        timestamps, values, config=FillTransformation(mode=FILL_MODE_LOCF)
+    )
 
     assert result.values == expected
     assert result.filled == filled
@@ -208,7 +212,9 @@ def test_fill_timeseries_zero(
     timestamps = [float(index) for index in range(len(values))]
     original_values = tuple(values)
 
-    result = fill_timeseries(timestamps, values, config=FillTransformation(mode=FILL_MODE_ZERO))
+    result = RPCBase.fill_timeseries(
+        timestamps, values, config=FillTransformation(mode=FILL_MODE_ZERO)
+    )
 
     assert result.values == expected
     assert result.filled == filled
@@ -260,7 +266,9 @@ def test_fill_timeseries_linear(
     original_values = tuple(values)
     original_timestamps = tuple(timestamps)
 
-    result = fill_timeseries(timestamps, values, config=FillTransformation(mode=FILL_MODE_LINEAR))
+    result = RPCBase.fill_timeseries(
+        timestamps, values, config=FillTransformation(mode=FILL_MODE_LINEAR)
+    )
 
     assert result.values == expected
     assert result.filled == filled
@@ -272,7 +280,7 @@ def test_fill_timeseries_linear(
 @pytest.mark.parametrize("timestamps", [[0.0, 0.0, 1.0], [0.0, 2.0, 1.0]])
 def test_fill_timeseries_linear_rejects_nonincreasing_timestamps(timestamps: list[float]) -> None:
     with pytest.raises(ValueError, match="Timestamps must be strictly increasing"):
-        fill_timeseries(
+        RPCBase.fill_timeseries(
             timestamps, [0.0, None, 1.0], config=FillTransformation(mode=FILL_MODE_LINEAR)
         )
 
@@ -283,7 +291,7 @@ def test_fill_timeseries_rejects_mismatched_lengths(
     timestamps: list[float], values: list[float | None], mode: Literal["locf", "zero", "linear"]
 ) -> None:
     with pytest.raises(ValueError, match="Timestamps and values must have the same length"):
-        fill_timeseries(timestamps, values, config=FillTransformation(mode=mode))
+        RPCBase.fill_timeseries(timestamps, values, config=FillTransformation(mode=mode))
 
 
 @pytest.mark.parametrize(
@@ -316,7 +324,7 @@ def test_smooth_timeseries_sma(
     original_values = tuple(values)
     original_timestamps = tuple(timestamps)
 
-    result = smooth_timeseries(
+    result = RPCBase.smooth_timeseries(
         timestamps,
         values,
         config=SmaSmoothTransformation(mode=SMOOTH_MODE_SMA, window_size=window_size),
@@ -329,7 +337,7 @@ def test_smooth_timeseries_sma(
 
 
 def test_smooth_timeseries_sma_equal_weighting() -> None:
-    result = smooth_timeseries(
+    result = RPCBase.smooth_timeseries(
         [0.0, 1.0, 10.0, 20.0],
         [2.0, 4.0, 6.0, 8.0],
         config=SmaSmoothTransformation(mode=SMOOTH_MODE_SMA, window_size=3),
@@ -352,7 +360,7 @@ def test_smooth_timeseries_rejects_mismatched_lengths(
     config: SmaSmoothTransformation | EmaSmoothTransformation,
 ) -> None:
     with pytest.raises(ValueError, match="Timestamps and values must have the same length"):
-        smooth_timeseries(timestamps, values, config=config)
+        RPCBase.smooth_timeseries(timestamps, values, config=config)
 
 
 @pytest.mark.parametrize(
@@ -436,7 +444,11 @@ def test_transformation_config_is_immutable() -> None:
     with pytest.raises(TypeError, match="immutable"):
         setattr(config, "window_size", 1)
 
-    assert smooth_timeseries([0.0, 1.0, 2.0], [1.0, 3.0, 5.0], config=config) == [1.0, 2.0, 4.0]
+    assert RPCBase.smooth_timeseries([0.0, 1.0, 2.0], [1.0, 3.0, 5.0], config=config) == [
+        1.0,
+        2.0,
+        4.0,
+    ]
 
 
 @pytest.mark.parametrize("window_size", [0, -1, True, "3", 3.0, None])
@@ -466,7 +478,7 @@ def test_ema_config_is_immutable() -> None:
     with pytest.raises(TypeError, match="immutable"):
         setattr(config, "smoothing_factor", 0.5)
 
-    assert smooth_timeseries([0.0, 1.0], [2.0, 6.0], config=config) == [2.0, 3.0]
+    assert RPCBase.smooth_timeseries([0.0, 1.0], [2.0, 6.0], config=config) == [2.0, 3.0]
 
 
 @pytest.mark.parametrize(
@@ -505,7 +517,7 @@ def test_smooth_timeseries_ema(
     original_values = tuple(values)
     original_timestamps = tuple(timestamps)
 
-    result = smooth_timeseries(
+    result = RPCBase.smooth_timeseries(
         timestamps,
         values,
         config=EmaSmoothTransformation(
@@ -520,7 +532,7 @@ def test_smooth_timeseries_ema(
 
 
 def test_smooth_timeseries_ema_default_factor_and_irregular_timestamps() -> None:
-    result = smooth_timeseries(
+    result = RPCBase.smooth_timeseries(
         [0.0, 1.0, 10.0, 20.0],
         [2.0, 4.0, 6.0, 8.0],
         config=EmaSmoothTransformation(mode=SMOOTH_MODE_EMA, window_size=3),
@@ -553,7 +565,7 @@ def test_smooth_timeseries_ema_window(
 ) -> None:
     timestamps = [float(index) for index in range(len(values))]
 
-    result = smooth_timeseries(
+    result = RPCBase.smooth_timeseries(
         timestamps,
         values,
         config=EmaSmoothTransformation(mode=SMOOTH_MODE_EMA, window_size=window_size),
@@ -563,7 +575,7 @@ def test_smooth_timeseries_ema_window(
 
 
 def test_smooth_timeseries_ema_explicit_factor_overrides_window() -> None:
-    result = smooth_timeseries(
+    result = RPCBase.smooth_timeseries(
         [0.0, 1.0, 2.0, 3.0],
         [2.0, 4.0, 6.0, 8.0],
         config=EmaSmoothTransformation(mode=SMOOTH_MODE_EMA, window_size=7, smoothing_factor=0.5),
@@ -576,16 +588,18 @@ def test_smooth_timeseries_ema_composes_with_filling_in_either_order() -> None:
     timestamps = [0.0, 1.0, 2.0]
     values = [2.0, None, 8.0]
 
-    filled = fill_timeseries(timestamps, values, config=FillTransformation(mode=FILL_MODE_ZERO))
-    fill_then_smooth = smooth_timeseries(
+    filled = RPCBase.fill_timeseries(
+        timestamps, values, config=FillTransformation(mode=FILL_MODE_ZERO)
+    )
+    fill_then_smooth = RPCBase.smooth_timeseries(
         timestamps,
         filled.values,
         config=EmaSmoothTransformation(mode=SMOOTH_MODE_EMA, window_size=3),
     )
-    smoothed = smooth_timeseries(
+    smoothed = RPCBase.smooth_timeseries(
         timestamps, values, config=EmaSmoothTransformation(mode=SMOOTH_MODE_EMA, window_size=3)
     )
-    smooth_then_fill = fill_timeseries(
+    smooth_then_fill = RPCBase.fill_timeseries(
         timestamps, smoothed, config=FillTransformation(mode=FILL_MODE_ZERO)
     )
 
