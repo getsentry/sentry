@@ -16,7 +16,7 @@ const tableComponentFiles = [
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
   rules: {
-    '@sentry/scraps/no-hand-rolled-table': 'error',
+    '@sentry/scraps/no-manual-table': 'error',
     '@sentry/scraps/prefer-primitives': 'error',
   },
   overrides: [
@@ -31,7 +31,7 @@ export const incubator = defineConfig({
         '**/*.stories.{ts,tsx}',
         'static/app/stories/**/*.{ts,tsx}',
       ],
-      rules: {'@sentry/scraps/no-hand-rolled-table': 'off'},
+      rules: {'@sentry/scraps/no-manual-table': 'off'},
     },
     {
       files: testFiles,

@@ -9,7 +9,7 @@ const PANEL_HEADER_SOURCE = 'sentry/components/panels/panelHeader';
 const TABLE_ELEMENTS = new Set(['table', 'tr', 'th']);
 const ITERATING_METHODS = new Set(['map', 'flatMap']);
 const MINIMUM_SHARED_TRACKS = 3;
-// Mixins imported from another file can't be read, so their names stand in for their contents.
+
 const GRID_MIXIN_NAME = /grid|column|layout|template/i;
 
 interface TemplateUse {
@@ -79,7 +79,7 @@ function isIterated(node: ESTree.Node): boolean {
   return false;
 }
 
-export const noHandRolledTable = defineRule({
+export const noManualTable = defineRule({
   meta: {
     type: 'suggestion',
     docs: {
@@ -166,10 +166,12 @@ export const noHandRolledTable = defineRule({
       if (!styled || styled.kind === 'css') {
         return;
       }
+
       if (styled.kind === 'element' && TABLE_ELEMENTS.has(styled.name)) {
         context.report({node, messageId: 'tableElement', data: {element: styled.name}});
         return;
       }
+
       const template =
         node.type === 'TaggedTemplateExpression'
           ? node.quasi
@@ -179,6 +181,7 @@ export const noHandRolledTable = defineRule({
       if (!template) {
         return;
       }
+
       const declarations =
         parseCssTemplate(template, context.sourceCode.getText(template))?.filter(
           declaration => declaration.root
@@ -194,6 +197,7 @@ export const noHandRolledTable = defineRule({
       const columns = declarations.find(
         declaration => declaration.name === 'grid-template-columns'
       );
+
       if (
         styled.kind === 'component' &&
         (columns || mixins.length > 0) &&
@@ -204,6 +208,7 @@ export const noHandRolledTable = defineRule({
         context.report({node, messageId: 'panelHeaderColumns'});
         return;
       }
+
       const repeated = styledRepeated(node);
       for (const mixin of mixins) {
         addTemplateUse(importTracker.resolveVariable(mixin), {node, repeated});
@@ -211,7 +216,9 @@ export const noHandRolledTable = defineRule({
       if (!columns) {
         return;
       }
+
       const [interpolation] = columns.interpolations;
+
       if (columns.interpolations.length === 1 && interpolation) {
         const key = templateKey(interpolation.expression);
         if (key !== null) {
@@ -238,17 +245,20 @@ export const noHandRolledTable = defineRule({
           });
           return;
         }
+
         const as = staticString(attributeExpression(attribute(node, 'as')));
-        if (as !== null && TABLE_ELEMENTS.has(as)) {
+        if (as && TABLE_ELEMENTS.has(as)) {
           context.report({node, messageId: 'tableElement', data: {element: as}});
           return;
         }
+
         if (!importTracker.is(node.name, LAYOUT_SOURCE, 'Grid')) {
           return;
         }
+
         const columns = attributeExpression(attribute(node, 'columns'));
-        const key = columns ? templateKey(columns) : null;
-        if (key !== null) {
+        const key = columns && templateKey(columns);
+        if (key) {
           addTemplateUse(key, {node, repeated: isIterated(node)});
         }
       },

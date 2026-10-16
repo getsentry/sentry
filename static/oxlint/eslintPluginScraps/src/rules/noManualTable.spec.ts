@@ -1,6 +1,6 @@
 import {RuleTester} from 'oxlint/plugins-dev';
 
-import {noHandRolledTable} from './noHandRolledTable';
+import {noManualTable} from './noManualTable';
 
 const ruleTester = new RuleTester({
   languageOptions: {
@@ -10,7 +10,7 @@ const ruleTester = new RuleTester({
   },
 });
 
-ruleTester.run('no-hand-rolled-table', noHandRolledTable, {
+ruleTester.run('no-manual-table', noManualTable, {
   valid: [
     {
       name: 'SimpleTable',
