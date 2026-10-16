@@ -6,14 +6,14 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
   "variants": {
     "app_exception_stacktrace": {
       "component": {
-        "contributes": false,
-        "hint": "ignored because system exception takes precedence",
+        "contributes": true,
+        "hint": null,
         "id": "app",
         "name": "in-app",
         "values": [
           {
-            "contributes": false,
-            "hint": "ignored because this variant does not have a contributing stacktrace, but the system variant does",
+            "contributes": true,
+            "hint": null,
             "id": "exception",
             "name": "exception",
             "values": [
@@ -27,8 +27,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 ]
               },
               {
-                "contributes": true,
-                "hint": null,
+                "contributes": false,
+                "hint": "ignored because stacktrace takes precedence",
                 "id": "value",
                 "name": null,
                 "values": [
@@ -36,14 +36,14 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 ]
               },
               {
-                "contributes": false,
-                "hint": "ignored because it contains no in-app frames",
+                "contributes": true,
+                "hint": null,
                 "id": "stacktrace",
                 "name": "stacktrace",
                 "values": [
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked in-app by the client but ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -71,14 +71,14 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "GameBootstrap.Start()"
+                          "Start"
                         ]
                       }
                     ]
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by the client",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -104,14 +104,14 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "UnityEngine.MonoBehaviour.StartCoroutine(System.Collections.IEnumerator)"
+                          "StartCoroutine"
                         ]
                       }
                     ]
                   },
                   {
                     "contributes": false,
-                    "hint": "non app frame",
+                    "hint": "marked out of app by the client",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -137,14 +137,14 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "UnityEngine.SetupCoroutine.InvokeMoveNext(System.Collections.IEnumerator, System.IntPtr)"
+                          "InvokeMoveNext"
                         ]
                       }
                     ]
                   },
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -172,14 +172,14 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "EnemySpawner+<SpawnWaves>d__4.MoveNext()"
+                          "MoveNext"
                         ]
                       }
                     ]
                   },
                   {
-                    "contributes": false,
-                    "hint": "non app frame",
+                    "contributes": true,
+                    "hint": "marked in-app by the client",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -207,7 +207,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "CombatSystem.ApplyDamage(UnityEngine.GameObject, System.Int32)"
+                          "ApplyDamage"
                         ]
                       }
                     ]
@@ -218,10 +218,10 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
           }
         ]
       },
-      "contributes": false,
+      "contributes": true,
       "description": "exception stacktrace — in-app frames",
-      "hash": null,
-      "hint": "ignored because system exception takes precedence",
+      "hash": "04eb3e30c44355bca4f760682c7b6198",
+      "hint": null,
       "key": "app_exception_stacktrace",
       "type": "component"
     },
@@ -263,8 +263,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "name": "stacktrace",
                 "values": [
                   {
-                    "contributes": true,
-                    "hint": null,
+                    "contributes": false,
+                    "hint": "ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -292,14 +292,14 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "GameBootstrap.Start()"
+                          "Start"
                         ]
                       }
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": null,
+                    "contributes": false,
+                    "hint": "ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -325,7 +325,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "UnityEngine.MonoBehaviour.StartCoroutine(System.Collections.IEnumerator)"
+                          "StartCoroutine"
                         ]
                       }
                     ]
@@ -358,7 +358,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "UnityEngine.SetupCoroutine.InvokeMoveNext(System.Collections.IEnumerator, System.IntPtr)"
+                          "InvokeMoveNext"
                         ]
                       }
                     ]
@@ -393,7 +393,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "EnemySpawner+<SpawnWaves>d__4.MoveNext()"
+                          "MoveNext"
                         ]
                       }
                     ]
@@ -428,7 +428,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                         "id": "function",
                         "name": null,
                         "values": [
-                          "CombatSystem.ApplyDamage(UnityEngine.GameObject, System.Int32)"
+                          "ApplyDamage"
                         ]
                       }
                     ]
@@ -441,7 +441,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       },
       "contributes": true,
       "description": "exception stacktrace — all frames",
-      "hash": "872f67574fe082419e092229105d22ca",
+      "hash": "3280616726a0dc4b6230272e6ae3cafb",
       "hint": null,
       "key": "system_exception_stacktrace",
       "type": "component"
