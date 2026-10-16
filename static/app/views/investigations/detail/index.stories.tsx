@@ -12,7 +12,6 @@ import {
   InvestigationBreachedMetricDetailFixture,
   InvestigationDetailFixture,
   InvestigationFailedDetailFixture,
-  InvestigationHypothesisFixture,
   InvestigationOrchestrationFixture,
   InvestigationAwaitingInputExecutionFixture,
   InvestigationExecutionDetailFixture,
@@ -21,188 +20,6 @@ import {
   InvestigationTitleGenerationFixture,
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
-
-// A completed agentic run.
-const agenticReportInvestigation = InvestigationDetailFixture({
-  id: 'completed-agentic-report',
-  title: 'Why does the cart latency monitor keep firing overnight?',
-  status: 'active',
-  sourceType: 'metric_open_period',
-  dateCreated: '2026-10-07T16:22:00Z',
-  dateUpdated: '2026-10-07T16:26:00Z',
-  summary: 'Cart p95 latency fires on thin overnight traffic, not slow carts',
-  summaryDescription:
-    'In the last 30 days it opened 15 issues.\nThe 14 overnight ones resolved on their own within 4 minutes and needed no action, but each still started a Breached Metrics run and posted to #checkout-alerts.',
-  template: {key: 'breached_metric', version: 1},
-  orchestration: {
-    phase: 'completed',
-    status: 'completed',
-    heartbeatAt: '2026-10-07T16:26:00Z',
-    notebookRevision: 9,
-  },
-  source: {
-    type: 'metric_open_period',
-    ref: {groupId: 'cart-latency-issue', openPeriodId: 'open-period-231'},
-    revision: 1,
-    snapshot: {monitor: {id: '231', name: 'Cart p95 latency'}},
-  },
-  blocks: [
-    InvestigationBlockFixture({
-      id: 'what-happened',
-      title: 'What happened',
-      outputStatus: 'completed',
-      output: {
-        schemaVersion: 1,
-        markdown:
-          '## What happened\n\nCart p95 latency opened 15 metric issues in the last 30 days. Fourteen came overnight and resolved on their own within 4 minutes. Each one still started a Breached Metrics run and posted to #checkout-alerts, and none needed action. The fifteenth, on Sep 12, was a real slowdown.',
-      },
-      currentExecution: InvestigationBlockExecutionFixture({id: 'what-happened-run'}),
-    }),
-    InvestigationBlockFixture({
-      id: 'monitor-issues',
-      position: 1,
-      kind: 'query',
-      title: 'Issues this monitor opened',
-      outputStatus: 'completed',
-      output: InvestigationQueryOutputFixture({
-        preferredView: 'table',
-        tableMarkdown:
-          '| Opened | Duration | Peak p95 |\n| --- | ---: | ---: |\n| Oct 6, 02:14 | 3m | 1.21s |\n| Oct 4, 03:41 | 2m | 980ms |\n| Sep 12, 14:05 | 47m | 1.62s |',
-      }),
-      currentExecution: InvestigationBlockExecutionFixture({id: 'monitor-issues-run'}),
-      display: {type: 'table'},
-    }),
-    InvestigationBlockFixture({
-      id: 'why-it-fires',
-      position: 2,
-      title: 'Why it keeps firing',
-      outputStatus: 'completed',
-      output: {
-        schemaVersion: 1,
-        markdown:
-          '## Why it keeps firing\n\nA p95 over a few requests is set by the slowest ones. At night, a 1-minute window holds 12–35 cart requests, so one or two slow requests decide it. Over 10 minutes, the same night stays near 450 ms.',
-      },
-      currentExecution: InvestigationBlockExecutionFixture({id: 'why-it-fires-run'}),
-    }),
-    InvestigationBlockFixture({
-      id: 'overnight-windows',
-      position: 3,
-      kind: 'query',
-      title: 'Cart p95 overnight, 1-minute and 10-minute windows',
-      outputStatus: 'completed',
-      output: InvestigationQueryOutputFixture({
-        preferredView: 'chart',
-        tableMarkdown:
-          '| Time | 1-minute p95 | 10-minute p95 |\n| --- | ---: | ---: |\n| 02:00 | 430ms | 442ms |\n| 02:10 | 1.21s | 468ms |\n| 02:20 | 455ms | 451ms |',
-        chart: {
-          title: 'Cart p95 overnight, 1-minute and 10-minute windows',
-          visualization: 'line',
-          x_axis: 'time',
-          y_axis_unit: 'duration',
-          series: [
-            {
-              label: '1-minute p95',
-              data: [
-                {x: '2026-10-06T02:00:00Z', y: 430},
-                {x: '2026-10-06T02:10:00Z', y: 1210},
-                {x: '2026-10-06T02:20:00Z', y: 455},
-                {x: '2026-10-06T02:30:00Z', y: 441},
-              ],
-            },
-            {
-              label: '10-minute p95',
-              data: [
-                {x: '2026-10-06T02:00:00Z', y: 442},
-                {x: '2026-10-06T02:10:00Z', y: 468},
-                {x: '2026-10-06T02:20:00Z', y: 451},
-                {x: '2026-10-06T02:30:00Z', y: 447},
-              ],
-            },
-          ],
-        },
-      }),
-      currentExecution: InvestigationBlockExecutionFixture({id: 'overnight-windows-run'}),
-      display: {type: 'chart'},
-    }),
-    InvestigationBlockFixture({
-      id: 'day-and-night',
-      position: 4,
-      kind: 'query',
-      title: 'Cart requests, day and night',
-      outputStatus: 'completed',
-      output: InvestigationQueryOutputFixture({
-        preferredView: 'table',
-        tableMarkdown:
-          '| Window | Requests per minute | p95 |\n| --- | ---: | ---: |\n| 09:00–21:00 | 1,840 | 412ms |\n| 01:00–05:00 | 12–35 | 446ms |',
-      }),
-      currentExecution: InvestigationBlockExecutionFixture({id: 'day-and-night-run'}),
-      display: {type: 'table'},
-    }),
-    InvestigationBlockFixture({
-      id: 'how-it-works',
-      position: 5,
-      title: 'How this monitor works',
-      outputStatus: 'completed',
-      output: {
-        schemaVersion: 1,
-        markdown:
-          "## How this monitor works\n\nSeer read the monitor's settings. Every minute, it computes the p95 of that minute's cart spans. When the value crosses 800 ms it opens a metric issue, and it resolves the issue when the value drops back. The interval decides how many requests each p95 covers, so it's the setting to change.",
-      },
-      currentExecution: InvestigationBlockExecutionFixture({id: 'how-it-works-run'}),
-    }),
-    InvestigationBlockFixture({
-      id: 'monitor-settings',
-      position: 6,
-      kind: 'query',
-      title: 'Cart p95 latency settings',
-      outputStatus: 'completed',
-      output: InvestigationQueryOutputFixture({
-        preferredView: 'table',
-        tableMarkdown:
-          '| Setting | Value |\n| --- | --- |\n| Measures | p95(span.duration) · transaction:/api/cart |\n| Interval | 1 minute |\n| Opens an issue | Above 800 ms |',
-      }),
-      currentExecution: InvestigationBlockExecutionFixture({id: 'monitor-settings-run'}),
-      display: {type: 'table'},
-    }),
-  ],
-});
-
-const agenticReportOrchestration = InvestigationOrchestrationFixture({
-  investigationId: agenticReportInvestigation.id,
-  phase: 'completed',
-  status: 'completed',
-  startedAt: '2026-10-07T16:22:00Z',
-  finishedAt: '2026-10-07T16:26:05Z',
-  activeSince: null,
-  activeTimeElapsedSeconds: 245,
-  hypotheses: [
-    InvestigationHypothesisFixture({
-      id: 'thin-traffic',
-      statement: 'Thin overnight traffic skews a 1-minute p95',
-      rationale:
-        'Overnight windows hold 12–35 requests, so one or two slow ones set the p95.',
-    }),
-    InvestigationHypothesisFixture({
-      id: 'slow-carts',
-      order: 1,
-      statement: 'Cart requests got slower overnight',
-      rationale: 'The 10-minute p95 stays near 450 ms through the same nights.',
-      effectiveStatus: 'refuted',
-    }),
-    InvestigationHypothesisFixture({
-      id: 'batch-jobs',
-      order: 2,
-      statement: 'Overnight batch jobs contend for the database',
-      rationale: 'No database span slows during the breaches.',
-      effectiveStatus: 'refuted',
-    }),
-  ],
-  report: {
-    ...InvestigationOrchestrationFixture().report,
-    status: 'completed',
-    primaryHypothesisId: 'thin-traffic',
-  },
-});
 
 const completedInvestigation = InvestigationBreachedMetricDetailFixture({
   id: 'completed-checkout-regression',
@@ -335,6 +152,30 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
       currentExecution: InvestigationBlockExecutionFixture({id: 'synthesis-execution'}),
     }),
   ],
+});
+
+// The completed investigation above, with a finished agentic run behind it.
+const agenticReportInvestigation = {
+  ...completedInvestigation,
+  id: 'completed-agentic-report',
+  status: 'active',
+  orchestration: {
+    phase: 'completed',
+    status: 'completed',
+    heartbeatAt: '2026-08-18T16:19:42Z',
+    notebookRevision: 8,
+  },
+};
+
+const agenticReportOrchestration = InvestigationOrchestrationFixture({
+  investigationId: agenticReportInvestigation.id,
+  phase: 'completed',
+  status: 'completed',
+  startedAt: '2026-08-18T16:02:14Z',
+  finishedAt: '2026-08-18T16:06:19Z',
+  activeSince: null,
+  activeTimeElapsedSeconds: 245,
+  report: {...InvestigationOrchestrationFixture().report, status: 'completed'},
 });
 
 const manualInvestigation = InvestigationDetailFixture({
@@ -607,10 +448,10 @@ export default Storybook.story('Investigations — Detail', story => {
       details={[agenticReportInvestigation]}
       orchestration={{[agenticReportInvestigation.id]: agenticReportOrchestration}}
       groups={{
-        'cart-latency-issue': {
-          id: 'cart-latency-issue',
-          shortId: 'CHECKOUT-231',
-          title: 'Cart p95 latency',
+        'metric-alert-42': {
+          id: 'metric-alert-42',
+          shortId: 'PAYMENTS-API-42',
+          title: 'Checkout p95 latency',
         },
       }}
     >
