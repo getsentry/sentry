@@ -64,10 +64,14 @@ export async function apiFetch<TQueryFnData = unknown>({
   };
 }
 
-export async function apiFetchInfinite<TQueryFnData = unknown>(
-  context: QueryFunctionContext<InfiniteApiQueryKey, null | undefined | ParsedHeader>
-): Promise<ApiResponse<TQueryFnData>> {
-  const [url, options] = context.queryKey;
+export async function apiFetchInfinite<TQueryFnData = unknown>({
+  queryKey,
+  pageParam,
+}: Pick<
+  QueryFunctionContext<InfiniteApiQueryKey, null | undefined | ParsedHeader>,
+  'queryKey' | 'pageParam'
+>): Promise<ApiResponse<TQueryFnData>> {
+  const [url, options] = queryKey;
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
@@ -77,7 +81,7 @@ export async function apiFetchInfinite<TQueryFnData = unknown>(
     data: options?.data,
     query: {
       ...options?.query,
-      cursor: context.pageParam?.cursor ?? options?.query?.cursor,
+      cursor: pageParam?.cursor ?? options?.query?.cursor,
     },
     headers: options?.headers,
   });
