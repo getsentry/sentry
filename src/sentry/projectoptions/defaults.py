@@ -2,7 +2,6 @@ from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.constants import (
     AUTOFIX_AUTOMATION_TUNING_DEFAULT,
     SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT,
-    TARGET_SAMPLE_RATE_DEFAULT,
 )
 from sentry.projectoptions import register
 
@@ -206,9 +205,6 @@ register(
         11: ["11.x", "10.x", "9.x", "8.x", "7.x"],
     },
 )
-
-# Dynamic sampling rate in project-level "manual" configuration mode
-register(key="sentry:target_sample_rate", default=TARGET_SAMPLE_RATE_DEFAULT)
 
 # Should tempest fetch screenshots for this project
 register(key="sentry:tempest_fetch_screenshots", default=False)
