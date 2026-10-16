@@ -977,11 +977,9 @@ class TestSeerOperatorCompletionHook(TestCase):
     def test_execute_only_queues_a_refresh(self, mock_apply_async):
         SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
 
-        mock_apply_async.assert_called_once()
-        kwargs = mock_apply_async.call_args.kwargs["kwargs"]
-        assert kwargs["organization_id"] == self.organization.id
-        assert kwargs["run_id"] == MOCK_RUN_ID
-        assert kwargs["queued_at"] <= time.time()
+        mock_apply_async.assert_called_once_with(
+            kwargs={"organization_id": self.organization.id, "run_id": MOCK_RUN_ID}
+        )
 
 
 class TestRefreshAgentRun(TestCase):

@@ -1051,10 +1051,4 @@ class SeerOperatorCompletionHook(AgentOnCompletionHook):
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
         # If queueing fails this raises, and Seer retries the hook.
-        refresh_agent_run.apply_async(
-            kwargs={
-                "organization_id": organization.id,
-                "run_id": run_id,
-                "queued_at": time.time(),
-            }
-        )
+        refresh_agent_run.apply_async(kwargs={"organization_id": organization.id, "run_id": run_id})
