@@ -20,7 +20,7 @@ from sentry.spans.consumers.process_segments.types import (
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 
-EMPTY_ATTRIBUTE_VALUES = frozenset({"", None})
+FALSY_ATTRIBUTE_VALUE_ALLOWLIST = (False, 0)
 
 TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
@@ -140,7 +140,7 @@ def _extract_attribute_values(
 
     for attribute_name, field_name in attribute_to_field_map.items():
         value = attribute_value(segment_span, attribute_name)
-        if value not in EMPTY_ATTRIBUTE_VALUES:
+        if value or value in FALSY_ATTRIBUTE_VALUE_ALLOWLIST:
             values_by_field_name[field_name] = value
 
     return values_by_field_name
