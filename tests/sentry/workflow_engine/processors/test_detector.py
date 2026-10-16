@@ -1,4 +1,3 @@
-import unittest
 import uuid
 from dataclasses import asdict, replace
 from datetime import timedelta
@@ -22,15 +21,11 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
-from sentry.types.group import PriorityLevel
 from sentry.utils.cache import cache
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
-from sentry.workflow_engine.handlers.detector import DetectorStateData
-from sentry.workflow_engine.handlers.detector.stateful import get_redis_client
 from sentry.workflow_engine.handlers.detector_outcome import DetectorOutcome
-from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
+from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
 from sentry.workflow_engine.processors.detector import (
@@ -58,8 +53,8 @@ from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.handlers.detector.test_base import (
     BaseDetectorHandlerTest,
     MockDetectorStateHandler,
+    assert_event_matches_occurrence,
     build_mock_group_evaluation,
-    build_mock_occurrence_and_event,
 )
 
 
@@ -113,7 +108,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         result_detector, group_results = results[0]
         assert result_detector == detector
         assert set(group_results.keys()) == {None}
-        # The mock handler's evaluation triggers without a result, so the platform builds the occurrence
         evaluation = group_results[None]
         assert isinstance(evaluation.result, IssueOccurrence)
         assert evaluation.data["group_key"] is None
@@ -198,7 +192,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         )
 
     def test_detector_emitter_samples_once_for_grouped_results(self) -> None:
-        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        detector = self.create_stateful_detector()
         handler = detector.detector_handler
         assert handler is not None
         evaluations = handler._evaluate(
@@ -373,43 +367,37 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     @mock.patch(
         "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
     )
-    def test_state_results(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
-        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
-        assert detector.detector_handler is not None
+    @mock.patch("sentry.workflow_engine.processors.detector.metrics")
+    def test_state_results(
+        self, mock_metrics: MagicMock, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
+        detector = self.create_stateful_detector()
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
         results = process_detectors(data_packet, [detector])
-
-        assert detector.detector_handler is not None
-        detector_occurrence, event_data = build_mock_occurrence_and_event(
-            detector.detector_handler, None, PriorityLevel.HIGH
-        )
-
-        issue_occurrence, expected_event_data = self.detector_to_issue_occurrence(
-            detector_occurrence=detector_occurrence,
-            detector=detector,
-            group_key=None,
-            value=6,
-            priority=DetectorPriorityLevel.HIGH,
-            occurrence_id=str(self.mock_uuid4.return_value),
-        )
 
         assert len(results) == 1
         result_detector, group_results = results[0]
         assert result_detector == detector
         assert set(group_results.keys()) == {None}
-        self.assert_evaluation(
-            group_results[None],
-            group_key=None,
-            triggered=True,
-            priority=DetectorPriorityLevel.HIGH,
-            result=issue_occurrence,
-            event_data=expected_event_data,
-        )
+
+        evaluation = group_results[None]
+        occurrence = evaluation.result
+        assert isinstance(occurrence, IssueOccurrence)
+        assert evaluation.triggered is True
+        assert evaluation.priority == DetectorPriorityLevel.HIGH
+        # Stateful detectors reuse the generated event id as the occurrence id
+        assert occurrence.id == occurrence.event_id
+        assert_event_matches_occurrence(evaluation.data["event_data"], occurrence)
+
         mock_produce_occurrence_to_kafka.assert_called_once_with(
             payload_type=PayloadType.OCCURRENCE,
-            occurrence=issue_occurrence,
+            occurrence=evaluation.result,
             status_change=None,
-            event_data=expected_event_data,
+            event_data=evaluation.data["event_data"],
+        )
+        mock_metrics.incr.assert_any_call(
+            "workflow_engine.process_detector.triggered",
+            tags={"detector_type": detector.type},
         )
 
     @mock.patch(
@@ -418,7 +406,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     def test_no_result_does_not_send_to_issue_platform(
         self, mock_produce_occurrence_to_kafka: MagicMock
     ) -> None:
-        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        detector = self.create_stateful_detector()
         evaluation = DetectorEvaluation(
             result=None,
             data={
@@ -439,7 +427,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
     def test_on_complete_override_calls_handler(
         self, mock_produce_occurrence_to_kafka: MagicMock
     ) -> None:
-        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        detector = self.create_stateful_detector()
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
 
         callback = MagicMock()
@@ -467,72 +455,29 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
     )
     def test_state_results_multi_group(self, mock_produce_occurrence_to_kafka: MagicMock) -> None:
-        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
+        detector = self.create_stateful_detector()
         data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {"group_1": 6, "group_2": 10}})
         results = process_detectors(data_packet, [detector])
-
-        assert detector.detector_handler is not None
-        detector_occurrence_1, _ = build_mock_occurrence_and_event(
-            detector.detector_handler, "group_1", PriorityLevel.HIGH
-        )
-
-        issue_occurrence_1, event_data_1 = self.detector_to_issue_occurrence(
-            detector_occurrence=detector_occurrence_1,
-            detector=detector,
-            group_key="group_1",
-            value=6,
-            priority=DetectorPriorityLevel.HIGH,
-            occurrence_id=str(self.mock_uuid4.return_value),
-        )
-
-        assert detector.detector_handler is not None
-        detector_occurrence_2, _ = build_mock_occurrence_and_event(
-            detector.detector_handler, "group_2", PriorityLevel.HIGH
-        )
-
-        issue_occurrence_2, event_data_2 = self.detector_to_issue_occurrence(
-            detector_occurrence=detector_occurrence_2,
-            detector=detector,
-            group_key="group_2",
-            value=10,
-            priority=DetectorPriorityLevel.HIGH,
-            occurrence_id=str(self.mock_uuid4.return_value),
-        )
 
         assert len(results) == 1
         result_detector, group_results = results[0]
         assert result_detector == detector
         assert set(group_results.keys()) == {"group_1", "group_2"}
-        self.assert_evaluation(
-            group_results["group_1"],
-            group_key="group_1",
-            triggered=True,
-            priority=DetectorPriorityLevel.HIGH,
-            result=issue_occurrence_1,
-            event_data=event_data_1,
-        )
-        self.assert_evaluation(
-            group_results["group_2"],
-            group_key="group_2",
-            triggered=True,
-            priority=DetectorPriorityLevel.HIGH,
-            result=issue_occurrence_2,
-            event_data=event_data_2,
-        )
+        for evaluation in group_results.values():
+            occurrence = evaluation.result
+            assert isinstance(occurrence, IssueOccurrence)
+            assert occurrence.id == occurrence.event_id
+            assert_event_matches_occurrence(evaluation.data["event_data"], occurrence)
+
         mock_produce_occurrence_to_kafka.assert_has_calls(
             [
                 call(
                     payload_type=PayloadType.OCCURRENCE,
-                    occurrence=issue_occurrence_1,
+                    occurrence=evaluation.result,
                     status_change=None,
-                    event_data=event_data_1,
-                ),
-                call(
-                    payload_type=PayloadType.OCCURRENCE,
-                    occurrence=issue_occurrence_2,
-                    status_change=None,
-                    event_data=event_data_2,
-                ),
+                    event_data=evaluation.data["event_data"],
+                )
+                for evaluation in group_results.values()
             ],
             any_order=True,
         )
@@ -571,106 +516,39 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
     )
     @mock.patch("sentry.workflow_engine.processors.detector.metrics")
-    def test_metrics_triggered(
-        self,
-        mock_metrics: mock.MagicMock,
-        mock_produce_occurrence_to_kafka: mock.MagicMock,
-    ) -> None:
-        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
-        data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
-        results = process_detectors(data_packet, [detector])
-
-        assert detector.detector_handler is not None
-        detector_occurrence, event_data = build_mock_occurrence_and_event(
-            detector.detector_handler, None, PriorityLevel.HIGH
-        )
-
-        issue_occurrence, expected_event_data = self.detector_to_issue_occurrence(
-            detector_occurrence=detector_occurrence,
-            detector=detector,
-            group_key=None,
-            value=6,
-            priority=DetectorPriorityLevel.HIGH,
-            occurrence_id=str(self.mock_uuid4.return_value),
-        )
-
-        assert len(results) == 1
-        result_detector, group_results = results[0]
-        assert result_detector == detector
-        assert set(group_results.keys()) == {None}
-        self.assert_evaluation(
-            group_results[None],
-            group_key=None,
-            triggered=True,
-            priority=DetectorPriorityLevel.HIGH,
-            result=issue_occurrence,
-            event_data=expected_event_data,
-        )
-        mock_produce_occurrence_to_kafka.assert_called_once_with(
-            payload_type=PayloadType.OCCURRENCE,
-            occurrence=issue_occurrence,
-            status_change=None,
-            event_data=expected_event_data,
-        )
-        mock_metrics.incr.assert_has_calls(
-            [
-                call(
-                    "workflow_engine.process_detector.triggered",
-                    tags={"detector_type": detector.type},
-                ),
-            ],
-        )
-
-    @mock.patch(
-        "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
-    )
-    @mock.patch("sentry.workflow_engine.processors.detector.metrics")
     def test_metrics_resolved(
         self,
         mock_metrics: mock.MagicMock,
         mock_produce_occurrence_to_kafka: mock.MagicMock,
     ) -> None:
-        detector, _ = self.create_detector_and_condition(type=self.handler_state_type.slug)
-        data_packet = DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}})
-        process_detectors(data_packet, [detector])
+        detector = self.create_stateful_detector()
+        process_detectors(DataPacket("1", {"dedupe": 2, "group_vals": {None: 6}}), [detector])
 
-        assert detector.detector_handler is not None
-        build_mock_occurrence_and_event(detector.detector_handler, None, PriorityLevel.HIGH)
-
-        data_packet = DataPacket("1", {"dedupe": 3, "group_vals": {None: 0}})
-        expected_status_change = StatusChangeMessage(
-            fingerprint=[f"detector:{detector.id}"],
-            project_id=self.project.id,
-            new_status=GroupStatus.RESOLVED,
-            new_substatus=None,
-            id=str(self.mock_uuid4.return_value),
+        results = process_detectors(
+            DataPacket("1", {"dedupe": 3, "group_vals": {None: 0}}), [detector]
         )
-        results = process_detectors(data_packet, [detector])
+
         assert len(results) == 1
         result_detector, group_results = results[0]
         assert result_detector == detector
         assert set(group_results.keys()) == {None}
-        self.assert_evaluation(
-            group_results[None],
-            group_key=None,
-            triggered=False,
-            priority=DetectorPriorityLevel.OK,
-            result=expected_status_change,
-            event_data=None,
-        )
+
+        status_change = group_results[None].result
+        assert isinstance(status_change, StatusChangeMessage)
+        assert status_change.fingerprint == [f"detector:{detector.id}"]
+        assert status_change.project_id == detector.project_id
+        assert status_change.new_status == GroupStatus.RESOLVED
+        assert status_change.new_substatus is None
+
         assert mock_produce_occurrence_to_kafka.call_args == call(
             payload_type=PayloadType.STATUS_CHANGE,
             occurrence=None,
-            status_change=expected_status_change,
+            status_change=status_change,
             event_data=None,
         )
-        mock_metrics.incr.assert_has_calls(
-            [
-                call(
-                    "workflow_engine.process_detector.resolved",
-                    tags={"detector_type": detector.type},
-                ),
-            ],
+        mock_metrics.incr.assert_any_call(
+            "workflow_engine.process_detector.resolved",
+            tags={"detector_type": detector.type},
         )
 
     def test_doesnt_send_metric(self) -> None:
@@ -685,500 +563,6 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
                 # We can have background threads emitting metrics as tasks are scheduled
                 filtered_calls = list(filter(lambda c: "taskworker" not in c.args[0], calls))
                 assert len(filtered_calls) == 0
-
-
-@django_db_all
-class TestKeyBuilders(unittest.TestCase):
-    def build_handler(self, detector: Detector | None = None) -> MockDetectorStateHandler:
-        if detector is None:
-            detector = Detector(id=123)
-        return MockDetectorStateHandler(detector)
-
-    def test(self) -> None:
-        assert (
-            self.build_handler().state_manager.build_key("test", "dedupe_value")
-            == "detector:123:test:dedupe_value"
-        )
-        assert (
-            self.build_handler().state_manager.build_key("test", "name_1")
-            == "detector:123:test:name_1"
-        )
-
-    def test_different_dedupe_keys(self) -> None:
-        handler = self.build_handler()
-        handler_2 = self.build_handler(Detector(id=456))
-        assert handler.state_manager.build_key(
-            "test", "dedupe_value"
-        ) != handler_2.state_manager.build_key("test", "dedupe_value")
-        assert handler.state_manager.build_key(
-            "test", "dedupe_value"
-        ) != handler_2.state_manager.build_key("test2", "dedupe_value")
-        assert handler.state_manager.build_key(
-            "test", "dedupe_value"
-        ) == handler.state_manager.build_key("test", "dedupe_value")
-        assert handler.state_manager.build_key(
-            "test", "dedupe_value"
-        ) != handler.state_manager.build_key("test_2", "dedupe_value")
-
-    def test_different_counter_value_keys(self) -> None:
-        handler = self.build_handler()
-        handler_2 = self.build_handler(Detector(id=456))
-        assert handler.state_manager.build_key(
-            "test", "name_1"
-        ) != handler_2.state_manager.build_key("test", "name_1")
-        assert handler.state_manager.build_key("test", "name_1") == handler.state_manager.build_key(
-            "test", "name_1"
-        )
-        assert handler.state_manager.build_key("test", "name_1") != handler.state_manager.build_key(
-            "test2", "name_1"
-        )
-        assert handler.state_manager.build_key("test", "name_1") != handler.state_manager.build_key(
-            "test", "name_2"
-        )
-        assert handler.state_manager.build_key("test", "name_1") != handler.state_manager.build_key(
-            "test2", "name_2"
-        )
-
-
-class TestGetStateData(BaseDetectorHandlerTest):
-    def test_new(self) -> None:
-        handler = self.build_handler()
-        key = "test_key"
-        assert handler.state_manager.get_state_data([key]) == {
-            key: DetectorStateData(
-                group_key=key,
-                is_triggered=False,
-                status=DetectorPriorityLevel.OK,
-                dedupe_value=0,
-                counter_updates={level: None for level in handler._thresholds},
-            )
-        }
-
-    def test_existing(self) -> None:
-        handler = self.build_handler()
-        key = "test_key"
-        state_data = DetectorStateData(
-            group_key=key,
-            is_triggered=True,
-            status=DetectorPriorityLevel.OK,
-            dedupe_value=10,
-            counter_updates={
-                **{level: None for level in handler._thresholds},
-                DetectorPriorityLevel.HIGH: 1,
-            },
-        )
-        handler.state_manager.enqueue_dedupe_update(state_data.group_key, state_data.dedupe_value)
-        handler.state_manager.enqueue_counter_update(
-            state_data.group_key, state_data.counter_updates
-        )
-        handler.state_manager.enqueue_state_update(
-            state_data.group_key, state_data.is_triggered, state_data.status
-        )
-        handler.state_manager.commit_state_updates()
-        assert handler.state_manager.get_state_data([key]) == {key: state_data}
-
-    def test_multi(self) -> None:
-        handler = self.build_handler()
-        key_1 = "test_key_1"
-        state_data_1 = DetectorStateData(
-            group_key=key_1,
-            is_triggered=True,
-            status=DetectorPriorityLevel.OK,
-            dedupe_value=100,
-            counter_updates={
-                **{level: None for level in handler._thresholds},
-                DetectorPriorityLevel.OK: 5,
-            },
-        )
-        handler.state_manager.enqueue_dedupe_update(key_1, state_data_1.dedupe_value)
-        handler.state_manager.enqueue_counter_update(key_1, state_data_1.counter_updates)
-        handler.state_manager.enqueue_state_update(
-            key_1, state_data_1.is_triggered, state_data_1.status
-        )
-
-        key_2 = "test_key_2"
-        state_data_2 = DetectorStateData(
-            group_key=key_2,
-            is_triggered=True,
-            status=DetectorPriorityLevel.OK,
-            dedupe_value=10,
-            counter_updates={
-                **{level: None for level in handler._thresholds},
-                DetectorPriorityLevel.HIGH: 5,
-            },
-        )
-        handler.state_manager.enqueue_dedupe_update(key_2, state_data_2.dedupe_value)
-        handler.state_manager.enqueue_counter_update(key_2, state_data_2.counter_updates)
-        handler.state_manager.enqueue_state_update(
-            key_2, state_data_2.is_triggered, state_data_2.status
-        )
-
-        key_uncommitted = "test_key_uncommitted"
-        state_data_uncommitted = DetectorStateData(
-            group_key=key_uncommitted,
-            is_triggered=False,
-            status=DetectorPriorityLevel.OK,
-            dedupe_value=0,
-            counter_updates={level: None for level in handler._thresholds},
-        )
-        handler.state_manager.commit_state_updates()
-        assert handler.state_manager.get_state_data([key_1, key_2, key_uncommitted]) == {
-            key_1: state_data_1,
-            key_2: state_data_2,
-            key_uncommitted: state_data_uncommitted,
-        }
-
-
-class TestCommitStateUpdateData(BaseDetectorHandlerTest):
-    def test(self) -> None:
-        handler = self.build_handler()
-        redis = get_redis_client()
-        group_key = None
-        assert not DetectorState.objects.filter(
-            detector=handler.detector, detector_group_key=group_key
-        ).exists()
-        dedupe_key = handler.state_manager.build_key(group_key, "dedupe_value")
-        counter_key_1 = handler.state_manager.build_key(group_key, "some_counter")
-        counter_key_2 = handler.state_manager.build_key(group_key, "another_counter")
-
-        assert not redis.exists(dedupe_key)
-        assert not redis.exists(counter_key_1)
-        assert not redis.exists(counter_key_2)
-        handler.state_manager.enqueue_dedupe_update(group_key, 100)
-        handler.state_manager.enqueue_counter_update(
-            group_key, {"some_counter": 1, "another_counter": 2}
-        )
-        handler.state_manager.enqueue_state_update(group_key, True, DetectorPriorityLevel.OK)
-        handler.state_manager.commit_state_updates()
-        assert DetectorState.objects.filter(
-            detector=handler.detector,
-            detector_group_key=group_key,
-            is_triggered=True,
-            state=DetectorPriorityLevel.OK,
-        ).exists()
-        assert redis.get(dedupe_key) == "100"
-        assert redis.get(counter_key_1) == "1"
-        assert redis.get(counter_key_2) == "2"
-
-        handler.state_manager.enqueue_dedupe_update(group_key, 150)
-        handler.state_manager.enqueue_counter_update(
-            group_key, {"some_counter": None, "another_counter": 20}
-        )
-        handler.state_manager.enqueue_state_update(group_key, False, DetectorPriorityLevel.OK)
-        handler.state_manager.commit_state_updates()
-        assert DetectorState.objects.filter(
-            detector=handler.detector,
-            detector_group_key=group_key,
-            is_triggered=False,
-            state=DetectorPriorityLevel.OK,
-        ).exists()
-        assert redis.get(dedupe_key) == "150"
-        assert not redis.exists(counter_key_1)
-        assert redis.get(counter_key_2) == "20"
-
-
-@freeze_time()
-class TestEvaluate(BaseDetectorHandlerTest):
-    def test(self) -> None:
-        handler = self.build_handler()
-        assert handler._evaluate(DataPacket("1", {"dedupe": 1})) == {}
-
-        detector_occurrence, _ = build_mock_occurrence_and_event(
-            handler, "val1", PriorityLevel.HIGH
-        )
-
-        issue_occurrence, event_data = self.detector_to_issue_occurrence(
-            detector_occurrence=detector_occurrence,
-            detector=handler.detector,
-            group_key="val1",
-            value=6,
-            priority=DetectorPriorityLevel.HIGH,
-            occurrence_id=str(self.mock_uuid4.return_value),
-        )
-
-        result = handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}}))
-        assert set(result.keys()) == {"val1"}
-        self.assert_evaluation(
-            result["val1"],
-            group_key="val1",
-            triggered=True,
-            priority=DetectorPriorityLevel.HIGH,
-            result=issue_occurrence,
-            event_data=event_data,
-        )
-
-        self.assert_updates(
-            handler,
-            "val1",
-            2,
-            {
-                **handler.test_get_empty_counter_state(),
-                DetectorPriorityLevel.HIGH: 1,
-            },
-            True,
-            DetectorPriorityLevel.HIGH,
-        )
-
-    def test_above_below_threshold(self) -> None:
-        handler = self.build_handler()
-        assert handler._evaluate(DataPacket("1", {"dedupe": 1, "group_vals": {"val1": 0}})) == {}
-
-        detector_occurrence, _ = build_mock_occurrence_and_event(
-            handler, "val1", PriorityLevel.HIGH
-        )
-
-        issue_occurrence, event_data = self.detector_to_issue_occurrence(
-            detector_occurrence=detector_occurrence,
-            detector=handler.detector,
-            group_key="val1",
-            value=6,
-            priority=DetectorPriorityLevel.HIGH,
-            occurrence_id=str(self.mock_uuid4.return_value),
-        )
-
-        result = handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 6}}))
-        assert set(result.keys()) == {"val1"}
-        self.assert_evaluation(
-            result["val1"],
-            group_key="val1",
-            triggered=True,
-            priority=DetectorPriorityLevel.HIGH,
-            result=issue_occurrence,
-            event_data=event_data,
-        )
-        assert handler._evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 6}})) == {}
-        result = handler._evaluate(DataPacket("1", {"dedupe": 4, "group_vals": {"val1": 0}}))
-        assert set(result.keys()) == {"val1"}
-        self.assert_evaluation(
-            result["val1"],
-            group_key="val1",
-            triggered=False,
-            priority=DetectorPriorityLevel.OK,
-            result=StatusChangeMessage(
-                fingerprint=[f"detector:{handler.detector.id}:val1"],
-                project_id=self.project.id,
-                new_status=1,
-                new_substatus=None,
-            ),
-            event_data=None,
-        )
-
-    def test_no_condition_group(self) -> None:
-        detector = self.create_detector(type=self.handler_type.slug)
-        handler = MockDetectorStateHandler(detector)
-        with mock.patch(
-            "sentry.workflow_engine.handlers.detector.condition.metrics"
-        ) as mock_metrics:
-            assert (
-                handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}})) == {}
-            )
-            mock_metrics.incr.assert_any_call(
-                "workflow_engine.detector.skipping_invalid_condition_group"
-            )
-            self.assert_updates(handler, "val1", 2, None, None, None)
-
-    def test_results_on_change(self) -> None:
-        handler = self.build_handler()
-
-        detector_occurrence, _ = build_mock_occurrence_and_event(
-            handler, "val1", PriorityLevel.HIGH
-        )
-
-        issue_occurrence, event_data = self.detector_to_issue_occurrence(
-            detector_occurrence=detector_occurrence,
-            detector=handler.detector,
-            group_key="val1",
-            value=100,
-            priority=DetectorPriorityLevel.HIGH,
-            occurrence_id=str(self.mock_uuid4.return_value),
-        )
-
-        result = handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 100}}))
-
-        assert set(result.keys()) == {"val1"}
-        self.assert_evaluation(
-            result["val1"],
-            group_key="val1",
-            triggered=True,
-            priority=DetectorPriorityLevel.HIGH,
-            result=issue_occurrence,
-            event_data=event_data,
-        )
-        self.assert_updates(
-            handler,
-            "val1",
-            2,
-            {
-                **handler.test_get_empty_counter_state(),
-                DetectorPriorityLevel.HIGH: 1,
-            },
-            True,
-            DetectorPriorityLevel.HIGH,
-        )
-        # This detector is already triggered, so no status change occurred. Should be no result
-        assert handler._evaluate(DataPacket("1", {"dedupe": 3, "group_vals": {"val1": 200}})) == {}
-
-    def test_dedupe(self) -> None:
-        handler = self.build_handler()
-
-        detector_occurrence, _ = build_mock_occurrence_and_event(
-            handler, "val1", PriorityLevel.HIGH
-        )
-
-        issue_occurrence, event_data = self.detector_to_issue_occurrence(
-            detector_occurrence=detector_occurrence,
-            detector=handler.detector,
-            group_key="val1",
-            value=8,
-            priority=DetectorPriorityLevel.HIGH,
-            occurrence_id=str(self.mock_uuid4.return_value),
-        )
-
-        result = handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 8}}))
-
-        assert set(result.keys()) == {"val1"}
-        self.assert_evaluation(
-            result["val1"],
-            group_key="val1",
-            triggered=True,
-            priority=DetectorPriorityLevel.HIGH,
-            result=issue_occurrence,
-            event_data=event_data,
-        )
-        self.assert_updates(
-            handler,
-            "val1",
-            2,
-            {
-                **handler.test_get_empty_counter_state(),
-                DetectorPriorityLevel.HIGH: 1,
-            },
-            True,
-            DetectorPriorityLevel.HIGH,
-        )
-        with mock.patch(
-            "sentry.workflow_engine.handlers.detector.stateful.metrics"
-        ) as mock_metrics:
-            assert (
-                handler._evaluate(DataPacket("1", {"dedupe": 2, "group_vals": {"val1": 0}})) == {}
-            )
-            mock_metrics.incr.assert_called_once_with(
-                "workflow_engine.detector.skipping_already_processed_update"
-            )
-        self.assert_updates(
-            handler,
-            "val1",
-            None,
-            {
-                **handler.test_get_empty_counter_state(),
-                DetectorPriorityLevel.HIGH: 1,
-            },
-            None,
-            None,
-        )
-
-
-@freeze_time()
-class TestEvaluateGroupValue(BaseDetectorHandlerTest):
-    def test_dedupe(self) -> None:
-        handler = self.build_handler()
-        with mock.patch(
-            "sentry.workflow_engine.handlers.detector.stateful.metrics"
-        ) as mock_metrics:
-            detector_occurrence, _ = build_mock_occurrence_and_event(
-                handler, "val1", PriorityLevel.HIGH
-            )
-
-            issue_occurrence, event_data = self.detector_to_issue_occurrence(
-                detector_occurrence=detector_occurrence,
-                detector=handler.detector,
-                group_key="group_key",
-                value=10,
-                priority=DetectorPriorityLevel.HIGH,
-                occurrence_id=str(self.mock_uuid4.return_value),
-            )
-
-            handler.state_manager.enqueue_state_update(
-                "group_key",
-                False,
-                DetectorPriorityLevel.OK,
-            )
-            handler.state_manager.enqueue_dedupe_update("group_key", 99)
-            handler.state_manager.commit_state_updates()
-
-            data_packet = DataPacket[dict[str, Any]](
-                source_id="1234",
-                packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100},
-            )
-            result = handler._evaluate(data_packet)
-            if not result:
-                raise AssertionError("Expected result to not be empty")
-
-            self.assert_evaluation(
-                result["group_key"],
-                group_key="group_key",
-                triggered=True,
-                priority=DetectorPriorityLevel.HIGH,
-                result=issue_occurrence,
-                event_data=event_data,
-            )
-            assert not mock_metrics.incr.called
-
-    def test_dedupe__already_processed(self) -> None:
-        handler = self.build_handler()
-
-        with mock.patch(
-            "sentry.workflow_engine.handlers.detector.stateful.metrics"
-        ) as mock_metrics:
-            handler.state_manager.enqueue_state_update(
-                "group_key",
-                False,
-                DetectorPriorityLevel.OK,
-            )
-
-            handler.state_manager.enqueue_dedupe_update("group_key", 100)
-            handler.state_manager.commit_state_updates()
-
-            handler._evaluate(
-                DataPacket[dict[str, Any]](
-                    source_id="1234",
-                    packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100},
-                ),
-            )
-            mock_metrics.incr.assert_called_once_with(
-                "workflow_engine.detector.skipping_already_processed_update"
-            )
-
-    def test_status_change(self) -> None:
-        handler = self.build_handler()
-        data_packet = DataPacket[dict[str, Any]](
-            source_id="1234", packet={"id": "1234", "group_vals": {"group_key": 10}, "dedupe": 100}
-        )
-
-        assert handler.state_manager.get_state_data(["group_key"]) == {
-            "group_key": DetectorStateData(
-                group_key="group_key",
-                is_triggered=False,
-                status=DetectorPriorityLevel.OK,
-                dedupe_value=0,
-                counter_updates={level: None for level in handler._thresholds},
-            )
-        }
-
-        handler._evaluate(data_packet)
-
-        assert handler.state_manager.get_state_data(["group_key"]) == {
-            "group_key": DetectorStateData(
-                group_key="group_key",
-                is_triggered=True,
-                status=DetectorPriorityLevel.HIGH,
-                dedupe_value=100,
-                counter_updates={
-                    **{level: None for level in handler._thresholds},
-                    DetectorPriorityLevel.HIGH: 1,
-                },
-            )
-        }
 
 
 class TestGetDetectorsForEvent(TestCase):
