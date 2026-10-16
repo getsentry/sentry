@@ -148,6 +148,25 @@ class SuperuserAgentTokenTest(APITestCase):
         with self.feature(FLAG):
             assert self._mint(None).status_code == 403
 
+    def test_nonmember_superuser_project_indexes_are_org_bound(self):
+        assert not OrganizationMember.objects.filter(
+            organization=self.org, user_id=self.employee.id
+        ).exists()
+        project = self.create_project(organization=self.org)
+        other_org = self.create_organization()
+        self.create_project(organization=other_org)
+        grant = self._chat_authorization()
+        with self.feature(FLAG):
+            minted = self._mint(grant)
+            assert minted.status_code == 200, minted.content
+            global_response = self._read(minted.data["token"], "/api/0/projects/")
+            org_response = self._read(minted.data["token"], f"{self.path}projects/")
+
+        assert global_response.status_code == 200, global_response.content
+        assert org_response.status_code == 200, org_response.content
+        assert {int(item["id"]) for item in global_response.data} == {project.id}
+        assert {int(item["id"]) for item in org_response.data} == {project.id}
+
     def test_elevated_browser_can_also_mint_a_usable_token(self):
         self.login_as(self.employee, superuser=True)
         with self.feature(FLAG):
