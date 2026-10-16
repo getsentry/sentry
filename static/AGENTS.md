@@ -90,6 +90,7 @@ Use core primitives from `@sentry/scraps` instead of hand-rolling styled compone
 - **Typography**: use `Text` and `Heading` — never raw `<p>`, `<span>`, `<div>`, or `<h1>`–`<h6>`.
 - Prefer component props over the `style` attribute; use `gap`/padding over `margin`.
 - Use responsive props (e.g. `{xs: 'column', md: 'row'}`) instead of styled media queries.
+- Do not add `@media` or `@container` to Emotion styles. Use responsive primitive props. `@media` is allowed for viewport sizing in a modal's `modalCss` or the core drawer shell.
 - Split layout from typography — compose `Flex`/`Grid` with `Text`/`Heading`; don't couple them in one styled component.
 - Prefer `InfoTip`/`InfoText` over a raw `Tooltip`.
 - Add `*.stories.mdx` stories for new components.

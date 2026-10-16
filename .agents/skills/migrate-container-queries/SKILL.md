@@ -5,7 +5,7 @@ description: "Guide for migrating viewport media queries (@media, useMedia, and 
 
 # Container Query Migration Guide
 
-Migrate viewport-based responsive logic (`@media`, `useMedia`, and `screen:`-prefixed responsive props) to container queries so components respond to their own available space instead of the raw viewport.
+Migrate viewport-based responsive logic (`@media`, width-based `useMedia`, and `screen:`-prefixed responsive props) to responsive primitive props so components respond to their own available space instead of the raw viewport. Do not add new `@media` or `@container` rules in Emotion styles; the lint rule allows `@media` only for viewport sizing in `modalCss` and the core drawer shell.
 
 > **Always do a visual check.** After every migration, resize the _element_ (not just the window) and confirm the layout is identical and flips at the intended width. A good way to narrow an element without touching the window is to open a resizable panel next to it — e.g. drag out the Seer explorer sidebar, which squeezes the middle content. The token scales differ, so a mechanical swap that compiles can still render wrong.
 
@@ -13,12 +13,12 @@ Migrate viewport-based responsive logic (`@media`, `useMedia`, and `screen:`-pre
 
 Stop at the first rung that fits. Prefer replacing hand-rolled CSS with primitives over a mechanical token swap.
 
-| Rung                   | When                                                                                                    | Do                                                                                                                                              |
-| ---------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Primitive props     | The `@media` only flips layout (`flex-direction`, `display`, `grid-template`, gap, visibility, width)   | Delete the styled component; use `Container`/`Flex`/`Grid`/`Stack` responsive props (`direction={{xs: 'column', md: 'row'}}`)                   |
-| 2. `@container` swap   | CSS can't be a prop (descendant selectors, pseudo-elements, `font-size`, complex `grid-template-areas`) | Keep the styled component; swap `@media` → `@container`, `theme.breakpoints.*` → `theme.container.*`                                            |
-| 3. Container-scoped JS | Width is read in JS to branch rendering                                                                 | Replace `useMedia(...)` with `useResponsivePropValue({...})` for a threshold boolean, or `useContainerBreakpoint()` to branch on the active key |
-| 4. Leave as `useMedia` | Genuine media feature, not width                                                                        | Do nothing — these do not migrate                                                                                                               |
+| Rung                   | When                                                                                                  | Do                                                                                                                                              |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Primitive props     | The `@media` only flips layout (`flex-direction`, `display`, `grid-template`, gap, visibility, width) | Delete the styled component; use `Container`/`Flex`/`Grid`/`Stack` responsive props (`direction={{xs: 'column', md: 'row'}}`)                   |
+| 2. Compose primitives  | The layout needs several responsive values or nested elements                                         | Split the styled component into `Container`/`Flex`/`Grid`/`Stack` elements with responsive props                                                |
+| 3. Container-scoped JS | Width is read in JS to branch rendering                                                               | Replace `useMedia(...)` with `useResponsivePropValue({...})` for a threshold boolean, or `useContainerBreakpoint()` to branch on the active key |
+| 4. Leave as `useMedia` | Genuine media feature, not width                                                                      | Do nothing — these do not migrate                                                                                                               |
 
 ## ⚠️ Convert to the nearest container scale
 
@@ -63,7 +63,7 @@ Width — container or viewport — has a prop/hook path above. Leave `useMedia`
 
 ## container-type: only when no query container is in scope
 
-**Default: don't add one.** Bare keys and `@container` already resolve against the nearest ancestor container, and product views have one: `ContentStack` (`#main`, `views/organizationLayout/index.tsx`) wraps the routed `<Outlet />` with `containerType="inline-size"`; `topBar` and `#modal-portal` cover their own subtrees. Add `container-type` only when a subtree must respond to _its own_ width rather than the page's — then:
+**Default: don't add one.** Bare responsive keys already resolve against the nearest ancestor container, and product views have one: `ContentStack` (`#main`, `views/organizationLayout/index.tsx`) wraps the routed `<Outlet />` with `containerType="inline-size"`; `topBar` and `#modal-portal` cover their own subtrees. Add `container-type` only when a subtree must respond to _its own_ width rather than the page's — then:
 
 - Use `inline-size` (width only). `size` also queries height, which collapses content unless height is set elsewhere.
 - In a reusable component that may already sit inside a container, make it conditional to avoid a redundant one — `containerType={hasParentQueryContainer ? 'normal' : 'inline-size'}` via `useHasContainerQuery()` (see `components/core/breadcrumbList/breadcrumbList.tsx`).
@@ -88,15 +88,18 @@ import {Flex} from '@sentry/scraps/layout';
 <Flex direction={{xs: 'column', sm: 'row'}} gap="md">
 ```
 
-### Rung 2 — `@media` → `@container` (when it can't be a prop)
+### Rung 2 — compose primitives for more complex layouts
 
 ```tsx
-// Old
-@media (max-width: ${p => p.theme.breakpoints.md}) { ... }
+// Old — one styled component contains the query
+const Panel = styled.div`
+  @media (max-width: 992px) {
+    display: none;
+  }
+`;
 
-// New — swap at-rule AND scale; md breakpoint (992px) → nearest container token by px
-// is 3xl (1024px), NOT theme.container.md by matching key
-@container (max-width: ${p => p.theme.container['3xl']}) { ... }
+// New — the primitive owns the responsive behavior
+<Container display={{zero: 'none', '3xl': 'block'}}>...</Container>;
 ```
 
 ### Rung 3 — `useMedia` (width) → container-scoped JS
@@ -132,5 +135,5 @@ Took the lowest rung that fits (above). Then verify the gotchas:
 - [ ] Routed genuine viewport-width cases to `screen:` keys; kept `useMedia` only for non-width media features
 - [ ] Audited existing `screen:`-prefixed layout props — migrated component-width cases to bare container keys and kept `screen:` only for genuine viewport-width behavior
 - [ ] Added `container-type` only when a subtree needs its own; used `inline-size`
-- [ ] Confirmed a query-container ancestor exists (`@container` silently no-ops without one)
+- [ ] Confirmed a query-container ancestor exists (responsive props silently use their base value without one)
 - [ ] **Visual check:** resized the element and confirmed identical output flipping at the intended width

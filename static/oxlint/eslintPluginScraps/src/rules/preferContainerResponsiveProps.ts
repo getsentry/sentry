@@ -1,22 +1,52 @@
 import {defineRule, type ESTree} from '@oxlint/plugins';
 
 const STYLE_QUERY = /@(?:media|container)\b/;
+const WIDTH_QUERY = /(?:min-|max-)?width\s*[:<>=]/;
 
-function isModalCss(node: ESTree.Node): boolean {
+function enclosingStyleName(node: ESTree.Node): string | undefined {
   for (let parent = node.parent; parent; parent = parent.parent) {
     if (parent.type === 'VariableDeclarator' && parent.id.type === 'Identifier') {
-      if (/modalCss$/i.test(parent.id.name)) {
-        return true;
-      }
+      return parent.id.name;
     }
-    if (
-      parent.type === 'FunctionDeclaration' &&
-      /modalCss$/i.test(parent.id?.name ?? '')
-    ) {
-      return true;
+    if (parent.type === 'FunctionDeclaration') {
+      return parent.id?.name;
     }
   }
-  return false;
+  return undefined;
+}
+
+function allowsViewportSizing(node: ESTree.Node, filename: string): boolean {
+  const name = enclosingStyleName(node);
+  if (filename.endsWith('/static/app/components/core/drawer/components.tsx')) {
+    return name === 'DrawerContainer' || name === 'DrawerSlidePanel';
+  }
+  return (
+    filename.endsWith('/static/app/components/core/slideOverPanel/slideOverPanel.tsx') &&
+    name === '_SlideOverPanel'
+  );
+}
+
+function isModalSizingQuery(node: ESTree.TaggedTemplateExpression): boolean {
+  if (enclosingStyleName(node) !== 'modalCss') {
+    return false;
+  }
+  const css = node.quasi.quasis.map(quasi => quasi.value.raw).join('VALUE');
+  const queries = [...css.matchAll(/@media\b[^{}]*\{([^{}]*)\}/g)];
+  if (queries.length === 0 || queries.length !== [...css.matchAll(/@media\b/g)].length) {
+    return false;
+  }
+  return queries.every(query => {
+    const declarations = query[1]!
+      .split(';')
+      .map(declaration => declaration.trim())
+      .filter(Boolean);
+    return (
+      declarations.length > 0 &&
+      declarations.every(declaration =>
+        /^(?:(?:min|max)-)?(?:width|height)\s*:/.test(declaration)
+      )
+    );
+  });
 }
 
 export const preferContainerResponsiveProps = defineRule({
@@ -28,17 +58,10 @@ export const preferContainerResponsiveProps = defineRule({
     schema: [],
     messages: {
       forbidden:
-        'Avoid new media and container queries. Prefer primitives; viewport-driven modal and drawer styles are exempt.',
+        'Use primitive responsive props instead of CSS queries. Viewport sizing for modal and drawer shells may use @media.',
     },
   },
   create(context) {
-    // Drawer positioning and sizing intentionally track the viewport.
-    if (
-      /(?:^|\/)(?:\w*drawer\w*|slideOverPanel)(?:\/|\.[jt]sx?$)/i.test(context.filename)
-    ) {
-      return {};
-    }
-
     const mediaHooks = new Set<string>();
     const emotionTags = new Set<string>();
 
@@ -73,9 +96,6 @@ export const preferContainerResponsiveProps = defineRule({
         }
       },
       TaggedTemplateExpression(node) {
-        if (isModalCss(node)) {
-          return;
-        }
         const tag = node.tag;
         const isEmotionTag =
           (tag.type === 'Identifier' && emotionTags.has(tag.name)) ||
@@ -89,25 +109,34 @@ export const preferContainerResponsiveProps = defineRule({
           return;
         }
         for (const quasi of node.quasi.quasis) {
-          if (STYLE_QUERY.test(quasi.value.raw)) {
+          const hasMedia = /@media\b/.test(quasi.value.raw);
+          const hasContainer = /@container\b/.test(quasi.value.raw);
+          if (
+            hasContainer ||
+            (hasMedia &&
+              !allowsViewportSizing(node, context.filename) &&
+              !isModalSizingQuery(node))
+          ) {
             context.report({node: quasi, messageId: 'forbidden'});
           }
         }
       },
       CallExpression(node) {
-        if (
-          node.callee.type !== 'Identifier' ||
-          !mediaHooks.has(node.callee.name) ||
-          isModalCss(node)
-        ) {
+        if (node.callee.type !== 'Identifier' || !mediaHooks.has(node.callee.name)) {
           return;
         }
-        context.report({node, messageId: 'forbidden'});
+        const query = node.arguments[0];
+        const text =
+          query?.type === 'Literal' && typeof query.value === 'string'
+            ? query.value
+            : query?.type === 'TemplateLiteral'
+              ? query.quasis.map(quasi => quasi.value.raw).join(' ')
+              : undefined;
+        if (text && WIDTH_QUERY.test(text)) {
+          context.report({node, messageId: 'forbidden'});
+        }
       },
       Property(node) {
-        if (isModalCss(node)) {
-          return;
-        }
         const key = node.key;
         const keyName =
           key.type === 'Literal' && typeof key.value === 'string'
@@ -115,11 +144,11 @@ export const preferContainerResponsiveProps = defineRule({
             : key.type === 'Identifier'
               ? key.name
               : undefined;
-        if (keyName && STYLE_QUERY.test(keyName)) {
-          context.report({node: key, messageId: 'forbidden'});
-          return;
-        }
-        if (keyName && /^screen:(?:2xs|xs|sm|md|lg|xl|2xl)$/.test(keyName)) {
+        const query = keyName?.match(STYLE_QUERY)?.[0];
+        if (
+          query &&
+          (query === '@container' || !allowsViewportSizing(node, context.filename))
+        ) {
           context.report({node: key, messageId: 'forbidden'});
         }
       },
