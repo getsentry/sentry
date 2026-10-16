@@ -1075,11 +1075,11 @@ class MonitorConsumerTest(TestCase):
         assert monitor.schedule.type == "crontab"
         assert monitor.schedule.crontab == "13 * * * *"
 
-        # Check-in does not upsert resets is_upserting back to false
+        # A check-in without config keeps is_upserting
         self.send_checkin(monitor.slug)
 
         monitor.refresh_from_db()
-        assert not monitor.is_upserting
+        assert monitor.is_upserting
         assert monitor.schedule.crontab == "13 * * * *"
 
     def test_upsert_with_in_progress_completion(self) -> None:
@@ -1110,12 +1110,11 @@ class MonitorConsumerTest(TestCase):
         assert monitor.is_upserting
         assert monitor.schedule.crontab == "13 * * * *"
 
-        # Send a NEW check-in without config (creates brand new check-in)
-        # NOW is_upserting should be reset to False
+        # A new check-in without config also keeps is_upserting
         self.send_checkin("my-monitor")
 
         monitor.refresh_from_db()
-        assert not monitor.is_upserting
+        assert monitor.is_upserting
         assert monitor.schedule.crontab == "13 * * * *"
 
     def test_monitor_upsert_empty_timezone(self) -> None:
