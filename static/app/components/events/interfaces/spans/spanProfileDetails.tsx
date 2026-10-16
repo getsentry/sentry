@@ -5,7 +5,6 @@ import {IconProfiling} from '@sentry/icons/profiling';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
-import {Container} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
@@ -296,19 +295,15 @@ export function SpanProfileDetails({metadata, span}: SpanProfileDetailsProps) {
         <SpanDetailsItem grow>
           <SectionHeading>{t('Most Frequent Stacks in this Span')}</SectionHeading>
         </SpanDetailsItem>
-        <Container display={{zero: 'none', xl: 'block'}}>
-          {containerProps => (
-            <SpanDetailsItem {...containerProps}>
-              <SectionSubtext>
-                {tct('Showing stacks [index] of [total] ([percentage])', {
-                  index: index + 1,
-                  total: maxNodes,
-                  percentage,
-                })}
-              </SectionSubtext>
-            </SpanDetailsItem>
-          )}
-        </Container>
+        <SpanDetailsItem>
+          <SectionSubtext>
+            {tct('Showing stacks [index] of [total] ([percentage])', {
+              index: index + 1,
+              total: maxNodes,
+              percentage,
+            })}
+          </SectionSubtext>
+        </SpanDetailsItem>
         <InfoTip
           position="top"
           size="xs"
@@ -519,6 +514,12 @@ const SpanDetails = styled('div')`
 
 const SpanDetailsItem = styled('span')<{grow?: boolean}>`
   flex: ${p => (p.grow ? '1 2 auto' : 'flex: 0 1 auto')};
+
+  &:nth-child(2) {
+    @container profiling-container (width < 680px) {
+      display: none;
+    }
+  }
 
   &:first-child {
     flex: 0 1 100%;

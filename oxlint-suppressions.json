@@ -258,6 +258,9 @@
     }
   },
   "static/app/components/events/eventDrawer.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 3
     }
@@ -408,6 +411,9 @@
     }
   },
   "static/app/components/events/interfaces/spans/spanProfileDetails.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
@@ -578,6 +584,9 @@
     }
   },
   "static/app/components/forms/fields/segmentedRadioField.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -915,6 +924,11 @@
   },
   "static/app/components/onboardingWizard/modalTask.tsx": {
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/components/pageFilters/pageFilterBar.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
     }
   },
