@@ -55,6 +55,7 @@ export function IntegrationServerlessFunctions({
         organization,
       });
     }
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuccess]);
 

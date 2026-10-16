@@ -335,6 +335,7 @@ export function Trace({
       );
     },
     // we add forceRerender as a "unnecessary" dependency to trigger the virtualized list rerender
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       onNodeExpand,

@@ -70,6 +70,7 @@ export function RouteError({error}: RouteErrorProps) {
     return function cleanup() {
       window.clearTimeout(reportDialogTimeout);
     };
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error]);
 

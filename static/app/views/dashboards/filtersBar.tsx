@@ -174,6 +174,7 @@ export function FiltersBar({
         [DashboardFilterKeys.GLOBAL_FILTER]: activeGlobalFilters,
       });
     }
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

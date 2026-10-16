@@ -130,6 +130,7 @@ export function useDispatchingReducer<R extends React.Reducer<any, any>>(
       });
     },
     // Emitter is stable and can be ignored
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );

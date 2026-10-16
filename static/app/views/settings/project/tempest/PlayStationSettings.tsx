@@ -104,6 +104,7 @@ export function PlayStationSettings({organization, project}: Props) {
         error_count: credentialErrors.length,
       });
     }
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [credentialErrors]);
 

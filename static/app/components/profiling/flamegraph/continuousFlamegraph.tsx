@@ -693,6 +693,7 @@ export function ContinuousFlamegraph(): ReactElement {
     },
 
     // We skip position.view dependency because it will go into an infinite loop
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [flamegraph, flamegraphCanvas, flamegraphTheme, profile, configSpaceQueryParam]
   );

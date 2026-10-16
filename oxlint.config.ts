@@ -13,8 +13,6 @@ export const incubator = defineConfig({
   rules: {
     '@sentry/scraps/prefer-primitives': 'error',
     'react/incompatible-library': 'error',
-    'react/rule-suppression': 'error',
-    'react/todo': 'error',
   },
   overrides: [
     {
@@ -786,10 +784,12 @@ const config = defineConfig({
     'react/purity': 'error',
     'react/refs': 'error',
     'react/require-render-return': 'error',
+    'react/rule-suppression': 'error',
     'react/set-state-in-effect': 'error',
     'react/set-state-in-render': 'error',
     'react/static-components': 'error',
     'react/syntax': 'error',
+    'react/todo': 'error',
     'react/unsupported-syntax': 'error',
     'react/use-memo': 'error',
     'react/void-use-memo': 'error',

@@ -29,6 +29,7 @@ export function usePassiveResizableDrawer(options: UsePassiveResizableDrawerOpti
   useLayoutEffect(() => {
     sizeRef.current = initialSize;
     onResize(initialSize, options.min, false);
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSize, direction, onResize]);
 

@@ -26,6 +26,7 @@ export function useTraceWaterfallModels() {
       theme
     );
     // We only care about initial state when we initialize the view manager
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

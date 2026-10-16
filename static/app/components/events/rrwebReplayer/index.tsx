@@ -46,6 +46,7 @@ function RRWebReplayer({urls}: Props) {
     }
   };
 
+  // oxlint-disable-next-line react/rule-suppression
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => void loadEvents(), [urls]);
 

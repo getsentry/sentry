@@ -81,6 +81,7 @@ export function MetricsEquationVisualize({
     }
     metricQueries.push(defaultMetricQuery({type: 'equation'}));
     return metricQueries;
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -110,6 +110,7 @@ function GroupReplaysContent({group}: Props) {
       organization,
     });
     // we only want to fire this event once
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

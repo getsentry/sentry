@@ -98,6 +98,7 @@ export default function ProfileFlamegraphWrapper() {
       },
     };
     // We only want to decode this when our component mounts
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

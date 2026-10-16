@@ -229,6 +229,7 @@ export function PermissionSelection({
       state.hasContinuousIntegration
     );
     // Only run on mount to mirror the previous componentDidMount behavior.
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

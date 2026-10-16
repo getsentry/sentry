@@ -34,11 +34,6 @@
       "count": 1
     }
   },
-  "static/app/components/ansiText.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/components/arithmeticBuilder/conditionalFilter/conditionalFilterAutocomplete.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -79,11 +74,6 @@
       "count": 2
     }
   },
-  "static/app/components/brandPageLayout/index.tsx": {
-    "react/todo": {
-      "count": 2
-    }
-  },
   "static/app/components/carousel.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -104,19 +94,9 @@
       "count": 1
     }
   },
-  "static/app/components/charts/releaseSeries.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/components/charts/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
-    }
-  },
-  "static/app/components/checkInTimeline/checkInTimeline.tsx": {
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/components/clippedBox.spec.tsx": {
@@ -126,19 +106,6 @@
   },
   "static/app/components/clippedBox.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/components/commandPalette/ui/collection.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    },
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/app/components/commandPalette/useCommandPaletteAnalytics.tsx": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -157,11 +124,6 @@
   },
   "static/app/components/confirm.stories.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/components/confirm.tsx": {
-    "react/todo": {
       "count": 1
     }
   },
@@ -195,38 +157,8 @@
       "count": 1
     }
   },
-  "static/app/components/core/code/codeBlock.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/compactSelect/control.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/compactSelect/gridList/option.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/compactSelect/listBox/option.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/markdown/__stories__/components.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/components/core/relativeTime/relativeTime.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
-  "static/app/components/core/tabs/tabList.tsx": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -277,16 +209,6 @@
   },
   "static/app/components/errors/notFound.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/autofix/useExplorerAutofix.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/autofix/v3/autofixStartCard.tsx": {
-    "react/todo": {
       "count": 1
     }
   },
@@ -400,11 +322,6 @@
       "count": 1
     }
   },
-  "static/app/components/events/interfaces/crashContent/stackTrace/content.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/components/events/interfaces/csp/help/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -450,11 +367,6 @@
       "count": 1
     }
   },
-  "static/app/components/events/interfaces/request/graphQlRequestBody.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/components/events/interfaces/sourceMapsDebuggerModal.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -478,9 +390,6 @@
   "static/app/components/events/interfaces/threads.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    },
-    "react/rule-suppression": {
-      "count": 1
     }
   },
   "static/app/components/events/interfaces/threads/threadSelector/index.tsx": {
@@ -495,11 +404,6 @@
   },
   "static/app/components/events/interfaces/threads/threadSelector/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/components/events/rrwebReplayer/index.tsx": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -530,16 +434,6 @@
   },
   "static/app/components/eventTitleError.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/components/externalIssues/externalIssueForm.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/app/components/externalIssues/ticketRuleModal.tsx": {
-    "react/todo": {
       "count": 1
     }
   },
@@ -616,11 +510,6 @@
   "static/app/components/forms/controls/radioGroup.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    }
-  },
-  "static/app/components/forms/controls/rangeSlider/index.tsx": {
-    "react/rule-suppression": {
-      "count": 1
     }
   },
   "static/app/components/forms/controls/rangeSlider/sliderAndInputWrapper.tsx": {
@@ -839,9 +728,6 @@
   "static/app/components/modals/explore/saveQueryModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    },
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/components/modals/featureTourModal.tsx": {
@@ -924,11 +810,6 @@
       "count": 1
     }
   },
-  "static/app/components/onboarding/agenticProgress/agenticProgressList.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/components/onboarding/agenticProgress/useAgenticSetupRun.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -957,19 +838,11 @@
   "static/app/components/onboarding/gettingStartedDoc/onboardingLayout.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "react/rule-suppression": {
-      "count": 1
     }
   },
   "static/app/components/onboarding/gettingStartedDoc/step.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted.ts": {
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/components/onboarding/onboardingContext.spec.tsx": {
@@ -997,26 +870,6 @@
       "count": 1
     }
   },
-  "static/app/components/onboarding/scm/scmPlatformFeaturesCore.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/app/components/onboarding/scm/useScmProjectCreation.ts": {
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/app/components/onboarding/scm/useScmProjectDetails.ts": {
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/app/components/onboarding/scm/useScmRepoSelection.ts": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/components/onboarding/stepper.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1032,28 +885,8 @@
       "count": 1
     }
   },
-  "static/app/components/pageFilters/container.tsx": {
-    "react/rule-suppression": {
-      "count": 2
-    }
-  },
   "static/app/components/panels/panelFooter.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/components/performance/searchBar.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/app/components/performance/spanSearchQueryBuilder.tsx": {
-    "react/todo": {
-      "count": 4
-    }
-  },
-  "static/app/components/performance/teamKeyTransactionsManager.tsx": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -1112,18 +945,8 @@
       "count": 1
     }
   },
-  "static/app/components/profiling/flamegraph/continuousFlamegraph.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/components/profiling/flamegraph/flamegraph.spec.tsx": {
     "@sentry/prefer-fake-timers": {
-      "count": 1
-    }
-  },
-  "static/app/components/profiling/flamegraph/flamegraph.tsx": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -1149,9 +972,6 @@
   },
   "static/app/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -1188,11 +1008,6 @@
   "static/app/components/projectList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/components/projects/missingProjectMembership.tsx": {
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/components/questionTooltip.stories.tsx": {
@@ -1388,9 +1203,6 @@
   "static/app/components/resultGrid.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/components/scoreCard.tsx": {
@@ -1428,11 +1240,6 @@
       "count": 1
     }
   },
-  "static/app/components/searchQueryBuilder/askSeerCombobox/useAskSeerPolling.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/components/searchQueryBuilder/index.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 2
@@ -1461,11 +1268,6 @@
       "count": 1
     }
   },
-  "static/app/components/searchQueryBuilder/tokens/filter/filterValueText.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/components/searchQueryBuilder/tokens/filter/functionDescription.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1478,11 +1280,6 @@
   },
   "static/app/components/searchQueryBuilder/tokens/filter/unstyledButton.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems.ts": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -1526,11 +1323,6 @@
       "count": 1
     }
   },
-  "static/app/components/seer/markdown/__stories__/components.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/components/seer/markdown/__stories__/savedIssueViewEmbedStory.spec.tsx": {
     "@sentry/prefer-fake-timers": {
       "count": 1
@@ -1566,31 +1358,13 @@
       "count": 2
     }
   },
-  "static/app/components/seer/projectTable/seerProjectTable.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/app/components/seer/repoTable/seerRepoTableHeader.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/components/seer/seerAutomationProjectList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    },
-    "react/todo": {
-      "count": 2
     }
   },
   "static/app/components/selectMembers/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/components/sentryDocumentTitle/documentTitleManager.tsx": {
-    "react/todo": {
       "count": 1
     }
   },
@@ -1649,16 +1423,6 @@
       "count": 3
     }
   },
-  "static/app/components/structuredEventData/recursiveStructuredData.tsx": {
-    "react/todo": {
-      "count": 2
-    }
-  },
-  "static/app/components/tables/columnLabel.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/components/tables/keyValueTable/keyValueTable.stories.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -1666,11 +1430,6 @@
   },
   "static/app/components/tables/keyValueTable/keyValueTableDataRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/components/tables/useColumnResize.spec.tsx": {
-    "react/todo": {
       "count": 1
     }
   },
@@ -1867,11 +1626,6 @@
       "count": 1
     }
   },
-  "static/app/utils/api/useAggregatedQueryKeys.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/utils/demoMode/index.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -1897,17 +1651,9 @@
       "count": 3
     }
   },
-  "static/app/utils/list/useListItemCheckboxState.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/utils/performance/contexts/pageAlert.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    },
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/utils/profiling/canvasScheduler.spec.tsx": {
@@ -1915,24 +1661,9 @@
       "count": 6
     }
   },
-  "static/app/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphQueryParamSync.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/utils/projects.tsx": {
-    "react/rule-suppression": {
-      "count": 2
-    }
-  },
   "static/app/utils/replays/hooks/usePollReplayRecord.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 2
-    }
-  },
-  "static/app/utils/replays/hooks/useReplayData.tsx": {
-    "react/rule-suppression": {
-      "count": 1
     }
   },
   "static/app/utils/replays/hooks/useShareReplayAtTimestamp.tsx": {
@@ -1945,11 +1676,6 @@
       "count": 2
     }
   },
-  "static/app/utils/routeAnalytics/useRouteAnalyticsParams.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/utils/useBreakpoints.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -1957,16 +1683,6 @@
   },
   "static/app/utils/useDispatchingReducer.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
-  "static/app/utils/useDispatchingReducer.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/utils/useEffectAfterFirstRender.ts": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -1980,21 +1696,6 @@
       "count": 3
     }
   },
-  "static/app/utils/useLocalStorageState.ts": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/utils/useMemoWithPrevious.ts": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/utils/useOwners.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/utils/usePrevious.stories.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -2005,11 +1706,6 @@
       "count": 1
     }
   },
-  "static/app/utils/useProjects.tsx": {
-    "react/rule-suppression": {
-      "count": 2
-    }
-  },
   "static/app/utils/useRAF.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -2017,16 +1713,6 @@
   },
   "static/app/utils/useResizableDrawer.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/utils/useResizableDrawer.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/utils/useSessionStorage.tsx": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -2053,11 +1739,6 @@
   "static/app/views/admin/adminPackages.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/views/admin/adminRelays.tsx": {
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/views/admin/adminWarnings.tsx": {
@@ -2145,28 +1826,13 @@
       "count": 1
     }
   },
-  "static/app/views/automations/hooks/useAutomationBuilderErrors.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/views/dashboards/addWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
-  "static/app/views/dashboards/dashboard.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/views/dashboards/editAccessModal.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/filtersBar.tsx": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -2188,11 +1854,6 @@
   "static/app/views/dashboards/releasesSelectControl.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/views/dashboards/useSeerDashboardSession.tsx": {
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/views/dashboards/widgetBuilder/buildSteps/groupByStep/groupBySelector.tsx": {
@@ -2220,32 +1881,14 @@
       "count": 1
     }
   },
-  "static/app/views/dashboards/widgetBuilder/components/thresholds.tsx": {
-    "react/todo": {
-      "count": 2
-    }
-  },
   "static/app/views/dashboards/widgetBuilder/components/visualize/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/index.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/widgetBuilder/components/widgetBuilderSlideout.tsx": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/widgetTemplatesList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    },
-    "react/rule-suppression": {
-      "count": 2
     }
   },
   "static/app/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState.spec.tsx": {
@@ -2255,16 +1898,6 @@
   },
   "static/app/views/dashboards/widgetCard/chart.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/dashboards/widgetCard/hooks/useSpansWidgetQuery.tsx": {
-    "react/todo": {
-      "count": 2
-    }
-  },
-  "static/app/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck.tsx": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -2358,11 +1991,6 @@
       "count": 1
     }
   },
-  "static/app/views/detectors/components/forms/metric/metricsEquationVisualize.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/views/detectors/components/forms/metric/queryFilterBuilder.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2396,11 +2024,6 @@
   "static/app/views/detectors/components/uptime/detailsTimelineLegend.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/views/detectors/components/uptime/formErrors.spec.tsx": {
-    "react/rule-suppression": {
-      "count": 1
     }
   },
   "static/app/views/detectors/components/uptime/uptimeAlertForm.tsx": {
@@ -2443,11 +2066,6 @@
       "count": 1
     }
   },
-  "static/app/views/discover/table/arithmeticInput.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/views/discover/table/cellAction.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -2456,9 +2074,6 @@
   "static/app/views/discover/table/columnEditCollection.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    },
-    "react/rule-suppression": {
-      "count": 1
     }
   },
   "static/app/views/discover/table/columnEditModal.tsx": {
@@ -2469,11 +2084,6 @@
   "static/app/views/discover/table/quickContext/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
-    }
-  },
-  "static/app/views/discover/table/useEventViewTable.spec.tsx": {
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal.tsx": {
@@ -2516,11 +2126,6 @@
       "count": 2
     }
   },
-  "static/app/views/explore/hooks/useTraces.spec.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/views/explore/logs/exports/logsDirectExportModalButton.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -2559,29 +2164,9 @@
       "count": 1
     }
   },
-  "static/app/views/explore/logs/tables/logsInfiniteTable.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/views/explore/logs/tables/logsTableRow.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 2
-    }
-  },
-  "static/app/views/explore/logs/useLogsAutoRefreshInterval.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/logs/useLogsQuery.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/views/explore/logs/useLogsSearchQueryBuilderProps.tsx": {
-    "react/todo": {
-      "count": 4
     }
   },
   "static/app/views/explore/metrics/hooks/partitionHeatMapWindows.spec.tsx": {
@@ -2597,11 +2182,6 @@
   "static/app/views/explore/metrics/metricInfoTabs/metricInfoTabStyles.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/explore/metrics/metricToolbar/filter.tsx": {
-    "react/todo": {
-      "count": 4
     }
   },
   "static/app/views/explore/metrics/metricToolbar/index.spec.tsx": {
@@ -2621,9 +2201,6 @@
   },
   "static/app/views/explore/profiling/continuousProfileFlamegraph.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -2649,9 +2226,6 @@
   },
   "static/app/views/explore/profiling/profileFlamechart.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -2703,14 +2277,6 @@
   "static/app/views/explore/releases/drawer/releasesDrawerDetails.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "react/todo": {
-      "count": 2
-    }
-  },
-  "static/app/views/explore/releases/drawer/useReleasesDrawer.tsx": {
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/views/explore/releases/list/releaseCard/index.tsx": {
@@ -2728,11 +2294,6 @@
       "count": 1
     }
   },
-  "static/app/views/explore/releases/list/releasesPromo.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/views/explore/replays/detail/ai/chapterList.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -2746,11 +2307,6 @@
   "static/app/views/explore/replays/detail/console/consoleLogRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/views/explore/replays/detail/console/format.tsx": {
-    "react/todo": {
-      "count": 5
     }
   },
   "static/app/views/explore/replays/detail/header/replayDetailsEntityHeader.spec.tsx": {
@@ -2848,11 +2404,6 @@
       "count": 1
     }
   },
-  "static/app/views/explore/spans/content.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/views/explore/spans/tour.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2880,11 +2431,6 @@
   },
   "static/app/views/explore/toolbar/toolbarVisualize.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/feedback/feedbackEmptyState.tsx": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -2925,9 +2471,6 @@
   },
   "static/app/views/insights/common/components/spanDescription.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -2976,21 +2519,8 @@
       "count": 1
     }
   },
-  "static/app/views/insights/http/queries/useStatusPageList.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/views/insights/pages/agents/components/aiSpanTimeline.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/app/views/insights/pages/agents/components/evaluationContent.tsx": {
-    "react/todo": {
       "count": 1
     }
   },
@@ -3049,17 +2579,9 @@
       "count": 1
     }
   },
-  "static/app/views/issueDetails/actions/index.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/views/issueDetails/actions/shareModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 6
-    },
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/views/issueDetails/activitySection/activityLineItem/actor.tsx": {
@@ -3087,19 +2609,9 @@
       "count": 2
     }
   },
-  "static/app/views/issueDetails/activitySection/activityNoteInput.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/views/issueDetails/activitySection/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/views/issueDetails/context.tsx": {
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/views/issueDetails/divider.tsx": {
@@ -3147,11 +2659,6 @@
       "count": 1
     }
   },
-  "static/app/views/issueDetails/groupReplays/groupReplays.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/views/issueDetails/groupTags/tagDistribution.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 5
@@ -3175,11 +2682,6 @@
   "static/app/views/issueDetails/issueCronCheckTimeline.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    }
-  },
-  "static/app/views/issueDetails/issueDetailsTour.tsx": {
-    "react/todo": {
-      "count": 1
     }
   },
   "static/app/views/issueDetails/issueTagsPreview.tsx": {
@@ -3227,11 +2729,6 @@
       "count": 1
     }
   },
-  "static/app/views/issueList/actions/index.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/views/issueList/issueViews/createIssueViewModal.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -3267,16 +2764,6 @@
       "count": 1
     }
   },
-  "static/app/views/issueList/overview.tsx": {
-    "react/rule-suppression": {
-      "count": 2
-    }
-  },
-  "static/app/views/issueList/pages/inbox/issuePreview/issuePreviewSeerActions.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/views/navigation/primary/whatsNew.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 5
@@ -3300,11 +2787,6 @@
   "static/app/views/onboarding/scmMessaging.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
-    }
-  },
-  "static/app/views/onboarding/scmMessaging.tsx": {
-    "react/todo": {
-      "count": 2
     }
   },
   "static/app/views/organizationStats/teamInsights/teamIssuesAge.tsx": {
@@ -3355,14 +2837,6 @@
   "static/app/views/performance/landing/widgets/components/performanceWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    },
-    "react/rule-suppression": {
-      "count": 2
-    }
-  },
-  "static/app/views/performance/landing/widgets/components/queryHandler.tsx": {
-    "react/rule-suppression": {
-      "count": 2
     }
   },
   "static/app/views/performance/landing/widgets/components/selectableList.tsx": {
@@ -3373,22 +2847,11 @@
   "static/app/views/performance/landing/widgets/widgets/histogramWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/landing/widgets/widgets/lineChartListWidget.tsx": {
-    "react/rule-suppression": {
-      "count": 2
     }
   },
   "static/app/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "react/rule-suppression": {
-      "count": 2
     }
   },
   "static/app/views/performance/landing/widgets/widgets/performanceScoreWidget.tsx": {
@@ -3399,19 +2862,6 @@
   "static/app/views/performance/landing/widgets/widgets/singleFieldAreaWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    },
-    "react/rule-suppression": {
-      "count": 2
-    }
-  },
-  "static/app/views/performance/landing/widgets/widgets/stackedAreaChartListWidget.tsx": {
-    "react/rule-suppression": {
-      "count": 2
-    }
-  },
-  "static/app/views/performance/landing/widgets/widgets/trendsWidget.tsx": {
-    "react/rule-suppression": {
-      "count": 1
     }
   },
   "static/app/views/performance/onboarding.tsx": {
@@ -3419,33 +2869,8 @@
       "count": 1
     }
   },
-  "static/app/views/performance/table.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/views/performance/traceDetails/trace.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/traceDetails/trace.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/traceDetails/traceApi/useIssuesTraceTree.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/traceDetails/traceApi/useTrace.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/traceDetails/traceApi/useTraceTree.tsx": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -3497,14 +2922,6 @@
   "static/app/views/performance/traceDetails/traceDrawer/traceDrawer.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 5
-    },
-    "react/rule-suppression": {
-      "count": 2
-    }
-  },
-  "static/app/views/performance/traceDetails/traceDrawer/usePassiveResizeableDrawer.tsx": {
-    "react/rule-suppression": {
-      "count": 1
     }
   },
   "static/app/views/performance/traceDetails/traceHeader/highlights.tsx": {
@@ -3567,11 +2984,6 @@
       "count": 1
     }
   },
-  "static/app/views/performance/traceDetails/traceWaterfall.tsx": {
-    "react/rule-suppression": {
-      "count": 2
-    }
-  },
   "static/app/views/performance/traceDetails/traceWaterfallState.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -3582,18 +2994,8 @@
       "count": 1
     }
   },
-  "static/app/views/performance/traceDetails/useTraceWaterfallModels.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/views/performance/transactionSummary/transactionEvents/eapSampledEventsTable.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/performance/transactionSummary/transactionEvents/eventsTable.tsx": {
-    "react/todo": {
       "count": 1
     }
   },
@@ -3610,21 +3012,6 @@
   "static/app/views/performance/transactionSummary/transactionThresholdModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/performance/transactionSummary/useEventViewProject.ts": {
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/app/views/preprod/buildComparison/main/insights/fileInsightDiffTable.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/app/views/preprod/buildComparison/main/insights/groupInsightDiffTable.tsx": {
-    "react/todo": {
-      "count": 2
     }
   },
   "static/app/views/preprod/buildComparison/main/sizeCompareSelectedBuilds.tsx": {
@@ -3662,11 +3049,6 @@
       "count": 1
     }
   },
-  "static/app/views/preprod/snapshots/main/collapsibleBadgeRow.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/views/preprod/snapshots/main/imageDisplay/diffImageDisplay.snapshots.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3689,11 +3071,6 @@
   },
   "static/app/views/preprod/snapshots/main/snapshotDiffBodies.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/preprod/snapshots/main/snapshotListView.tsx": {
-    "react/todo": {
       "count": 1
     }
   },
@@ -3724,9 +3101,6 @@
   },
   "static/app/views/projectInstall/createProject.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "react/todo": {
       "count": 1
     }
   },
@@ -3763,9 +3137,6 @@
   "static/app/views/relocation/relocation.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
-    },
-    "react/rule-suppression": {
-      "count": 2
     }
   },
   "static/app/views/relocation/uploadBackup.tsx": {
@@ -3775,14 +3146,6 @@
   },
   "static/app/views/routeError.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/app/views/seerExplorer/components/agentWriteApprovalBlock.tsx": {
-    "react/todo": {
       "count": 1
     }
   },
@@ -3798,9 +3161,6 @@
   },
   "static/app/views/seerExplorer/components/chat/toolUse.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "react/todo": {
       "count": 1
     }
   },
@@ -3837,11 +3197,6 @@
   "static/app/views/seerExplorer/utils.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/seerExplorer/utils.tsx": {
-    "react/todo": {
-      "count": 3
     }
   },
   "static/app/views/seerExplorer/xray/seerXRayOverlay.spec.tsx": {
@@ -3990,9 +3345,6 @@
   "static/app/views/settings/dynamicSampling/projectSampling.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "react/rule-suppression": {
-      "count": 1
     }
   },
   "static/app/views/settings/dynamicSampling/projectsEditTable.tsx": {
@@ -4045,11 +3397,6 @@
       "count": 2
     }
   },
-  "static/app/views/settings/organizationDeveloperSettings/permissionSelection.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/organizationDeveloperSettings/permissionsObserver.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4080,11 +3427,6 @@
       "count": 1
     }
   },
-  "static/app/views/settings/organizationIntegrations/configureIntegration.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/organizationIntegrations/detailedView/integrationLayout.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
@@ -4105,19 +3447,9 @@
       "count": 1
     }
   },
-  "static/app/views/settings/organizationIntegrations/integrationServerlessFunctions.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/organizationIntegrations/repositoryProjectPathConfigForm.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/settings/organizationIntegrations/sentryAppExternalForm.tsx": {
-    "react/todo": {
-      "count": 2
     }
   },
   "static/app/views/settings/organizationMembers/inviteBanner.tsx": {
@@ -4157,9 +3489,6 @@
   },
   "static/app/views/settings/organizationTeams/teamDetails.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "react/todo": {
       "count": 1
     }
   },
@@ -4218,11 +3547,6 @@
       "count": 1
     }
   },
-  "static/app/views/settings/project/tempest/PlayStationSettings.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/projectDebugFiles/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4245,11 +3569,6 @@
   },
   "static/app/views/settings/projectSourceMaps/sourceMapsList.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 3
-    }
-  },
-  "static/app/views/settings/projectUserFeedback/index.tsx": {
-    "react/todo": {
       "count": 3
     }
   },
@@ -4318,11 +3637,6 @@
       "count": 1
     }
   },
-  "static/gsAdmin/components/extendProductTrialAction.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/gsAdmin/components/pageHeader.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4340,11 +3654,6 @@
   },
   "static/gsAdmin/components/selectableContainer.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/gsAdmin/components/suspendAccountAction.tsx": {
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -4411,9 +3720,6 @@
   "static/gsAdmin/views/relocationCreate.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    },
-    "react/todo": {
-      "count": 1
     }
   },
   "static/gsApp/components/ai/AiSetupDataConsent.tsx": {
@@ -4428,11 +3734,6 @@
   },
   "static/gsApp/components/creditCardEdit/intentForms/innerIntentForm.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
-  "static/gsApp/components/creditCardEdit/intentForms/innerIntentForm.tsx": {
-    "react/todo": {
       "count": 1
     }
   },
@@ -4463,9 +3764,6 @@
   },
   "static/gsApp/components/gsBanner.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    },
-    "react/rule-suppression": {
       "count": 1
     }
   },
@@ -4589,26 +3887,6 @@
       "count": 9
     }
   },
-  "static/gsApp/overrides/useRouteActivatedHook.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
-  "static/gsApp/utils/useFeedbackInit.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/gsApp/utils/useReplayInit.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
-  "static/gsApp/views/amCheckout/components/cart.tsx": {
-    "react/rule-suppression": {
-      "count": 1
-    }
-  },
   "static/gsApp/views/amCheckout/components/cartDiff.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -4641,9 +3919,6 @@
   },
   "static/gsApp/views/seerAutomation/onboarding/onboardingLegacy.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    },
-    "react/todo": {
       "count": 2
     }
   },
@@ -4687,11 +3962,6 @@
       "count": 1
     }
   },
-  "static/packages/scraps/src/layout/stack.spec.tsx": {
-    "react/todo": {
-      "count": 1
-    }
-  },
   "tests/js/sentry-test/nuqsTestingAdapter.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -4700,9 +3970,6 @@
   "tests/js/sentry-test/reactTestingLibrary.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 5
-    },
-    "react/todo": {
-      "count": 1
     }
   }
 }

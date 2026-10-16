@@ -46,6 +46,7 @@ export function HistogramWidget(props: PerformanceWidgetProps) {
         transform: transformHistogramQuery,
       },
     };
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.chartSetting, mepSetting.memoizationKey, location]);
 

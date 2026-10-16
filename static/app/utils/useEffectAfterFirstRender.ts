@@ -14,6 +14,7 @@ const useEffectAfterFirstRender = (
 
     cb();
     // Dependencies are explicitly managed and the deps warning is enabled for the custom hook.
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 };

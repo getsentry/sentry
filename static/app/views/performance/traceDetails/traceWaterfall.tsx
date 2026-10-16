@@ -181,6 +181,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     });
 
     return () => cleanup();
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.tree, props.replayTraces]);
 
@@ -207,6 +208,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       },
     });
     // We only want to update the tabs when the tree changes
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.tree]);
 

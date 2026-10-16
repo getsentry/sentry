@@ -143,6 +143,7 @@ export function ListItemCheckboxProvider({
   useEffect(() => {
     endpointOptionsRef.current = endpointOptions;
     setState({ids: new Set()});
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serializedEndpointOptions]);
 

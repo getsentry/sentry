@@ -306,6 +306,7 @@ export function Projects({
     } else {
       loadAllProjects();
     }
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -328,6 +329,7 @@ export function Projects({
       const projectsFromStore = slugs.map(slug => projectsMap.get(slug)).filter(defined);
       setState({projectsFromStore});
     }
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projects]);
 
