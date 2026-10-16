@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import iconAndroid from 'sentry-logos/logo-android.svg';
 import iconChrome from 'sentry-logos/logo-chrome.svg';
@@ -11,7 +10,8 @@ import iconSafari from 'sentry-logos/logo-safari.svg';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
+import {Tag} from '@sentry/scraps/badge';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {
   AutoSaveForm,
   defaultFormOptions,
@@ -19,9 +19,11 @@ import {
   FormSearch,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Image} from '@sentry/scraps/image';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
@@ -94,7 +96,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   },
   safari_pre_6: {
     icon: iconSafari,
-    helpText: '(Deprecated) Version 5 and lower',
+    helpText: 'Version 5 and lower',
     title: 'Safari',
     legacy: true,
   },
@@ -112,7 +114,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   },
   android_pre_4: {
     icon: iconAndroid,
-    helpText: '(Deprecated) Version 3 and lower',
+    helpText: 'Version 3 and lower',
     title: 'Android',
     legacy: true,
   },
@@ -124,7 +126,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   },
   edge_pre_79: {
     icon: iconEdgeLegacy,
-    helpText: '(Deprecated) Version 18 and lower',
+    helpText: 'Version 18 and lower',
     title: 'Edge (Legacy)',
     legacy: true,
   },
@@ -136,25 +138,25 @@ const LEGACY_BROWSER_SUBFILTERS = {
   },
   ie_pre_9: {
     icon: iconIe,
-    helpText: '(Deprecated) Version 8 and lower',
+    helpText: 'Version 8 and lower',
     title: 'Internet Explorer',
     legacy: true,
   },
   ie9: {
     icon: iconIe,
-    helpText: '(Deprecated) Version 9',
+    helpText: 'Version 9',
     title: 'Internet Explorer',
     legacy: true,
   },
   ie10: {
     icon: iconIe,
-    helpText: '(Deprecated) Version 10',
+    helpText: 'Version 10',
     title: 'Internet Explorer',
     legacy: true,
   },
   ie11: {
     icon: iconIe,
-    helpText: '(Deprecated) Version 11',
+    helpText: 'Version 11',
     title: 'Internet Explorer',
     legacy: true,
   },
@@ -166,7 +168,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   },
   opera_pre_15: {
     icon: iconOpera,
-    helpText: '(Deprecated) Version 14 and lower',
+    helpText: 'Version 14 and lower',
     title: 'Opera',
     legacy: true,
   },
@@ -178,7 +180,7 @@ const LEGACY_BROWSER_SUBFILTERS = {
   },
   opera_mini_pre_8: {
     icon: iconOpera,
-    helpText: '(Deprecated) Version 8 and lower',
+    helpText: 'Version 8 and lower',
     title: 'Opera Mini',
     legacy: true,
   },
@@ -233,55 +235,60 @@ function LegacyBrowserFilterRow({
     onToggle([...newSet]);
   };
 
+  const visibleSubfilters = (
+    Object.keys(LEGACY_BROWSER_SUBFILTERS) as LegacyBrowserSubfilterKeys
+  ).filter(key => !LEGACY_BROWSER_SUBFILTERS[key].legacy || subfilterSet.has(key));
+
   return (
-    <Stack flexGrow={1} width="100%">
-      <Flex align="center" gap="xs" justify="between">
-        <Flex align="center" gap="xs">
+    <Stack flexGrow={1} width="100%" gap="md">
+      <Stack gap="xs">
+        <Flex align="center" gap="md" justify="between" wrap="wrap">
           {label}
-          <Grid flow="column" align="center" gap="md">
-            <Button
-              variant="link"
-              onClick={() => onToggle(getActiveSubfilters())}
-              disabled={disabled}
-            >
-              {t('All')}
-            </Button>
-            <Button variant="link" onClick={() => onToggle([])} disabled={disabled}>
-              {t('None')}
-            </Button>
-          </Grid>
+          <Flex align="center" gap="md">
+            {indicator}
+            <ButtonBar size="xs">
+              <Button onClick={() => onToggle(getActiveSubfilters())} disabled={disabled}>
+                {t('All')}
+              </Button>
+              <Button onClick={() => onToggle([])} disabled={disabled}>
+                {t('None')}
+              </Button>
+            </ButtonBar>
+          </Flex>
         </Flex>
-        {indicator}
-      </Flex>
-      {hintText}
-      <Grid columns={{zero: '1fr', md: '1fr 1fr'}} gap="lg" paddingTop="xl">
-        {(Object.keys(LEGACY_BROWSER_SUBFILTERS) as LegacyBrowserSubfilterKeys)
-          .filter(key => {
-            if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
-              return true;
-            }
-            return subfilterSet.has(key);
-          })
-          .map(key => {
+        {hintText}
+      </Stack>
+      <Container border="primary" radius="md" overflow="hidden">
+        <Stack>
+          {visibleSubfilters.map((key, index) => {
             const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
+            const ariaLabel = subfilter.legacy
+              ? `${subfilter.title} ${subfilter.helpText} (${t('deprecated')})`
+              : `${subfilter.title} ${subfilter.helpText}`;
             return (
-              <FilterGridItem key={key}>
-                <FilterGridIcon src={subfilter.icon} />
-                <div>
-                  <FilterTitle>{subfilter.title}</FilterTitle>
-                  <FilterDescription>{subfilter.helpText}</FilterDescription>
-                </div>
-                <Switch
-                  aria-label={`${subfilter.title} ${subfilter.helpText}`}
-                  checked={subfilterSet.has(key)}
-                  disabled={disabled}
-                  onChange={() => toggleSubfilter(key)}
-                  size="lg"
-                />
-              </FilterGridItem>
+              <Fragment key={key}>
+                {index > 0 && <Stack.Separator />}
+                <Flex align="center" gap="md" padding="md lg">
+                  <Image src={subfilter.icon} alt="" width="24px" height="24px" />
+                  <Flex align="baseline" gap="sm" wrap="wrap" flexGrow={1}>
+                    <Text bold>{subfilter.title}</Text>
+                    <Text size="sm" variant="muted">
+                      {subfilter.helpText}
+                    </Text>
+                    {subfilter.legacy && <Tag variant="muted">{t('Deprecated')}</Tag>}
+                  </Flex>
+                  <Switch
+                    aria-label={ariaLabel}
+                    checked={subfilterSet.has(key)}
+                    disabled={disabled}
+                    onChange={() => toggleSubfilter(key)}
+                  />
+                </Flex>
+              </Fragment>
             );
           })}
-      </Grid>
+        </Stack>
+      </Container>
     </Stack>
   );
 }
@@ -298,7 +305,9 @@ const projectBooleanSchema = z.object({
   'filters:chunk-load-error': z.boolean(),
 });
 
-const legacyBrowserSchema = z.object({'legacy-browsers': z.array(z.string())});
+const legacyBrowserSchema = z.object({
+  'legacy-browsers': z.array(z.string()),
+});
 
 const blacklistedIpsSchema = z.object({
   'filters:blacklisted_ips': z.string(),
@@ -899,28 +908,3 @@ export function ProjectFiltersSettings({project, params}: Props) {
     </FormSearch>
   );
 }
-
-const FilterGridItem = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr max-content;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-  background: ${p => p.theme.tokens.background.secondary};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.lg};
-`;
-
-const FilterGridIcon = styled('img')`
-  width: 38px;
-  height: 38px;
-`;
-
-const FilterTitle = styled('div')`
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const FilterDescription = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-`;
