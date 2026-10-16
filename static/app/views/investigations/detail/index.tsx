@@ -34,6 +34,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
 import {
   getInvestigationDetailQueryOptions,
+  investigationCommentCountsQueryOptions,
   investigationListQueryOptions,
   investigationOrchestrationQueryOptions,
   investigationTitleGenerationQueryOptions,
@@ -153,6 +154,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const commentCount = comments?.json.length ?? 0;
   const hasMoreComments =
     parseLinkHeader(comments?.headers.Link ?? null).next?.results === true;
+  const isArchived = investigation.status === 'archived';
+  const {data: commentCounts} = useQuery({
+    ...investigationCommentCountsQueryOptions(organization.slug, investigation.id),
+    refetchInterval: 10_000,
+  });
   const {openBlockComments} = useBlockCommentsDrawer(investigation.id);
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
@@ -488,7 +494,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   block={visibleSummaryBlock}
                   canRun={investigation.status === 'active'}
                   investigation={investigation}
-                  onComment={openBlockComments}
+                  commentCount={commentCounts?.[visibleSummaryBlock.id]}
+                  onComment={
+                    isArchived && commentCounts && !commentCounts[visibleSummaryBlock.id]
+                      ? undefined
+                      : openBlockComments
+                  }
                 />
               ) : null}
 
@@ -498,7 +509,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   block={block}
                   canRun={investigation.status === 'active'}
                   investigation={investigation}
-                  onComment={openBlockComments}
+                  commentCount={commentCounts?.[block.id]}
+                  onComment={
+                    isArchived && commentCounts && !commentCounts[block.id]
+                      ? undefined
+                      : openBlockComments
+                  }
                 />
               ))}
               {isAwaitingReportCell(investigation) ? (
