@@ -13,7 +13,11 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.activity import ActivitySerializerResponse
+from sentry.api.serializers.models.activity import (
+    ActivitySerializerResponse,
+    GroupNoteSerializerResponse,
+    serialize_group_notes,
+)
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
@@ -24,10 +28,7 @@ from sentry.issues.action_log.read_metrics import (
     activity_read_endpoint,
     record_activity_read,
 )
-from sentry.issues.action_log.types import (
-    GroupActionActor,
-    GroupActionType,
-)
+from sentry.issues.action_log.types import GroupActionActor
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -40,10 +41,6 @@ from sentry.types.activity import ActivityType
 from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
 
 logger = logging.getLogger(__name__)
-
-
-class GroupNoteSerializerResponse(ActivitySerializerResponse):
-    source: str | None
 
 
 @cell_silo_endpoint
@@ -68,36 +65,12 @@ class GroupNotesEndpoint(GroupEndpoint):
     def get(self, request: Request, group: Group) -> Response:
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 
-        def serialize_notes(page: list[Activity]) -> list[GroupNoteSerializerResponse]:
-            if not page:
-                return []
-
-            # Activity owns current comment state. GAL only enriches this page
-            # with source metadata; missing or delayed events cannot hide notes.
-            sources = dict(
-                GroupActionLogEntry.objects.filter(
-                    group_id=group.id,
-                    type=GroupActionType.COMMENT.value,
-                    idempotency_key__in=[activity_action_idempotency_key(note) for note in page],
-                ).values_list("idempotency_key", "source")
-            )
-            serialized_notes: list[ActivitySerializerResponse] = serialize(page, request.user)
-            return [
-                {
-                    **item,
-                    # Retain the data alias previously returned by GAL reads.
-                    "data": {**item["data"], "comment_id": note.id},
-                    "source": sources.get(activity_action_idempotency_key(note)),
-                }
-                for note, item in zip(page, serialized_notes)
-            ]
-
         response = self.paginate(
             request=request,
             queryset=notes,
             paginator_cls=DateTimePaginator,
             order_by="-datetime",
-            on_results=serialize_notes,
+            on_results=lambda page: serialize_group_notes(group, page, request.user),
         )
         record_activity_read(activity_read_endpoint(request), ActivityReadResult.ACTIVITY)
         return response
