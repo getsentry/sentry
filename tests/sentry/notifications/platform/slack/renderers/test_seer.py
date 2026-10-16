@@ -561,7 +561,7 @@ class SeerSlackRendererInvestigationTest(TestCase):
             provider=SlackNotificationProvider,
         )
 
-        assert renderable["text"] == "Investigating Checkout <errors>"
+        assert renderable["text"] == "Investigating Checkout &lt;errors&gt;"
         header, divider, actions = renderable["blocks"]
         assert isinstance(header, SectionBlock)
         assert header.text is not None

@@ -341,7 +341,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 ]
             )
         )
-        return SlackRenderable(blocks=blocks, text=text)
+        return SlackRenderable(blocks=blocks, text=escape_slack_text(text))
 
     @classmethod
     def _render_agent_response(
