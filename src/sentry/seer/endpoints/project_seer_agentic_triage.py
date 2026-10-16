@@ -2,11 +2,9 @@ from __future__ import annotations
 
 import logging
 
-from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -29,9 +27,6 @@ class ProjectSeerAgenticTriageEndpoint(ProjectEndpoint):
     permission_classes = (ProjectEventPermission,)
 
     def post(self, request: Request, project: Project) -> Response:
-        if not features.has("organizations:seer-night-shift", project.organization):
-            raise NotFound
-
         dry_run = bool(request.data.get("dryRun", False))
         triggering_user_id = request.user.id if request.user.is_authenticated else None
 
