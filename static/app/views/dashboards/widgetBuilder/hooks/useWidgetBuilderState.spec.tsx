@@ -34,13 +34,13 @@ describe('useWidgetBuilderState', () => {
     jest.useFakeTimers();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
       cleanup();
       // nuqs' update queue is a module singleton, so anything a test leaves
       // pending would be applied on top of the next test's initial URL.
       flushUrlUpdates();
-      act(() => jest.runOnlyPendingTimers());
+      await act(() => jest.runOnlyPendingTimersAsync());
     } finally {
       jest.useRealTimers();
       jest.clearAllMocks();

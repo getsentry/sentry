@@ -60,11 +60,11 @@ describe('SeerXRayOverlay', () => {
     jest.useFakeTimers({advanceTimers: true});
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
       cleanup();
       act(() => setXRayModeEnabled(false));
-      act(() => jest.runOnlyPendingTimers());
+      await act(() => jest.runOnlyPendingTimersAsync());
     } finally {
       jest.useRealTimers();
       Range.prototype.getBoundingClientRect = originalRangeGetBoundingClientRect;

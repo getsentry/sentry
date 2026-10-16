@@ -28,9 +28,9 @@ describe('parseStatsPeriod', () => {
     jest.useFakeTimers().setSystemTime(new Date('2001-11-15T12:34:56.789Z'));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
-      jest.runOnlyPendingTimers();
+      await jest.runOnlyPendingTimersAsync();
     } finally {
       jest.useRealTimers();
     }

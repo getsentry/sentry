@@ -16,10 +16,10 @@ describe('PartialTraceDataWarning', () => {
       jest.useFakeTimers().setSystemTime(new Date(2025, 0, 31));
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       try {
         cleanup();
-        act(() => jest.runOnlyPendingTimers());
+        await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
       }
@@ -74,10 +74,10 @@ describe('PartialTraceDataWarning', () => {
       jest.useFakeTimers().setSystemTime(new Date(2025, 0, 1));
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       try {
         cleanup();
-        act(() => jest.runOnlyPendingTimers());
+        await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
       }

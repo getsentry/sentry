@@ -17,10 +17,10 @@ describe('InvestigationRunTimer', () => {
     jest.setSystemTime(new Date('2030-01-01T00:00:00Z'));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
       cleanup();
-      act(() => jest.runOnlyPendingTimers());
+      await act(() => jest.runOnlyPendingTimersAsync());
     } finally {
       jest.useRealTimers();
     }

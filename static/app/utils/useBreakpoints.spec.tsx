@@ -54,10 +54,10 @@ describe('useBreakpoints', () => {
     window.innerWidth = 0;
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
       cleanup();
-      act(() => jest.runOnlyPendingTimers());
+      await act(() => jest.runOnlyPendingTimersAsync());
     } finally {
       jest.useRealTimers();
       window.innerWidth = originalWidth;

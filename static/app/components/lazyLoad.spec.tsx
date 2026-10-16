@@ -25,12 +25,12 @@ describe('LazyLoad', () => {
   beforeEach(() => {
     jest.useFakeTimers();
   });
-  afterEach(() => {
+  afterEach(async () => {
     try {
       cleanup();
       initialLoaderRoot?.remove();
       initialLoaderRoot = null;
-      act(() => jest.runOnlyPendingTimers());
+      await act(() => jest.runOnlyPendingTimersAsync());
     } finally {
       jest.useRealTimers();
       jest.restoreAllMocks();

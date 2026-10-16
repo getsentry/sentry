@@ -46,9 +46,9 @@ describe('CanvasScheduler', () => {
     expect(handler).not.toHaveBeenCalled();
   });
   describe('animation frame callbacks', () => {
-    afterEach(() => {
+    afterEach(async () => {
       try {
-        jest.runOnlyPendingTimers();
+        await jest.runOnlyPendingTimersAsync();
       } finally {
         jest.useRealTimers();
       }
@@ -140,9 +140,9 @@ describe('CanvasScheduler', () => {
     );
   });
   describe('disposal', () => {
-    afterEach(() => {
+    afterEach(async () => {
       try {
-        jest.runOnlyPendingTimers();
+        await jest.runOnlyPendingTimersAsync();
       } finally {
         jest.useRealTimers();
       }

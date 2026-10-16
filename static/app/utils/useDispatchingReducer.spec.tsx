@@ -15,10 +15,10 @@ describe('useDispatchingReducer', () => {
     });
     jest.useFakeTimers();
   });
-  afterEach(() => {
+  afterEach(async () => {
     try {
       cleanup();
-      act(() => jest.runOnlyPendingTimers());
+      await act(() => jest.runOnlyPendingTimersAsync());
     } finally {
       jest.useRealTimers();
     }

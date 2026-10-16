@@ -98,9 +98,9 @@ describe('canvasReplayerPlugin', () => {
     jest.clearAllTimers();
     jest.mocked(canvasMutation).mockClear();
   });
-  afterEach(() => {
+  afterEach(async () => {
     try {
-      jest.runOnlyPendingTimers();
+      await jest.runOnlyPendingTimersAsync();
     } finally {
       jest.useRealTimers();
     }

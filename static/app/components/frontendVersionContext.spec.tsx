@@ -32,10 +32,10 @@ describe('FrontendVersionProvider', () => {
     ConfigStore.set('sentryMode', 'SAAS');
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
       cleanup();
-      act(() => jest.runOnlyPendingTimers());
+      await act(() => jest.runOnlyPendingTimersAsync());
     } finally {
       jest.useRealTimers();
       jest.restoreAllMocks();

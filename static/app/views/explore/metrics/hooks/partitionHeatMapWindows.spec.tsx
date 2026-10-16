@@ -91,9 +91,9 @@ describe('partitionDateTimeIntoHeatMapWindows', () => {
       jest.useFakeTimers().setSystemTime(new Date('2024-01-31T00:00:00.000Z'));
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       try {
-        jest.runOnlyPendingTimers();
+        await jest.runOnlyPendingTimersAsync();
       } finally {
         jest.useRealTimers();
       }
