@@ -300,11 +300,6 @@
       "count": 2
     }
   },
-  "static/app/components/events/featureFlags/cta/featureFlagCTAContent.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/components/events/featureFlags/onboarding/featureFlagOnboardingLayout.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2002,14 +1997,14 @@
       "count": 1
     }
   },
-  "static/app/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 2
-    }
-  },
   "static/app/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
+    }
+  },
+  "static/app/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 2
     }
   },
   "static/app/views/dashboards/widgets/common/widgetLoadingPanel.tsx": {
