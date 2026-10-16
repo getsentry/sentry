@@ -117,7 +117,7 @@ const REASON_DESCRIPTIONS: Record<
       : t('Your organization hit its quota for this event type.'),
 };
 
-export function dataCategoryInfo(category: string) {
+function dataCategoryInfo(category: string) {
   return Object.values(DATA_CATEGORY_INFO).find(info => info.name === category);
 }
 
