@@ -7,12 +7,12 @@ from django.test import RequestFactory
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 
-from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
-from sentry.api.helpers.timeseries_processing import (
+from sentry.api.helpers.timeseries_transformations import (
     EmaSmoothTransformation,
     FillTransformation,
     SmaSmoothTransformation,
     Transformation,
+    get_transformations,
 )
 
 
@@ -73,7 +73,7 @@ from sentry.api.helpers.timeseries_processing import (
 def test_decode_transformations(query: str, expected: dict[int, list[Transformation]]) -> None:
     request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
 
-    assert OrganizationEventsTimeseriesEndpoint().get_transformations(request) == expected
+    assert get_transformations(request) == expected
 
 
 @pytest.mark.parametrize(
@@ -95,7 +95,7 @@ def test_decode_transformations_invalid_key(key: str) -> None:
     request = Request(RequestFactory().get("/events-timeseries/", {key: "fill(locf)"}))
 
     with pytest.raises(ParseError, match="Invalid transformations index"):
-        OrganizationEventsTimeseriesEndpoint().get_transformations(request)
+        get_transformations(request)
 
 
 @pytest.mark.parametrize(
@@ -110,7 +110,7 @@ def test_decode_transformations_index_out_of_range(query: str) -> None:
     request = Request(RequestFactory().get(f"/events-timeseries/?{query}"))
 
     with pytest.raises(ParseError, match="transformations index must match a yAxis position"):
-        OrganizationEventsTimeseriesEndpoint().get_transformations(request)
+        get_transformations(request)
 
 
 @pytest.mark.parametrize(
@@ -149,7 +149,7 @@ def test_decode_transformations_invalid_value(
 
     with caplog.at_level(logging.INFO, logger="sentry.api.utils"):
         with pytest.raises(ParseError) as error:
-            OrganizationEventsTimeseriesEndpoint().get_transformations(request)
+            get_transformations(request)
 
     assert error.value.detail == expected
     assert caplog.record_tuples == [("sentry.api.utils", logging.INFO, "A query error was handled")]
