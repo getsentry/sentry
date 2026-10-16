@@ -46,6 +46,9 @@ jobs:
           XDG_CACHE_HOME: ${{ github.workspace }}/.refactor-tasks-cache
           SENTRY_DSN: ${{ secrets.SENTRY_REFACTOR_TASKS_DSN }}
           OPENROUTER_API_KEY: ${{ secrets.REFACTOR_TASKS_OPENROUTER_API_KEY }}
+          # The type-aware no-deprecated-callsite detector runs out of heap at
+          # Node's default (~4GB) limit. frontend.yml raises it the same way.
+          NODE_OPTIONS: '--max-old-space-size=8192'
         # The conventions use the `search` block, which releases before 0.3.0
         # can't read.
         run: pnpm dlx '@sentry/refactor-tasks@>=0.3.0' scan-and-report
