@@ -2320,11 +2320,6 @@
       "count": 1
     }
   },
-  "static/app/views/explore/releases/list/releaseCard/releaseCardProjectRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "static/app/views/explore/releases/list/releaseCard/releaseCardStatsPeriod.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3303,11 +3298,6 @@
       "count": 1
     }
   },
-  "static/app/views/settings/account/mergeAccounts.tsx": {
-    "@sentry/scraps/no-manual-table": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/account/notifications/notificationSettings.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
@@ -3494,16 +3484,6 @@
   "static/app/views/settings/organizationIntegrations/integrationRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/settings/organizationIntegrations/integrationServerlessFunctions.tsx": {
-    "@sentry/scraps/no-manual-table": {
-      "count": 1
-    }
-  },
-  "static/app/views/settings/organizationIntegrations/integrationServerlessRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
     }
   },
   "static/app/views/settings/organizationIntegrations/repositoryProjectPathConfigForm.tsx": {
