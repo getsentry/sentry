@@ -58,6 +58,7 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.team import Team
 from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
+from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowConfigProject
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TestCase
@@ -2444,6 +2445,31 @@ class CustomImportBehaviorTests(ImportTestCase):
                 email="invited-by-owner@test.com",
                 inviter_id__isnull=False,
             ).exists()
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
+
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, SeerWorkflowConfig, SeerWorkflowConfigProject)
+    def test_seer_workflow_config_scope_remapped_and_service_account_cleared(
+        self, expected_models: list[type[Model]]
+    ) -> None:
+        owner = self.create_exhaustive_user("owner")
+        member = self.create_exhaustive_user("member")
+        self.create_exhaustive_organization("test-org", owner, member)
+        exported_project_id = SeerWorkflowConfigProject.objects.get().project_id
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+
+            config = SeerWorkflowConfig.objects.get()
+            selected = SeerWorkflowConfigProject.objects.get(config=config)
+            assert config.service_account_id is None
+            assert config.environments == ["production"]
+            assert not config.is_all_projects
+            assert selected.project_id != exported_project_id
+            assert selected.project.organization_id == config.organization_id
 
             with open(tmp_path, "rb") as tmp_file:
                 verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))

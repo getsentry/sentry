@@ -7,7 +7,9 @@ from django.contrib.postgres.fields.array import ArrayField
 from django.core.exceptions import ValidationError
 from django.db import models, router, transaction
 
-from sentry.backup.scopes import RelocationScope
+from sentry.backup.dependencies import PrimaryKeyMap
+from sentry.backup.helpers import ImportFlags
+from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -53,7 +55,7 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     project-repository associations.
     """
 
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     strategy = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
@@ -188,6 +190,17 @@ class SeerWorkflowConfig(DefaultFieldsModel):
             )
         return list(projects.order_by("id").values_list("id", flat=True))
 
+    def normalize_before_relocation_import(
+        self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
+    ) -> int | None:
+        old_pk = super().normalize_before_relocation_import(pk_map, scope, flags)
+        if old_pk is None:
+            return None
+
+        # The service account is not exported, so its id means nothing in the destination.
+        self.service_account_id = None
+        return old_pk
+
     @staticmethod
     def _validate_scope(
         organization_id: int,
@@ -247,7 +260,7 @@ class SeerWorkflowConfig(DefaultFieldsModel):
 class SeerWorkflowConfigProject(DefaultFieldsModel):
     """One selected project of a config whose `is_all_projects` is False."""
 
-    __relocation_scope__ = RelocationScope.Excluded
+    __relocation_scope__ = RelocationScope.Organization
 
     config = FlexibleForeignKey("seer.SeerWorkflowConfig", on_delete=models.CASCADE)
     project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
