@@ -398,6 +398,10 @@ def is_action_permitted(action_type: Action.Type, organization: Organization) ->
     """
     Check if an action type is permitted for an organization.
     """
+    if action_type == Action.Type.SEER_INVESTIGATION:
+        return features.has("organizations:investigations", organization) and features.has(
+            "organizations:investigations-alert-action", organization
+        )
     if not action_type.is_integration():
         return True
     integration_features = _get_integration_features(action_type)

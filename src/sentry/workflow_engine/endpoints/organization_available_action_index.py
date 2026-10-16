@@ -204,6 +204,17 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                         )
                     )
 
+            elif action_type == Action.Type.SEER_INVESTIGATION:
+                if is_action_permitted(Action.Type(action_type), organization):
+                    actions.append(
+                        serialize(
+                            handler,
+                            request.user,
+                            ActionHandlerSerializer(),
+                            action_type=action_type,
+                        )
+                    )
+
             # add all other action types (EMAIL, etc.)
             else:
                 actions.append(

@@ -79,6 +79,8 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         PLUGIN = "plugin"
         WEBHOOK = "webhook"
 
+        SEER_INVESTIGATION = "seer_investigation"
+
         def is_integration(self) -> bool:
             """
             Returns True if the action is an integration action.
@@ -89,6 +91,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 Action.Type.SENTRY_APP,
                 Action.Type.PLUGIN,
                 Action.Type.WEBHOOK,
+                Action.Type.SEER_INVESTIGATION,
             ]
 
     # The type field is used to denote the type of action we want to trigger

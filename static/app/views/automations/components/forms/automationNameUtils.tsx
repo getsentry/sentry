@@ -23,6 +23,8 @@ export function getActionDescription(action: Action): string {
       }
       return t('Notify %s', action.config.targetDisplay || t('member'));
     }
+    case ActionType.SEER_INVESTIGATION:
+      return t('Start a Seer investigation');
     case ActionType.SENTRY_APP:
     case ActionType.WEBHOOK:
       return t(

@@ -47,6 +47,10 @@ import {
 } from 'sentry/views/automations/components/actions/pagerduty';
 import {PluginNode} from 'sentry/views/automations/components/actions/plugin';
 import {
+  SeerInvestigationDetails,
+  SeerInvestigationNode,
+} from 'sentry/views/automations/components/actions/seerInvestigation';
+import {
   SentryAppDetails,
   SentryAppNode,
 } from 'sentry/views/automations/components/actions/sentryApp';
@@ -169,6 +173,15 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
       label: t('Legacy integrations'),
       action: PluginNode,
       details: PluginNode,
+      validate: undefined,
+    },
+  ],
+  [
+    ActionType.SEER_INVESTIGATION,
+    {
+      label: t('Start a Seer investigation'),
+      action: SeerInvestigationNode,
+      details: SeerInvestigationDetails,
       validate: undefined,
     },
   ],

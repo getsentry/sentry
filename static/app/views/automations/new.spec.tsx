@@ -55,6 +55,11 @@ describe('AutomationNewSettings', () => {
           integrations: [{id: 'slack-1', name: 'My Slack Workspace'}],
         }),
         ActionHandlerFixture({
+          type: ActionType.SEER_INVESTIGATION,
+          handlerGroup: ActionGroup.SEER,
+          integrations: undefined,
+        }),
+        ActionHandlerFixture({
           type: ActionType.EMAIL,
           handlerGroup: ActionGroup.NOTIFICATION,
           integrations: undefined,
@@ -395,6 +400,7 @@ describe('AutomationNewSettings', () => {
     await addAction('Jira');
     await addAction('Jira Server');
     await addAction('Azure DevOps');
+    await addAction('Start a Seer investigation');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
 
@@ -454,6 +460,14 @@ describe('AutomationNewSettings', () => {
           targetDisplay: null,
         },
         data: {},
+      },
+      seer_investigation: {
+        type: 'seer_investigation',
+        config: {
+          targetType: null,
+          targetIdentifier: '',
+          targetDisplay: null,
+        },
       },
       webhook: {
         type: 'webhook',
