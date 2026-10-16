@@ -1,4 +1,4 @@
-import {PureComponent} from 'react';
+import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
@@ -21,25 +21,23 @@ type Props = {
   title?: string;
 };
 
-export class QueryCard extends PureComponent<Props> {
-  handleClick = () => {
-    const {onEventClick} = this.props;
+export const QueryCard = memo(function QueryCard({
+  title,
+  subtitle,
+  queryDetail,
+  renderContextMenu,
+  renderGraph,
+  createdBy,
+  dateStatus,
+  onEventClick,
+  to,
+}: Props) {
+  const handleClick = () => {
     onEventClick?.();
   };
 
-  render() {
-    const {
-      title,
-      subtitle,
-      queryDetail,
-      renderContextMenu,
-      renderGraph,
-      createdBy,
-      dateStatus,
-    } = this.props;
-
-    return (
-      <Link data-test-id={`card-${title}`} onClick={this.handleClick} to={this.props.to}>
+  return (
+    <Link data-test-id={`card-${title}`} onClick={handleClick} to={to}>
         <StyledQueryCard interactive>
           <QueryCardHeader>
             <QueryCardContent>
@@ -70,9 +68,8 @@ export class QueryCard extends PureComponent<Props> {
           </QueryCardFooter>
         </StyledQueryCard>
       </Link>
-    );
-  }
-}
+  );
+});
 
 const AvatarWrapper = styled('span')`
   border: 3px solid ${p => p.theme.tokens.border.primary};
