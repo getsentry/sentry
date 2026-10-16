@@ -230,6 +230,23 @@ class OrganizationTraceItemAttributeContextEndpointTest(
         assert "reserved sentry attribute" in response.data["detail"]
         assert not TraceItemAttributeContext.objects.filter(attribute_key="span.op").exists()
 
+    def test_rejects_dynamic_convention_attribute(self) -> None:
+        self.store_attribute(my_custom_attr="value")
+
+        for name in ("gen_ai.prompt.variable.UserQuery", "mcp.tool.result.0.content"):
+            response = self.do_request(
+                name,
+                {
+                    "dataset": "spans",
+                    "attributeType": "string",
+                    "brief": "My custom attribute",
+                },
+            )
+
+            assert response.status_code == 400, response.data
+            assert "reserved sentry attribute" in response.data["detail"]
+            assert not TraceItemAttributeContext.objects.filter(attribute_key=name).exists()
+
     def test_rejects_sentry_convention_internal_name(self) -> None:
         self.store_attribute(my_custom_attr="value")
 
