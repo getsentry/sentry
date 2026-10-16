@@ -6,6 +6,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 from django.urls import reverse
 
 from sentry.analytics.events.oauth_consent import OAuthConsentEvent
+from sentry.api.helpers.oauth_authorize.transactions import OAUTH_AUTHORIZE_SESSION_TTL
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -14,7 +15,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.analytics import assert_analytics_events_recorded
 from sentry.testutils.silo import control_silo_test
-from sentry.web.frontend.oauth_authorize import OAUTH_AUTHORIZE_SESSION_TTL
 
 
 @control_silo_test
