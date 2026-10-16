@@ -3487,11 +3487,6 @@
       "count": 1
     }
   },
-  "static/app/views/settings/organizationTeams/teamMembersRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/organizationTeams/teamNotifications.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
