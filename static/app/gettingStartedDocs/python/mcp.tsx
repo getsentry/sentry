@@ -22,19 +22,19 @@ export const mcp: OnboardingConfig = {
             text:
               params.platformOptions?.integration === 'mcp_sdk'
                 ? tct(
-                    'To enable MCP monitoring for the [code:fastmcp] and [code:mcp] packages, you need to install the Sentry SDK with a minimum version of [code:2.43.0] or higher.',
+                    'To enable MCP monitoring for the [code:fastmcp] and [code:mcp] packages, you need to install the Sentry SDK with a minimum version of [code:2.70.0] or higher.',
                     {
                       code: <code />,
                     }
                   )
                 : tct(
-                    'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:2.43.0] or higher.',
+                    'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:2.70.0] or higher.',
                     {
                       code: <code />,
                     }
                   ),
           },
-          getPythonInstallCodeBlock({packageName}),
+          getPythonInstallCodeBlock({packageName, minimumVersion: '2.70.0'}),
         ],
       },
     ];
@@ -64,7 +64,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from MCP servers;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
     integrations=[
         MCPIntegration(),
     ],

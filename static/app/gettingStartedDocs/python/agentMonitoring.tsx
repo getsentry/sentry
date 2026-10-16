@@ -13,7 +13,7 @@ import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/
 
 import {getPythonInstallCodeBlock} from './utils';
 
-const MIN_REQUIRED_VERSION = '2.64.0';
+const MIN_REQUIRED_VERSION = '2.70.0';
 
 export const agentMonitoring: OnboardingConfig = {
   introduction: params => (
@@ -59,7 +59,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],
@@ -86,7 +86,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],
@@ -113,7 +113,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],
@@ -140,7 +140,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],
@@ -167,7 +167,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],
@@ -194,7 +194,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],
@@ -227,7 +227,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
     integrations=[
         LiteLLMIntegration(),
     ],
@@ -251,7 +251,7 @@ sentry_sdk.init(
 sentry_sdk.init(
     dsn="${params.dsn.public}",
     traces_sample_rate=1.0,
-    send_default_pii=True,
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
         {
@@ -291,7 +291,7 @@ sentry_sdk.init(
     traces_sample_rate=1.0,
     # Add data like inputs and responses to/from LLMs and tools;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"gen_ai": {"inputs": True, "outputs": True}},
 )`,
         },
       ],

@@ -21,7 +21,7 @@ const FEATURE_FLAG_CONFIGURATION_MAP: Record<
     dsn="${dsn}",
     # Add data like request headers and IP for users, if applicable;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"user_info": True},
     integrations=[
         # your other integrations here
     ],
@@ -43,7 +43,7 @@ sentry_sdk.init(
     dsn="${dsn}",
     # Add data like request headers and IP for users, if applicable;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"user_info": True},
     integrations=[
         LaunchDarklyIntegration(),
     ],
@@ -63,7 +63,7 @@ sentry_sdk.init(
     dsn="${dsn}",
     # Add data like request headers and IP for users, if applicable;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"user_info": True},
     integrations=[
         OpenFeatureIntegration(),
     ],
@@ -85,7 +85,7 @@ sentry_sdk.init(
     dsn="${dsn}",
     # Add data like request headers and IP for users, if applicable;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"user_info": True},
     integrations=[StatsigIntegration()],
 )
 statsig.initialize("server-secret-key")`,
@@ -106,7 +106,7 @@ sentry_sdk.init(
     dsn="${dsn}",
     # Add data like request headers and IP for users, if applicable;
     # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
+    data_collection={"user_info": True},
     integrations=[UnleashIntegration()],
 )
 
