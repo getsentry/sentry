@@ -373,6 +373,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
     metadata = metadata
     integration_cls = BitbucketServerIntegration
     needs_default_identity = True
+    reject_pending_deletion_reinstall = True
     features = frozenset(
         [
             IntegrationFeatures.COMMITS,
