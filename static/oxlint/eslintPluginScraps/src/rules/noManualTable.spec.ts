@@ -13,21 +13,18 @@ const ruleTester = new RuleTester({
 ruleTester.run('no-manual-table', noManualTable, {
   valid: [
     {
-      name: 'SimpleTable',
       code: `
         import {SimpleTable} from 'sentry/components/tables/simpleTable';
         const x = <SimpleTable><SimpleTable.Row /></SimpleTable>;
       `,
     },
     {
-      name: 'a single Grid with a column template',
       code: `
         import {Grid} from '@sentry/scraps/layout';
         const x = <Grid columns="1fr 200px 150px">child</Grid>;
       `,
     },
     {
-      name: 'two Grids sharing a two-track template',
       code: `
         import {Grid} from '@sentry/scraps/layout';
         const x = <Grid columns="1fr 1fr">a</Grid>;
@@ -35,7 +32,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       `,
     },
     {
-      name: 'two Grids sharing a constant two-track template',
       code: `
         import {Grid} from '@sentry/scraps/layout';
         const COLUMNS = '1fr auto';
@@ -44,7 +40,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       `,
     },
     {
-      name: 'a Grid from another package',
       code: `
         import {Grid} from 'other-package';
         const header = <Grid columns="1fr 200px 150px">a</Grid>;
@@ -52,7 +47,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       `,
     },
     {
-      name: 'a PanelHeader styled without a column template',
       code: `
         import styled from '@emotion/styled';
         import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -62,7 +56,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       `,
     },
     {
-      name: 'two Grids sharing a template where neither repeats',
       code: `
         import {Grid} from '@sentry/scraps/layout';
         const x = <Grid columns="1fr 200px 150px">a</Grid>;
@@ -70,7 +63,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       `,
     },
     {
-      name: 'mapped Grids sharing a template without a header',
       code: `
         import {Grid} from '@sentry/scraps/layout';
         const rows = items.map(item => <Grid columns="1fr 200px 150px">{item}</Grid>);
@@ -78,7 +70,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       `,
     },
     {
-      name: 'a full-width subgrid row',
       code: `
         import styled from '@emotion/styled';
         const Row = styled('div')\`
@@ -88,7 +79,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       `,
     },
     {
-      name: 'a styled div with a unique column template',
       code: `
         import styled from '@emotion/styled';
         const Layout = styled('div')\`
@@ -100,7 +90,6 @@ ruleTester.run('no-manual-table', noManualTable, {
   ],
   invalid: [
     {
-      name: 'a raw table',
       code: `const x = <table><tr><th>Name</th></tr></table>;`,
       errors: [
         {messageId: 'tableElement', data: {element: 'table'}},
@@ -109,7 +98,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       ],
     },
     {
-      name: 'a styled table',
       code: `
         import styled from '@emotion/styled';
         const Table = styled('table')\`
@@ -119,7 +107,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       errors: [{messageId: 'tableElement', data: {element: 'table'}}],
     },
     {
-      name: 'an element rendered as a table row',
       code: `
         import {Flex} from '@sentry/scraps/layout';
         const x = <Flex as="tr">a</Flex>;
@@ -127,7 +114,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       errors: [{messageId: 'tableElement', data: {element: 'tr'}}],
     },
     {
-      name: 'a PanelHeader laid out as columns',
       code: `
         import styled from '@emotion/styled';
         import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -139,7 +125,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       errors: [{messageId: 'panelHeaderColumns'}],
     },
     {
-      name: 'a PanelHeader styled with a local grid mixin',
       code: `
         import styled from '@emotion/styled';
         import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -154,7 +139,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       errors: [{messageId: 'panelHeaderColumns'}],
     },
     {
-      name: 'a PanelHeader styled with an imported grid mixin',
       code: `
         import styled from '@emotion/styled';
         import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -166,7 +150,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       errors: [{messageId: 'panelHeaderColumns'}],
     },
     {
-      name: 'a header Grid and mapped row Grids sharing a template literal',
       code: `
         import {Grid} from '@sentry/scraps/layout';
         const header = <Grid columns="1fr repeat(2, 120px)">a</Grid>;
@@ -175,7 +158,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
     },
     {
-      name: 'a header Grid and mapped row Grids sharing a responsive template',
       code: `
         import {Grid} from '@sentry/scraps/layout';
         const header = <Grid columns={{zero: 'repeat(4, 1fr)', sm: 'repeat(5, 1fr)'}}>a</Grid>;
@@ -186,7 +168,6 @@ ruleTester.run('no-manual-table', noManualTable, {
       errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
     },
     {
-      name: 'a styled header and a mapped styled row sharing a constant',
       code: `
         import styled from '@emotion/styled';
         const GRID_TEMPLATE = 'minmax(100px, 1fr) 200px 150px';
