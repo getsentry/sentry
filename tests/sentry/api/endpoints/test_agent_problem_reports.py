@@ -46,7 +46,7 @@ class AgentProblemReportsEndpointTest(APITestCase):
         response = self.get_success_response(
             **_payload(
                 summary="token=sntrys_secretvalue is rejected",
-                observed="Email user@example.com was copied into the error.",
+                observed="Email user@example.com pasted sntrya_appsecret and sntryi_intsecret.",
             ),
             extra_headers={"HTTP_USER_AGENT": "sentry-mcp/1.2.3"},
             status_code=201,
@@ -64,9 +64,12 @@ class AgentProblemReportsEndpointTest(APITestCase):
         assert payload["event_id"] == response.data["id"]
         assert item.type == "feedback"
         assert "sntrys_secretvalue" not in message
+        assert "sntrya_appsecret" not in message
+        assert "sntryi_intsecret" not in message
         assert "[redacted]" in message
         assert "user@example.com" not in message
-        assert payload["contexts"]["feedback"]["associated_event_id"] == _EVENT_ID
+        assert "associated_event_id" not in payload["contexts"]["feedback"]
+        assert payload["contexts"]["agent_report"]["event_id"] == _EVENT_ID
         assert payload["contexts"]["feedback"]["contact_email"] == self.user.email
         assert payload["tags"] == {
             "feedback.source": "agent-problem-report",

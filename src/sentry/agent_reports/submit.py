@@ -6,7 +6,7 @@ import re
 import time
 from dataclasses import dataclass
 from typing import Any
-from uuid import UUID, uuid4
+from uuid import uuid4
 
 import sentry_sdk
 from django.conf import settings
@@ -26,9 +26,9 @@ _AREA_OWNERS = {
 }
 
 # Order matters: specific token shapes run before the generic token assignment.
+# Sentry prefixes: org (sntrys_), user (sntryu_), user app (sntrya_), integration (sntryi_).
 _SECRET_PATTERNS = (
-    re.compile(r"sntrys_[A-Za-z0-9_\-]+", re.IGNORECASE),
-    re.compile(r"sntryu_[A-Za-z0-9_\-]+", re.IGNORECASE),
+    re.compile(r"sntry[suai]_[A-Za-z0-9_\-]+", re.IGNORECASE),
     re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]+"),
     re.compile(r"\bgithub_pat_[A-Za-z0-9_]+"),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
@@ -143,9 +143,9 @@ def submit_agent_problem_report(
         feedback["name"] = reporter_name
     if documentation_url:
         feedback["url"] = scrubbed["documentation_url"]
-    associated_event_id = _associated_event_id(scrubbed["event_id"])
-    if associated_event_id:
-        feedback["associated_event_id"] = associated_event_id
+    # Keep event_id only under contexts.agent_report. Do not set
+    # feedback.associated_event_id: that field links User Feedback to an error in
+    # the receiving (backend) project, but agents report customer-project event ids.
 
     user: dict[str, Any] = {"id": str(reporter_id)}
     if reporter_email:
@@ -204,15 +204,6 @@ def submit_agent_problem_report(
     else:
         logger.info("agent_problem_report.not_delivered", extra=log_extra)
     return SubmittedAgentProblemReport(id=report_id, delivered=delivered)
-
-
-def _associated_event_id(event_id: str) -> str | None:
-    if not event_id or "[redacted]" in event_id:
-        return None
-    try:
-        return UUID(event_id).hex
-    except ValueError:
-        return None
 
 
 def _capture_feedback_envelope(envelope: Envelope) -> bool:
