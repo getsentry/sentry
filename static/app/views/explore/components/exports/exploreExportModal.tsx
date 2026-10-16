@@ -151,7 +151,7 @@ export function ExploreExportModal({
                   }
                   disabled={columnsValue === ModalColumnValue.ALL}
                 >
-                  <field.Layout.Stack label={t('Format')}>
+                  <field.Layout.Stack label={t('Format')} align="start">
                     <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
                     <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
                   </field.Layout.Stack>
@@ -180,7 +180,7 @@ export function ExploreExportModal({
           )}
           <form.AppField name="limit">
             {field => (
-              <field.Layout.Stack label={t('Number of rows')}>
+              <field.Layout.Stack label={t('Number of rows')} align="start">
                 <field.CompactSelect
                   disabled={rowCountOptions.length === 1}
                   options={rowCountOptions}
