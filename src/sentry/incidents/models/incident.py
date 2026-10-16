@@ -1,15 +1,12 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import Any, ClassVar
 from uuid import uuid4
 
-from django.core.cache import cache
 from django.db import IntegrityError, models, router, transaction
-from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
 from sentry.backup.dependencies import PrimaryKeyMap
@@ -17,14 +14,8 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, UUIDField, cell_silo_model
 from sentry.db.models.manager.base import BaseManager
-from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.organization import Organization
 from sentry.utils.retries import TimedRetryPolicy
-
-if TYPE_CHECKING:
-    from sentry.incidents.models.alert_rule import AlertRule
-    from sentry.models.project import Project
-    from sentry.snuba.models import QuerySubscription
 
 logger = logging.getLogger(__name__)
 
@@ -43,78 +34,6 @@ class IncidentProject(Model):
 
 
 class IncidentManager(BaseManager["Incident"]):
-    CACHE_KEY = "incidents:active:%s:%s:%s"
-
-    def fetch_for_organization(
-        self, organization: Organization, projects: Collection[Project]
-    ) -> BaseQuerySet[Incident]:
-        return self.filter(organization=organization, projects__in=projects).distinct()
-
-    @classmethod
-    def _build_active_incident_cache_key(
-        cls, alert_rule_id: int, project_id: int, subscription_id: int | None = None
-    ) -> str:
-        return cls.CACHE_KEY % (alert_rule_id, project_id, subscription_id)
-
-    def get_active_incident(
-        self, alert_rule: AlertRule, project: Project, subscription: QuerySubscription | None = None
-    ) -> Incident | None:
-        """
-        fetches the latest incident for a given alert rule and project (and subscription) that is not closed
-        """
-        cache_key = self._build_active_incident_cache_key(
-            alert_rule_id=alert_rule.id,
-            project_id=project.id,
-            subscription_id=(subscription.id if subscription else None),
-        )
-        incident = cache.get(cache_key)
-        if incident is None:
-            try:
-                incident_query = Incident.objects.filter(
-                    type=IncidentType.ALERT_TRIGGERED.value,
-                    alert_rule=alert_rule,
-                    projects=project,
-                    subscription=subscription,
-                )
-                incident = incident_query.exclude(status=IncidentStatus.CLOSED.value).order_by(
-                    "-date_added"
-                )[0]
-            except IndexError:
-                # Set this to False so that we can have a negative cache as well.
-                incident = False
-            cache.set(cache_key, incident)
-            if incident is False:
-                incident = None
-        elif not incident:
-            # If we had a falsey not None value in the cache, then we stored that there
-            # are no current active incidents. Just set to None
-            incident = None
-
-        return incident
-
-    @classmethod
-    def clear_active_incident_cache(cls, instance: Incident, **kwargs: Any) -> None:
-        # instance is an Incident
-        for project in instance.projects.all():
-            subscription = instance.subscription
-            key = cls._build_active_incident_cache_key(
-                instance.alert_rule_id, project.id, subscription.id if subscription else None
-            )
-            cache.delete(key)
-            assert cache.get(key) is None
-
-    @classmethod
-    def clear_active_incident_project_cache(cls, instance: IncidentProject, **kwargs: Any) -> None:
-        # instance is an IncidentProject
-        project_id = instance.project_id
-        incident = instance.incident
-        subscription_id = incident.subscription_id if incident.subscription else None
-        key = cls._build_active_incident_cache_key(
-            incident.alert_rule_id, project_id, subscription_id
-        )
-        cache.delete(key)
-        assert cache.get(key) is None
-
     @TimedRetryPolicy.wrap(timeout=5, exceptions=(IntegrityError,))
     def create(self, organization: Organization, **kwargs: Any) -> Incident:
         """
@@ -244,8 +163,3 @@ class IncidentActivityType(Enum):
 class TriggerStatus(Enum):
     ACTIVE = 0
     RESOLVED = 1
-
-
-post_save.connect(IncidentManager.clear_active_incident_cache, sender=Incident)
-post_save.connect(IncidentManager.clear_active_incident_project_cache, sender=IncidentProject)
-post_delete.connect(IncidentManager.clear_active_incident_project_cache, sender=IncidentProject)
