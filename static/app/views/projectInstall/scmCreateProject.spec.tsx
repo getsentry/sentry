@@ -1289,7 +1289,17 @@ describe('ScmCreateProject', () => {
           'Help me create and set up Sentry projects for this application.',
           {exact: false}
         )
-      ).toHaveTextContent('Name each Sentry project after its repository.');
+      ).toHaveTextContent(
+        'Name each Sentry project after its repository, in lowercase with hyphens (e.g. my-app).'
+      );
+      expect(
+        screen.getByText(
+          'Help me create and set up Sentry projects for this application.',
+          {exact: false}
+        )
+      ).toHaveTextContent(
+        'If Sentry rejects that name, use the platform name instead (e.g. python).'
+      );
       expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual(
         onboardingSession
       );

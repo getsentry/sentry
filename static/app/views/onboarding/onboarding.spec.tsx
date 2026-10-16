@@ -552,7 +552,12 @@ describe('Onboarding', () => {
       )?.[1];
 
       expect(onboardingCode).toBeDefined();
-      expect(prompt).toHaveTextContent('Name each Sentry project after its repository.');
+      expect(prompt).toHaveTextContent(
+        'Name each Sentry project after its repository, in lowercase with hyphens (e.g. my-app).'
+      );
+      expect(prompt).toHaveTextContent(
+        'If Sentry rejects that name, use the platform name instead (e.g. python).'
+      );
       expect(
         screen.getByText(
           `npx @sentry/agent-plugin install ${scmOrganization.slug}#${onboardingCode}`
