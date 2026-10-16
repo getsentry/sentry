@@ -3,6 +3,7 @@ from typing import Any
 from django.db import router, transaction
 from django.http import Http404
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,6 +19,12 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.integrations.api.serializers.models.repository_project_path_config import (
+    RepositoryProjectPathConfigSerializerResponse,
+)
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.path import normalize_repository_source_root
@@ -28,6 +35,15 @@ from sentry.models.projectrepository import ProjectRepository, ProjectRepository
 from sentry.models.repository import Repository
 
 INVALID_SOURCE_ROOT_ERROR_MESSAGE = "Source root cannot point outside the repository"
+
+
+class CreateCodeMappingRequestSerializer(serializers.Serializer):
+    repositoryId = serializers.IntegerField()
+    projectId = serializers.IntegerField()
+    stackRoot = serializers.CharField(allow_blank=True)
+    sourceRoot = serializers.CharField(allow_blank=True)
+    defaultBranch = serializers.CharField(required=False, allow_blank=True)
+    integrationId = serializers.IntegerField()
 
 
 def validate_source_root(path: str) -> None:
@@ -188,16 +204,43 @@ class OrganizationIntegrationMixin:
             raise Http404
 
 
+@extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationCodeMappings",
+        summary="List Code Mappings",
+        description="Return code mappings for projects the authenticated user can access.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                "integrationId", type=int, description="Filter by the installed integration ID."
+            ),
+            OrganizationParams.PROJECT,
+            OpenApiParameter(
+                "per_page", type=int, description="The number of mappings to return per request."
+            ),
+            OpenApiParameter("cursor", type=str, description="The pagination cursor."),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "RepositoryProjectPathConfigListResponse",
+                list[RepositoryProjectPathConfigSerializerResponse],
+            ),
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[RepositoryProjectPathConfigSerializerResponse]]:
         """
         Get the list of repository project path configs
 
@@ -238,7 +281,24 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, organization) -> Response:
+    @extend_schema(
+        operation_id="createOrganizationCodeMapping",
+        summary="Create a Code Mapping",
+        description="Create a mapping between a repository path and a Sentry project.",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=CreateCodeMappingRequestSerializer,
+        responses={
+            201: inline_sentry_response_serializer(
+                "RepositoryProjectPathConfigResponse", RepositoryProjectPathConfigSerializerResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[RepositoryProjectPathConfigSerializerResponse]:
         """
         Create a new repository project path config
         ``````````````````
