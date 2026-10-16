@@ -12,6 +12,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {
   ProfilingContextMenu,
   ProfilingContextMenuGroup,
@@ -215,7 +216,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
                 isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
-                  ? sourceCodeLink.isPending
+                  ? sourceCodeLink.isLoading
                     ? 'Resolving link'
                     : sourceCodeLink.isSuccess &&
                         (!sourceCodeLink.data.sourceUrl ||
@@ -228,7 +229,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 onClick: onOpenInGithubClick,
               })}
               icon={
-                sourceCodeLink.isPending ? (
+                sourceCodeLink.isLoading ? (
                   <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
@@ -370,15 +371,21 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
   const preferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
-  const project = projects.find(
-    p => p.id === String(props.profileGroup?.metadata?.projectID)
-  );
+  const {selection} = usePageFilters();
+
+  // Aggregate flamegraphs span many profiles and don't carry a project in their
+  // metadata, so fall back to the page's project when exactly one is selected.
+  const project =
+    projects.find(p => p.id === String(props.profileGroup?.metadata?.projectID)) ??
+    (selection.projects.length === 1
+      ? projects.find(p => p.id === String(selection.projects[0]))
+      : undefined);
 
   const sourceCodeLink = useSourceCodeLink({
-    project: undefined,
+    project,
     organization,
     commitId: undefined,
-    platform: undefined,
+    platform: project?.platform,
     frame: {file: props.hoveredNode?.frame.file, path: props.hoveredNode?.frame.path},
   });
 
@@ -473,19 +480,21 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
             <ProfilingContextMenuItemButton
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
-                sourceCodeLink.isPending
+                sourceCodeLink.isLoading
                   ? 'Resolving link'
-                  : sourceCodeLink.isSuccess &&
+                  : project
+                    ? sourceCodeLink.isSuccess &&
                       (!sourceCodeLink.data.sourceUrl ||
                         sourceCodeLink.data.config?.provider?.key !== 'github')
-                    ? t('Could not find source code location in GitHub')
-                    : undefined
+                      ? t('Could not find source code location in GitHub')
+                      : undefined
+                    : t('Select a single project to open in GitHub')
               }
               {...props.contextMenu.getMenuItemProps({
                 onClick: onOpenInGithubClick,
               })}
               icon={
-                sourceCodeLink.isPending ? (
+                sourceCodeLink.isLoading ? (
                   <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
