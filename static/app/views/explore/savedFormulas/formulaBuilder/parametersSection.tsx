@@ -12,12 +12,16 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import type {FormulaParamType} from 'sentry/views/explore/hooks/useGetSavedFormulas';
-import {BuilderSection} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
+import {
+  BuilderSection,
+  FIELD_MAX_WIDTH,
+} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
 import {
   MAX_PARAMS,
   newParam,
   type DraftParam,
 } from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
+import {OptionSizedLabel} from 'sentry/views/explore/savedFormulas/formulaBuilder/optionSizedLabel';
 import {FormulaEquationInput} from 'sentry/views/explore/savedFormulas/formulaEquationInput';
 
 const SIGMA = '\u03A3';
@@ -51,7 +55,7 @@ export function ParametersSection({
     >
       <Stack gap="lg">
         {params.map(param => (
-          <Flex key={param.key} align="center" gap="md">
+          <Flex key={param.key} align="center" gap="md" maxWidth={FIELD_MAX_WIDTH}>
             <NameInput
               value={param.name}
               placeholder={t('Name')}
@@ -76,8 +80,12 @@ export function ParametersSection({
                 <CompactSelect
                   value={param.type}
                   options={VALUE_TYPE_OPTIONS}
-                  trigger={triggerProps => (
-                    <TypeTrigger {...triggerProps} prefix={t('Type')} />
+                  trigger={({children, ...triggerProps}) => (
+                    <OverlayTrigger.Button {...triggerProps} prefix={t('Type')}>
+                      <OptionSizedLabel options={VALUE_TYPE_OPTIONS}>
+                        {children}
+                      </OptionSizedLabel>
+                    </OverlayTrigger.Button>
                   )}
                   onChange={option => update(param.key, {type: option.value})}
                 />
@@ -150,8 +158,4 @@ const CalculationTab = styled(Flex)`
   border-right: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => `${p.theme.form.md.borderRadius} 0 0 ${p.theme.form.md.borderRadius}`};
   background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
-`;
-
-const TypeTrigger = styled(OverlayTrigger.Button)`
-  width: 150px;
 `;
