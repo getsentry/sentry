@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import {css} from '@emotion/react';
 
 import {Container} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
@@ -81,9 +82,17 @@ export function MenuSectionLabel({children}: MenuSectionLabelProps) {
       display="block"
       role="presentation"
       id={section?.labelId}
-      padding="xs lg"
+      padding="md lg"
     >
-      <Text size="xs" variant="muted" bold uppercase>
+      <Text
+        size="sm"
+        density="fixed"
+        bold
+        tabular
+        css={theme => css`
+          color: ${theme.tokens.interactive.transparent.neutral.content.headings};
+        `}
+      >
         {children}
       </Text>
     </Container>
@@ -97,7 +106,7 @@ export function MenuSectionSeparator() {
       as="li"
       display={search ? 'none' : 'block'}
       role="presentation"
-      padding="xs lg"
+      padding="xs md xs lg"
     >
       <Separator orientation="horizontal" border="muted" />
     </Container>

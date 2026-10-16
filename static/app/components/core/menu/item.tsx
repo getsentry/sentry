@@ -118,7 +118,7 @@ export function MenuCheckboxItem({
       leadingItems={state => (
         <Fragment>
           <Container width="1em">
-            {checked && <IconCheckmark size="xs" aria-hidden="true" />}
+            {checked && <IconCheckmark size="xs" variant="accent" aria-hidden="true" />}
           </Container>
           {typeof leadingItems === 'function' ? leadingItems(state) : leadingItems}
         </Fragment>

@@ -556,7 +556,7 @@ const DropdownMenuListWrap = styled('ul')<{
   ${p =>
     p.hasTitle &&
     css`
-      padding-top: calc(${p.theme.space.xs} + 1px);
+      padding-top: ${p.theme.space.xs};
     `}
 
   &:focus {
@@ -571,13 +571,13 @@ const MenuTitle = styled('div')`
   color: ${p => p.theme.tokens.content.primary};
   white-space: nowrap;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
-  box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   z-index: 2;
 `;
 
 const Separator = styled('li')`
   list-style-type: none;
   border-top: solid 1px ${p => p.theme.tokens.border.secondary};
-  margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
+  margin: ${p => p.theme.space.xs} ${p => p.theme.space.md} ${p => p.theme.space.xs}
+    ${p => p.theme.space.lg};
 `;

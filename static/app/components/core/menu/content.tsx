@@ -1,5 +1,5 @@
 import {createContext, useContext, useEffect} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import {FocusScope} from '@react-aria/focus';
 import {IconSearch} from '@sentry/icons/search';
 
@@ -40,7 +40,7 @@ export function MenuContent({children}: MenuContentProps) {
     <FocusScope restoreFocus>
       <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
         <Overlay>
-          <Stack>{children}</Stack>
+          <Stack minWidth="240px">{children}</Stack>
         </Overlay>
       </PositionWrapper>
     </FocusScope>
@@ -55,11 +55,21 @@ export function MenuHeader({title, children, ...props}: MenuHeaderProps) {
   const menu = useMenuContext();
   return (
     <MenuHeaderContext value={menu}>
-      <Stack borderBottom="muted" padding="sm lg" gap="xs" {...props}>
+      <Stack borderBottom="muted" padding="xs" gap="xs" {...props}>
         {title && (
-          <Text size="sm" bold>
-            {title}
-          </Text>
+          <Container padding="md lg">
+            <Text
+              size="sm"
+              density="fixed"
+              bold
+              tabular
+              css={theme => css`
+                color: ${theme.tokens.interactive.transparent.neutral.content.headings};
+              `}
+            >
+              {title}
+            </Text>
+          </Container>
         )}
         {children}
       </Stack>
@@ -97,6 +107,10 @@ export function MenuSearch(props: MenuSearchProps) {
     <SearchInput
       {...props}
       ref={searchRef}
+      size="md"
+      css={css`
+        font-variant-numeric: lining-nums tabular-nums;
+      `}
       value={search}
       onChange={event => setSearch(event.target.value)}
       onKeyDown={event => {

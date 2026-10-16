@@ -8,8 +8,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem';
 
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -261,6 +260,9 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       isFocused={isFocused}
       innerWrapProps={{
         ...mergedMenuItemContentProps,
+        padding: 'xs xs xs md',
+        align: 'start',
+        alignSelf: 'stretch',
         onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
           lastPointerPosition.current = {x: event.clientX, y: event.clientY};
           // React clears currentTarget after dispatch, but hover may be deferred.
