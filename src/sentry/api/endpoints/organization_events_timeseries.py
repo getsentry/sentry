@@ -31,7 +31,7 @@ from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
     serialize_ingestion_status,
 )
-from sentry.api.helpers.timeseries_processing import Transformation, parse_transformation
+from sentry.api.helpers.timeseries_transformations import Transformation, parse_transformation
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
