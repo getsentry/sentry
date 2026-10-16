@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-
 from django.contrib.auth.views import redirect_to_login
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
@@ -11,14 +9,12 @@ from django.views.decorators.cache import never_cache
 
 from sentry.api.helpers.oauth_consent import (
     InvalidOrganizationSelection,
-    OrganizationSelectionError,
     get_organization_options,
     get_permission_descriptions,
-    persist_authorization,
-    resolve_organization,
 )
 from sentry.api.helpers.oauth_device import (
     InvalidDeviceRequest,
+    complete_device_request,
     get_device_request,
     get_prepared_device_request,
     normalize_user_code,
@@ -26,27 +22,20 @@ from sentry.api.helpers.oauth_device import (
 )
 from sentry.models.apidevicecode import (
     ApiDeviceCode,
-    DeviceCodeStatus,
 )
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import auth, metrics
+from sentry.utils import auth
 from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, control_silo_view
 
-logger = logging.getLogger("sentry.oauth")
-
 # Standardized error messages
-ERR_INVALID_CODE = "Invalid or expired code. Please check the code and try again."
 ERR_NO_ORG_ACCESS = (
     "This application requires organization-level access. "
     "You must be a member of an organization to authorize this application."
 )
 ERR_INVALID_REQUEST = "Invalid request. Please start over."
 ERR_INVALID_OP = "Invalid operation."
-ERR_SELECT_ORG = "Please select an organization."
-ERR_INVALID_ORG = "Invalid organization selection."
-ERR_NO_ORG_PERMISSION = "You don't have access to the selected organization."
 
 
 @control_silo_view
@@ -146,25 +135,11 @@ class OAuthDeviceView(BaseView):
 
     def _handle_deny(self, request: HttpRequest, device_code: ApiDeviceCode) -> HttpResponseBase:
         """Handle deny action for a device code."""
-        # Atomically mark as denied only if still pending (prevents race with approve)
-        updated = ApiDeviceCode.objects.filter(
-            id=device_code.id,
-            status=DeviceCodeStatus.PENDING,
-        ).update(status=DeviceCodeStatus.DENIED)
-
-        if not updated:
-            # Another request already processed this device code
-            return self._error_response(request, ERR_INVALID_CODE)
-
-        metrics.incr("oauth_device.deny", sample_rate=1.0)
-        logger.info(
-            "oauth.device-code-denied",
-            extra={
-                "device_code_id": device_code.id,
-                "application_id": device_code.application.id,
-                "user_id": request.user.id,
-            },
-        )
+        assert isinstance(request.user.id, int)
+        try:
+            complete_device_request(device_code.id, request.user.id, "deny")
+        except InvalidDeviceRequest as exc:
+            return self._error_response(request, exc.public_message)
 
         context = {
             "user": request.user,
@@ -174,56 +149,19 @@ class OAuthDeviceView(BaseView):
 
     def _handle_approve(self, request: HttpRequest, device_code: ApiDeviceCode) -> HttpResponseBase:
         """Handle approve action for a device code."""
-        # request.user.id is guaranteed to be int since we only reach here when authenticated
         assert isinstance(request.user.id, int)
-        user_id: int = request.user.id
-
         application = device_code.application
-
         try:
-            selected_org_id_int = resolve_organization(
-                application, user_id, request.POST.get("selected_organization_id")
+            complete_device_request(
+                device_code.id,
+                request.user.id,
+                "approve",
+                request.POST.get("selected_organization_id"),
             )
         except InvalidOrganizationSelection as exc:
-            errors = {
-                OrganizationSelectionError.REQUIRED: ERR_SELECT_ORG,
-                OrganizationSelectionError.INVALID: ERR_INVALID_ORG,
-                OrganizationSelectionError.NOT_ACCESSIBLE: ERR_NO_ORG_PERMISSION,
-            }
-            return self._error_response(request, errors[exc.reason])
-
-        scopes = device_code.get_scopes()
-
-        # Atomically mark as approved only if still pending (prevents race condition)
-        # This must happen first to claim the device code before creating authorization
-        updated = ApiDeviceCode.objects.filter(
-            id=device_code.id,
-            status=DeviceCodeStatus.PENDING,
-        ).update(
-            status=DeviceCodeStatus.APPROVED,
-            user_id=user_id,
-            organization_id=selected_org_id_int,
-        )
-        if not updated:
-            # Another request already processed this device code
-            return self._error_response(request, ERR_INVALID_CODE)
-
-        persist_authorization(application, user_id, scopes, selected_org_id_int)
-
-        metrics.incr(
-            "oauth_device.approve",
-            sample_rate=1.0,
-            tags={"org_level_access": application.requires_org_level_access},
-        )
-        logger.info(
-            "oauth.device-code-approved",
-            extra={
-                "device_code_id": device_code.id,
-                "application_id": device_code.application.id,
-                "user_id": user_id,
-                "organization_id": selected_org_id_int,
-            },
-        )
+            return self._error_response(request, exc.public_message)
+        except InvalidDeviceRequest as exc:
+            return self._error_response(request, exc.public_message)
 
         context = {
             "user": request.user,
