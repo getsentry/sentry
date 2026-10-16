@@ -147,6 +147,24 @@ class ProjectReplaySummaryTestCase(
             )
             assert response.status_code == 404
 
+    @patch("sentry.replays.endpoints.project_replay_summary.make_replay_summary_start_request")
+    @patch("sentry.replays.endpoints.project_replay_summary.make_replay_summary_state_request")
+    def test_invalid_replay_id_returns_404(
+        self, mock_state_request: Mock, mock_start_request: Mock
+    ) -> None:
+        url = reverse(self.endpoint, args=(self.organization.slug, self.project.slug, "abc123"))
+
+        with self.feature(self.features):
+            get_response = self.client.get(url)
+            post_response = self.client.post(
+                url, data={"num_segments": 2}, content_type="application/json"
+            )
+
+        assert get_response.status_code == 404
+        assert post_response.status_code == 404
+        assert mock_state_request.call_count == 0
+        assert mock_start_request.call_count == 0
+
     def test_post_rejects_readonly_token_scope(self) -> None:
         token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
 

@@ -90,10 +90,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
 
         filter_params = self.get_filter_params(request, project)
 
-        try:
-            replay_id = str(uuid.UUID(replay_id))
-        except ValueError:
-            return Response(status=404)
+        replay_id = str(uuid.UUID(replay_id))
 
         def data_fn(offset, limit):
             try:
