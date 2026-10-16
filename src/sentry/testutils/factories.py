@@ -2640,7 +2640,7 @@ class Factories:
                     },
                     {
                         "name": "count_tolerating",
-                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={frustrated}`)",
                     },
                 ],
                 "params": [
@@ -2657,7 +2657,7 @@ class Factories:
                         "value": "",
                     },
                     {
-                        "name": "4threshold",
+                        "name": "frustrated",
                         "type": "calculation",
                         "order": 2,
                         "value": "{threshold} * 4",
