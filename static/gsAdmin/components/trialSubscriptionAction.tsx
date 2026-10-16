@@ -67,7 +67,9 @@ export function TrialSubscriptionAction({
     <Fragment>
       {startEnterpriseTrial && (
         <Alert.Container>
-          <Alert variant="info">Spike protection will need to be manually disabled.</Alert>
+          <Alert variant="info">
+            Spike protection will need to be manually disabled.
+          </Alert>
         </Alert.Container>
       )}
       <NumberField
