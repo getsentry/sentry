@@ -20,7 +20,7 @@ import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {MenuFooter as SharedMenuFooter} from '@sentry/scraps/menu/layout';
+import {MenuFooter as SharedMenuFooter} from '@sentry/scraps/menu/footer';
 import {MenuSearchField} from '@sentry/scraps/menu/searchField';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import type {FormSize} from '@sentry/scraps/theme';

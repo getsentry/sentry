@@ -5,7 +5,8 @@ import {
   MenuSectionSeparator,
   Submenu,
 } from './declarations';
-import {MenuFooter, MenuHeader} from './layout';
+import {MenuFooter} from './footer';
+import {MenuHeader} from './header';
 
 export const Menu = {
   Header: MenuHeader,
