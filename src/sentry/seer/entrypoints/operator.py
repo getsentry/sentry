@@ -1043,14 +1043,18 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
 
 
 class SeerOperatorCompletionHook(AgentOnCompletionHook):
-    """Completion hook that notifies all entrypoints when a Seer Agent invocation yields.
+    """Completion hook that queues a refresh of every entrypoint for a Seer Agent run.
 
-    Mirrors the pattern of process_autofix_updates: iterates through the entrypoint
-    registry and calls on_agent_update for each entrypoint that has access and
-    has a cached payload for this run.
+    It only queues the work, so Seer gets a quick success; the task does the refresh and retries.
     """
 
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
-        # Runs inline until every worker knows refresh_agent_run; Seer retries integration errors.
-        _refresh_agent_run(organization, run_id)
+        # If queueing fails this raises, and Seer retries the hook.
+        refresh_agent_run.apply_async(
+            kwargs={
+                "organization_id": organization.id,
+                "run_id": run_id,
+                "queued_at": time.time(),
+            }
+        )
