@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
@@ -60,8 +60,12 @@ export function ActivityLineHeadline({
   );
 }
 
-export const ActivityLineRow = styled(Grid)`
+export const ActivityLineRow = styled('div')`
   position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: start;
   column-gap: ${p => p.theme.space.xs};
 
   @container activity-list (min-width: 90px) {

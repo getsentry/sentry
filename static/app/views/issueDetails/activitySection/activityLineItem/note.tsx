@@ -46,7 +46,7 @@ export function ActivityLineNote({
     <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
   );
   return (
-    <ActivityLineRow columns="auto minmax(0, 1fr)" rows="auto auto" align="start">
+    <ActivityLineRow>
       <ActivityLineMarker item={activity} showProgress={showProgress} />
       <ActivityLineNoteHeadline
         title={t('%s commented', getActivityNoteAuthor(activity))}
