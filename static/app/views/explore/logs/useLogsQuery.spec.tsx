@@ -498,6 +498,179 @@ describe('useInfiniteLogsQuery', () => {
     );
   });
 
+  describe('anchoring', () => {
+    const eventsEndpoint = `/organizations/${organization.slug}/events/`;
+    const anchorRow = {id: '5', timestamp_precise: '5000', timestamp: '5000'};
+
+    function mockBaseRows() {
+      return MockApiClient.addMockResponse({
+        url: eventsEndpoint,
+        body: createMockLogsData([
+          {id: '9', timestamp_precise: '9000', timestamp: '9000'},
+          {id: '8', timestamp_precise: '8000', timestamp: '8000'},
+        ]),
+        match: [
+          (_, options) =>
+            options?.query?.sampling === SAMPLING_MODE.NORMAL &&
+            options.query.query.length === 0,
+        ],
+        headers: linkHeaders,
+      });
+    }
+
+    function mockAnchoredRows(
+      filter: string,
+      rows: Parameters<typeof createMockLogsData>[0]
+    ) {
+      return MockApiClient.addMockResponse({
+        url: eventsEndpoint,
+        body: createMockLogsData(rows),
+        match: [
+          (_, options) =>
+            options?.query?.sampling === SAMPLING_MODE.HIGH_ACCURACY &&
+            options.query.query === filter,
+        ],
+        headers: linkHeaders,
+      });
+    }
+
+    it('loads rows on both sides of the anchored log when anchoring in descending order', async () => {
+      mockBaseRows();
+      const beforeMock = mockAnchoredRows(
+        `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=5256`,
+        [
+          {id: '6', timestamp_precise: '6000', timestamp: '6000'},
+          {id: '7', timestamp_precise: '7000', timestamp: '7000'},
+        ]
+      );
+      const afterMock = mockAnchoredRows(
+        `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=5256`,
+        [anchorRow, {id: '4', timestamp_precise: '4000', timestamp: '4000'}]
+      );
+
+      const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createWrapper(),
+        organization,
+      });
+      await waitFor(() => expect(result.current.data).toHaveLength(2));
+
+      act(() => {
+        result.current.anchorToLog(createMockLogsData([anchorRow]).data[0]!);
+      });
+      await waitFor(() => expect(result.current.data).toHaveLength(4));
+
+      expect(beforeMock).toHaveBeenCalledTimes(1);
+      expect(afterMock).toHaveBeenCalledTimes(1);
+      expect(result.current.anchor?.id).toBe('5');
+      expect(result.current.data.map(row => row[OurLogKnownFieldKey.ID])).toEqual([
+        '7',
+        '6',
+        '5',
+        '4',
+      ]);
+    });
+
+    it('loads rows on both sides of the anchored log when anchoring in ascending order', async () => {
+      mockBaseRows();
+      const beforeMock = mockAnchoredRows(
+        `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=4744`,
+        [
+          {id: '4', timestamp_precise: '4000', timestamp: '4000'},
+          {id: '3', timestamp_precise: '3000', timestamp: '3000'},
+        ]
+      );
+      const afterMock = mockAnchoredRows(
+        `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=4744`,
+        [anchorRow, {id: '6', timestamp_precise: '6000', timestamp: '6000'}]
+      );
+
+      const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createWrapper(),
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {[LOGS_SORT_BYS_KEY]: 'timestamp'},
+          },
+        },
+        organization,
+      });
+      await waitFor(() => expect(result.current.data).toHaveLength(2));
+
+      act(() => {
+        result.current.anchorToLog(createMockLogsData([anchorRow]).data[0]!);
+      });
+      await waitFor(() => expect(result.current.data).toHaveLength(4));
+
+      expect(beforeMock).toHaveBeenCalledTimes(1);
+      expect(afterMock).toHaveBeenCalledTimes(1);
+      expect(result.current.data.map(row => row[OurLogKnownFieldKey.ID])).toEqual([
+        '3',
+        '4',
+        '5',
+        '6',
+      ]);
+    });
+
+    it('returns to the unanchored rows when the anchor is cleared', async () => {
+      mockBaseRows();
+      mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=5256`, []);
+      mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=5256`, [anchorRow]);
+
+      const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createWrapper(),
+        organization,
+      });
+      await waitFor(() => expect(result.current.data).toHaveLength(2));
+      act(() => {
+        result.current.anchorToLog(createMockLogsData([anchorRow]).data[0]!);
+      });
+      await waitFor(() => expect(result.current.data).toHaveLength(1));
+
+      act(() => {
+        result.current.clearAnchor();
+      });
+
+      expect(result.current.anchor).toBeUndefined();
+      expect(result.current.data.map(row => row[OurLogKnownFieldKey.ID])).toEqual([
+        '9',
+        '8',
+      ]);
+    });
+
+    it('keeps the anchor dropped after auto-refresh is enabled and then turned off', async () => {
+      MockApiClient.addMockResponse({
+        url: eventsEndpoint,
+        body: createMockLogsData([]),
+        headers: linkHeaders,
+      });
+      mockBaseRows();
+      mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:>=5256`, []);
+      mockAnchoredRows(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:<=5256`, [anchorRow]);
+
+      const {result, router} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createWrapper(),
+        initialRouterConfig: {location: {pathname: '/mock-pathname/', query: {}}},
+        organization,
+      });
+      await waitFor(() => expect(result.current.data).toHaveLength(2));
+      act(() => {
+        result.current.anchorToLog(createMockLogsData([anchorRow]).data[0]!);
+      });
+      await waitFor(() => expect(result.current.anchor?.id).toBe('5'));
+
+      act(() => {
+        router.navigate(`/mock-pathname/?${LOGS_AUTO_REFRESH_KEY}=enabled`);
+      });
+      await waitFor(() => expect(result.current.anchor).toBeUndefined());
+      act(() => {
+        router.navigate(`/mock-pathname/?${LOGS_AUTO_REFRESH_KEY}=paused`);
+      });
+
+      await waitFor(() => expect(result.current.isPending).toBe(false));
+      expect(result.current.anchor).toBeUndefined();
+    });
+  });
+
   describe('frozen to a trace', () => {
     const traceId = 'a'.repeat(32);
     const traceLogsEndpoint = `/organizations/${organization.slug}/trace-logs/`;

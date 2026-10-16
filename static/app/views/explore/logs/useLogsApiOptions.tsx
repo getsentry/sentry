@@ -35,9 +35,11 @@ const LOGS_DATA_CATEGORIES = [DataCategory.LOG_BYTE] as const;
 function useLogsApiOptions({
   limit,
   referrer,
+  highAccuracy,
   highFidelity,
 }: {
   referrer: string;
+  highAccuracy?: boolean;
   highFidelity?: boolean;
   limit?: number;
 }) {
@@ -103,7 +105,11 @@ function useLogsApiOptions({
     orderby,
     per_page: limit ? limit : undefined,
     referrer,
-    sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
+    sampling: highAccuracy
+      ? SAMPLING_MODE.HIGH_ACCURACY
+      : highFidelity
+        ? SAMPLING_MODE.FLEX_TIME
+        : SAMPLING_MODE.NORMAL,
     caseInsensitive: caseInsensitive ? '1' : undefined,
     truncate,
   };
@@ -138,15 +144,18 @@ function useLogsApiOptions({
 export function useLogsApiOptionsWithInfinite({
   referrer,
   autoRefresh,
+  highAccuracy,
   highFidelity,
 }: {
   autoRefresh: boolean;
   referrer: string;
+  highAccuracy?: boolean;
   highFidelity?: boolean;
 }) {
   const {infiniteApiOptions, eventView, pageFiltersReady} = useLogsApiOptions({
     limit: autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT,
     referrer,
+    highAccuracy,
     highFidelity,
   });
   return {
