@@ -363,7 +363,7 @@ function OrganizationMemberDetailContent({member}: {member: Member}) {
         )}
       </Teams>
 
-      <Flex justify="end">
+      <Flex justify="end" paddingTop="xl">
         <Button
           variant="primary"
           busy={isSaving}
