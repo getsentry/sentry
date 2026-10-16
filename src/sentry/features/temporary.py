@@ -472,6 +472,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Show top spans chart in weekly email reports
     manager.add("organizations:weekly-report-spans-chart", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
+    # Skip legacy alert-rule lookups and send those URLs to the automations or monitors list.
+    manager.add("organizations:workflow-engine-disable-legacy-alert-rule-redirects", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Gate sending evaluation artifacts from workflow_engine to EAP
     manager.add("organizations:workflow-engine-evaluation-artifacts-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logging to debug workflow engine process workflows
