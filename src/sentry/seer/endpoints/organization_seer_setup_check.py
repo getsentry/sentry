@@ -24,14 +24,10 @@ from sentry.constants import DataCategory
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.utils import is_free_cohort_org
+from sentry.seer.types import SetupAcknowledgementResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
-
-
-class SeerSetupAcknowledgementResponse(TypedDict):
-    orgHasAcknowledged: bool
-    userHasAcknowledged: bool
 
 
 class SeerSetupBillingResponse(TypedDict):
@@ -40,7 +36,7 @@ class SeerSetupBillingResponse(TypedDict):
 
 
 class OrganizationSeerSetupCheckResponse(TypedDict):
-    setupAcknowledgement: SeerSetupAcknowledgementResponse
+    setupAcknowledgement: SetupAcknowledgementResponse
     hasFreeAutofixAccess: bool
     billing: SeerSetupBillingResponse
 

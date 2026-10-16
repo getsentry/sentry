@@ -16,12 +16,8 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.issues.auto_source_code_config.directory_prefixes import rank_directory_prefixes
 from sentry.issues.auto_source_code_config.stack_filename_sample import sample_in_app_filenames
+from sentry.issues.endpoints.organization_code_mapping_repo_prefixes import PrefixItem
 from sentry.models.project import Project
-
-
-class PrefixItem(TypedDict):
-    path: str
-    fileCount: int
 
 
 class StackPrefixesResponse(TypedDict):

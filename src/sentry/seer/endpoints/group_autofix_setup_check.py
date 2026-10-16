@@ -33,6 +33,7 @@ from sentry.seer.autofix.utils import (
     is_free_cohort_org,
 )
 from sentry.seer.seer_setup import get_supported_scm_providers
+from sentry.seer.types import SetupAcknowledgementResponse
 from sentry.seer.utils import runs_for_group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -42,18 +43,13 @@ class AutofixIntegrationSetupResponse(TypedDict):
     reason: str | None
 
 
-class AutofixSetupAcknowledgementResponse(TypedDict):
-    orgHasAcknowledged: bool
-    userHasAcknowledged: bool
-
-
 class AutofixSetupBillingResponse(TypedDict):
     hasAutofixQuota: bool
 
 
 class GroupAutofixSetupCheckResponse(TypedDict):
     integration: AutofixIntegrationSetupResponse
-    setupAcknowledgement: AutofixSetupAcknowledgementResponse
+    setupAcknowledgement: SetupAcknowledgementResponse
     billing: AutofixSetupBillingResponse
     seerReposLinked: bool
     autofixEnabled: bool
