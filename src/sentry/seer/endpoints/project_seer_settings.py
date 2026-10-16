@@ -463,7 +463,10 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
         summary="Update Seer Settings for a Project",
         description=(
             "Update one or more Seer automation settings. Available tuning and stopping-point "
-            "choices depend on the organization's Seer plan."
+            "choices depend on the organization's Seer plan. On seat-based Seer plans "
+            "(when `is_seer_seat_based_tier_enabled` is enabled), `autoCreatePr` is ignored, "
+            "`automationTuning` accepts only `off` or `medium`, and valid `stoppingPoint` "
+            "values depend on `get_valid_automated_run_stopping_points`."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=LegacyProjectSettingsUpdateSerializer,
@@ -538,7 +541,12 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
             OpenApiParameter(
                 "query",
                 type=str,
-                description="Filter projects using Seer project search syntax.",
+                description=(
+                    "Filter projects using Seer project search syntax. Supported keys and "
+                    "operators: `id` (`=`, `!=`, `IN`, `NOT IN`), `name` (`=`, `!=`), "
+                    "`reposCount` (`=`, `!=`, `>`, `<`, `>=`, `<=`), `stoppingPoint` "
+                    "(`=`, `!=`, `IN`, `NOT IN`), and `agent` (`=`, `!=`, `IN`, `NOT IN`)."
+                ),
             ),
             OpenApiParameter(
                 "sortBy",
@@ -602,7 +610,14 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="updateOrganizationSeerProjectSettings",
         summary="Update Seer Settings for Organization Projects",
-        description="Apply one or more Seer setting changes to projects matching the optional query.",
+        description=(
+            "Apply one or more Seer setting changes to projects matching the optional `query`. "
+            "If `query` is omitted or empty, the update applies to every project the user can "
+            "access in the organization. On seat-based Seer plans "
+            "(when `is_seer_seat_based_tier_enabled` is enabled), `autoCreatePr` is ignored, "
+            "`automationTuning` accepts only `off` or `medium`, and valid `stoppingPoint` "
+            "values depend on `get_valid_automated_run_stopping_points`."
+        ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=LegacyBulkProjectSettingsUpdateSerializer,
         responses={

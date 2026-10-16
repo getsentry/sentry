@@ -38,9 +38,21 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="listOrganizationCodeownersAssociations",
         summary="List Code Owner Associations",
-        description="Return CODEOWNERS associations for projects the authenticated user can access.",
+        description=(
+            "Return CODEOWNERS associations for projects the authenticated user is a member of. "
+            "Specify `project` to filter the results."
+        ),
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                "project",
+                type=str,
+                many=True,
+                description=(
+                    "Filter by project ID or slug. Specify multiple values to include multiple projects. "
+                    "Use `-1` to include all accessible projects."
+                ),
+            ),
             OpenApiParameter(
                 "provider", type=str, description="Filter associations by integration provider."
             ),

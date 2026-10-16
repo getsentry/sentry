@@ -360,7 +360,11 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             OpenApiParameter(
                 "query",
                 type=str,
-                description="Filter by repository name or provider using Seer repository search syntax.",
+                description=(
+                    "Filter repositories using Seer search syntax. `name` supports substring "
+                    "matching and is also the free-text key. `provider` supports `=`, `!=`, `IN`, "
+                    "and `NOT IN` operators."
+                ),
             ),
             OpenApiParameter(
                 "sortBy",
@@ -418,7 +422,11 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="addProjectSeerRepositories",
         summary="Add Repositories to Seer for a Project",
-        description="Add the specified repositories to Seer without removing existing repositories.",
+        description=(
+            "Add the specified repositories to Seer without removing other repositories. "
+            "At least one repository is required. Re-submitting a repository replaces its "
+            "branchName, instructions, and branchOverrides; omitted values are cleared."
+        ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=SeerProjectReposBulkSerializer,
         responses={
@@ -450,7 +458,10 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="replaceProjectSeerRepositories",
         summary="Replace Repositories Configured for Seer",
-        description="Replace the project's Seer repository list with the submitted repositories.",
+        description=(
+            "Replace the project's Seer repository list with the submitted repositories. "
+            "An empty `repos` list removes every Seer repository from the project."
+        ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=SeerProjectReposBulkSerializer,
         responses={

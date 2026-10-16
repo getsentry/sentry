@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 import sentry_sdk
 from django.conf import settings
@@ -40,7 +40,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 class AutofixIntegrationSetupResponse(TypedDict):
     ok: bool
-    reason: str | None
+    reason: Literal["integration_missing"] | None
 
 
 class AutofixSetupBillingResponse(TypedDict):
@@ -108,7 +108,12 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
     @extend_schema(
         operation_id="getIssueAutofixSetupCheck",
         summary="Check Autofix Setup for an Issue",
-        description="Check whether an issue's organization and project meet Autofix setup requirements.",
+        description=(
+            "Check whether an issue's organization and project meet Autofix setup requirements. "
+            "The setupAcknowledgement fields are always true for backward compatibility. "
+            "Requests without an authenticated user (for example, organization auth tokens) "
+            "receive a bare 400 response."
+        ),
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -129,6 +134,8 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
     ) -> Response[GroupAutofixSetupCheckResponse] | Response[None]:
         """
         Checks if we are able to run Autofix on the given group.
+        The setupAcknowledgement fields are always true for backward compatibility. Requests without
+        an authenticated user (for example, organization auth tokens) receive a bare 400 response.
         """
         if not request.user.is_authenticated:
             return Response(status=400)

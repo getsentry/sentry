@@ -64,7 +64,12 @@ class OrganizationSeerSetupCheckEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="getOrganizationSeerSetupCheck",
         summary="Check Seer Setup for an Organization",
-        description="Check Seer consent acknowledgements, free-tier access, and available quotas.",
+        description=(
+            "Check Seer consent acknowledgements, free-tier access, and available quotas. "
+            "The setupAcknowledgement fields are always true for backward compatibility. "
+            "Requests without an authenticated user (for example, organization auth tokens) "
+            "receive a bare 400 response."
+        ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         responses={
             200: inline_sentry_response_serializer(
@@ -81,6 +86,8 @@ class OrganizationSeerSetupCheckEndpoint(OrganizationEndpoint):
     ) -> Response[OrganizationSeerSetupCheckResponse] | Response[None]:
         """
         Checks Seer product setup status for the organization including quotas and acknowledgements/consent.
+        The setupAcknowledgement fields are always true for backward compatibility. Requests without
+        an authenticated user (for example, organization auth tokens) receive a bare 400 response.
         """
         if not request.user.is_authenticated:
             return Response(status=400)
