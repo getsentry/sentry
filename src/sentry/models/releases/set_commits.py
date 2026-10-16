@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import logging
 import re
-from typing import Any, TypedDict
+from typing import Any
 
 from django.db import IntegrityError, router
 
@@ -12,9 +12,8 @@ from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import Activity
-from sentry.models.commit import Commit
 from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
-from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.commits import materialize_commit
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.models.release import Release
@@ -37,12 +36,6 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
-
-
-class _CommitDataKwargs(TypedDict, total=False):
-    author: CommitAuthor
-    message: str
-    date_added: str
 
 
 def set_commits(release, commit_list):
@@ -117,44 +110,16 @@ def set_commit(idx, data, release):
     repo = data["repo_model"]
     author = data["author_model"]
 
-    commit_data: _CommitDataKwargs = {}
-
-    # Update/set message and author if they are provided.
-    if author is not None:
-        commit_data["author"] = author
-    if "message" in data:
-        commit_data["message"] = data["message"]
-    if "timestamp" in data:
-        commit_data["date_added"] = data["timestamp"]
-
-    commit, created = Commit.objects.get_or_create(
+    materialized = materialize_commit(
         organization_id=release.organization_id,
-        repository_id=repo.id,
-        key=data["id"],
-        defaults=commit_data,
+        repository=repo,
+        author=author,
+        data=data,
     )
-    if not created and any(getattr(commit, key) != value for key, value in commit_data.items()):
-        commit.update(**commit_data)
-
+    commit = materialized.commit
     if author is None:
         author = commit.author
 
-    # Guard against patch_set being None
-    patch_set = data.get("patch_set") or []
-    if patch_set:
-        CommitFileChange.objects.bulk_create(
-            [
-                CommitFileChange(
-                    organization_id=release.organization.id,
-                    commit_id=commit.id,
-                    filename=patched_file["path"],
-                    type=patched_file["type"],
-                )
-                for patched_file in patch_set
-            ],
-            ignore_conflicts=True,
-            batch_size=100,
-        )
     try:
         with atomic_transaction(using=router.db_for_write(ReleaseCommit)):
             ReleaseCommit.objects.create(
