@@ -1,7 +1,6 @@
-import {useContext, useMemo} from 'react';
-import {observer} from 'mobx-react-lite';
+import {useMemo} from 'react';
 
-import {FormContext} from 'sentry/components/forms/formContext';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {useOwnerOptions} from 'sentry/utils/useOwnerOptions';
 import {useOwners} from 'sentry/utils/useOwners';
@@ -24,46 +23,42 @@ interface RenderFieldProps extends SelectFieldProps<any> {
   valueIsSlug?: boolean;
 }
 
-export const SentryMemberTeamSelectorField = observer(
-  function SentryMemberTeamSelectorField({
-    avatarSize = 20,
-    placeholder = t('Choose Teams and Members'),
+export function SentryMemberTeamSelectorField({
+  avatarSize = 20,
+  placeholder = t('Choose Teams and Members'),
+  memberOfProjectSlugs,
+  ...props
+}: RenderFieldProps) {
+  const fieldValue = useFormField<string[] | null>(props.name);
+
+  // Coerce value to always be a list of items
+  const currentValue = useMemo(
+    () =>
+      Array.isArray(fieldValue) ? fieldValue : fieldValue ? [fieldValue] : undefined,
+    [fieldValue]
+  );
+
+  const {teams, members, fetching, onTeamSearch, onMemberSearch} = useOwners({
+    currentValue,
+  });
+  const options = useOwnerOptions({
+    teams,
+    members,
+    avatarProps: {size: avatarSize},
     memberOfProjectSlugs,
-    ...props
-  }: RenderFieldProps) {
-    const {form} = useContext(FormContext);
-    const {multiple} = props;
-    const fieldValue = form?.getValue<string[] | null>(props.name, multiple ? [] : null);
+  });
 
-    // Coerce value to always be a list of items
-    const currentValue = useMemo(
-      () =>
-        Array.isArray(fieldValue) ? fieldValue : fieldValue ? [fieldValue] : undefined,
-      [fieldValue]
-    );
-
-    const {teams, members, fetching, onTeamSearch, onMemberSearch} = useOwners({
-      currentValue,
-    });
-    const options = useOwnerOptions({
-      teams,
-      members,
-      avatarProps: {size: avatarSize},
-      memberOfProjectSlugs,
-    });
-
-    return (
-      <SelectField
-        placeholder={placeholder}
-        allowClear
-        onInputChange={(value: any) => {
-          onMemberSearch(value);
-          onTeamSearch(value);
-        }}
-        isLoading={fetching}
-        options={options}
-        {...props}
-      />
-    );
-  }
-);
+  return (
+    <SelectField
+      placeholder={placeholder}
+      allowClear
+      onInputChange={(value: any) => {
+        onMemberSearch(value);
+        onTeamSearch(value);
+      }}
+      isLoading={fetching}
+      options={options}
+      {...props}
+    />
+  );
+}

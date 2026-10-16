@@ -200,7 +200,8 @@ export class FormModel {
   /**
    * Deep equality comparison between last saved state and current fields state
    *
-   * Not a computed, `initialData` isn't observable so a cached result goes stale
+   * Not a computed on purpose: `initialData` isn't observable, so a cached
+   * result would go stale.
    */
   get formChanged() {
     return !isEqual(this.initialData, Object.fromEntries(this.fields.toJSON()));
