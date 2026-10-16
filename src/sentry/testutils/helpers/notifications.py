@@ -25,6 +25,12 @@ from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
 
 
 def create_notification_origin(rule: Rule) -> NotificationOrigin:
+    """Build an origin from legacy Rule data without writing workflow-engine models.
+
+    Compatibility IDs are read from the first action when present; otherwise the
+    Rule ID is used as the legacy identity. Prefer constructing NotificationOrigin
+    directly in new tests.
+    """
     actions = rule.data.get("actions")
     first_action = actions[0] if actions else {}
     workflow_id = first_action.get("workflow_id")
@@ -39,7 +45,14 @@ def create_notification_origin(rule: Rule) -> NotificationOrigin:
     )
 
 
-def create_workflow_notification_origin(rule: Rule) -> NotificationOrigin:
+def create_workflow_notification_origin_for_rule(rule: Rule) -> NotificationOrigin:
+    """Build a workflow-backed origin for a legacy Rule, creating its lookup if needed.
+
+    This helper writes a Workflow and AlertRuleWorkflow when no lookup exists. When
+    one exists, it synchronizes the workflow name and environment with the Rule.
+    Use it only in tests that bridge legacy Rule inputs to workflow-backed behavior;
+    prefer constructing Workflow and NotificationOrigin explicitly in new tests.
+    """
     mapping = AlertRuleWorkflow.objects.filter(rule_id=rule.id).select_related("workflow").first()
     if mapping is None:
         workflow = Workflow.objects.create(
@@ -64,9 +77,10 @@ def create_workflow_notification_origin(rule: Rule) -> NotificationOrigin:
 def create_notification_action_context(
     rule: Rule, *, with_workflow: bool = True
 ) -> NotificationActionContext:
+    """Build an action context from a Rule, optionally creating workflow lookup data."""
     return NotificationActionContext(
         origin=(
-            create_workflow_notification_origin(rule)
+            create_workflow_notification_origin_for_rule(rule)
             if with_workflow
             else create_notification_origin(rule)
         ),
