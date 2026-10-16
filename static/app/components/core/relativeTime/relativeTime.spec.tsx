@@ -22,10 +22,10 @@ describe('RelativeTime', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-09-01T00:00:00Z'));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
       cleanup();
-      act(() => jest.runOnlyPendingTimers());
+      await act(() => jest.runOnlyPendingTimersAsync());
     } finally {
       jest.useRealTimers();
     }

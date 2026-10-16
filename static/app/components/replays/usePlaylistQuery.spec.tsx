@@ -12,10 +12,10 @@ describe('usePlaylistQuery', () => {
     jest.useFakeTimers().setSystemTime(new Date('2001-11-15T12:34:56.789Z'));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     try {
       cleanup();
-      act(() => jest.runOnlyPendingTimers());
+      await act(() => jest.runOnlyPendingTimersAsync());
     } finally {
       jest.useRealTimers();
     }

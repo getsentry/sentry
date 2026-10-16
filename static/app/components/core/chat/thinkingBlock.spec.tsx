@@ -5,10 +5,10 @@ import {ThinkingBlock} from '@sentry/scraps/chat';
 describe('ThinkingBlock', () => {
   describe('with fake timers', () => {
     beforeEach(() => jest.useFakeTimers());
-    afterEach(() => {
+    afterEach(async () => {
       try {
         cleanup();
-        act(() => jest.runOnlyPendingTimers());
+        await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
       }

@@ -2,9 +2,9 @@ import {Timer} from './timer';
 
 describe('Replay Timer', () => {
   beforeEach(() => jest.useFakeTimers());
-  afterEach(() => {
+  afterEach(async () => {
     try {
-      jest.runOnlyPendingTimers();
+      await jest.runOnlyPendingTimersAsync();
     } finally {
       jest.useRealTimers();
     }
