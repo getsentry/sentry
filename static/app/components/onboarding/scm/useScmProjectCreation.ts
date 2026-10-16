@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {linkProjectToRepository} from 'sentry/components/onboarding/scm/linkProjectToRepository';
 import type {CreatedProject} from 'sentry/components/onboarding/scm/scmMessagingSetup';
+import {getScmDefaultProjectName} from 'sentry/components/onboarding/scm/scmProjectName';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import type {CreatedProjectWorkflow} from 'sentry/components/onboarding/useCreateProjectWorkflow';
 import {t} from 'sentry/locale';
@@ -158,7 +159,10 @@ export function useScmProjectCreation({
       try {
         const creation = await createProjectAndRules
           .mutateAsync({
-            projectName: platform.key,
+            projectName: getScmDefaultProjectName({
+              repository: selectedRepository,
+              platformKey: platform.key,
+            }),
             platform,
             team: firstAdminTeam?.slug,
             alertRuleConfig: alertRuleConfig ?? {defaultRules: true},

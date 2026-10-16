@@ -2698,6 +2698,14 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/explore/savedFormulas')),
     },
     {
+      path: 'saved-formulas/new/',
+      component: make(() => import('sentry/views/explore/savedFormulas/formulaBuilder')),
+    },
+    {
+      path: 'saved-formulas/:formulaId/',
+      component: make(() => import('sentry/views/explore/savedFormulas/formulaBuilder')),
+    },
+    {
       path: 'investigations/',
       component: make(() => import('sentry/views/investigations')),
     },
