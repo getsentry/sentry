@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import type {QueryFunctionContext, UseInfiniteQueryResult} from '@tanstack/react-query';
+import type {UseInfiniteQueryResult} from '@tanstack/react-query';
 
 import {Client} from 'sentry/api';
 import type {ResponseMeta} from 'sentry/types/api';
@@ -42,9 +42,9 @@ function extractHeaders(response: ResponseMeta | undefined): ApiResponse['header
 
 export async function apiFetch<TQueryFnData = unknown>({
   queryKey,
-}: Pick<QueryFunctionContext<ApiQueryKey>, 'queryKey'>): Promise<
-  ApiResponse<TQueryFnData>
-> {
+}: {
+  queryKey: ApiQueryKey;
+}): Promise<ApiResponse<TQueryFnData>> {
   const [url, options] = queryKey;
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
@@ -67,10 +67,10 @@ export async function apiFetch<TQueryFnData = unknown>({
 export async function apiFetchInfinite<TQueryFnData = unknown>({
   queryKey,
   pageParam,
-}: Pick<
-  QueryFunctionContext<InfiniteApiQueryKey, null | undefined | ParsedHeader>,
-  'queryKey' | 'pageParam'
->): Promise<ApiResponse<TQueryFnData>> {
+}: {
+  pageParam: null | undefined | ParsedHeader;
+  queryKey: InfiniteApiQueryKey;
+}): Promise<ApiResponse<TQueryFnData>> {
   const [url, options] = queryKey;
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
