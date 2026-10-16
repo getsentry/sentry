@@ -1,14 +1,17 @@
 import {Fragment, useRef, useState} from 'react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {expectTypeOf} from 'expect-type';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-
-import {IconEllipsis} from 'sentry/icons';
+import {
+  OverlayTrigger,
+  type OverlayTriggerButtonProps,
+  type OverlayTriggerIconButtonProps,
+} from '@sentry/scraps/overlayTrigger';
 
 import {CompactSelect, getEscapedKey, type SelectOption} from './';
 
@@ -143,9 +146,7 @@ describe('CompactSelect', () => {
           value="opt_one"
           onChange={() => {}}
           trigger={props => {
-            expectTypeOf(props).toExtend<
-              React.ComponentProps<typeof OverlayTrigger.Button>
-            >();
+            expectTypeOf(props).toExtend<OverlayTriggerButtonProps>();
             return <OverlayTrigger.Button {...props} />;
           }}
           options={[{value: 'opt_one', label: 'Option One'}]}
@@ -162,9 +163,7 @@ describe('CompactSelect', () => {
               icon: <IconEllipsis />,
               'aria-label': 'Select option',
             };
-            expectTypeOf(iconButtonProps).toExtend<
-              React.ComponentProps<typeof OverlayTrigger.IconButton>
-            >();
+            expectTypeOf(iconButtonProps).toExtend<OverlayTriggerIconButtonProps>();
             return <OverlayTrigger.IconButton {...iconButtonProps} />;
           }}
           options={[{value: 'opt_one', label: 'Option One'}]}

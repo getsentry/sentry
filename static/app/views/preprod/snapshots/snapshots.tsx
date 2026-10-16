@@ -9,13 +9,13 @@ import {
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconGrabbable} from '@sentry/icons/grabbable';
 import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ModalStore} from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -27,7 +27,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
@@ -42,7 +41,7 @@ import type {
   SnapshotImage,
 } from 'sentry/views/preprod/types/snapshotTypes';
 
-import {SnapshotHeaderActions} from './header/snapshotHeaderActions';
+import {SnapshotEntityHeader} from './header/snapshotEntityHeader';
 import {SnapshotHeaderContent} from './header/snapshotHeaderContent';
 import type {DiffMode} from './main/imageDisplay/diffImageDisplay';
 import type {SnapshotListViewHandle} from './main/snapshotListView';
@@ -847,10 +846,21 @@ export default function SnapshotsPage() {
     </TagFilterProvider>
   );
 
+  const breadcrumbs = (
+    <SnapshotHeaderContent
+      snapshotId={snapshotId}
+      data={data}
+      organizationSlug={organization.slug}
+      apiUrl={snapshotApiUrl}
+    />
+  );
+
   if (isPending) {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
         <Stack flex={1}>
+          {breadcrumbs}
+          <SnapshotEntityHeader data={undefined} />
           <Flex align="center" justify="center" padding="3xl">
             <LoadingIndicator />
           </Flex>
@@ -863,6 +873,7 @@ export default function SnapshotsPage() {
     return (
       <SentryDocumentTitle title={t('Snapshot')}>
         <Stack flex={1}>
+          {breadcrumbs}
           <BuildError
             title={t('Snapshot unavailable')}
             message={t(
@@ -877,14 +888,8 @@ export default function SnapshotsPage() {
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
       <Stack flex={1} onClick={handleDeselectSnapshot}>
-        <SnapshotHeaderContent data={data} />
-        <TopBar.Slot name="actions">
-          <SnapshotHeaderActions
-            data={data}
-            organizationSlug={organization.slug}
-            apiUrl={snapshotApiUrl}
-          />
-        </TopBar.Slot>
+        {breadcrumbs}
+        <SnapshotEntityHeader data={data} />
 
         {isComparisonProcessing ? processingContent : snapshotContent}
       </Stack>

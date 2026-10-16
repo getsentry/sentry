@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {IconPin} from '@sentry/icons/pin';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
@@ -17,7 +18,6 @@ import {
   type KeyValueTreeRowConfig,
 } from 'sentry/components/keyValueTree/utils';
 import {KeyValueColumns} from 'sentry/components/tables/keyValueTable';
-import {IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';

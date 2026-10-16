@@ -12,15 +12,16 @@ from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import click
+import sentry_sdk
 from django.conf import settings
 from django.db import router as db_router
 from django.db.models import Exists, OuterRef, QuerySet
 from django.utils import timezone
-from sentry_sdk import capture_exception
+from sentry_sdk import capture_exception, traces
+from sentry_sdk.scope import Scope
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -134,14 +135,25 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         try:
-            with start_span(
-                op="cleanup",
-                name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
-                transaction=True,
-                custom_sampling_context={
-                    "sample_rate": 0.01 * settings.SENTRY_BACKEND_APM_SAMPLING
-                },
-            ):
+            traces.new_trace()
+            propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+            prev_sampling_context = propagation_context.custom_sampling_context
+            Scope.set_custom_sampling_context(
+                {"sample_rate": 0.01 * settings.SENTRY_BACKEND_APM_SAMPLING}
+            )
+            try:
+                span = traces.start_span(
+                    name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
+                    attributes={"sentry.op": "cleanup"},
+                    parent_span=None,
+                )
+            finally:
+                propagation_context = (
+                    sentry_sdk.get_current_scope().get_active_propagation_context()
+                )
+                propagation_context.custom_sampling_context = prev_sampling_context
+
+            with span:
                 task_execution(model_name, chunk, project_id, deferred_filter)
         except Exception:
             metrics.incr(
@@ -367,7 +379,10 @@ def _cleanup(
     # Start transaction AFTER creating the multiprocessing pool to avoid
     # transaction context issues in child processes. This ensures only the
     # main process tracks the overall cleanup operation performance.
-    with start_span(op="cleanup", name=f"{TRANSACTION_PREFIX}.main", transaction=True) as span:
+    traces.new_trace()
+    with traces.start_span(
+        name=f"{TRANSACTION_PREFIX}.main", attributes={"sentry.op": "cleanup"}, parent_span=None
+    ) as span:
         try:
             # Check if cleanup should be aborted before starting
             if options.get("cleanup.abort_execution"):
@@ -404,9 +419,9 @@ def _cleanup(
                 project, organization, days, deletes, bulk_query_deletes
             )
             if organization_id is not None:
-                set_span_tag(span, "organization_id", organization_id)
+                span.set_attribute("organization_id", organization_id)
             if project_id is not None:
-                set_span_tag(span, "project_id", project_id)
+                span.set_attribute("project_id", project_id)
 
             run_bulk_query_deletes(
                 bulk_query_deletes,
@@ -753,12 +768,14 @@ def remove_cross_project_models(
 ) -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.files.file import File
+    from sentry.monitors.models import MonitorCheckIn
     from sentry.seer.models.run import SeerRun
     from sentry.uptime.models import UptimeResponseCapture
 
     # These models span across projects, so let's skip them
     deletes.remove((ArtifactBundle, "date_added", "date_added"))
     deletes.remove((File, "timestamp", "id"))
+    deletes.remove((MonitorCheckIn, "date_added", "date_added"))
     deletes.remove((UptimeResponseCapture, "date_added", "date_added"))
     deletes.remove((SeerRun, "last_triggered_at", "last_triggered_at"))
     return deletes

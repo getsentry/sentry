@@ -1,7 +1,8 @@
+import {IconWarning} from '@sentry/icons/warning';
+
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ProcessedInsight} from 'sentry/views/preprod/utils/insightProcessing';
 

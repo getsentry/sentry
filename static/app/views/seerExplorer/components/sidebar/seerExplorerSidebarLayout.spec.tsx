@@ -13,11 +13,9 @@ import type {OpenSeerExplorerDrawerOptions} from 'sentry/views/seerExplorer/comp
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import {
-  SeerExplorerContextProvider,
-  useSeerExplorerContext,
-} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const POSITION_KEY = 'seer-explorer-sidebar-position';
 

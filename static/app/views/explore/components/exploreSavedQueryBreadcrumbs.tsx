@@ -1,4 +1,9 @@
 import {useMemo} from 'react';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconInput} from '@sentry/icons/input';
+import {IconStar} from '@sentry/icons/star';
 
 import {ProjectsBadge} from '@sentry/scraps/badge';
 import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
@@ -13,7 +18,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCopy, IconDelete, IconEllipsis, IconInput, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';

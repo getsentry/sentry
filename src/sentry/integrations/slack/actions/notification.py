@@ -31,7 +31,7 @@ from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.platform.shadow.capture import record_legacy_render
 from sentry.notifications.platform.types import NotificationProviderKey
-from sentry.notifications.types import TEST_NOTIFICATION_ID, NotificationOrigin, RuleFuture
+from sentry.notifications.types import NotificationOrigin, RuleFuture
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -243,7 +243,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             )
             return
 
-        if context and context.origin.legacy_rule_id == TEST_NOTIFICATION_ID:
+        if context and context.origin.is_test_notification():
             self._send_notification(
                 event=event,
                 futures=futures,

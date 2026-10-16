@@ -2,6 +2,7 @@ import type React from 'react';
 import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
 import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
+import {IconProfiling} from '@sentry/icons/profiling';
 import type {Location, LocationDescriptor} from 'history';
 import groupBy from 'lodash/groupBy';
 
@@ -12,7 +13,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {DataGrid} from 'sentry/components/tables/dataGrid';
-import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -41,7 +41,7 @@ import {
   type RenderCellOptions,
 } from 'sentry/views/discover/table/useEventViewTable';
 import {COLUMN_TITLES} from 'sentry/views/performance/data';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {
   generateProfileLink,
   generateReplayLink,

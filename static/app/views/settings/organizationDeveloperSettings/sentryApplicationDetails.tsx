@@ -1,5 +1,6 @@
 import {createElement, Fragment, useEffect, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -38,7 +39,6 @@ import {
   CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
   SENTRY_APP_PERMISSIONS,
 } from 'sentry/constants';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Avatar, Scope} from 'sentry/types/core';
 import type {

@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconWarning} from '@sentry/icons/warning';
 import moment from 'moment-timezone';
 
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -10,7 +11,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

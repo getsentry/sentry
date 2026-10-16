@@ -394,7 +394,7 @@ def _chunk_load_error_filter() -> RuleCondition:
 def _custom_error_filter() -> RuleCondition | None:
     values = settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES
     # The filter is enabled by default for all projects, but is a no-op unless custom
-    # values are configured. Return None so it is omitted from the Relay config entirely.
+    # values are configured. Omit the global condition until there are values to match.
     if not values:
         return None
     return _error_message_condition(values, match_logentry=True)
@@ -429,6 +429,21 @@ ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition | None]]]
     ("react-hydration-errors", _hydration_error_filter),
     ("custom-error", _custom_error_filter),
 ]
+
+
+def get_global_generic_filters() -> GenericFiltersConfig:
+    """Build shared generic filter definitions for Relay's global config.
+
+    These definitions are disabled globally. Projects opt in with a lightweight
+    entry containing the filter ID and their existing project-level toggle.
+    """
+    filters: list[GenericFilter] = []
+    for filter_id, filter_fn in ACTIVE_GENERIC_FILTERS:
+        condition = filter_fn()
+        if condition is not None:
+            filters.append({"id": filter_id, "isEnabled": False, "condition": condition})
+
+    return {"version": GENERIC_FILTERS_VERSION, "filters": filters}
 
 
 def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:

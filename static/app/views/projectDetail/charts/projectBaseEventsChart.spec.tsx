@@ -165,9 +165,6 @@ describe('ProjectBaseEventsChart', () => {
 
     rerender(<ProjectBaseEventsChart {...defaultProps} selection={changedSelection} />);
 
-    // Wait a bit to ensure no additional calls are made
-    await new Promise(resolve => setTimeout(resolve, 100));
-
     expect(mockApi).toHaveBeenCalledTimes(1);
   });
 

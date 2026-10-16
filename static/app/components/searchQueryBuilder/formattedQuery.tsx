@@ -9,9 +9,9 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderConfig,
 } from 'sentry/components/searchQueryBuilder/context';
-import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
-import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filter';
-import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {AggregateKeyVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKeyVisual';
+import {FilterValueText} from 'sentry/components/searchQueryBuilder/tokens/filter/filterValueText';
+import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
 import {isAggregateFilterToken} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {SearchQueryBuilderParenIcon} from 'sentry/components/searchQueryBuilder/tokens/paren';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';

@@ -1,8 +1,11 @@
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconGraph} from '@sentry/icons/graph';
+import {IconGraphArea} from '@sentry/icons/graphArea';
+import {IconGraphBar} from '@sentry/icons/graphBar';
+import {IconMenu} from '@sentry/icons/menu';
+import {IconNumber} from '@sentry/icons/number';
 
-import {IconArrow, IconGraph, IconMenu, IconNumber} from 'sentry/icons';
-import {IconGraphArea} from 'sentry/icons/iconGraphArea';
-import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 export function getWidgetIcon(displayType: DisplayType): React.ReactNode {

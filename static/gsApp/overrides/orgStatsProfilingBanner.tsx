@@ -1,7 +1,8 @@
+import {IconShow} from '@sentry/icons/show';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
 
-import {IconShow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 

@@ -1,13 +1,16 @@
 import {Fragment} from 'react';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconDownload} from '@sentry/icons/download';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconTelescope} from '@sentry/icons/telescope';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {
-  DropdownButton,
-  DropdownMenu,
-  type MenuItemProps,
-} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
@@ -15,14 +18,6 @@ import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {
-  IconDelete,
-  IconDownload,
-  IconEllipsis,
-  IconRefresh,
-  IconSettings,
-  IconTelescope,
-} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -281,18 +276,16 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
               return (
                 <DropdownMenu
                   items={menuItems}
-                  trigger={(triggerProps, _isOpen) => (
-                    <DropdownButton
+                  trigger={triggerProps => (
+                    <OverlayTrigger.IconButton
+                      icon={<IconEllipsis />}
                       {...triggerProps}
                       size="sm"
                       aria-label="More actions"
-                      showChevron={false}
                       disabled={
                         isDeletingArtifact || isRerunningStatusChecks || !artifactId
                       }
-                    >
-                      <IconEllipsis />
-                    </DropdownButton>
+                    />
                   )}
                 />
               );

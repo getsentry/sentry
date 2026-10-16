@@ -9,7 +9,7 @@ import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
-import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
+import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
 
 import {renderDom} from './renderDom';
 import {renderOnDomReady} from './renderOnDomReady';
@@ -19,10 +19,6 @@ const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 const COMPONENT_MAP = {
   [SentryInitRenderReactComponent.SETUP_WIZARD]: () =>
     import(/* webpackChunkName: "SetupWizard" */ 'sentry/views/setupWizard'),
-  [SentryInitRenderReactComponent.SU_STAFF_ACCESS_FORM]: () =>
-    import(
-      /* webpackChunkName: "SuperuserStaffAccessForm" */ 'sentry/components/superuserStaffAccessForm'
-    ),
 };
 
 interface SimpleRouterProps {

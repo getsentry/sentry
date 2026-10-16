@@ -1,4 +1,8 @@
 import styled from '@emotion/styled';
+import {IconClock} from '@sentry/icons/clock';
+import {IconFile} from '@sentry/icons/file';
+import {IconJson} from '@sentry/icons/json';
+import {IconMobile} from '@sentry/icons/mobile';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeBlock} from '@sentry/scraps/code';
@@ -9,7 +13,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Placeholder} from 'sentry/components/placeholder';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
-import {IconClock, IconFile, IconJson, IconMobile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';

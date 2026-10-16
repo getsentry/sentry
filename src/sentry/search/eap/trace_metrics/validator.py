@@ -60,7 +60,9 @@ def validate_trace_metrics_aggregate(aggregate: str) -> None:
         serializers.ValidationError: If the aggregate is invalid
     """
     if is_equation(aggregate):
-        _, _, terms = parse_arithmetic(strip_equation(aggregate))
+        _, _, terms = parse_arithmetic(
+            strip_equation(aggregate), definitions=TRACE_METRICS_DEFINITIONS
+        )
     else:
         terms = [aggregate]
 

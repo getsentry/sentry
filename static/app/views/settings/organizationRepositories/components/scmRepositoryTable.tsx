@@ -8,6 +8,12 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconInfo} from '@sentry/icons/info';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSliders} from '@sentry/icons/sliders';
 import sortBy from 'lodash/sortBy';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -15,6 +21,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -24,14 +31,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {ProjectList} from 'sentry/components/projectList';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {TimeSince} from 'sentry/components/timeSince';
-import {
-  IconChevron,
-  IconDelete,
-  IconEllipsis,
-  IconInfo,
-  IconOpen,
-  IconSliders,
-} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {IntegrationProvider, Repository} from 'sentry/types/integrations';
 import type {AvatarProject} from 'sentry/types/project';
@@ -486,7 +485,7 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
               items={overflowMenuItems}
               position="bottom-end"
               trigger={triggerProps => (
-                <Button
+                <OverlayTrigger.IconButton
                   {...triggerProps}
                   size="xs"
                   variant="transparent"

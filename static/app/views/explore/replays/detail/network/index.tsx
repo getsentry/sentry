@@ -14,6 +14,10 @@ import {GridTable} from 'sentry/components/replays/virtualizedGrid/gridTable';
 import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflowHidden';
 import {SplitPanel} from 'sentry/components/replays/virtualizedGrid/splitPanel';
 import {useDetailsSplit} from 'sentry/components/replays/virtualizedGrid/useDetailsSplit';
+import {
+  SIMPLE_TABLE_HEADER_ROW_HEIGHT,
+  SimpleTable,
+} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
@@ -25,8 +29,8 @@ import {FilterLoadingIndicator} from 'sentry/views/explore/replays/detail/filter
 import {NetworkDetails} from 'sentry/views/explore/replays/detail/network/details';
 import {NetworkFilters} from 'sentry/views/explore/replays/detail/network/networkFilters';
 import {
-  COLUMN_COUNT,
   NetworkHeaderCell,
+  TABLE_COLUMNS,
 } from 'sentry/views/explore/replays/detail/network/networkHeaderCell';
 import {NetworkTableCell} from 'sentry/views/explore/replays/detail/network/networkTableCell';
 import {useNetworkFilters} from 'sentry/views/explore/replays/detail/network/useNetworkFilters';
@@ -39,14 +43,9 @@ import {
   getVisibleRangeFromVirtualRows,
 } from 'sentry/views/explore/replays/detail/virtualizedTableUtils';
 
-const HEADER_HEIGHT = 25;
 const BODY_HEIGHT = 25;
 const RESIZEABLE_HANDLE_HEIGHT = 90;
-const DEFAULT_COLUMN_WIDTH = 88;
-const DYNAMIC_COLUMN_INDEX = 2;
-const MIN_DYNAMIC_COLUMN_WIDTH = 180;
 const OVERSCAN = 20;
-const STATIC_COLUMN_WIDTHS = [76, 104, 0, 88, 88, 98, 116];
 
 export function NetworkList() {
   const organization = useOrganization();
@@ -67,23 +66,12 @@ export function NetworkList() {
   const {handleSort, items, sortConfig} = useSortNetwork({items: filteredItems});
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const {
-    gridTemplateColumns,
-    scrollContainerRef,
-    totalColumnWidth,
-    totalSize,
-    virtualRows,
-    virtualizer,
-    wrapperRef,
-  } = useVirtualizedGrid({
-    defaultColumnWidth: DEFAULT_COLUMN_WIDTH,
-    dynamicColumnIndex: DYNAMIC_COLUMN_INDEX,
-    minDynamicColumnWidth: MIN_DYNAMIC_COLUMN_WIDTH,
-    overscan: OVERSCAN,
-    rowCount: items.length,
-    rowHeight: BODY_HEIGHT,
-    staticColumnWidths: STATIC_COLUMN_WIDTHS,
-  });
+  const {paddingBottom, paddingTop, scrollContainerRef, virtualRows, virtualizer} =
+    useVirtualizedGrid({
+      overscan: OVERSCAN,
+      rowCount: items.length,
+      rowHeight: BODY_HEIGHT,
+    });
 
   const handleScrollToTableRow = useCallback(
     (row: number) => {
@@ -154,7 +142,7 @@ export function NetworkList() {
   const selectedItem = selectedIndex === null ? null : (items[selectedIndex] ?? null);
 
   return (
-    <Stack wrap="nowrap">
+    <Stack minHeight="0" minWidth="0" wrap="nowrap">
       <FilterLoadingIndicator isLoading={!replay}>
         <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       </FilterLoadingIndicator>
@@ -166,27 +154,30 @@ export function NetworkList() {
         >
           {networkFrames ? (
             <OverflowHidden>
-              <VirtualTable ref={wrapperRef}>
-                <VirtualTable.BodyScrollContainer ref={scrollContainerRef}>
-                  <VirtualTable.HeaderViewport style={{width: totalColumnWidth}}>
-                    <VirtualTable.HeaderRow
-                      style={{
-                        gridTemplateColumns,
-                      }}
-                    >
-                      {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
-                        <NetworkHeaderCell
-                          key={columnIndex}
-                          handleSort={handleSort}
-                          index={columnIndex}
-                          sortConfig={sortConfig}
-                          style={{height: HEADER_HEIGHT}}
-                        />
-                      ))}
-                    </VirtualTable.HeaderRow>
-                  </VirtualTable.HeaderViewport>
-                  {items.length === 0 ? (
-                    <VirtualTable.NoRowsContainer>
+              <VirtualTable.Table
+                aria-label={t('Network requests')}
+                columns={TABLE_COLUMNS}
+                customSections
+                density="compressed"
+                maxHeight="100%"
+                ref={scrollContainerRef}
+                scrollable
+              >
+                <SimpleTable.Head sticky>
+                  <SimpleTable.HeaderRow>
+                    {TABLE_COLUMNS.map((_, columnIndex) => (
+                      <NetworkHeaderCell
+                        key={columnIndex}
+                        handleSort={handleSort}
+                        index={columnIndex}
+                        sortConfig={sortConfig}
+                      />
+                    ))}
+                  </SimpleTable.HeaderRow>
+                </SimpleTable.Head>
+                {items.length === 0 ? (
+                  <SimpleTable.Body>
+                    <SimpleTable.Empty>
                       <NoRowRenderer
                         unfilteredItems={networkFrames}
                         clearSearchTerm={clearSearchTerm}
@@ -205,80 +196,66 @@ export function NetworkList() {
                             )
                           : t('No network requests recorded')}
                       </NoRowRenderer>
-                    </VirtualTable.NoRowsContainer>
-                  ) : (
-                    <VirtualTable.Content
-                      style={{
-                        height: totalSize,
-                        width: totalColumnWidth,
-                      }}
-                    >
-                      <VirtualTable.Offset
-                        offset={virtualRows[0]?.start ?? 0}
-                        style={{width: totalColumnWidth}}
-                      >
-                        {virtualRows.map(virtualRow => {
-                          const network = items[virtualRow.index];
-                          if (!network) {
-                            return null;
-                          }
+                    </SimpleTable.Empty>
+                  </SimpleTable.Body>
+                ) : (
+                  <SimpleTable.Body style={{paddingBottom, paddingTop}}>
+                    {virtualRows.map(virtualRow => {
+                      const network = items[virtualRow.index];
+                      if (!network) {
+                        return null;
+                      }
 
-                          const rowIndex = virtualRow.index + 1;
-                          const isByTimestamp = sortConfig.by === 'startTimestamp';
-                          const hasOccurred = currentTime >= network.offsetMs;
-                          const isBeforeHover =
-                            currentHoverTime === undefined ||
-                            currentHoverTime >= network.offsetMs;
-                          const isAsc = isByTimestamp ? sortConfig.asc : false;
+                      const rowIndex = virtualRow.index + 1;
+                      const isByTimestamp = sortConfig.by === 'startTimestamp';
+                      const hasOccurred = currentTime >= network.offsetMs;
+                      const isBeforeHover =
+                        currentHoverTime === undefined ||
+                        currentHoverTime >= network.offsetMs;
+                      const isAsc = isByTimestamp ? sortConfig.asc : false;
 
-                          const rowClassName = getTimelineRowClassName({
-                            hasHoverTime: currentHoverTime !== undefined,
-                            hasOccurred,
-                            isAsc,
-                            isBeforeHover,
-                            isByTimestamp,
-                            isLastDataRow: virtualRow.index === items.length - 1,
-                          });
+                      const rowClassName = getTimelineRowClassName({
+                        hasHoverTime: currentHoverTime !== undefined,
+                        hasOccurred,
+                        isAsc,
+                        isBeforeHover,
+                        isByTimestamp,
+                        isLastDataRow: virtualRow.index === items.length - 1,
+                      });
 
-                          return (
-                            <VirtualTable.BodyRow
-                              useTransparentBorders
-                              key={virtualRow.key}
-                              className={rowClassName}
-                              data-index={virtualRow.index}
-                              style={{
-                                gridTemplateColumns,
-                                height: BODY_HEIGHT,
-                              }}
-                            >
-                              {Array.from({length: COLUMN_COUNT}, (_, columnIndex) => (
-                                <NetworkTableCell
-                                  key={`${virtualRow.key}-${columnIndex}`}
-                                  columnIndex={columnIndex}
-                                  frame={network}
-                                  isSelected={selectedIndex === virtualRow.index}
-                                  onMouseEnter={onMouseEnter}
-                                  onMouseLeave={onMouseLeave}
-                                  onClickCell={onClickCell}
-                                  onClickTimestamp={onClickTimestamp}
-                                  rowIndex={rowIndex}
-                                  startTimestampMs={startTimestampMs}
-                                  style={{height: BODY_HEIGHT}}
-                                />
-                              ))}
-                            </VirtualTable.BodyRow>
-                          );
-                        })}
-                      </VirtualTable.Offset>
-                    </VirtualTable.Content>
-                  )}
-                </VirtualTable.BodyScrollContainer>
-              </VirtualTable>
+                      return (
+                        <VirtualTable.BodyRow
+                          useTransparentBorders
+                          key={virtualRow.key}
+                          className={rowClassName}
+                          data-index={virtualRow.index}
+                        >
+                          {TABLE_COLUMNS.map((_, columnIndex) => (
+                            <NetworkTableCell
+                              key={`${virtualRow.key}-${columnIndex}`}
+                              columnIndex={columnIndex}
+                              frame={network}
+                              isSelected={selectedIndex === virtualRow.index}
+                              onMouseEnter={onMouseEnter}
+                              onMouseLeave={onMouseLeave}
+                              onClickCell={onClickCell}
+                              onClickTimestamp={onClickTimestamp}
+                              rowIndex={rowIndex}
+                              startTimestampMs={startTimestampMs}
+                              style={{height: BODY_HEIGHT}}
+                            />
+                          ))}
+                        </VirtualTable.BodyRow>
+                      );
+                    })}
+                  </SimpleTable.Body>
+                )}
+              </VirtualTable.Table>
               {sortConfig.by === 'startTimestamp' && items.length ? (
                 <JumpButtons
                   jump={showJumpUpButton ? 'up' : showJumpDownButton ? 'down' : undefined}
                   onClick={onClickToJump}
-                  tableHeaderHeight={HEADER_HEIGHT}
+                  tableHeaderHeight={SIMPLE_TABLE_HEADER_ROW_HEIGHT.compressed}
                 />
               ) : null}
             </OverflowHidden>

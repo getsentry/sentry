@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconSync} from '@sentry/icons/sync';
 import moment from 'moment-timezone';
 
 import {
@@ -14,7 +15,6 @@ import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
-import {IconSync} from 'sentry/icons';
 import type {DocIntegration} from 'sentry/types/integrations';
 
 import {CustomerContact} from 'admin/components/customerContact';

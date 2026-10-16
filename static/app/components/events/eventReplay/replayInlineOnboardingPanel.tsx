@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
@@ -9,7 +10,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
-import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';

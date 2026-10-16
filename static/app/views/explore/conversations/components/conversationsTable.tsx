@@ -1,5 +1,6 @@
 import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconUser} from '@sentry/icons/user';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
@@ -20,13 +21,12 @@ import {
   type GridColumnOrder,
   type GridColumnSort,
 } from 'sentry/components/tables/dataGrid';
+import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
-import {isUUID} from 'sentry/utils/string/isUUID';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -39,6 +39,7 @@ import {
   type ConversationUser,
   type useConversations,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
+import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
@@ -61,7 +62,7 @@ const ROW_HEIGHT = 63;
 
 type ColumnKey =
   | 'conversation'
-  | 'duration'
+  | 'timeSpan'
   | 'messages'
   | 'errors'
   | 'cost'
@@ -70,7 +71,7 @@ type ColumnKey =
 
 const COLUMN_ORDER: ColumnKey[] = [
   'conversation',
-  'duration',
+  'timeSpan',
   'messages',
   'errors',
   'cost',
@@ -82,7 +83,7 @@ const COLUMN_ORDER: ColumnKey[] = [
 // have sensible starting widths that the user can drag to resize.
 const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
   conversation: {name: t('Conversation'), width: COL_WIDTH_UNDEFINED},
-  duration: {name: t('Timespan'), width: 120},
+  timeSpan: {name: t('Timespan'), width: 120},
   messages: {name: t('Messages'), width: 120},
   errors: {name: t('Errors'), width: 100},
   cost: {name: t('Cost'), width: 120},
@@ -93,6 +94,7 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
 const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
 
 const SORT_FIELD_BY_COLUMN: Partial<Record<ColumnKey, ConversationSortField>> = {
+  timeSpan: CONVERSATION_FIELDS.timeSpan.key,
   messages: CONVERSATION_FIELDS.messages.key,
   errors: CONVERSATION_FIELDS.errors.key,
   cost: CONVERSATION_FIELDS.totalCost.key,
@@ -109,17 +111,10 @@ type ColumnWidths = Partial<Record<ColumnKey, number>>;
 // Plain-text title/first-message is ellipsized to this length before rendering.
 const CELL_MAX_CHARS = 256;
 
-export function getConversationTimespan(
-  conversation: Pick<
-    Conversation,
-    'startTimestamp' | 'endTimestamp' | 'generationDuration'
-  >
+export function getConversationTimeSpan(
+  conversation: Pick<Conversation, 'timeSpan' | 'generationDuration'>
 ): number {
-  const elapsedDuration = conversation.endTimestamp - conversation.startTimestamp;
-  if (elapsedDuration < 0) {
-    return 0;
-  }
-  return elapsedDuration || conversation.generationDuration;
+  return conversation.timeSpan || conversation.generationDuration;
 }
 
 export function normalizeUserField(value: string | null | undefined): string | null {
@@ -143,7 +138,7 @@ export function UserNotInstrumentedTooltip() {
   return (
     <Text>
       {tct(
-        'User data not found. Call [code:sentry.setUser()] in your SDK to track users. [link:Learn more]',
+        'User data not found. Call [code:Sentry.setUser()] in your SDK to track users. [link:Learn more]',
         {
           code: <code />,
           link: (
@@ -328,6 +323,7 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
           isLoading={isFetching}
           error={error}
           data={data}
+          emptyMessage={<TableNoDataPanel />}
           columnOrder={displayedColumns}
           stickyHeader
           // DataGrid has a default bottom margin; drop it so
@@ -363,11 +359,11 @@ function BodyCell({
   switch (column.key) {
     case 'conversation':
       return <ConversationCell conversation={conversation} />;
-    case 'duration':
+    case 'timeSpan':
       return (
         <Text tabular>
           <PerformanceDuration
-            milliseconds={getConversationTimespan(conversation)}
+            milliseconds={getConversationTimeSpan(conversation)}
             abbreviation
           />
         </Text>
@@ -422,12 +418,6 @@ function getConversationTitle(
   return plainText.length > 0 ? plainText : null;
 }
 
-function getConversationIdLabel(conversationId: string): string {
-  // UUIDs are long and opaque, so show a short prefix; other id formats
-  // (e.g. `resp_...`, `slack:1234`) are already short enough.
-  return isUUID(conversationId) ? conversationId.slice(0, 8) : conversationId;
-}
-
 function ConversationCell({conversation}: {conversation: Conversation}) {
   // Flattening markdown to plain text renders HTML + parses it, so memoize on
   // the inputs to avoid recomputing on unrelated re-renders (hover, resize).
@@ -455,7 +445,7 @@ function ConversationCell({conversation}: {conversation: Conversation}) {
             />
           )}
           <Text size="sm" variant="muted" ellipsis>
-            {getConversationIdLabel(conversation.conversationId)}
+            {getConversationDisplayId(conversation.conversationId)}
           </Text>
         </Flex>
         <CellDivider orientation="vertical" />

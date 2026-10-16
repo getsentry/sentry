@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconStack} from '@sentry/icons/stack';
 import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptor} from 'history';
 
@@ -14,7 +15,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {Truncate} from 'sentry/components/truncate';
-import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -23,13 +23,10 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {
-  DURATION_UNITS,
-  getFieldRenderer,
-  SIZE_UNITS,
-} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Column} from 'sentry/utils/discover/fields';
 import {getEquationAliasIndex, isEquationAlias} from 'sentry/utils/discover/fields';
+import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldUnits';
 import {
   DisplayModes,
   SavedQueryDatasets,
@@ -51,7 +48,7 @@ import {
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 

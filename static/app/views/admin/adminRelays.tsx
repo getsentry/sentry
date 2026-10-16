@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {IconDelete} from '@sentry/icons/delete';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
@@ -6,7 +7,6 @@ import {Button} from '@sentry/scraps/button';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Confirm} from 'sentry/components/confirm';
 import {ResultGrid} from 'sentry/components/resultGrid';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useApi} from 'sentry/utils/useApi';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';

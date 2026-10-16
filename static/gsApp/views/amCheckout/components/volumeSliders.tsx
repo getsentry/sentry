@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconQuestion} from '@sentry/icons/question';
 
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -8,12 +10,15 @@ import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {IconLightning, IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
 
-import {formatReservedWithUnits} from 'getsentry/utils/billing';
+import {
+  displayPrice,
+  displayUnitPrice,
+  formatReservedWithUnits,
+} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
@@ -113,8 +118,8 @@ export function VolumeSliders({
           const max = allowedValues.slice(-1)[0]!;
 
           const billingInterval = utils.getShortInterval(activePlan.billingInterval);
-          const price = utils.displayPrice({cents: eventBucket.price});
-          const unitPrice = utils.displayUnitPrice({
+          const price = displayPrice({cents: eventBucket.price});
+          const unitPrice = displayUnitPrice({
             cents: eventBucket.unitPrice || 0,
             minDigits: categoryInfo?.formatting.priceFormatting.minFractionDigits,
             maxDigits: categoryInfo?.formatting.priceFormatting.maxFractionDigits,

@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
 
 import dataConsentImage from 'sentry-images/spot/add-integration-provider.svg';
 import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
@@ -8,7 +9,6 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {getOrganizationAge} from 'sentry/utils/getOrganizationAge';
