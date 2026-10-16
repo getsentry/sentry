@@ -395,6 +395,7 @@ export function useScmProjectDetails({
         issueAlert = 'Default';
     }
 
+    // oxlint-disable-next-line react/todo
     try {
       // User navigated back and clicked Create without changing anything; skip
       // to completion without creating a duplicate. Any actual change abandons
