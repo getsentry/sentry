@@ -143,7 +143,7 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
           </SavedEntityTable.CellTextContent>
         </Tooltip>
       </SavedEntityTable.Cell>
-      <SavedEntityTable.Cell>
+      <SavedEntityTable.Cell justify="center">
         {formula.prebuilt ? (
           <Tooltip title="Sentry">
             <ActivityAvatar type="system" size={20} />
