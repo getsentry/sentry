@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
+import {IconChat} from '@sentry/icons/chat';
 import {IconClose} from '@sentry/icons/close';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconReturn} from '@sentry/icons/return';
@@ -26,7 +27,7 @@ import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {COLUMN_ALIGN_JUSTIFY} from 'sentry/components/tables/sortableHeaderCell';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getInvestigationDetailQueryOptions,
@@ -58,6 +59,7 @@ type InvestigationCellProps = {
   block: InvestigationBlock;
   canRun: boolean;
   investigation: InvestigationDetail;
+  commentCount?: number;
   onComment?: (blockId: string) => void;
 };
 
@@ -65,6 +67,7 @@ export function InvestigationCell({
   block,
   canRun,
   investigation,
+  commentCount = 0,
   onComment,
 }: InvestigationCellProps) {
   const organizationSlug = useOrganization().slug;
@@ -193,25 +196,47 @@ export function InvestigationCell({
     },
   ];
 
+  const hasComments = commentCount > 0;
+  const actionSize = block.kind === 'query' ? 'zero' : 'xs';
+
   const cellActions = (
-    <CellActions flexShrink={0}>
-      <DropdownMenu
-        position="bottom-end"
-        usePortal
-        trigger={triggerProps => (
-          <OverlayTrigger.IconButton
-            {...triggerProps}
-            // A query cell's header is SeerEmbedBlock's band, which is sized to its
-            // `zero` toggle; an `xs` trigger would make it taller than an embed's.
-            size={block.kind === 'query' ? 'zero' : 'xs'}
+    <Flex align="center" gap="2xs" flexShrink={0}>
+      <CellActions>
+        <DropdownMenu
+          position="bottom-end"
+          usePortal
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              size={actionSize}
+              variant="transparent"
+              icon={<IconEllipsis size="xs" />}
+              aria-label={t('Cell actions for %s', displayTitle)}
+            />
+          )}
+          items={actionItems}
+        />
+      </CellActions>
+      {onComment ? (
+        <CellActions data-pinned={hasComments || undefined}>
+          <Button
+            size={actionSize}
             variant="transparent"
-            icon={<IconEllipsis size="xs" />}
-            aria-label={t('Cell actions for %s', displayTitle)}
+            icon={<IconChat size="xs" variant={hasComments ? 'accent' : undefined} />}
+            aria-label={
+              hasComments
+                ? tn('%s comment on %s', '%s comments on %s', commentCount, displayTitle)
+                : t('Comment on %s', displayTitle)
+            }
+            data-block-comments-trigger
+            tooltipProps={{
+              title: hasComments ? t('View comments') : t('Add a comment'),
+            }}
+            onClick={() => onComment(block.id)}
           />
-        )}
-        items={actionItems}
-      />
-    </CellActions>
+        </CellActions>
+      ) : null}
+    </Flex>
   );
 
   const panel = panelOpen ? (
@@ -280,28 +305,29 @@ function CellResult({
     streamedMarkdown ?? getTextOutput(block.output) ?? (block.content.trim() || null);
   return (
     <CellHoverSurface
-      position="relative"
       flex={1}
       minWidth={0}
-      gap="sm"
       data-test-id="text-cell-result"
       data-cell-variant="unbordered"
     >
-      <Container position="absolute" top={0} right={0}>
-        {actions}
-      </Container>
-      <CellExecutionAlert block={block} />
-      {markdown ? (
-        <SeerMarkdown raw={markdown} />
-      ) : isBlockWorking(block) ? (
-        // The text this stands in for ends with the space below its last
-        // paragraph, so the placeholder has to carry that space itself.
-        <Container paddingBottom="xl">
-          <InvestigationCellPlaceholder title={block.title} />
-        </Container>
-      ) : (
-        <CellProgress state={progressState} />
-      )}
+      <Grid columns="minmax(0, 1fr) auto" gap="sm" align="start">
+        <Stack minWidth={0} gap="sm">
+          <CellExecutionAlert block={block} />
+          {markdown ? (
+            <SeerMarkdown raw={markdown} />
+          ) : isBlockWorking(block) ? (
+            <Container paddingBottom="xl">
+              <InvestigationCellPlaceholder title={block.title} />
+            </Container>
+          ) : (
+            <CellProgress state={progressState} />
+          )}
+        </Stack>
+        {/* One line tall, so the actions sit on the block's first line. */}
+        <Flex height="1lh" align="center">
+          {actions}
+        </Flex>
+      </Grid>
     </CellHoverSurface>
   );
 }
@@ -1273,6 +1299,11 @@ function getSeriesName(series: {label: string} | {name: string}) {
 const CellActions = styled(Flex)`
   opacity: 0;
   pointer-events: none;
+
+  &[data-pinned] {
+    opacity: 1;
+    pointer-events: auto;
+  }
 `;
 
 const CellHoverSurface = styled(Stack)`
