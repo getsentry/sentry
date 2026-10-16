@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -178,6 +180,7 @@ interface RecentIssueRowProps {
 }
 
 function RecentIssueRow({openPeriod, onZoom}: RecentIssueRowProps) {
+  const [now] = useState(() => new Date());
   const organization = useOrganization();
 
   const openPeriodStart = new Date(openPeriod.start);
@@ -185,7 +188,7 @@ function RecentIssueRow({openPeriod, onZoom}: RecentIssueRowProps) {
   const openPeriodEnd = openPeriod.end ? new Date(openPeriod.end) : undefined;
 
   const openPeriodDurationSeconds =
-    ((openPeriodEnd ?? new Date()).getTime() - openPeriodStart.getTime()) / 1000;
+    ((openPeriodEnd ?? now).getTime() - openPeriodStart.getTime()) / 1000;
 
   return (
     <SimpleTable.Row>

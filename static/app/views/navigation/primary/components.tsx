@@ -36,7 +36,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay, type UseOverlayProps} from 'sentry/utils/useOverlay';
 import {
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   PRIMARY_HEADER_HEIGHT,
   PRIMARY_SIDEBAR_WIDTH,
@@ -72,8 +71,6 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
 interface PrimaryNavigationSidebarHeaderProps extends Omit<FlexProps<'header'>, 'as'> {}
 
 function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderProps) {
-  const {layout} = usePrimaryNavigation();
-
   return (
     <SizeProvider size="sm">
       <Stack
@@ -82,16 +79,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         justify="center"
         borderBottom="primary"
         width="100%"
-        minHeight={
-          layout === 'mobile'
-            ? `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`
-            : `${PRIMARY_HEADER_HEIGHT}px`
-        }
-        height={
-          layout === 'mobile'
-            ? `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`
-            : `${PRIMARY_HEADER_HEIGHT}px`
-        }
+        height={`${PRIMARY_HEADER_HEIGHT}px`}
         {...props}
       >
         {props.children}
@@ -127,12 +115,9 @@ interface PrimaryNavigationItemBaseProps {
 }
 
 function PrimaryNavigationListItem({children, ...props}: FlexProps<'li'>) {
-  const {layout} = usePrimaryNavigation();
   return (
     <Flex as="li" justify="center" align="center" width="100%" {...props}>
-      <IconDefaultsProvider legacySize={layout === 'mobile' ? '16px' : '21px'}>
-        {children}
-      </IconDefaultsProvider>
+      <IconDefaultsProvider size="lg">{children}</IconDefaultsProvider>
     </Flex>
   );
 }
