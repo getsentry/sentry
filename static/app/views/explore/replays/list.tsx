@@ -102,9 +102,11 @@ function ReplaysHeader() {
 }
 
 function useReplayListLLMContextData({
+  onboarding,
   showDeadRageClickCards,
   widgetIsOpen,
 }: {
+  onboarding: boolean;
   showDeadRageClickCards: boolean;
   widgetIsOpen: boolean;
 }) {
@@ -115,12 +117,14 @@ function useReplayListLLMContextData({
   useLLMContext({
     contextHint:
       'Sentry session replay list page. Users search and filter recorded browser sessions by attributes like error count, rage clicks, dead clicks, browser, OS, and user. You can search events with a replays filter to find sessions matching specific criteria, or look up an individual replay by its ID for full session details. ' +
+      'When onboarding is true, the page shows Session Replay setup instructions instead of the list, because the selected projects have not sent any replays or the plan does not include Session Replay. ' +
       'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery,
     sort: `${sortType.kind === 'desc' ? '-' : ''}${sortType.field}`,
     currentSelectedDateRange: pageFilters.selection.datetime,
     deadRageClickWidgetsVisible: showDeadRageClickCards && widgetIsOpen,
+    onboarding,
     ...toLLMContextProjectFields(selectedProjects),
   });
 }
@@ -159,8 +163,10 @@ function ReplaysListBody() {
     true
   );
   const toggleWidgets = () => setWidgetIsOpen(isOpen => !isOpen);
+  const showReplayList = hasSessionReplay && hasSentReplays.hasSentOneReplay;
 
   useReplayListLLMContextData({
+    onboarding: !hasSentReplays.fetching && !showReplayList,
     showDeadRageClickCards: showDeadRageClickWidgets,
     widgetIsOpen,
   });
@@ -187,7 +193,7 @@ function ReplaysListBody() {
         <ExploreBodyContent>
           <ExploreContentSection gap="xl">
             <ReplayListPageHeaderHook />
-            {hasSessionReplay && hasSentReplays.hasSentOneReplay ? (
+            {showReplayList ? (
               <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
                 <ReplayIndexContainer
                   showDeadRageClickCards={showDeadRageClickCards}

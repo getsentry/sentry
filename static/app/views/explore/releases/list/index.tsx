@@ -298,6 +298,14 @@ function ReleasesListInnerPage() {
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [releases]);
 
+  const shouldShowQuickstart = Boolean(
+    selectedProject &&
+    // Has not set up releases
+    !selectedProject?.features.includes('releases') &&
+    // Has no releases
+    !releases?.length
+  );
+
   const selectedProjects = useSelectedProjectsForLLMContext();
 
   useLLMContext({
@@ -305,6 +313,7 @@ function ReleasesListInnerPage() {
       'Sentry releases list page. Shows deployed releases with crash-free rates, adoption, and session/user health. ' +
       'Users can search, sort, filter by status (active/archived), and toggle sessions vs users display. ' +
       'You can search live telemetry filtered by release to query related errors, spans, or logs (e.g. "errors in release 1.2.3 in the last 7 days"). ' +
+      'When onboarding is true, the page shows release setup instructions instead of the list, because the selected project has not set up releases and has none. ' +
       'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery: activeQuery,
@@ -313,6 +322,7 @@ function ReleasesListInnerPage() {
     activeStatus,
     selectedTab,
     currentSelectedDateRange: selection.datetime,
+    onboarding: !isReleasesPending && shouldShowQuickstart,
     ...toLLMContextProjectFields(selectedProjects),
   });
 
@@ -440,13 +450,6 @@ function ReleasesListInnerPage() {
 
   const showReleaseAdoptionStages =
     hasAnyMobileProject && selection.environments.length === 1;
-  const shouldShowQuickstart = Boolean(
-    selectedProject &&
-    // Has not set up releases
-    !selectedProject?.features.includes('releases') &&
-    // Has no releases
-    !releases?.length
-  );
   const releasesPageLinks = data?.headers.Link;
 
   const releasesErrorMessage = useMemo(() => {

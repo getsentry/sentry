@@ -180,6 +180,9 @@ describe('ReplayList', () => {
 
     await screen.findByText('Get to the root cause faster');
     expect(mockFetchReplayListRequest).not.toHaveBeenCalled();
+    expect(mockUseLLMContext).toHaveBeenLastCalledWith(
+      expect.objectContaining({onboarding: true})
+    );
   });
 
   it('should not render the rage click cards when the sdk version is not up to date', async () => {
@@ -261,6 +264,9 @@ describe('ReplayList', () => {
     await waitFor(() => expect(screen.queryAllByTestId('replay-table')).toHaveLength(1));
 
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
+    expect(mockUseLLMContext).toHaveBeenLastCalledWith(
+      expect.objectContaining({onboarding: false})
+    );
   });
 
   it('should show access denied when user does not have granular replay permissions', async () => {
