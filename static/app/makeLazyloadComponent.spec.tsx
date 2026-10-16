@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Link} from '@sentry/scraps/link';
@@ -80,6 +82,32 @@ describe('makeLazyloadComponent', () => {
 
       // Loading fallback should be gone
       expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+    });
+
+    it('keeps component state when re-rendering after the initial load', async () => {
+      function StatefulComponent({title}: {title: string}) {
+        const [count, setCount] = useState(0);
+        return (
+          <div>
+            <h1>{title}</h1>
+            <button onClick={() => setCount(c => c + 1)}>Count: {count}</button>
+          </div>
+        );
+      }
+      const LazyComponent = makeLazyloadComponent(
+        createMockComponentPromise(StatefulComponent)
+      );
+
+      const {rerender} = render(<LazyComponent title="First" />);
+
+      const button = await screen.findByRole('button', {name: 'Count: 0'});
+      await userEvent.click(button, {delay: null});
+      expect(screen.getByRole('button', {name: 'Count: 1'})).toBeInTheDocument();
+
+      rerender(<LazyComponent title="Second" />);
+
+      expect(screen.getByText('Second')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Count: 1'})).toBeInTheDocument();
     });
 
     it('handles loading errors gracefully', async () => {
