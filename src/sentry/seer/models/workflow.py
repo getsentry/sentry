@@ -1,15 +1,42 @@
 from __future__ import annotations
 
 from django.db import models
+from pydantic import BaseModel
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    cell_silo_model,
+    sane_repr,
+)
 from sentry.db.models.base import DefaultFieldsModel
 
 
 class SeerWorkflowStrategy(models.TextChoices):
     AGENTIC_TRIAGE = "agentic_triage"
     DUPLICATE_MONITORS = "duplicate_monitors"
+    AGENTIC_TRIAGE_V2 = "agentic_triage_v2"
+
+
+# Strategies with one config per organization, found or created by get_or_create_for_strategy.
+# We are hard-cutting over to the newer configurable strategies
+SEER_LEGACY_WORKFLOW_STRATEGIES = frozenset(
+    {SeerWorkflowStrategy.AGENTIC_TRIAGE, SeerWorkflowStrategy.DUPLICATE_MONITORS}
+)
+
+# Strategies with any number of configs per organization. Each config is looked up by its id.
+SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset({SeerWorkflowStrategy.AGENTIC_TRIAGE_V2})
+
+
+class SeerWorkflowFilters(BaseModel):
+    """Which work an automation picks. Strategies subclass this to add their own filters."""
+
+    # False means only the config's SeerWorkflowConfigProject rows, so a config with no rows
+    # covers no projects rather than every project.
+    all_projects: bool = False
+    # An empty list means all environments.
+    environments: list[str] = []
 
 
 class SeerWorkflowSchedule(models.TextChoices):
@@ -18,6 +45,12 @@ class SeerWorkflowSchedule(models.TextChoices):
 
 @cell_silo_model
 class SeerWorkflowConfig(DefaultFieldsModel):
+    """An automation's saved configuration.
+
+    Repositories are not configured here. Execution uses the resolved projects' existing Seer
+    project-repository associations.
+    """
+
     __relocation_scope__ = RelocationScope.Excluded
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
@@ -27,13 +60,24 @@ class SeerWorkflowConfig(DefaultFieldsModel):
         max_length=256, choices=SeerWorkflowSchedule.choices, default=SeerWorkflowSchedule.DAILY
     )
     extras = models.JSONField(db_default={}, default=dict)
+    # Incremented on every saved change, so runs can record which configuration they used.
+    version = BoundedPositiveIntegerField(default=1, db_default=1)
+    # Which work to pick, in the shape of SeerWorkflowFilters.
+    filters = models.JSONField(default=dict, db_default={})
+    # Result destinations, notifications and review behavior.
+    output_policy = models.JSONField(default=dict, db_default={})
 
     class Meta:
         app_label = "seer"
         db_table = "seer_workflowconfig"
         constraints = [
+            # Scoped to only the legacy workflows that allowed one per org
             models.UniqueConstraint(
-                fields=["organization", "strategy"], name="seer_workflowconfig_org_strategy_uniq"
+                fields=["organization", "strategy"],
+                condition=models.Q(
+                    strategy__in=sorted(s.value for s in SEER_LEGACY_WORKFLOW_STRATEGIES)
+                ),
+                name="seer_workflowconfig_legacy_org_strategy_uniq",
             ),
         ]
 
@@ -43,11 +87,34 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     def get_or_create_for_strategy(
         cls, organization_id: int, strategy: SeerWorkflowStrategy
     ) -> SeerWorkflowConfig:
+        if strategy not in SEER_LEGACY_WORKFLOW_STRATEGIES:
+            raise ValueError(f"{strategy} configs are addressed by id, not by strategy")
         config, _ = cls.objects.get_or_create(
             organization_id=organization_id,
             strategy=strategy.value,
         )
         return config
+
+
+@cell_silo_model
+class SeerWorkflowConfigProject(DefaultFieldsModel):
+    """One selected project of a config whose filters do not select all projects."""
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    config = FlexibleForeignKey("seer.SeerWorkflowConfig", on_delete=models.CASCADE)
+    project = FlexibleForeignKey("sentry.Project", on_delete=models.CASCADE)
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_workflowconfigproject"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["config", "project"], name="seer_workflowconfigproject_config_project_uniq"
+            ),
+        ]
+
+    __repr__ = sane_repr("config_id", "project_id")
 
 
 @cell_silo_model
