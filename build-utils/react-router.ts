@@ -7,9 +7,8 @@ const require = createRequire(import.meta.url);
 
 export function getReactRouterConfig(env: NodeJS.ProcessEnv = process.env) {
   const useV8 =
-    env.NODE_ENV === 'development' &&
-    !env.CI &&
-    !env.NOW_GITHUB_DEPLOYMENT &&
+    (Boolean(env.NOW_GITHUB_DEPLOYMENT) || (env.NODE_ENV === 'development' && !env.CI)) &&
+    env.NODE_ENV !== 'test' &&
     !env.TEST_SUITE &&
     !env.IS_ACCEPTANCE_TEST;
   const root = path.resolve(import.meta.dirname, '..');
