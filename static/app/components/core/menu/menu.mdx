@@ -1,0 +1,208 @@
+---
+title: Menu
+description: Compose action menus from a trigger, searchable header, sections, items, separators, and footer.
+category: controls
+source: '@sentry/scraps/menu'
+resources:
+  a11y:
+    WAI-ARIA Menu Button: https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/
+    WAI-ARIA Menu: https://www.w3.org/WAI/ARIA/apg/patterns/menu/
+---
+
+import {useState} from 'react';
+
+import {Menu} from '@sentry/scraps/menu';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/menu');
+
+Use `Menu.Root` to build an action menu with a custom layout. Compose its parts in JSX: put items in `Menu.List`, with an optional `Menu.Header` above it and `Menu.Footer` below it. The header and footer remain visible when the list scrolls.
+
+To filter items, place `Menu.Search` inside `Menu.Header`. Search uses each item's `label`; provide `textValue` when the label contains custom content.
+
+For an action menu defined by an array of items, use `DropdownMenu`. For choosing a value, use `CompactSelect`.
+
+## Group
+
+Use `Menu.Section` and `Menu.SectionLabel` to group related actions. Add `Menu.SectionSeparator` between groups when a divider helps distinguish them.
+
+<Storybook.Demo align="start" minHeight="96px" padding="lg xl">
+  <Menu.Root>
+    <Menu.Trigger>Grouped actions</Menu.Trigger>
+    <Menu.Content>
+      <Menu.Header title="Actions">
+        <Menu.Search aria-label="Search actions" placeholder="Search actions" />
+      </Menu.Header>
+      <Menu.List aria-label="Grouped actions">
+        <Menu.Section>
+          <Menu.SectionLabel>Manage</Menu.SectionLabel>
+          <Menu.ListItem label="Rename" onAction={() => {}} />
+          <Menu.ListItem label="Duplicate" onAction={() => {}} />
+        </Menu.Section>
+        <Menu.SectionSeparator />
+        <Menu.Section>
+          <Menu.SectionLabel>Export</Menu.SectionLabel>
+          <Menu.ListItem label="Download CSV" onAction={() => {}} />
+          <Menu.ListItem label="Download JSON" onAction={() => {}} />
+        </Menu.Section>
+      </Menu.List>
+      <Menu.Footer>
+        <Text size="sm" variant="muted">
+          Choose an action
+        </Text>
+      </Menu.Footer>
+    </Menu.Content>
+  </Menu.Root>
+</Storybook.Demo>
+
+```jsx
+<Menu.Root>
+  <Menu.Trigger>Grouped actions</Menu.Trigger>
+  <Menu.Content>
+    <Menu.Header title="Actions">
+      <Menu.Search aria-label="Search actions" placeholder="Search actions" />
+    </Menu.Header>
+    <Menu.List aria-label="Grouped actions">
+      <Menu.Section>
+        <Menu.SectionLabel>Manage</Menu.SectionLabel>
+        <Menu.ListItem label="Rename" onAction={() => {}} />
+        <Menu.ListItem label="Duplicate" onAction={() => {}} />
+      </Menu.Section>
+      <Menu.SectionSeparator />
+      <Menu.Section>
+        <Menu.SectionLabel>Export</Menu.SectionLabel>
+        <Menu.ListItem label="Download CSV" onAction={() => {}} />
+        <Menu.ListItem label="Download JSON" onAction={() => {}} />
+      </Menu.Section>
+    </Menu.List>
+    <Menu.Footer>
+      <Text size="sm" variant="muted">
+        Choose an action
+      </Text>
+    </Menu.Footer>
+  </Menu.Content>
+</Menu.Root>
+```
+
+## Checkbox Items
+
+Use `Menu.CheckboxItem` for options that can be turned on or off. Pass `checked` and update it in `onChange`. Selecting one keeps the menu open.
+
+export function CheckboxItemsDemo() {
+  const [includeDetails, setIncludeDetails] = useState(true);
+  const [includeHistory, setIncludeHistory] = useState(false);
+  return (
+    <Menu.Root>
+      <Menu.Trigger>View options</Menu.Trigger>
+      <Menu.Content>
+        <Menu.List aria-label="View options">
+          <Menu.CheckboxItem
+            label="Include details"
+            checked={includeDetails}
+            onChange={setIncludeDetails}
+          />
+          <Menu.CheckboxItem
+            label="Include history"
+            checked={includeHistory}
+            onChange={setIncludeHistory}
+          />
+        </Menu.List>
+      </Menu.Content>
+    </Menu.Root>
+  );
+}
+
+<Storybook.Demo align="start" minHeight="96px" padding="lg xl">
+  <CheckboxItemsDemo />
+</Storybook.Demo>
+
+```jsx
+function CheckboxItemsDemo() {
+  const [includeDetails, setIncludeDetails] = useState(true);
+  const [includeHistory, setIncludeHistory] = useState(false);
+
+  return (
+    <Menu.Root>
+      <Menu.Trigger>View options</Menu.Trigger>
+      <Menu.Content>
+        <Menu.List aria-label="View options">
+          <Menu.CheckboxItem
+            label="Include details"
+            checked={includeDetails}
+            onChange={setIncludeDetails}
+          />
+          <Menu.CheckboxItem
+            label="Include history"
+            checked={includeHistory}
+            onChange={setIncludeHistory}
+          />
+        </Menu.List>
+      </Menu.Content>
+    </Menu.Root>
+  );
+}
+```
+
+## SubMenu
+
+Use `Menu.Submenu` for actions that open another menu. Its header can include search for the submenu's items.
+
+<Storybook.Demo align="start" minHeight="96px" padding="lg xl">
+  <Menu.Root>
+    <Menu.Trigger>Actions</Menu.Trigger>
+    <Menu.Content>
+      <Menu.List aria-label="Actions">
+        <Menu.Submenu label="Choose project">
+          <Menu.Content>
+            <Menu.Header title="Projects">
+              <Menu.Search aria-label="Search projects" placeholder="Search projects" />
+            </Menu.Header>
+            <Menu.List aria-label="Projects">
+              <Menu.Section>
+                <Menu.SectionLabel>Favorites</Menu.SectionLabel>
+                <Menu.ListItem label="Alpha" onAction={() => {}} />
+                <Menu.ListItem label="Beta" onAction={() => {}} />
+              </Menu.Section>
+              <Menu.SectionSeparator />
+              <Menu.Section>
+                <Menu.SectionLabel>Other projects</Menu.SectionLabel>
+                <Menu.ListItem label="Gamma" onAction={() => {}} />
+              </Menu.Section>
+            </Menu.List>
+          </Menu.Content>
+        </Menu.Submenu>
+      </Menu.List>
+    </Menu.Content>
+  </Menu.Root>
+</Storybook.Demo>
+
+```jsx
+<Menu.Root>
+  <Menu.Trigger>Actions</Menu.Trigger>
+  <Menu.Content>
+    <Menu.List aria-label="Actions">
+      <Menu.Submenu label="Choose project">
+        <Menu.Content>
+          <Menu.Header title="Projects">
+            <Menu.Search aria-label="Search projects" placeholder="Search projects" />
+          </Menu.Header>
+          <Menu.List aria-label="Projects">
+            <Menu.Section>
+              <Menu.SectionLabel>Favorites</Menu.SectionLabel>
+              <Menu.ListItem label="Alpha" onAction={() => {}} />
+              <Menu.ListItem label="Beta" onAction={() => {}} />
+            </Menu.Section>
+            <Menu.SectionSeparator />
+            <Menu.Section>
+              <Menu.SectionLabel>Other projects</Menu.SectionLabel>
+              <Menu.ListItem label="Gamma" onAction={() => {}} />
+            </Menu.Section>
+          </Menu.List>
+        </Menu.Content>
+      </Menu.Submenu>
+    </Menu.List>
+  </Menu.Content>
+</Menu.Root>
+```

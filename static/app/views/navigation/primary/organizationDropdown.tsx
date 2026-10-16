@@ -83,6 +83,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     return (
       <DropdownMenu
         usePortal
+        size="sm"
         portalContainerRef={portalContainerRef}
         zIndex={theme.zIndex.modal}
         trigger={trigger}

@@ -8,8 +8,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem';
 
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -61,7 +60,13 @@ export interface MenuItemProps extends MenuListItemProps {
    * customize the sub-menu: `title` is shown as its header, and `position`
    * overrides where it opens relative to this item (defaults to `right-start`).
    */
-  submenu?: boolean | {position?: UseOverlayProps['position']; title?: string};
+  submenu?:
+    | boolean
+    | {
+        position?: UseOverlayProps['position'];
+        search?: {placeholder?: string};
+        title?: string;
+      };
   /**
    * A plain text version of the `label` prop if the label is not a string. Used for
    * filtering and keyboard select (quick-focusing on options by typing the first letter).
@@ -255,6 +260,9 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       isFocused={isFocused}
       innerWrapProps={{
         ...mergedMenuItemContentProps,
+        padding: 'xs xs xs md',
+        align: 'start',
+        alignSelf: 'stretch',
         onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
           lastPointerPosition.current = {x: event.clientX, y: event.clientY};
           // React clears currentTarget after dispatch, but hover may be deferred.

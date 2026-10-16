@@ -28,6 +28,21 @@ function PassthroughWrapper({children}: {children: React.ReactNode}) {
   return children;
 }
 
+function SelectionIndicator({selected}: {selected: boolean}) {
+  return (
+    <Flex
+      width="24px"
+      height="24px"
+      padding="xs"
+      align="center"
+      justify="center"
+      gap="md"
+    >
+      {selected && <IconCheckmark size="md" variant="accent" />}
+    </Flex>
+  );
+}
+
 export function UserDropdown() {
   const api = useApi();
   const user = useUser();
@@ -71,7 +86,7 @@ export function UserDropdown() {
     return (
       <DropdownMenu
         usePortal
-        size={size}
+        size="sm"
         portalContainerRef={portalContainerRef}
         zIndex={theme.zIndex.modal}
         renderWrapAs={PassthroughWrapper}
@@ -102,7 +117,7 @@ export function UserDropdown() {
                 key: 'preferences',
                 label: t('Preferences'),
                 leadingItems: <IconSliders size="sm" />,
-                submenu: {title: t('Preferences')},
+                submenu: true,
                 children: [
                   {
                     key: 'theme',
@@ -111,28 +126,27 @@ export function UserDropdown() {
                       {
                         key: 'theme-system',
                         label: t('Default to system'),
-                        leadingItems:
-                          user.options.theme === 'system' ? (
-                            <IconCheckmark size="sm" />
-                          ) : undefined,
+                        leadingItems: (
+                          <SelectionIndicator
+                            selected={user.options.theme === 'system'}
+                          />
+                        ),
                         onAction: () => updateOptions({theme: 'system'}),
                       },
                       {
                         key: 'theme-light',
                         label: t('Light'),
-                        leadingItems:
-                          user.options.theme === 'light' ? (
-                            <IconCheckmark size="sm" />
-                          ) : undefined,
+                        leadingItems: (
+                          <SelectionIndicator selected={user.options.theme === 'light'} />
+                        ),
                         onAction: () => updateOptions({theme: 'light'}),
                       },
                       {
                         key: 'theme-dark',
                         label: t('Dark'),
-                        leadingItems:
-                          user.options.theme === 'dark' ? (
-                            <IconCheckmark size="sm" />
-                          ) : undefined,
+                        leadingItems: (
+                          <SelectionIndicator selected={user.options.theme === 'dark'} />
+                        ),
                         onAction: () => updateOptions({theme: 'dark'}),
                       },
                     ],
@@ -144,17 +158,17 @@ export function UserDropdown() {
                       {
                         key: 'time-format-false',
                         label: t('12 hour'),
-                        leadingItems: user.options.clock24Hours ? undefined : (
-                          <IconCheckmark size="sm" />
+                        leadingItems: (
+                          <SelectionIndicator selected={!user.options.clock24Hours} />
                         ),
                         onAction: () => updateOptions({clock24Hours: false}),
                       },
                       {
                         key: 'time-format-true',
                         label: t('24 hour'),
-                        leadingItems: user.options.clock24Hours ? (
-                          <IconCheckmark size="sm" />
-                        ) : undefined,
+                        leadingItems: (
+                          <SelectionIndicator selected={user.options.clock24Hours} />
+                        ),
                         onAction: () => updateOptions({clock24Hours: true}),
                       },
                     ],

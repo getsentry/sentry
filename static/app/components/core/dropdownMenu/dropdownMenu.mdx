@@ -162,6 +162,32 @@ Group related items by adding `children` without setting `submenu`. Use `to` for
 
 Submenus open on hover or with the right arrow key. Pass an object to `submenu` to set a title or change the submenu position.
 
+Set `submenu.search` to add a search field to a submenu. It filters items within their sections and focuses when the submenu opens.
+
+<Storybook.Demo>
+  <DropdownMenu
+    triggerLabel="Projects"
+    items={[
+      {
+        key: 'all-projects',
+        label: 'All Projects',
+        submenu: {title: 'All Projects', search: {placeholder: 'Search projects'}},
+        children: [
+          {
+            key: 'my-projects',
+            label: 'My Projects',
+            children: [
+              {key: 'web-app', label: 'web-app'},
+              {key: 'api', label: 'api'},
+              {key: 'worker', label: 'worker'},
+            ],
+          },
+        ],
+      },
+    ]}
+  />
+</Storybook.Demo>
+
 ### Moving into a submenu
 
 Choose Left or Right to change the submenu direction. Move the pointer diagonally from Export toward a format near the bottom of its submenu. The submenu stays open while crossing neighboring items. Moving away or pausing over a neighboring item activates that item.

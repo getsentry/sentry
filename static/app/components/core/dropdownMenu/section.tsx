@@ -32,18 +32,14 @@ const DropdownMenuSectionWrap = styled('li')`
 `;
 
 const Heading = styled('span')`
-  display: inline-block;
+  display: block;
   font-weight: ${p => p.theme.font.weight.sans.medium};
   font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
+  line-height: ${p => p.theme.font.lineHeight.fixed};
+  color: ${p => p.theme.tokens.interactive.transparent.neutral.content.headings};
+  font-variant-numeric: lining-nums tabular-nums;
   white-space: nowrap;
-  margin: ${p => p.theme.space.md} ${p => p.theme.space.lg} ${p => p.theme.space.xs};
-  padding-right: ${p => p.theme.space.md};
-
-  ${DropdownMenuSectionWrap}:first-of-type & {
-    margin-top: ${p => p.theme.space.xs};
-  }
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
 `;
 
 const Group = styled('ul')`
