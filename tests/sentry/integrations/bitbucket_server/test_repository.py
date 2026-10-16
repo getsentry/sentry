@@ -238,6 +238,20 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
         repo.refresh_from_db()
         assert "webhook_secret" not in repo.config
 
+    @responses.activate
+    def test_on_delete_repository_without_webhook(self) -> None:
+        repo = Repository.objects.create(
+            provider="integrations:bitbucket_server",
+            name="sentryuser/newsdiffs",
+            organization_id=self.organization.id,
+            config={"name": "sentryuser/newsdiffs", "project": "sentryuser", "repo": "newsdiffs"},
+            integration_id=self.integration.id,
+        )
+
+        self.provider.on_delete_repository(repo)
+
+        assert len(responses.calls) == 0
+
     def _on_create_repository_discards_hook_when_repository_disabled(
         self, delete_status: int
     ) -> None:
