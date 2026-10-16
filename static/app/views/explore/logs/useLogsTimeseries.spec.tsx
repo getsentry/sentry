@@ -106,6 +106,9 @@ describe('useLogsTimeseries', () => {
             dataScanned: undefined,
             canResumeAutoFetch: false,
             resumeAutoFetch: () => {},
+            anchor: undefined,
+            anchorToLog: () => {},
+            clearAnchor: () => {},
           },
         }),
       {additionalWrapper: Wrapper}

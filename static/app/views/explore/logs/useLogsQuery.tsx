@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {logger} from '@sentry/react';
 import type {QueryClient} from '@tanstack/react-query';
-import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
+import {hashKey, useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -162,6 +162,8 @@ function getPageParam(
   };
 }
 
+const JSON_NUMBER_NANOSECOND_ROUNDING = 256n;
+
 /**
  * Creates an initial page param for autoRefresh mode that enforces the MAX_LOG_INGEST_DELAY condition.
  * This ensures the first page query filters for logs older than Date.now() - MAX_LOG_INGEST_DELAY
@@ -169,9 +171,10 @@ function getPageParam(
  */
 function getInitialPageParam(
   autoRefresh: boolean,
-  sortBys: readonly Sort[]
+  sortBys: readonly Sort[],
+  anchor: LogAnchor | undefined
 ): LogPageParam {
-  if (!autoRefresh) {
+  if (!autoRefresh && !anchor) {
     return null;
   }
 
@@ -179,6 +182,20 @@ function getInitialPageParam(
   if (!sortBy) {
     // Only sort by timestamp precise is supported for infinite queries.
     return null;
+  }
+
+  if (anchor) {
+    return {
+      anchored: true,
+      autoRefresh,
+      indexFromInitialPage: 0,
+      logId: '',
+      sortByDirection: sortBy.kind,
+      timestampPrecise:
+        sortBy.kind === 'desc'
+          ? anchor.timestampPrecise + JSON_NUMBER_NANOSECOND_ROUNDING
+          : anchor.timestampPrecise - JSON_NUMBER_NANOSECOND_ROUNDING,
+    };
   }
 
   const pageParamResult: LogPageParam = {
@@ -267,9 +284,21 @@ interface InfiniteScrollPageParam extends BaseLogsPageParams {
   // The id of the log row matching timestampPrecise. We use this to exclude the row from the query to avoid duplicates right on the nanosecond boundary.
   logId: string;
   timestampPrecise: bigint | null;
+  anchored?: true;
 }
 
 export type LogPageParam = FlexTimePageParam | InfiniteScrollPageParam | null | undefined;
+
+interface LogAnchor {
+  id: string;
+  timestampPrecise: bigint;
+}
+
+function isAnchoredPageParam(
+  pageParam: LogPageParam
+): pageParam is InfiniteScrollPageParam {
+  return defined(pageParam) && 'anchored' in pageParam;
+}
 
 function isFlexTimePageParam(pageParam: LogPageParam): pageParam is FlexTimePageParam {
   return defined(pageParam) && 'cursor' in pageParam;
@@ -306,16 +335,27 @@ export function useInfiniteLogsQuery({
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {hasInitialized: autoRefreshHasInitialized} = useLogsAutoRefresh();
 
+  const {infiniteApiOptions: anchoredApiOptions} = useLogsApiOptionsWithInfinite({
+    referrer: _referrer,
+    autoRefresh: false,
+    highAccuracy: true,
+  });
+  const {anchor, anchorToLog, clearAnchor} = useLogAnchor({
+    autoRefresh,
+    queryKey: anchoredApiOptions.queryKey,
+  });
+
   // High fidelity and auto refresh are disjoint features and cannot
   // be used together. So if auto refresh was ever initialized, we must
   // disable high fidelity mode.
-  highFidelity = autoRefreshHasInitialized ? false : highFidelity;
+  highFidelity = autoRefreshHasInitialized || anchor ? false : highFidelity;
 
-  const {infiniteApiOptions, other} = useLogsApiOptionsWithInfinite({
+  const {infiniteApiOptions: baseApiOptions, other} = useLogsApiOptionsWithInfinite({
     referrer: _referrer,
     autoRefresh,
     highFidelity,
   });
+  const infiniteApiOptions = anchor ? anchoredApiOptions : baseApiOptions;
   const queryKeyWithInfinite = infiniteApiOptions.queryKey;
   const queryClient = useQueryClient();
 
@@ -343,8 +383,8 @@ export function useInfiniteLogsQuery({
   );
 
   const initialPageParam = useMemo(
-    () => getInitialPageParam(autoRefresh, sortBys),
-    [autoRefresh, sortBys]
+    () => getInitialPageParam(autoRefresh, sortBys, anchor),
+    [anchor, autoRefresh, sortBys]
   );
 
   const queryResult = useInfiniteQuery({
@@ -360,48 +400,70 @@ export function useInfiniteLogsQuery({
         meta,
       };
 
-      let response = await apiFetch<EventsLogsResult>({
-        ...fetchContext,
-        queryKey: [
-          url,
-          {
-            ...baseOptions,
-            query: getParamBasedQuery(baseOptions?.query, pageParam),
-          },
-          {infinite: false},
-        ],
-      });
-
-      if (
-        !response.json?.data?.length && // no matches found
-        response.json?.meta?.dataScanned === 'partial' && // partial scan performed
-        !baseOptions?.data?.highFidelity // not high fidelity mode
-      ) {
-        const retryOptions: QueryKeyEndpointOptions = {
-          ...baseOptions,
-          query: {...baseOptions?.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
-        };
-        response = await apiFetch<EventsLogsResult>({
+      async function fetchPage(param: LogPageParam) {
+        let response = await apiFetch<EventsLogsResult>({
           ...fetchContext,
           queryKey: [
             url,
             {
-              ...retryOptions,
-              query: getParamBasedQuery(retryOptions.query, pageParam),
+              ...baseOptions,
+              query: getParamBasedQuery(baseOptions?.query, param),
             },
             {infinite: false},
           ],
         });
+
+        if (
+          !response.json?.data?.length && // no matches found
+          response.json?.meta?.dataScanned === 'partial' && // partial scan performed
+          !baseOptions?.data?.highFidelity // not high fidelity mode
+        ) {
+          const retryOptions: QueryKeyEndpointOptions = {
+            ...baseOptions,
+            query: {...baseOptions?.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
+          };
+          response = await apiFetch<EventsLogsResult>({
+            ...fetchContext,
+            queryKey: [
+              url,
+              {
+                ...retryOptions,
+                query: getParamBasedQuery(retryOptions.query, param),
+              },
+              {infinite: false},
+            ],
+          });
+        }
+
+        if (param?.querySortDirection && Array.isArray(response.json?.data)) {
+          // We reverse the data if the query sort direction has been changed from the table sort direction.
+          return {
+            ...response,
+            json: {...response.json, data: response.json.data.toReversed()},
+          };
+        }
+        return response;
       }
 
-      if (pageParam?.querySortDirection && Array.isArray(response.json?.data)) {
-        // We reverse the data if the query sort direction has been changed from the table sort direction.
-        return {
-          ...response,
-          json: {...response.json, data: response.json.data.toReversed()},
-        };
+      if (!isAnchoredPageParam(pageParam)) {
+        return fetchPage(pageParam);
       }
-      return response;
+
+      const [before, after] = await Promise.all([
+        fetchPage({
+          ...pageParam,
+          querySortDirection: {
+            field: OurLogKnownFieldKey.TIMESTAMP,
+            kind: pageParam.sortByDirection === 'desc' ? 'asc' : 'desc',
+          },
+        }),
+        fetchPage(pageParam),
+      ]);
+
+      return {
+        ...after,
+        json: {...after.json, data: [...before.json.data, ...after.json.data]},
+      };
     },
     getPreviousPageParam,
     getNextPageParam,
@@ -617,7 +679,56 @@ export function useInfiniteLogsQuery({
     resumeAutoFetch,
     dataScanned,
     bytesScanned: totalBytesScanned,
+    anchor,
+    anchorToLog,
+    clearAnchor,
   };
+}
+
+function useLogAnchor({
+  autoRefresh,
+  queryKey,
+}: {
+  autoRefresh: boolean;
+  queryKey: QueryKey;
+}) {
+  const queryClient = useQueryClient();
+  const queryKeyHash = hashKey(queryKey);
+  const [anchorState, setAnchorState] = useState<{
+    anchor: LogAnchor;
+    queryKeyHash: string;
+  } | null>(null);
+  const [previousAutoRefresh, setPreviousAutoRefresh] = useState(autoRefresh);
+
+  if (autoRefresh !== previousAutoRefresh) {
+    setPreviousAutoRefresh(autoRefresh);
+    if (autoRefresh) {
+      setAnchorState(null);
+    }
+  }
+
+  const anchorToLog = useCallback(
+    (row: OurLogsResponseItem) => {
+      queryClient.removeQueries({predicate: query => query.queryHash === queryKeyHash});
+      setAnchorState({
+        anchor: {
+          id: row[OurLogKnownFieldKey.ID],
+          timestampPrecise: BigInt(row[OurLogKnownFieldKey.TIMESTAMP_PRECISE]),
+        },
+        queryKeyHash,
+      });
+    },
+    [queryClient, queryKeyHash]
+  );
+
+  const clearAnchor = useCallback(() => setAnchorState(null), []);
+
+  const anchor =
+    !autoRefresh && anchorState?.queryKeyHash === queryKeyHash
+      ? anchorState.anchor
+      : undefined;
+
+  return {anchor, anchorToLog, clearAnchor};
 }
 
 export type UseInfiniteLogsQueryResult = ReturnType<typeof useInfiniteLogsQuery>;

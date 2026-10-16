@@ -151,6 +151,7 @@ type LogsRowProps = {
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
+  onViewInTable?: (dataRow: OurLogsResponseItem) => void;
   routingHint?: string;
   setHoveredRowId?: (logItemId: string | null) => void;
   showCellActions?: boolean;
@@ -276,6 +277,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
   isHighlighted,
   setHoveredRowId,
   togglePinnedRow,
+  onViewInTable,
   showCellActions,
   showExploreConnectedSpansLink,
 }: LogsRowProps) {
@@ -517,6 +519,22 @@ export const LogRowContent = memo(function LogRowContentImpl({
             isClickable: true,
           };
 
+  const viewInTableMenuItems: MenuItemProps[] = onViewInTable
+    ? [
+        {
+          key: 'view-in-table',
+          label: t('View in table'),
+          onAction: () => {
+            trackAnalytics('logs.table.pinned_row_viewed_in_table', {
+              log_id: rowId,
+              organization,
+            });
+            onViewInTable(dataRow);
+          },
+        },
+      ]
+    : [];
+
   const buttonSize = 'xs';
   const chevronIcon = (
     <IconChevron size={buttonSize} direction={expanded ? 'down' : 'right'} />
@@ -749,7 +767,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
                       }
                     }}
                     allowActions={ALLOWED_CELL_ACTIONS}
-                    extraMenuItems={extraMenuItems}
+                    extraMenuItems={[...(extraMenuItems ?? []), ...viewInTableMenuItems]}
                     pin={pin}
                   >
                     {renderedField}
