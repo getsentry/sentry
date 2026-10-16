@@ -4,33 +4,23 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {
-  ListItem,
-  MenuFooter,
-  MenuHeader,
-  MenuItem,
-  MenuSearchField,
-  MenuSection,
-  MenuSectionLabel,
-  MenuSectionSeparator,
-  Submenu,
-} from '@sentry/scraps/menu';
+import {ListItem, Menu} from '@sentry/scraps/menu';
 
 describe('composed menu primitives', () => {
   it('renders labeled sections, an explicit separator, and actions', async () => {
     const onAction = jest.fn();
     render(
       <DropdownMenu triggerLabel="Actions">
-        <MenuHeader>Choose an action</MenuHeader>
-        <MenuSection sectionKey="edit">
-          <MenuSectionLabel>Edit</MenuSectionLabel>
-          <MenuItem itemKey="rename" label="Rename" onAction={onAction} />
-        </MenuSection>
-        <MenuSectionSeparator />
-        <MenuSection sectionKey="export" aria-label="Export actions">
-          <MenuItem itemKey="download" label="Download" />
-        </MenuSection>
-        <MenuFooter>More actions available later</MenuFooter>
+        <Menu.Header>Choose an action</Menu.Header>
+        <Menu.Section sectionKey="edit">
+          <Menu.SectionLabel>Edit</Menu.SectionLabel>
+          <Menu.Item itemKey="rename" label="Rename" onAction={onAction} />
+        </Menu.Section>
+        <Menu.Separator />
+        <Menu.Section sectionKey="export" aria-label="Export actions">
+          <Menu.Item itemKey="download" label="Download" />
+        </Menu.Section>
+        <Menu.Footer>More actions available later</Menu.Footer>
       </DropdownMenu>
     );
 
@@ -49,9 +39,9 @@ describe('composed menu primitives', () => {
     const onAction = jest.fn();
     render(
       <DropdownMenu triggerLabel="Actions" usePortal>
-        <Submenu itemKey="export" label="Export">
-          <MenuItem itemKey="csv" label="CSV" onAction={onAction} />
-        </Submenu>
+        <Menu.Submenu itemKey="export" label="Export">
+          <Menu.Item itemKey="csv" label="CSV" onAction={onAction} />
+        </Menu.Submenu>
       </DropdownMenu>
     );
 
@@ -72,12 +62,12 @@ describe('composed menu primitives', () => {
   it('supports a submenu inside a labeled section', async () => {
     render(
       <DropdownMenu triggerLabel="Actions">
-        <MenuSection sectionKey="export">
-          <MenuSectionLabel>Export</MenuSectionLabel>
-          <Submenu itemKey="formats" label="Choose format">
-            <MenuItem itemKey="json" label="JSON" />
-          </Submenu>
-        </MenuSection>
+        <Menu.Section sectionKey="export">
+          <Menu.SectionLabel>Export</Menu.SectionLabel>
+          <Menu.Submenu itemKey="formats" label="Choose format">
+            <Menu.Item itemKey="json" label="JSON" />
+          </Menu.Submenu>
+        </Menu.Section>
       </DropdownMenu>
     );
 
@@ -93,23 +83,23 @@ describe('composed menu primitives', () => {
       const [value, setValue] = useState<string>();
       return (
         <CompactSelect value={value} onChange={option => setValue(option.value)}>
-          <MenuHeader>
-            <MenuSearchField
+          <Menu.Header>
+            <Menu.SearchField
               aria-label="Filter options"
               value={query}
               onChange={setQuery}
             />
-          </MenuHeader>
-          <MenuSection sectionKey="fruit">
-            <MenuSectionLabel>Fruit</MenuSectionLabel>
+          </Menu.Header>
+          <Menu.Section sectionKey="fruit">
+            <Menu.SectionLabel>Fruit</Menu.SectionLabel>
             {'Apple'.toLowerCase().includes(query.toLowerCase()) && (
               <ListItem value="apple" label="Apple" />
             )}
             {'Pear'.toLowerCase().includes(query.toLowerCase()) && (
               <ListItem value="pear" label="Pear" />
             )}
-          </MenuSection>
-          <MenuFooter>Selection is immediate</MenuFooter>
+          </Menu.Section>
+          <Menu.Footer>Selection is immediate</Menu.Footer>
         </CompactSelect>
       );
     }
