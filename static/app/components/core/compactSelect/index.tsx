@@ -1,3 +1,7 @@
+import {SelectItem} from './selectItem';
+
+export const Select = {Item: SelectItem};
+
 export {
   CompactSelect,
   type ComposedSelectProps,

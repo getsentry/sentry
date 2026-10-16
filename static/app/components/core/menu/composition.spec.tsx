@@ -2,7 +2,7 @@ import {useState} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, Select} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Menu} from '@sentry/scraps/menu';
 
@@ -88,8 +88,8 @@ describe('composed menu primitives', () => {
         >
           <Menu.Section sectionKey="fruit">
             <Menu.SectionLabel>Fruit</Menu.SectionLabel>
-            <Menu.ListItem value="apple" label="Apple" />
-            <Menu.ListItem value="pear" label="Pear" />
+            <Select.Item value="apple" label="Apple" />
+            <Select.Item value="pear" label="Pear" />
           </Menu.Section>
           <Menu.Footer>Selection is immediate</Menu.Footer>
         </CompactSelect>

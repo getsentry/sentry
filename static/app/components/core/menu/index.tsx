@@ -1,5 +1,4 @@
 import {
-  ListItem,
   MenuItem,
   MenuSection,
   MenuSectionLabel,
@@ -12,7 +11,6 @@ export const Menu = {
   Header: MenuHeader,
   Footer: MenuFooter,
   Item: MenuItem,
-  ListItem,
   Section: MenuSection,
   SectionLabel: MenuSectionLabel,
   Separator: MenuSectionSeparator,

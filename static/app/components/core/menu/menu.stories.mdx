@@ -7,12 +7,12 @@ source: '@sentry/scraps/menu'
 
 import {useState} from 'react';
 
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, Select} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Menu} from '@sentry/scraps/menu';
 import * as Storybook from 'sentry/stories';
 
-`Menu.Header` and `Menu.Footer` sit outside the scrolling collection. Sections need either a visible `Menu.SectionLabel` or an `aria-label`. Place `Menu.Separator` explicitly between sections. `Menu.Item` and `Menu.ListItem` declare collection entries; the hosts render them with React Aria's menu and listbox hooks and the shared `MenuListItem` appearance.
+`Menu.Header` and `Menu.Footer` sit outside the scrolling collection. Sections need either a visible `Menu.SectionLabel` or an `aria-label`. Place `Menu.Separator` explicitly between sections. `Menu.Item` declares an action; `Select.Item` declares a selectable option. The hosts render both with React Aria hooks and the shared `MenuListItem` appearance.
 
 <Storybook.Demo>
   <DropdownMenu triggerLabel="Actions">
@@ -45,8 +45,8 @@ export function SearchableComposedSelect() {
     >
       <Menu.Section sectionKey="fruit">
         <Menu.SectionLabel>Fruit</Menu.SectionLabel>
-        <Menu.ListItem value="apple" label="Apple" />
-        <Menu.ListItem value="pear" label="Pear" />
+        <Select.Item value="apple" label="Apple" />
+        <Select.Item value="pear" label="Pear" />
       </Menu.Section>
       <Menu.Footer>Choose one fruit</Menu.Footer>
     </CompactSelect>

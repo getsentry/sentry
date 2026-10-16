@@ -1,10 +1,10 @@
 import {Children, Fragment, isValidElement} from 'react';
 
 import type {SelectKey, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
+import {SelectItem} from '@sentry/scraps/compactSelect/selectItem';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {
-  ListItem,
   MenuItem,
   MenuSection,
   MenuSectionLabel,
@@ -178,13 +178,13 @@ export function composeSelect<Value extends SelectKey>(
         key: sectionKey ?? `section-${result.items.length}`,
         label,
         options: items.map(child => {
-          if (!isElementOf(child, ListItem<Value>)) {
-            throw new Error('MenuSection in CompactSelect only accepts ListItem');
+          if (!isElementOf(child, SelectItem<Value>)) {
+            throw new Error('MenuSection in CompactSelect only accepts Select.Item');
           }
           return child.props;
         }),
       };
-    } else if (isElementOf(part, ListItem<Value>)) {
+    } else if (isElementOf(part, SelectItem<Value>)) {
       item = part.props;
     }
 

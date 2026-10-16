@@ -1,6 +1,6 @@
 import {useSeparator} from '@react-aria/separator';
 
-import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
+import type {SelectKey} from '@sentry/scraps/compactSelect';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -11,11 +11,6 @@ import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 export function MenuItem(
   _props: Omit<MenuItemProps, 'key' | 'children'> & {itemKey: string}
 ) {
-  return null;
-}
-
-/** A selectable option in a composed CompactSelect. */
-export function ListItem<Value extends SelectKey>(_props: SelectOption<Value>) {
   return null;
 }
 
