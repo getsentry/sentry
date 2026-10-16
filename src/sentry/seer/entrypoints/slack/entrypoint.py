@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 from sentry import features
@@ -34,6 +35,7 @@ from sentry.seer.entrypoints.registry import (
     autofix_entrypoint_registry,
     investigation_entrypoint_registry,
 )
+from sentry.seer.entrypoints.slack.cache import SlackSeerAgentReply, SlackSeerAgentReplyCache
 from sentry.seer.entrypoints.slack.messaging import (
     schedule_all_thread_updates,
     send_thread_update,
@@ -617,73 +619,114 @@ class SlackAgentEntrypoint(
         run_id: int,
         state: SeerRunState,
     ) -> None:
+        """Post the run's latest reply to the thread, once."""
+        from sentry.integrations.slack.integration import SlackIntegration
+
+        if state.status == "processing":
+            return
+
         organization_id = cache_payload["organization_id"]
         integration_id = cache_payload["integration_id"]
-        thread = cache_payload["thread"]
-        pending_user_input = state.pending_user_input
-        # Only the latest turn's answer; never fall back to an earlier turn's.
-        turns = state.get_turns()
-        answer = turns[-1].answer if turns else None
-        summary = answer.message.content if answer else None
+        integration = integration_service.get_integration(
+            integration_id=integration_id,
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+        if not integration:
+            logger.warning(
+                "seer.entrypoint.slack.agent_update.integration_not_found",
+                extra={"integration_id": integration_id, "organization_id": organization_id},
+            )
+            return
+        install = SlackIntegration(model=integration, organization_id=organization_id)
+
+        # The operator's per-run lock makes this read-then-write safe.
+        replies = SlackSeerAgentReplyCache.get(run_id=run_id)
+        next_reply = _next_agent_reply(cache_payload=cache_payload, state=state, replies=replies)
+        if not next_reply:
+            return
+        key, data = next_reply
+        message_ts = send_thread_update(install=install, thread=cache_payload["thread"], data=data)
+        if message_ts:
+            SlackSeerAgentReplyCache.set(
+                run_id=run_id, key=key, reply=SlackSeerAgentReply(message_ts=message_ts)
+            )
+
+
+def _next_agent_reply(
+    *,
+    cache_payload: SlackAgentCachePayload,
+    state: SeerRunState,
+    replies: Mapping[str, SlackSeerAgentReply],
+) -> tuple[str, SeerAgentError | SeerAgentResponse] | None:
+    """The reply to post and its cache key, or None if the thread is up to date.
+
+    Sends the write approval DM when a new approval is pending.
+    """
+    organization_id = cache_payload["organization_id"]
+    integration_id = cache_payload["integration_id"]
+    thread = cache_payload["thread"]
+    pending_user_input = state.pending_user_input
+    error = SeerAgentError(
+        organization_id=organization_id,
+        error_message="Seer was unable to generate a response.",
+    )
+
+    if pending_user_input and pending_user_input.input_type == "agent_write_approval":
+        key = f"approval:{pending_user_input.id}"
+        if key in replies:
+            return None
         approval = _agent_write_approval(pending_user_input)
-        if approval:
-            input_id, scopes = approval
-            data = SeerAgentWriteApproval(
-                run_id=run_id,
+        if approval is None:
+            return key, error
+        slack_user_id = cache_payload.get("slack_user_id")
+        if not slack_user_id:
+            # Pre-deploy cache entries lack the recipient; never expose approval publicly.
+            logger.error(
+                "seer.entrypoint.slack.agent_write_approval.slack_user_missing",
+                extra={"organization_id": organization_id, "run_id": state.run_id},
+            )
+            return None
+        input_id, scopes = approval
+        # Keep this synchronous so mixed-version workers never deserialize the new source.
+        _send_agent_write_approval(
+            integration_id=integration_id,
+            organization_id=organization_id,
+            thread=thread,
+            data=SeerAgentWriteApproval(
+                run_id=state.run_id,
                 organization_id=organization_id,
                 input_id=input_id,
                 scopes=scopes,
-            )
-            slack_user_id = cache_payload.get("slack_user_id")
-            if slack_user_id:
-                # Keep this synchronous so mixed-version workers never deserialize the new source.
-                _send_agent_write_approval(
-                    integration_id=integration_id,
-                    organization_id=organization_id,
-                    thread=thread,
-                    data=data,
-                    slack_user_id=slack_user_id,
-                )
-                summary = (
-                    f"<@{slack_user_id}> I need your approval to make changes in Sentry. "
-                    "I sent you a message."
-                )
-            else:
-                # Pre-deploy cache entries lack the recipient; never expose approval publicly.
-                logger.error(
-                    "seer.entrypoint.slack.agent_write_approval.slack_user_missing",
-                    extra={"organization_id": organization_id, "run_id": run_id},
-                )
-                return
+            ),
+            slack_user_id=slack_user_id,
+        )
+        summary = (
+            f"<@{slack_user_id}> I need your approval to make changes in Sentry. "
+            "I sent you a message."
+        )
+    else:
+        answer = next((turn.answer for turn in reversed(state.get_turns()) if turn.answer), None)
+        if answer is None:
+            # The run finished without ever answering.
+            key = "error"
+            return None if key in replies else (key, error)
+        key = answer.id
+        if key in replies:
+            return None
+        summary = answer.message.content or ""
 
-        if (
-            approval is None
-            and pending_user_input is not None
-            and pending_user_input.input_type == "agent_write_approval"
-        ) or not summary:
-            response_data: SeerAgentError | SeerAgentResponse = SeerAgentError(
-                organization_id=organization_id,
-                error_message="Seer was unable to generate a response.",
-            )
-        else:
-            missing_scope_url = _get_missing_scope_settings_url(
-                integration_id=integration_id,
-                organization_id=organization_id,
-                channel_id=thread["channel_id"],
-                thread_ts=thread["thread_ts"],
-            )
-            response_data = SeerAgentResponse(
-                run_id=run_id,
-                organization_id=organization_id,
-                summary=summary,
-                missing_scope_settings_url=missing_scope_url,
-            )
-        schedule_all_thread_updates(
-            threads=[thread],
+    return key, SeerAgentResponse(
+        run_id=state.run_id,
+        organization_id=organization_id,
+        summary=summary,
+        missing_scope_settings_url=_get_missing_scope_settings_url(
             integration_id=integration_id,
             organization_id=organization_id,
-            data=response_data,
-        )
+            channel_id=thread["channel_id"],
+            thread_ts=thread["thread_ts"],
+        ),
+    )
 
 
 class SlackInvestigationEntrypoint(
