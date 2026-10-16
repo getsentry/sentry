@@ -10,17 +10,17 @@ import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
 function OutcomeList({
   droppedEvents,
   acceptedEvents,
-  onInvestigate,
+  onTroubleshoot,
 }: {
   acceptedEvents: DroppedEventsBucket[];
   droppedEvents: DroppedEventsBucket[];
-  onInvestigate?: (row: ReasonRow) => void;
+  onTroubleshoot?: (row: ReasonRow) => void;
 }) {
   return (
     <DroppedDataOutcomeList
       sections={droppedEventsToOutcomeSections(droppedEvents, acceptedEvents)}
       colors={{}}
-      onInvestigate={onInvestigate}
+      onTroubleshoot={onTroubleshoot}
     />
   );
 }
@@ -192,8 +192,8 @@ describe('DroppedDataOutcomeList', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 
-  it('opens the fix-this menu with investigate, settings, and docs entries', async () => {
-    const onInvestigate = jest.fn();
+  it('opens the reason actions menu with docs and troubleshoot entries', async () => {
+    const onTroubleshoot = jest.fn();
     render(
       <OutcomeList
         droppedEvents={[
@@ -207,28 +207,27 @@ describe('DroppedDataOutcomeList', () => {
           }),
         ]}
         acceptedEvents={[]}
-        onInvestigate={onInvestigate}
+        onTroubleshoot={onTroubleshoot}
       />
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Reason actions'}));
-    expect(screen.getByRole('menuitemradio', {name: 'Project Settings'})).toHaveAttribute(
-      'href',
-      expect.stringContaining('/stats/?dataCategory=spans')
-    );
 
     expect(screen.getByRole('menuitemradio', {name: 'Go to Docs'})).toHaveAttribute(
       'href',
       expect.stringContaining('docs.sentry.io')
     );
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Project Settings'})
+    ).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigate'}));
-    expect(onInvestigate).toHaveBeenCalledWith(
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Troubleshoot'}));
+    expect(onTroubleshoot).toHaveBeenCalledWith(
       expect.objectContaining({outcome: 'rate_limited', reason: 'smart_rate_limit'})
     );
   });
 
-  it('hides investigate when there is no Seer hand-off', async () => {
+  it('hides troubleshoot when there is no Seer hand-off', async () => {
     render(
       <OutcomeList
         droppedEvents={[
@@ -247,11 +246,9 @@ describe('DroppedDataOutcomeList', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Reason actions'}));
 
+    expect(screen.getByRole('menuitemradio', {name: 'Go to Docs'})).toBeInTheDocument();
     expect(
-      screen.getByRole('menuitemradio', {name: 'Project Settings'})
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Investigate'})
+      screen.queryByRole('menuitemradio', {name: 'Troubleshoot'})
     ).not.toBeInTheDocument();
   });
 });

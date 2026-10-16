@@ -128,7 +128,7 @@ export function reasonDescription(reason: string, category: string): string | un
     : description;
 }
 
-export function buildInvestigatePrompt(args: {
+export function buildTroubleshootPrompt(args: {
   category: string;
   dataset: DiscoverDatasets;
   outcome: string;
