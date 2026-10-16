@@ -15,10 +15,8 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
-    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
-    RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
@@ -74,7 +72,11 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="listDerivedOrganizationCodeMappings",
         summary="Find Repository Files Matching a Stack Trace Frame",
-        description="Find repository files that match the supplied stack trace filename.",
+        description=(
+            "Find repository files that match the supplied stack trace filename. This endpoint "
+            "uses the organization's first active supported integration (GitHub or Cursor). "
+            "Errors are returned as an object with a `text` field."
+        ),
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -96,10 +98,14 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
                 "DerivedCodeMappingMatchesResponse", list[DerivedCodeMappingMatch]
             ),
             204: RESPONSE_NO_CONTENT,
-            400: RESPONSE_BAD_REQUEST,
+            400: inline_sentry_response_serializer(
+                "DerivedCodeMappingErrorResponse", DeriveCodeMappingErrorResponse
+            ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
+            404: inline_sentry_response_serializer(
+                "DerivedCodeMappingNotFoundErrorResponse", DeriveCodeMappingErrorResponse
+            ),
         },
     )
     def get(
@@ -153,7 +159,10 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         summary="Create an Organization Code Mapping from a Stack Trace Frame",
         description=(
             "Derive and save a repository path mapping for a project from a stack trace frame "
-            "and repository name."
+            "and repository name. This endpoint uses the organization's first active supported "
+            "integration (GitHub or Cursor), and may create a Repository in Sentry. If a mapping "
+            "already exists for the same project, stack root, and source root, it is updated. "
+            "Errors are returned as an object with a `text` field."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=inline_serializer(
@@ -169,10 +178,11 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
                     help_text="The branch to use when generating repository links."
                 ),
                 "stackRoot": serializers.CharField(
-                    help_text="The path prefix used to match stack frame filenames."
+                    allow_blank=True,
+                    help_text="The path prefix used to match stack frame filenames.",
                 ),
                 "sourceRoot": serializers.CharField(
-                    help_text="The path prefix to remove from source file paths."
+                    allow_blank=True, help_text="The path prefix to remove from source file paths."
                 ),
             },
         ),
@@ -180,10 +190,15 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             201: inline_sentry_response_serializer(
                 "OrganizationCodeMappingResponse", RepositoryProjectPathConfigSerializerResponse
             ),
-            400: RESPONSE_BAD_REQUEST,
+            400: inline_sentry_response_serializer(
+                "CreateDerivedOrganizationCodeMappingErrorResponse", DeriveCodeMappingErrorResponse
+            ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOT_FOUND,
+            404: inline_sentry_response_serializer(
+                "CreateDerivedOrganizationCodeMappingNotFoundErrorResponse",
+                DeriveCodeMappingErrorResponse,
+            ),
         },
     )
     def post(

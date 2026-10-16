@@ -74,7 +74,11 @@ class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]])
         required=False,
         allow_blank=True,
         allow_null=True,
-        help_text="Optional repository provider used to disambiguate or find the repository.",
+        help_text=(
+            "Optional repository provider used to disambiguate or find the repository. "
+            "If no matching Sentry repository exists, the repository is created after the "
+            "provider confirms it exists."
+        ),
     )
     default_branch = serializers.RegexField(
         r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
@@ -211,7 +215,11 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                     required=False,
                     allow_blank=True,
                     allow_null=True,
-                    help_text="Optional repository provider used to disambiguate or find the repository.",
+                    help_text=(
+                        "Optional repository provider used to disambiguate or find the repository. "
+                        "If no matching Sentry repository exists, the repository is created after the "
+                        "provider confirms it exists."
+                    ),
                 ),
                 "defaultBranch": serializers.RegexField(
                     r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
