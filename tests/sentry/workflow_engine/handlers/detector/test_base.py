@@ -266,7 +266,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                             result=None,
                             data=DetectorEvaluationData(
                                 group_key=None,
-                                trigger_group_evaluation=build_mock_group_evaluation(),
+                                trigger_group_evaluation=None,
                                 event_data=None,
                             ),
                             triggered=True,
@@ -305,7 +305,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
                             result=status_change,
                             data=DetectorEvaluationData(
                                 group_key=None,
-                                trigger_group_evaluation=build_mock_group_evaluation(),
+                                trigger_group_evaluation=None,
                                 event_data=None,
                             ),
                             triggered=True,

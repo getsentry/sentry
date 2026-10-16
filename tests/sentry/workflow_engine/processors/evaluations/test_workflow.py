@@ -499,6 +499,35 @@ class TestWorkflowEvaluationArtifact(TestCase):
         assert message is not None
         return EAP_ITEMS_CODEC.decode(message.payload.value)
 
+    def test_eap_emitter_stores_detector_without_condition_group(self) -> None:
+        evaluation = DetectorEvaluation(
+            data={
+                "group_key": None,
+                "trigger_group_evaluation": None,
+                "event_data": {"event_id": self.event.event_id},
+            },
+            priority=DetectorPriorityLevel.HIGH,
+            triggered=True,
+        )
+        trace_item = self._emit_evaluation_to_eap(
+            ProcessDetectorsResult(
+                detector_id=self.detector.id,
+                detector_type=self.detector.type,
+                project_id=self.project.id,
+                evaluations={None: evaluation},
+            )
+        )
+
+        assert trace_item.attributes["evaluation_type"].string_value == "detector"
+        assert trace_item.attributes["detector_id"].int_value == self.detector.id
+        assert trace_item.attributes["detector_type"].string_value == self.detector.type
+        assert trace_item.attributes["event_id"].string_value == self.event.event_id
+        assert trace_item.attributes["outcome"].string_value == "triggered"
+        assert trace_item.attributes["triggered"].bool_value is True
+        assert trace_item.attributes["priority"].int_value == DetectorPriorityLevel.HIGH.value
+        assert "trigger_evaluation" not in trace_item.attributes
+        assert "group_key" not in trace_item.attributes
+
     def test_eap_preserves_detector_operands_and_nulls(self) -> None:
         @dataclass
         class DetectorInput:
