@@ -401,8 +401,7 @@ class ProjectSeerReposGetTest(APITestCase):
         )
         self.create_seer_project_repository(self.project, repository=gitlab_repo)
 
-        with self.feature("organizations:seer-gitlab-support"):
-            response = self.get_success_response()
+        response = self.get_success_response()
         assert len(response.data) == 1
         repo_data = response.data[0]
         # owner/name come from the display name (repo.name) and reconstruct it,
@@ -621,7 +620,7 @@ class ProjectSeerReposPostTest(APITestCase):
         unsupported_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/unsupported",
-            provider="integrations:gitlab",
+            provider="integrations:bitbucket",
             external_id="999",
         )
 
@@ -771,7 +770,7 @@ class ProjectSeerReposPutTest(APITestCase):
         unsupported_repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/unsupported",
-            provider="integrations:gitlab",
+            provider="integrations:bitbucket",
             external_id="999",
         )
 

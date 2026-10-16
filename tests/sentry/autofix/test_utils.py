@@ -11,7 +11,6 @@ from sentry.seer.autofix.utils import (
     is_seer_scanner_rate_limited,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 
 
@@ -52,24 +51,24 @@ class TestGetRepoFromCodeMappings(TestCase):
         )
         self.create_code_mapping(project=project, repo=github_repo)
 
-        gitlab_repo = self.create_repo(
-            name="getsentry/sentry-gitlab",
-            provider="integrations:gitlab",
+        bitbucket_repo = self.create_repo(
+            name="getsentry/sentry-bitbucket",
+            provider="integrations:bitbucket",
             external_id="456",
             integration_id=345,
         )
-        # GitLab repos always have the URL-safe path_with_namespace in config["path"].
-        gitlab_repo.update(config={"path": "getsentry/sentry-gitlab"})
         self.create_code_mapping(
-            project=project, repo=gitlab_repo, stack_root="gitlab/", source_root="src/gitlab/"
+            project=project,
+            repo=bitbucket_repo,
+            stack_root="bitbucket/",
+            source_root="src/bitbucket/",
         )
 
         repos = get_autofix_repos_from_project_code_mappings(project)
         assert len(repos) == 1
         assert repos[0]["provider"] == "integrations:github"
 
-    @with_feature("organizations:seer-gitlab-support")
-    def test_includes_gitlab_repos_with_feature_flag(self) -> None:
+    def test_includes_gitlab_repos(self) -> None:
         project = self.create_project()
         github_repo = self.create_repo(
             name="getsentry/sentry",
