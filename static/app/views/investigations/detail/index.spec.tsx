@@ -197,7 +197,7 @@ describe('Investigation detail', () => {
     });
   });
 
-  it('links a breached metric investigation to its issue by short ID', async () => {
+  it('links the issue by short ID and names the monitor beside it', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: InvestigationDetailFixture({
@@ -220,9 +220,13 @@ describe('Investigation detail', () => {
       'href',
       '/organizations/org-slug/issues/123/'
     );
+    expect(screen.getByText('Checkout error rate')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Checkout error rate'})
+    ).not.toBeInTheDocument();
   });
 
-  it('names the issue link by monitor until the issue loads', async () => {
+  it('falls back to "View issue" when the issue cannot be loaded', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: InvestigationDetailFixture({
@@ -242,9 +246,11 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    expect(
-      await screen.findByRole('link', {name: 'Checkout error rate'})
-    ).toHaveAttribute('href', '/organizations/org-slug/issues/123/');
+    expect(await screen.findByRole('link', {name: 'View issue'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/123/'
+    );
+    expect(screen.getByText('Checkout error rate')).toBeInTheDocument();
   });
 
   it('links the issue of a breached metric investigation without a snapshot', async () => {
