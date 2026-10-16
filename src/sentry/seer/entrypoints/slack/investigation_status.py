@@ -47,6 +47,12 @@ HYPOTHESIS_LABELS = {
     "failed": NOT_COMPLETED_LABEL,
     "cancelled": NOT_COMPLETED_LABEL,
 }
+# A person's decision overrides Seer's verdict, so its reasoning no longer applies.
+USER_DECISION_LABELS = {
+    "accepted": "● Accepted by a teammate",
+    "rejected": "● Rejected by a teammate",
+}
+USER_DECISION_DETAIL = "A teammate made this call in Sentry."
 
 
 def _truncate(text: str, limit: int = MAX_STATUS_TEXT_LENGTH) -> str:
@@ -160,9 +166,16 @@ def build_investigation_status(
     hypotheses = []
     fingerprint_hypotheses = []
     for hypothesis in raw_hypotheses:
-        label = HYPOTHESIS_LABELS.get(hypothesis.get("effectiveStatus", ""), VERIFYING_LABEL)
+        effective_status = hypothesis.get("effectiveStatus", "")
         statement = _truncate(str(hypothesis.get("statement") or ""))
-        detail = NOT_COMPLETED_DETAIL if label == NOT_COMPLETED_LABEL else _get_detail(hypothesis)
+        if hypothesis.get("decisionSource") == "user" and effective_status in USER_DECISION_LABELS:
+            label = USER_DECISION_LABELS[effective_status]
+            detail = USER_DECISION_DETAIL
+        else:
+            label = HYPOTHESIS_LABELS.get(effective_status, VERIFYING_LABEL)
+            detail = (
+                NOT_COMPLETED_DETAIL if label == NOT_COMPLETED_LABEL else _get_detail(hypothesis)
+            )
         hypotheses.append(
             SeerInvestigationHypothesis(statement=statement, label=label, detail=detail)
         )

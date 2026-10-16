@@ -128,6 +128,32 @@ class BuildInvestigationStatusTest(TestCase):
             "Verification stopped before this explanation could be assessed."
         )
 
+    def test_teammate_decision_replaces_seer_verdict(self) -> None:
+        data, _fingerprint = self._build(
+            [
+                _hypothesis(
+                    id="h1",
+                    order=0,
+                    effectiveStatus="accepted",
+                    decisionSource="user",
+                    agentVerdict={"verdict": "refuted", "rationale": "Timings did not change."},
+                    userDisposition={"disposition": "accepted"},
+                ),
+                _hypothesis(
+                    id="h2",
+                    order=1,
+                    effectiveStatus="rejected",
+                    decisionSource="user",
+                    userDisposition={"disposition": "rejected"},
+                ),
+            ]
+        )
+
+        assert [(hypothesis["label"], hypothesis["detail"]) for hypothesis in data.hypotheses] == [
+            ("● Accepted by a teammate", "A teammate made this call in Sentry."),
+            ("● Rejected by a teammate", "A teammate made this call in Sentry."),
+        ]
+
     def test_hypotheses_sorted_by_order_and_detail_falls_back_to_rationale(self) -> None:
         data, _fingerprint = self._build(
             [
