@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, TypedDict, overload
+from typing import Any, TypedDict, cast, overload
 
 import sentry_sdk
 from snuba_sdk import (
@@ -42,6 +42,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import (
     COMPOSITE_ENTITY_CONSTITUENT_ALIAS,
+    MetricOperationParams,
     MetricExpressionBase,
     generate_bottom_up_dependency_tree_for_metrics,
     org_id_from_projects,
@@ -71,6 +72,7 @@ from sentry.snuba.metrics.utils import (
     DerivedMetricParseException,
     MetricDoesNotExistException,
     MetricEntity,
+    MetricOperationType,
     get_num_intervals,
     get_timestamp_column_name,
     require_rhs_condition_resolution,
@@ -93,6 +95,14 @@ __all__ = (
 
 
 QUERY_PROJECT_LIMIT = 10
+
+
+def _to_metric_operation_params(
+    params: dict[str, None | str | int | float | Sequence[tuple[str | int, ...]]] | None,
+) -> MetricOperationParams | None:
+    # MetricField supports richer params than the current MetricExpression* signatures expose.
+    # Keep runtime behavior unchanged while narrowing for mypy.
+    return cast(MetricOperationParams | None, params)
 
 
 def _strip_project_id(condition: Condition) -> Condition | None:
@@ -126,9 +136,10 @@ def parse_field(field: str, allow_mri: bool = False) -> MetricField:
 
 def parse_public_field(field: str) -> MetricField:
     matches = PUBLIC_EXPRESSION_REGEX.match(field)
+    operation: MetricOperationType | None
 
     if matches is not None:
-        operation = matches[1]
+        operation = cast(MetricOperationType, matches[1])
         metric_name = matches[2]
     else:
         operation = None
@@ -747,11 +758,13 @@ def translate_meta_results(
                 continue
         elif alias_type == AliasMetaType.GROUP_BY_METRIC_FIELD:
             metric_groupby_field = alias_to_metric_group_by_field[record["name"]]
+            if not isinstance(metric_groupby_field.field, MetricField):
+                raise InvalidParams(f"Field {record['name']} was not in the groupBy clause")
             defined_parent_meta_type = get_metric_object_from_metric_field(
                 metric_groupby_field.field
             ).get_meta_type()
-
-            record["type"] = defined_parent_meta_type
+            if defined_parent_meta_type is not None:
+                record["type"] = defined_parent_meta_type
         elif alias_type == AliasMetaType.TAG:
             record["type"] = "string"
         elif alias_type == AliasMetaType.DATASET_COLUMN or alias_type == AliasMetaType.TIME_COLUMN:
@@ -829,6 +842,7 @@ class SnubaQueryBuilder:
         if isinstance(metric_action_by_field.field, str):
             # This transformation is currently supported only for group by because OrderBy doesn't support the Function type.
             if is_group_by and metric_action_by_field.field == "transaction":
+                assert isinstance(metric_action_by_field, MetricGroupByField)
                 return transform_null_transaction_to_unparameterized(
                     use_case_id, org_id, metric_action_by_field.alias
                 )
@@ -853,7 +867,7 @@ class SnubaQueryBuilder:
             exp = (
                 AliasedExpression(
                     exp=Column(name=column_name),
-                    alias=metric_action_by_field.alias,
+                    alias=cast(MetricGroupByField, metric_action_by_field).alias,
                 )
                 if is_group_by and not is_column
                 else Column(name=column_name)
@@ -862,7 +876,9 @@ class SnubaQueryBuilder:
             if is_order_by:
                 # We return a list in order to use the "extend" method and reduce the number of changes across
                 # the codebase.
-                exp = [OrderBy(exp=exp, direction=metric_action_by_field.direction)]
+                exp = [
+                    OrderBy(exp=exp, direction=cast(MetricOrderByField, metric_action_by_field).direction)
+                ]
 
             return exp
         elif isinstance(metric_action_by_field.field, MetricField):
@@ -875,16 +891,16 @@ class SnubaQueryBuilder:
                     return metric_expression.generate_groupby_statements(
                         use_case_id=use_case_id,
                         alias=metric_action_by_field.field.alias,
-                        params=metric_action_by_field.field.params,
+                        params=_to_metric_operation_params(metric_action_by_field.field.params),
                         projects=projects,
                     )[0]
                 elif is_order_by:
                     return metric_expression.generate_orderby_clause(
                         use_case_id=use_case_id,
                         alias=metric_action_by_field.field.alias,
-                        params=metric_action_by_field.field.params,
+                        params=_to_metric_operation_params(metric_action_by_field.field.params),
                         projects=projects,
-                        direction=metric_action_by_field.direction,
+                        direction=cast(MetricOrderByField, metric_action_by_field).direction,
                     )
                 else:
                     raise NotImplementedError(
@@ -918,20 +934,28 @@ class SnubaQueryBuilder:
                     condition.lhs.op, condition.lhs.metric_mri
                 )
                 try:
+                    requires_rhs_resolution = (
+                        condition.lhs.op is not None
+                        and require_rhs_condition_resolution(condition.lhs.op)
+                    )
+                    rhs: int | float | str = condition.rhs
+                    if requires_rhs_resolution:
+                        if not isinstance(rhs, str):
+                            raise InvalidParams(
+                                f"Cannot resolve rhs value {rhs!r} for operation {condition.lhs.op}"
+                            )
+                        rhs = resolve_tag_value(self._use_case_id, self._org_id, rhs)
+
                     metric_condition_filters.append(
                         Condition(
                             lhs=metric_expression.generate_where_statements(
                                 use_case_id=self._use_case_id,
-                                params=condition.lhs.params,
+                                params=_to_metric_operation_params(condition.lhs.params),
                                 projects=self._projects,
                                 alias=condition.lhs.alias,
                             )[0],
                             op=condition.op,
-                            rhs=(
-                                resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
-                                if require_rhs_condition_resolution(condition.lhs.op)
-                                else condition.rhs
-                            ),
+                            rhs=rhs,
                         )
                     )
                 except IndexError:
@@ -1066,8 +1090,9 @@ class SnubaQueryBuilder:
                 series_limit = self._metrics_query.max_limit
 
             if self._use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
+                interval = self._metrics_query.interval or self._metrics_query.granularity.granularity
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
-                    self._metrics_query.interval
+                    interval
                 )
             else:
                 time_groupby_column = Column(TS_COL_GROUP)
@@ -1096,11 +1121,13 @@ class SnubaQueryBuilder:
 
     def __update_query_dicts_with_component_entities(
         self,
-        component_entities: dict[MetricEntity, Sequence[str]],
-        metric_mri_to_obj_dict: dict[tuple[str | None, str, str], MetricExpressionBase],
-        fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]],
-        parent_alias,
-    ) -> dict[tuple[str | None, str, str], MetricExpressionBase]:
+        component_entities: Mapping[MetricEntity, Sequence[str]],
+        metric_mri_to_obj_dict: dict[
+            tuple[MetricOperationType | None, str, str], MetricExpressionBase
+        ],
+        fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]],
+        parent_alias: str,
+    ) -> dict[tuple[MetricOperationType | None, str, str], MetricExpressionBase]:
         # At this point in time, we are only supporting raw metrics in the metrics attribute of
         # any instance of DerivedMetric, and so in this case the op will always be None
         # ToDo(ahmed): In future PR, we might want to allow for dependency metrics to also have an
@@ -1125,8 +1152,10 @@ class SnubaQueryBuilder:
         return metric_mri_to_obj_dict
 
     def get_snuba_queries(self):
-        metric_mri_to_obj_dict: dict[tuple[str | None, str, str], MetricExpressionBase] = {}
-        fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {}
+        metric_mri_to_obj_dict: dict[
+            tuple[MetricOperationType | None, str, str], MetricExpressionBase
+        ] = {}
+        fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]] = {}
 
         for select_field in self._metrics_query.select:
             metric_field_obj = metric_object_factory(select_field.op, select_field.metric_mri)
@@ -1145,12 +1174,19 @@ class SnubaQueryBuilder:
                     projects=self._projects, use_case_id=self._use_case_id
                 )
                 if isinstance(component_entities, dict):
+                    filtered_component_entities = {
+                        component_entity: metric_mris
+                        for component_entity, metric_mris in component_entities.items()
+                        if component_entity is not None
+                    }
+                    if len(filtered_component_entities) != len(component_entities):
+                        raise DerivedMetricParseException("Entity parsed is in incorrect format")
                     # In this case, component_entities is a dictionary with entity keys and
                     # lists of metric_mris as values representing all the entities and
                     # metric_mris combination that this metric_object is composed of, or rather
                     # the instances of SingleEntityDerivedMetric that it is composed of
                     metric_mri_to_obj_dict = self.__update_query_dicts_with_component_entities(
-                        component_entities=component_entities,
+                        component_entities=filtered_component_entities,
                         metric_mri_to_obj_dict=metric_mri_to_obj_dict,
                         fields_in_entities=fields_in_entities,
                         parent_alias=select_field.alias,
@@ -1193,12 +1229,19 @@ class SnubaQueryBuilder:
 
                 # In order to support on demand metrics which require an interval (e.g. epm),
                 # we want to pass the interval down via params so we can pass it to the associated snql_factory
-                params = {"interval": self._metrics_query.interval, **(params or {})}
+                typed_params = _to_metric_operation_params(params)
+                if self._metrics_query.interval is not None:
+                    query_params: MetricOperationParams | None = {
+                        "interval": self._metrics_query.interval,
+                        **(typed_params or {}),
+                    }
+                else:
+                    query_params = typed_params
                 select += metric_field_obj.generate_select_statements(
                     projects=self._projects,
                     use_case_id=self._use_case_id,
                     alias=field[2],
-                    params=params,
+                    params=query_params,
                 )
                 metric_ids_set |= metric_field_obj.generate_metric_ids(
                     self._projects, self._use_case_id
@@ -1252,7 +1295,9 @@ class SnubaResultConverter:
         self,
         organization_id: int,
         metrics_query: DeprecatingMetricsQuery,
-        fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]],
+        fields_in_entities: dict[
+            MetricEntity, list[tuple[MetricOperationType | None, str, str]]
+        ],
         intervals: list[datetime],
         results,
         use_case_id: UseCaseID,
@@ -1433,7 +1478,7 @@ class SnubaResultConverter:
                     except KeyError:
                         params = None
                     totals[alias] = metric_obj.run_post_query_function(
-                        totals, params=params, alias=alias
+                        totals, params=_to_metric_operation_params(params), alias=alias
                     )
 
                 if series is not None:
@@ -1448,7 +1493,10 @@ class SnubaResultConverter:
                         except KeyError:
                             params = None
                         series[alias][idx] = metric_obj.run_post_query_function(
-                            series, params=params, idx=idx, alias=alias
+                            series,
+                            params=_to_metric_operation_params(params),
+                            idx=idx,
+                            alias=alias,
                         )
 
         # Remove the extra fields added due to the constituent metrics that were added
