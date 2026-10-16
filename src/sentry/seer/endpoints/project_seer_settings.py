@@ -431,8 +431,8 @@ class LegacyProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer
         return super()._update_fields() | {"auto_create_pr"}
 
 
-@cell_silo_endpoint
 @extend_schema(tags=["Projects"])
+@cell_silo_endpoint
 class ProjectSeerSettingsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
@@ -511,11 +511,15 @@ class BulkProjectSettingsUpdateSerializer(ProjectSettingsUpdateSerializer):
 
 
 class LegacyBulkProjectSettingsUpdateSerializer(LegacyProjectSettingsUpdateSerializer):
-    query = serializers.CharField(required=False, default="")
+    query = serializers.CharField(
+        required=False,
+        default="",
+        help_text="Apply the update to projects matching the Seer project search query.",
+    )
 
 
-@cell_silo_endpoint
 @extend_schema(tags=["Organizations"])
+@cell_silo_endpoint
 class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
@@ -562,6 +566,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def get(
@@ -604,6 +609,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
         },
     )
     def put(self, request: Request, organization: Organization) -> Response[None]:

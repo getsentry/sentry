@@ -42,6 +42,15 @@ from sentry.models.repository import Repository
 INVALID_SOURCE_ROOT_ERROR_MESSAGE = "Source root cannot point outside the repository"
 
 
+class CreateCodeMappingRequestSerializer(serializers.Serializer):
+    repositoryId = serializers.IntegerField()
+    projectId = serializers.IntegerField()
+    stackRoot = serializers.CharField(allow_blank=True)
+    sourceRoot = serializers.CharField(allow_blank=True)
+    defaultBranch = serializers.CharField(required=False, allow_blank=True)
+    integrationId = serializers.IntegerField()
+
+
 def validate_source_root(path: str) -> None:
     if "\x00" in path:
         return
