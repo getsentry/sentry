@@ -28,6 +28,19 @@ describe('escapeIssueTagKey', () => {
 });
 
 describe('generateQueryWithTag', () => {
+  it('keeps the original array query unchanged', () => {
+    const prevQuery = {
+      query: ['is:unresolved', 'release:latest'],
+      referrer: 'tag-details-drawer',
+    };
+
+    expect(generateQueryWithTag(prevQuery, {key: 'color', value: 'red'})).toEqual({
+      query: 'release:latest color:red',
+      referrer: 'tag-details-drawer',
+    });
+    expect(prevQuery.query).toEqual(['is:unresolved', 'release:latest']);
+  });
+
   it('produces !has query when tag value missing', () => {
     expect(
       generateQueryWithTag({referrer: 'tag-details-drawer'}, {key: 'device', value: ''})
@@ -72,9 +85,25 @@ describe('appendTagCondition', () => {
     expect(result).toBe('error+text color:red');
   });
 
-  it('handles array current value', () => {
-    const result = appendTagCondition(['', 'thing'], 'color', 'red');
-    expect(result).toBe('thing color:red');
+  it.each([
+    {query: ['thing'], expected: 'thing color:red'},
+    {query: ['', 'thing'], expected: 'thing color:red'},
+    {query: ['first', 'thing'], expected: 'thing color:red'},
+    {query: [], expected: 'color:red'},
+    {query: [''], expected: 'color:red'},
+  ])('keeps array query $query unchanged across calls', ({query, expected}) => {
+    const originalQuery = [...query];
+
+    expect(appendTagCondition(query, 'color', 'red')).toBe(expected);
+    expect(appendTagCondition(query, 'color', 'red')).toBe(expected);
+    expect(query).toEqual(originalQuery);
+  });
+
+  it('handles a frozen array query', () => {
+    const query = ['first', 'thing'];
+    Object.freeze(query);
+
+    expect(appendTagCondition(query, 'color', 'red')).toBe('thing color:red');
   });
 
   it('handles empty string current value', () => {
@@ -118,6 +147,33 @@ describe('appendTagCondition', () => {
 });
 
 describe('appendExcludeTagValuesCondition', () => {
+  it.each([
+    {query: ['thing'], expected: 'thing !color:[red, blue]'},
+    {query: ['', 'thing'], expected: 'thing !color:[red, blue]'},
+    {query: ['first', 'thing'], expected: 'thing !color:[red, blue]'},
+    {query: [], expected: '!color:[red, blue]'},
+    {query: [''], expected: '!color:[red, blue]'},
+  ])('keeps array query $query unchanged across calls', ({query, expected}) => {
+    const originalQuery = [...query];
+
+    expect(appendExcludeTagValuesCondition(query, 'color', ['red', 'blue'])).toBe(
+      expected
+    );
+    expect(appendExcludeTagValuesCondition(query, 'color', ['red', 'blue'])).toBe(
+      expected
+    );
+    expect(query).toEqual(originalQuery);
+  });
+
+  it('handles a frozen array query', () => {
+    const query = ['first', 'thing'];
+    Object.freeze(query);
+
+    expect(appendExcludeTagValuesCondition(query, 'color', ['red', 'blue'])).toBe(
+      'thing !color:[red, blue]'
+    );
+  });
+
   it('excludes tag values', () => {
     const result = appendExcludeTagValuesCondition(null, 'color', [
       'red',
