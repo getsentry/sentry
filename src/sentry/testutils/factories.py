@@ -70,7 +70,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import (
     Incident,
-    IncidentProject,
     IncidentType,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
@@ -2093,6 +2092,7 @@ class Factories:
     ):
         if not title:
             title = petname.generate(2, " ", letters=10).title()
+        # Projects configure the default alert rule, not an incident-project relation.
         if alert_rule is None:
             alert_rule = Factories.create_alert_rule(
                 organization, projects, query=query, time_window=1
@@ -2110,9 +2110,6 @@ class Factories:
             type=IncidentType.ALERT_TRIGGERED.value,
             subscription=subscription,
         )
-        for project in projects:
-            IncidentProject.objects.create(incident=incident, project=project)
-
         return incident
 
     @staticmethod
