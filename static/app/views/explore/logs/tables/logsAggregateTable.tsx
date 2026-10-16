@@ -54,7 +54,7 @@ import {
   useSetQueryParamsAggregateCursor,
   useSetQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 export function LogsAggregateTable({
@@ -219,7 +219,7 @@ export function LogsAggregateTable({
 
             return rendered;
           },
-          prependColumnWidths: ['40px'],
+          prependColumnWidths: ['min-content'],
           renderPrependColumns: (isHeader, dataRow, rowIndex) => {
             // rowIndex is only defined when `isHeader=false`
             if (isHeader || !defined(rowIndex)) {
