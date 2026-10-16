@@ -2629,7 +2629,7 @@ class Factories:
         """Payload used by Explore saved-formula API and resolver tests."""
         return copy.deepcopy(
             {
-                "name": "formula.apdex",
+                "name": "formula.custom_apdex",
                 "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
                 "unit": None,
                 "dataset": "spans",
@@ -2640,7 +2640,7 @@ class Factories:
                     },
                     {
                         "name": "count_tolerating",
-                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={frustrated}`)",
                     },
                 ],
                 "params": [
@@ -2657,7 +2657,7 @@ class Factories:
                         "value": "",
                     },
                     {
-                        "name": "4threshold",
+                        "name": "frustrated",
                         "type": "calculation",
                         "order": 2,
                         "value": "{threshold} * 4",

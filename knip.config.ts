@@ -71,6 +71,7 @@ const config: KnipConfig = {
         '!static/oxlint/**/*.ts!',
       ],
       ignoreDependencies: [
+        'react-router-v8', // Knip cannot trace the conditional Rspack package alias.
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         'zrender', // used in echarts
@@ -157,9 +158,13 @@ const config: KnipConfig = {
     },
   },
   ignoreExportsUsedInFile: isProductionMode,
+  cycles: {
+    dynamicImports: false,
+  },
   rules: {
     binaries: 'off',
     enumMembers: 'off',
+    cycles: 'error',
   },
   include: ['nsExports', 'nsTypes'],
   mdx: {

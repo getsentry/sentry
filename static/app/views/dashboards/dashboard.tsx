@@ -128,20 +128,25 @@ function DashboardInner({
   const selectedProjects = useSelectedProjectsForLLMContext();
 
   // Push dashboard metadata into the LLM context tree for Seer Explorer.
-  useLLMContext({
-    contextHint:
-      'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. You can search live telemetry or list telemetry index nodes to fetch data. Based on the user question, data might be needed from multiple widgets. ' +
-      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
-      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
-    title: dashboard.title,
-    widgetCount: dashboard.widgets.length,
-    queryHints: getQueryHintLegend(dashboard.widgets),
-    filters: dashboard.filters,
-    isEditingDashboard,
-    dateRange: selection.datetime,
-    environments: selection.environments,
-    ...toLLMContextProjectFields(selectedProjects),
-  });
+  useLLMContext(
+    {
+      contextHint:
+        'Sentry dashboard. dateRange, environments, and projects are global filters applied to every widget. Each widget has its own query config. You can search live telemetry or list telemetry index nodes to fetch data. Based on the user question, data might be needed from multiple widgets. ' +
+        'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+        'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
+      title: dashboard.title,
+      widgetCount: dashboard.widgets.length,
+      queryHints: getQueryHintLegend(dashboard.widgets),
+      filters: dashboard.filters,
+      isEditingDashboard,
+      dateRange: selection.datetime,
+      environments: selection.environments,
+      ...toLLMContextProjectFields(selectedProjects),
+    },
+    // Widgets mount lazily and register their own nodes later, so stay loading
+    // and wait for a widget node to register instead (see PAGE_CONTEXT_READY_NODES).
+    {isLoading: dashboard.widgets.length > 0}
+  );
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);

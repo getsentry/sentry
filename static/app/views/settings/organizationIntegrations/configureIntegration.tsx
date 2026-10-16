@@ -245,6 +245,7 @@ function IntegrationMainTab({
         onGcpVerificationStateChange(true);
       }
 
+      // oxlint-disable-next-line react/todo
       try {
         // it's important that we keep the mutation pending while the refetch is happening by awaiting it.
         // Otherwise, clicking toggles again while the invalidation is running won't do anything because they still see old defaultValues.

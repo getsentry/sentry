@@ -18,18 +18,18 @@ import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
-import {
-  buildNotificationSelection,
-  type IssueAlertNotificationProps,
-  MultipleCheckboxOptions,
-  useScmNotificationAction,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {useScmNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
   getRequestDataFragment,
   type AlertRuleOptions,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {
+  buildNotificationSelection,
+  type IssueAlertNotificationProps,
+  MultipleCheckboxOptions,
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 export function isProjectNameManuallyModified(
   projectDetailsForm: ProjectDetailsFormState | undefined
@@ -399,6 +399,7 @@ export function useScmProjectDetails({
         issueAlert = 'Default';
     }
 
+    // oxlint-disable-next-line react/todo
     try {
       // User navigated back and clicked Create without changing anything; skip
       // to completion without creating a duplicate. Any actual change abandons
@@ -492,7 +493,6 @@ export function useScmProjectDetails({
     teamSlugResolved,
   ]);
 
-  // oxlint-disable-next-line react/refs
   return {
     projectName: projectNameResolved,
     onProjectNameChange,

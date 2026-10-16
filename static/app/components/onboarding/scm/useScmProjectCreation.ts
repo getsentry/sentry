@@ -16,11 +16,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
-import type {
-  NotificationSelection,
-  useCreateNotificationAction,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import type {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
+import type {NotificationSelection} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 type GetIntegrationAction = ReturnType<
   typeof useCreateNotificationAction
@@ -157,6 +155,7 @@ export function useScmProjectCreation({
 
       isCreatingRef.current = true;
       setIsCreating(true);
+      // oxlint-disable-next-line react/todo
       try {
         const creation = await createProjectAndRules
           .mutateAsync({

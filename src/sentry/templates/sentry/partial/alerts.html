@@ -1,40 +1,5 @@
 {% load sentry_helpers %}
 
-{% block css %}
-{% if show_partner_login_banner %}
-<style type="text/css">
-  .alert-banner {
-    padding-top: 0.75rem;
-    padding-bottom: 0.75rem;
-    display: flex;
-    justify-content: center;
-    border-radius: 4px;
-    margin-bottom: 4px;
-  }
-
-  .alert-message {
-    margin-left: 1rem;
-    margin-right: 1rem;
-    line-height: 1.5;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-align: left;
-    flex-grow: 1;
-    font-size: 16px;
-    font-family: Rubik;
-    white-space: pre-wrap;
-  }
-
-  /* Partner login banner color */
-  .alert-banner.partner {
-    background: #6c5fc7;
-    color: white;
-  }
-</style>
-{% endif %}
-{% endblock %}
-
 {% if messages %}
   <div id="messages" class="messages-container">
     {% for message in messages %}
@@ -48,9 +13,5 @@
           </div>
       {% endwith %}
     {% endfor %}
-  </div>
-  {% elif show_partner_login_banner %}
-  <div class="alert-banner partner">
-    <div class="alert-message">Complete your registration by checking your inbox for our email and following the sign-in link.</div>
   </div>
 {% endif %}

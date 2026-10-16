@@ -727,6 +727,21 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         action = self.create_shadow_action("slack", {"notes": "Check the runbook"})
         self.assert_match(self.resolution_invocation(action), execute_via_metric_alert_handler)
 
+    def test_slack_workflow_footer_matches(self) -> None:
+        self.workflow.update(name="Page | the on-call")
+        action = self.create_shadow_action("slack")
+
+        client = self.assert_match(self.invocation(action))
+
+        attachments = orjson.loads(
+            client.return_value.chat_postMessage.call_args.kwargs["attachments"]
+        )
+        footer = attachments[0]["blocks"][-1]
+        assert footer["type"] == "context"
+        assert footer["elements"][0]["text"].endswith(
+            f"/monitors/alerts/{self.workflow.id}/|Page \u2223 the on-call>"
+        )
+
     @with_feature("organizations:metric-alert-chartcuterie")
     @mock.patch(
         "sentry.integrations.slack.utils.notifications.build_metric_alert_chart",
