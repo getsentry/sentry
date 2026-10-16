@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, TypedDict
 
 import orjson
@@ -33,7 +34,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerInvestigationError,
     SeerInvestigationStarted,
 )
-from sentry.notifications.platform.tracking import NotificationLinkDecorator
+from sentry.notifications.platform.tracking import NotificationLink, NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -135,10 +136,49 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
     @classmethod
-    def create_first_block_id(cls, group_id: int, run_id: int | None) -> str:
+    def create_first_block_id(cls, data: SeerAutofixUpdate) -> str:
         # The action handler will fail if the first block's block_id is not JSON-encoded with
-        # group data, so we have to modify that block when emitting actions.
-        return orjson.dumps({"issue": group_id, "run_id": run_id}).decode()
+        # group data, so we have to modify that block when emitting actions. The notification ID
+        # and stage let the handler attribute button clicks to this message.
+        return orjson.dumps(
+            {
+                "issue": data.group_id,
+                "run_id": data.run_id,
+                "notification_uuid": data.notification_uuid,
+                "stage": data.current_point,
+            }
+        ).decode()
+
+    @classmethod
+    def get_tracked_button(cls, action: str) -> NotificationLink | None:
+        """
+        The tracked button for a Slack action, or None if clicks on it aren't tracked. Sends and
+        clicks both use this, so a button's shows and clicks are always counted together.
+        """
+        from sentry.integrations.slack.message_builder.types import SlackAction
+
+        match action:
+            case SlackAction.SEER_AUTOFIX_START:
+                return NotificationLink.SEER_AUTOFIX_START
+            case SlackAction.SEER_AUTOFIX_HANDOFF:
+                return NotificationLink.SEER_AUTOFIX_HANDOFF
+            case _:
+                return None
+
+    @classmethod
+    def get_tracked_buttons(cls, blocks: Sequence[Block]) -> set[NotificationLink]:
+        """The tracked buttons in rendered Slack blocks, identified by their action IDs."""
+        from sentry.integrations.slack.message_builder.routing import decode_action_id
+
+        return {
+            button
+            for block in blocks
+            if isinstance(block, ActionsBlock)
+            for element in block.elements
+            if isinstance(element, InteractiveElement)
+            and element.action_id
+            and (button := cls.get_tracked_button(decode_action_id(element.action_id).action))
+        }
 
     @classmethod
     def _render_autofix_button(cls, data: SeerAutofixTrigger) -> ButtonElement:
@@ -194,7 +234,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         from sentry.integrations.slack.message_builder.routing import encode_action_id
         from sentry.integrations.slack.message_builder.types import SlackAction
 
-        first_block_id = cls.create_first_block_id(group_id=data.group_id, run_id=data.run_id)
+        first_block_id = cls.create_first_block_id(data)
         link_button = cls._render_link_button(
             organization_id=data.organization_id,
             project_id=data.project_id,

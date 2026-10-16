@@ -30,7 +30,10 @@ logger = logging.getLogger(__name__)
 
 
 class NotificationLink(StrEnum):
-    """What a tracked link points to, inferred from the page it lands on."""
+    """
+    What a tracked link or button points to. Links are inferred from the page they land on, and
+    buttons that don't open a page are named for the action they take.
+    """
 
     ISSUE = "issue"
     ISSUE_WITH_SEER = "issue_with_seer"
@@ -44,6 +47,10 @@ class NotificationLink(StrEnum):
     SEER_AGENT_RUN = "seer_agent_run"
     INVESTIGATION = "investigation"
     OTHER = "other"
+    SEER_AUTOFIX_START = "seer_autofix_start"
+    """A button that starts a Seer Autofix stage, such as "Fix with Seer"."""
+    SEER_AUTOFIX_HANDOFF = "seer_autofix_handoff"
+    """A button that hands a Seer Autofix run off to a coding agent."""
 
 
 class NotificationEngagementMechanism(StrEnum):

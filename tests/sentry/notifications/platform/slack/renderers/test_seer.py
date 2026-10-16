@@ -1,5 +1,6 @@
 from unittest.mock import Mock, patch
 
+import orjson
 from django.test import override_settings
 from slack_sdk.models.blocks import (
     ActionsBlock,
@@ -265,6 +266,58 @@ class SeerSlackRendererTest(TestCase):
             if isinstance(e, LinkButtonElement) and e.text is not None and "PR" in e.text.text
         ]
         assert len(pr_buttons) == 2
+
+    def test_render_autofix_update_first_block_id(self) -> None:
+        data = self._create_update(current_point=AutofixStoppingPoint.SOLUTION)
+        renderable = SeerSlackRenderer._render_autofix_update(data, link_decorator(data))
+        first_block = renderable["blocks"][0]
+        assert first_block.block_id is not None
+        assert orjson.loads(first_block.block_id) == {
+            "issue": MOCK_GROUP_ID,
+            "run_id": MOCK_RUN_ID,
+            "notification_uuid": data.notification_uuid,
+            "stage": "solution",
+        }
+
+    @patch(
+        "sentry.notifications.platform.templates.seer.organization_service.get_option",
+        return_value=True,
+    )
+    def test_get_tracked_buttons_next_step(self, _mock_get_option: Mock) -> None:
+        data = self._create_update(current_point=AutofixStoppingPoint.ROOT_CAUSE)
+        renderable = SeerSlackRenderer._render_autofix_update(data, link_decorator(data))
+        assert SeerSlackRenderer.get_tracked_buttons(renderable["blocks"]) == {
+            NotificationLink.SEER_AUTOFIX_START
+        }
+
+    def test_get_tracked_buttons_handoff(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.ROOT_CAUSE,
+            handoff_target="cursor_background_agent",
+        )
+        renderable = SeerSlackRenderer._render_autofix_update(data, link_decorator(data))
+        assert SeerSlackRenderer.get_tracked_buttons(renderable["blocks"]) == {
+            NotificationLink.SEER_AUTOFIX_HANDOFF
+        }
+
+    def test_get_tracked_button(self) -> None:
+        assert (
+            SeerSlackRenderer.get_tracked_button("seer_autofix_start")
+            == NotificationLink.SEER_AUTOFIX_START
+        )
+        assert (
+            SeerSlackRenderer.get_tracked_button("seer_autofix_handoff")
+            == NotificationLink.SEER_AUTOFIX_HANDOFF
+        )
+        assert SeerSlackRenderer.get_tracked_button("seer_autofix_view_pr") is None
+
+    def test_get_tracked_buttons_ignores_link_buttons(self) -> None:
+        data = self._create_update(
+            current_point=AutofixStoppingPoint.OPEN_PR,
+            pull_requests=[{"pr_number": 123, "pr_url": "https://github.com/org/repo/pull/123"}],
+        )
+        renderable = SeerSlackRenderer._render_autofix_update(data, link_decorator(data))
+        assert SeerSlackRenderer.get_tracked_buttons(renderable["blocks"]) == set()
 
     def test_render_autofix_update_root_cause_with_handoff_target(self) -> None:
         data = self._create_update(

@@ -260,6 +260,50 @@ class SlackAutofixEntrypointTest(TestCase):
             slack_user_id=self.slack_user_id,
         )
 
+    @override_options({"notifications.tracking.sources": [NotificationSource.SEER_AUTOFIX_UPDATE]})
+    @patch(
+        "sentry.notifications.platform.templates.seer.organization_service.get_option",
+        return_value=True,
+    )
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_send_thread_update_records_sent(
+        self, _mock_send_threaded_message, mock_record_sent, _mock_get_option
+    ):
+        data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
+        install = self.integration.get_installation(organization_id=self.organization.id)
+
+        send_thread_update(install=install, thread=self.thread, data=data)
+
+        mock_record_sent.assert_called_once_with(
+            NotificationTrackingContext(
+                source=NotificationSource.SEER_AUTOFIX_UPDATE,
+                provider=NotificationProviderKey.SLACK,
+                category=NotificationCategory.SEER,
+                notification_uuid=data.notification_uuid,
+                organization_id=self.organization.id,
+                stage=AutofixStoppingPoint.ROOT_CAUSE,
+            ),
+            links={NotificationLink.ISSUE, NotificationLink.SEER_AUTOFIX_START},
+        )
+
+    @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value=None,
+    )
+    def test_send_thread_update_without_response_does_not_record_sent(
+        self, _mock_send_threaded_message, mock_record_sent
+    ):
+        install = self.integration.get_installation(organization_id=self.organization.id)
+
+        send_thread_update(install=install, thread=self.thread, data=self._create_update())
+
+        mock_record_sent.assert_not_called()
+
     @patch(
         "sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message",
         side_effect=TimeoutError,
@@ -589,6 +633,7 @@ class SlackAutofixEntrypointTest(TestCase):
                 category=NotificationCategory.SEER,
                 notification_uuid=data.notification_uuid,
                 organization_id=self.organization.id,
+                stage=AutofixStoppingPoint.SOLUTION,
             ),
             links={NotificationLink.ISSUE},
         )

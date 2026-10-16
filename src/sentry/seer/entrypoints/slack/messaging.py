@@ -108,8 +108,9 @@ def send_thread_update(
                         category=template_cls.category,
                         notification_uuid=data.notification_uuid,
                         organization_id=data.organization_id,
+                        stage=data.current_point if isinstance(data, SeerAutofixUpdate) else None,
                     ),
-                    links=links,
+                    links={*links, *SeerSlackRenderer.get_tracked_buttons(renderable["blocks"])},
                 )
             run_id = getattr(data, "run_id", None)
             if (
@@ -332,6 +333,7 @@ def update_existing_message(
                 category=template_registry.get(data.source).category,
                 notification_uuid=data.notification_uuid,
                 organization_id=data.organization_id,
+                stage=data.current_point,
             ),
             links=link_decorator.links,
         )
