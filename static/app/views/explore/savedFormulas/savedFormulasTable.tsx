@@ -35,10 +35,10 @@ const DATASET_LABEL_MAP: Record<FormulaDataset, string> = {
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 'minmax(200px, 2fr)'},
-  {key: 'params', visible: {xl: true}, width: 'minmax(auto, 180px)'},
-  {key: 'formula', width: 'minmax(0, 3fr)'},
   {key: 'dataset', width: 'max-content'},
   {key: 'unit', visible: {xl: true}, width: 'max-content'},
+  {key: 'params', visible: {xl: true}, width: 'max-content'},
+  {key: 'formula', width: 'minmax(0, 3fr)'},
   {key: 'created-by', width: 'min-content'},
   {key: 'actions', width: '48px'},
 ];
@@ -62,10 +62,10 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
           <SavedEntityTable.HeaderCell divider={false}>
             {t('Name')}
           </SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell>{t('Parameters')}</SavedEntityTable.HeaderCell>
-          <SavedEntityTable.HeaderCell>{t('Formula')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Dataset')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Unit')}</SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell>{t('Parameters')}</SavedEntityTable.HeaderCell>
+          <SavedEntityTable.HeaderCell>{t('Formula')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell>{t('Creator')}</SavedEntityTable.HeaderCell>
           <SavedEntityTable.HeaderCell />
         </SavedEntityTable.Header>
@@ -116,6 +116,16 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell>
         <SavedEntityTable.CellTextContent>
+          {DATASET_LABEL_MAP[formula.dataset]}
+        </SavedEntityTable.CellTextContent>
+      </SavedEntityTable.Cell>
+      <SavedEntityTable.Cell>
+        <SavedEntityTable.CellTextContent>
+          {formula.unit ?? formula.type}
+        </SavedEntityTable.CellTextContent>
+      </SavedEntityTable.Cell>
+      <SavedEntityTable.Cell>
+        <SavedEntityTable.CellTextContent>
           <Text monospace size="sm">
             {formula.params.map((param, index) => (
               <Fragment key={param.name}>
@@ -141,16 +151,6 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
             </Text>
           </SavedEntityTable.CellTextContent>
         </Tooltip>
-      </SavedEntityTable.Cell>
-      <SavedEntityTable.Cell>
-        <SavedEntityTable.CellTextContent>
-          {DATASET_LABEL_MAP[formula.dataset]}
-        </SavedEntityTable.CellTextContent>
-      </SavedEntityTable.Cell>
-      <SavedEntityTable.Cell>
-        <SavedEntityTable.CellTextContent>
-          {formula.unit ?? formula.type}
-        </SavedEntityTable.CellTextContent>
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell>
         {isPrebuilt ? (
