@@ -31,12 +31,17 @@ class ReleaseSetupStepResponse(TypedDict):
 class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
     owner = ApiOwner.COMMUNITY
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectReleasePermission,)
 
     @extend_schema(
-        operation_id="Retrieve a Project's Release Setup Progress",
+        operation_id="getProjectReleaseSetupCompletion",
+        summary="Retrieve a Project's Release Setup Progress",
+        description=(
+            "Return whether the project has reported an event, linked a repository, "
+            "associated commits, and reported a deploy."
+        ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         responses={
             200: inline_sentry_response_serializer(
