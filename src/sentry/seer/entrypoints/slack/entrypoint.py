@@ -725,8 +725,6 @@ class SlackInvestigationEntrypoint(
         self.install = SlackIntegration(
             model=slack_request.integration, organization_id=organization.id
         )
-        self.status_message_ts: str | None = None
-        self.status_fingerprint: str | None = None
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
@@ -745,35 +743,6 @@ class SlackInvestigationEntrypoint(
         except IntegrationError:
             # Already recorded by send_thread_update; it re-raises for task retries, which don't apply here.
             pass
-
-    def _send_status_message(self, investigation: Investigation) -> None:
-        with SlackEntrypointEventLifecycleMetric(
-            interaction_type=SlackEntrypointInteractionType.SEND_INVESTIGATION_STATUS,
-            integration_id=self.install.model.id,
-            organization_id=self.organization.id,
-        ).capture() as lifecycle:
-            lifecycle.add_extras({"channel_id": self.channel_id, "thread_ts": self.thread_ts})
-            data, fingerprint = build_investigation_status(
-                investigation=investigation, projection=None
-            )
-            renderable, links = NotificationService.render_template(
-                data=data,
-                template=SeerInvestigationStatusTemplate(),
-                provider=provider_registry.get(NotificationProviderKey.SLACK),
-            )
-            try:
-                response = self.install.send_threaded_message(
-                    channel_id=self.channel_id,
-                    renderable=renderable,
-                    thread_ts=self.thread_ts,
-                )
-            except (IntegrationError, IntegrationConfigurationError) as e:
-                lifecycle.record_halt(halt_reason=e)
-                return
-            if response is not None:
-                self.status_message_ts = response.get("ts")
-                self.status_fingerprint = fingerprint
-                _record_status_sent(data=data, links=links)
 
     def on_trigger_investigation_error(self, *, error: str) -> None:
         self._send_thread_update(
@@ -795,7 +764,6 @@ class SlackInvestigationEntrypoint(
             data=data,
         )
         self._send_thread_update(data)
-        self._send_status_message(investigation)
 
     def create_investigation_cache_payload(self) -> SlackInvestigationCachePayload:
         return SlackInvestigationCachePayload(
@@ -804,9 +772,9 @@ class SlackInvestigationEntrypoint(
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
             alert_message_ts=self.message_ts,
-            status_message_ts=self.status_message_ts,
+            status_message_ts=None,
             slack_user_id=self.slack_user_id,
-            last_sent_state=self.status_fingerprint,
+            last_sent_state=None,
             final_sent=False,
         )
 
