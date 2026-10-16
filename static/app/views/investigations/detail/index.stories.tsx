@@ -154,6 +154,30 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
   ],
 });
 
+// The completed investigation above, with a finished agentic run behind it.
+const agenticReportInvestigation = {
+  ...completedInvestigation,
+  id: 'completed-agentic-report',
+  status: 'active',
+  orchestration: {
+    phase: 'completed',
+    status: 'completed',
+    heartbeatAt: '2026-08-18T16:19:42Z',
+    notebookRevision: 8,
+  },
+};
+
+const agenticReportOrchestration = InvestigationOrchestrationFixture({
+  investigationId: agenticReportInvestigation.id,
+  phase: 'completed',
+  status: 'completed',
+  startedAt: '2026-08-18T16:02:14Z',
+  finishedAt: '2026-08-18T16:06:19Z',
+  activeSince: null,
+  activeTimeElapsedSeconds: 245,
+  report: {...InvestigationOrchestrationFixture().report, status: 'completed'},
+});
+
 const manualInvestigation = InvestigationDetailFixture({
   id: 'manual-invoice-timeouts',
   title: 'Invoice PDF timeouts in eu-west-1',
@@ -418,6 +442,18 @@ const archivedInvestigation = InvestigationDetailFixture({
 });
 
 export default Storybook.story('Investigations — Detail', story => {
+  story('Completed agentic report', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-agentic-report"
+      details={[agenticReportInvestigation]}
+      orchestration={{[agenticReportInvestigation.id]: agenticReportOrchestration}}
+    >
+      <Container minHeight="720px" border="primary" radius="md" overflow="hidden">
+        <InvestigationBootstrapPage investigationId={agenticReportInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
   story('Completed with every output type', () => (
     <InvestigationFixtureApi
       organizationSlug="storybook-investigation-completed"
