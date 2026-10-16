@@ -98,10 +98,12 @@ If you filter on `(org_id, project_id, type)` together, you need an index whose 
 
 This is a starting scaffold, not a template — strip what you do not need, do not add things you do not need.
 
-Before using the scaffold, import `uuid7` from a UUIDv7 provider supported by the project's runtime or dependencies (decision 5).
+The UUIDv7 default in this example requires Python 3.14+. Sentry currently runs Python 3.13; adoption waits for the runtime upgrade without adding a backport dependency.
 
 ```python
 from __future__ import annotations
+
+from uuid import uuid7
 
 from django.db import models
 
