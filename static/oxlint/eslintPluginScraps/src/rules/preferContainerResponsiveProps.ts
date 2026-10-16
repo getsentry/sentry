@@ -63,7 +63,11 @@ function allowsViewportSizing(
   filename: string
 ): boolean {
   const name = enclosingStyleName(node);
-  if (name === 'modalCss') {
+  if (
+    name === 'modalCss' ||
+    (filename.endsWith('/static/gsApp/actionCreators/modal.tsx') &&
+      name === 'onDemandBudgetEditModalCss')
+  ) {
     return hasOnlyAllowedMediaDeclarations(
       node,
       /^(?:(?:min|max)-)?(?:width|height)\s*:/
@@ -149,10 +153,11 @@ export const preferContainerResponsiveProps = defineRule({
           return;
         }
         for (const quasi of node.quasi.quasis) {
-          for (const match of quasi.value.raw.matchAll(STYLE_QUERY)) {
+          const css = quasi.value.raw.replace(/\/\*[\s\S]*?\*\//g, '');
+          for (const match of css.matchAll(STYLE_QUERY)) {
             if (
               match[0] === '@container' ||
-              (!isNonLayoutMediaQuery(quasi.value.raw.slice(match.index)) &&
+              (!isNonLayoutMediaQuery(css.slice(match.index)) &&
                 !allowsViewportSizing(node, context.filename))
             ) {
               context.report({node: quasi, messageId: 'forbidden'});

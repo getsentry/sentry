@@ -4,8 +4,8 @@ import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useWindowSize} from 'sentry/utils/window/useWindowSize';
 import {
   NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
@@ -14,8 +14,9 @@ import {
 
 export function useTopOffset() {
   const theme = useTheme();
+  const {innerWidth} = useWindowSize();
   const organization = useOrganization({allowNull: true});
-  const isMobile = !useMedia(`(min-width: ${theme.breakpoints.md})`);
+  const isMobile = innerWidth < parseFloat(theme.breakpoints.md);
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&

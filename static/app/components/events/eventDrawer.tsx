@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, rc, type FlexProps} from '@sentry/scraps/layout';
 
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/eventTitle';
@@ -58,13 +58,17 @@ export const EventDrawerContainer = styled('div')`
   grid-template-rows: max-content max-content auto;
 
   /* Responsive height that matches the TopBar (48px mobile, 53px desktop) */
-  --event-drawer-header-height: ${NAVIGATION_MOBILE_CONTENT_HEIGHT}px;
+  ${p =>
+    rc(
+      '--event-drawer-header-height',
+      {
+        zero: `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`,
+        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
+      },
+      p.theme
+    )}
   --event-navigator-box-shadow: none;
   --event-navigator-border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    --event-drawer-header-height: ${PRIMARY_HEADER_HEIGHT}px;
-  }
 `;
 
 export const EventDrawerHeader = styled(DrawerHeader)`

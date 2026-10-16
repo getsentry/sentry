@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Container as LayoutContainer, Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -40,7 +40,12 @@ export function EmptyState({
   const theme = useTheme();
   const runIdDisplay = runId?.toString() ?? 'null';
   return (
-    <Container>
+    <Container
+      flex="1"
+      align="center"
+      justify="center"
+      padding={{zero: 'xl', '2xs': '3xl'}}
+    >
       {isError ? (
         // Checked before `isLoading`: a failed load can still be polling with
         // backoff, and a spinner there would sit next to a disabled composer
@@ -90,13 +95,18 @@ export function EmptyState({
                     />
                   ))
                 : suggestions.suggestions.map((suggestion, index) => (
-                    <SuggestionButton
+                    <LayoutContainer
                       key={index}
-                      size="sm"
-                      onClick={() => onSuggestionClick(suggestion, index)}
+                      flexGrow={{zero: 1, sm: 0}}
+                      width={{zero: '100%', sm: 'auto'}}
                     >
-                      {suggestion.text}
-                    </SuggestionButton>
+                      <SuggestionButton
+                        size="sm"
+                        onClick={() => onSuggestionClick(suggestion, index)}
+                      >
+                        {suggestion.text}
+                      </SuggestionButton>
+                    </LayoutContainer>
                   ))}
             </Stack>
           )}
@@ -111,21 +121,12 @@ export function EmptyState({
   );
 }
 
-const Container = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: ${p => p.theme.space['3xl']};
+const Container = styled(Stack)`
   text-align: center;
-
-  @container (max-width: 400px) {
-    padding: ${p => p.theme.space.xl};
-  }
 `;
 
 const SuggestionButton = styled(Button)`
+  width: 100%;
   height: auto;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
@@ -135,11 +136,6 @@ const SuggestionButton = styled(Button)`
   > span:last-child {
     white-space: normal;
     text-wrap: balance;
-  }
-
-  @container (max-width: 500px) {
-    flex-grow: 1;
-    width: 100%;
   }
 `;
 

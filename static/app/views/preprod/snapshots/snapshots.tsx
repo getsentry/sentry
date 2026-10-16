@@ -12,7 +12,7 @@ import styled from '@emotion/styled';
 import {IconGrabbable} from '@sentry/icons/grabbable';
 import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
-import {Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -804,6 +804,7 @@ export default function SnapshotsPage() {
           />
         </Flex>
         <DragHandle
+          display={{zero: 'none', '3xl': 'grid'}}
           data-is-held={isHeld}
           onMouseDown={onMouseDown}
           onDoubleClick={onDoubleClick}
@@ -899,14 +900,9 @@ export default function SnapshotsPage() {
 
 const TOOLBAR_HEIGHT = '45px';
 
-const DragHandle = styled('div')`
+const DragHandle = styled(Container)`
   position: relative;
-  display: grid;
   place-items: center;
-
-  @container (max-width: ${p => p.theme.container['3xl']}) {
-    display: none;
-  }
   width: ${p => p.theme.space.xl};
   height: 100%;
   cursor: ew-resize;

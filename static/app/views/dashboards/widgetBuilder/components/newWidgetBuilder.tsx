@@ -5,10 +5,10 @@ import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useMedia} from 'sentry/utils/useMedia';
+import {useWindowSize} from 'sentry/utils/window/useWindowSize';
 import {
   type DashboardDetails,
   type DashboardFilters,
@@ -52,11 +52,12 @@ export function WidgetBuilderV2({
 }: WidgetBuilderV2Props) {
   const [queryConditionsValid, setQueryConditionsValid] = useState(true);
   const theme = useTheme();
+  const {innerWidth} = useWindowSize();
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
   const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
-  const isMediumScreen = useMedia(`(max-width: ${theme.breakpoints.md})`);
+  const isSmallScreen = innerWidth <= parseFloat(theme.breakpoints.sm);
+  const isMediumScreen = innerWidth <= parseFloat(theme.breakpoints.md);
 
   const [translate, setTranslate] = useState(DEFAULT_WIDGET_DRAG_POSITIONING);
 
@@ -137,6 +138,7 @@ export function WidgetBuilderV2({
           <WidgetBuilderProvider>
             <ContainerWithoutSidebar
               data-test-id="widget-builder-container"
+              left={{zero: '0', 'screen:md': 'auto'}}
               style={
                 // oxlint-disable-next-line react/refs
                 navigationElementRef.current
@@ -203,16 +205,12 @@ export function WidgetBuilderV2({
   );
 }
 
-const ContainerWithoutSidebar = styled('div')`
+const ContainerWithoutSidebar = styled(Container)`
   z-index: ${p => p.theme.zIndex.widgetBuilderDrawer};
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    left: 0;
-  }
 `;
 
 const WidgetBuilderContainer = styled('div')`

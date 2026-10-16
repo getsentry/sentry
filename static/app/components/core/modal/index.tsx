@@ -6,7 +6,13 @@ import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
-import {Container, ContainerQueryProvider, Flex, Surface} from '@sentry/scraps/layout';
+import {
+  Container,
+  ContainerQueryProvider,
+  Flex,
+  Surface,
+  useResponsivePropValue,
+} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
@@ -256,31 +262,7 @@ export function GlobalModal() {
         >
           <AnimatePresence>
             {visible && (
-              <MotionContainer
-                role="dialog"
-                aria-modal
-                width="640px"
-                maxWidth="100%"
-                pointerEvents="auto"
-                padding={{zero: 'xl lg', '3xl': '3xl xl'}}
-                css={[
-                  css`
-                    margin-top: 64px;
-                    @container (min-width: ${theme.container['3xl']}) {
-                      margin-top: 50px;
-                    }
-                  `,
-                  options.modalCss,
-                ]}
-                initial={{opacity: 0, scale: 0.98}}
-                animate={{opacity: 1, scale: 1}}
-                exit={{
-                  opacity: 0,
-                  scale: 0.99,
-                  transition: theme.motion.framer.exit.fast,
-                }}
-                transition={theme.motion.framer.enter.moderate}
-              >
+              <ModalDialog modalCss={options.modalCss} theme={theme}>
                 <Surface variant="overlay" elevation="high">
                   {p => (
                     <Container
@@ -293,13 +275,52 @@ export function GlobalModal() {
                     </Container>
                   )}
                 </Surface>
-              </MotionContainer>
+              </ModalDialog>
             )}
           </AnimatePresence>
         </TooltipContext>
       </Flex>
     </ContainerQueryProvider>,
     portal
+  );
+}
+
+function ModalDialog({
+  children,
+  modalCss,
+  theme,
+}: {
+  children: React.ReactNode;
+  theme: Theme;
+  modalCss?: Interpolation<Theme>;
+}) {
+  const marginTop = useResponsivePropValue({zero: '64px', '3xl': '50px'});
+
+  return (
+    <MotionContainer
+      role="dialog"
+      aria-modal
+      width="640px"
+      maxWidth="100%"
+      pointerEvents="auto"
+      padding={{zero: 'xl lg', '3xl': '3xl xl'}}
+      css={[
+        css`
+          margin-top: ${marginTop};
+        `,
+        modalCss,
+      ]}
+      initial={{opacity: 0, scale: 0.98}}
+      animate={{opacity: 1, scale: 1}}
+      exit={{
+        opacity: 0,
+        scale: 0.99,
+        transition: theme.motion.framer.exit.fast,
+      }}
+      transition={theme.motion.framer.enter.moderate}
+    >
+      {children}
+    </MotionContainer>
   );
 }
 

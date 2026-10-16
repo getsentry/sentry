@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {SHORT_VIEWPORT_HEIGHT} from 'sentry/utils/useIsShortViewport';
+import {useWindowSize} from 'sentry/utils/window/useWindowSize';
 
 interface ViewportConstrainedPageProps extends FlexProps {
   constrained?: boolean;
@@ -23,6 +24,7 @@ export function ViewportConstrainedPage({
   hideFooter,
   ...rest
 }: ViewportConstrainedPageProps) {
+  const {innerHeight} = useWindowSize();
   if (!constrained) {
     return <Stack flex="1" {...rest} />;
   }
@@ -32,7 +34,9 @@ export function ViewportConstrainedPage({
       flex="1"
       minHeight="0"
       overflow="hidden"
-      data-hide-footer={hideFooter ? '' : undefined}
+      data-hide-footer={
+        hideFooter || innerHeight <= SHORT_VIEWPORT_HEIGHT ? '' : undefined
+      }
       {...rest}
     />
   );
@@ -41,12 +45,6 @@ export function ViewportConstrainedPage({
 const ConstrainedPage = styled(Stack)`
   contain: size;
   overflow-y: auto;
-
-  @media (max-height: ${SHORT_VIEWPORT_HEIGHT}px) {
-    ~ footer {
-      display: none;
-    }
-  }
 
   &[data-hide-footer] ~ footer {
     display: none;

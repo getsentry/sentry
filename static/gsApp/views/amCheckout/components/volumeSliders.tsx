@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {IconLightning} from '@sentry/icons/lightning';
 import {IconQuestion} from '@sentry/icons/question';
 
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
@@ -66,15 +66,20 @@ function PerformanceUnitDecoration() {
 
 export function PerformanceHovercard() {
   return (
-    <StyledHovercard
-      position="top"
-      header={<div>{t('Performance Event Types')}</div>}
-      body={renderHovercardBody()}
-    >
-      <IconContainer>
-        <IconQuestion size="xs" variant="muted" />
-      </IconContainer>
-    </StyledHovercard>
+    <Container width={{zero: '100%', 'screen:xs': '400px'}}>
+      {containerProps => (
+        <StyledHovercard
+          {...containerProps}
+          position="top"
+          header={<div>{t('Performance Event Types')}</div>}
+          body={renderHovercardBody()}
+        >
+          <IconContainer>
+            <IconQuestion size="xs" variant="muted" />
+          </IconContainer>
+        </StyledHovercard>
+      )}
+    </Container>
   );
 }
 
@@ -254,8 +259,6 @@ const DataVolumeItem = styled(PanelItem)`
 `;
 
 const StyledHovercard = styled(Hovercard)`
-  width: 400px;
-
   ${Header} {
     color: ${p => p.theme.tokens.content.secondary};
     text-transform: uppercase;
@@ -265,10 +268,6 @@ const StyledHovercard = styled(Hovercard)`
   }
   ${Body} {
     padding: 0px;
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    width: 100%;
   }
 `;
 

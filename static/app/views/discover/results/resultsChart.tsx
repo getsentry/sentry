@@ -1,7 +1,10 @@
 import {Fragment, memo, useContext, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
+
+import {useResponsivePropValue} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
 import {AreaChart} from 'sentry/components/charts/areaChart';
@@ -304,11 +307,23 @@ export const ResultsChartContainer = memo(
   }
 );
 
-const StyledPanel = styled(Panel)`
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    margin: 0;
-  }
-`;
+function StyledPanel({children}: {children: React.ReactNode}) {
+  const marginBottom = useResponsivePropValue<'xl' | '0'>({
+    zero: 'xl',
+    '4xl': '0',
+  });
+  return (
+    <Panel
+      css={theme =>
+        css`
+          margin-bottom: ${theme.space[marginBottom]};
+        `
+      }
+    >
+      {children}
+    </Panel>
+  );
+}
 
 const NoChartContainer = styled('div')<{height?: string}>`
   display: flex;

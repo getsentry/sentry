@@ -6,6 +6,7 @@ import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useWindowSize} from 'sentry/utils/window/useWindowSize';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const PRIMARY_NAVIGATION_GROUP_CONFIG = {
@@ -68,7 +69,8 @@ export function PrimaryNavigationContextProvider(
   const [activeGroupOverride, setActiveGroup] = useState<NavigationGroup | null>(null);
 
   const theme = useTheme();
-  const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
+  const {innerWidth} = useWindowSize();
+  const isMobile = innerWidth < parseFloat(theme.breakpoints.md);
   const hasHover = useMedia('(hover: hover)');
   const activeRouteGroup = useActiveNavigationGroup();
 

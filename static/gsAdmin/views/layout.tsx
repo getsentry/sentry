@@ -9,7 +9,7 @@ import {IconSentry} from '@sentry/icons/sentry';
 import {IconSliders} from '@sentry/icons/sliders';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from '@sentry/scraps/modal';
 import {darkTheme, lightTheme} from '@sentry/scraps/theme';
@@ -47,6 +47,23 @@ const useToggleTheme = () => {
 
 export function Layout() {
   const [isDark, theme, toggleTheme] = useToggleTheme();
+  return (
+    <ThemeProvider theme={theme}>
+      <ResponsiveLayout isDark={isDark} theme={theme} toggleTheme={toggleTheme} />
+    </ThemeProvider>
+  );
+}
+
+function ResponsiveLayout({
+  isDark,
+  theme,
+  toggleTheme,
+}: {
+  isDark: boolean;
+  theme: (typeof themes)[ThemeName];
+  toggleTheme: () => void;
+}) {
+  const isMobile = useResponsivePropValue({'screen:2xs': true, 'screen:sm': false});
   // Mobile: drawer open/closed
   const [sidebarOpen, setSidebarOpen] = useState(false);
   // Desktop: sidebar collapsed/expanded, persisted to localStorage
@@ -72,7 +89,7 @@ export function Layout() {
   // Close mobile drawer when the viewport widens past the mobile breakpoint,
   // so the body scroll lock is never left active on desktop.
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 768px)');
+    const mq = window.matchMedia('(max-width: 799px)');
     const handleChange = (e: MediaQueryListEvent) => {
       if (!e.matches) {
         closeSidebar();
@@ -92,182 +109,178 @@ export function Layout() {
   }, [sidebarOpen]);
 
   return (
-    <ThemeProvider theme={theme}>
-      <ScrapsProviders>
-        <GlobalAlertProvider>
-          <GlobalStyles theme={theme} />
-          <GlobalModal />
-          <SystemAlerts className="messages-container" />
-          <AdminAccessGate>
-            <AppContainer isCollapsed={isCollapsed}>
-              {/* Mobile: tap-outside backdrop for the drawer */}
-              <Overlay isOpen={sidebarOpen} onClick={closeSidebar} />
-              {/* Desktop only: thin strip shown when sidebar is collapsed */}
-              <CollapsedSidebar
-                as="section"
-                isCollapsed={isCollapsed}
-                direction="column"
-                align="center"
+    <ScrapsProviders>
+      <GlobalAlertProvider>
+        <GlobalStyles theme={theme} />
+        <GlobalModal />
+        <SystemAlerts className="messages-container" />
+        <AdminAccessGate>
+          <AppContainer isCollapsed={isCollapsed} isMobile={isMobile}>
+            {/* Mobile: tap-outside backdrop for the drawer */}
+            <Overlay isOpen={sidebarOpen} isMobile={isMobile} onClick={closeSidebar} />
+            {/* Desktop only: thin strip shown when sidebar is collapsed */}
+            <CollapsedSidebar
+              as="section"
+              isCollapsed={isCollapsed}
+              isMobile={isMobile}
+              direction="column"
+              align="center"
+            >
+              <Button
+                aria-label="Expand sidebar"
+                variant="transparent"
+                size="sm"
+                onClick={toggleCollapsed}
+                icon={<IconChevron direction="right" isDouble />}
+              />
+            </CollapsedSidebar>
+            <Sidebar isOpen={sidebarOpen} isCollapsed={isCollapsed} isMobile={isMobile}>
+              <Flex align="center" justify="between" gap="md">
+                <Logo to="/_admin/" onClick={closeSidebar}>
+                  <IconSentry size="xl" />
+                  Admin
+                </Logo>
+                {/* Desktop only: collapse button inside the sidebar */}
+                <CollapseButton
+                  isMobile={isMobile}
+                  aria-label="Collapse sidebar"
+                  variant="transparent"
+                  size="xs"
+                  onClick={toggleCollapsed}
+                  icon={<IconChevron direction="left" isDouble />}
+                />
+              </Flex>
+              <Navigation
+                onClick={(e: React.MouseEvent<HTMLUListElement>) => {
+                  if ((e.target as HTMLElement).closest('a')) {
+                    closeSidebar();
+                  }
+                }}
               >
+                <NavLink to="/_admin/" index>
+                  Home
+                </NavLink>
+                <NavLink to="/_admin/customers/">Customers</NavLink>
+                <NavLink to="/_admin/users/">Users</NavLink>
+                <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
+                <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
+                <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
+                <NavLink to="/_admin/promocodes/">Promos</NavLink>
+                <NavLink to="/_admin/beacons/">Beacons</NavLink>
+                <NavLink to="/_admin/policies/">Policies</NavLink>
+                <NavLink to="/_admin/options/">Options</NavLink>
+                <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
+                <NavLink to="/_admin/instance-level-oauth">
+                  Instance level OAuth Clients
+                </NavLink>
+                <NavLink to="/_admin/private-apis/">Private APIs</NavLink>
+                <NavLink to="/_admin/relocations/">Relocations</NavLink>
+                <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
+                <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
+                <NavLink to="/_admin/billing-platform/">Billing Platform</NavLink>
+                <NavLink to="/_admin/gift-recurring-credits/">
+                  Gift Recurring Credits
+                </NavLink>
+                <NavLink to="/_admin/spike-projection-generation/">
+                  Spike Projection Generation
+                </NavLink>
+                <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
+                <NavLink to="/_admin/seer/">Seer</NavLink>
+              </Navigation>
+              <SidebarActions>
+                <ThemeToggle
+                  variant="transparent"
+                  size="zero"
+                  onClick={toggleTheme}
+                  icon={
+                    <IconSliders
+                      size="sm"
+                      style={{transform: isDark ? 'scaleX(-1)' : 'none'}}
+                    />
+                  }
+                >
+                  {isDark ? 'Light mode' : 'Dark mode'}
+                </ThemeToggle>
+              </SidebarActions>
+            </Sidebar>
+            <Stack
+              minWidth={0}
+              containerType="inline-size"
+              inert={sidebarOpen || undefined}
+            >
+              {/* Mobile only: sticky top bar with hamburger and logo */}
+              <MobileTopBar isMobile={isMobile}>
                 <Button
-                  aria-label="Expand sidebar"
                   variant="transparent"
                   size="sm"
-                  onClick={toggleCollapsed}
-                  icon={<IconChevron direction="right" isDouble />}
+                  icon={<IconMenu />}
+                  onClick={() => setSidebarOpen(true)}
+                  aria-label="Open navigation"
                 />
-              </CollapsedSidebar>
-              <Sidebar isOpen={sidebarOpen} isCollapsed={isCollapsed}>
-                <Flex align="center" justify="between" gap="md">
-                  <Logo to="/_admin/" onClick={closeSidebar}>
-                    <IconSentry size="xl" />
-                    Admin
-                  </Logo>
-                  {/* Desktop only: collapse button inside the sidebar */}
-                  <CollapseButton
-                    aria-label="Collapse sidebar"
-                    variant="transparent"
-                    size="xs"
-                    onClick={toggleCollapsed}
-                    icon={<IconChevron direction="left" isDouble />}
-                  />
-                </Flex>
-                <Navigation
-                  onClick={(e: React.MouseEvent<HTMLUListElement>) => {
-                    if ((e.target as HTMLElement).closest('a')) {
-                      closeSidebar();
-                    }
-                  }}
-                >
-                  <NavLink to="/_admin/" index>
-                    Home
-                  </NavLink>
-                  <NavLink to="/_admin/customers/">Customers</NavLink>
-                  <NavLink to="/_admin/users/">Users</NavLink>
-                  <NavLink to="/_admin/sentry-apps/">Sentry Apps</NavLink>
-                  <NavLink to="/_admin/doc-integrations/">Doc Integrations</NavLink>
-                  <NavLink to="/_admin/broadcasts/">Broadcasts</NavLink>
-                  <NavLink to="/_admin/promocodes/">Promos</NavLink>
-                  <NavLink to="/_admin/beacons/">Beacons</NavLink>
-                  <NavLink to="/_admin/policies/">Policies</NavLink>
-                  <NavLink to="/_admin/options/">Options</NavLink>
-                  <NavLink to="/_admin/debugging-tools/">Debugging Tools</NavLink>
-                  <NavLink to="/_admin/instance-level-oauth">
-                    Instance level OAuth Clients
-                  </NavLink>
-                  <NavLink to="/_admin/private-apis/">Private APIs</NavLink>
-                  <NavLink to="/_admin/relocations/">Relocations</NavLink>
-                  <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
-                  <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
-                  <NavLink to="/_admin/billing-platform/">Billing Platform</NavLink>
-                  <NavLink to="/_admin/gift-recurring-credits/">
-                    Gift Recurring Credits
-                  </NavLink>
-                  <NavLink to="/_admin/spike-projection-generation/">
-                    Spike Projection Generation
-                  </NavLink>
-                  <NavLink to="/_admin/launchpad/">Launchpad (Emerge) Related</NavLink>
-                  <NavLink to="/_admin/seer/">Seer</NavLink>
-                </Navigation>
-                <SidebarActions>
-                  <ThemeToggle
-                    variant="transparent"
-                    size="zero"
-                    onClick={toggleTheme}
-                    icon={
-                      <IconSliders
-                        size="sm"
-                        style={{transform: isDark ? 'scaleX(-1)' : 'none'}}
-                      />
-                    }
-                  >
-                    {isDark ? 'Light mode' : 'Dark mode'}
-                  </ThemeToggle>
-                </SidebarActions>
-              </Sidebar>
-              <Stack
-                minWidth={0}
-                containerType="inline-size"
-                inert={sidebarOpen || undefined}
+                <MobileLogo to="/_admin/">
+                  <IconSentry size="md" />
+                  Admin
+                </MobileLogo>
+              </MobileTopBar>
+              <Container
+                as="main"
+                padding="0 2xl"
+                width="100%"
+                maxWidth="var(--contentWidth)"
               >
-                {/* Mobile only: sticky top bar with hamburger and logo */}
-                <MobileTopBar>
-                  <Button
-                    variant="transparent"
-                    size="sm"
-                    icon={<IconMenu />}
-                    onClick={() => setSidebarOpen(true)}
-                    aria-label="Open navigation"
-                  />
-                  <MobileLogo to="/_admin/">
-                    <IconSentry size="md" />
-                    Admin
-                  </MobileLogo>
-                </MobileTopBar>
-                <Container
-                  as="main"
-                  padding="0 2xl"
-                  width="100%"
-                  maxWidth="var(--contentWidth)"
-                >
-                  <Outlet />
-                </Container>
-              </Stack>
-            </AppContainer>
-          </AdminAccessGate>
-        </GlobalAlertProvider>
-      </ScrapsProviders>
-    </ThemeProvider>
+                <Outlet />
+              </Container>
+            </Stack>
+          </AppContainer>
+        </AdminAccessGate>
+      </GlobalAlertProvider>
+    </ScrapsProviders>
   );
 }
 
 // flow-root is used here to create a new flow-context, to avoid margin
 // collapse causing scroll overflow.
-const AppContainer = styled('div')<{isCollapsed: boolean}>`
+const AppContainer = styled('div')<{isCollapsed: boolean; isMobile: boolean}>`
   --contentWidth: 1270px;
   --sidebarWidth: 200px;
   --sidebarCollapsedWidth: 48px;
 
   display: flow-root;
   padding-left: ${p =>
-    p.isCollapsed ? 'var(--sidebarCollapsedWidth)' : 'var(--sidebarWidth)'};
+    p.isMobile
+      ? '0'
+      : p.isCollapsed
+        ? 'var(--sidebarCollapsedWidth)'
+        : 'var(--sidebarWidth)'};
   transition: padding-left 0.2s ease;
-
-  @media (max-width: 768px) {
-    padding-left: 0;
-  }
 `;
 
-const Overlay = styled('div')<{isOpen: boolean}>`
-  display: none;
-
-  @media (max-width: 768px) {
-    display: ${p => (p.isOpen ? 'block' : 'none')};
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 99;
-  }
+const Overlay = styled('div')<{isMobile: boolean; isOpen: boolean}>`
+  display: ${p => (p.isMobile && p.isOpen ? 'block' : 'none')};
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
 `;
 
-const CollapsedSidebar = styled(Flex)<{isCollapsed: boolean}>`
-  display: none;
-
-  @media (min-width: 769px) {
-    display: ${p => (p.isCollapsed ? 'flex' : 'none')};
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: var(--sidebarCollapsedWidth);
-    padding-top: ${p => p.theme.space['2xl']};
-    background: ${p => p.theme.tokens.background.primary};
-    border-right: 1px solid ${p => p.theme.tokens.border.primary};
-    z-index: 100;
-  }
+const CollapsedSidebar = styled(Flex)<{isCollapsed: boolean; isMobile: boolean}>`
+  display: ${p => (!p.isMobile && p.isCollapsed ? 'flex' : 'none')};
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebarCollapsedWidth);
+  padding-top: ${p => p.theme.space['2xl']};
+  background: ${p => p.theme.tokens.background.primary};
+  border-right: 1px solid ${p => p.theme.tokens.border.primary};
+  z-index: 100;
 `;
 
-const Sidebar = styled('section')<{isCollapsed?: boolean; isOpen?: boolean}>`
+const Sidebar = styled('section')<{
+  isMobile: boolean;
+  isCollapsed?: boolean;
+  isOpen?: boolean;
+}>`
   position: fixed;
   top: 0;
   left: 0;
@@ -282,25 +295,25 @@ const Sidebar = styled('section')<{isCollapsed?: boolean; isOpen?: boolean}>`
   z-index: 100;
   /* Delay visibility until after the slide animation so hidden sidebar is
      removed from the tab order once off-screen. */
-  visibility: ${p => (p.isCollapsed ? 'hidden' : 'visible')};
+  visibility: ${p =>
+    p.isMobile
+      ? p.isOpen
+        ? 'visible'
+        : 'hidden'
+      : p.isCollapsed
+        ? 'hidden'
+        : 'visible'};
   transition:
     transform 0.2s ease,
-    visibility 0s linear ${p => (p.isCollapsed ? '0.2s' : '0s')};
+    visibility 0s linear
+      ${p => (p.isMobile ? (p.isOpen ? '0s' : '0.2s') : p.isCollapsed ? '0.2s' : '0s')};
 
-  /* Desktop: collapsed state slides off-screen */
-  transform: translateX(${p => (p.isCollapsed ? '-100%' : '0')});
+  transform: translateX(
+    ${p => (p.isMobile ? (p.isOpen ? '0' : '-100%') : p.isCollapsed ? '-100%' : '0')}
+  );
 
   > * {
     padding: 0 ${p => p.theme.space['3xl']};
-  }
-
-  /* Mobile: open state overrides desktop collapsed state */
-  @media (max-width: 768px) {
-    transform: translateX(${p => (p.isOpen ? '0' : '-100%')});
-    visibility: ${p => (p.isOpen ? 'visible' : 'hidden')};
-    transition:
-      transform 0.2s ease,
-      visibility 0s linear ${p => (p.isOpen ? '0s' : '0.2s')};
   }
 `;
 
@@ -311,28 +324,23 @@ const SidebarActions = styled('div')`
   gap: ${p => p.theme.space.md};
 `;
 
-const CollapseButton = styled(Button)`
+const CollapseButton = styled(Button, {
+  shouldForwardProp: prop => prop !== 'isMobile',
+})<{isMobile: boolean}>`
   flex-shrink: 0;
-
-  @media (max-width: 768px) {
-    display: none;
-  }
+  display: ${p => (p.isMobile ? 'none' : 'inline-flex')};
 `;
 
-const MobileTopBar = styled('div')`
-  display: none;
-
-  @media (max-width: 768px) {
-    display: flex;
-    align-items: center;
-    gap: ${p => p.theme.space.md};
-    padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-    background: ${p => p.theme.tokens.background.primary};
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
+const MobileTopBar = styled('div')<{isMobile: boolean}>`
+  display: ${p => (p.isMobile ? 'flex' : 'none')};
+  align-items: center;
+  gap: ${p => p.theme.space.md};
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
+  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.primary};
+  position: sticky;
+  top: 0;
+  z-index: 10;
 `;
 
 const MobileLogo = styled(Link)`

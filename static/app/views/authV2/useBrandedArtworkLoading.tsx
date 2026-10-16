@@ -5,7 +5,7 @@ import critterImage from 'sentry-images/brandPageLayout/animated/critter.avif';
 import nebulaImage from 'sentry-images/brandPageLayout/animated/nebula.svg';
 
 import {ARTWORK_LAYERS} from 'sentry/components/brandPageLayout/artworkLayers';
-import {useMedia} from 'sentry/utils/useMedia';
+import {useWindowSize} from 'sentry/utils/window/useWindowSize';
 
 const MOBILE_ASSETS = [critterImage];
 const DESKTOP_ASSETS = [...MOBILE_ASSETS, nebulaImage, ...ARTWORK_LAYERS.map(l => l.src)];
@@ -13,7 +13,8 @@ const DESKTOP_ASSETS = [...MOBILE_ASSETS, nebulaImage, ...ARTWORK_LAYERS.map(l =
 /** Loads and decodes artwork while authentication data is still loading. */
 export function useBrandedArtworkLoading() {
   const theme = useTheme();
-  const hasSideArtwork = useMedia(`(min-width: ${theme.breakpoints.md})`);
+  const {innerWidth} = useWindowSize();
+  const hasSideArtwork = innerWidth >= parseFloat(theme.breakpoints.md);
   const sources = hasSideArtwork ? DESKTOP_ASSETS : MOBILE_ASSETS;
   const [settledSources, setSettledSources] = useState<ReadonlySet<string>>(new Set());
   const isLoading = sources.some(src => !settledSources.has(src));

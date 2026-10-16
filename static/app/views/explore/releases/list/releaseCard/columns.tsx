@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Container, type GridProps} from '@sentry/scraps/layout';
+import {Container, useResponsivePropValue, type GridProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 export function getReleaseProjectColumns(
@@ -37,20 +37,22 @@ export function NewIssuesColumn({children}: {children: React.ReactNode}) {
 const StyledAdoptionColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
 
-  @container (min-width: ${p => p.theme.container.xl}) {
-    overflow: visible;
-  }
-
   & > * {
     flex: 1;
   }
 `;
 
 export function AdoptionColumn({children}: {children: React.ReactNode}) {
+  const overflow = useResponsivePropValue<'hidden' | 'visible'>({
+    zero: 'hidden',
+    xl: 'visible',
+  });
   return (
     <Container display={{zero: 'none', xl: 'flex'}}>
       {containerProps => (
-        <StyledAdoptionColumn {...containerProps}>{children}</StyledAdoptionColumn>
+        <StyledAdoptionColumn {...containerProps} style={{overflow}}>
+          {children}
+        </StyledAdoptionColumn>
       )}
     </Container>
   );
@@ -58,17 +60,17 @@ export function AdoptionColumn({children}: {children: React.ReactNode}) {
 
 const StyledAdoptionStageColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    overflow: visible;
-  }
 `;
 
 export function AdoptionStageColumn({children}: {children: React.ReactNode}) {
+  const overflow = useResponsivePropValue<'hidden' | 'visible'>({
+    zero: 'hidden',
+    '5xl': 'visible',
+  });
   return (
     <Container display={{zero: 'none', '5xl': 'flex'}}>
       {containerProps => (
-        <StyledAdoptionStageColumn {...containerProps}>
+        <StyledAdoptionStageColumn {...containerProps} style={{overflow}}>
           {children}
         </StyledAdoptionStageColumn>
       )}

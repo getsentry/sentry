@@ -12,6 +12,10 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
       code: "import {css} from '@emotion/react'; const modalCss = css`@media (min-width: 800px) { width: 80%; }`;",
     },
     {
+      filename: '/project/static/gsApp/actionCreators/modal.tsx',
+      code: "import {css} from '@emotion/react'; const onDemandBudgetEditModalCss = theme => css`@media (min-width: 800px) { width: 800px; }`;",
+    },
+    {
       filename,
       code: "import {css} from '@emotion/react'; const modalCss = css`@media (min-width: 800px) { width: 80%; } @media (prefers-reduced-motion: reduce) { animation: none; }`;",
     },
@@ -42,6 +46,10 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
     {
       filename,
       code: "const props = {direction: {zero: 'column', 'screen:md': 'row'}};",
+    },
+    {
+      filename,
+      code: "import {css} from '@emotion/react'; const styles = css`/* Use @container only through responsive props. */ color: red;`;",
     },
     {
       filename: '/project/static/app/components/core/drawer/components.tsx',

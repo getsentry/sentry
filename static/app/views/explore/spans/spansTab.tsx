@@ -6,7 +6,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -308,7 +308,7 @@ function SpanTabContentSectionInner({
           : null;
 
   return (
-    <ExploreContentSection gap="md">
+    <ExploreContentSection gap="md" containerType="inline-size">
       <OverChartButtonGroup>
         <ChevronButton
           aria-label={
@@ -410,27 +410,29 @@ const OnboardingContentSection = styled('section')`
 export function ChevronButton(
   props: React.ComponentProps<typeof Button> & {expanded: boolean}
 ) {
+  const isWide = useResponsivePropValue({zero: false, xl: true});
   return (
     <Container as="span" display="inline-flex">
-      <StyledChevronButton {...props} />
+      <StyledChevronButton {...props} isWide={isWide} />
     </Container>
   );
 }
 
-const StyledChevronButton = styled(Button)<{expanded: boolean}>`
+const StyledChevronButton = styled(Button, {
+  shouldForwardProp: prop => prop !== 'isWide',
+})<{expanded: boolean; isWide: boolean}>`
   ${p =>
     p.expanded &&
+    p.isWide &&
     css`
-      @container (min-width: ${p.theme.container.xl}) {
-        margin-left: -17px;
+      margin-left: -17px;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+
+      &::after {
+        border-left-color: ${p.theme.tokens.border.primary};
         border-top-left-radius: 0;
         border-bottom-left-radius: 0;
-
-        &::after {
-          border-left-color: ${p.theme.tokens.border.primary};
-          border-top-left-radius: 0;
-          border-bottom-left-radius: 0;
-        }
       }
     `}
 `;

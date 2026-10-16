@@ -1,27 +1,30 @@
+import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {PanelBody} from 'sentry/components/panels/panelBody';
 
-export const SubscriptionBody = styled(PanelBody)`
-  display: grid;
-  grid-auto-flow: column;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['3xl']};
-
+const StyledSubscriptionBody = styled(PanelBody)`
   h3 {
     margin-bottom: ${p => p.theme.space.md};
     font-size: ${p => p.theme.font.size.xl};
     font-weight: 400;
   }
-
-  @container (max-width: ${p => p.theme.container.xl}) {
-    grid-auto-flow: row;
-    grid-auto-columns: 1fr;
-    gap: ${p => p.theme.space.md};
-  }
 `;
+
+export function SubscriptionBody(props: ComponentProps<typeof PanelBody>) {
+  return (
+    <Grid
+      flow={{zero: 'row', xl: 'column'}}
+      autoColumns={{zero: '1fr', xl: 'auto'}}
+      justify="between"
+      gap={{zero: 'md', xl: '3xl'}}
+    >
+      {containerProps => <StyledSubscriptionBody {...props} {...containerProps} />}
+    </Grid>
+  );
+}
 
 export const ButtonWrapper = styled((props: GridProps) => (
   <Grid flow="column" align="center" gap="md" {...props} />

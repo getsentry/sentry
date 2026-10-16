@@ -4,7 +4,7 @@ import {IconClose} from '@sentry/icons/close';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 function CloseButton(p: Omit<ButtonProps, 'aria-label'>) {
@@ -34,6 +34,10 @@ const ModalBody = styled('section')`
 `;
 
 const ModalFooter = styled((props: React.HTMLAttributes<HTMLElement>) => {
+  const horizontalInset = useResponsivePropValue<'2xl' | '3xl'>({
+    zero: '2xl',
+    '3xl': '3xl',
+  });
   return (
     <Flex
       {...props}
@@ -43,11 +47,8 @@ const ModalFooter = styled((props: React.HTMLAttributes<HTMLElement>) => {
       padding={{zero: '2xl xl', '3xl': '2xl 3xl'}}
       css={(theme: Theme) => css`
         margin: ${theme.space['2xl']} -${theme.space['2xl']} -${theme.space['3xl']};
-
-        @container (min-width: ${theme.container['3xl']}) {
-          margin-right: -${theme.space['3xl']};
-          margin-left: -${theme.space['3xl']};
-        }
+        margin-right: -${theme.space[horizontalInset]};
+        margin-left: -${theme.space[horizontalInset]};
       `}
     />
   );
@@ -64,18 +65,21 @@ interface ClosableHeaderProps extends React.HTMLAttributes<HTMLHeadingElement> {
  */
 const makeClosableHeader = (closeModal: () => void) => {
   function ClosableHeader({closeButton, children, ...props}: ClosableHeaderProps) {
+    const rightInset = useResponsivePropValue<'xl' | '3xl'>({
+      zero: 'xl',
+      '3xl': '3xl',
+    });
+    const leftInset = useResponsivePropValue<'2xl' | '3xl'>({
+      zero: '2xl',
+      '3xl': '3xl',
+    });
     return (
       <Flex
         {...props}
         as="header"
         css={(theme: Theme) => css`
-          margin: -${theme.space['3xl']} -${theme.space.xl}
-            ${theme.space['2xl']} -${theme.space['2xl']};
-
-          @container (min-width: ${theme.container['3xl']}) {
-            margin-right: -${theme.space['3xl']};
-            margin-left: -${theme.space['3xl']};
-          }
+          margin: -${theme.space['3xl']} -${theme.space[rightInset]}
+            ${theme.space['2xl']} -${theme.space[leftInset]};
 
           h1,
           h2,

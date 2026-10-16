@@ -54,7 +54,11 @@ export function FeatureFlagCTAContent({
           </LinkButton>
         </Flex>
       </Stack>
-      <BannerIllustration src={onboardingInstall} alt="" />
+      <Container display={{zero: 'none', '2xs': 'block'}}>
+        {containerProps => (
+          <BannerIllustration {...containerProps} src={onboardingInstall} alt="" />
+        )}
+      </Container>
     </Fragment>
   );
 }
@@ -92,10 +96,4 @@ export const BannerWrapper = styled('div')`
 
   container-name: bannerWrapper;
   container-type: inline-size;
-
-  @container bannerWrapper (max-width: 400px) {
-    img {
-      display: none;
-    }
-  }
 `;

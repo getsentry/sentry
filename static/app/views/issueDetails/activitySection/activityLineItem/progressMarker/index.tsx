@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
+
 import {t} from 'sentry/locale';
 import type {GroupActivity} from 'sentry/types/group';
 import {
@@ -22,7 +24,7 @@ export function ActivityLineMarker({
   const activityActor = actorItem ?? item;
 
   return (
-    <LeadingCells>
+    <LeadingCells flow="column" autoColumns="22px" gap="sm">
       <MarkerCell>
         {showProgress ? (
           <ActivityProgressMarker state={getActivityMarkerState(item)} />
@@ -37,7 +39,7 @@ export function ActivityLineMarker({
 
 export function ActivityLineDotMarker() {
   return (
-    <LeadingCells>
+    <LeadingCells flow="column" autoColumns="22px" gap="sm">
       <MarkerCell>
         <ActivityLineDot />
       </MarkerCell>
@@ -49,19 +51,11 @@ function ActivityLineDot() {
   return <NeutralLineDot aria-label={t('Activity update')} role="img" />;
 }
 
-const LeadingCells = styled('div')`
+const LeadingCells = styled(Grid)`
   position: relative;
   z-index: 1;
   grid-column: 1;
   grid-row: 1;
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 22px;
-  gap: ${p => p.theme.space.xs};
-
-  @container activity-list (min-width: 90px) {
-    gap: ${p => p.theme.space.sm};
-  }
 `;
 
 const MarkerCell = styled('div')`

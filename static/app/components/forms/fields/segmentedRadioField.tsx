@@ -59,7 +59,7 @@ function RadioControlGroup<C extends string>({
   ...props
 }: RadioGroupProps<C>) {
   return (
-    <Grid
+    <SegmentedRadioGroup
       {...props}
       flow={{zero: 'row', xl: 'column'}}
       autoColumns="minmax(0, 1fr)"
@@ -98,12 +98,18 @@ function RadioControlGroup<C extends string>({
           </Tooltip>
         );
       })}
-    </Grid>
+    </SegmentedRadioGroup>
   );
 }
 
 const shouldForwardProp = (p: PropertyKey) =>
   typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);
+
+const SegmentedRadioGroup = styled(Grid)`
+  gap: 1px;
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.secondary};
+`;
 
 const RadioItem = styled('label', {shouldForwardProp})<{
   index: number;
@@ -117,41 +123,13 @@ const RadioItem = styled('label', {shouldForwardProp})<{
   cursor: ${p => (p.disabled ? 'default' : 'pointer')};
   outline: none;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
+  background: ${p => p.theme.tokens.background.primary};
   margin: 0;
 
   &[aria-checked='true'] {
     border-color: ${p => p.theme.tokens.border.accent.vibrant} !important;
     box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
     z-index: ${p => p.theme.zIndex.initial};
-  }
-
-  &:first-child {
-    border-top-left-radius: ${p => p.theme.radius.md};
-    border-top-right-radius: ${p => p.theme.radius.md};
-  }
-  &:last-child {
-    border-bottom-left-radius: ${p => p.theme.radius.md};
-    border-bottom-right-radius: ${p => p.theme.radius.md};
-  }
-
-  &:nth-child(n + 2) {
-    border-top-color: transparent;
-  }
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    &:nth-child(n + 2) {
-      border-top-color: ${p => p.theme.colors.gray200};
-      border-left-color: transparent;
-    }
-    &:first-child {
-      border-top-right-radius: 0;
-      border-bottom-left-radius: ${p => p.theme.radius.md};
-    }
-    &:last-child {
-      border-bottom-left-radius: 0;
-      border-top-right-radius: ${p => p.theme.radius.md};
-    }
   }
 
   input {

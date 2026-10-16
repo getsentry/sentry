@@ -5,7 +5,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -55,6 +55,10 @@ export function AllocationForm({
   subscription,
 }: AllocationFormProps) {
   const organization = useOrganization();
+  const horizontalInset = useResponsivePropValue<'2xl' | '3xl'>({
+    zero: '2xl',
+    '3xl': '3xl',
+  });
   const [allocationVolume, setAllocationVolume] = useState(0);
   const [errorFields, setErrorFields] = useState<string[]>([]);
   const [showPrice, setShowPrice] = useState(false);
@@ -257,11 +261,7 @@ export function AllocationForm({
       </Header>
       <Container
         css={theme => css`
-          margin: -${theme.space['2xl']};
-
-          @container (min-width: ${theme.container['3xl']}) {
-            margin-inline: -${theme.space['3xl']};
-          }
+          margin: -${theme.space['2xl']} -${theme.space[horizontalInset]};
         `}
       >
         <Container padding="xl">

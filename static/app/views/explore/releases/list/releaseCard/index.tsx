@@ -323,13 +323,7 @@ export function ReleaseCard({
             height="24px"
             overflow="hidden"
             padding="0 xl"
-            css={cssTheme => css`
-              border-bottom-right-radius: ${cssTheme.radius.md};
-
-              @container (max-width: ${cssTheme.container['3xl']}) {
-                border-bottom-left-radius: ${cssTheme.radius.md};
-              }
-            `}
+            radius={{zero: '0 0 md md', '3xl': '0 0 md 0'}}
           >
             <Text size="sm" variant="muted">
               <Tooltip title={getHiddenProjectsTooltip()}>

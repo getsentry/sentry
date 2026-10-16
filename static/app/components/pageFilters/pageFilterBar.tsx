@@ -2,7 +2,7 @@ import {Children} from 'react';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, rc} from '@sentry/scraps/layout';
 
 // Note: This component is also used in Explore multi-query mode
 // static/app/views/explore/multiQueryMode/queryConstructors/sortBy.tsx
@@ -61,10 +61,7 @@ const pageFilterBarStyles = (p: {
     /* Prevent project filter from shrinking (it has in-built max character count)
 except in mobile */
     &:first-child {
-      flex-shrink: 0;
-      @container (max-width: ${p.theme.container.xl}) {
-        flex-shrink: 1;
-      }
+      ${rc('flex-shrink', {zero: 1, xl: 0}, p.theme)}
     }
 
     /* Prevent date filter from shrinking below 6.5rem */

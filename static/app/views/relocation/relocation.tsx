@@ -1,10 +1,16 @@
-import {useCallback, useEffect, useState} from 'react';
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type ComponentProps,
+  type CSSProperties,
+} from 'react';
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -393,12 +399,12 @@ const OnboardingStep = styled((props: React.ComponentProps<typeof motion.div>) =
   flex-direction: column;
 `;
 
-const AdaptivePageCorners = styled(PageCorners)`
-  --corner-scale: 1;
-  @container (max-width: ${p => p.theme.container.xl}) {
-    --corner-scale: 0.5;
-  }
-`;
+function AdaptivePageCorners(props: ComponentProps<typeof PageCorners>) {
+  const cornerScale = useResponsivePropValue({zero: 0.5, xl: 1});
+  return (
+    <PageCorners {...props} style={{'--corner-scale': cornerScale} as CSSProperties} />
+  );
+}
 
 const BackMotionDiv = styled(motion.div)`
   position: absolute;

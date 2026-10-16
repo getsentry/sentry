@@ -8,7 +8,7 @@ import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Container} from '@sentry/scraps/layout';
+import {Container, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -162,6 +162,14 @@ export function FrameworkSuggestionModal({
   analyticsFlow = 'onboarding',
 }: FrameworkSuggestionModalProps) {
   const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
+  const rightInset = useResponsivePropValue<'xl' | '3xl'>({
+    zero: 'xl',
+    '3xl': '3xl',
+  });
+  const leftInset = useResponsivePropValue<'2xl' | '3xl'>({
+    zero: '2xl',
+    '3xl': '3xl',
+  });
   const createProjectAndRulesError = useCreateProjectAndRulesError();
 
   const frameworks = platforms.filter(
@@ -371,11 +379,8 @@ export function FrameworkSuggestionModal({
         position="relative"
         height="30px"
         css={theme => css`
-          margin: -${theme.space['3xl']} -${theme.space.xl} 0 -${theme.space['2xl']};
-
-          @container (min-width: ${theme.container['3xl']}) {
-            margin-inline: -${theme.space['3xl']};
-          }
+          margin: -${theme.space['3xl']} -${theme.space[rightInset]}
+            0 -${theme.space[leftInset]};
         `}
       >
         <CloseButton onClick={closeModal} />
