@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import {InfoText} from '@sentry/scraps/info';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -14,7 +13,6 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {SavedEntityTable} from 'sentry/components/savedEntityTable';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
 import {useDeleteFormula} from 'sentry/views/explore/hooks/useDeleteFormula';
 import type {
   FormulaDataset,
@@ -82,7 +80,6 @@ export function SavedFormulasTable({formulas, isError, isPending}: Props) {
 function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean}) {
   const makeBuilderUrl = useFormulaBuilderUrl();
   const {deleteFormula} = useDeleteFormula();
-  const isPrebuilt = defined(formula.prebuiltId);
   const name = stripNamePrefix(formula.name);
 
   function confirmDelete() {
@@ -106,15 +103,9 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
   return (
     <SavedEntityTable.Row isFirst={isFirst}>
       <SavedEntityTable.Cell>
-        {isPrebuilt ? (
-          <InfoText title={name} mode="overflowOnly" monospace>
-            {name}
-          </InfoText>
-        ) : (
-          <SavedEntityTable.CellName to={makeBuilderUrl(formula.id)} title={name}>
-            {name}
-          </SavedEntityTable.CellName>
-        )}
+        <SavedEntityTable.CellName to={makeBuilderUrl(formula.id)} title={name}>
+          {name}
+        </SavedEntityTable.CellName>
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell>
         <SavedEntityTable.CellTextContent>
@@ -129,16 +120,14 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
       <SavedEntityTable.Cell>
         <SavedEntityTable.CellTextContent>
           <Text monospace size="sm">
-            {formula.params.map((param, index) => (
-              <Fragment key={param.name}>
-                {index > 0 && ', '}
-                <FormulaToken
-                  kind={param.type === 'calculation' ? 'calculation' : 'parameter'}
-                >
-                  {param.name}
-                </FormulaToken>
-              </Fragment>
-            ))}
+            {formula.params
+              .filter(param => param.type !== 'calculation')
+              .map((param, index) => (
+                <Fragment key={param.name}>
+                  {index > 0 && ', '}
+                  <FormulaToken kind="parameter">{param.name}</FormulaToken>
+                </Fragment>
+              ))}
           </Text>
         </SavedEntityTable.CellTextContent>
       </SavedEntityTable.Cell>
@@ -155,25 +144,23 @@ function FormulaRow({formula, isFirst}: {formula: SavedFormula; isFirst: boolean
         </Tooltip>
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell>
-        {isPrebuilt ? (
+        {formula.prebuilt ? (
           <Tooltip title="Sentry">
             <ActivityAvatar type="system" size={20} />
           </Tooltip>
         ) : null}
       </SavedEntityTable.Cell>
       <SavedEntityTable.Cell hasButton>
-        {isPrebuilt ? null : (
-          <SavedEntityTable.CellActions
-            items={[
-              {
-                key: 'delete',
-                label: t('Delete'),
-                priority: 'danger',
-                onAction: confirmDelete,
-              },
-            ]}
-          />
-        )}
+        <SavedEntityTable.CellActions
+          items={[
+            {
+              key: 'delete',
+              label: t('Delete'),
+              priority: 'danger',
+              onAction: confirmDelete,
+            },
+          ]}
+        />
       </SavedEntityTable.Cell>
     </SavedEntityTable.Row>
   );
