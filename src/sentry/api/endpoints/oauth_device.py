@@ -14,12 +14,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.helpers.oauth_consent import (
+    InvalidOrganizationSelection,
     get_organization_options,
 )
 from sentry.api.helpers.oauth_device import (
     DEVICE_REQUEST_ERROR_STATUS,
     InvalidDeviceRequest,
+    complete_device_request,
     get_device_request,
+    get_prepared_device_request,
     prepare_device_consent,
 )
 from sentry.api.permissions import SentryIsAuthenticated
@@ -28,8 +31,13 @@ from sentry.api.serializers.models.organization import (
     ControlSiloOrganizationSerializer,
     ControlSiloOrganizationSerializerResponse,
 )
+from sentry.api.serializers.rest_framework.oauth_consent import (
+    ConsentDecision,
+    ConsentDecisionSerializer,
+)
 from sentry.api.serializers.rest_framework.oauth_device import (
     OAuthDeviceQuerySerializer,
+    OAuthUserCodeField,
 )
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.ratelimits.config import RateLimitConfig
@@ -68,12 +76,42 @@ class OAuthDeviceConsentSerializer(Serializer[OAuthDeviceConsentResponse]):
         }
 
 
+class OAuthDeviceDecision(ConsentDecision):
+    user_code: str
+
+
+class OAuthDeviceDecisionSerializer(ConsentDecisionSerializer[OAuthDeviceDecision]):
+    user_code = OAuthUserCodeField(
+        help_text="The user code returned by device consent preparation."
+    )
+
+
+class OAuthDeviceCompleteResponse(TypedDict):
+    stage: Literal["approved", "denied"]
+
+
+@dataclass(frozen=True, eq=False)
+class OAuthDeviceComplete:
+    status: Literal["approved", "denied"]
+
+
+class OAuthDeviceCompleteSerializer(Serializer[OAuthDeviceCompleteResponse]):
+    def serialize(
+        self,
+        obj: OAuthDeviceComplete,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> OAuthDeviceCompleteResponse:
+        return {"stage": obj.status}
+
+
 @extend_schema(tags=["Users"])
 @control_silo_endpoint
 @method_decorator(never_cache, name="dispatch")
 class OAuthDeviceEndpoint(Endpoint):
     owner = ApiOwner.FOUNDATIONS
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (SentryIsAuthenticated,)
     csrf_protect = True
@@ -115,4 +153,29 @@ class OAuthDeviceEndpoint(Endpoint):
                 OAuthDeviceConsent(device.user_code, organizations),
                 serializer=OAuthDeviceConsentSerializer(),
             )
+        )
+
+    @extend_schema(
+        operation_id="Submit OAuth device consent",
+        request=OAuthDeviceDecisionSerializer,
+        responses={200: OAuthDeviceCompleteSerializer},
+    )
+    def post(self, request: AuthenticatedHttpRequest) -> Response:
+        """Complete the prepared device request with explicit approval or denial."""
+        serializer = OAuthDeviceDecisionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        decision = serializer.validated_data
+        device = get_prepared_device_request(
+            request.session, decision["user_code"], request.user.id
+        )
+        try:
+            status = complete_device_request(
+                device.id, request.user.id, decision["op"], decision["selected_organization_id"]
+            )
+        except InvalidOrganizationSelection as exc:
+            raise ValidationError({"selectedOrganizationId": exc.public_message}) from exc
+
+        request.session.pop(f"oa2:{device.user_code}", None)
+        return Response(
+            serialize(OAuthDeviceComplete(status), serializer=OAuthDeviceCompleteSerializer())
         )
