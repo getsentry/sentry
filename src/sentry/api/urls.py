@@ -12,6 +12,7 @@ from sentry.ai_monitoring.endpoints.organization_ai_conversations import (
 from sentry.api.endpoints.dsn_lookup import DsnLookupEndpoint
 from sentry.api.endpoints.oauth_authorize import OAuthAuthorizeEndpoint
 from sentry.api.endpoints.oauth_authorize_context import OAuthAuthorizeContextEndpoint
+from sentry.api.endpoints.oauth_device import OAuthDeviceEndpoint
 from sentry.api.endpoints.oauth_device_context import OAuthDeviceContextEndpoint
 from sentry.api.endpoints.organization_auth_token_details import (
     OrganizationAuthTokenDetailsEndpoint,
@@ -1087,6 +1088,11 @@ def create_group_urls(
 
 
 AUTH_URLS = [
+    re_path(
+        r"^oauth/device/$",
+        OAuthDeviceEndpoint.as_view(),
+        name="sentry-api-0-oauth-device",
+    ),
     re_path(
         r"^oauth/device/context/$",
         OAuthDeviceContextEndpoint.as_view(),
