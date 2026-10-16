@@ -12,6 +12,7 @@ const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}']
 export const incubator = defineConfig({
   rules: {
     '@sentry/scraps/prefer-primitives': 'error',
+    'react/rule-suppression': 'error',
     'react/todo': 'error',
   },
   overrides: [
@@ -785,7 +786,6 @@ const config = defineConfig({
     'react/purity': 'error',
     'react/refs': 'error',
     'react/require-render-return': 'error',
-    'react/rule-suppression': 'off',
     'react/set-state-in-effect': 'error',
     'react/set-state-in-render': 'error',
     'react/static-components': 'error',
