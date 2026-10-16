@@ -22,7 +22,7 @@ from sentry.notifications.platform.templates.seer import (
 from sentry.notifications.platform.types import NotificationData
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.agent.client_models import PendingUserInput
+from sentry.seer.agent.client_models import PendingUserInput, SeerRunState
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.endpoints.agent_request import (
     AgentApprovalRequestData,
@@ -614,13 +614,17 @@ class SlackAgentEntrypoint(
     @staticmethod
     def on_agent_update(
         cache_payload: SlackAgentCachePayload,
-        summary: str | None,
         run_id: int,
-        pending_user_input: PendingUserInput | None = None,
+        state: SeerRunState,
     ) -> None:
         organization_id = cache_payload["organization_id"]
         integration_id = cache_payload["integration_id"]
         thread = cache_payload["thread"]
+        pending_user_input = state.pending_user_input
+        # Only the latest turn's answer; never fall back to an earlier turn's.
+        turns = state.get_turns()
+        answer = turns[-1].answer if turns else None
+        summary = answer.message.content if answer else None
         approval = _agent_write_approval(pending_user_input)
         if approval:
             input_id, scopes = approval
