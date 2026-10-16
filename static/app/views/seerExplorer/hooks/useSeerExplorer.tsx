@@ -810,6 +810,7 @@ export const useSeerExplorer = () => {
     const baseSession = rawSessionData ?? {
       blocks: [],
       status: 'processing' as const,
+      // oxlint-disable-next-line react/purity -- The optimistic session stays fresh until the server returns one.
       updated_at: new Date().toISOString(),
     };
 
