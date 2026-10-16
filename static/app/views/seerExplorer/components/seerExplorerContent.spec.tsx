@@ -51,7 +51,6 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   startNewSession: jest.fn(),
   interruptRun: jest.fn(),
   respondToUserInput: jest.fn(),
-  createPR: jest.fn(),
   setOverrideBashModeEnabled: jest.fn(),
   setOverrideCtxEngEnable: jest.fn(),
   setOverrideCodeModeEnable: jest.fn(),
@@ -1463,7 +1462,7 @@ describe('SeerExplorerContent', () => {
     });
   });
 
-  describe('PR widget', () => {
+  describe('Create PR button', () => {
     function renderWithCodeChanges(features: string[]) {
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
         ...defaultHookReturn,
@@ -1509,11 +1508,11 @@ describe('SeerExplorerContent', () => {
       );
     }
 
-    it('shows the Create PR button when there are code changes', async () => {
+    it('never shows a Create PR button, even with code changes', async () => {
       renderWithCodeChanges(['seer-explorer']);
 
       expect(await screen.findByText('Made the fix.')).toBeInTheDocument();
-      expect(screen.getByText('Create PR')).toBeInTheDocument();
+      expect(screen.queryByText('Create PR')).not.toBeInTheDocument();
     });
 
     it('hides the Create PR button with ask-seer-create-pr', async () => {

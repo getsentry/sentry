@@ -59,7 +59,6 @@ import {
   PendingUserInputDock,
   PendingUserInputPicker,
 } from 'sentry/views/seerExplorer/components/pendingUserInputDock';
-import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {useChatSuggestions} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
@@ -210,7 +209,6 @@ export function SeerExplorerContent({
   const composerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const userScrolledUpRef = useRef(false);
-  const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
   /** A new chat was started and the composer should take focus once it is back. */
   const pendingComposerFocusRef = useRef(false);
 
@@ -232,7 +230,6 @@ export function SeerExplorerContent({
     startNewSession,
     switchToRun,
     respondToUserInput,
-    createPR,
     interruptRun,
     hasSentInterrupt,
     overrideCtxEngEnable,
@@ -532,15 +529,8 @@ export function SeerExplorerContent({
     [sessionData?.repo_pr_states]
   );
 
-  // Get PR widget data for menu
-  const {menuItems: prWidgetItems, menuFooter: prWidgetFooter} = usePRWidgetData({
-    blocks,
-    repoPRStates,
-    onCreatePR: createPR,
-  });
-
   // Menu component
-  const {menu, closeMenu, openPRWidget} = useExplorerMenu({
+  const {menu, closeMenu} = useExplorerMenu({
     clearInput,
     inputValue: inputValue.text,
     focusInput,
@@ -558,9 +548,6 @@ export function SeerExplorerContent({
         : undefined,
     },
     inputAnchorRef: composerRef,
-    prWidgetAnchorRef: prWidgetButtonRef,
-    prWidgetItems,
-    prWidgetFooter,
   });
 
   const handleBlocksClick = useCallback(() => {
@@ -849,7 +836,6 @@ export function SeerExplorerContent({
           </PendingUserInputDock>
         )}
         <InputSection
-          blocks={blocks}
           enabled={!readOnly && !showLoadError}
           disabledPlaceholder={
             showLoadError ? t('Start a new chat to keep talking to Seer') : undefined
@@ -857,14 +843,11 @@ export function SeerExplorerContent({
           inputValue={inputValue}
           canSendMessage={canSendMessage}
           interruptState={interruptState}
-          onCreatePR={createPR}
           onInputChange={handleInputChange}
           onInputClick={handleInputClick}
           onInterrupt={interruptRun}
           onKeyDown={handleInputKeyDown}
           onSend={handleSend}
-          onPRWidgetClick={openPRWidget}
-          prWidgetButtonRef={prWidgetButtonRef}
           repoPRStates={repoPRStates}
           runId={runId}
           composerRef={composerRef}
