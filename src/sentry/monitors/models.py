@@ -5,7 +5,7 @@ import uuid
 import zoneinfo
 from collections.abc import Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Self, override
+from typing import TYPE_CHECKING, ClassVar, Self, override
 from uuid import uuid4
 
 import jsonschema
@@ -23,6 +23,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    DefaultFieldsModel,
     FlexibleForeignKey,
     LegacyTextJSONField,
     Model,
@@ -38,7 +39,6 @@ from sentry.deletions.base import ModelRelation
 from sentry.locks import locks
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
-from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR, CrontabSchedule, IntervalSchedule
 from sentry.types.actor import Actor
 from sentry.utils.retries import TimedRetryPolicy
@@ -351,16 +351,17 @@ class Monitor(Model):
         return next_checkin + get_checkin_margin(self.config.get("checkin_margin"))
 
     def update_config(self, config_payload, validated_config):
-        monitor_config = self.config
         keys = set(config_payload.keys())
 
         # Always update schedule and schedule_type
         keys.update({"schedule", "schedule_type"})
         # Otherwise, only update keys that were specified in the payload
+        monitor_config = {**self.config}
         for key in keys:
             if key in validated_config:
                 monitor_config[key] = validated_config[key]
-        self.save()
+        if monitor_config != self.config:
+            self.update(config=monitor_config)
 
     def get_validated_config(self):
         try:
@@ -370,57 +371,6 @@ class Monitor(Model):
         # We should always return the config here - just log an error if we detect that it doesn't
         # match the schema
         return self.config
-
-    def get_issue_alert_rule(self):
-        issue_alert_rule_id = self.config.get("alert_rule_id")
-        if issue_alert_rule_id:
-            issue_alert_rule = Rule.objects.filter(
-                project_id=self.project_id,
-                id=issue_alert_rule_id,
-                source=RuleSource.CRON_MONITOR,
-                status=ObjectStatus.ACTIVE,
-            ).first()
-            if issue_alert_rule:
-                return issue_alert_rule
-
-            # If issue_alert_rule_id is stale, clear it from the config
-            clean_config = self.config.copy()
-            clean_config.pop("alert_rule_id", None)
-            self.update(config=clean_config)
-
-        return None
-
-    def get_issue_alert_rule_data(self):
-        issue_alert_rule = self.get_issue_alert_rule()
-        if issue_alert_rule:
-            data = issue_alert_rule.data
-            issue_alert_rule_data: dict[str, Any | None] = dict()
-
-            # Build up alert target data
-            targets = []
-            for action in data.get("actions", []):
-                # Only include email alerts for now
-                if action.get("id") == "sentry.mail.actions.NotifyEmailAction":
-                    targets.append(
-                        {
-                            "targetIdentifier": action.get("targetIdentifier"),
-                            "targetType": action.get("targetType"),
-                        }
-                    )
-            issue_alert_rule_data["targets"] = targets
-
-            environment, issue_alert_rule_environment_id = None, issue_alert_rule.environment_id
-            if issue_alert_rule_environment_id:
-                try:
-                    environment = Environment.objects.get(id=issue_alert_rule_environment_id).name
-                except Environment.DoesNotExist:
-                    pass
-
-            issue_alert_rule_data["environment"] = environment
-
-            return issue_alert_rule_data
-
-        return None
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
@@ -472,12 +422,50 @@ def check_organization_monitor_limits_on_save(sender, instance, **kwargs):
 
 
 @cell_silo_model
+class MonitorCheckInConfig(DefaultFieldsModel):
+    """
+    A deduplicated, immutable snapshot of a monitor configuration, referenced
+    by check-ins. Rows are content-addressed by `hash`.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    hash = models.CharField(max_length=64)
+    config = models.JSONField()
+
+    # Rows never change, so they can stay cached for a long time
+    objects: ClassVar[BaseManager[Self]] = BaseManager(
+        cache_fields=("hash",), cache_ttl=60 * 60 * 24
+    )
+
+    class Meta:
+        app_label = "monitors"
+        db_table = "sentry_monitorcheckinconfig"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["hash"], name="sentry_monitorcheckinconfig_hash_unique"
+            ),
+        ]
+
+    __repr__ = sane_repr("hash")
+
+
+@cell_silo_model
 class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
-    project_id = BoundedBigIntegerField(db_index=True)
-    monitor = FlexibleForeignKey("monitors.Monitor", db_index=False)
+    monitor = FlexibleForeignKey(
+        "monitors.Monitor",
+        db_index=False,
+        null=True,
+        db_constraint=False,
+        on_delete=models.DO_NOTHING,
+    )
+    """
+    No longer read or written. The monitor environment already holds the monitor;
+    this column is being removed.
+    """
     monitor_environment = FlexibleForeignKey("monitors.MonitorEnvironment", db_index=False)
     """
     XXX(epurkhiser): Currently unused
@@ -547,7 +535,18 @@ class MonitorCheckIn(Model):
 
     monitor_config = LegacyTextJSONField(null=True)
     """
-    A snapshot of the monitor configuration at the time of the check-in.
+    Legacy snapshot of the monitor configuration at the time of the check-in.
+    No longer written; replaced by `checkin_config`.
+    """
+
+    checkin_config = FlexibleForeignKey(
+        "monitors.MonitorCheckInConfig",
+        null=True,
+        on_delete=models.PROTECT,
+    )
+    """
+    References the MonitorCheckInConfig holding a snapshot of the monitor
+    configuration at the time of the check-in.
     """
 
     trace_id = UUIDField(null=True)
@@ -566,12 +565,6 @@ class MonitorCheckIn(Model):
             # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
             # column
             models.Index(fields=["monitor", "date_added", "status"]),
-            # used for latest on api endpoints
-            models.Index(
-                fields=["monitor", "-date_added"],
-                condition=Q(status=CheckInStatus.IN_PROGRESS),
-                name="api_latest",
-            ),
             # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
             # column
             models.Index(fields=["monitor", "status", "date_added"]),
@@ -600,7 +593,7 @@ class MonitorCheckIn(Model):
             ),
         ]
 
-    __repr__ = sane_repr("guid", "project_id", "status")
+    __repr__ = sane_repr("guid", "monitor_environment_id", "status")
 
     def save(self, *args, **kwargs):
         if not self.date_added:
@@ -637,8 +630,14 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
         monitor_env, created = MonitorEnvironment.objects.get_or_create(
             monitor=monitor,
             environment_id=environment.id,
-            defaults={"status": MonitorStatus.ACTIVE, "is_muted": is_monitor_muted(monitor)},
+            # Callable so the muted count only runs when the environment is created
+            defaults={
+                "status": MonitorStatus.ACTIVE,
+                "is_muted": lambda: is_monitor_muted(monitor),
+            },
         )
+        # Avoid re-fetching the monitor when following the relation
+        monitor_env.monitor = monitor
 
         # recompute per-project monitor check-in rate limit quota
         if created:

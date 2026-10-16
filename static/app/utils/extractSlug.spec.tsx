@@ -1,4 +1,6 @@
-import {extractSlug} from 'sentry/utils/extractSlug';
+import {setWindowLocation} from 'sentry-test/utils';
+
+import {extractSlug, getDevUiOrganizationSlug} from 'sentry/utils/extractSlug';
 
 describe('extractSlug', () => {
   it.each([
@@ -67,5 +69,53 @@ describe('extractSlug', () => {
     },
   ])('should split "$slug" & "$domain" from $hostname', ({hostname, slug, domain}) => {
     expect(extractSlug(hostname)).toStrictEqual({slug, domain});
+  });
+});
+
+describe('getDevUiOrganizationSlug', () => {
+  let devUi: boolean | undefined;
+  let deployPreviewConfig: string | undefined;
+
+  beforeEach(() => {
+    devUi = window.__SENTRY_DEV_UI;
+    deployPreviewConfig = process.env.DEPLOY_PREVIEW_CONFIG;
+    window.__SENTRY_DEV_UI = true;
+    delete process.env.DEPLOY_PREVIEW_CONFIG;
+  });
+
+  afterEach(() => {
+    window.__SENTRY_DEV_UI = devUi;
+    if (deployPreviewConfig === undefined) {
+      delete process.env.DEPLOY_PREVIEW_CONFIG;
+    } else {
+      process.env.DEPLOY_PREVIEW_CONFIG = deployPreviewConfig;
+    }
+  });
+
+  it('returns the organization from a dev-ui organization domain', () => {
+    setWindowLocation('https://acme.dev.getsentry.net:7999/issues/');
+    expect(getDevUiOrganizationSlug()).toBe('acme');
+  });
+
+  it('returns null without an organization subdomain', () => {
+    setWindowLocation('https://dev.getsentry.net:7999/issues/');
+    expect(getDevUiOrganizationSlug()).toBeNull();
+  });
+
+  it('returns null outside dev-ui', () => {
+    window.__SENTRY_DEV_UI = undefined;
+    setWindowLocation('https://acme.dev.getsentry.net:7999/issues/');
+    expect(getDevUiOrganizationSlug()).toBeNull();
+  });
+
+  it('ignores the deployment host on deploy previews', () => {
+    process.env.DEPLOY_PREVIEW_CONFIG = JSON.stringify({
+      branch: 'test',
+      commitSha: 'abc123',
+      githubOrg: 'getsentry',
+      githubRepo: 'sentry',
+    });
+    setWindowLocation('https://sentry-abc123.sentry.dev/issues/');
+    expect(getDevUiOrganizationSlug()).toBeNull();
   });
 });

@@ -7,12 +7,12 @@ from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
-from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
+from sentry.monitors.models import Monitor, MonitorEnvironment
 from sentry.utils.sdk import Scope, bind_organization_context
 
 DEPRECATED_INGEST_API_MESSAGE = "We have removed this deprecated API. Please migrate to using DSN instead: https://docs.sentry.io/product/crons/legacy-endpoint-migration/#am-i-using-legacy-endpoints"
@@ -32,7 +32,6 @@ class MonitorEndpoint(Endpoint):
         organization_id_or_slug: int | str,
         monitor_id_or_slug: str,
         environment: str | None = None,
-        checkin_id: str | None = None,
         *args,
         **kwargs,
     ):
@@ -76,10 +75,6 @@ class MonitorEndpoint(Endpoint):
         kwargs["organization"] = organization
         kwargs["project"] = project
         kwargs["monitor"] = monitor
-
-        if checkin_id:
-            checkin = try_checkin_lookup(monitor, checkin_id)
-            kwargs["checkin"] = checkin
 
         return args, kwargs
 
@@ -181,27 +176,3 @@ def get_monitor_by_org_id_or_slug(organization: Organization, monitor_id_or_slug
         pass
 
     raise Monitor.DoesNotExist
-
-
-def try_checkin_lookup(monitor: Monitor, checkin_id: str):
-    # we support the magic keyword of "latest" to grab the most recent check-in
-    # which is unfinished (thus still mutable)
-    if checkin_id == "latest":
-        checkin = (
-            MonitorCheckIn.objects.filter(monitor=monitor, status=CheckInStatus.IN_PROGRESS)
-            .order_by("-date_added")
-            .first()
-        )
-        if not checkin:
-            raise ResourceDoesNotExist
-        return checkin
-
-    try:
-        UUID(checkin_id)
-    except ValueError:
-        raise ParameterValidationError("Invalid check-in UUID")
-
-    try:
-        return MonitorCheckIn.objects.get(monitor=monitor, guid=checkin_id)
-    except MonitorCheckIn.DoesNotExist:
-        raise ResourceDoesNotExist

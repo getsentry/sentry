@@ -513,6 +513,10 @@ describe('Performance > Widgets > WidgetContainer', () => {
       'Most Related Issues'
     );
     expect(issuesListMock).toHaveBeenCalledTimes(1);
+    // The issues chart only fetches once the issues list has resolved
+    await waitFor(() => {
+      expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    });
 
     wrapper.rerender(
       <WrappedComponent
@@ -525,6 +529,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
       'Most Related Errors'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
+    // Leftover issues list data must not trigger a chart request for errors
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -605,7 +610,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
           per_page: QUERY_LIMIT_PARAM,
           project: ['-42'],
           query:
-            'has:sentry.normalized_description span.category:db !span.op:[db.sql.room,db.redis] transaction.op:pageload',
+            'has:sentry.normalized_description has:span.group span.category:db !span.op:[db.sql.room,db.redis] transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
         }),
