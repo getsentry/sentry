@@ -40,7 +40,7 @@ export function AddGiftEventsAction({
     const intValue = parseInt(value, 10);
 
     if (isNaN(intValue) || intValue < 0) {
-      return undefined;
+      return;
     }
 
     return intValue;
@@ -56,7 +56,9 @@ export function AddGiftEventsAction({
   const handleConfirm = useCallback(
     (params: AdminConfirmParams) => {
       const freeEventsKey = getFreeEventsKey(dataCategory);
-      const total = freeEvents ? freeEvents * (billedCategoryInfo?.freeEventsMultiple ?? 0) : 0;
+      const total = freeEvents
+        ? freeEvents * (billedCategoryInfo?.freeEventsMultiple ?? 0)
+        : 0;
       onConfirm?.({[freeEventsKey]: total, ...params});
       setFreeEvents(0);
     },
