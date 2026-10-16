@@ -155,6 +155,10 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         key = self.get_key(event)
         assert key == f"{self.repo}#{self.issue_num}"
         external_issue = ExternalIssue.objects.get(key=key)
+        assert external_issue.title == event.title
+        assert external_issue.description == self.installation.get_group_description(
+            event.group, event
+        )
         external_issue_count = len(ExternalIssue.objects.filter(key=key))
         assert external_issue_count == 1
 
