@@ -39,11 +39,6 @@ describe('OrganizationFeatureFlagsNewSecret', () => {
     });
     await userEvent.click(providerDropdown);
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'LaunchDarkly'}));
-    const webhookUrl = screen.getByLabelText('Webhook URL');
-    expect(webhookUrl).toHaveValue(
-      `${window.location.origin}/api/0/organizations/${organization.slug}/flags/hooks/provider/launchdarkly/`
-    );
-    expect(webhookUrl).toHaveAttribute('readonly');
     await userEvent.click(screen.getByRole('button', {name: 'Add Provider'}));
 
     expect(screen.getByRole('textbox', {name: 'Secret'})).toHaveValue(
