@@ -98,7 +98,7 @@ If you filter on `(org_id, project_id, type)` together, you need an index whose 
 
 This is a starting scaffold, not a template — strip what you do not need, do not add things you do not need.
 
-This example is organization-owned. For project-owned data, use `project` instead and update the constraint and representation accordingly. Before using the scaffold, import `uuid7` from a UUIDv7 provider supported by the project's runtime or dependencies (decision 5).
+Before using the scaffold, import `uuid7` from a UUIDv7 provider supported by the project's runtime or dependencies (decision 5).
 
 ```python
 from __future__ import annotations
@@ -116,6 +116,7 @@ class MyThing(DefaultFieldsModel):
 
     id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
     organization = FlexibleForeignKey("sentry.Organization")
+    project = FlexibleForeignKey("sentry.Project")
     user_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
 
     name = models.CharField(max_length=256)
@@ -131,7 +132,7 @@ class MyThing(DefaultFieldsModel):
             ),
         ]
 
-    __repr__ = sane_repr("organization_id", "name")
+    __repr__ = sane_repr("organization_id", "project_id", "name")
 ```
 
 For a control-silo model, swap `@cell_silo_model` for `@control_silo_model`. For a model whose state needs to be visible from the other silo, change the base to `ReplicatedCellModel` or `ReplicatedControlModel` and add `category = OutboxCategory.MY_THING` — then invoke the `hybrid-cloud-outboxes` skill for the rest.
