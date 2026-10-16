@@ -20,13 +20,9 @@ from sentry.app import env
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.conf.types.sentry_config import SentryMode
-from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus, StatsPeriod
+from sentry.constants import ObjectStatus, StatsPeriod
 from sentry.digests import backend as digests
-from sentry.dynamic_sampling.utils import (
-    has_custom_dynamic_sampling,
-    has_dynamic_sampling,
-    is_project_mode_sampling,
-)
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
@@ -1102,14 +1098,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
         sample_rate = None
 
-        if has_custom_dynamic_sampling(obj.organization):
-            if is_project_mode_sampling(obj.organization):
-                sample_rate = obj.get_option("sentry:target_sample_rate")
-            else:
-                sample_rate = obj.organization.get_option(
-                    "sentry:target_sample_rate", TARGET_SAMPLE_RATE_DEFAULT
-                )
-        elif has_dynamic_sampling(obj.organization):
+        if has_dynamic_sampling(obj.organization):
             sample_rate = quotas.backend.get_blended_sample_rate(
                 organization_id=obj.organization.id
             )
