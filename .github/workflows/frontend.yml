@@ -218,7 +218,10 @@ jobs:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
-      matrix: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix) }}
+      matrix:
+        index: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).index }}
+        total: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).total }}
+        router: ['6', '8']
     env:
       SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
 
