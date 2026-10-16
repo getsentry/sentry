@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Grid as ScrapsGrid} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ContextIcon, NAMES} from 'sentry/components/events/contexts/contextIcon';
@@ -8,7 +8,7 @@ import * as Storybook from 'sentry/stories';
 
 export default Storybook.story('ContextIcon', story => {
   story('All', () => (
-    <ScrapsGrid
+    <Grid
       align="center"
       gap="md"
       style={{
@@ -31,7 +31,7 @@ export default Storybook.story('ContextIcon', story => {
           </Tooltip>
         );
       })}
-    </ScrapsGrid>
+    </Grid>
   ));
 });
 

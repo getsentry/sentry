@@ -16,7 +16,7 @@ import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Container as ScrapsContainer} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Panel} from 'sentry/components/panels/panel';
@@ -57,14 +57,9 @@ export function ModulesOnboardingPanel({
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
   return (
     <Panel>
-      <ScrapsContainer
-        padding="3xl"
-        minHeight="160px"
-        overflow="hidden"
-        position="relative"
-      >
+      <Container padding="3xl" minHeight="160px" overflow="hidden" position="relative">
         <Flex align="stretch" wrap="wrap-reverse" gap="3xl">
-          <ScrapsContainer flex="5" width="100%">
+          <Container flex="5" width="100%">
             <Fragment>
               <Header>{emptyStateContent.heading}</Header>
               <p>{emptyStateContent.description}</p>
@@ -80,15 +75,15 @@ export function ModulesOnboardingPanel({
                 </ul>
               </ValueProp>
             </SplitContainer>
-          </ScrapsContainer>
-          <ScrapsContainer flex="3" position="relative">
+          </Container>
+          <Container flex="3" position="relative">
             <PerfImage src={emptyStateImg} />
-          </ScrapsContainer>
+          </Container>
         </Flex>
         <LinkButton variant="primary" external href={docLink}>
           {t('Read the docs')}
         </LinkButton>
-      </ScrapsContainer>
+      </Container>
     </Panel>
   );
 }
@@ -105,7 +100,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
   const [hoveredIcon, setHoveredIcon] = useState<PlatformKey | null>(null);
 
   return (
-    <ScrapsContainer flex="2" padding="2xl" background="secondary" width="100%">
+    <Container flex="2" padding="2xl" background="secondary" width="100%">
       <ModulePreviewImage src={emptyStateContent.imageSrc} />
       {emptyStateContent.supportedSdks && (
         <SupportedSdkContainer>
@@ -127,7 +122,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
           </Flex>
         </SupportedSdkContainer>
       )}
-    </ScrapsContainer>
+    </Container>
   );
 }
 
