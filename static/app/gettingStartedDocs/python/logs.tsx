@@ -10,10 +10,22 @@ import {t, tct} from 'sentry/locale';
 
 import {getPythonInstallCodeBlock} from './utils';
 
+const LOGS_MINIMUM_SDK_VERSION = '2.68.0';
+
 export const logsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
   condition: params.isLogsSelected,
   content: [
+    {
+      type: 'text',
+      text: tct(
+        'Logs require Python SDK version [minimumVersion] or higher. If you already have an older version installed, upgrade it with [code:pip install --upgrade sentry-sdk].',
+        {
+          code: <code />,
+          minimumVersion: <code>{LOGS_MINIMUM_SDK_VERSION}</code>,
+        }
+      ),
+    },
     {
       type: 'text',
       text: t('You can send logs to Sentry using the Sentry logging APIs:'),
@@ -71,14 +83,14 @@ export const logs = (): OnboardingConfig => ({
         {
           type: 'text',
           text: tct(
-            'Install our Python SDK with a minimum version that supports logs ([code:2.68.0] or higher).',
+            'Install our Python SDK with a minimum version that supports logs ([minimumVersion] or higher).',
             {
-              code: <code />,
+              minimumVersion: <code>{LOGS_MINIMUM_SDK_VERSION}</code>,
             }
           ),
         },
         getPythonInstallCodeBlock({
-          minimumVersion: '2.68.0',
+          minimumVersion: LOGS_MINIMUM_SDK_VERSION,
         }),
       ],
     },

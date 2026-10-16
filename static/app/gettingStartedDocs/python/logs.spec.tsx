@@ -21,6 +21,11 @@ describe('python logs onboarding docs', () => {
       screen.getByText(textWithMarkupMatcher(/sentry_sdk\.logger\.info/))
     ).toBeInTheDocument();
     expect(screen.getByText(textWithMarkupMatcher(/import logging/))).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Logs require Python SDK version 2\.68\.0 or higher/)
+      )
+    ).toBeInTheDocument();
   });
 
   it('does not render logs configuration when logs is not enabled', async () => {
