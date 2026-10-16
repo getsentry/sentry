@@ -72,6 +72,10 @@ function EventDetailsSection({children}: {children: React.ReactNode}) {
   );
 }
 
+// Fill the column beside the sidebar so a short tab keeps the secondary
+// background and the scroll position stable. Below this width the sidebar
+// stacks under the content, and the floor would only push it a full viewport
+// down. That is the common case once the Seer panel narrows the app content.
 function EventDetailsContent({children}: {children: React.ReactNode}) {
   return (
     <Container padding="0 xl 2xl xl" minHeight={{zero: 'auto', '4xl': '100vh'}}>
@@ -238,10 +242,6 @@ export function GroupDetailsLayout({
                   </div>
                 )}
               </SharedTourElement>
-              {/* Fill the column beside the sidebar so a short tab keeps the secondary
-                  background and the scroll position stable. Below this width the sidebar
-                  stacks under the content, and the floor would only push it a full viewport
-                  down. That is the common case once the Seer panel narrows the app content. */}
               {isAutofixTab ? (
                 // The autofix section. Same chrome and tab navigation as the
                 // event pages — the navigation is the only way back out of the
