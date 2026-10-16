@@ -10,6 +10,7 @@ import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {
+  formatPrice,
   isBizPlanFamily,
   isDeveloperPlan,
   isNewPayingCustomer,
@@ -99,7 +100,7 @@ function PlanSubstep({
             subscription,
             organization
           );
-          const basePrice = utils.formatPrice({cents: plan.basePrice});
+          const basePrice = formatPrice({cents: plan.basePrice});
           const planContent = utils.getContentForPlan(plan);
           const badge = getBadge(plan);
 

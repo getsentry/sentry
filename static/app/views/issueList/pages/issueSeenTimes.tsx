@@ -19,6 +19,7 @@ export function IssueSeenTimes({group}: {group: Group}) {
         date={lastSeen}
         suffix=""
         unitStyle="short"
+        aria-label={t('Last Seen')}
         tooltipPrefix={t('Last Seen')}
         variant="muted"
       />
@@ -27,6 +28,7 @@ export function IssueSeenTimes({group}: {group: Group}) {
         date={firstSeen}
         suffix=""
         unitStyle="short"
+        aria-label={t('First Seen')}
         tooltipPrefix={t('First Seen')}
         variant="muted"
       />

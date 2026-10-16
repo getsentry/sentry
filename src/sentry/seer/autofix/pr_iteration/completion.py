@@ -6,13 +6,14 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+from sentry_sdk import traces
+
 from sentry import features
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.autofix.autofix_agent import trigger_push_changes
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.github_perms import failed_tool_calls
 from sentry.seer.autofix.pr_iteration.emit import (
     PrIterationOutcome,
     complete_pr_iteration_details,
@@ -26,6 +27,7 @@ from sentry.seer.autofix.pr_iteration.iterations import (
     iteration_repos,
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.missing_permissions import failed_tool_calls
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
 from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
@@ -35,7 +37,6 @@ from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import format_pull_requests_payload
 from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
 from sentry.utils import metrics
-from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
@@ -269,7 +270,7 @@ def continue_pr_iteration(
     )
 
 
-@trace
+@traces.trace
 def consume_queued_feedback(
     log_ctx: PrIterationLogContext,
     organization: Organization,
@@ -336,7 +337,7 @@ def _latest_iteration_touched_files(log_ctx: PrIterationLogContext, state: SeerR
     return bool(iteration_repos(iterations[-1]))
 
 
-@trace
+@traces.trace
 def pr_iteration_push_outcome(
     log_ctx: PrIterationLogContext,
     group: Group,
@@ -412,7 +413,7 @@ def pr_iteration_push_outcome(
     return None if pushed else PrIterationOutcome.PUSH_FAILED
 
 
-@trace
+@traces.trace
 def _push_iteration_changes(
     log_ctx: PrIterationLogContext,
     group: Group,

@@ -27,9 +27,8 @@ import type {
   ContractSKUConfig as SKUConfig,
 } from 'admin/types';
 import {CPE_MULTIPLIER_TO_CENTS, UNLIMITED} from 'getsentry/constants';
-import {isUnlimitedReserved} from 'getsentry/utils/billing';
+import {displayPriceWithCents, isUnlimitedReserved} from 'getsentry/utils/billing';
 import {getCountryByCode} from 'getsentry/utils/ISO3166codes';
-import {displayPriceWithCents} from 'getsentry/views/amCheckout/utils';
 
 function parseCents(value?: string): number {
   if (!value) {

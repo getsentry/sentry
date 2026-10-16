@@ -26,11 +26,11 @@ import {useReleaseSeries} from 'sentry/components/charts/releaseSeries';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
-import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
-} from 'sentry/components/droppedData/useDroppedDataBand';
+} from 'sentry/components/droppedData/band/useDroppedDataBand';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {EChartClickHandler, ReactEchartsRef, Series} from 'sentry/types/echarts';

@@ -11,6 +11,7 @@ from django.db.models.functions import Cast
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
+from sentry_sdk import traces
 
 from sentry import features, onboarding_tasks, options, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
@@ -89,7 +90,6 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.display_name_filter import is_spam_display_name
-from sentry.utils.tracing import start_span
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.project import OrganizationProjectResponse
@@ -463,7 +463,9 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
         ]
         feature_set = set()
 
-        with start_span(op="features.check", name="check batch features"):
+        with traces.start_span(
+            name="check batch features", attributes={"sentry.op": "features.check"}
+        ):
             # Evaluate flags purely to populate the response — the user has not
             # actually encountered any experiments yet, so suppress the auto
             # exposure events the entity handler would otherwise log.
@@ -483,7 +485,9 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
                     # This feature_name was found via `batch_has`, don't check again using `has`
                     org_features.remove(feature_name)
 
-        with start_span(op="features.check", name="check individual features"):
+        with traces.start_span(
+            name="check individual features", attributes={"sentry.op": "features.check"}
+        ):
             # Remaining features should not be checked via the entity handler
             for feature_name in org_features:
                 if features.has(feature_name, obj, actor=user, skip_entity=True):

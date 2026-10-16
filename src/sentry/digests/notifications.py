@@ -6,13 +6,12 @@ from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple, TypeAlias
 
 from sentry import tsdb
-from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
+from sentry.digests.types import Notification, Record, RecordWithRuleObjects
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
 from sentry.notifications.utils.rules import get_notification_origins
-from sentry.services.eventstore.models import Event, GroupEvent
+from sentry.services.eventstore.models import GroupEvent
 from sentry.tsdb.base import TSDBModel
 
 logger = logging.getLogger("sentry.digests")
@@ -73,32 +72,22 @@ def unsplit_key(
 
 
 def event_to_record(
-    event: Event | GroupEvent,
-    rules: Sequence[Rule | NotificationOrigin],
+    event: GroupEvent,
+    origins: Sequence[NotificationOrigin],
     notification_uuid: str | None = None,
-    identifier_key: IdentifierKey = IdentifierKey.RULE,
 ) -> Record:
-    if not rules:
-        logger.warning("Creating record for %s that does not contain any rules!", event)
+    if not origins:
+        logger.warning(
+            "Creating record for %s that does not contain any notification origins!", event
+        )
 
-    # TODO(iamrajjoshi): The typing on this function is wrong, the type should be GroupEvent
-    # TODO(iamrajjoshi): Creating a PR to fix this
-    assert event.group is not None
-    rule_ids = []
-    for rule in rules:
-        origin = (
-            rule
-            if isinstance(rule, NotificationOrigin)
-            else NotificationOrigin.from_legacy_rule(rule)
-        )
-        rule_id = (
-            origin.legacy_rule_id if identifier_key == IdentifierKey.RULE else origin.workflow_id
-        )
-        assert rule_id is not None
-        rule_ids.append(rule_id)
+    workflow_ids = []
+    for origin in origins:
+        assert origin.workflow_id is not None
+        workflow_ids.append(origin.workflow_id)
     return Record(
         event.event_id,
-        Notification(event, rule_ids, notification_uuid, identifier_key),
+        Notification(event, workflow_ids, notification_uuid),
         event.datetime.timestamp(),
     )
 
@@ -198,35 +187,15 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     start = records[-1].datetime
     end = records[0].datetime
 
-    rule_ids: set[int] = set()
     workflow_ids: set[int] = set()
 
     for record in records:
-        identifier_key = getattr(record.value, "identifier_key", IdentifierKey.RULE)
-        # record.value is Notification, record.value.rules is Sequence[int]
-        ids_to_add = record.value.rules
-        if identifier_key == IdentifierKey.RULE:
-            rule_ids.update(ids_to_add)
-        elif identifier_key == IdentifierKey.WORKFLOW:
-            workflow_ids.update(ids_to_add)
+        workflow_ids.update(record.value.rules)
 
     groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
     group_ids = list(groups)
-    origins = get_notification_origins(project, workflow_ids=workflow_ids, legacy_rule_ids=rule_ids)
-    rules = {}
-    mapped_rule_ids = set()
-    for origin in origins:
-        if origin.workflow_id in workflow_ids:
-            rules[origin.workflow_id] = origin
-        if origin.legacy_rule_id in rule_ids:
-            rules[origin.legacy_rule_id] = origin
-            mapped_rule_ids.add(origin.legacy_rule_id)
-
-    for rule_id in rule_ids - mapped_rule_ids:
-        logger.error(
-            "digests.build_digest.rule_without_workflow",
-            extra={"rule_id": rule_id, "project_id": project.id},
-        )
+    origins = get_notification_origins(project, workflow_ids=workflow_ids)
+    rules = {origin.workflow_id: origin for origin in origins if origin.workflow_id is not None}
 
     for group_id, g in groups.items():
         assert g.project_id == project.id, "Group must belong to Project"

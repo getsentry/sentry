@@ -8,21 +8,19 @@ import {
 } from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
-import {slot} from '@sentry/scraps/slot';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
+import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SearchButton} from 'sentry/views/navigation/searchButton';
+import {TopBarSlots} from 'sentry/views/navigation/topBarSlot';
 import {useTopBarActionDisplay} from 'sentry/views/navigation/useTopBarActionDisplay';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {
-  getExplorerFeedbackOptions,
-  isSeerExplorerEnabled,
-} from 'sentry/views/seerExplorer/utils';
+import {getExplorerFeedbackOptions} from 'sentry/views/seerExplorer/utils';
 
 import {
   NAVIGATION_MOBILE_CONTENT_HEIGHT,
@@ -30,8 +28,6 @@ import {
   PRIMARY_HEADER_TITLE_MIN_WIDTH,
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
-
-const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as const);
 
 type TopBarSlotProps =
   | {
@@ -51,18 +47,18 @@ function TopBarSlot(props: TopBarSlotProps) {
     return (
       <Fragment>
         {props.items && props.items.length > 0 && (
-          <Slot name="breadcrumbs">
+          <TopBarSlots name="breadcrumbs">
             <BreadcrumbList items={props.items} />
-          </Slot>
+          </TopBarSlots>
         )}
-        <Slot name="title">
+        <TopBarSlots name="title">
           <BreadcrumbList.Title item={props.title} />
-        </Slot>
+        </TopBarSlots>
       </Fragment>
     );
   }
 
-  return <Slot name={props.name}>{props.children}</Slot>;
+  return <TopBarSlots name={props.name}>{props.children}</TopBarSlots>;
 }
 
 function TopBarContent() {
@@ -127,42 +123,42 @@ function TopBarContent() {
           flex={`1 1 ${PRIMARY_HEADER_TITLE_MIN_WIDTH}px`}
           containerType="inline-size"
         >
-          <Slot.Outlet name="breadcrumbs">
+          <TopBarSlots.Outlet name="breadcrumbs">
             {(props, hasConsumers) =>
               hasConsumers ? (
                 <Flex {...props} align="center" gap="sm" minWidth="0" flex="0 1 auto" />
               ) : null
             }
-          </Slot.Outlet>
+          </TopBarSlots.Outlet>
 
-          <Slot.Outlet name="title">
+          <TopBarSlots.Outlet name="title">
             {props => (
               <Flex {...props} align="center" gap="sm" minWidth="0" flexGrow={1} />
             )}
-          </Slot.Outlet>
+          </TopBarSlots.Outlet>
         </Flex>
 
         <Flex align="center" gap="sm">
-          <Slot.Outlet name="search">
+          <TopBarSlots.Outlet name="search">
             {(props, hasConsumers) =>
               hasConsumers ? <Flex {...props} align="center" gap="sm" /> : null
             }
-          </Slot.Outlet>
+          </TopBarSlots.Outlet>
 
-          <Slot.Outlet name="actions">
+          <TopBarSlots.Outlet name="actions">
             {(props, hasConsumers) =>
               hasConsumers ? <Flex {...props} align="center" gap="sm" /> : null
             }
-          </Slot.Outlet>
+          </TopBarSlots.Outlet>
 
           {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
           {isSearchInMobileRow ? null : <SearchButton />}
 
-          <Slot.Outlet name="feedback">
+          <TopBarSlots.Outlet name="feedback">
             {props => (
               <Flex {...props}>
                 {/* If no component registers a feedback button, show the default one */}
-                <Slot.Fallback>
+                <TopBarSlots.Fallback>
                   <FeedbackButton
                     aria-label={t('Give Feedback')}
                     feedbackOptions={feedbackOptions}
@@ -170,10 +166,10 @@ function TopBarContent() {
                   >
                     {null}
                   </FeedbackButton>
-                </Slot.Fallback>
+                </TopBarSlots.Fallback>
               </Flex>
             )}
-          </Slot.Outlet>
+          </TopBarSlots.Outlet>
         </Flex>
       </SizeProvider>
     </Flex>
@@ -182,9 +178,9 @@ function TopBarContent() {
 
 export const TopBar = Object.assign(TopBarContent, {
   Slot: Object.assign(TopBarSlot, {
-    Provider: Slot.Provider,
-    Outlet: Slot.Outlet,
-    Fallback: Slot.Fallback,
-    useSlotOutletRef: Slot.useSlotOutletRef,
+    Provider: TopBarSlots.Provider,
+    Outlet: TopBarSlots.Outlet,
+    Fallback: TopBarSlots.Fallback,
+    useSlotOutletRef: TopBarSlots.useSlotOutletRef,
   }),
 });

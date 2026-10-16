@@ -6,10 +6,11 @@ import {
 } from 'sentry-fixture/autofix';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
+import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
 import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
+import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
 import {
@@ -25,6 +26,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
 import type {LinkedPullRequest} from 'sentry/types/integrations';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import {IssuePreview} from './issuePreview';
 
@@ -86,9 +88,32 @@ describe('IssuePreview', () => {
   }
 
   beforeEach(() => {
+    localStorage.clear();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: DetailedProjectFixture(project),
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/1/committers/`,
+      body: {committers: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config: null, sourceUrl: null, integrations: []},
+    });
     clearIndicators();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+      method: 'POST',
+      body: {
+        headline: 'Test summary',
+        whatsWrong: null,
+        possibleCause: null,
+        trace: null,
+      },
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
       body: group,
@@ -141,6 +166,174 @@ describe('IssuePreview', () => {
       url: `/organizations/${organization.slug}/replay-count/`,
       body: {},
     });
+  });
+
+  it('shows the recommended stack trace when AI features are hidden', async () => {
+    const summaryRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+      method: 'POST',
+      body: {
+        headline: 'A cached summary',
+        whatsWrong: null,
+        possibleCause: null,
+        trace: null,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: EventStacktraceExceptionFixture(),
+    });
+
+    localStorage.setItem('issue-details-fold-section-collapse:exception', 'true');
+    render(<IssuePreview groupId={group.id} />, {
+      organization: OrganizationFixture({hideAiFeatures: true}),
+    });
+
+    const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+    expect(within(stackTrace).getByText('an error occurred')).toBeVisible();
+    expect(within(stackTrace).getByText('doThing')).toBeVisible();
+    expect(summaryRequest).not.toHaveBeenCalled();
+  });
+
+  describe('issue summary', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+        body: EventStacktraceExceptionFixture(),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+        body: AutofixSetupFixture({billing: {hasAutofixQuota: false}}),
+      });
+    });
+
+    it('keeps telemetry and actions available when summary generation fails', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Unable to generate summary'},
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization});
+
+      const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+      expect(within(stackTrace).getByText('doThing')).toBeVisible();
+      expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+    });
+
+    it('waits for the summary before showing the body while keeping actions available', async () => {
+      const response = Promise.withResolvers<void>();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+        method: 'POST',
+        asyncDelay: response.promise,
+        body: {
+          headline: 'Requests time out',
+          whatsWrong: null,
+          possibleCause: null,
+          trace: null,
+        },
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization});
+
+      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+      expect(screen.queryByRole('region', {name: 'Stack Trace'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('region', {name: 'Summary'})).not.toBeInTheDocument();
+
+      response.resolve();
+      const summary = await screen.findByRole('region', {name: 'Summary'});
+      expect(within(summary).getByText('Requests time out')).toBeVisible();
+      expect(screen.getByRole('region', {name: 'Stack Trace'})).toBeVisible();
+    });
+
+    it('renders and copies summary context without Seer quota', async () => {
+      const writeText = jest.fn((_text: string) => Promise.resolve());
+      Object.assign(navigator, {
+        clipboard: {writeText},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+        method: 'POST',
+        body: {
+          headline: 'Requests time out',
+          whatsWrong: 'The connection pool is exhausted.',
+          possibleCause: 'The retry handler opens connections outside the managed pool.',
+          trace: 'The request failed while acquiring a connection.',
+        },
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization});
+
+      const summary = await screen.findByRole('region', {name: 'Summary'});
+      expect(
+        within(summary).getByText(
+          'The connection pool is exhausted. The retry handler opens connections outside the managed pool.'
+        )
+      ).toBeVisible();
+      expect(
+        within(summary).getByText('The request failed while acquiring a connection.')
+      ).toBeVisible();
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as Markdown'}));
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '## Summary\n\nThe connection pool is exhausted. The retry handler opens connections outside the managed pool.'
+        )
+      );
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '## In the trace\n\nThe request failed while acquiring a connection.'
+        )
+      );
+      await userEvent.click(
+        screen.getByRole('button', {name: 'More issue context options'})
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Open in ChatGPT'})
+      );
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        `codex://new?prompt=${encodeURIComponent(
+          `Fix Sentry issue ${group.shortId}: ${group.permalink}\n\nUse the Sentry MCP to fetch the issue details.\n\nSummary: The connection pool is exhausted. The retry handler opens connections outside the managed pool.`
+        )}`
+      );
+    });
+  });
+
+  it('shows the recommended stack trace alongside Seer analysis', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: EventStacktraceExceptionFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/coding-agents/`,
+      body: {integrations: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+      body: [],
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    const rootCause = await screen.findByRole('region', {name: 'Root Cause'});
+    expect(
+      within(rootCause).getByText('The issue was caused by an unexpected value.')
+    ).toBeVisible();
+    const stackTrace = await screen.findByRole('region', {name: 'Stack Trace'});
+    expect(within(stackTrace).getByText('doThing')).toBeVisible();
+    await userEvent.click(
+      within(stackTrace).getByRole('button', {name: 'Display options'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
+    expect(within(stackTrace).getByText(/Error: an error occurred/)).toBeVisible();
   });
 
   it('shows Resolve and Archive without waiting for Seer setup when AI is hidden', async () => {
@@ -404,7 +597,7 @@ describe('IssuePreview', () => {
         });
       });
 
-      it('copies the issue and recommended crashed thread stacktrace', async () => {
+      it('copies the issue and the selected thread stacktrace', async () => {
         MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
           body: EventFixture({
@@ -413,7 +606,21 @@ describe('IssuePreview', () => {
                 type: EntryType.THREADS,
                 data: {
                   values: [
-                    {id: 1, name: 'worker', crashed: false, stacktrace: null},
+                    {
+                      id: 1,
+                      name: 'worker',
+                      crashed: false,
+                      stacktrace: {
+                        frames: [
+                          FrameFixture({
+                            function: 'processTask',
+                            filename: 'src/worker.ts',
+                            lineNo: 12,
+                            inApp: true,
+                          }),
+                        ],
+                      },
+                    },
                     {
                       id: 2,
                       name: 'main',
@@ -458,6 +665,19 @@ describe('IssuePreview', () => {
         expect(
           await screen.findByText('Copied issue to clipboard as Markdown')
         ).toBeInTheDocument();
+
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Thread #2: main'})
+        );
+        await userEvent.click(screen.getByRole('option', {name: /#1.*worker/}));
+        await userEvent.click(copyButton);
+
+        expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
+          expect.stringContaining('## Thread: worker')
+        );
+        expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
+          expect.stringContaining('processTask in src/worker.ts [Line 12]')
+        );
       });
 
       it('copies existing Seer analysis without quota using the client formatter', async () => {
@@ -585,6 +805,9 @@ describe('IssuePreview', () => {
           await screen.findByRole('button', {name: 'Copy as Markdown'})
         ).toBeDisabled();
         expect(eventRequest).not.toHaveBeenCalled();
+        expect(
+          screen.getByRole('button', {name: 'More issue context options'})
+        ).toBeDisabled();
       });
     });
   });
