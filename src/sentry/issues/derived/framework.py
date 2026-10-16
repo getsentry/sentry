@@ -87,37 +87,56 @@ IDENTITY_CODEC: Codec[Any] = Codec()
 
 
 class BoolCodec(Codec[bool]):
-    pass
+    def _validate(self, value: Any) -> bool:
+        if not isinstance(value, bool):
+            raise TypeError("Expected a boolean")
+        return value
 
 
 class IntCodec(Codec[int]):
-    pass
+    def _validate(self, value: Any) -> int:
+        if type(value) is not int:
+            raise TypeError("Expected an integer")
+        return value
 
 
 class IntListCodec(Codec[list[int]]):
-    pass
+    def _validate(self, value: Any) -> list[int]:
+        if not isinstance(value, list) or any(type(item) is not int for item in value):
+            raise TypeError("Expected a list of integers")
+        return value
 
 
 class EnumCodec[E: StrEnum](Codec[E]):
     def __init__(self, enum_cls: type[E]) -> None:
         self._enum_cls = enum_cls
 
+    def _validate(self, value: Any) -> E:
+        if not isinstance(value, self._enum_cls):
+            raise TypeError(f"Expected {self._enum_cls.__name__}")
+        return value
+
     def to_json(self, value: E) -> str:
-        return value.value
+        return self._validate(value).value
 
     def from_json(self, raw: Any) -> E:
         return self._enum_cls(raw)
 
     def to_column(self, value: E) -> str:
-        return value.value
+        return self._validate(value).value
 
     def from_column(self, raw: Any) -> E:
         return self._enum_cls(raw)
 
 
 class DateTimeCodec(Codec[datetime]):
+    def _validate(self, value: Any) -> datetime:
+        if not isinstance(value, datetime):
+            raise TypeError("Expected a datetime")
+        return value
+
     def to_json(self, value: datetime) -> str:
-        return value.isoformat()
+        return self._validate(value).isoformat()
 
     def from_json(self, raw: Any) -> datetime:
         return datetime.fromisoformat(raw)
