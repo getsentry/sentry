@@ -19,7 +19,6 @@ from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import (
-    SUPERUSER_READONLY_SCOPES,
     Superuser,
     get_superuser_access_expiry,
     get_superuser_scopes,
@@ -1011,8 +1010,6 @@ def _propagate_superuser_access(
     request: _HttpRequestWithUser,
     org_context: RpcUserOrganizationContext,
     su: Superuser | None,
-    *,
-    read_only: bool,
 ) -> None:
     # Members use their normal callback permissions and user flags; adding this
     # claim would instead force read-only access and a five-minute VC lifetime.
@@ -1027,7 +1024,7 @@ def _propagate_superuser_access(
         set_viewer_context_superuser(
             user_id=request.user.id,
             organization_id=org_context.organization.id,
-            superuser=SuperuserAccess(expires_at=expires_at, read_only=read_only),
+            superuser=SuperuserAccess(expires_at=expires_at),
         )
 
 
@@ -1088,15 +1085,12 @@ def from_request_org_and_scopes(
         )
 
         superuser_scopes = get_superuser_scopes(auth_state, rpc_user_org_context)
-        superuser_read_only = superuser_scopes <= SUPERUSER_READONLY_SCOPES
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
         if member and member.scopes:
             superuser_scopes = superuser_scopes.union(set(member.scopes))
 
-        _propagate_superuser_access(
-            request, rpc_user_org_context, su, read_only=superuser_read_only
-        )
+        _propagate_superuser_access(request, rpc_user_org_context, su)
 
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,

@@ -597,7 +597,7 @@ def get_superuser_access_expiry(su: Superuser, organization_id: int) -> int | No
 def resolve_superuser_access(
     superuser: SuperuserAccess, user: RpcUser, org_context: RpcUserOrganizationContext
 ) -> tuple[set[str], datetime] | None:
-    """Validate expiry and current user/customer policy."""
+    """Resolve read-only scopes after validating expiry and current user/customer policy."""
     if not user.is_active or not user.is_superuser or user.is_suspended:
         return None
     try:

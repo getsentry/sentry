@@ -105,21 +105,19 @@ class TestEncodeDecodeRoundtrip(TestCase):
 class TestEncodeViewerContext(TestCase):
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
     def test_superuser_jwt_lifetime_cannot_exceed_five_minutes(self):
-        vc = ViewerContext(
-            superuser=SuperuserAccess(expires_at=int(time.time()) + 600, read_only=True)
-        )
+        vc = ViewerContext(superuser=SuperuserAccess(expires_at=int(time.time()) + 600))
         claims = pyjwt.decode(encode_viewer_context(vc), options={"verify_signature": False})
         assert claims["exp"] - claims["iat"] == 300
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")
     def test_superuser_deadline_is_not_renewed_when_reencoded(self):
         deadline = int(time.time()) + 300
-        vc = ViewerContext(superuser=SuperuserAccess(expires_at=deadline, read_only=False))
+        vc = ViewerContext(superuser=SuperuserAccess(expires_at=deadline))
         token = encode_viewer_context(vc)
         with freeze_time(timezone.now() + timedelta(minutes=4)):
             propagated = encode_viewer_context(decode_viewer_context(token))
         claims = pyjwt.decode(propagated, options={"verify_signature": False})
-        assert claims["superuser"] == {"expires_at": deadline, "read_only": False}
+        assert claims["superuser"] == {"expires_at": deadline}
         assert claims["exp"] == deadline
 
     @override_settings(SEER_API_SHARED_SECRET="test-secret-key")

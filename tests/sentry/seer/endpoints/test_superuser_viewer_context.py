@@ -23,13 +23,13 @@ class SuperuserViewerContextTest(APITestCase):
         self.organization = self.create_organization()
         self.path = f"/api/0/organizations/{self.organization.slug}/"
 
-    def _viewer_header(self, expires_at: int | None, read_only: bool = True) -> str:
+    def _viewer_header(self, expires_at: int | None) -> str:
         return encode_viewer_context(
             ViewerContext(
                 organization_id=self.organization.id,
                 user_id=self.employee.id,
                 actor_type=ActorType.USER,
-                superuser=SuperuserAccess(expires_at=expires_at, read_only=read_only)
+                superuser=SuperuserAccess(expires_at=expires_at)
                 if expires_at is not None
                 else None,
             ),
@@ -63,12 +63,6 @@ class SuperuserViewerContextTest(APITestCase):
         assert response.status_code == 200, response.content
         return resolved_contexts[0]
 
-    def test_read_only_mode_is_propagated(self) -> None:
-        self._assert_approved_chat([], True)
-
-    def test_read_write_mode_is_propagated(self) -> None:
-        self._assert_approved_chat(["superuser.write"], False)
-
     def test_member_keeps_normal_callback_access(self) -> None:
         self._assert_member_callback_access("member", 403)
 
@@ -91,30 +85,26 @@ class SuperuserViewerContextTest(APITestCase):
         assert request.user.is_superuser
         assert request.user.is_staff
 
-    def _assert_approved_chat(self, permissions, read_only) -> None:
+    def test_read_only_browser_elevation_cannot_write(self) -> None:
+        self._assert_read_only_elevation([], 403)
+
+    def test_read_write_browser_elevation_cannot_write(self) -> None:
+        self._assert_read_only_elevation(["superuser.write"], 200)
+
+    def _assert_read_only_elevation(self, permissions, browser_write_status) -> None:
         for permission in permissions:
             self.add_user_permission(self.employee, permission)
         with self.options({"superuser.read-write.ga-rollout": True}):
             resolved = self._approved_chat_context()
+            assert self.client.put(self.path, {}, format="json").status_code == browser_write_status
         assert resolved.organization_id == self.organization.id
         assert resolved.superuser is not None
         assert type(resolved.superuser.expires_at) is int
-        assert resolved.superuser.read_only is read_only
         assert 0 < resolved.superuser.expires_at - timezone.now().timestamp() <= 300
-
-    def test_read_only_callback_is_org_bound(self) -> None:
-        self._assert_callback(True)
-
-    def test_read_write_metadata_does_not_allow_callback_writes(self) -> None:
-        self._assert_callback(False)
-
-    def _assert_callback(self, read_only) -> None:
-        resolved = self._approved_chat_context()
-        assert resolved.superuser is not None
-        expires_at = resolved.superuser.expires_at
+        assert resolved.superuser.dict() == {"expires_at": resolved.superuser.expires_at}
 
         client = APIClient()
-        client.credentials(HTTP_X_VIEWER_CONTEXT=self._viewer_header(expires_at, read_only))
+        client.credentials(HTTP_X_VIEWER_CONTEXT=encode_viewer_context(resolved, key=SECRET))
         assert client.get(self.path).status_code == 200
         assert client.put(self.path, {}, format="json").status_code == 403
         other = self.create_organization()

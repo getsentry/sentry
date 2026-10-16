@@ -1,13 +1,14 @@
 from datetime import timedelta
 
-from pydantic import BaseModel, StrictBool, StrictInt
+from pydantic import BaseModel, StrictInt
 
 SUPERUSER_ACCESS_TTL = timedelta(minutes=5)
 
 
 class SuperuserAccess(BaseModel):
+    """Read-only elevation for the ViewerContext's user and organization."""
+
     expires_at: StrictInt
-    read_only: StrictBool
 
     class Config:
         frozen = True

@@ -221,7 +221,7 @@ class TestResolveViewerContext:
         ctx = ViewerContext(
             organization_id=42,
             user_id=7,
-            superuser=SuperuserAccess(expires_at=1234567890, read_only=True),
+            superuser=SuperuserAccess(expires_at=1234567890),
         )
         with viewer_context_scope(ctx):
             result = _resolve_viewer_context(SeerViewerContext(organization_id=43, user_id=7))

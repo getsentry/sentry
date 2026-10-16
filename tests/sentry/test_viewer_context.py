@@ -30,9 +30,9 @@ class TestViewerContext:
     @pytest.mark.parametrize(
         "superuser",
         [
-            {"expires_at": True, "read_only": True},
-            {"expires_at": 123, "read_only": "false"},
-            {"expires_at": 123},
+            {"expires_at": True},
+            {"expires_at": "123"},
+            {},
             "invalid",
         ],
     )
@@ -44,7 +44,7 @@ class TestViewerContext:
         ctx = ViewerContext(
             user_id=42,
             organization_id=10,
-            superuser=SuperuserAccess(expires_at=1234567890, read_only=True),
+            superuser=SuperuserAccess(expires_at=1234567890),
         )
         assert ViewerContext.deserialize(ctx.serialize()) == ctx
         assert "1234567890" not in repr(ctx)
