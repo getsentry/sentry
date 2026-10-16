@@ -8,7 +8,7 @@ import {Backdrop} from '@sentry/scraps/backdrop';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useWindowSize} from 'sentry/utils/window/useWindowSize';
+import {useMedia} from 'sentry/utils/useMedia';
 import {
   type DashboardDetails,
   type DashboardFilters,
@@ -52,12 +52,11 @@ export function WidgetBuilderV2({
 }: WidgetBuilderV2Props) {
   const [queryConditionsValid, setQueryConditionsValid] = useState(true);
   const theme = useTheme();
-  const {innerWidth} = useWindowSize();
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
   const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
-  const isSmallScreen = innerWidth <= parseFloat(theme.breakpoints.sm);
-  const isMediumScreen = innerWidth <= parseFloat(theme.breakpoints.md);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  const isMediumScreen = useMedia(`(max-width: ${theme.breakpoints.md})`);
 
   const [translate, setTranslate] = useState(DEFAULT_WIDGET_DRAG_POSITIONING);
 

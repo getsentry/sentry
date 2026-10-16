@@ -1,7 +1,7 @@
 import {css, ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex, Container, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {useInvertedTheme} from '@sentry/scraps/theme';
 
 import {TextTourAction, TourAction} from 'sentry/components/tours/components';
@@ -28,10 +28,6 @@ export function StartTourModal({
   description,
 }: StartTourModalProps) {
   const invertedTheme = useInvertedTheme();
-  const horizontalInset = useResponsivePropValue<'2xl' | '3xl'>({
-    zero: '2xl',
-    '3xl': '3xl',
-  });
   return (
     <ThemeProvider theme={invertedTheme}>
       <Container
@@ -39,7 +35,11 @@ export function StartTourModal({
         background="primary"
         overflow="hidden"
         css={theme => css`
-          margin: -${theme.space['3xl']} -${theme.space[horizontalInset]};
+          margin: -${theme.space['3xl']} -${theme.space['2xl']};
+
+          @container (min-width: ${theme.container['3xl']}) {
+            margin-inline: -${theme.space['3xl']};
+          }
         `}
       >
         <ModalImage {...img} />

@@ -28,8 +28,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useWindowSize} from 'sentry/utils/window/useWindowSize';
 import {
   DisplayType,
   WidgetType,
@@ -195,8 +195,7 @@ function WidgetBuilderSlideoutInner({
   // always use time as the X-axis
   const showXAxisSelector = isCategoricalBarWidget;
 
-  const {innerWidth} = useWindowSize();
-  const isSmallScreen = innerWidth <= parseFloat(theme.breakpoints.sm);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   // Sort By controls the ordering of results.
   // - Table: Always show to control row ordering

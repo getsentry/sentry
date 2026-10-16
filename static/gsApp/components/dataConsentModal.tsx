@@ -9,7 +9,7 @@ import {useMutation} from '@tanstack/react-query';
 import missionControl from 'getsentry-images/missionControl.jpg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -24,10 +24,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 export default function DataConsentModal({closeModal}: ModalRenderProps) {
   const organization = useOrganization();
-  const horizontalInset = useResponsivePropValue<'2xl' | '3xl'>({
-    zero: '2xl',
-    '3xl': '3xl',
-  });
   const api = useApi();
 
   const {mutate: updateOrganizationOption, isPending} = useMutation<Organization>({
@@ -58,7 +54,11 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
         overflow="hidden"
         radius="md md 0 0"
         css={theme => css`
-          margin: -${theme.space['3xl']} -${theme.space[horizontalInset]} 0;
+          margin: -${theme.space['3xl']} -${theme.space['2xl']} 0;
+
+          @container (min-width: ${theme.container['3xl']}) {
+            margin-inline: -${theme.space['3xl']};
+          }
 
           background-image: url(${missionControl});
           background-size: cover;

@@ -4,7 +4,7 @@ import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -101,10 +101,6 @@ export function SpendLimitsEditModal({
   const [currentOnDemandBudget] = useState<OnDemandBudgets>(() => ({
     ...parseOnDemandBudgetsFromSubscription(subscription),
   }));
-  const horizontalInset = useResponsivePropValue<'2xl' | '3xl'>({
-    zero: '2xl',
-    '3xl': '3xl',
-  });
   const [onDemandBudget, setOnDemandBudget] = useState<OnDemandBudgets>(() =>
     parseOnDemandBudgetsFromSubscription(subscription)
   );
@@ -172,7 +168,11 @@ export function SpendLimitsEditModal({
     <Fragment>
       <Container
         css={theme => css`
-          margin: -${theme.space['2xl']} -${theme.space[horizontalInset]};
+          margin: -${theme.space['2xl']};
+
+          @container (min-width: ${theme.container['3xl']}) {
+            margin-inline: -${theme.space['3xl']};
+          }
         `}
       >
         <BudgetUpdateError error={updateError} plan={subscription.planDetails} />

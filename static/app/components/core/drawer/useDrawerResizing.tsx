@@ -1,8 +1,8 @@
 import {useCallback, useLayoutEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {useMedia} from 'sentry/utils/useMedia';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {useWindowSize} from 'sentry/utils/window/useWindowSize';
 
 const MIN_WIDTH_PERCENT = 20;
 const MAX_WIDTH_PERCENT = 85;
@@ -34,8 +34,7 @@ export function useDrawerResizing({
   enabled = true,
 }: UseDrawerResizingOptions): UseDrawerResizingResult {
   const theme = useTheme();
-  const {innerWidth} = useWindowSize();
-  const isSmallScreen = innerWidth <= parseFloat(theme.breakpoints.sm);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const resizeHandleRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const panelRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const rafIdRef = useRef<number | null>(null);

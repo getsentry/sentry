@@ -9,7 +9,7 @@ import {Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useWindowSize} from 'sentry/utils/window/useWindowSize';
+import {useMedia} from 'sentry/utils/useMedia';
 import {
   DisplayType,
   WidgetType,
@@ -113,8 +113,7 @@ export function WidgetPreviewContainer({
   }
   const location = useLocation();
   const theme = useTheme();
-  const {innerWidth} = useWindowSize();
-  const isSmallScreen = innerWidth <= parseFloat(theme.breakpoints.sm);
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   // if small screen and draggable, enable dragging
   const isDragEnabled = isSmallScreen && isDraggable;
 
