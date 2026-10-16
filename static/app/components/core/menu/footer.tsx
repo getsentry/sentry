@@ -1,8 +1,8 @@
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
-export type MenuFooterProps = Omit<FlexProps, 'children'> & {
+export interface MenuFooterProps extends FlexProps {
   children: React.ReactNode;
-};
+}
 
 export function MenuFooter({children, ...props}: MenuFooterProps) {
   return (
