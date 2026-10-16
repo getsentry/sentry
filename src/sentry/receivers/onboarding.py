@@ -173,7 +173,7 @@ def record_first_event(project, event, **kwargs):
             project_platform=project.platform,
             url=dict(event.tags).get("url", None),
             has_minified_stack_trace=has_event_minified_stack_trace(event),
-            sdk_name=get_path(event, "sdk", "name"),
+            sdk_name=get_path(event.data, "sdk", "name"),
         )
     )
 
