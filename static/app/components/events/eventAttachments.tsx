@@ -25,6 +25,7 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 import {EventAttachmentsCrashReportsNotice} from './eventAttachmentsCrashReportsNotice';
+import {EventAttachmentsQuotaExceededNotice} from './eventAttachmentsQuotaExceededNotice';
 
 const ATTACHMENT_COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: '1fr'},
@@ -77,6 +78,7 @@ function EventAttachmentsContent({
   const organization = useOrganization();
   const {
     data: attachments = [],
+    isPending,
     isError,
     refetch,
   } = useFetchEventAttachments({
@@ -89,6 +91,11 @@ function EventAttachmentsContent({
     {}
   );
   const crashFileStripped = event.metadata.stripped_crash;
+  // Wait for the stored attachments so we know whether some or all of them were dropped
+  const attachmentsQuotaExceeded =
+    !isPending &&
+    organization.features.includes('attachments-quota-exceeded-notice') &&
+    !!event.metadata.attachments_quota_exceeded;
 
   if (isError) {
     return (
@@ -101,7 +108,7 @@ function EventAttachmentsContent({
     );
   }
 
-  if (!attachments.length && !crashFileStripped) {
+  if (!attachments.length && !crashFileStripped && !attachmentsQuotaExceeded) {
     return null;
   }
 
@@ -126,6 +133,13 @@ function EventAttachmentsContent({
           orgSlug={organization.slug}
           projectSlug={project.slug}
           groupId={event.groupID!}
+        />
+      )}
+
+      {attachmentsQuotaExceeded && (
+        <EventAttachmentsQuotaExceededNotice
+          project={project}
+          variant={attachments.length > 0 ? 'event-some' : 'event-all'}
         />
       )}
 
