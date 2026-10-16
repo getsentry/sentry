@@ -14,7 +14,7 @@ import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
 import {Container} from '@sentry/scraps/layout';
-import {MenuSearchField} from '@sentry/scraps/menu/searchField';
+import {SearchInput} from '@sentry/scraps/menu/content';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -269,7 +269,7 @@ function DropdownMenuList({
           <StyledOverlay>
             {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
             {menuSearch && (
-              <MenuSearchField
+              <SearchInput
                 aria-label={menuSearch.placeholder ?? 'Search'}
                 placeholder={menuSearch.placeholder ?? 'Search…'}
                 value={menuSearch.value}

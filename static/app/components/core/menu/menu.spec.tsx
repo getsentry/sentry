@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {
   render,
   screen,
@@ -8,7 +10,53 @@ import {
 
 import {Menu} from '@sentry/scraps/menu';
 
+function CheckboxMenu() {
+  const [checked, setChecked] = useState(false);
+  return (
+    <Menu>
+      <Menu.Trigger>Choose options</Menu.Trigger>
+      <Menu.Content>
+        <Menu.List aria-label="Options">
+          <Menu.CheckboxItem
+            label="Include details"
+            checked={checked}
+            onChange={setChecked}
+          />
+        </Menu.List>
+      </Menu.Content>
+    </Menu>
+  );
+}
+
 describe('Menu', () => {
+  it('toggles checkbox items without closing the menu', async () => {
+    render(<CheckboxMenu />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Choose options'}));
+    const item = screen.getByRole('menuitemcheckbox', {name: 'Include details'});
+    expect(item).not.toBeChecked();
+
+    await userEvent.click(item);
+    expect(item).toBeChecked();
+    expect(screen.getByRole('menu', {name: 'Options'})).toBeInTheDocument();
+
+    item.focus();
+    await userEvent.keyboard(' ');
+    expect(item).not.toBeChecked();
+  });
+
+  it('requires search to be inside the header', () => {
+    expect(() =>
+      render(
+        <Menu defaultOpen>
+          <Menu.Content>
+            <Menu.Search aria-label="Search" />
+          </Menu.Content>
+        </Menu>
+      )
+    ).toThrow('Menu.Search must be used inside Menu.Header');
+  });
+
   it('opens from the keyboard, skips disabled items, and closes with Escape', async () => {
     render(
       <Menu>

@@ -12,7 +12,7 @@ import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {MenuSearchField} from '@sentry/scraps/menu/searchField';
+import {SearchInput} from '@sentry/scraps/menu/content';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
@@ -575,7 +575,7 @@ export function Control<Value extends SelectKey>({
                   </MenuHeader>
                 )}
                 {searchEnabled && (
-                  <MenuSearchField
+                  <SearchInput
                     ref={searchRef}
                     data-1p-ignore
                     placeholder={normalizedSearch?.placeholder ?? 'Search…'}
