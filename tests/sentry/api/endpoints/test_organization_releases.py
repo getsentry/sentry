@@ -1,9 +1,13 @@
+import re
 import unittest
 from datetime import UTC, datetime, timedelta
 from functools import cached_property
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
@@ -26,7 +30,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.release import Release
+from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
@@ -47,6 +51,8 @@ from sentry.testutils.cases import (
     SetRefsTestCase,
     TestCase,
 )
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
@@ -2685,6 +2691,184 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
 
     def test_invalid_date_range(self) -> None:
         self.get_error_response(self.org.slug, start="null", end="null", status_code=400)
+
+
+@with_feature("organizations:releases-exists-filters")
+class OrganizationReleasesStatsExistsFiltersTest(OrganizationReleasesStatsTest):
+    pass
+
+
+@with_feature("organizations:releases-exists-filters")
+class OrganizationReleaseListEnvironmentsExistsFiltersTest(OrganizationReleaseListEnvironmentsTest):
+    pass
+
+
+class OrganizationReleasesExistsFiltersParityTest(APITestCase):
+    """
+    The EXISTS-based project/environment filters must return exactly what the joined
+    DISTINCT queries return.
+    """
+
+    FEATURE = "organizations:releases-exists-filters"
+
+    def setUp(self) -> None:
+        self.login_as(user=self.user)
+        self.p1 = self.create_project(teams=[self.team], organization=self.organization)
+        self.p2 = self.create_project(teams=[self.team], organization=self.organization)
+        self.p3 = self.create_project(teams=[self.team], organization=self.organization)
+
+        self.prod = self.create_environment(project=self.p1, name="prod")
+        self.prod.add_project(self.p2)
+        self.prod.add_project(self.p3)
+        self.staging = self.create_environment(project=self.p1, name="staging")
+        self.staging.add_project(self.p2)
+
+        # A same-named environment in another org must never leak into results.
+        other_project = self.create_project(organization=self.create_organization())
+        other_prod = self.create_environment(project=other_project, name="prod")
+        self.create_release(
+            other_project, version="other@1.0.0", environments=[other_prod], date_added=before_now()
+        )
+
+        # Releases that span several projects and environments produce duplicate rows
+        # in the joined queries, which is what DISTINCT used to collapse.
+        layouts = [
+            ([self.p1, self.p2, self.p3], [self.prod, self.staging], True),
+            ([self.p1], [self.prod], False),
+            ([self.p2, self.p3], [self.prod], True),
+            ([self.p1, self.p2], [self.staging], False),
+            ([self.p3], [], False),
+            ([self.p1, self.p2], [self.prod, self.staging], True),
+            ([self.p2], [self.prod], False),
+            ([self.p1, self.p3], [], False),
+            ([self.p1, self.p2, self.p3], [self.prod], True),
+            ([self.p2], [self.staging], False),
+        ]
+        for i, (projects, environments, adopted) in enumerate(layouts):
+            release = self.create_release(
+                projects[0],
+                additional_projects=projects[1:],
+                version=f"app@1.{i % 3}.{i}+{100 - i}",
+                date_added=before_now(days=i * 3, minutes=i),
+                status=ReleaseStatus.ARCHIVED if i == 6 else ReleaseStatus.OPEN,
+            )
+            for project in projects:
+                for environment in environments:
+                    ReleaseProjectEnvironment.objects.create(
+                        project=project,
+                        release=release,
+                        environment=environment,
+                        adopted=before_now(days=i) if adopted else None,
+                    )
+
+    def _get(self, url_name: str, params: dict[str, Any], enabled: bool):
+        url = reverse(url_name, kwargs={"organization_id_or_slug": self.organization.slug})
+        with self.feature({self.FEATURE: enabled}):
+            response = self.client.get(url, params)
+        assert response.status_code == 200, response.content
+        return response
+
+    def _assert_parity(self, url_name: str, params: dict[str, Any]) -> None:
+        old = self._get(url_name, params, enabled=False)
+        new = self._get(url_name, params, enabled=True)
+        assert new.data == old.data, params
+        assert new.get("Link") == old.get("Link"), params
+
+    def _main_release_query(self, url_name: str, params: dict[str, Any], enabled: bool) -> str:
+        with CaptureQueriesContext(connection) as ctx:
+            self._get(url_name, params, enabled=enabled)
+        [sql] = [
+            q["sql"]
+            for q in ctx.captured_queries
+            if q["sql"].startswith("SELECT")
+            and 'FROM "sentry_release"' in q["sql"]
+            and '"sentry_release"."date_added" AS "date"' in q["sql"]
+        ]
+        return sql
+
+    def test_list_parity(self) -> None:
+        cases: list[dict[str, Any]] = [
+            {},
+            {"environment": "prod"},
+            {"environment": "staging"},
+            {"environment": ["prod", "staging"]},
+            {"project": self.p1.id},
+            {"project": [self.p2.id, self.p3.id], "environment": "prod"},
+            {"project": self.p3.id, "environment": "staging"},
+            {"statsPeriod": "14d"},
+            {"statsPeriod": "14d", "environment": "prod"},
+            {"status": "archived"},
+            {"sort": "build"},
+            {"sort": "build", "environment": "prod"},
+            {"sort": "semver"},
+            {"sort": "semver", "environment": ["prod", "staging"]},
+            {"sort": "adoption", "environment": "prod"},
+            {"flatten": "1", "environment": "prod"},
+            {"query": "1.1"},
+            {"query": "environment:staging"},
+            {"query": "environment:staging", "environment": "prod"},
+            {"query": "release.stage:adopted", "environment": "prod"},
+            {"query": "release.version:app@1.0.*"},
+            {"query": "release.build:>95"},
+            {"adoptionStages": "1", "environment": "prod"},
+            {"summaryStatsPeriod": "24h", "environment": "prod"},
+        ]
+        for params in cases:
+            self._assert_parity("sentry-api-0-organization-releases", params)
+
+    def test_list_pagination_parity(self) -> None:
+        cases: list[dict[str, Any]] = [
+            {},
+            {"environment": ["prod", "staging"]},
+            {"sort": "semver"},
+        ]
+        for params in cases:
+            cursor = None
+            pages = 0
+            while True:
+                page_params: dict[str, Any] = {**params, "per_page": 2}
+                if cursor:
+                    page_params["cursor"] = cursor
+                self._assert_parity("sentry-api-0-organization-releases", page_params)
+                link = self._get("sentry-api-0-organization-releases", page_params, enabled=True)[
+                    "Link"
+                ]
+                match = re.search(r'rel="next"; results="true"; cursor="([^"]+)"', link)
+                pages += 1
+                if not match:
+                    break
+                cursor = match.group(1)
+            assert pages > 1, params
+
+    def test_stats_parity(self) -> None:
+        cases: list[dict[str, Any]] = [
+            {},
+            {"environment": "prod"},
+            {"environment": ["prod", "staging"]},
+            {"project": self.p2.id, "environment": "staging"},
+            {"statsPeriod": "14d"},
+            {"statsPeriod": "14d", "environment": "prod"},
+            {"query": "1.1"},
+            {"query": "environment:staging"},
+            {"per_page": 3},
+        ]
+        for params in cases:
+            self._assert_parity("sentry-api-0-organization-releases-stats", params)
+
+    def test_queries_use_exists_without_distinct(self) -> None:
+        params = {"environment": ["prod", "staging"]}
+        for url_name in (
+            "sentry-api-0-organization-releases",
+            "sentry-api-0-organization-releases-stats",
+        ):
+            old_sql = self._main_release_query(url_name, params, enabled=False)
+            assert "SELECT DISTINCT" in old_sql
+            assert "EXISTS" not in old_sql
+
+            new_sql = self._main_release_query(url_name, params, enabled=True)
+            assert "SELECT DISTINCT" not in new_sql
+            assert "JOIN" not in new_sql
+            assert new_sql.count("EXISTS") == 2
 
 
 class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
