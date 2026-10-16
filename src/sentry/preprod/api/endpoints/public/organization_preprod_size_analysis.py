@@ -253,7 +253,7 @@ class OrganizationPreprodPublicSizeAnalysisEndpoint(OrganizationEndpoint):
             cast(
                 list[AppComponentResponseDict],
                 [
-                    convert_dict_key_case(c.dict(exclude={"model_config"}), snake_to_camel_case)
+                    convert_dict_key_case(c.dict(), snake_to_camel_case)
                     | {
                         "componentType": PreprodArtifactSizeMetrics.MetricsArtifactType(
                             c.component_type
