@@ -394,7 +394,7 @@ def _chunk_load_error_filter() -> RuleCondition:
 def _custom_error_filter() -> RuleCondition | None:
     values = settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES
     # The filter is enabled by default for all projects, but is a no-op unless custom
-    # values are configured. Return None so it is omitted from the Relay config entirely.
+    # values are configured. Omit the global condition until there are values to match.
     if not values:
         return None
     return _error_message_condition(values, match_logentry=True)
@@ -429,6 +429,21 @@ ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition | None]]]
     ("react-hydration-errors", _hydration_error_filter),
     ("custom-error", _custom_error_filter),
 ]
+
+
+def get_global_generic_filters() -> GenericFiltersConfig:
+    """Build shared generic filter definitions for Relay's global config.
+
+    These definitions are disabled globally. Projects opt in with a lightweight
+    entry containing the filter ID and their existing project-level toggle.
+    """
+    filters: list[GenericFilter] = []
+    for filter_id, filter_fn in ACTIVE_GENERIC_FILTERS:
+        condition = filter_fn()
+        if condition is not None:
+            filters.append({"id": filter_id, "isEnabled": False, "condition": condition})
+
+    return {"version": GENERIC_FILTERS_VERSION, "filters": filters}
 
 
 def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:
@@ -508,16 +523,17 @@ def get_generic_filters(
         if filter_features.custom_inbound_filters_v2:
             generic_filters += get_custom_inbound_filter_generic_filters(project)
 
-    for generic_filter_id, generic_filter_fn in ACTIVE_GENERIC_FILTERS:
+    # These filters are defined once in global config. Keep the project toggle
+    # independent from the current condition so global conditions can change
+    # without rebuilding each project's cached config.
+    for generic_filter_id, _ in ACTIVE_GENERIC_FILTERS:
         # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
         # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
         # why the value true is determined by either `1` or `True`.
         if project.get_option(f"filters:{generic_filter_id}") not in ("1", True):
             continue
 
-        condition = generic_filter_fn()
-        if condition is not None:
-            generic_filters.append(_generic_filter(generic_filter_id, condition))
+        generic_filters.append({"id": generic_filter_id, "isEnabled": True, "condition": None})
 
     if not generic_filters:
         return None

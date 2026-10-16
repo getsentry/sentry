@@ -63,7 +63,8 @@ interface OpenOnDemandBudgetEditModalProps {
 export async function openOnDemandBudgetEditModal(
   options: OpenOnDemandBudgetEditModalProps
 ) {
-  const {default: Modal} = await import('getsentry/views/spendLimits/editModal');
+  const {SpendLimitsEditModal: Modal} =
+    await import('getsentry/views/spendLimits/editModal');
   const {theme, organization, subscription} = options;
   const hasBillingPerms = hasBillingAccess(organization);
   const canUsePayg = supportsPayg(subscription);

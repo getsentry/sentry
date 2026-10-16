@@ -11,6 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.monitors.models import MonitorCheckIn
 from sentry.monitors.serializers import MonitorCheckInSerializer
+from sentry.monitors.utils import get_monitor_environment_ids
 
 
 class MonitorCheckInMixin(BaseEndpointMixin):
@@ -22,18 +23,12 @@ class MonitorCheckInMixin(BaseEndpointMixin):
         if start is None or end is None:
             raise ParseError(detail="Invalid date range")
 
+        environments = get_environments(request, project.organization)
         queryset = MonitorCheckIn.objects.filter(
-            monitor_id=monitor.id,
+            monitor_environment_id__in=get_monitor_environment_ids(monitor, environments),
             date_added__gte=start,
             date_added__lte=end,
         )
-
-        environments = get_environments(request, project.organization)
-
-        if environments:
-            queryset = queryset.filter(
-                monitor_environment__environment_id__in=[e.id for e in environments]
-            )
 
         expand: list[str] = request.GET.getlist("expand", [])
 

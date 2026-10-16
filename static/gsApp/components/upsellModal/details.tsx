@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useEffect, useEffectEvent, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 import incidentsPerformanceImg from 'getsentry-images/features/alert-builder.svg';
@@ -17,14 +17,14 @@ import {Grid} from '@sentry/scraps/layout';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
+import {FeatureList} from 'getsentry/components/upsellModal/featureList';
+import {Footer} from 'getsentry/components/upsellModal/footer';
+import {HighlightedFeature} from 'getsentry/components/upsellModal/highlightedFeature';
+import type {Feature} from 'getsentry/components/upsellModal/types';
+import {useFeatureRotation} from 'getsentry/components/upsellModal/useFeatureRotation';
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength, hasPerformance, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-
-import {FeatureList} from './featureList';
-import {Footer} from './footer';
-import {HighlightedFeature} from './highlightedFeature';
-import type {Feature} from './types';
 
 /**
  * When the details are first mounted, until the user clicks one we will rotate
@@ -47,15 +47,6 @@ type Props = {
    */
   source: string;
   subscription: Subscription;
-};
-
-type State = {
-  /**
-   * When the user clicks a feature we will stop auto-rotating the list of
-   * features on a timer.
-   */
-  hasClickedFeature: boolean;
-  highlightedFeatureId: string | null;
 };
 
 /**
@@ -192,169 +183,80 @@ const PERFORMANCE_FEATURES = selectFeatures([
   'user-misery',
 ]).filter(Boolean);
 
-export class Details extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-
-    this.features = hasPerformance(props.subscription.planDetails)
-      ? this.shouldShowTeamFeatures
-        ? [...BUSINESS_FEATURES, ...TEAM_FEATURES]
-        : BUSINESS_FEATURES
-      : PERFORMANCE_FEATURES;
-
-    const highlightedFeatureId = this.features.some(f => f.id === props.source)
-      ? props.source
-      : null;
-
-    this.state = {highlightedFeatureId, hasClickedFeature: false};
+function getFeatures(subscription: Subscription): Feature[] {
+  if (!hasPerformance(subscription.planDetails)) {
+    return PERFORMANCE_FEATURES;
   }
+  return subscription.isFree || subscription.onTrialPlan
+    ? [...BUSINESS_FEATURES, ...TEAM_FEATURES]
+    : BUSINESS_FEATURES;
+}
 
-  componentDidMount() {
-    const {organization, source, subscription} = this.props;
-    trackGetsentryAnalytics('business_landing.viewed', {
-      organization,
-      subscription,
-      source,
-      initial_feature: this.state.highlightedFeatureId || '',
-      has_permissions: organization.access.includes('org:billing'),
-    });
+function getDefaultMessaging(subscription: Subscription, organization: Organization) {
+  const sentences = isTrial(subscription)
+    ? // If the subscription already has performance
+      hasPerformance(subscription.planDetails)
+      ? [
+          t(
+            `With your trial you have access to Sentry’s Power Features, which
+             offer a macro-level perspective of error trends and application
+             health, while also allowing you to drill down into a single
+             issue or event with Dashboards and Discover-powered queries.`
+          ),
+          t(
+            `We hope you’re enjoying these new features to create complex
+             queries against event data, see all issues across projects, and
+             view dashboards for a comprehensive and holistic view.`
+          ),
+        ]
+      : [
+          t(
+            `With your trial you have access to Sentry’s Performance Monitoring
+             features which give you deeper visibility into your frontend page
+             load times and database queries that are critical toward
+             delivering fast customer experiences.`
+          ),
+          t(
+            `With just five lines of code, you’re now able to highlight your
+             key transactions and set metric alerts to detect latency spikes.
+             You can also dive in and query across multiple projects for a
+             comprehensive view into your application.`
+          ),
+        ]
+    : hasPerformance(subscription.planDetails)
+      ? [
+          t(
+            `We added a bunch of new features that made Sentry a whole lot better.
+           If we do say so ourselves.`
+          ),
+          t(
+            `To get more out of Sentry and life in general, switch over to our new and
+           improved Business Plan. You'll get transactions, attachments, access to
+           Performance, and features that won't be released on our legacy plans.`
+          ),
+          t(
+            `Confusing, we know. Basically, your Sentry organization is perfect just the way it is,
+           but upgrade now if you want it to be even better. `
+          ),
+        ]
+      : [
+          t(
+            `We added a bunch of new features that made Sentry a whole lot better.
+           If we do say so ourselves.`
+          ),
+          t(
+            `To get more out of Sentry and life in general, switch over to our new and
+           improved Performance Plans. You'll get transactions, attachments, access to
+           Performance, and features that won't be released on our legacy plans.`
+          ),
+          t(
+            `Confusing, we know. Basically, your Sentry organization is perfect just the way it is,
+           but upgrade now if you want it to be even better. `
+          ),
+        ];
 
-    this.features.forEach(feat => {
-      const img = new Image();
-      img.src = feat.image;
-    });
-
-    const firstAutoRotate = () => {
-      this.showNextFeature();
-      this.autoRotateInterval = window.setInterval(this.showNextFeature, ROTATE_INTERVAL);
-    };
-    this.autoRotateInterval = window.setTimeout(firstAutoRotate, FIRST_ROTATE_TIMEOUT);
-  }
-
-  componentWillUnmount() {
-    const {organization, source, subscription} = this.props;
-    trackGetsentryAnalytics('business_landing.closed', {
-      organization,
-      subscription,
-      source,
-      closing_feature: this.state.highlightedFeatureId ?? '',
-    });
-    this.stopAutoRotate();
-  }
-
-  features: Feature[] = [];
-  autoRotateInterval: number | null = null;
-
-  get shouldShowTeamFeatures() {
-    const {subscription} = this.props;
-    return subscription.isFree || subscription.onTrialPlan;
-  }
-
-  get highlightedFeature() {
-    return this.features.find(feat => feat.id === this.state.highlightedFeatureId);
-  }
-
-  stopAutoRotate() {
-    if (this.autoRotateInterval) {
-      clearInterval(this.autoRotateInterval);
-    }
-  }
-
-  showNextFeature = () =>
-    this.setState(state => {
-      const featureIds = this.features.map(f => f.id);
-
-      const nextFeatureIndex = state.highlightedFeatureId
-        ? featureIds.indexOf(state.highlightedFeatureId) + 1
-        : 0;
-
-      return {highlightedFeatureId: featureIds[nextFeatureIndex % this.features.length]!};
-    });
-
-  selectFeature = (feature: Feature) => {
-    this.stopAutoRotate();
-    this.setState(state => ({
-      highlightedFeatureId: feature.id === state.highlightedFeatureId ? null : feature.id,
-      hasClickedFeature: true,
-    }));
-    const {organization, source, subscription} = this.props;
-    trackGetsentryAnalytics('business_landing.clicked', {
-      organization,
-      subscription,
-      source,
-      type: `selected ${feature.id}`,
-    });
-  };
-
-  get sentences() {
-    const {subscription} = this.props;
-
-    return isTrial(subscription)
-      ? // If the subscription already has performance
-        hasPerformance(subscription.planDetails)
-        ? [
-            t(
-              `With your trial you have access to Sentry’s Power Features, which
-               offer a macro-level perspective of error trends and application
-               health, while also allowing you to drill down into a single
-               issue or event with Dashboards and Discover-powered queries.`
-            ),
-            t(
-              `We hope you’re enjoying these new features to create complex
-               queries against event data, see all issues across projects, and
-               view dashboards for a comprehensive and holistic view.`
-            ),
-          ]
-        : [
-            t(
-              `With your trial you have access to Sentry’s Performance Monitoring
-               features which give you deeper visibility into your frontend page
-               load times and database queries that are critical toward
-               delivering fast customer experiences.`
-            ),
-            t(
-              `With just five lines of code, you’re now able to highlight your
-               key transactions and set metric alerts to detect latency spikes.
-               You can also dive in and query across multiple projects for a
-               comprehensive view into your application.`
-            ),
-          ]
-      : hasPerformance(subscription.planDetails)
-        ? [
-            t(
-              `We added a bunch of new features that made Sentry a whole lot better.
-             If we do say so ourselves.`
-            ),
-            t(
-              `To get more out of Sentry and life in general, switch over to our new and
-             improved Business Plan. You'll get transactions, attachments, access to
-             Performance, and features that won't be released on our legacy plans.`
-            ),
-            t(
-              `Confusing, we know. Basically, your Sentry organization is perfect just the way it is,
-             but upgrade now if you want it to be even better. `
-            ),
-          ]
-        : [
-            t(
-              `We added a bunch of new features that made Sentry a whole lot better.
-             If we do say so ourselves.`
-            ),
-            t(
-              `To get more out of Sentry and life in general, switch over to our new and
-             improved Performance Plans. You'll get transactions, attachments, access to
-             Performance, and features that won't be released on our legacy plans.`
-            ),
-            t(
-              `Confusing, we know. Basically, your Sentry organization is perfect just the way it is,
-             but upgrade now if you want it to be even better. `
-            ),
-          ];
-  }
-
-  get cta() {
-    const {subscription, organization} = this.props;
-    return subscription.canTrial && !isTrial(subscription)
+  const cta =
+    subscription.canTrial && !isTrial(subscription)
       ? t(
           'Enable all power features by starting your %s day trial',
           getTrialLength(organization)
@@ -365,62 +267,130 @@ export class Details extends Component<Props, State> {
             "You're currently on one of our legacy plans. Upgrade to our newer [strong:Performance Plans].",
             {strong: <strong />}
           );
-  }
 
-  renderMessage() {
-    return (
-      <div data-test-id="default-messaging">
-        {this.sentences.map((m, i) => (
-          <p key={i}>{m}</p>
-        ))}
-        <p>{this.cta}</p>
-      </div>
-    );
-  }
+  return {sentences, cta};
+}
 
-  render() {
-    const {subscription, organization} = this.props;
-    const highlightedFeature = this.highlightedFeature;
-    const orgSub = {organization, subscription};
+function usePreloadImages(urls: string[]) {
+  useEffect(() => {
+    for (const url of urls) {
+      const img = new Image();
+      img.src = url;
+    }
+  }, [urls]);
+}
 
-    return (
-      <Fragment>
-        <Grid
-          columns={{zero: '1fr', xl: 'auto 200px'}}
-          gap={{xl: '3xl'}}
-          marginBottom="xl"
-        >
-          <AnimatePresence initial={false}>
-            <FeatureContent
-              key={highlightedFeature ? highlightedFeature.id : 'intro'}
-              {...featureContentAnimation}
-            >
-              {highlightedFeature ? (
-                <HighlightedFeature feature={highlightedFeature} {...orgSub} />
-              ) : (
-                this.renderMessage()
-              )}
-            </FeatureContent>
-          </AnimatePresence>
-          <FeatureList
-            features={this.features}
-            selected={highlightedFeature}
-            onClick={this.selectFeature}
-            withCountdown={this.state.hasClickedFeature ? undefined : ROTATE_INTERVAL}
-            shouldShowTeamFeatures={this.shouldShowTeamFeatures}
-            shouldShowPerformanceFeatures={!hasPerformance(subscription.planDetails)}
-            {...orgSub}
-          />
-        </Grid>
-        <Footer
-          subscription={subscription}
-          organization={organization}
-          onCloseModal={this.props.onCloseModal}
-          source={this.props.source}
+interface LandingAnalyticsOptions {
+  highlightedFeatureId: string | null;
+  organization: Organization;
+  source: string;
+  subscription: Subscription;
+}
+
+/**
+ * Tracks when the landing is viewed and closed. The closed event reports
+ * whichever feature is highlighted at unmount, not the one at mount.
+ */
+export function useUpsellLandingAnalytics({
+  highlightedFeatureId,
+  organization,
+  source,
+  subscription,
+}: LandingAnalyticsOptions) {
+  const trackViewed = useEffectEvent(() => {
+    trackGetsentryAnalytics('business_landing.viewed', {
+      organization,
+      subscription,
+      source,
+      initial_feature: highlightedFeatureId || '',
+      has_permissions: organization.access.includes('org:billing'),
+    });
+  });
+  const trackClosed = useEffectEvent(() => {
+    trackGetsentryAnalytics('business_landing.closed', {
+      organization,
+      subscription,
+      source,
+      closing_feature: highlightedFeatureId ?? '',
+    });
+  });
+
+  useEffect(() => {
+    trackViewed();
+    return () => trackClosed();
+  }, []);
+}
+
+export function Details({onCloseModal, organization, source, subscription}: Props) {
+  // Frozen at mount so the rotation can't drift from the rendered list if the
+  // subscription updates while the modal is open.
+  const [features] = useState(() => getFeatures(subscription));
+  const imageUrls = useMemo(() => features.map(f => f.image), [features]);
+
+  const {highlightedFeatureId, hasClickedFeature, selectFeature} = useFeatureRotation({
+    features,
+    initialFeatureId: features.some(f => f.id === source) ? source : null,
+    firstDelayMs: FIRST_ROTATE_TIMEOUT,
+    intervalMs: ROTATE_INTERVAL,
+  });
+
+  useUpsellLandingAnalytics({highlightedFeatureId, organization, source, subscription});
+  usePreloadImages(imageUrls);
+
+  const handleFeatureClick = (feature: Feature) => {
+    selectFeature(feature);
+    trackGetsentryAnalytics('business_landing.clicked', {
+      organization,
+      subscription,
+      source,
+      type: `selected ${feature.id}`,
+    });
+  };
+
+  const highlightedFeature = features.find(feat => feat.id === highlightedFeatureId);
+  const {sentences, cta} = getDefaultMessaging(subscription, organization);
+
+  return (
+    <Fragment>
+      <Grid columns={{zero: '1fr', xl: 'auto 200px'}} gap={{xl: '3xl'}} marginBottom="xl">
+        <AnimatePresence initial={false}>
+          <FeatureContent
+            key={highlightedFeature ? highlightedFeature.id : 'intro'}
+            {...featureContentAnimation}
+          >
+            {highlightedFeature ? (
+              <HighlightedFeature
+                feature={highlightedFeature}
+                organization={organization}
+                subscription={subscription}
+              />
+            ) : (
+              <div data-test-id="default-messaging">
+                {sentences.map((m, i) => (
+                  <p key={i}>{m}</p>
+                ))}
+                <p>{cta}</p>
+              </div>
+            )}
+          </FeatureContent>
+        </AnimatePresence>
+        <FeatureList
+          features={features}
+          selected={highlightedFeature}
+          onClick={handleFeatureClick}
+          withCountdown={hasClickedFeature ? undefined : ROTATE_INTERVAL}
+          shouldShowTeamFeatures={subscription.isFree || subscription.onTrialPlan}
+          shouldShowPerformanceFeatures={!hasPerformance(subscription.planDetails)}
         />
-      </Fragment>
-    );
-  }
+      </Grid>
+      <Footer
+        subscription={subscription}
+        organization={organization}
+        onCloseModal={onCloseModal}
+        source={source}
+      />
+    </Fragment>
+  );
 }
 
 const FeatureContent = styled(motion.div)`

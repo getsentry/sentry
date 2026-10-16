@@ -13,7 +13,6 @@ from sentry.incidents.endpoints.utils import translate_data_condition_type
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.migration_helpers.utils import get_resolve_thresholds
 from sentry.workflow_engine.models import (
     Action,
     AlertRuleDetector,
@@ -27,6 +26,17 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+
+
+def get_resolve_thresholds(
+    condition_groups: Sequence[DataConditionGroup],
+) -> dict[int, float | None]:
+    """Batch-fetch resolution thresholds for multiple condition groups."""
+    resolve_conditions = DataCondition.objects.filter(
+        condition_result=DetectorPriorityLevel.OK,
+        condition_group__in=condition_groups,
+    )
+    return {dc.condition_group_id: dc.comparison for dc in resolve_conditions}
 
 
 class WorkflowEngineDataConditionSerializer(Serializer[dict[str, Any]]):
