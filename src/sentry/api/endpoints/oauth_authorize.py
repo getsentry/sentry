@@ -6,6 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import analytics
@@ -14,12 +15,15 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.helpers.oauth_authorize.approval import approve_authorization
 from sentry.api.helpers.oauth_authorize.request import build_authorization_request
 from sentry.api.helpers.oauth_authorize.response import (
     InvalidAuthorizationRequest,
     OAuthRedirectError,
+    authorization_error,
 )
 from sentry.api.helpers.oauth_authorize.transactions import (
+    consume_authorization_transaction,
     prune_authorization_transactions,
     save_authorization_transaction,
 )
@@ -37,6 +41,10 @@ from sentry.api.serializers.models.organization import (
 )
 from sentry.api.serializers.rest_framework.oauth_authorize import (
     OAuthAuthorizeQuerySerializer,
+)
+from sentry.api.serializers.rest_framework.oauth_consent import (
+    ConsentDecision,
+    ConsentDecisionSerializer,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
@@ -79,12 +87,22 @@ class OAuthAuthorizeConsentSerializer(Serializer[OAuthAuthorizeConsentResponse])
         }
 
 
+class OAuthAuthorizeDecision(ConsentDecision):
+    transaction_id: str
+
+
+class OAuthAuthorizeDecisionSerializer(ConsentDecisionSerializer[OAuthAuthorizeDecision]):
+    transaction_id = serializers.CharField(
+        max_length=128, help_text="The session-bound transaction returned by consent preparation."
+    )
+
+
 @extend_schema(tags=["Users"])
 @control_silo_endpoint
 @method_decorator(never_cache, name="dispatch")
 class OAuthAuthorizeEndpoint(Endpoint):
     owner = ApiOwner.FOUNDATIONS
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (SentryIsAuthenticated,)
     csrf_protect = True
@@ -148,3 +166,39 @@ class OAuthAuthorizeEndpoint(Endpoint):
             )
         )
         return Response(serialize(consent, serializer=OAuthAuthorizeConsentSerializer()))
+
+    @extend_schema(
+        operation_id="Submit OAuth authorization consent",
+        request=OAuthAuthorizeDecisionSerializer,
+        responses={200: OAuthRedirectSerializer},
+    )
+    def post(self, request: AuthenticatedHttpRequest) -> Response:
+        """Consume prepared consent and return the application's approval or denial callback."""
+        serializer = OAuthAuthorizeDecisionSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        decision = serializer.validated_data
+        authorization = consume_authorization_transaction(
+            request.session, decision["transaction_id"], request.user.id
+        )
+        analytics.record(
+            OAuthConsentEvent(
+                user_id=request.user.id,
+                application_id=authorization.application.id,
+                response_type=authorization.response_type,
+                outcome="approved" if decision["op"] == "approve" else "denied",
+            )
+        )
+        if decision["op"] == "deny":
+            raise authorization_error(
+                response_type=authorization.response_type,
+                redirect_uri=authorization.redirect_uri,
+                name="access_denied",
+                state=authorization.state,
+                client_id=authorization.application.client_id,
+            )
+
+        return self.redirect_response(
+            approve_authorization(
+                authorization, request.user.id, decision["selected_organization_id"]
+            )
+        )
