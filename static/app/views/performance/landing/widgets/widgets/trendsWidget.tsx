@@ -109,7 +109,6 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       ),
       transform: transformTrendsDiscover,
     }),
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.chartSetting, derivedTrendChangeType]
   );

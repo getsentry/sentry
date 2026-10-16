@@ -833,7 +833,6 @@ export function Cart({
     },
     // NOTE: We add `billingDetails` to the dependencies since it affects tax calculations
     // on the preview endpoint
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       api,

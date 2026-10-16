@@ -202,7 +202,6 @@ describe('AssertionFormError', () => {
         if ('error' in initial) {
           previewCheckResult?.setPreviewCheckError(initial.error ?? null);
         }
-        // oxlint-disable-next-line react/rule-suppression
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, []);
       return null;

@@ -171,7 +171,6 @@ export function OnboardingLayout({
 
   useEffect(() => {
     onPageLoad?.();
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

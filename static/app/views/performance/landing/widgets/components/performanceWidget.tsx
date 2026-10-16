@@ -43,7 +43,6 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allWidgetData, setWidgetData]
   );
@@ -55,7 +54,6 @@ export function GenericPerformanceWidget<T extends WidgetDataConstraint>(
       widgetDataRef.current = newWidgetData;
       setWidgetData({[props.chartSetting]: newWidgetData});
     },
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [allWidgetData, setWidgetData]
   );

@@ -331,7 +331,6 @@ export function LogsInfiniteTable({
       terms.push(localOnlyItemFilters.filterText);
     }
     return terms;
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchString, localOnlyItemFilters?.filterText]);
 

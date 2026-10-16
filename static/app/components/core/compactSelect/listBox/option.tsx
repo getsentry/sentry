@@ -70,7 +70,6 @@ export function ListBoxOption({
 
   const labelPropsMemo = useMemo(
     () => ({...labelProps, as: typeof label === 'string' ? 'p' : 'div'}) as const,
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [labelProps.id, label]
   );

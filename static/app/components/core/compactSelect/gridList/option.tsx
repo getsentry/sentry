@@ -120,7 +120,6 @@ export function GridListOption<T extends ListItemBase>({
         {leading ? <LeadWrap role="presentation">{leading}</LeadWrap> : null}
       </Fragment>
     );
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
 

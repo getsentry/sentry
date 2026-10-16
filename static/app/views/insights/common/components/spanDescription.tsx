@@ -106,7 +106,6 @@ export function DatabaseSpanDescription({
     );
     // Skip the `location` dependency because it will cause this effect to trigger infinitely, since
     // `navigate` will update the location within this effect
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 

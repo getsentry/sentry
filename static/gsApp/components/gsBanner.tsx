@@ -255,7 +255,6 @@ function GSBanner({api, organization, subscription}: Props) {
       await checkPrompts();
     }
     run();
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

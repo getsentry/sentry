@@ -133,7 +133,6 @@ export function PageFiltersContainer({
     }
 
     doInitialization();
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectsLoaded]);
 
@@ -266,7 +265,6 @@ export function PageFiltersContainer({
     }
 
     lastQuery.current = location.query;
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.query]);
 

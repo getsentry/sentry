@@ -409,7 +409,6 @@ export function Control<Value extends SelectKey>({
     }
 
     updateOverlay?.();
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuBody, hideOptions]);
 

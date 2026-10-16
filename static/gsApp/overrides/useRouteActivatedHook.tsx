@@ -97,7 +97,6 @@ export function useRouteActivatedHook({location, matches}: Props) {
     setEventName(undefined);
     setMountTime(Date.now());
     // this hook should only fire when the route changes and nothing else
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentRoute]);
 

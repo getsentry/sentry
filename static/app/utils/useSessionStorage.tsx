@@ -61,7 +61,6 @@ export function useSessionStorage<T>(
   useEffect(() => {
     setState(readStorageValue(key, initialValue));
     // We want to re-initialized the storage value only when the key changes.
-    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
