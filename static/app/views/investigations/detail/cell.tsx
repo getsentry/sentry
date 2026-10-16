@@ -323,10 +323,17 @@ function CellResult({
             <CellProgress state={progressState} />
           )}
         </Stack>
-        {/* One line tall, so the actions sit on the block's first line. */}
-        <Flex height="1lh" align="center">
-          {actions}
-        </Flex>
+        {/* A hidden line of text, so the actions sit on the block's first line. */}
+        <Grid>
+          <Container area="1 / 1">
+            <Text as="div" aria-hidden size="md" density="comfortable">
+              {'​'}
+            </Text>
+          </Container>
+          <Flex area="1 / 1" height="0" alignSelf="center" align="center">
+            {actions}
+          </Flex>
+        </Grid>
       </Grid>
     </CellHoverSurface>
   );
