@@ -192,7 +192,8 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "value": ["Rate limit*"]},
                 ],
                 "A filter on error data cannot use the log_message condition. "
-                "It accepts error_type, error_message, release, ip_address, geo_country_code.",
+                "It accepts error_type, error_message, release, ip_address, "
+                "geo_country_code, tag.",
             ),
             (
                 "log",
@@ -201,7 +202,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "value": ["Rate limit*"]},
                 ],
                 "A filter on log data cannot use the error_type condition. "
-                "It accepts log_message, release, ip_address.",
+                "It accepts log_message, release, ip_address, tag.",
             ),
             (
                 "span",
@@ -210,7 +211,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "metric_name", "value": ["counter.*"]},
                 ],
                 "A filter on span data cannot use the metric_name condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, ip_address, tag.",
             ),
             (
                 "all",
@@ -219,13 +220,13 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "error_message", "value": ["TypeError*"]},
                 ],
                 "A filter on all data cannot use the error_message condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, ip_address, tag.",
             ),
             (
                 "all",
                 [{"type": "geo_country_code", "value": ["US"]}],
                 "A filter on all data cannot use the geo_country_code condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, ip_address, tag.",
             ),
         ]
 
@@ -314,6 +315,91 @@ class CustomInboundFiltersTest(APITestCase):
         custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
         assert response.data["conditions"] == conditions
         assert custom_filter.conditions == conditions
+
+    def test_post_tag(self) -> None:
+        """A tag condition carries the key it reads next to its globs."""
+        conditions = [{"type": "tag", "key": "customer_tier", "value": ["free", "trial*"]}]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Drop free tier noise",
+                dataType="all",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_tag_key_is_trimmed(self) -> None:
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Padded key",
+                dataType="error",
+                conditions=[{"type": "tag", "key": "  customer_tier ", "value": ["free"]}],
+                status_code=201,
+            )
+
+        assert response.data["conditions"] == [
+            {"type": "tag", "key": "customer_tier", "value": ["free"]}
+        ]
+
+    def test_rejects_tag_without_key(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="No key",
+                dataType="error",
+                conditions=[{"type": "tag", "value": ["free"]}],
+            )
+
+        assert str(response.data["conditions"][0]["key"][0]) == (
+            "A tag condition needs the tag's key."
+        )
+
+    def test_rejects_blank_or_spaced_tag_key(self) -> None:
+        cases = [
+            ("", "This field may not be blank."),
+            ("   ", "This field may not be blank."),
+            ("customer tier", "A key cannot contain whitespace."),
+        ]
+
+        for key, expected in cases:
+            with self.feature(self.features):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    name="Bad key",
+                    dataType="error",
+                    conditions=[{"type": "tag", "key": key, "value": ["free"]}],
+                )
+
+            assert str(response.data["conditions"][0]["key"][0]) == expected
+
+    def test_rejects_key_on_a_condition_that_reads_a_fixed_field(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Stray key",
+                dataType="error",
+                conditions=[{"type": "release", "key": "customer_tier", "value": ["1.*"]}],
+            )
+
+        assert str(response.data["conditions"][0]["key"][0]) == (
+            "A release condition does not take a key."
+        )
 
     def test_rejects_ip_address_that_does_not_parse(self) -> None:
         with self.feature(self.features):
@@ -710,7 +796,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on error data cannot use the log_message condition. "
-            "It accepts error_type, error_message, release, ip_address, geo_country_code."
+            "It accepts error_type, error_message, release, ip_address, geo_country_code, tag."
         )
 
     def test_put_to_catch_all(self) -> None:
@@ -768,7 +854,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on all data cannot use the error_message condition. "
-            "It accepts release, ip_address."
+            "It accepts release, ip_address, tag."
         )
         error_filter.refresh_from_db()
         assert error_filter.data_type == "error"

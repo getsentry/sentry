@@ -16,6 +16,12 @@ class ConditionType(StrEnum):
     RELEASE = "release"
     IP_ADDRESS = "ip_address"
     GEO_COUNTRY_CODE = "geo_country_code"
+    TAG = "tag"
+
+
+# Condition types whose condition names the entry of a key-value bag it reads, in a
+# ``key`` next to the ``value`` globs. Every other type reads one fixed field.
+KEYED_CONDITION_TYPES = frozenset({ConditionType.TAG})
 
 
 class DataType(StrEnum):
