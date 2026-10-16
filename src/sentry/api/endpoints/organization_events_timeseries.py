@@ -1,5 +1,4 @@
 import logging
-import re
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -31,7 +30,7 @@ from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
     serialize_ingestion_status,
 )
-from sentry.api.helpers.timeseries_processing import Transformation, parse_transformation
+from sentry.api.helpers.timeseries_transformations import get_transformations
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
@@ -155,26 +154,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         else:
             return None
 
-    def get_transformations(self, request: Request) -> dict[int, list[Transformation]]:
-        """Parse ordered transformations by zero-based request yAxis position."""
-        transformations: dict[int, list[Transformation]] = {}
-        axis_count = len(request.GET.getlist("yAxis", ["count()"]))
-        for key, values in request.GET.lists():
-            if key != "transformations" and not key.startswith("transformations["):
-                continue
-            match = re.fullmatch(r"transformations\[(0|[1-9][0-9]*)\]", key)
-            if match is None:
-                raise ParseError(detail="Invalid transformations index")
-            try:
-                index = int(match.group(1))
-            except ValueError:
-                raise ParseError(detail="Invalid transformations index")
-            if index >= axis_count:
-                raise ParseError(detail="transformations index must match a yAxis position")
-            with handle_query_errors():
-                transformations[index] = [parse_transformation(value) for value in values]
-        return transformations
-
     @extend_schema(
         operation_id="listOrganizationEventsTimeseries",
         summary="Query Explore Events in Timeseries Format",
@@ -232,7 +211,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 organization,
                 actor=request.user,
             ):
-                self.get_transformations(request)
+                get_transformations(request)
 
             dataset = self.get_dataset(request, organization)
             # Add more here until top events is supported on all the datasets

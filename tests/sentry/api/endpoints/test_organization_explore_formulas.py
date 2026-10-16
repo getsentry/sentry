@@ -402,6 +402,49 @@ class TestFormulas(BaseFormulaTest):
         assert params[2].order == data["params"][2]["order"]
         assert params[2].value == data["params"][2]["value"]
 
+    def test_create_explore_formula_with_upper_case(self) -> None:
+        upper_data = self.formula_object.copy()
+        data = self.formula_object.copy()
+        for key, value in upper_data.items():
+            if isinstance(value, str) and key != "dataset":
+                upper_data[key] = value.upper()
+            elif isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    if isinstance(sub_value, str):
+                        upper_data[key][sub_key] = sub_value.upper()
+
+        with self.feature(self.feature_flags):
+            response = self.client.post(
+                self.url,
+                data=upper_data,
+            )
+            assert response.status_code == 201, response.content
+        formula_id = response.data["id"]
+        formula = ExploreSavedFormula.objects.get(id=formula_id)
+        assert formula.name == data["name"]
+        assert formula.formula == data["formula"]
+        assert formula.unit is None
+        references = formula.variables.filter(kind=KindItemTypes.REFERENCE).order_by("name")
+        assert len(references) == 2
+        assert references[0].name == data["references"][0]["name"]
+        assert references[0].value == data["references"][0]["value"]
+        assert references[1].name == data["references"][1]["name"]
+        assert references[1].value == data["references"][1]["value"]
+        params = formula.variables.filter(kind=KindItemTypes.PARAM).order_by("order")
+        assert len(params) == 3
+        assert params[0].name == data["params"][0]["name"]
+        assert ParamItemTypes.get_type_name(params[0].param_type) == data["params"][0]["type"]
+        assert params[0].order == data["params"][0]["order"]
+        assert params[0].value == data["params"][0]["value"]
+        assert params[1].name == data["params"][1]["name"]
+        assert ParamItemTypes.get_type_name(params[1].param_type) == data["params"][1]["type"]
+        assert params[1].order == data["params"][1]["order"]
+        assert params[1].value == data["params"][1]["value"]
+        assert params[2].name == data["params"][2]["name"]
+        assert ParamItemTypes.get_type_name(params[2].param_type) == data["params"][2]["type"]
+        assert params[2].order == data["params"][2]["order"]
+        assert params[2].value == data["params"][2]["value"]
+
     def test_list_explore_formulas(self) -> None:
         for i in range(5):
             self.formula_object["name"] = f"formula.apdex{i}"
