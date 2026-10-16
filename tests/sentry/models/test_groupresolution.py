@@ -64,6 +64,23 @@ class GroupResolutionTest(TestCase):
         self.old_semver_release = self.create_release(version="foo_package@1.0")
         self.new_semver_release = self.create_release(version="foo_package@2.0")
 
+    def test_pinned_semver_keeps_older_version_resolved(self) -> None:
+        now = timezone.now()
+        resolved_in = self.create_release(
+            version="app@1.4.0", date_added=now - timedelta(minutes=5)
+        )
+        older = self.create_release(version="app@0.3.0", date_added=now - timedelta(minutes=4))
+        for i in range(3):
+            self.create_release(version=f"build-{i}", date_added=now - timedelta(minutes=3 - i))
+        self.create_group_resolution(
+            group=self.group, release=resolved_in, type=GroupResolution.Type.in_release
+        )
+        self.project.update_option("sentry:semver", True)
+
+        with self.feature("organizations:project-semver-ordering"):
+            assert GroupResolution.has_resolution(self.group, older)
+            assert not GroupResolution.has_resolution(self.group, resolved_in)
+
     def test_in_next_release_with_new_release(self) -> None:
         GroupResolution.objects.create(
             release=self.old_release, group=self.group, type=GroupResolution.Type.in_next_release
