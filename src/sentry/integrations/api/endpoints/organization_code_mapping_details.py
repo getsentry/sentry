@@ -2,7 +2,8 @@ from typing import Any
 
 from django.db.models.deletion import ProtectedError
 from django.http import Http404
-from rest_framework import status
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,6 +17,19 @@ from sentry.api.bases.organization import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
 from sentry.api.utils import to_valid_int_id
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.integrations.api.serializers.models.repository_project_path_config import (
+    RepositoryProjectPathConfigSerializerResponse,
+)
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
@@ -27,12 +41,13 @@ from .organization_code_mappings import (
 )
 
 
+@extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
@@ -69,6 +84,53 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
 
         return args, kwargs
 
+    @extend_schema(
+        operation_id="updateOrganizationCodeMapping",
+        summary="Update an Organization Code Mapping",
+        description="Update the repository, project, or path settings for a code mapping.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                "config_id",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="The ID of the code mapping to update.",
+            ),
+        ],
+        request=inline_serializer(
+            name="UpdateOrganizationCodeMappingRequest",
+            fields={
+                "repositoryId": serializers.IntegerField(
+                    help_text="The ID of the repository to map."
+                ),
+                "projectId": serializers.IntegerField(
+                    help_text="The ID of the project to map to the repository."
+                ),
+                "stackRoot": serializers.CharField(
+                    allow_blank=True,
+                    help_text="The path prefix used to match stack frame filenames.",
+                ),
+                "sourceRoot": serializers.CharField(
+                    allow_blank=True,
+                    help_text="The path prefix to remove from source file paths.",
+                ),
+                "defaultBranch": serializers.CharField(
+                    allow_blank=True,
+                    required=False,
+                    help_text="The repository branch used when a release has no branch specified.",
+                ),
+            },
+        ),
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationCodeMappingResponse", RepositoryProjectPathConfigSerializerResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def put(
         self,
         request: Request,
@@ -76,7 +138,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         organization: Organization,
         config: RepositoryProjectPathConfig,
         new_project: Project | None = None,
-    ) -> Response:
+    ) -> Response[RepositoryProjectPathConfigSerializerResponse]:
         """
         Update a repository project path config
         ``````````````````
@@ -122,13 +184,32 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
             )
         return self.respond(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        operation_id="deleteOrganizationCodeMapping",
+        summary="Delete an Organization Code Mapping",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                "config_id",
+                type=str,
+                location=OpenApiParameter.PATH,
+                description="The ID of the code mapping to delete.",
+            ),
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
+        },
+    )
     def delete(
         self,
         request: Request,
         config_id: int,
         organization: Organization,
         config: RepositoryProjectPathConfig,
-    ) -> Response:
+    ) -> Response[None]:
         """
         Delete a repository project path config
 

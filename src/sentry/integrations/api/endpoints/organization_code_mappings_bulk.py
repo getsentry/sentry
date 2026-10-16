@@ -1,7 +1,9 @@
 import logging
+from typing import Literal, NotRequired, TypedDict
 
 from django.db import IntegrityError, router, transaction
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -16,6 +18,15 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.helpers.projects import ProjectIdOrSlugField
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.endpoints.organization_code_mappings import (
     BRANCH_NAME_ERROR_MESSAGE,
@@ -39,21 +50,39 @@ MAX_MAPPINGS = 300
 
 
 class MappingItemSerializer(serializers.Serializer[dict[str, object]]):
-    stack_root = gen_path_regex_field()
-    source_root = gen_path_regex_field(validate_source=True)
+    stack_root = gen_path_regex_field(
+        help_text="The path prefix used to match stack frame filenames."
+    )
+    source_root = gen_path_regex_field(
+        validate_source=True, help_text="The path prefix to remove from source file paths."
+    )
 
 
 class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]]):
-    project = ProjectIdOrSlugField(required=True)
-    repository = serializers.CharField(required=True)
-    provider = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    project = ProjectIdOrSlugField(
+        required=True, help_text="The ID or slug of the project to configure."
+    )
+    repository = serializers.CharField(
+        required=True, help_text="The repository name as it appears in Sentry."
+    )
+    provider = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Optional repository provider used to disambiguate or find the repository.",
+    )
     default_branch = serializers.RegexField(
         r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
         required=False,
         allow_blank=True,  # Perforce allows empty streams
+        help_text="The repository branch to use; inferred from the integration when omitted.",
         error_messages={"invalid": _(BRANCH_NAME_ERROR_MESSAGE)},
     )
-    mappings = MappingItemSerializer(many=True, required=True)
+    mappings = MappingItemSerializer(
+        many=True,
+        required=True,
+        help_text="One or more stack-root and source-root mappings (maximum 300).",
+    )
 
     def validate_mappings(self, mappings: list[dict[str, str]]) -> list[dict[str, str]]:
         if len(mappings) > MAX_MAPPINGS:
@@ -65,11 +94,26 @@ class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]])
         return mappings
 
 
+class BulkCodeMappingResult(TypedDict):
+    stackRoot: str
+    sourceRoot: str
+    status: Literal["created", "updated", "error"]
+    detail: NotRequired[str]
+
+
+class BulkCodeMappingsResponse(TypedDict):
+    created: int
+    updated: int
+    errors: int
+    mappings: list[BulkCodeMappingResult]
+
+
+@extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationCodeMappingsBulkPermission,)
 
@@ -141,7 +185,35 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
             ).first()
             return existing, None
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="bulkUpsertOrganizationCodeMappings",
+        summary="Create or Update Organization Code Mappings in Bulk",
+        description=(
+            "Create or update multiple repository path mappings for a project. "
+            "Mappings with matching project, stack root, and source root are updated."
+        ),
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=BulkCodeMappingsRequestSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "BulkCodeMappingsResponse", BulkCodeMappingsResponse
+            ),
+            207: OpenApiResponse(
+                response=inline_sentry_response_serializer(
+                    "BulkCodeMappingsPartialResponse", BulkCodeMappingsResponse
+                ),
+                description="One or more mappings could not be saved.",
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
+        },
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> Response[BulkCodeMappingsResponse]:
         serializer = BulkCodeMappingsRequestSerializer(data=request.data)
         if not serializer.is_valid():
             errors = serializer.errors

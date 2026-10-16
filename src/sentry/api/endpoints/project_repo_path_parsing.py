@@ -7,6 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
@@ -137,12 +138,18 @@ class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
 @cell_silo_endpoint
 class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PUBLIC,
     }
+    owner = ApiOwner.ISSUES
     permission_classes = (ProjectRepoPathParsingEndpointLoosePermission,)
 
     @extend_schema(
-        operation_id="Parse a Repository Path Mapping",
+        operation_id="parseProjectRepositoryPathMapping",
+        summary="Parse a Repository Path Mapping",
+        description=(
+            "Derive the code-mapping settings that match a stack frame path to a file in the "
+            "connected source repository."
+        ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=PathMappingSerializer,
         responses={

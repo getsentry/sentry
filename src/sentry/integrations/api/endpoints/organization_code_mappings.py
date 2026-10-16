@@ -50,11 +50,12 @@ def validate_source_root(path: str) -> None:
         raise serializers.ValidationError(_(INVALID_SOURCE_ROOT_ERROR_MESSAGE))
 
 
-def gen_path_regex_field(*, validate_source: bool = False):
+def gen_path_regex_field(*, validate_source: bool = False, help_text: str | None = None):
     return serializers.RegexField(
         r"^[^\s'\"]+$",  # may need to add more characters to prevent in the future
         required=True,
         allow_blank=True,
+        help_text=help_text,
         validators=[validate_source_root] if validate_source else [],
         error_messages={"invalid": _("Path may not contain spaces or quotations")},
     )
