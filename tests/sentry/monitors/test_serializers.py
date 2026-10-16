@@ -133,7 +133,7 @@ class MonitorCheckInSerializerTest(TestCase):
         # When environment is missing, environment should be "[removed]"
         assert result[0]["environment"] == "[removed]"
 
-    def test_serialize_checkin_config_matches_legacy(self) -> None:
+    def test_serialize_checkin_config(self) -> None:
         monitor = self.create_monitor()
         monitor_env = self.create_monitor_environment(
             monitor=monitor, environment_id=self.environment.id
@@ -162,7 +162,6 @@ class MonitorCheckInSerializerTest(TestCase):
 
         result = serialize([legacy, snapshot, no_config], self.user, MonitorCheckInSerializer())
 
-        expected = {**config, "schedule_type": "crontab"}
-        assert result[0]["monitorConfig"] == expected
-        assert result[1]["monitorConfig"] == expected
+        assert result[0]["monitorConfig"] == {}
+        assert result[1]["monitorConfig"] == {**config, "schedule_type": "crontab"}
         assert result[2]["monitorConfig"] == {}
