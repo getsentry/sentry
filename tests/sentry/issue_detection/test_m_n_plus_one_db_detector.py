@@ -10,6 +10,8 @@ from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.mn_plus_one_db_span_detector import MNPlusOneDBSpanDetector
 from sentry.issue_detection.performance_detection import (
     _detect_performance_problems,
+    build_tree,
+    flatten_tree,
     get_detection_settings,
     run_detector_on_data,
 )
@@ -21,6 +23,64 @@ from sentry.issues.grouptype import (
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import get_event
+
+
+def _connection_event(op: str, descriptions: tuple[str, str]) -> dict[str, Any]:
+    """Three overlapping pool acquisitions, each with a nested client connection."""
+    parent_id = "0000000000000001"
+    spans: list[dict[str, Any]] = [
+        {
+            "span_id": parent_id,
+            "op": "function",
+            "description": "load_data",
+            "start_timestamp": 0.0,
+            "timestamp": 0.2,
+        }
+    ]
+    for index in range(3):
+        pool_id = f"{index * 2 + 2:016x}"
+        start = index * 0.001
+        spans.extend(
+            [
+                {
+                    "span_id": pool_id,
+                    "parent_span_id": parent_id,
+                    "op": op,
+                    "description": descriptions[0],
+                    "hash": "pool-connect",
+                    "start_timestamp": start,
+                    "timestamp": start + 0.1,
+                },
+                {
+                    "span_id": f"{index * 2 + 3:016x}",
+                    "parent_span_id": pool_id,
+                    "op": op,
+                    "description": descriptions[1],
+                    "hash": "client-connect",
+                    "start_timestamp": start + 0.001,
+                    "timestamp": start + 0.099,
+                },
+            ]
+        )
+    return {"spans": spans}
+
+
+def _query_event(query_duration: float) -> dict[str, Any]:
+    event = _connection_event("db", ("pg-pool.connect", "pg.connect"))
+    for index in range(3):
+        event["spans"].append(
+            {
+                "span_id": f"{index + 10:016x}",
+                "parent_span_id": f"{index * 2 + 3:016x}",
+                "op": "db",
+                "description": "SELECT value FROM example WHERE id = $1",
+                "hash": "example-query",
+                "start_timestamp": index * 0.001 + 0.05,
+                "timestamp": index * 0.001 + 0.05 + query_duration,
+            }
+        )
+    event["spans"] = flatten_tree(*build_tree(event["spans"]))
+    return event
 
 
 @pytest.mark.django_db
@@ -208,6 +268,38 @@ class MNPlusOneDBDetectorTest(TestCase):
 
     def test_m_n_plus_one_ignores_redis(self) -> None:
         event = get_event("m-n-plus-one-db/m-n-plus-one-redis")
+        assert self.find_problems(event) == []
+
+    def test_ignores_pg_connection_only_pattern(self) -> None:
+        event = _connection_event("db", ("pg-pool.connect", "pg.connect"))
+        event["spans"] = flatten_tree(*build_tree(event["spans"]))
+        assert self.find_problems(event) == []
+
+    def test_ignores_db_connection_only_pattern(self) -> None:
+        event = _connection_event("db.connection", ("pool acquire", "client connect"))
+        event["spans"] = flatten_tree(*build_tree(event["spans"]))
+        assert self.find_problems(event) == []
+
+    def test_ignores_db_connection_subtype_pattern(self) -> None:
+        event = _connection_event("db.connection.postgresql", ("pool acquire", "client connect"))
+        event["spans"] = flatten_tree(*build_tree(event["spans"]))
+        assert self.find_problems(event) == []
+
+    def test_ignores_prisma_connection_only_pattern(self) -> None:
+        event = _connection_event("db", ("prisma:engine:connection", "prisma:engine:connection"))
+        event["spans"] = flatten_tree(*build_tree(event["spans"]))
+        assert self.find_problems(event) == []
+
+    def test_detects_queries_with_connection_spans(self) -> None:
+        event = _query_event(query_duration=0.02)
+
+        problems = self.find_problems(event)
+        assert len(problems) == 1
+        assert problems[0].desc == "SELECT value FROM example WHERE id = $1"
+        assert problems[0].cause_span_ids == [f"{index + 10:016x}" for index in range(3)]
+
+    def test_connection_time_does_not_inflate_query_percentage(self) -> None:
+        event = _query_event(query_duration=0.001)
         assert self.find_problems(event) == []
 
     def test_m_n_plus_one_ignores_mostly_not_db(self) -> None:

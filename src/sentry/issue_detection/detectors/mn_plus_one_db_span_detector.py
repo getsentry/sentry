@@ -24,6 +24,18 @@ from sentry.utils import metrics
 from sentry.utils.sdk import sdk_logger
 
 
+def _is_db_query(span: Span) -> bool:
+    op = span.get("op") or ""
+    description = (span.get("description") or "").strip()
+    # Some SDKs use the generic db op for connection lifecycle spans.
+    return (
+        op.startswith("db")
+        and not op.startswith(("db.redis", "db.connection"))
+        and "pg-pool.connect" not in description
+        and description not in {"pg.connect", "prisma:engine:connection"}
+    )
+
+
 class MNPlusOneState(ABC):
     """Abstract base class for the MNPlusOneDBSpanDetector state machine."""
 
@@ -130,13 +142,9 @@ class SearchingForMNPlusOne(MNPlusOneState):
             return False
 
         for span in pattern:
-            op = span.get("op") or ""
             description = span.get("description") or ""
             found_db_op = found_db_op or bool(
-                op.startswith("db")
-                and not op.startswith("db.redis")
-                and description
-                and not description.endswith("...")
+                _is_db_query(span) and description and not description.endswith("...")
             )
             found_different_span = found_different_span or not self._equivalent(pattern[0], span)
             if found_db_op and found_different_span:
@@ -234,7 +242,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
             metrics.incr("mn_plus_one_db_span_detector.below_duration_threshold")
             return None
 
-        offender_db_spans = [span for span in offender_spans if span["op"].startswith("db")]
+        offender_db_spans = [span for span in offender_spans if _is_db_query(span)]
         total_db_spans_duration = total_span_time(offender_db_spans)
         pct_db_spans = total_db_spans_duration / total_spans_duration if total_spans_duration else 0
         if pct_db_spans < self.settings["min_percentage_of_db_spans"]:
@@ -315,10 +323,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
 
     def _first_relevant_db_span(self) -> Span | None:
         for span in self.spans:
-            if (
-                span["op"].startswith("db")
-                and get_span_evidence_value(span, include_op=False) != "prisma:engine:connection"
-            ):
+            if _is_db_query(span):
                 return span
         return None
 
