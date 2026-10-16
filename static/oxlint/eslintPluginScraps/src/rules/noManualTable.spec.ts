@@ -87,6 +87,14 @@ ruleTester.run('no-manual-table', noManualTable, {
     },
     {
       code: `
+        import {Grid} from '@sentry/scraps/layout';
+        const COLUMNS = {zero: '1fr', sm: '1fr auto'};
+        const header = <Grid columns={COLUMNS}>a</Grid>;
+        const rows = items.map(item => <Grid columns={COLUMNS}>{item}</Grid>);
+      `,
+    },
+    {
+      code: `
         import styled from '@emotion/styled';
         const Row = styled('div')\`
           grid-template-columns: 1fr 200px 150px;
@@ -206,6 +214,15 @@ ruleTester.run('no-manual-table', noManualTable, {
         const x = <div><Row />{items.map(item => <Row key={item} />)}</div>;
       `,
       errors: [{messageId: 'sharedGridTemplate'}],
+    },
+    {
+      code: `
+        import {Grid} from '@sentry/scraps/layout';
+        const COLUMNS = {zero: '1fr auto', sm: '1fr 120px 120px'};
+        const header = <Grid columns={COLUMNS}>a</Grid>;
+        const rows = items.map(item => <Grid columns={COLUMNS}>{item}</Grid>);
+      `,
+      errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
     },
   ],
 });

@@ -42,6 +42,19 @@ function staticString(node: ESTree.Node | null | undefined): string | null {
   return null;
 }
 
+function belowMinimumTracks(node: ESTree.Node | null): boolean {
+  const literal = staticString(node);
+  if (literal !== null) {
+    return countTracks(literal) < MINIMUM_SHARED_TRACKS;
+  }
+  return (
+    node?.type === 'ObjectExpression' &&
+    node.properties.every(
+      property => property.type === 'Property' && belowMinimumTracks(property.value)
+    )
+  );
+}
+
 function attribute(
   node: ESTree.JSXOpeningElement,
   name: string
@@ -127,28 +140,18 @@ export const noManualTable = defineRule({
     }
 
     function templateKey(node: ESTree.Node): unknown {
+      if (
+        belowMinimumTracks(node) ||
+        (node.type === 'Identifier' && belowMinimumTracks(constantInit(node)))
+      ) {
+        return null;
+      }
       const literal = staticString(node);
       if (literal !== null) {
-        return countTracks(literal) >= MINIMUM_SHARED_TRACKS
-          ? `literal:${normalizeSpace(literal)}`
-          : null;
+        return `literal:${normalizeSpace(literal)}`;
       }
       if (node.type === 'Identifier') {
-        const constant = staticString(constantInit(node));
-        if (constant !== null && countTracks(constant) < MINIMUM_SHARED_TRACKS) {
-          return null;
-        }
         return importTracker.resolveVariable(node) ?? `name:${node.name}`;
-      }
-      if (node.type === 'ObjectExpression') {
-        const tracks = node.properties.map(property => {
-          const value =
-            property.type === 'Property' ? staticString(property.value) : null;
-          return value === null ? Infinity : countTracks(value);
-        });
-        if (Math.max(...tracks) < MINIMUM_SHARED_TRACKS) {
-          return null;
-        }
       }
       return `source:${normalizeSpace(context.sourceCode.getText(node))}`;
     }
