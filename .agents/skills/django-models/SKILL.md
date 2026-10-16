@@ -54,7 +54,7 @@ If a model has both kinds of FKs, that is fine and common. The presence of an HC
 
 Use UUIDv7 by default for new primary keys instead of auto-incrementing `int4` or `int8` IDs. Independently allocated integer sequences can collide when data moves between databases or cells, forcing primary-key and foreign-key remapping. UUIDv7 lets new records receive identities that can be preserved during relocation without coordinating sequences.
 
-Explicitly override the inherited `id` field with `models.UUIDField(primary_key=True, default=uuid7, editable=False)`, where `uuid7` is a supported UUIDv7 generator callable, not the result of calling it. Verify the generator is available in the project's Python runtime or dependencies; do not assume an import path or substitute UUIDv4. Check that foreign keys, serializers, replication, and relocation code support UUID primary keys. Use an integer primary key only for a concrete compatibility requirement, and document the reason. This default applies to new models; converting existing primary keys requires a separate migration design.
+Explicitly override the inherited `id` field with `models.UUIDField(primary_key=True, default=uuid7, editable=False)`, where `uuid7` is a supported UUIDv7 generator callable, not the result of calling it. Use an integer primary key only for a concrete compatibility requirement, and document the reason. This default applies to new models; converting existing primary keys requires a separate migration design.
 
 ### 6. Can rows be selected directly by their owning organization or project?
 
