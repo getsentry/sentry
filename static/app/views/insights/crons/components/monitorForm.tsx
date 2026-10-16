@@ -53,14 +53,6 @@ const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [
 
 const DEFAULT_CRONTAB = '0 0 * * *';
 
-// Maps the value from the SentryMemberTeamSelectorField -> the expected alert
-// rule key and vice-versa.
-//
-// XXX(epurkhiser): For whatever reason the rules API wants the team and member
-// to be capitalized.
-const RULE_TARGET_MAP = {team: 'Team', user: 'Member'} as const;
-const RULES_SELECTOR_MAP = {Team: 'team', Member: 'user'} as const;
-
 const CHECKIN_MARGIN_MINIMUM = 1;
 const TIMEOUT_MINIMUM = 1;
 
@@ -71,8 +63,7 @@ type Props = {
   monitor?: Monitor;
 };
 
-interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>> {
-  alertRule?: Partial<Monitor['alertRule']>;
+interface TransformedData extends Partial<Omit<Monitor, 'config'>> {
   config?: Partial<Monitor['config']>;
 }
 
@@ -94,28 +85,6 @@ function transformMonitorFormData(_data: Record<string, any>, model: FormModel) 
 
   const result = filteredFields.reduce<TransformedData>((data, [k, v]) => {
     data.config ??= {};
-    data.alertRule ??= {};
-
-    if (k === 'alertRule.targets') {
-      const alertTargets = (v as string[] | undefined)?.map(item => {
-        // See SentryMemberTeamSelectorField to understand why these are strings
-        const [type, id] = item.split(':');
-
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        const targetType = RULE_TARGET_MAP[type!];
-
-        return {targetType, targetIdentifier: Number(id)};
-      });
-
-      data.alertRule.targets = alertTargets;
-      return data;
-    }
-
-    if (k === 'alertRule.environment') {
-      const environment = v === '' ? undefined : (v as string);
-      data.alertRule.environment = environment;
-      return data;
-    }
 
     if (k === 'config.schedule.frequency' || k === 'config.schedule.interval') {
       if (!Array.isArray(data.config.schedule)) {
@@ -143,11 +112,6 @@ function transformMonitorFormData(_data: Record<string, any>, model: FormModel) 
     data[k] = v;
     return data;
   }, {});
-
-  // If targets are not specified, don't send alert rule config to backend
-  if (!result.alertRule?.targets) {
-    result.alertRule = undefined;
-  }
 
   return result;
 }
@@ -212,20 +176,7 @@ export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: 
   const isSuperuser = isActiveSuperuser();
   const filteredProjects = projects.filter(project => isSuperuser || project.isMember);
 
-  const alertRuleTarget = monitor?.alertRule?.targets.map(
-    target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`
-  );
-
   const owner = monitor?.owner ? `${monitor.owner.type}:${monitor.owner.id}` : null;
-
-  const envOptions = selectedProject?.environments.map(e => ({value: e, label: e})) ?? [];
-  const alertRuleEnvs = [
-    {
-      label: 'All Environments',
-      value: '',
-    },
-    ...envOptions,
-  ];
 
   return (
     <Form
@@ -243,8 +194,6 @@ export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: 
               slug: monitor.slug,
               owner,
               project: monitor.project.slug,
-              'alertRule.targets': alertRuleTarget,
-              'alertRule.environment': monitor.alertRule?.environment,
               ...formDataFromConfig(monitor.config),
             }
           : {
@@ -492,66 +441,25 @@ export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: 
             </PanelBody>
           </Panel>
         </InputGroup>
-        <StyledListItem>{t('Notifications')}</StyledListItem>
-        <ListItemSubText>
-          {t('Configure who to notify upon issue creation and when.')}
-        </ListItemSubText>
-        <InputGroup>
-          {monitor?.config.alert_rule_id && (
-            <AlertLink
-              variant="muted"
-              to={makeAlertsPathname({
-                path: `/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`,
-                organization,
-              })}
-            >
-              {t('Customize this monitors notification configuration in Alerts')}
-            </AlertLink>
-          )}
-          <Panel>
-            <PanelBody>
-              <Observer>
-                {() => {
-                  const projectSlug = form.current
-                    .getValue<string>('project')
-                    ?.toString();
-                  return (
-                    <SentryMemberTeamSelectorField
-                      label={t('Notify')}
-                      help={t('Send notifications to a member or team.')}
-                      name="alertRule.targets"
-                      memberOfProjectSlugs={projectSlug ? [projectSlug] : undefined}
-                      multiple
-                    />
-                  );
-                }}
-              </Observer>
-              <Observer>
-                {() => {
-                  const selectedAssignee = form.current.getValue('alertRule.targets');
-                  // Check for falsey value or empty array value
-
-                  // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                  const disabled = !selectedAssignee || !selectedAssignee.toString();
-
-                  return (
-                    <SelectField
-                      label={t('Environment')}
-                      help={t('Only receive notifications from a specific environment.')}
-                      name="alertRule.environment"
-                      options={alertRuleEnvs}
-                      disabled={disabled}
-                      defaultValue=""
-                      disabledReason={t(
-                        'Please select which teams or members to notify first.'
-                      )}
-                    />
-                  );
-                }}
-              </Observer>
-            </PanelBody>
-          </Panel>
-        </InputGroup>
+        {!!monitor?.config.alert_rule_id && (
+          <Fragment>
+            <StyledListItem>{t('Notifications')}</StyledListItem>
+            <ListItemSubText>
+              {t('Manage notification configuration in Alerts.')}
+            </ListItemSubText>
+            <InputGroup>
+              <AlertLink
+                variant="muted"
+                to={makeAlertsPathname({
+                  path: `/rules/${monitor.project.slug}/${monitor.config.alert_rule_id}/`,
+                  organization,
+                })}
+              >
+                {t('Customize notification configuration in Alerts')}
+              </AlertLink>
+            </InputGroup>
+          </Fragment>
+        )}
       </StyledList>
     </Form>
   );

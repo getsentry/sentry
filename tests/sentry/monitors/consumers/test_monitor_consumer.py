@@ -614,9 +614,11 @@ class MonitorConsumerTest(TestCase):
             self.send_checkin(other_monitor.slug, guid=self.guid, status="ok")
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
-        assert checkin.monitor_id == monitor.id
+        assert checkin.monitor_environment.monitor_id == monitor.id
         assert checkin.status == CheckInStatus.IN_PROGRESS
-        assert not MonitorCheckIn.objects.filter(monitor=other_monitor).exists()
+        assert not MonitorCheckIn.objects.filter(
+            monitor_environment__monitor=other_monitor
+        ).exists()
 
     def test_check_in_update_terminal_in_progress(self) -> None:
         now = datetime.now()
@@ -842,7 +844,7 @@ class MonitorConsumerTest(TestCase):
             guid=str(uuid.UUID(int=0)),
         )
 
-        checkin = MonitorCheckIn.objects.get(monitor=monitor)
+        checkin = MonitorCheckIn.objects.get(monitor_environment__monitor=monitor)
         assert checkin.status == CheckInStatus.OK
         assert checkin.guid.int != 0
 
@@ -854,7 +856,7 @@ class MonitorConsumerTest(TestCase):
             guid=str(uuid.UUID(int=0)),
         )
 
-        open_checkin = MonitorCheckIn.objects.get(monitor=monitor)
+        open_checkin = MonitorCheckIn.objects.get(monitor_environment__monitor=monitor)
         assert open_checkin.status == CheckInStatus.IN_PROGRESS
         assert open_checkin.guid != uuid.UUID(int=0)
 
@@ -889,19 +891,19 @@ class MonitorConsumerTest(TestCase):
                 ),
             )
 
-            checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+            checkins = MonitorCheckIn.objects.filter(monitor_environment__monitor_id=monitor.id)
             assert len(checkins) == 1
 
             # Same monitor, diff environments
             self.send_checkin("my-monitor", environment="dev", ts=now)
 
-            checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+            checkins = MonitorCheckIn.objects.filter(monitor_environment__monitor_id=monitor.id)
             assert len(checkins) == 2
 
             # Same monitor same env but a minute later, shuld NOT be rate-limited
             self.send_checkin("my-monitor", ts=now + timedelta(minutes=1))
 
-            checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+            checkins = MonitorCheckIn.objects.filter(monitor_environment__monitor_id=monitor.id)
             assert len(checkins) == 3
 
     def test_invalid_guid_environment_match(self) -> None:
@@ -1020,15 +1022,13 @@ class MonitorConsumerTest(TestCase):
         )
 
         # Only one check-in should be processed and it should still be IN_PROGRESS
-        checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+        checkins = MonitorCheckIn.objects.filter(monitor_environment__monitor_id=monitor.id)
         assert len(checkins) == 1
         assert checkins[0].status == CheckInStatus.IN_PROGRESS
 
         # Test invalid implicit duration
         old_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=MonitorEnvironment.objects.get(monitor=monitor),
-            project_id=self.project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=monitor.date_added - timedelta(weeks=52),
         )
@@ -1404,7 +1404,7 @@ class MonitorConsumerTest(TestCase):
             ),
         )
 
-        checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+        checkins = MonitorCheckIn.objects.filter(monitor_environment__monitor_id=monitor.id)
         assert len(checkins) == 0
 
     def test_organization_killswitch(self) -> None:
@@ -1561,7 +1561,7 @@ class MonitorConsumerTest(TestCase):
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
 
-        checkin = MonitorCheckIn.objects.get(monitor_id=monitor.id)
+        checkin = MonitorCheckIn.objects.get(monitor_environment__monitor_id=monitor.id)
         assert checkin.status == CheckInStatus.OK
 
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
@@ -1580,7 +1580,7 @@ class MonitorConsumerTest(TestCase):
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
 
-        checkins = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+        checkins = MonitorCheckIn.objects.filter(monitor_environment__monitor_id=monitor.id)
         assert len(checkins) == 0
 
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
@@ -1608,7 +1608,7 @@ class MonitorConsumerTest(TestCase):
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
 
-        checkin = MonitorCheckIn.objects.get(monitor_id=monitor.id)
+        checkin = MonitorCheckIn.objects.get(monitor_environment__monitor_id=monitor.id)
         assert checkin.status == CheckInStatus.OK
 
     @mock.patch(
@@ -1634,7 +1634,7 @@ class MonitorConsumerTest(TestCase):
         acquire.assert_called_once_with(blocking=False)
         check_accept_monitor_checkin.assert_not_called()
 
-        checkin = MonitorCheckIn.objects.get(monitor_id=monitor.id)
+        checkin = MonitorCheckIn.objects.get(monitor_environment__monitor_id=monitor.id)
         assert checkin.status == CheckInStatus.OK
 
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
@@ -1663,7 +1663,9 @@ class MonitorConsumerTest(TestCase):
             )
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
-        assert not MonitorCheckIn.objects.filter(monitor_id=monitor.id).exists()
+        assert not MonitorCheckIn.objects.filter(
+            monitor_environment__monitor_id=monitor.id
+        ).exists()
 
     @mock.patch("sentry.quotas.backend.assign_seat")
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")

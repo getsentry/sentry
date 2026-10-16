@@ -17,7 +17,6 @@ from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
-from sentry.digests.types import IdentifierKey
 from sentry.event_manager import EventManager, get_event_type
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.ownership import grammar
@@ -312,82 +311,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert "my rule" in msg.alternatives[0][0]
         assert f"&environment={environment.name}" in msg.body
         assert "notification_uuid" in msg.body
-
-    def test_simple_snooze(self) -> None:
-        """Test that notification for alert snoozed by user is not send to that user."""
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
-
-        rule = self.create_project_rule(project=self.project)
-        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
-        notification = Notification(event=event, rule=create_notification_origin(rule))
-
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
-
-        assert len(mail.outbox) == 0
-
-    def test_snooze_for_all(self) -> None:
-        """Test that notification for alert snoozed for everyone is not send to user."""
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
-
-        rule = self.create_project_rule(project=self.project)
-        self.snooze_rule(owner_id=self.user.id, rule=rule)
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
-        notification = Notification(event=event, rule=create_notification_origin(rule))
-
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
-
-        assert len(mail.outbox) == 0
-
-    def test_someone_else_snoozes_themself(self) -> None:
-        """Test that notification for alert snoozed by user2 for themself is sent to user"""
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
-
-        rule = self.create_project_rule(project=self.project)
-        user2 = self.create_user(email="otheruser@example.com")
-        self.snooze_rule(user_id=user2.id, owner_id=user2.id, rule=rule)
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
-        notification = Notification(event=event, rule=create_notification_origin(rule))
-
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(
-                notification,
-                ActionTargetType.ISSUE_OWNERS,
-                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
-            )
-
-        assert len(mail.outbox) == 1
-        msg = mail.outbox[0]
-        assert msg.subject == "[Sentry] BAR-1 - Hello world"
-
-    def test_someone_else_snoozes_everyone(self) -> None:
-        """Test that notification for alert snoozed by user2 for everyone is not sent to user"""
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
-
-        rule = self.create_project_rule(project=self.project)
-        user2 = self.create_user(email="otheruser@example.com")
-        self.snooze_rule(owner_id=user2.id, rule=rule)
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
-        notification = Notification(event=event, rule=create_notification_origin(rule))
-
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
-
-        assert len(mail.outbox) == 0
 
     def test_simple_notification_generic(self) -> None:
         """Test that an issue that is neither error nor performance type renders a generic email template"""
@@ -1636,7 +1559,6 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         record = digests.backend.add.call_args.args[1]
         workflow_id = futures[0].context.origin.workflow_id
         assert workflow_id is not None
-        assert record.value.identifier_key == IdentifierKey.WORKFLOW
         assert record.value.rules == [workflow_id]
         assert event.group
         mock_logger.info.assert_called_with(
