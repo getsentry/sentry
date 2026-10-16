@@ -1,7 +1,6 @@
 import {useCallback, useDeferredValue, useSyncExternalStore} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {useLocation} from 'sentry/utils/useLocation';
 import {
   useLLMContext,
   useLLMContextRegistry,
