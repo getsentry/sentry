@@ -136,7 +136,7 @@ class ServiceAccountPermission(OrganizationPermission):
 
 
 class OrganizationServiceAccountEndpointBase(ControlSiloOrganizationEndpoint):
-    owner = ApiOwner.ML_AI
+    owner = ApiOwner.COMMUNITY
     permission_classes = (ServiceAccountPermission,)
 
     def convert_args(

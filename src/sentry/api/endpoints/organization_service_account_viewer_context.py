@@ -65,7 +65,7 @@ class OrganizationServiceAccountViewerContextEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ML_AI
+    owner = ApiOwner.COMMUNITY
     authentication_classes = (SeerRpcViewerContextAuthentication,)
     permission_classes = (SeerSystemViewerContextPermission,)
 
