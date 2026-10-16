@@ -4,15 +4,23 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
+from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
-from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries, TimeSeriesRequest
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
+    DataPoint,
+    Expression,
+    TimeSeries,
+    TimeSeriesRequest,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemColumnValues,
     TraceItemTableRequest,
     TraceItemTableResponse,
 )
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
+from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.api.helpers.timeseries_transformations import FillTransformation
 from sentry.exceptions import InvalidSearchQuery
@@ -50,11 +58,15 @@ def test_transformation_query_finest_supported_granularity(
     start, end, interval, expected, timeseries_resolver
 ) -> None:
     request = TimeSeriesRequest(
-        meta={"start_timestamp": {"seconds": start}, "end_timestamp": {"seconds": end}},
+        meta=RequestMeta(
+            start_timestamp=Timestamp(seconds=start), end_timestamp=Timestamp(seconds=end)
+        ),
         granularity_secs=interval,
-        expressions=[{"label": "count()"}, {"label": "avg(span.duration)"}],
-        group_by=[{"name": "sentry.raw_description"}],
-        filter={"comparison_filter": {"key": {"name": "example"}}},
+        expressions=[Expression(label="count()"), Expression(label="avg(span.duration)")],
+        group_by=[AttributeKey(name="sentry.raw_description")],
+        filter=TraceItemFilter(
+            comparison_filter=ComparisonFilter(key=AttributeKey(name="example"))
+        ),
     )
     original = request.SerializeToString()
 
@@ -82,9 +94,9 @@ def test_transformation_query_without_finer_interval(
     end, interval, coarse_interval, expected, timeseries_resolver
 ) -> None:
     request = TimeSeriesRequest(
-        meta={"end_timestamp": {"seconds": end}},
+        meta=RequestMeta(end_timestamp=Timestamp(seconds=end)),
         granularity_secs=interval,
-        expressions=[{"label": "count()"}],
+        expressions=[Expression(label="count()")],
     )
     transformations = {0: [FillTransformation(mode="locf")]}
 
@@ -103,9 +115,9 @@ def test_transformation_query_without_finer_interval(
 
 def test_transformation_query_rejects_oversized_range(timeseries_resolver) -> None:
     request = TimeSeriesRequest(
-        meta={"end_timestamp": {"seconds": 151515}},
+        meta=RequestMeta(end_timestamp=Timestamp(seconds=151515)),
         granularity_secs=15,
-        expressions=[{"label": "count()"}],
+        expressions=[Expression(label="count()")],
     )
 
     with pytest.raises(InvalidSearchQuery, match="too many buckets"):
@@ -116,9 +128,9 @@ def test_transformation_query_rejects_oversized_range(timeseries_resolver) -> No
 
 def test_transformation_query_without_transformations(timeseries_resolver) -> None:
     request = TimeSeriesRequest(
-        meta={"end_timestamp": {"seconds": 60}},
+        meta=RequestMeta(end_timestamp=Timestamp(seconds=60)),
         granularity_secs=60,
-        expressions=[{"label": "count()"}],
+        expressions=[Expression(label="count()")],
     )
 
     assert Spans.get_transformation_query(request, ["count()"], {}, timeseries_resolver) is None
@@ -135,9 +147,9 @@ def test_transformation_query_resolves_fine_rate_divisor(
     axis, divisor, timeseries_resolver
 ) -> None:
     request = TimeSeriesRequest(
-        meta={"end_timestamp": {"seconds": 120}},
+        meta=RequestMeta(end_timestamp=Timestamp(seconds=120)),
         granularity_secs=60,
-        expressions=[{"label": axis}],
+        expressions=[Expression(label=axis)],
     )
 
     query = Spans.get_transformation_query(
@@ -166,17 +178,17 @@ def test_rebucket_timeseries(timestamps, values, output_timestamps, interval, ex
 def test_transform_fine_points_before_rebucketing() -> None:
     coarse = TimeSeries(
         label="avg(span.duration)",
-        buckets=[{"seconds": 0}, {"seconds": 30}],
-        data_points=[{"data": 2, "data_present": True}, {"data": 8, "data_present": True}],
+        buckets=[Timestamp(seconds=0), Timestamp(seconds=30)],
+        data_points=[DataPoint(data=2, data_present=True), DataPoint(data=8, data_present=True)],
     )
     fine = TimeSeries(
         label="avg(span.duration)",
-        buckets=[{"seconds": value} for value in [0, 15, 30, 45]],
+        buckets=[Timestamp(seconds=value) for value in [0, 15, 30, 45]],
         data_points=[
-            {"data": 2, "data_present": True},
-            {"data_present": False},
-            {"data": 8, "data_present": True},
-            {"data_present": False},
+            DataPoint(data=2, data_present=True),
+            DataPoint(data_present=False),
+            DataPoint(data=8, data_present=True),
+            DataPoint(data_present=False),
         ],
     )
     original = fine.SerializeToString()
