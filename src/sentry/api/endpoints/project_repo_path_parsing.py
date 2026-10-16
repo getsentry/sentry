@@ -26,7 +26,9 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.issues.auto_source_code_config.code_mapping import find_roots
 from sentry.issues.auto_source_code_config.errors import (
+    DoesNotFollowJavaPackageNamingConvention,
     MissingModuleOrAbsPath,
+    NeedsExtension,
     UnexpectedPathException,
     UnsupportedFrameInfo,
 )
@@ -246,6 +248,13 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
                 {"detail": "absPath and module are required for Java frames"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        except DoesNotFollowJavaPackageNamingConvention:
+            return self.respond(
+                {"detail": "Module must follow Java package naming conventions"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except NeedsExtension:
+            return self.respond({"detail": "Needs extension"}, status=status.HTTP_400_BAD_REQUEST)
         except UnsupportedFrameInfo:
             return self.respond(
                 {"detail": "Unsupported frame info"}, status=status.HTTP_400_BAD_REQUEST

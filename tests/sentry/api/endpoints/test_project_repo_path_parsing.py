@@ -198,6 +198,14 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "sourceUrl": ["Source code URL points to a different file than the stack trace"]
         }
 
+    def test_stack_path_requires_extension(self) -> None:
+        for stack_path in ("README", "/foo/bar/baz"):
+            filename = stack_path.rsplit("/", 1)[-1]
+            source_url = f"https://github.com/getsentry/sentry/blob/master/{filename}"
+            resp = self.make_post(source_url, stack_path)
+            assert resp.status_code == 400, resp.content
+            assert resp.data == {"detail": "Needs extension"}
+
     def test_no_integration(self) -> None:
         # create the integration but don't install it
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -330,6 +338,18 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
                 status_code=400,
             )
             assert response.data == {"detail": "absPath and module are required for Java frames"}
+
+    def test_java_requires_package_naming_convention(self) -> None:
+        source_url = "https://github.com/getsentry/sentry/blob/master/src/Example.java"
+        resp = self.make_post(
+            source_url,
+            "Example.java",
+            module="Example",
+            abs_path="Example.java",
+            platform="java",
+        )
+        assert resp.status_code == 400, resp.content
+        assert resp.data == {"detail": "Module must follow Java package naming conventions"}
 
     def test_java_path(self) -> None:
         src_file = "src/com/example/foo/Bar.kt"
