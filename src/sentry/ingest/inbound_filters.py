@@ -523,16 +523,17 @@ def get_generic_filters(
         if filter_features.custom_inbound_filters_v2:
             generic_filters += get_custom_inbound_filter_generic_filters(project)
 
-    for generic_filter_id, generic_filter_fn in ACTIVE_GENERIC_FILTERS:
+    # These filters are defined once in global config. Keep the project toggle
+    # independent from the current condition so global conditions can change
+    # without rebuilding each project's cached config.
+    for generic_filter_id, _ in ACTIVE_GENERIC_FILTERS:
         # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
         # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
         # why the value true is determined by either `1` or `True`.
         if project.get_option(f"filters:{generic_filter_id}") not in ("1", True):
             continue
 
-        condition = generic_filter_fn()
-        if condition is not None:
-            generic_filters.append(_generic_filter(generic_filter_id, condition))
+        generic_filters.append({"id": generic_filter_id, "isEnabled": True, "condition": None})
 
     if not generic_filters:
         return None

@@ -72,7 +72,7 @@ export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
 
 export type AggregateParameter =
   | {
-      columnTypes: Readonly<ValidateColumnTypes>;
+      columnTypes: readonly ColumnType[] | ValidateColumnValueFunction;
       kind: 'column';
       required: boolean;
       defaultValue?: string;

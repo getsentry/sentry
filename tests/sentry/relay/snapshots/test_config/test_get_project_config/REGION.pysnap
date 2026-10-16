@@ -80,79 +80,14 @@ config:
       - promfflinkdev.com
     generic:
       filters:
-      - condition:
-          inner:
-            inner:
-            - inner:
-              - name: ty
-                op: glob
-                value:
-                - ChunkLoadError
-              - name: value
-                op: glob
-                value:
-                - Loading chunk *
-              op: and
-            - inner:
-              - name: ty
-                op: glob
-                value:
-                - '*Uncaught *'
-              - name: value
-                op: glob
-                value:
-                - 'ChunkLoadError: Loading chunk *'
-              op: and
-            - inner:
-              - name: ty
-                op: glob
-                value:
-                - ChunkLoadError
-              - name: value
-                op: glob
-                value:
-                - Failed to load chunk *
-              op: and
-            - inner:
-              - name: ty
-                op: glob
-                value:
-                - '*Uncaught *'
-              - name: value
-                op: glob
-                value:
-                - 'ChunkLoadError: Failed to load chunk *'
-              op: and
-            - inner:
-              - name: ty
-                op: glob
-                value:
-                - Error
-              - name: value
-                op: glob
-                value:
-                - 'Uncaught (in promise): ChunkLoadError*'
-              op: and
-            op: or
-          name: event.exception.values
-          op: any
+      - condition: null
         id: chunk-load-error
         isEnabled: true
-      - condition:
-          inner:
-            inner:
-            - name: value
-              op: glob
-              value:
-              - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,421,422,423,425}*'
-            - name: value
-              op: glob
-              value:
-              - '*https://react.dev/errors/{418,419,421,422,423,425}*'
-            op: or
-          name: event.exception.values
-          op: any
+      - condition: null
         id: react-hydration-errors
+        isEnabled: true
+      - condition: null
+        id: custom-error
         isEnabled: true
       version: 1
     ignoreTransactions:
