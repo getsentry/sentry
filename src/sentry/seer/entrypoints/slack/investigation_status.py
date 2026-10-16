@@ -15,9 +15,14 @@ from sentry.api.event_search import (
 )
 from sentry.exceptions import InvalidSearchQuery
 from sentry.investigations.models import Investigation
+from sentry.investigations.models.orchestration import (
+    InvestigationOrchestrationPhase,
+    InvestigationOrchestrationStatus,
+)
 from sentry.issues.issue_search import issue_search_config
 from sentry.notifications.platform.templates.seer import (
     SeerInvestigationHypothesis,
+    SeerInvestigationProgress,
     SeerInvestigationStatus,
 )
 
@@ -147,10 +152,79 @@ def _get_detail(hypothesis: Mapping[str, Any]) -> str:
     return _truncate(str(hypothesis.get("rationale") or ""))
 
 
+def _get_progress(
+    phase: str | None,
+    status: str | None,
+    hypotheses: list[Mapping[str, Any]],
+    interrupted: bool,
+) -> SeerInvestigationProgress | None:
+    if interrupted:
+        return SeerInvestigationProgress(
+            title="Investigation interrupted",
+            status="error",
+            detail="Seer couldn't finish the investigation. "
+            "The available work is preserved; no conclusion was produced.",
+        )
+    if status == InvestigationOrchestrationStatus.AWAITING_INPUT:
+        return SeerInvestigationProgress(
+            title="Waiting for input",
+            status="pending",
+            detail="Seer is paused until someone responds. Open the investigation to continue.",
+        )
+    match phase:
+        case (
+            None
+            | InvestigationOrchestrationPhase.INTAKE
+            | InvestigationOrchestrationPhase.BROAD_SCAN
+        ):
+            return SeerInvestigationProgress(
+                title="Gathering context",
+                status="in_progress",
+                detail="Comparing the alert with related telemetry.",
+            )
+        case (
+            InvestigationOrchestrationPhase.PLANNING | InvestigationOrchestrationPhase.INVESTIGATING
+        ):
+            # Each hypothesis plans its checks before any of them run.
+            if not any(hypothesis.get("verificationSteps") for hypothesis in hypotheses):
+                return SeerInvestigationProgress(
+                    title="Forming hypotheses",
+                    status="in_progress",
+                    detail="Checking the available telemetry for plausible explanations of the alert.",
+                )
+            return SeerInvestigationProgress(
+                title="Verifying hypotheses",
+                status="in_progress",
+                detail="Checking the remaining explanations against related telemetry.",
+            )
+        case InvestigationOrchestrationPhase.JUDGING:
+            return SeerInvestigationProgress(
+                title="Reviewing findings",
+                status="in_progress",
+                detail="Reviewing the evidence behind each verdict and identifying what remains uncertain.",
+            )
+        case InvestigationOrchestrationPhase.REPORTING | InvestigationOrchestrationPhase.METADATA:
+            return SeerInvestigationProgress(
+                title="Preparing conclusion",
+                status="in_progress",
+                detail="Bringing the evidence, remaining uncertainty, and suggested next steps "
+                "into a conclusion.",
+            )
+        case InvestigationOrchestrationPhase.COMPLETED:
+            return SeerInvestigationProgress(
+                title="Investigation complete",
+                status="complete",
+                detail="Seer finished checking every hypothesis.",
+            )
+    return None
+
+
 def build_investigation_status(
     *,
     investigation: Investigation,
     projection: Mapping[str, Any] | None,
+    phase: str | None = None,
+    status: str | None = None,
     updated_at: datetime | None = None,
 ) -> tuple[SeerInvestigationStatus, str]:
     """Builds the status message data and a fingerprint of what it shows."""
@@ -161,6 +235,11 @@ def build_investigation_status(
         if isinstance(hypothesis, Mapping)
     ]
     raw_hypotheses.sort(key=lambda hypothesis: hypothesis.get("order", 0))
+    interrupted = status in (
+        InvestigationOrchestrationStatus.FAILED,
+        InvestigationOrchestrationStatus.CANCELLED,
+    )
+    progress = _get_progress(phase, status, raw_hypotheses, interrupted)
     raw_hypotheses = raw_hypotheses[:MAX_STATUS_HYPOTHESES]
 
     hypotheses = []
@@ -173,6 +252,8 @@ def build_investigation_status(
             detail = USER_DECISION_DETAIL
         else:
             label = HYPOTHESIS_LABELS.get(effective_status, VERIFYING_LABEL)
+            if interrupted and label == VERIFYING_LABEL:
+                label = NOT_COMPLETED_LABEL
             detail = (
                 NOT_COMPLETED_DETAIL if label == NOT_COMPLETED_LABEL else _get_detail(hypothesis)
             )
@@ -189,8 +270,9 @@ def build_investigation_status(
         subtitle=get_status_subtitle(source, updated_at),
         investigation_url=investigation.get_absolute_url(),
         hypotheses=hypotheses,
+        progress=progress,
     )
     fingerprint = hashlib.sha256(
-        orjson.dumps([data.title, data.subtitle, fingerprint_hypotheses])
+        orjson.dumps([data.title, data.subtitle, fingerprint_hypotheses, progress])
     ).hexdigest()
     return data, fingerprint
