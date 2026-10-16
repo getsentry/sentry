@@ -83,7 +83,7 @@ export function CompactSelectField<TValue extends SelectKey>({
               disabled={fieldProps.disabled}
               onClose={() => {
                 props.onClose?.();
-                if (props.multiple && autoSaveContext) {
+                if (!autoSaveContext || props.multiple) {
                   field.handleBlur();
                 }
               }}
@@ -91,7 +91,15 @@ export function CompactSelectField<TValue extends SelectKey>({
                 const mergedProps = mergeProps(
                   {style: {width: '100%'}},
                   triggerProps,
-                  fieldProps,
+                  {
+                    ...fieldProps,
+                    onBlur: () => {
+                      // Opening the menu moves focus from the trigger into the menu.
+                      if (!isOpen) {
+                        fieldProps.onBlur();
+                      }
+                    },
+                  },
                   {ref: mergeRefs(triggerProps.ref, fieldProps.ref)}
                 );
                 return trigger ? (
