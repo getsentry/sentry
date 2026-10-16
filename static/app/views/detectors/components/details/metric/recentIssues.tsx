@@ -1,10 +1,13 @@
-import {useState} from 'react';
+import {Fragment, useState} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
@@ -20,15 +23,22 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useZoomToOpenPeriodRange} from 'sentry/views/detectors/components/details/common/useZoomToOpenPeriodRange';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {
+  groupOpenPeriodsByIssue,
+  type IssueOpenPeriods,
+} from 'sentry/views/detectors/utils/groupOpenPeriodsByIssue';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 const RECENT_ISSUES_LIMIT = 5;
 
+// The most one request returns. A flappy issue can fill it alone, leaving fewer issues to show.
+const OPEN_PERIODS_LIMIT = 100;
+
 const RECENT_ISSUE_COLUMNS: TableColumnConfig[] = [
   {key: 'issue', width: '1fr'},
   {key: 'status', width: 'min-content'},
-  {key: 'started', width: '1fr'},
-  {key: 'duration', width: 'min-content'},
+  {key: 'lastOpened', width: '1fr'},
+  {key: 'openPeriods', width: 'min-content'},
   {key: 'zoom', width: 'min-content'},
 ];
 
@@ -47,7 +57,8 @@ interface MetricDetectorRecentIssuesProps {
 }
 
 /**
- * Lists the detector's most recent firings for orgs where each firing opens its own issue.
+ * Lists the detector's most recent issues and their open periods, for orgs where each
+ * activation opens its own issue.
  */
 export function MetricDetectorRecentIssues({
   detector,
@@ -104,7 +115,7 @@ function ViewAllIssuesButton({
         query: {
           query: `detector:${detectorId}`,
           project: projectId,
-          sort: IssueSortOptions.NEW,
+          sort: IssueSortOptions.DATE,
           ...dateParams,
         },
       }}
@@ -129,7 +140,7 @@ function RecentIssuesTable({
 
   const openPeriodsQuery = useOpenPeriods({
     detectorId,
-    limit: RECENT_ISSUES_LIMIT,
+    limit: OPEN_PERIODS_LIMIT,
     ...dateParams,
   });
 
@@ -141,7 +152,12 @@ function RecentIssuesTable({
     return <RecentIssuesTableMessage message={t('Failed to load recent issues')} />;
   }
 
-  if (!openPeriodsQuery.data.length) {
+  const recentIssues = groupOpenPeriodsByIssue(openPeriodsQuery.data).slice(
+    0,
+    RECENT_ISSUES_LIMIT
+  );
+
+  if (!recentIssues.length) {
     return (
       <RecentIssuesTableMessage
         message={t('No issues for this monitor within the current date range')}
@@ -151,12 +167,8 @@ function RecentIssuesTable({
 
   return (
     <SimpleTable columns={RECENT_ISSUE_COLUMNS} header={<RecentIssuesTableHeader />}>
-      {openPeriodsQuery.data.map(openPeriod => (
-        <RecentIssueRow
-          key={openPeriod.id}
-          openPeriod={openPeriod}
-          onZoom={zoomToOpenPeriodRange}
-        />
+      {recentIssues.map(issue => (
+        <RecentIssue key={issue.groupId} issue={issue} onZoom={zoomToOpenPeriodRange} />
       ))}
     </SimpleTable>
   );
@@ -167,21 +179,115 @@ function RecentIssuesTableHeader() {
     <SimpleTable.HeaderRow>
       <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
-      <SimpleTable.HeaderCell>{t('Started')}</SimpleTable.HeaderCell>
-      <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
+      <SimpleTable.HeaderCell>{t('Last Opened')}</SimpleTable.HeaderCell>
+      <SimpleTable.HeaderCell>{t('Open Periods')}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell />
     </SimpleTable.HeaderRow>
   );
 }
 
+interface RecentIssueProps {
+  issue: IssueOpenPeriods;
+  onZoom: (start: Date, end?: Date) => void;
+}
+
+function RecentIssue({issue, onZoom}: RecentIssueProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <Fragment>
+      <RecentIssueRow
+        issue={issue}
+        isExpanded={isExpanded}
+        onToggleExpanded={() => setIsExpanded(!isExpanded)}
+        onZoom={onZoom}
+      />
+      {isExpanded &&
+        issue.openPeriods.map(openPeriod => (
+          <IssueOpenPeriodRow
+            key={openPeriod.id}
+            openPeriod={openPeriod}
+            onZoom={onZoom}
+          />
+        ))}
+    </Fragment>
+  );
+}
+
 interface RecentIssueRowProps {
+  isExpanded: boolean;
+  issue: IssueOpenPeriods;
+  onToggleExpanded: () => void;
+  onZoom: (start: Date, end?: Date) => void;
+}
+
+function RecentIssueRow({
+  issue,
+  isExpanded,
+  onToggleExpanded,
+  onZoom,
+}: RecentIssueRowProps) {
+  const organization = useOrganization();
+
+  const latestOpenPeriod = issue.openPeriods[0];
+
+  const earliestOpenPeriod = issue.openPeriods.at(-1) ?? latestOpenPeriod;
+
+  const earliestOpenPeriodStart = new Date(earliestOpenPeriod.start);
+
+  const latestOpenPeriodEnd = latestOpenPeriod.end
+    ? new Date(latestOpenPeriod.end)
+    : undefined;
+
+  return (
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
+        <Flex align="center" gap="xs">
+          <Button
+            size="xs"
+            variant="transparent"
+            icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
+            aria-label={isExpanded ? t('Hide open periods') : t('Show open periods')}
+            aria-expanded={isExpanded}
+            onClick={onToggleExpanded}
+          />
+          <Link to={`/organizations/${organization.slug}/issues/${issue.groupId}/`}>
+            {issue.shortId ?? t('View Issue')}
+          </Link>
+        </Flex>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        {latestOpenPeriod.isOpen ? (
+          <Tag variant="warning">{t('Ongoing')}</Tag>
+        ) : (
+          <Tag variant="success">{t('Resolved')}</Tag>
+        )}
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <DateTime date={latestOpenPeriod.start} />
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <Text tabular>{issue.openPeriods.length}</Text>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
+        <Button
+          size="xs"
+          onClick={() => onZoom(earliestOpenPeriodStart, latestOpenPeriodEnd)}
+        >
+          {t('Zoom')}
+        </Button>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
+  );
+}
+
+interface IssueOpenPeriodRowProps {
   onZoom: (start: Date, end?: Date) => void;
   openPeriod: GroupOpenPeriod;
 }
 
-function RecentIssueRow({openPeriod, onZoom}: RecentIssueRowProps) {
+function IssueOpenPeriodRow({openPeriod, onZoom}: IssueOpenPeriodRowProps) {
   const [now] = useState(() => new Date());
-  const organization = useOrganization();
 
   const openPeriodStart = new Date(openPeriod.start);
 
@@ -192,28 +298,31 @@ function RecentIssueRow({openPeriod, onZoom}: RecentIssueRowProps) {
 
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell>
-        <Link to={`/organizations/${organization.slug}/issues/${openPeriod.groupId}/`}>
-          {openPeriod.shortId ?? t('View Issue')}
-        </Link>
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell>
-        {openPeriod.isOpen ? (
-          <Tag variant="warning">{t('Ongoing')}</Tag>
-        ) : (
-          <Tag variant="success">{t('Resolved')}</Tag>
-        )}
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell>
-        <DateTime date={openPeriodStart} />
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell>
-        <Duration seconds={openPeriodDurationSeconds} abbreviation />
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end">
-        <Button size="xs" onClick={() => onZoom(openPeriodStart, openPeriodEnd)}>
-          {t('Zoom')}
-        </Button>
+      <SimpleTable.RowCell column="1 / -1" background="secondary">
+        <Grid
+          columns="1fr 1fr min-content min-content"
+          align="center"
+          gap="md"
+          width="100%"
+          paddingLeft="2xl"
+        >
+          <Text>
+            {t('Started')} <DateTime date={openPeriodStart} />
+          </Text>
+          <Text>
+            {openPeriodEnd ? (
+              <Fragment>
+                {t('Ended')} <DateTime date={openPeriodEnd} />
+              </Fragment>
+            ) : (
+              t('Ongoing')
+            )}
+          </Text>
+          <Duration seconds={openPeriodDurationSeconds} abbreviation />
+          <Button size="xs" onClick={() => onZoom(openPeriodStart, openPeriodEnd)}>
+            {t('Zoom')}
+          </Button>
+        </Grid>
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
@@ -234,7 +343,7 @@ function RecentIssuesTableSkeleton() {
             <Placeholder height="20px" width="60%" />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
-            <Placeholder height="20px" width="40px" />
+            <Placeholder height="20px" width="24px" />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell justify="end">
             <Placeholder height="24px" width="48px" />
