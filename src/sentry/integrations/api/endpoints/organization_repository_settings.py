@@ -20,6 +20,11 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -86,7 +91,11 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
     )
     def put(
         self, request: Request, organization: Organization
-    ) -> Response[list[RepositorySerializerResponse]]:
+    ) -> (
+        Response[list[RepositorySerializerResponse]]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Create or update repository settings for multiple repositories. Currently this is strictly built for the seer specific
         settings, so if you want to use this for other settings, you will need to update the serializer and business logic below accordingly.
@@ -96,7 +105,7 @@ class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
         """
         serializer = RepositorySettingsSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
         repository_ids = data["repositoryIds"]

@@ -57,7 +57,7 @@ class GroupAutofixSetupCheckResponse(TypedDict):
 
 def get_autofix_integration_setup_problems(
     organization: Organization, project: Project
-) -> str | None:
+) -> Literal["integration_missing"] | None:
     """
     Runs through the checks to see if we can use the SCM integration for Autofix.
     Supports GitHub, GitHub Enterprise, and GitLab (when the seer-gitlab-support flag is enabled).
@@ -180,20 +180,19 @@ class GroupAutofixSetupCheck(GroupAiEndpoint):
         ):
             autofix_enabled = True
 
-        return Response(
-            {
-                "integration": {
-                    "ok": integration_check is None,
-                    "reason": integration_check,
-                },
-                "setupAcknowledgement": {
-                    "orgHasAcknowledged": True,
-                    "userHasAcknowledged": True,
-                },
-                "billing": {
-                    "hasAutofixQuota": has_autofix_quota,
-                },
-                "seerReposLinked": seer_repos_linked,
-                "autofixEnabled": autofix_enabled,
-            }
-        )
+        body: GroupAutofixSetupCheckResponse = {
+            "integration": {
+                "ok": integration_check is None,
+                "reason": integration_check,
+            },
+            "setupAcknowledgement": {
+                "orgHasAcknowledged": True,
+                "userHasAcknowledged": True,
+            },
+            "billing": {
+                "hasAutofixQuota": has_autofix_quota,
+            },
+            "seerReposLinked": seer_repos_linked,
+            "autofixEnabled": autofix_enabled,
+        }
+        return Response(body)

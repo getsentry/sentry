@@ -28,6 +28,11 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
@@ -387,7 +392,9 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project: Project) -> Response[list[ProjectRepoResponse]]:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[ProjectRepoResponse]] | Response[DetailResponse]:
         queryset = (
             _valid_project_repos_queryset(project)
             .prefetch_related("branch_overrides")
@@ -437,10 +444,12 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, project: Project) -> Response[None]:
+    def post(
+        self, request: Request, project: Project
+    ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         serializer = SeerProjectReposBulkSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         repos_data = serializer.validated_data["repos"]
         if not repos_data:
@@ -472,10 +481,12 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, project: Project) -> Response[None]:
+    def put(
+        self, request: Request, project: Project
+    ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         serializer = SeerProjectReposBulkSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         repos_data = serializer.validated_data["repos"]
 

@@ -100,16 +100,15 @@ class OrganizationSeerSetupCheckEndpoint(OrganizationEndpoint):
             org_id=organization.id, data_category=DataCategory.SEER_AUTOFIX
         )
 
-        return Response(
-            {
-                "setupAcknowledgement": {
-                    "orgHasAcknowledged": True,
-                    "userHasAcknowledged": True,
-                },
-                "hasFreeAutofixAccess": is_free_cohort_org(organization),
-                "billing": {
-                    "hasAutofixQuota": has_autofix_quota,
-                    "hasScannerQuota": has_seer_scanner_quota,
-                },
-            }
-        )
+        body: OrganizationSeerSetupCheckResponse = {
+            "setupAcknowledgement": {
+                "orgHasAcknowledged": True,
+                "userHasAcknowledged": True,
+            },
+            "hasFreeAutofixAccess": is_free_cohort_org(organization),
+            "billing": {
+                "hasAutofixQuota": has_autofix_quota,
+                "hasScannerQuota": has_seer_scanner_quota,
+            },
+        }
+        return Response(body)

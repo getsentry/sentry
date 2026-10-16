@@ -29,6 +29,11 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import (
     AUTOFIX_AUTOMATION_TUNING_DEFAULT,
@@ -480,7 +485,9 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, project: Project) -> Response[SeerProjectSettingsResponse]:
+    def put(
+        self, request: Request, project: Project
+    ) -> Response[SeerProjectSettingsResponse] | Response[ValidationErrorResponse]:
         serializer_cls = (
             ProjectSettingsUpdateSerializer
             if is_seer_seat_based_tier_enabled(project.organization)
@@ -490,7 +497,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
             data=request.data, context={"organization": project.organization}
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
         update_seer_project_settings([project.id], data)
@@ -580,7 +587,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
     )
     def get(
         self, request: Request, organization: Organization
-    ) -> Response[list[SeerProjectSettingsResponse]]:
+    ) -> Response[list[SeerProjectSettingsResponse]] | Response[DetailResponse]:
         sort_by = request.GET.get("sortBy", "name")
         order_by = SORT_FIELDS_MAPPING.get(sort_by)
         if order_by is None:
@@ -628,7 +635,9 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, organization: Organization) -> Response[None]:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         serializer_cls = (
             BulkProjectSettingsUpdateSerializer
             if is_seer_seat_based_tier_enabled(organization)
@@ -636,7 +645,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
         )
         serializer = serializer_cls(data=request.data, context={"organization": organization})
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
         search_query = data.pop("query")

@@ -26,6 +26,11 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.endpoints.organization_code_mappings import (
@@ -213,10 +218,14 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
     )
     def post(
         self, request: Request, organization: Organization
-    ) -> Response[BulkCodeMappingsResponse]:
+    ) -> (
+        Response[BulkCodeMappingsResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         serializer = BulkCodeMappingsRequestSerializer(data=request.data)
         if not serializer.is_valid():
-            errors = serializer.errors
+            errors = as_validation_errors(serializer)
             mapping_errors = errors.get("mappings")
             invalid_indices: list[int] = []
             if isinstance(mapping_errors, list):
@@ -225,7 +234,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                     for i, item_errors in enumerate(mapping_errors)
                     if isinstance(item_errors, dict) and item_errors
                 ]
-            if invalid_indices:
+            if invalid_indices and isinstance(mapping_errors, list):
                 detail = (
                     "Some of the submitted mappings have an invalid format. "
                     f"Check the mappings at the following indices: {invalid_indices}. "
@@ -249,11 +258,11 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                                 {"index": index, "sourceRoot": source_root}
                             )
 
-                response_data = {"detail": detail, **errors}
+                validation_response: ValidationErrorResponse = {"detail": detail, **errors}
                 if rejected_source_roots:
-                    response_data["rejectedSourceRoots"] = rejected_source_roots
+                    validation_response["rejectedSourceRoots"] = rejected_source_roots
                 return Response(
-                    response_data,
+                    validation_response,
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
@@ -363,7 +372,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                     )
 
         mappings = data["mappings"]
-        results = []
+        results: list[BulkCodeMappingResult] = []
         has_errors = False
         last_saved_config = None
 
@@ -439,7 +448,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         updated_count = sum(1 for r in results if r["status"] == "updated")
         error_count = sum(1 for r in results if r["status"] == "error")
 
-        response_data = {
+        response_data: BulkCodeMappingsResponse = {
             "created": created_count,
             "updated": updated_count,
             "errors": error_count,
