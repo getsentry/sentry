@@ -455,17 +455,6 @@ class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
-    monitor = FlexibleForeignKey(
-        "monitors.Monitor",
-        db_index=False,
-        null=True,
-        db_constraint=False,
-        on_delete=models.DO_NOTHING,
-    )
-    """
-    No longer read or written. The monitor environment already holds the monitor;
-    this column is being removed.
-    """
     monitor_environment = FlexibleForeignKey("monitors.MonitorEnvironment", db_index=False)
     """
     XXX(epurkhiser): Currently unused
@@ -561,14 +550,7 @@ class MonitorCheckIn(Model):
         app_label = "monitors"
         db_table = "sentry_monitorcheckin"
         indexes = [
-            # used for endpoints for monitor stats + list check-ins
-            # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
-            # column
-            models.Index(fields=["monitor", "date_added", "status"]),
-            # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
-            # column
-            models.Index(fields=["monitor", "status", "date_added"]),
-            # used for has_newer_result + thresholds
+            # used for has_newer_result + thresholds, monitor stats + list check-ins
             # Note: If we remove all indexes that start with `monitor_environment`, we need to add the index back on the
             # column
             models.Index(fields=["monitor_environment", "date_added", "status"]),
