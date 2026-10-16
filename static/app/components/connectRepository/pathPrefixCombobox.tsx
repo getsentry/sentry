@@ -151,8 +151,9 @@ export function PathPrefixCombobox({
     if (!option) {
       return;
     }
-    setCatchAllPicked(option.value === CATCH_ALL_VALUE);
-    onChange(normalizeRoot(option.value));
+    const optionValue = option.value ?? CATCH_ALL_VALUE;
+    setCatchAllPicked(optionValue === CATCH_ALL_VALUE);
+    onChange(normalizeRoot(optionValue));
   }
 
   // Show the placeholder for an empty value until the user explicitly picks the
