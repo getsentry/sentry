@@ -336,8 +336,8 @@ family:native package:**/libgame.so function:Unity::*                category=fr
 family:native package:**/libgame.so function:MainLoop                category=framework
 
 ## Unity's generated iOS launch stub: template code rather than anything the developer wrote, and
-## iOS-only, so leaving it in splits an otherwise identical crash from its counterparts. Not every
-## build symbolicates it with a source path, which leaves its caller-callee shape as the stable trait.
+## iOS-only, so leaving it in splits an otherwise identical crash from its counterparts. Its source
+## path is lost when the app executable's debug file is not uploaded; its call into IL2CPP is not.
 family:native function:main | [ category:il2cpp ]                  -app
 
 # Unity dispatches coroutines from its own scheduler, so the frames below `InvokeMoveNext` are
