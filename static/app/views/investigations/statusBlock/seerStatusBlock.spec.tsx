@@ -1,4 +1,4 @@
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {
   InvestigationHypothesisFixture,
@@ -11,7 +11,7 @@ import type {InvestigationToolActivity} from 'sentry/views/investigations/types'
 
 describe('SeerStatusBlock', () => {
   it('omits the elapsed time when there is nothing to count from', () => {
-    render(<SeerStatusBlock variant="running" title="Seer is investigating" />);
+    render(<SeerStatusBlock variant="failed" title="Seer couldn't finish" />);
 
     expect(screen.queryByText(/\ds$/)).not.toBeInTheDocument();
   });
@@ -35,30 +35,39 @@ describe('SeerStatusBlock', () => {
     expect(screen.getByRole('button', {name: 'Connect Datadog'})).toBeInTheDocument();
   });
 
-  it('shows a lone tool call without anything to expand', () => {
-    const {rerender} = render(
-      <SeerStatusBlock variant="running" title="Seer is gathering context" />
-    );
-
-    expect(
-      screen.queryByTestId('seer-status-block-tool-activity')
-    ).not.toBeInTheDocument();
-
-    rerender(
+  it('lists every tool call in an open thinking block, in the order they ran', async () => {
+    render(
       <SeerStatusBlock
         variant="running"
         title="Seer is gathering context"
-        toolActivity={[{id: 'a', kind: 'tool', status: 'running', title: 'Query spans'}]}
+        toolActivity={[
+          {id: 'a', kind: 'tool', status: 'completed', title: 'Query spans'},
+          {id: 'b', kind: 'tool', status: 'failed', title: 'Fetch traces'},
+          {id: 'c', kind: 'tool', status: 'running', title: 'Compare releases'},
+        ]}
       />
     );
 
-    expect(screen.getByTestId('seer-status-block-tool-activity')).toHaveTextContent(
-      'Query spans'
-    );
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    const thinking = screen.getByTestId('seer-status-block-thinking');
+    // The latest call is the title, as the agent's current tool is in its own
+    // thinking block.
+    const toggle = within(thinking).getByRole('button', {name: /Compare releases/});
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      within(thinking)
+        .getAllByText(/^(Query spans|Fetch traces|Compare releases)$/)
+        .map(node => node.textContent)
+    ).toEqual(['Compare releases', 'Query spans', 'Fetch traces', 'Compare releases']);
+    expect(within(thinking).getByRole('status', {name: 'Running'})).toBeVisible();
+
+    // Open while the run works, but the viewer can fold it away.
+    await userEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText('Query spans')).not.toBeVisible();
   });
 
-  it('announces a queued latest call as waiting, not as awaiting approval', () => {
+  it('announces a queued call as waiting, not as awaiting approval', () => {
     render(
       <SeerStatusBlock
         variant="running"
@@ -74,36 +83,68 @@ describe('SeerStatusBlock', () => {
     expect(screen.queryByLabelText('Waiting for approval')).not.toBeInTheDocument();
   });
 
-  it('shows only the latest tool call and expands to the earlier ones', async () => {
+  it('shows a thinking block before any call has landed', () => {
+    render(<SeerStatusBlock variant="running" title="Seer is looking for causes" />);
+
+    expect(
+      within(screen.getByTestId('seer-status-block-thinking')).getByRole('button', {
+        name: /Thinking/,
+      })
+    ).toBeInTheDocument();
+  });
+
+  describe('clock', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2030-01-01T00:00:00Z'));
+    });
+
+    afterEach(() => {
+      try {
+        act(() => jest.runOnlyPendingTimers());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it("counts up from the run's own start", () => {
+      render(
+        <SeerStatusBlock
+          variant="running"
+          title="Seer is gathering context"
+          startTime={new Date('2029-12-31T23:59:18Z')}
+        />
+      );
+
+      expect(screen.getByText('42.0s')).toBeInTheDocument();
+      act(() => jest.advanceTimersByTime(1500));
+      expect(screen.getByText('43.5s')).toBeInTheDocument();
+    });
+
+    it('counts from when the block appeared without one', () => {
+      render(<SeerStatusBlock variant="running" title="Seer is gathering context" />);
+
+      expect(screen.getByText('0.0s')).toBeInTheDocument();
+      act(() => jest.advanceTimersByTime(1500));
+      expect(screen.getByText('1.5s')).toBeInTheDocument();
+    });
+  });
+
+  // A stopped run's last calls are history: a thinking block would read as
+  // though the agent were still working.
+  it('draws no thinking block once the run has stopped', () => {
     render(
       <SeerStatusBlock
-        variant="running"
-        title="Seer is gathering context"
+        variant="failed"
+        title="Seer couldn't finish this investigation"
         toolActivity={[
           {id: 'a', kind: 'tool', status: 'completed', title: 'Query spans'},
-          {id: 'b', kind: 'tool', status: 'failed', title: 'Fetch traces'},
-          {id: 'c', kind: 'tool', status: 'running', title: 'Compare releases'},
         ]}
       />
     );
 
-    const toggle = screen.getByRole('button', {name: 'Compare releases'});
-    expect(screen.getByRole('status', {name: 'Running'})).toBeInTheDocument();
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByText('Query spans')).not.toBeVisible();
-
-    await userEvent.click(toggle);
-
-    // Newest first, reading back in time from the call that is running now.
-    const earlier = screen.getByRole('list', {name: 'Earlier tool calls'});
-    expect(
-      within(earlier)
-        .getAllByRole('listitem')
-        .map(item => item.textContent)
-    ).toEqual([
-      expect.stringContaining('Fetch traces'),
-      expect.stringContaining('Query spans'),
-    ]);
+    expect(screen.queryByTestId('seer-status-block-thinking')).not.toBeInTheDocument();
+    expect(screen.queryByText('Query spans')).not.toBeInTheDocument();
   });
 });
 
@@ -211,6 +252,33 @@ describe('getSeerStatusBlock', () => {
     expect(block).toMatchObject({variant: 'running'});
   });
 
+  // The server's and the browser's clocks need not agree, so the run's start is
+  // its active time counted back from when the browser received the snapshot.
+  it("starts the clock at the run's start on the browser's clock", () => {
+    const block = getSeerStatusBlock(
+      InvestigationOrchestrationFixture({
+        status: 'processing',
+        phase: 'broad_scan',
+        startedAt: '2025-01-01T00:00:00Z',
+        finishedAt: null,
+        activeTimeElapsedSeconds: 24.5,
+        activeSince: '2025-01-01T00:05:00Z',
+        serverTime: '2025-01-01T00:05:10Z',
+      }),
+      Date.parse('2030-01-01T00:00:00Z')
+    );
+
+    expect(block?.startTime).toEqual(new Date('2029-12-31T23:59:25.500Z'));
+  });
+
+  it('leaves the clock unanchored without a receipt time', () => {
+    const block = getSeerStatusBlock(
+      InvestigationOrchestrationFixture({status: 'processing', phase: 'broad_scan'})
+    );
+
+    expect(block?.startTime).toBeUndefined();
+  });
+
   describe('tool activity', () => {
     function activity(
       id: string,
@@ -283,8 +351,8 @@ describe('getSeerStatusBlock', () => {
       ]);
     });
 
-    // The block collapses to the latest call itself, so every call for the phase
-    // has to reach it for the expanded view to be complete.
+    // The thinking block lists every call for the phase, not just the latest,
+    // so all of them have to reach it.
     it('passes every call for the phase, latest last', () => {
       const projection = InvestigationOrchestrationFixture({
         status: 'processing',

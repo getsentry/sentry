@@ -8,6 +8,14 @@ import {Text} from '@sentry/scraps/text';
 import * as Storybook from 'sentry/stories';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 
+// A story has no run behind it, so each clock pretends its run started this
+// long before the stories loaded.
+const LOADED_AT = Date.now();
+
+function startedAgo(seconds: number) {
+  return new Date(LOADED_AT - seconds * 1000);
+}
+
 export default Storybook.story('Investigations — Seer status block', story => {
   story('While the agent is working', () => (
     <Fragment>
@@ -24,32 +32,39 @@ export default Storybook.story('Investigations — Seer status block', story => 
         which is why the sentence is a prop rather than another variant. The status badge
         appears beside the investigation title in the page header.
       </p>
+      <p>
+        Every running block also carries a thinking block, drawn exactly as the Seer agent
+        draws its own: the spinning Seer, what the agent is doing right now as a live
+        title, and the run's clock, counting up from <code>startTime</code>. Before any
+        tool call has landed the title is "Thinking", so the block holds its place through
+        phases that make no calls.
+      </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <Stack gap="xl">
           <SeerStatusBlock
             variant="running"
             title="Seer is gathering context for the FCP spike"
             description="Comparing server timing, cache activity, SSO, and browser rendering. No input needed."
-            elapsed="56.4s"
+            startTime={startedAgo(56.4)}
           />
           <SeerStatusBlock
             variant="running"
             title="Seer is looking for likely causes"
             description="Possible hypothesis will appear here as Seer connects the evidence. No input needed."
-            elapsed="101.5s"
+            startTime={startedAgo(101.5)}
           />
           <SeerStatusBlock
             variant="running"
             title="Seer found four possible causes and is checking for evidence"
             description="Four possible causes are found, now Seer is checking for evidence to validate the hypothesis."
-            elapsed="101.5s"
+            startTime={startedAgo(101.5)}
           />
           <SeerStatusBlock
             variant="running"
             title="Seer is bringing the findings together"
             meta="4 possible causes • 9 checks completed"
             description="Organizing the explanation, supporting evidence, and next steps. Your investigation will open automatically."
-            elapsed="101.5s"
+            startTime={startedAgo(101.5)}
           />
         </Stack>
       </Storybook.Demo>
@@ -153,12 +168,11 @@ export default Storybook.story('Investigations — Seer status block', story => 
       <p>
         While the agent is working, <code>toolActivity</code> carries the calls behind the
         current phase — the broad scan, the hypotheses still under investigation, or the
-        report block being written. Each is drawn with the same <code>ToolCall</code> the
-        Seer agent uses, but only the latest is shown: it says what the agent is doing
-        right now, and the title is still the sentence to read. When there is history
-        behind it, the latest call is the toggle, and opening it lists the earlier calls
-        newest first. A stopped run leaves them out, since its last calls are history, not
-        status.
+        report block being written. They fill the thinking block the way the Seer agent
+        fills its own: the latest call becomes the live title, and every call is listed
+        inside in the order it ran, each drawn with the same <code>ToolCall</code>. The
+        block is open while the run works and the viewer can fold it away. A stopped run
+        draws no thinking block, since its last calls are history, not status.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <Stack gap="xl">
@@ -166,7 +180,7 @@ export default Storybook.story('Investigations — Seer status block', story => 
             variant="running"
             title="Seer is gathering context"
             description="Comparing the signals around the problem to work out where to look. No input needed."
-            elapsed="12.3s"
+            startTime={startedAgo(12.3)}
             toolActivity={[
               {
                 id: 'tool-0',
@@ -180,7 +194,7 @@ export default Storybook.story('Investigations — Seer status block', story => 
             variant="running"
             title="Seer found four possible causes and is checking for evidence"
             description="Seer is checking for evidence to validate each possible cause. No input needed."
-            elapsed="101.5s"
+            startTime={startedAgo(101.5)}
             toolActivity={[
               {
                 id: 'tool-1',
@@ -210,15 +224,15 @@ export default Storybook.story('Investigations — Seer status block', story => 
   story('Without an elapsed time', () => (
     <Fragment>
       <p>
-        <code>elapsed</code> is optional, and the wired block currently leaves it out. The
-        projection carries no run-level start time — <code>startedAt</code> exists only on
-        individual block executions — so there is nothing honest to count from yet. The
-        prop is here because the design calls for it and the story can show it; the
-        component will start receiving a real value when the projection grows one.
+        <code>elapsed</code> is optional, and the wired block currently leaves it out: a
+        running block's clock lives in its thinking block instead, and the page header
+        carries the run's active time. When it is supplied it renders monospace and
+        tabular, so the counter stays stable as its value changes.
       </p>
       <p>
-        When it is supplied it renders monospace and tabular, so the counter stays stable
-        as its value changes.
+        <code>startTime</code> is optional too. Without it the thinking block's clock
+        starts when the block appears, as the Seer agent's does for a response that has
+        just begun.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <SeerStatusBlock
@@ -233,15 +247,24 @@ export default Storybook.story('Investigations — Seer status block', story => 
   story('In a narrow container', () => (
     <Fragment>
       <p>
-        The clock holds the top-right corner and the title wraps around it. The status
-        badge lives in the page header. Drag the demo's edge to watch it.
+        The title wraps, while the thinking block keeps its clock on the right edge and
+        truncates what the agent is doing. The status badge lives in the page header. Drag
+        the demo's edge to watch it.
       </p>
       <Storybook.Demo resizable direction="column" align="stretch">
         <SeerStatusBlock
           variant="running"
           title="Seer found four possible causes and is checking for evidence"
           description="Four possible causes are found, now Seer is checking for evidence to validate the hypothesis."
-          elapsed="101.5s"
+          startTime={startedAgo(101.5)}
+          toolActivity={[
+            {
+              id: 'tool-1',
+              kind: 'tool',
+              status: 'running',
+              title: 'Grouping Redis command latency by key prefix',
+            },
+          ]}
         />
       </Storybook.Demo>
     </Fragment>

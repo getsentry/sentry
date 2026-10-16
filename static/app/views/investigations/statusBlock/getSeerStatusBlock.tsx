@@ -1,4 +1,5 @@
 import {t, tn} from 'sentry/locale';
+import {getInvestigationActiveTime} from 'sentry/views/investigations/detail/runTimer';
 import type {SeerStatusBlockVariant} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 import type {
   InvestigationOrchestration,
@@ -11,6 +12,7 @@ type SeerStatusBlockContent = {
   variant: SeerStatusBlockVariant;
   description?: string;
   meta?: string;
+  startTime?: Date;
   toolActivity?: InvestigationToolActivity[];
 };
 
@@ -130,12 +132,34 @@ function getFailureMessage(projection: InvestigationOrchestration): string | und
  * working and the viewer has nothing to do — so only the words change.
  */
 function getRunningContent(
-  projection: InvestigationOrchestration
+  projection: InvestigationOrchestration,
+  receivedAt: number | undefined
 ): SeerStatusBlockContent {
-  return {...getRunningCopy(projection), toolActivity: getToolActivity(projection)};
+  return {
+    ...getRunningCopy(projection),
+    toolActivity: getToolActivity(projection),
+    startTime: getStartTime(projection, receivedAt),
+  };
 }
 
-/** The words for a running run; the tool calls are added by the caller. */
+/**
+ * When the run started working, on this browser's clock: its active time as of
+ * the snapshot, counted back from when the snapshot arrived. Only differences on
+ * each clock are used, so a browser whose clock disagrees with the server's
+ * still counts the same time as the server does.
+ */
+function getStartTime(
+  projection: InvestigationOrchestration,
+  receivedAt: number | undefined
+): Date | undefined {
+  const activeTime = getInvestigationActiveTime(projection);
+  if (!activeTime || receivedAt === undefined) {
+    return undefined;
+  }
+  return new Date(receivedAt - activeTime.seconds * 1000);
+}
+
+/** The words for a running run; the tool calls and clock are added by the caller. */
 function getRunningCopy(projection: InvestigationOrchestration): SeerStatusBlockContent {
   const causeCount = projection.hypotheses.length;
 
@@ -208,9 +232,14 @@ function getRunningCopy(projection: InvestigationOrchestration): SeerStatusBlock
  * stopped run shares the `completed`/`failed`/`cancelled` phases with its
  * status. Taking the variant from the status keeps the colour tied to whether
  * the viewer has to do anything.
+ *
+ * `receivedAt` is when this browser received the projection (the query's
+ * `dataUpdatedAt`). A running block needs it to start its clock at the run's
+ * start; without it the clock starts when the block appears.
  */
 export function getSeerStatusBlock(
-  projection: InvestigationOrchestration
+  projection: InvestigationOrchestration,
+  receivedAt?: number
 ): SeerStatusBlockContent | null {
   switch (projection.status) {
     // Stopped, but recoverably, and the only state that asks for something
@@ -253,11 +282,11 @@ export function getSeerStatusBlock(
       };
     case 'pending':
     case 'processing':
-      return getRunningContent(projection);
+      return getRunningContent(projection, receivedAt);
     default:
       // An unrecognized status is still a run in progress as far as the viewer
       // is concerned — Seer can add one before this code knows the name, and a
       // missing block reads as "nothing is happening", which is worse.
-      return getRunningContent(projection);
+      return getRunningContent(projection, receivedAt);
   }
 }
