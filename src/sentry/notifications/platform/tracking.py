@@ -4,7 +4,7 @@ from collections.abc import Collection, Mapping
 from copy import copy
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
-from typing import NotRequired, TypedDict, cast
+from typing import TYPE_CHECKING, NotRequired, TypedDict, cast
 from urllib.parse import SplitResult, parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
 
 from django.conf import settings
@@ -15,6 +15,7 @@ from sentry.analytics.events.notification_tracking import (
     NotificationTrackingSentEvent,
 )
 from sentry.notifications.platform.types import (
+    NOTIFICATION_SOURCE_MAP,
     LinkTextBlock,
     NotificationCategory,
     NotificationData,
@@ -25,6 +26,9 @@ from sentry.notifications.platform.types import (
     NotificationTextBlock,
 )
 from sentry.utils import metrics
+
+if TYPE_CHECKING:
+    from sentry.integrations.types import ExternalProviderEnum
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +79,78 @@ class NotificationTrackingContext:
     notification_uuid: str | None
     organization_id: int
     stage: str | None = None
+
+
+@dataclass(frozen=True)
+class NotificationReferrer:
+    """The notification a tracked link came from, as identified by the link's `referrer`."""
+
+    source: NotificationSource
+    category: NotificationCategory
+    provider: "ExternalProviderEnum"
+
+
+_SOURCE_CATEGORIES: dict[str, NotificationCategory] = {
+    source: category for category, sources in NOTIFICATION_SOURCE_MAP.items() for source in sources
+}
+
+# Legacy notifications built on `BaseNotification` give their links a referrer of
+# `<metrics_key>-<provider>`, sometimes followed by `-user` or `-team`, such as
+# `assigned_activity-email-user`. Maps each `metrics_key` to the notification platform source that
+# replaces it.
+_LEGACY_METRICS_KEY_SOURCES: dict[str, NotificationSource] = {
+    "issue_alert": NotificationSource.ISSUE,
+    "digest": NotificationSource.ISSUE,
+    "archived_activity": NotificationSource.ACTIVITY_SET_IGNORED,
+    "assigned_activity": NotificationSource.ACTIVITY_ASSIGNED,
+    "escalating_activity": NotificationSource.ACTIVITY_SET_ESCALATING,
+    "note_activity": NotificationSource.ACTIVITY_NOTE,
+    "regression_activity": NotificationSource.ACTIVITY_SET_REGRESSION,
+    "release_activity": NotificationSource.DEPLOY_RELEASE,
+    "resolved_activity": NotificationSource.ACTIVITY_SET_RESOLVED,
+    "resolved_in_commit_activity": NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
+    "resolved_in_release_activity": NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE,
+    "unassigned_activity": NotificationSource.ACTIVITY_UNASSIGNED,
+    "unresolved_activity": NotificationSource.ACTIVITY_SET_UNRESOLVED,
+}
+
+# Legacy alert referrers, which don't include a `metrics_key`, mapped to the notification platform
+# source that replaces them and their provider.
+_LEGACY_ALERT_REFERRERS: dict[str, tuple[NotificationSource, str]] = {
+    "slack": (NotificationSource.ISSUE, "slack"),
+    "msteams": (NotificationSource.ISSUE, "msteams"),
+    "discord": (NotificationSource.ISSUE, "discord"),
+    "alert_email": (NotificationSource.ISSUE, "email"),
+    "metric_alert_email": (NotificationSource.METRIC_ALERT, "email"),
+    "metric_alert_slack": (NotificationSource.METRIC_ALERT, "slack"),
+    "metric_alert_msteams": (NotificationSource.METRIC_ALERT, "msteams"),
+    "metric_alert_discord": (NotificationSource.METRIC_ALERT, "discord"),
+    "metric_alert_pagerduty": (NotificationSource.METRIC_ALERT, "pagerduty"),
+    "metric_alert_opsgenie": (NotificationSource.METRIC_ALERT, "opsgenie"),
+}
+
+
+def parse_referrer(referrer: str) -> NotificationReferrer | None:
+    """
+    Identify a notification from a link's `referrer`: `<source>-<provider>` from the notification
+    platform, or one of the legacy referrers above. Referrers naming an unknown provider aren't
+    recognized.
+    """
+    from sentry.integrations.types import ExternalProviderEnum
+
+    prefix, _, provider = referrer.removesuffix("-user").removesuffix("-team").rpartition("-")
+    if prefix in _SOURCE_CATEGORIES:
+        source = NotificationSource(prefix)
+    elif prefix in _LEGACY_METRICS_KEY_SOURCES:
+        source = _LEGACY_METRICS_KEY_SOURCES[prefix]
+    elif referrer in _LEGACY_ALERT_REFERRERS:
+        source, provider = _LEGACY_ALERT_REFERRERS[referrer]
+    else:
+        return None
+
+    if provider not in ExternalProviderEnum:
+        return None
+    return NotificationReferrer(source, _SOURCE_CATEGORIES[source], ExternalProviderEnum(provider))
 
 
 def is_tracking_enabled(
