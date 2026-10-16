@@ -23,6 +23,7 @@ EXPLORE_SAVED_QUERY_OBJ = {
         }
     ],
     "range": "24h",
+    "statsPeriod": "24h",
     "dataset": "spans",
     "expired": False,
     "lastVisited": None,
@@ -73,6 +74,7 @@ SAVED_QUERIES = [
             }
         ],
         "range": "24h",
+        "statsPeriod": "24h",
         "dataset": "spans",
         "expired": False,
         "lastVisited": None,
@@ -121,6 +123,7 @@ SAVED_QUERIES = [
             }
         ],
         "range": "24h",
+        "statsPeriod": "24h",
         "dataset": "spans",
         "expired": False,
         "lastVisited": None,
