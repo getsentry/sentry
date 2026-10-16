@@ -11,6 +11,7 @@ import pytest
 import responses
 from django.urls import reverse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.github_enterprise.integration import (
     GitHubEnterpriseIntegration,
@@ -1160,6 +1161,23 @@ class GitHubEnterpriseApiPipelineTest(APITestCase):
             },
         )
 
+    def _run_full_pipeline(self) -> Any:
+        self._stub_ghe_oauth()
+        self._stub_ghe_user()
+        self._stub_ghe_installation()
+
+        resp = self._initialize_pipeline()
+        assert resp.data["step"] == "installation_config"
+
+        resp = self._submit_config()
+        assert resp.data["step"] == "app_install_redirect"
+
+        resp = self._advance_step({"installationId": self.installation_id})
+        assert resp.data["step"] == "oauth_login"
+        pipeline_signature = self._get_pipeline_signature(resp)
+
+        return self._advance_step({"code": "auth-code", "state": pipeline_signature})
+
     @responses.activate
     def test_initialize_pipeline(self) -> None:
         resp = self._initialize_pipeline()
@@ -1214,21 +1232,7 @@ class GitHubEnterpriseApiPipelineTest(APITestCase):
         "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token"
     )
     def test_full_pipeline_flow(self, mock_jwt: MagicMock) -> None:
-        self._stub_ghe_oauth()
-        self._stub_ghe_user()
-        self._stub_ghe_installation()
-
-        resp = self._initialize_pipeline()
-        assert resp.data["step"] == "installation_config"
-
-        resp = self._submit_config()
-        assert resp.data["step"] == "app_install_redirect"
-
-        resp = self._advance_step({"installationId": self.installation_id})
-        assert resp.data["step"] == "oauth_login"
-        pipeline_signature = self._get_pipeline_signature(resp)
-
-        resp = self._advance_step({"code": "auth-code", "state": pipeline_signature})
+        resp = self._run_full_pipeline()
         assert resp.status_code == 200
         assert resp.data["status"] == "complete"
         assert "data" in resp.data
@@ -1239,6 +1243,28 @@ class GitHubEnterpriseApiPipelineTest(APITestCase):
             organization_id=self.organization.id,
             integration=integration,
         ).exists()
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token"
+    )
+    def test_reinstall_rejects_pending_deletion(self, mock_jwt: MagicMock) -> None:
+        resp = self._run_full_pipeline()
+        assert resp.data["status"] == "complete"
+
+        organization_integration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration__provider="github_enterprise",
+        )
+        organization_integration.update(status=ObjectStatus.PENDING_DELETION)
+
+        resp = self._run_full_pipeline()
+
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert "already being removed" in resp.data["data"]["detail"]
+        organization_integration.refresh_from_db()
+        assert organization_integration.status == ObjectStatus.PENDING_DELETION
 
     @responses.activate
     @mock.patch(
