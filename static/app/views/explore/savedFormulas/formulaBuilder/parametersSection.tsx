@@ -72,7 +72,7 @@ export function ParametersSection({
                 </CalculationTab>
               </Container>
             ) : (
-              <Flex flex="1" align="center" gap="md">
+              <Flex flex="1" align="center">
                 <CompactSelect
                   value={param.type}
                   options={VALUE_TYPE_OPTIONS}
@@ -81,9 +81,6 @@ export function ParametersSection({
                   )}
                   onChange={option => update(param.key, {type: option.value})}
                 />
-                <Text variant="muted" size="sm">
-                  {t('Set when the formula is used')}
-                </Text>
               </Flex>
             )}
             <Button
