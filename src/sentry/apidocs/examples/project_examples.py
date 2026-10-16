@@ -371,8 +371,9 @@ ERROR_RELEASE_CUSTOM_INBOUND_FILTER = {
     "active": True,
     "dataType": "error",
     "conditions": [
-        {"type": "error_type", "value": ["TypeError"]},
-        {"type": "release", "value": ["1.*"]},
+        {"type": "error_type", "operator": "matches", "value": ["TypeError"]},
+        {"type": "release", "operator": "matches", "value": ["1.*"]},
+        {"type": "release", "operator": "does_not_match", "value": ["1.0.*"]},
     ],
     "dateCreated": "2024-07-23T17:52:53.981206Z",
     "dateUpdated": "2024-07-23T17:52:53.981206Z",

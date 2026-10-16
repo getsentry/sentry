@@ -54,8 +54,12 @@ class CustomInboundFilterValidateTest(APITestCase):
             "payload": {
                 "data_type": "error",
                 "conditions": [
-                    {"type": "error_message", "value": ["*ConnectionReset*", "*ETIMEDOUT*"]},
-                    {"type": "release", "value": ["3.*"]},
+                    {
+                        "type": "error_message",
+                        "operator": "matches",
+                        "value": ["*ConnectionReset*", "*ETIMEDOUT*"],
+                    },
+                    {"type": "release", "operator": "matches", "value": ["3.*"]},
                 ],
             },
         }
