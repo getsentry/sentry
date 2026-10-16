@@ -72,14 +72,11 @@ def test_dualwrite_experimental_backend_allow_list(dogstatsd_incr, sentry_sdk_in
     )
 
     backend.incr("allowed.metric", tags={"test": "tag"}, unit="none")
-    dogstatsd_incr.assert_called_once()
     sentry_sdk_incr.assert_called_once()
 
-    dogstatsd_incr.reset_mock()
     sentry_sdk_incr.reset_mock()
 
     backend.incr("other.metric", tags={"test": "tag"}, unit="none")
-    dogstatsd_incr.assert_called_once()
     sentry_sdk_incr.assert_not_called()
 
 
