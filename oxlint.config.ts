@@ -787,7 +787,7 @@ const config = defineConfig({
     'react/set-state-in-render': 'error',
     'react/static-components': 'error',
     'react/syntax': 'error',
-    'react/todo': 'off',
+    'react/todo': 'error',
     'react/unsupported-syntax': 'error',
     'react/use-memo': 'error',
     'react/no-did-mount-set-state': 'error',
