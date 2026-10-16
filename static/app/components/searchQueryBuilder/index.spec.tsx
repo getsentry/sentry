@@ -2107,6 +2107,51 @@ describe('SearchQueryBuilder', () => {
       expect(keyOrder()[0]).toMatch(/^message/);
     });
 
+    it.each(['mess', 'message'])(
+      'keeps a user attribute right after the Sentry key it shares a name with when typing %s',
+      async typed => {
+        // A user-sent `message` attribute collides with Sentry's `message` key and
+        // comes back from the API as `tags[message,string]`.
+        const mockGetTagKeys = jest.fn().mockResolvedValue([
+          {key: 'message.template', name: 'message.template', kind: FieldKind.TAG},
+          {
+            key: 'tags[message,string]',
+            name: 'message',
+            kind: FieldKind.TAG,
+            attributeSource: 'user',
+          },
+        ]);
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery=""
+            getTagKeys={mockGetTagKeys}
+          />
+        );
+        await userEvent.click(getLastInput());
+        await userEvent.keyboard(typed);
+
+        await waitFor(() => {
+          expect(screen.getAllByRole('option', {name: 'message'})).toHaveLength(2);
+        });
+
+        const options = screen.getAllByRole('option');
+        expect(options[0]).toHaveAccessibleName('message');
+        expect(options[1]).toHaveAccessibleName('message');
+        expect(
+          options.findIndex(option => option.textContent?.startsWith('message.template'))
+        ).toBeGreaterThan(1);
+
+        // Sentry's key comes before the user attribute
+        await userEvent.click(options[1]!);
+        expect(
+          await screen.findByRole('row', {
+            name: `tags[message,string]:${WildcardOperators.CONTAINS}""`,
+          })
+        ).toBeInTheDocument();
+      }
+    );
+
     it('does not highlight non-contiguous fuzzy filter key matches', async () => {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
       await userEvent.click(getLastInput());
