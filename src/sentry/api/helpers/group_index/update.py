@@ -154,16 +154,7 @@ def self_subscribe_and_assign_issue(
 
 
 def get_current_release_version_of_group(group: Group, follows_semver: bool = False) -> str | None:
-    """
-    Function that returns the latest release version associated with a Group, and by latest we
-    mean either most recent (date) or latest in semver versioning scheme
-    Inputs:
-        * group: Group of the issue
-        * follows_semver: flag that determines whether the project of the group follows semantic
-                          versioning or not.
-    Returns:
-        current_release_version
-    """
+    """Choose the starting version for next-release resolution, excluding archived releases."""
     current_release_version = None
     if follows_semver:
         release = greatest_semver_release(group.project)
@@ -173,6 +164,14 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
         # Preserve the last-release cache refresh for issue details. Its history
         # includes archived releases, so refresh it separately from anchor selection.
         group.get_last_release(use_cache=False)
+        if features.has("organizations:release-resolution-project-anchor", group.organization):
+            release = Release.objects.get_latest_release(
+                group.project,
+                use_finalized_order=features.has(
+                    "organizations:release-resolution-finalized-order", group.organization
+                ),
+            )
+            return release.version if release else None
         # Keep the issue's last-seen ordering, but exclude archived releases before
         # choosing its resolution anchor. General release history remains unfiltered.
         eligible_releases = Release.objects.filter(
@@ -536,10 +535,8 @@ def process_group_resolution(
             "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
         }
 
-        # We only set `current_release_version` if GroupResolution type is
-        # in_next_release, because we need to store information about the latest/most
-        # recent release that was associated with a group and that is required for
-        # release comparisons (i.e. handling regressions)
+        # Next-release regression checks compare against the starting release,
+        # even after a successor has completed the pending resolution.
         if res_type == GroupResolution.Type.in_next_release:
             # Check if semver versioning scheme is followed
             follows_semver = follows_semver_versioning_scheme(
@@ -549,7 +546,7 @@ def process_group_resolution(
             )
 
             current_release_version = get_current_release_version_of_group(group, follows_semver)
-            # Clear a previous anchor if no eligible observed release remains.
+            # Clear a previous anchor if no eligible release remains.
             resolution_params["current_release_version"] = current_release_version
 
             if current_release_version:
@@ -577,11 +574,6 @@ def process_group_resolution(
                         }
                     )
                 else:
-                    # If we already know the `next` release in date based ordering
-                    # when clicking on `resolvedInNextRelease` because it is already
-                    # been released, there is no point in setting GroupResolution to
-                    # be of type in_next_release but rather in_release would suffice
-
                     try:
                         # Get current release object from current_release_version
                         current_release_obj = Release.objects.get(
@@ -589,25 +581,32 @@ def process_group_resolution(
                             organization_id=group.project.organization_id,
                         )
 
-                        resolved_in_release = Release.objects.get_next_release(
-                            group.project,
-                            current_release_obj,
-                            use_finalized_order=features.has(
-                                "organizations:release-resolution-finalized-order",
-                                group.project.organization,
-                            ),
-                        )
-
-                        # If we get here, we assume it exists and so we update
-                        # GroupResolution and Activity
-                        resolution_params.update(
-                            {
-                                "release": resolved_in_release,
-                                "type": GroupResolution.Type.in_release,
-                                "status": GroupResolution.Status.resolved,
-                            }
-                        )
-                        activity_data.update({"version": resolved_in_release.version})
+                        if features.has(
+                            "organizations:release-resolution-project-anchor", group.organization
+                        ):
+                            # The helper selected the project's latest release. Store
+                            # that same anchor for both regression checks and the
+                            # pending-resolution task, and wait for a future successor.
+                            resolution_params["release"] = current_release_obj
+                        else:
+                            # Legacy issue anchors can already have a known successor.
+                            resolved_in_release = Release.objects.get_next_release(
+                                group.project,
+                                current_release_obj,
+                                use_legacy_sort=True,
+                                use_finalized_order=features.has(
+                                    "organizations:release-resolution-finalized-order",
+                                    group.project.organization,
+                                ),
+                            )
+                            resolution_params.update(
+                                {
+                                    "release": resolved_in_release,
+                                    "type": GroupResolution.Type.in_release,
+                                    "status": GroupResolution.Status.resolved,
+                                }
+                            )
+                            activity_data.update({"version": resolved_in_release.version})
                     except Release.DoesNotExist:
                         # If it gets here, it means we don't know the upcoming
                         # release yet because it does not exist, and so we should
@@ -886,7 +885,16 @@ def get_release_to_resolve_by(project: Project) -> Release | None:
     follows_semver = follows_semver_versioning_scheme(
         org_id=project.organization_id, project_id=project.id
     )
-    return greatest_semver_release(project) if follows_semver else most_recent_release(project)
+    if follows_semver:
+        return greatest_semver_release(project)
+    if features.has("organizations:release-resolution-project-anchor", project.organization):
+        return Release.objects.get_latest_release(
+            project,
+            use_finalized_order=features.has(
+                "organizations:release-resolution-finalized-order", project.organization
+            ),
+        )
+    return most_recent_release(project)
 
 
 def most_recent_release(project: Project) -> Release | None:
