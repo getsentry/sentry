@@ -174,7 +174,7 @@ export function InvestigationFixtureApi({
  * they look the same for everyone who opens them. Ada's fixture comments are
  * yours, so they get the author-only actions.
  */
-export function useStoryViewer(): AvatarUser {
+function useStoryViewer(): AvatarUser {
   const {id} = useUser();
   return {...commentStoryAuthors.ADA, id};
 }
