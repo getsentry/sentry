@@ -25,7 +25,11 @@ type Props = {
  * Posts to the CustomerMigrateLegacySeerAdminEndpoint to migrate a single
  * organization off legacy Seer reserved budgets.
  */
-function MigrateLegacySeerAction({orgId, subscription, setConfirmCallback}: Props) {
+export function MigrateLegacySeerAction({
+  orgId,
+  subscription,
+  setConfirmCallback,
+}: Props) {
   const api = useApi({persistInFlight: true});
   const [applyImmediately, setApplyImmediately] = useState(true);
   const [addSeerTrial, setAddSeerTrial] = useState(true);
@@ -42,7 +46,10 @@ function MigrateLegacySeerAction({orgId, subscription, setConfirmCallback}: Prop
           addSuccessMessage('Legacy Seer migration complete.');
         })
         .catch(res => {
-          if (res instanceof RequestError && typeof res.responseJSON?.detail === 'string') {
+          if (
+            res instanceof RequestError &&
+            typeof res.responseJSON?.detail === 'string'
+          ) {
             addErrorMessage(res.responseJSON.detail);
           } else if (res instanceof RequestError && res.responseText) {
             addErrorMessage(res.responseText);
@@ -75,9 +82,7 @@ function MigrateLegacySeerAction({orgId, subscription, setConfirmCallback}: Prop
 
   return (
     <Fragment>
-      <p>
-        Migrate a user off Legacy Seer to allow them to use the seat-based Seer plan.
-      </p>
+      <p>Migrate a user off Legacy Seer to allow them to use the seat-based Seer plan.</p>
 
       {timingOptions.map(([value, label, help]) => (
         <div key={String(value)}>
@@ -114,8 +119,8 @@ function MigrateLegacySeerAction({orgId, subscription, setConfirmCallback}: Prop
         .
       </label>
       <p style={{marginTop: 20}}>
-        After migration, users opt in to Seer from their organization settings. Share
-        this link with the customer:{' '}
+        After migration, users opt in to Seer from their organization settings. Share this
+        link with the customer:{' '}
         <a
           href="https://docs.sentry.io/product/ai-in-sentry/seer/#getting-started-with-seer"
           target="_blank"
@@ -128,5 +133,3 @@ function MigrateLegacySeerAction({orgId, subscription, setConfirmCallback}: Prop
     </Fragment>
   );
 }
-
-export default MigrateLegacySeerAction;
