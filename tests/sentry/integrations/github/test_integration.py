@@ -2099,16 +2099,53 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data["status"] == "complete"
 
-    @responses.activate
-    @with_feature("organizations:integrations-scm-multi-org")
-    def test_org_selection_chosen_installation_blocked_by_pending_deletion(self) -> None:
-        """Choosing an existing installation should fail if there's a pending deletion."""
+    def _assert_org_selection_chosen_installation_blocked_by_deletion(self, status: int) -> None:
         self._advance_to_org_selection()
 
         integration = self.create_integration(
             organization=self.organization,
             provider="github",
             external_id=self.installation_id,
+            metadata={"sender": {"login": "octocat"}},
+        )
+        oi = OrganizationIntegration.objects.get(
+            integration=integration, organization_id=self.organization.id
+        )
+        oi.status = status
+        oi.save()
+
+        resp = self._advance_step(
+            {
+                "chosen_installation_id": self.installation_id,
+            }
+        )
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert "already being removed" in resp.data["data"]["detail"]
+
+    @responses.activate
+    @with_feature("organizations:integrations-scm-multi-org")
+    def test_org_selection_chosen_installation_blocked_by_pending_deletion(self) -> None:
+        self._assert_org_selection_chosen_installation_blocked_by_deletion(
+            ObjectStatus.PENDING_DELETION
+        )
+
+    @responses.activate
+    @with_feature("organizations:integrations-scm-multi-org")
+    def test_org_selection_chosen_installation_blocked_by_deletion_in_progress(self) -> None:
+        self._assert_org_selection_chosen_installation_blocked_by_deletion(
+            ObjectStatus.DELETION_IN_PROGRESS
+        )
+
+    @responses.activate
+    @with_feature("organizations:integrations-scm-multi-org")
+    def test_org_selection_allows_other_installation_pending_deletion(self) -> None:
+        self._advance_to_org_selection()
+
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="other-installation",
             metadata={"sender": {"login": "octocat"}},
         )
         oi = OrganizationIntegration.objects.get(
@@ -2122,9 +2159,9 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
                 "chosen_installation_id": self.installation_id,
             }
         )
-        assert resp.status_code == 400
-        assert resp.data["status"] == "error"
-        assert GitHubInstallationError.PENDING_DELETION in resp.data["data"]["detail"]
+
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
 
     @responses.activate
     def test_org_selection_new_installation_from_popup(self) -> None:
