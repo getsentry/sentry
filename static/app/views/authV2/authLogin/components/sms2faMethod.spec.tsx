@@ -23,6 +23,7 @@ describe('Sms2FAMethod', () => {
     });
     it('activates SMS and resends the challenge', async () => {
       jest.useFakeTimers();
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
       const challengeRequest = MockApiClient.addMockResponse({
         url: '/auth/2fa/challenge/',
         method: 'POST',
@@ -37,16 +38,18 @@ describe('Sms2FAMethod', () => {
         />
       );
 
-      const resendButton = await screen.findByRole('button', {name: 'Resend (45)'});
+      await act(() => jest.advanceTimersByTimeAsync(0));
+      const resendButton = screen.getByRole('button', {name: 'Resend (45)'});
       expect(resendButton).toHaveAttribute('aria-disabled', 'true');
 
-      act(() => jest.advanceTimersByTime(45_000));
+      await act(() => jest.advanceTimersByTimeAsync(45_000));
       expect(screen.getByRole('button', {name: 'Resend'})).toBeEnabled();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Resend'}), {delay: null});
+      await user.click(screen.getByRole('button', {name: 'Resend'}));
+      await act(() => jest.advanceTimersByTimeAsync(0));
 
-      await waitFor(() => expect(challengeRequest).toHaveBeenCalledTimes(2));
-      expect(await screen.findByRole('button', {name: 'Resend (45)'})).toHaveAttribute(
+      expect(challengeRequest).toHaveBeenCalledTimes(2);
+      expect(screen.getByRole('button', {name: 'Resend (45)'})).toHaveAttribute(
         'aria-disabled',
         'true'
       );
