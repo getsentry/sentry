@@ -10,7 +10,10 @@ const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}']
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
-  rules: {'@sentry/scraps/prefer-primitives': 'error'},
+  rules: {
+    '@sentry/scraps/prefer-primitives': 'error',
+    'react/todo': 'error',
+  },
   overrides: [
     {
       files: coreComponentFiles,
@@ -787,7 +790,6 @@ const config = defineConfig({
     'react/set-state-in-render': 'error',
     'react/static-components': 'error',
     'react/syntax': 'error',
-    'react/todo': 'off',
     'react/unsupported-syntax': 'error',
     'react/use-memo': 'error',
     'react/no-did-mount-set-state': 'error',
