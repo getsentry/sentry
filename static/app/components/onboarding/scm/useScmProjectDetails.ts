@@ -488,7 +488,6 @@ export function useScmProjectDetails({
     teamSlugResolved,
   ]);
 
-  // oxlint-disable-next-line react/refs
   return {
     projectName: projectNameResolved,
     onProjectNameChange,
