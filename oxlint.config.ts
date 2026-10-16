@@ -1288,6 +1288,7 @@ const config = defineConfig({
     'typescript/no-extra-non-null-assertion': 'error',
     'typescript/no-extraneous-class': 'error',
     'typescript/no-for-in-array': 'error',
+    'typescript/no-generated-empty-object-type': 'error',
     'typescript/no-implied-eval': 'error',
     'typescript/no-meaningless-void-operator': 'error',
     'typescript/no-misused-new': 'error',
