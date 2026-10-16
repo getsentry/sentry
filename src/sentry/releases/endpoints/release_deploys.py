@@ -125,12 +125,24 @@ def create_deploy(
         last_deploy_id=deploy.id,
     )
 
-    for project in projects:
-        ReleaseProjectEnvironment.objects.update_or_create(
-            release=release,
-            environment=env,
-            project=project,
-            defaults={"last_deploy_id": deploy.id},
+    # Upsert all ReleaseProjectEnvironment rows in a single query rather than
+    # issuing a SELECT FOR UPDATE + UPDATE/INSERT per project (N+1).
+    # Dedupe by project id: Postgres rejects ON CONFLICT DO UPDATE touching the same row twice.
+    unique_projects = list({project.id: project for project in projects}.values())
+    if unique_projects:
+        ReleaseProjectEnvironment.objects.bulk_create(
+            [
+                ReleaseProjectEnvironment(
+                    release=release,
+                    environment=env,
+                    project=project,
+                    last_deploy_id=deploy.id,
+                )
+                for project in unique_projects
+            ],
+            update_conflicts=True,
+            unique_fields=["project", "release", "environment"],
+            update_fields=["last_deploy_id"],
         )
 
     Deploy.notify_if_ready(deploy.id)
