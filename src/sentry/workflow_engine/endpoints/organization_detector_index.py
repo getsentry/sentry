@@ -61,6 +61,7 @@ from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
 from sentry.workflow_engine.endpoints.utils.filters import (
     apply_filter,
     exclude_disallowed_metric_detectors,
+    get_excluded_detector_types,
 )
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
@@ -75,6 +76,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
+from sentry.workflow_engine.types import DetectorAPIOperation
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 detector_search_config = SearchConfig.create_from(
@@ -140,6 +142,11 @@ def get_detector_validator(
 
     if type.detector_settings is None or type.detector_settings.validator is None:
         raise ValidationError({"type": ["Detector type not compatible with detectors"]})
+
+    if detector_type_slug in get_excluded_detector_types(
+        DetectorAPIOperation.POST, project.organization, actor=request.user
+    ):
+        raise ValidationError({"type": ["Detector type does not support POST requests"]})
 
     return type.detector_settings.validator(
         instance=instance,
@@ -308,6 +315,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
         queryset = self.filter_detectors(request, organization)
+        queryset = queryset.exclude(
+            type__in=get_excluded_detector_types(
+                DetectorAPIOperation.LIST, organization, actor=request.user
+            )
+        )
 
         if detector_types := request.GET.getlist("type"):
             detector_types = [DETECTOR_TYPE_ALIASES.get(value, value) for value in detector_types]
@@ -413,6 +425,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         enabled = validator.validated_data.get("enabled", True)
 
         queryset = self.filter_detectors(request, organization)
+        queryset = queryset.exclude(
+            type__in=get_excluded_detector_types(
+                DetectorAPIOperation.PUT, organization, actor=request.user
+            )
+        )
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
         queryset = queryset.exclude(type=IssueStreamGroupType.slug)
 
@@ -490,6 +507,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             )
 
         queryset = self.filter_detectors(request, organization)
+        queryset = queryset.exclude(
+            type__in=get_excluded_detector_types(
+                DetectorAPIOperation.DELETE, organization, actor=request.user
+            )
+        )
 
         # If explicitly filtering by IDs and some were not found, return 400
         if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):
