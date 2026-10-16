@@ -85,7 +85,9 @@ describe('aiohttp onboarding docs', () => {
 
     // Renders logs config
     expect(
-      screen.getByText(textWithMarkupMatcher(/enable_logs=True,/))
+      screen.getByText(
+        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+      )
     ).toBeInTheDocument();
 
     // Renders logs verification steps
@@ -94,7 +96,9 @@ describe('aiohttp onboarding docs', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+        textWithMarkupMatcher(
+          "You can also forward logs from Python's built-in logging module by setting capture_sentry_logs=True on the LoggingIntegration:"
+        )
       )
     ).toBeInTheDocument();
   });
@@ -106,7 +110,9 @@ describe('aiohttp onboarding docs', () => {
 
     // Does not render logs config
     expect(
-      screen.queryByText(textWithMarkupMatcher(/enable_logs=True,/))
+      screen.queryByText(
+        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+      )
     ).not.toBeInTheDocument();
 
     // Does not render logs verification steps
@@ -115,7 +121,9 @@ describe('aiohttp onboarding docs', () => {
     ).not.toBeInTheDocument();
     expect(
       screen.queryByText(
-        "You can also use Python's built-in logging module, which will automatically forward logs to Sentry:"
+        textWithMarkupMatcher(
+          "You can also forward logs from Python's built-in logging module by setting capture_sentry_logs=True on the LoggingIntegration:"
+        )
       )
     ).not.toBeInTheDocument();
   });

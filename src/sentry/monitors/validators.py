@@ -536,7 +536,12 @@ class MonitorValidator(CamelSnakeSerializer):
             max_runtime = updated_config.get("max_runtime")
             if max_runtime != existing_max_runtime:
                 MonitorCheckIn.objects.filter(
-                    monitor_id=instance.id, status=CheckInStatus.IN_PROGRESS
+                    monitor_environment_id__in=list(
+                        MonitorEnvironment.objects.filter(monitor_id=instance.id).values_list(
+                            "id", flat=True
+                        )
+                    ),
+                    status=CheckInStatus.IN_PROGRESS,
                 ).update(timeout_at=TruncMinute(F("date_added")) + get_max_runtime(max_runtime))
 
             # If the schedule changed, recompute next_checkin and next_checkin_latest for all environments

@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -43,6 +43,7 @@ interface OpenPeriodsSubTableProps {
 }
 
 function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
+  const [now] = useState(() => new Date());
   const location = useLocation();
   const start = location.query?.start as string | undefined;
   const end = location.query?.end as string | undefined;
@@ -81,8 +82,7 @@ function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
       {openPeriods.map((period, idx) => {
         const openPeriodStart = new Date(period.start);
         const openPeriodEnd = period.end ? new Date(period.end) : undefined;
-        const diffMs =
-          (openPeriodEnd ?? new Date()).getTime() - openPeriodStart.getTime();
+        const diffMs = (openPeriodEnd ?? now).getTime() - openPeriodStart.getTime();
         const seconds = diffMs / 1000;
         return (
           <SimpleTable.Row key={`${period.start}-${idx}`}>

@@ -32,6 +32,20 @@ const CATCH_ALL_OPTION: SelectValue<string> = {
   label: t('No prefix (match all)'),
 };
 
+function prefixMenuStyles(menuWidth: string | undefined, menuAlign: 'start' | 'end') {
+  if (!menuWidth) {
+    return;
+  }
+  const anchor = menuAlign === 'end' ? {right: 0, left: 'auto'} : undefined;
+  return {
+    menu: <T extends Record<string, unknown>>(base: T) => ({
+      ...base,
+      width: menuWidth,
+      ...anchor,
+    }),
+  };
+}
+
 function toPrefixSelectValue(opt: PathPrefixOption): SelectValue<string> {
   return {value: opt.path, label: opt.path, textValue: opt.path};
 }
@@ -58,6 +72,7 @@ export interface PathPrefixComboboxProps {
   id?: string;
   isLoading?: boolean;
   maxMenuHeight?: number;
+  menuAlign?: 'start' | 'end';
   menuWidth?: string;
   name?: string;
   onBlur?: () => void;
@@ -79,6 +94,7 @@ export function PathPrefixCombobox({
   id,
   isLoading,
   maxMenuHeight,
+  menuAlign = 'start',
   menuWidth,
   name,
   onBlur,
@@ -105,10 +121,9 @@ export function PathPrefixCombobox({
 
   const visibleOptions = useMemo<Array<SelectValue<string>>>(() => {
     const filtered = filterPrefixOptions(mappedOptions, debouncedInput);
-    // Keep the catch-all when selected so its label still resolves.
-    const showCatchAll = !debouncedInput || value === CATCH_ALL_VALUE;
-    return showCatchAll ? [CATCH_ALL_OPTION, ...filtered] : filtered;
-  }, [mappedOptions, debouncedInput, value]);
+    // Hidden while typing so Enter creates the typed prefix instead of matching all.
+    return inputValue ? filtered : [CATCH_ALL_OPTION, ...filtered];
+  }, [mappedOptions, debouncedInput, inputValue]);
 
   function handleInputChange(newInput: string, {action}: {action: string}) {
     if (action === 'input-change') {
@@ -167,7 +182,7 @@ export function PathPrefixCombobox({
       formatCreateLabel={(input: string) => tct('Use "[path]"', {path: input})}
       components={{MenuList: ScmVirtualizedMenuList, Input: PrefixComboboxInput}}
       maxMenuHeight={maxMenuHeight}
-      styles={menuWidth ? {menu: base => ({...base, width: menuWidth})} : undefined}
+      styles={prefixMenuStyles(menuWidth, menuAlign)}
     />
   );
 }

@@ -203,54 +203,36 @@ def test_global_generic_filters_omit_custom_error_without_values(settings) -> No
 
 
 @django_db_all
-def test_custom_error_filter_omitted_without_custom_values(
-    default_project: Project, settings
+@pytest.mark.parametrize("inbound_filters_custom_error_values", [[], CUSTOM_PATTERNS])
+def test_shared_filter_references(
+    default_project: Project, settings, inbound_filters_custom_error_values
 ) -> None:
-    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = []
+    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = inbound_filters_custom_error_values
 
     generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
 
     assert generic_filters == {
         "version": 1,
         "filters": [
-            {
-                "id": "chunk-load-error",
-                "isEnabled": True,
-                "condition": _chunk_load_error_filter(),
-            },
-            {
-                "id": "react-hydration-errors",
-                "isEnabled": True,
-                "condition": _hydration_error_filter(),
-            },
+            {"id": "chunk-load-error", "isEnabled": True, "condition": None},
+            {"id": "react-hydration-errors", "isEnabled": True, "condition": None},
+            {"id": "custom-error", "isEnabled": True, "condition": None},
         ],
     }
 
 
 @django_db_all
-def test_custom_error_filter_emitted_with_custom_values(default_project: Project, settings) -> None:
+def test_disabled_custom_error_filter_reference_omitted(default_project: Project, settings) -> None:
     settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = CUSTOM_PATTERNS
+    default_project.update_option("filters:custom-error", "0")
 
     generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
 
     assert generic_filters == {
         "version": 1,
         "filters": [
-            {
-                "id": "chunk-load-error",
-                "isEnabled": True,
-                "condition": _chunk_load_error_filter(),
-            },
-            {
-                "id": "react-hydration-errors",
-                "isEnabled": True,
-                "condition": _hydration_error_filter(),
-            },
-            {
-                "id": "custom-error",
-                "isEnabled": True,
-                "condition": _custom_error_filter(),
-            },
+            {"id": "chunk-load-error", "isEnabled": True, "condition": None},
+            {"id": "react-hydration-errors", "isEnabled": True, "condition": None},
         ],
     }
 

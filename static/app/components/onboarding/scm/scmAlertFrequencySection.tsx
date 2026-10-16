@@ -6,11 +6,11 @@ import {Text} from '@sentry/scraps/text';
 import type {TagVariant} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
-import {type IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   type AlertRuleOptions,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {type IssueAlertNotificationProps} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 import {ScmAlertFrequency} from './scmAlertFrequency';
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';

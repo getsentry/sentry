@@ -5,7 +5,6 @@ from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule, RuleSource
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.monitors.models import Monitor
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.rules.conditions.event_frequency import EventUniqueUserFrequencyConditionWithConditions
@@ -264,12 +263,7 @@ class IssueAlertMigrator:
             elif no_data_conditions and not only_has_every_event_cond:
                 raise Exception("No valid trigger conditions, skipping migration")
 
-        enabled = True
-        rule_snooze = RuleSnooze.objects.filter(rule=self.rule, user_id=None).first()
-        if rule_snooze and rule_snooze.until is None:
-            enabled = False
-        if self.rule.status == ObjectStatus.DISABLED:
-            enabled = False
+        enabled = self.rule.status != ObjectStatus.DISABLED
 
         config = {"frequency": self.rule.data.get("frequency") or Workflow.DEFAULT_FREQUENCY}
         kwargs = {

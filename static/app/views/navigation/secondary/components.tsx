@@ -51,7 +51,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
   NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
   PRIMARY_HEADER_HEIGHT,
@@ -274,20 +273,16 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       columns="1fr auto"
       align="center"
       borderBottom="primary"
-      height={
-        isMobile ? `${NAVIGATION_MOBILE_CONTENT_HEIGHT}px` : `${PRIMARY_HEADER_HEIGHT}px`
-      }
+      height={`${PRIMARY_HEADER_HEIGHT}px`}
       padding={isMobile ? 'md lg' : '0 md 0 xl'}
     >
-      <div>
-        <Text size="md" bold>
-          {props.children}
-        </Text>
-      </div>
+      <Text size="md" bold>
+        {props.children}
+      </Text>
       <div>
         {isMobile ? (
           <Button
-            size="xs"
+            size="sm"
             icon={<IconClose />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
@@ -295,7 +290,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
           />
         ) : (
           <Button
-            size="xs"
+            size="sm"
             icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}

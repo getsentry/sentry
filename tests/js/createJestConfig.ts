@@ -26,6 +26,9 @@ const swcConfig: SwcOptions = {
         runtime: 'automatic',
         importSource: '@emotion/react',
       },
+      optimizer: {
+        globals: {vars: {'import.meta.hot': 'undefined'}},
+      },
     },
     experimental: {
       plugins: [[fileURLToPath(import.meta.resolve('@swc-contrib/mut-cjs-exports')), {}]],
@@ -241,6 +244,9 @@ if (JEST_TESTS && CI_NODE_TOTAL !== undefined && CI_NODE_INDEX !== undefined) {
  * transformed.
  */
 const ESM_NODE_MODULES = [
+  'react-router@8\\.',
+  '@remix-run\\+route-pattern',
+  'cookie-es',
   'oxlint',
   'screenfull',
   'cbor2',
@@ -253,7 +259,7 @@ const ESM_NODE_MODULES = [
 const config: Config.InitialOptions = {
   rootDir,
   verbose: false,
-  cacheDirectory: '.cache/jest',
+  cacheDirectory: `.cache/jest/router-v${process.env.SENTRY_REACT_ROUTER_VERSION ?? '6'}`,
   collectCoverageFrom: [
     'static/app/**/*.{js,jsx,ts,tsx}',
     '!static/app/**/*.spec.{js,jsx,ts,tsx}',
@@ -291,6 +297,7 @@ const config: Config.InitialOptions = {
   passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
     '<rootDir>/tests/js/sentry-test/setupReact.ts',
+    '<rootDir>/tests/js/sentry-test/setupNuqs.ts',
     '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
     fileURLToPath(import.meta.resolve('jest-canvas-mock')),
   ],
