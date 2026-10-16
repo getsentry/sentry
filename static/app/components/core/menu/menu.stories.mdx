@@ -8,13 +8,14 @@ source: '@sentry/scraps/menu'
 import {useState} from 'react';
 
 import {CompactSelect, Select} from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Menu} from '@sentry/scraps/menu';
 import * as Storybook from 'sentry/stories';
 
 `Menu.Header` and `Menu.Footer` sit outside the scrolling collection. Sections need either a visible `Menu.SectionLabel` or an `aria-label`. Place `Menu.Separator` explicitly between sections. `Menu.Item` declares an action; `Select.Item` declares a selectable option. The hosts render both with React Aria hooks and the shared `MenuListItem` appearance.
 
 <Storybook.Demo>
-  <Menu.Root triggerLabel="Actions">
+  <DropdownMenu triggerLabel="Actions">
     <Menu.Header>Choose an action</Menu.Header>
     <Menu.Section sectionKey="edit">
       <Menu.SectionLabel>Edit</Menu.SectionLabel>
@@ -29,7 +30,7 @@ import * as Storybook from 'sentry/stories';
       </Menu.Submenu>
     </Menu.Section>
     <Menu.Footer>Additional actions can go here</Menu.Footer>
-  </Menu.Root>
+  </DropdownMenu>
 </Storybook.Demo>
 
 Search belongs to `CompactSelect`. Its `search` prop filters composed options as well as array based options.

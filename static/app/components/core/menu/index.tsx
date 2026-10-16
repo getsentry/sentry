@@ -6,10 +6,8 @@ import {
   Submenu,
 } from './declarations';
 import {MenuFooter, MenuHeader} from './layout';
-import {MenuRoot} from './root';
 
 export const Menu = {
-  Root: MenuRoot,
   Header: MenuHeader,
   Footer: MenuFooter,
   Item: MenuItem,

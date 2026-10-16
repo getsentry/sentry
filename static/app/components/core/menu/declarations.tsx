@@ -1,12 +1,11 @@
 import {useSeparator} from '@react-aria/separator';
 
 import type {SelectKey} from '@sentry/scraps/compactSelect';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
-
-import type {MenuItemProps} from './item';
 
 /** An action in a composed DropdownMenu. MenuListItem supplies its visual appearance. */
 export function MenuItem(
