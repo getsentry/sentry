@@ -249,6 +249,10 @@ class RecordEngagementTest(TestCase):
             "https://acme.sentry.io/explore/agents/conversations/abc/",
             NotificationLink.SEER_AGENT_RUN,
         ),
+        (
+            "https://acme.sentry.io/explore/investigations/1/",
+            NotificationLink.INVESTIGATION,
+        ),
     ],
 )
 def test_classify_link(url: str, expected: NotificationLink) -> None:

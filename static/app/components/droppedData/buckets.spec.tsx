@@ -3,6 +3,13 @@ import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {groupIntoBuckets, hasDroppedData} from './buckets';
 
 describe('hasDroppedData', () => {
+  function hasDrops(dropped: number, accepted: number) {
+    return hasDroppedData(
+      [DroppedEventFixture({start: 0, count: dropped})],
+      [DroppedEventFixture({start: 0, count: accepted})]
+    );
+  }
+
   it('is true when there is at least one dropped event', () => {
     expect(hasDroppedData([DroppedEventFixture()])).toBe(true);
   });
@@ -22,15 +29,13 @@ describe('hasDroppedData', () => {
   });
 
   it('is true only when a bucket has dropped events', () => {
-    function hasDrops(dropped: number, accepted: number) {
-      return hasDroppedData(
-        [DroppedEventFixture({start: 0, count: dropped})],
-        [DroppedEventFixture({start: 0, count: accepted})]
-      );
-    }
-
     expect(hasDrops(0, 100)).toBe(false);
     expect(hasDrops(1, 99)).toBe(true);
+  });
+
+  it('ignores buckets whose drop ratio is below 0.1%', () => {
+    expect(hasDrops(1, 1999)).toBe(false);
+    expect(hasDrops(1, 999)).toBe(true);
   });
 });
 

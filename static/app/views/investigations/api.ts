@@ -61,19 +61,21 @@ export function getInvestigationDetailQueryOptions(
   );
 }
 
-/** Newest first, page-level and block comments together. */
+/** Newest first. Without `blockId`, page-level and block comments together. */
 export function investigationCommentsQueryOptions({
   organizationSlug,
   investigationId,
+  blockId,
 }: {
   investigationId: string;
   organizationSlug: string;
+  blockId?: string;
 }) {
   return apiOptions.as<InvestigationComment[]>()(
     '/organizations/$organizationIdOrSlug/investigations/$investigationId/comments/',
     {
       path: {organizationIdOrSlug: organizationSlug, investigationId},
-      query: {per_page: 100},
+      query: {blockId, per_page: 100},
       staleTime: 0,
     }
   );

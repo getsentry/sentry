@@ -4,7 +4,9 @@ from typing import Any, NotRequired, TypedDict
 from sentry import features, options
 from sentry.constants import DataCategory
 from sentry.investigations.models import Investigation
+from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
+from sentry.investigations.telemetry import record_investigation_started
 from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, GroupActionActor
 from sentry.models.activity import Activity
@@ -18,7 +20,11 @@ from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.utils import AutofixStoppingPoint, get_automation_handoff
-from sentry.seer.entrypoints.cache import SeerOperatorAgentCache, SeerOperatorAutofixCache
+from sentry.seer.entrypoints.cache import (
+    SeerOperatorAgentCache,
+    SeerOperatorAutofixCache,
+    SeerOperatorInvestigationCache,
+)
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
     SeerOperatorInteractionType,
@@ -26,6 +32,7 @@ from sentry.seer.entrypoints.metrics import (
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
     autofix_entrypoint_registry,
+    investigation_entrypoint_registry,
 )
 from sentry.seer.entrypoints.types import (
     SeerAgentEntrypoint,
@@ -609,7 +616,10 @@ class SeerInvestigationOperator[CachePayloadT]:
 
     @classmethod
     def has_access(cls, *, organization: Organization, entrypoint_key: SeerEntrypointKey) -> bool:
-        return False
+        if not features.has("organizations:investigations", organization):
+            return False
+        entrypoint_cls = investigation_entrypoint_registry.registrations.get(entrypoint_key)
+        return entrypoint_cls is not None and entrypoint_cls.has_access(organization)
 
     def trigger_investigation(
         self,
@@ -618,7 +628,61 @@ class SeerInvestigationOperator[CachePayloadT]:
         user_id: int,
         resolved_source: BreachedMetricSource,
     ) -> tuple[Investigation, bool] | None:
-        return None
+        """
+        Gets or creates the investigation for a breached metric and returns it with a created flag.
+        Only a new investigation runs the success callback and gets a cache entry.
+        """
+        with SeerOperatorEventLifecycleMetric(
+            interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_INVESTIGATION,
+            entrypoint_key=self.entrypoint.key,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {"organization_id": organization.id, "project_id": resolved_source.project_id}
+            )
+            try:
+                investigation, created = create_agentic_breached_metric_investigation(
+                    organization=organization,
+                    user_id=user_id,
+                    title=None,
+                    resolved_source=resolved_source,
+                    project_ids=[resolved_source.project_id],
+                    filters={},
+                )
+            except Exception as e:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_INVESTIGATION,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture(assume_success=False):
+                    self.entrypoint.on_trigger_investigation_error(
+                        error="An unexpected error occurred"
+                    )
+                lifecycle.record_failure(failure_reason=e)
+                return None
+
+            lifecycle.add_extras({"investigation_id": investigation.id, "created": created})
+            if not created:
+                return investigation, False
+
+            record_investigation_started(investigation)
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_INVESTIGATION,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                self.entrypoint.on_trigger_investigation_success(investigation=investigation)
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_CREATE_INVESTIGATION_CACHE_PAYLOAD,
+                entrypoint_key=self.entrypoint.key,
+            ).capture():
+                cache_payload = self.entrypoint.create_investigation_cache_payload()
+
+            SeerOperatorInvestigationCache.set(
+                entrypoint_key=str(self.entrypoint.key),
+                investigation_id=investigation.id,
+                cache_payload=cache_payload,
+            )
+            return investigation, True
 
 
 def _create_seer_activity(

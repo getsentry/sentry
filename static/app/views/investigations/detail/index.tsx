@@ -41,6 +41,7 @@ import {
   useDuplicateInvestigationMutation,
   useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
+import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {
   InvestigationCell,
@@ -152,6 +153,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const commentCount = comments?.json.length ?? 0;
   const hasMoreComments =
     parseLinkHeader(comments?.headers.Link ?? null).next?.results === true;
+  const {openBlockComments} = useBlockCommentsDrawer(investigation.id);
   const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
   const titleGenerationSettledFor = useRef<string | null>(null);
@@ -486,6 +488,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   block={visibleSummaryBlock}
                   canRun={investigation.status === 'active'}
                   investigation={investigation}
+                  onComment={openBlockComments}
                 />
               ) : null}
 
@@ -495,6 +498,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   block={block}
                   canRun={investigation.status === 'active'}
                   investigation={investigation}
+                  onComment={openBlockComments}
                 />
               ))}
               {isAwaitingReportCell(investigation) ? (

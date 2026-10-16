@@ -19,6 +19,7 @@ import {
   EditCommentForm,
 } from 'sentry/views/investigations/comments/commentComposer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
+import {isCommentEdited} from 'sentry/views/investigations/comments/utils';
 import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/cell';
 import type {
   InvestigationComment,
@@ -122,8 +123,7 @@ function CommentRow({
   const [editing, setEditing] = useState(false);
 
   const isAuthor = comment.author?.id === user.id;
-  const edited =
-    new Date(comment.dateUpdated).getTime() > new Date(comment.dateCreated).getTime();
+  const edited = isCommentEdited(comment);
 
   return (
     <ActivityLineRow as="li">
