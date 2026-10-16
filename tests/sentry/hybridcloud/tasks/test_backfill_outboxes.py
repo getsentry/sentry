@@ -375,12 +375,14 @@ def test_watermark_report_skips_a_table_the_loop_never_reached() -> None:
     ):
         backfill_outboxes_for(SiloMode.CONTROL, 0, 2)
 
+    models = _backfill_models(SiloMode.CONTROL)
+    user_position = models.index(User)
+    unreached = {model._meta.db_table for model in models[user_position + 1 :]}
     reported = set(_gauge_values(metrics_mock, WATERMARK_STATE_METRIC))
-    tables = {model._meta.db_table for model in _backfill_models(SiloMode.CONTROL)}
     # The budget ran out on auth_user, so the tables after it were never given a row.
     assert User._meta.db_table in reported
-    assert AuthProvider._meta.db_table not in reported
-    assert reported < tables
+    assert unreached
+    assert reported.isdisjoint(unreached)
 
 
 @django_db_all
