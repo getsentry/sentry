@@ -4,6 +4,7 @@ from typing import Any
 
 from sentry.digests.backends.base import Backend, InvalidState, ScheduleEntry, load
 from sentry.digests.types import Record
+from sentry.utils.locking import UnableToAcquireLock
 
 
 class MigratingBackend(Backend):
@@ -34,10 +35,11 @@ class MigratingBackend(Backend):
     @contextmanager
     def digest(self, key: str, minimum_delay: int | None = None) -> Generator[list[Record]]:
         with ExitStack() as stack:
-            # Only entering is guarded, so InvalidState from the caller's block isn't retried on new
+            # Only entering is guarded, so errors from the caller's block aren't retried on new.
+            # A locked old timeline is already being digested by another task.
             try:
                 records = stack.enter_context(self.old.digest(key, minimum_delay))
-            except InvalidState:
+            except (InvalidState, UnableToAcquireLock):
                 records = stack.enter_context(self.new.digest(key, minimum_delay))
             yield records
 
