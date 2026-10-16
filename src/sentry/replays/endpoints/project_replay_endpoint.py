@@ -1,3 +1,6 @@
+import uuid
+from typing import Any
+
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.request import Request
 
@@ -18,6 +21,26 @@ class ProjectReplayEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.DATA_BROWSING
+
+    def convert_args(
+        self, request: Request, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        """
+        Return a 404 for malformed replay ids before any handler runs. Downstream lookups
+        parse the id with `uuid.UUID` and would otherwise surface a `ValueError` as a 500.
+        The id is validated, not normalized, because some storage paths expect the original
+        format.
+        """
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+
+        replay_id = kwargs.get("replay_id")
+        if replay_id is not None:
+            try:
+                uuid.UUID(replay_id)
+            except ValueError:
+                raise NotFound()
+
+        return args, kwargs
 
     def check_replay_access(self, request: Request, project: Project) -> None:
         """

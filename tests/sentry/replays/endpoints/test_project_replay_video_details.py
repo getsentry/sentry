@@ -126,3 +126,15 @@ class ReplayVideoDetailsTestCase(APITestCase, ReplaysSnubaTestCase):
         with self.feature("organizations:session-replay"):
             response = self.client.get(self.url)
             assert response.status_code == 404, response.content
+
+    def test_get_replay_video_invalid_replay_id(self) -> None:
+        """Assert a malformed replay id returns a 404 instead of a 500."""
+        self.login_as(user=self.user)
+        url = reverse(
+            self.endpoint,
+            args=(self.organization.slug, self.project.slug, "abc123", self.segment_id),
+        )
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(url)
+            assert response.status_code == 404

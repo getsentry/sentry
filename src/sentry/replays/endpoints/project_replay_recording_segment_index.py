@@ -1,5 +1,4 @@
 import functools
-import uuid
 from typing import Any
 
 from django.http import StreamingHttpResponse
@@ -62,11 +61,6 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectReplayEndpoint):
     ) -> Response[list[list[dict[str, Any]]]]:
         """Return a collection of replay recording segments."""
         self.check_replay_access(request, project)
-
-        try:
-            uuid.UUID(replay_id)
-        except ValueError:
-            return Response(status=404)
 
         with handle_query_errors():
             return self.paginate(
