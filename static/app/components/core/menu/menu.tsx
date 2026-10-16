@@ -9,12 +9,7 @@ import {
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
-import {MenuContent, MenuFooter, MenuHeader, MenuSearch} from './content';
 import {MenuContext, useMenuContext} from './context';
-import {MenuCheckboxItem, MenuItem} from './item';
-import {MenuList} from './list';
-import {MenuSection, MenuSectionLabel, MenuSectionSeparator} from './section';
-import {MenuSubmenu} from './submenu';
 
 export interface MenuProps extends Pick<
   UseOverlayProps,
@@ -23,7 +18,7 @@ export interface MenuProps extends Pick<
   children: React.ReactNode;
 }
 
-function MenuRoot({
+export function MenuRoot({
   children,
   isOpen,
   defaultOpen,
@@ -68,7 +63,7 @@ export type MenuTriggerProps = Omit<DropdownButtonProps, 'isOpen'> & {
   children: React.ReactNode;
 };
 
-function MenuTrigger(props: MenuTriggerProps) {
+export function MenuTrigger(props: MenuTriggerProps) {
   const {isOpen, open, triggerProps} = useMenuContext();
   const mergedProps = mergeProps(triggerProps, props);
   return (
@@ -87,18 +82,3 @@ function MenuTrigger(props: MenuTriggerProps) {
     </DropdownButton>
   );
 }
-
-export const Menu = Object.assign(MenuRoot, {
-  Trigger: MenuTrigger,
-  Content: MenuContent,
-  Header: MenuHeader,
-  Search: MenuSearch,
-  List: MenuList,
-  Section: MenuSection,
-  SectionLabel: MenuSectionLabel,
-  ListItem: MenuItem,
-  CheckboxItem: MenuCheckboxItem,
-  SectionSeparator: MenuSectionSeparator,
-  Footer: MenuFooter,
-  Submenu: MenuSubmenu,
-});
