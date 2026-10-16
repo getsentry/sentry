@@ -94,7 +94,7 @@ describe('DroppedDataOutcomeList', () => {
     expect(screen.queryByText(/ of /)).not.toBeInTheDocument();
   });
 
-  it('renders the short description under the reason title', () => {
+  it('shows the short description when hovering the reason title', async () => {
     render(
       <OutcomeList
         droppedEvents={[
@@ -110,12 +110,15 @@ describe('DroppedDataOutcomeList', () => {
       />
     );
 
-    expect(
-      screen.getByText("User agent matched Sentry's known crawler list.")
-    ).toBeInTheDocument();
+    const description = "User agent matched Sentry's known crawler list.";
+    expect(screen.queryByText(description)).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('Web crawler filter'));
+
+    expect(await screen.findByText(description)).toBeInTheDocument();
   });
 
-  it('fills the data type into the description from the event category', () => {
+  it('fills the data type into the description from the event category', async () => {
     render(
       <OutcomeList
         droppedEvents={[
@@ -132,8 +135,10 @@ describe('DroppedDataOutcomeList', () => {
       />
     );
 
+    await userEvent.hover(screen.getByText('Project abuse limit'));
+
     expect(
-      screen.getByText('Your log events exceeded the project abuse limit.')
+      await screen.findByText('Your log events exceeded the project abuse limit.')
     ).toBeInTheDocument();
   });
 
@@ -213,13 +218,14 @@ describe('DroppedDataOutcomeList', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Reason actions'}));
 
+    expect(screen.getAllByRole('menuitemradio').map(item => item.textContent)).toEqual([
+      'Troubleshoot',
+      'Go to Docs',
+    ]);
     expect(screen.getByRole('menuitemradio', {name: 'Go to Docs'})).toHaveAttribute(
       'href',
       expect.stringContaining('docs.sentry.io')
     );
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Project Settings'})
-    ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Troubleshoot'}));
     expect(onTroubleshoot).toHaveBeenCalledWith(

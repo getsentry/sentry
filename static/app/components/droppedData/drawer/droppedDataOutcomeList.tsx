@@ -5,6 +5,7 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer, useDrawerContentContext} from '@sentry/scraps/drawer';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -45,11 +46,6 @@ function ReasonActionsMenu({
   const docsHref = 'https://docs.sentry.io/';
 
   const items: MenuItemProps[] = [
-    {
-      key: 'docs',
-      label: t('Go to Docs'),
-      externalHref: docsHref,
-    },
     ...(onTroubleshoot
       ? [
           {
@@ -62,6 +58,11 @@ function ReasonActionsMenu({
           },
         ]
       : []),
+    {
+      key: 'docs',
+      label: t('Go to Docs'),
+      externalHref: docsHref,
+    },
   ];
 
   return (
@@ -91,17 +92,12 @@ function ReasonTableRow({
   row: ReasonRow;
   onTroubleshoot?: (row: ReasonRow) => void;
 }) {
-  const description = reasonDescription(row.reason, row.category);
-
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell direction="column" align="start" gap="xs" padding="md xl">
-        <Text size="md">{reasonTitle(row.reason)}</Text>
-        {description && (
-          <Text size="sm" variant="muted">
-            {description}
-          </Text>
-        )}
+      <SimpleTable.RowCell padding="md xl">
+        <InfoText size="md" title={reasonDescription(row.reason, row.category)}>
+          {reasonTitle(row.reason)}
+        </InfoText>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell justify="end" padding="md xl">
         <Text size="md" variant="muted" tabular>
