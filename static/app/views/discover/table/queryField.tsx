@@ -601,6 +601,7 @@ class _QueryField extends Component<Props> {
     allFieldOptions.forEach(opt => {
       opt.trailingItems = this.renderTag(
         opt.value.kind,
+        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         String(opt.label),
         opt.value.meta
       );
