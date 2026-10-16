@@ -82,7 +82,15 @@ def create_subscription_in_snuba(query_subscription_id: int, **kwargs: Any) -> N
         except SnubaError:
             logger.exception("Failed to delete subscription")
 
-    subscription_id = _create_in_snuba(subscription)
+    try:
+        subscription_id = _create_in_snuba(subscription)
+    except SubscriptionError:
+        logger.exception(
+            "Failed to create subscription in Snuba due to an invalid query; disabling subscription",
+            extra={"query_subscription_id": query_subscription_id},
+        )
+        subscription.update(status=QuerySubscription.Status.DISABLED.value)
+        return
     subscription.update(
         status=QuerySubscription.Status.ACTIVE.value, subscription_id=subscription_id
     )
@@ -158,7 +166,15 @@ def update_subscription_in_snuba(
             old_entity_key,
         )
 
-    subscription_id = _create_in_snuba(subscription)
+    try:
+        subscription_id = _create_in_snuba(subscription)
+    except SubscriptionError:
+        logger.exception(
+            "Failed to update subscription in Snuba due to an invalid query; disabling subscription",
+            extra={"query_subscription_id": query_subscription_id},
+        )
+        subscription.update(status=QuerySubscription.Status.DISABLED.value)
+        return
     subscription.update(
         status=QuerySubscription.Status.ACTIVE.value, subscription_id=subscription_id
     )
