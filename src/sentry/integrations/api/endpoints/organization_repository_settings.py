@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,7 +9,17 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.repository import RepositorySerializer
+from sentry.api.serializers.models.repository import (
+    RepositorySerializer,
+    RepositorySerializerResponse,
+)
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger, RepositorySettings
@@ -39,17 +50,38 @@ class RepositorySettingsSerializer(serializers.Serializer):
         return data
 
 
+@extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class OrganizationRepositorySettingsEndpoint(OrganizationEndpoint):
     """Bulk endpoint for managing repository settings."""
 
     owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
-        "PUT": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def put(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="updateOrganizationRepositorySettings",
+        summary="Update Settings for Organization Repositories",
+        description=(
+            "Update code review settings for one or more repositories in the organization. "
+            "Provide at least one of `enabledCodeReview` or `codeReviewTriggers`."
+        ),
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=RepositorySettingsSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationRepositorySettingsResponse", list[RepositorySerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+        },
+    )
+    def put(
+        self, request: Request, organization: Organization
+    ) -> Response[list[RepositorySerializerResponse]]:
         """
         Create or update repository settings for multiple repositories. Currently this is strictly built for the seer specific
         settings, so if you want to use this for other settings, you will need to update the serializer and business logic below accordingly.
