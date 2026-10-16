@@ -155,10 +155,9 @@ export function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
   });
   const Icon = getDetectorAlertIcon(kind as DetectorAlertKind);
 
-  // Seer tends to label a workflow that notifies on a metric monitor as a
-  // "metric" alert, handing us a workflow id. Conversations already persisted
-  // with that mistake should still render, so a missing detector retries the id
-  // as a workflow.
+  // Seer has tagged Alerts connected to a metric Monitor as "metric", handing
+  // us a workflow id. Conversations persisted with that mistake should still
+  // render, so a missing detector retries the id as an Alert.
   if (isNotFoundError(error)) {
     return <IssueAlertBlock id={id} kind="issue" name={name} />;
   }

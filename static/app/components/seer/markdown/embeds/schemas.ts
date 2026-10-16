@@ -441,43 +441,38 @@ export const SEER_EMBED_SCHEMAS = {
   },
   alert: {
     description:
-      'The ONLY way to reference a Sentry alert. ' +
-      'Set `kind` by the API the `id` came from, not by what the alert watches: ' +
-      '"issue" for a workflow id from the workflows API (`/workflows/`), including ' +
-      'a workflow that notifies on a metric, uptime, or cron monitor; ' +
-      '"metric", "uptime", or "cron" only for a detector id from the detectors ' +
-      "API (`/detectors/`), matching the detector's type. " +
-      'Workflow and detector ids are different number spaces, so a workflow id with ' +
-      '"metric" points at the wrong resource. ' +
+      'The ONLY way to reference a Sentry Alert. ' +
+      'Monitors decide when data becomes an issue; an Alert is the rule that runs ' +
+      'actions (email, Slack, tickets, webhooks) when issues from its projects or ' +
+      'connected Monitors match its triggers and filters. ' +
+      "Use the Alert's id from the workflows API (`/workflows/`) with `kind` " +
+      '"issue". This holds for every Alert, including one connected to a metric, ' +
+      'cron, or uptime Monitor. ' +
+      'Reference the Monitor itself with the `monitor` embed, never with this one. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
-      'Block: renders alert conditions and configured actions, plus the ' +
-      'underlying rule configuration for metric, uptime, and cron alerts. ' +
+      "Block: renders the Alert's settings, conditions, and actions. " +
       'Do not duplicate those details as text. ' +
       'Never use a markdown link for alert references.',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      kind: z.enum(['metric', 'issue', 'uptime', 'cron']),
+      kind: z
+        .enum(['metric', 'issue', 'uptime', 'cron'])
+        .describe(
+          'Always "issue" for an Alert. "metric", "uptime", and "cron" are legacy ' +
+            'values that expect a Monitor (detector) id; do not use them.'
+        ),
       name: z.string().min(1).optional(),
     }),
     examples: [
       {
-        label: 'Metric alert',
-        data: {id: '4521', kind: 'metric', name: 'Checkout p95 latency'},
+        label: 'Alert',
+        data: {id: '881', kind: 'issue', name: 'New checkout issues to #checkout'},
       },
-      {label: 'Issue alert', data: {id: '881', kind: 'issue'}},
       {
-        label: 'Workflow notifying on a metric monitor',
+        label: 'Alert connected to a metric Monitor',
         data: {id: '6120', kind: 'issue', name: 'High error rate email'},
-      },
-      {
-        label: 'Uptime alert',
-        data: {id: '774', kind: 'uptime', name: 'Checkout availability'},
-      },
-      {
-        label: 'Cron alert',
-        data: {id: '9931', kind: 'cron', name: 'nightly-sync'},
       },
     ],
   },
