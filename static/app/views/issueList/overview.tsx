@@ -932,6 +932,9 @@ function IssueListOverviewInner({
   // Visible rows may span a subset of the page-filter selection; keep those
   // separate from the hard selected project filter the agent should scope to.
   const displayedProjectSlugs = [...new Set(groups.map(g => g.project.slug))];
+  // Right after a filter change, groups still hold the previous filters' issues.
+  const currentIssuesLoading =
+    issuesLoading || !isEqual(requestParams, previousRequestParams);
 
   useLLMContext({
     contextHint:
@@ -946,25 +949,29 @@ function IssueListOverviewInner({
       'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction. ' +
       'displayedProjectSlugs are only the projects represented by currently visible rows. ' +
+      'When issuesLoading is true, the list is still loading and its issues are unknown. ' +
       'You can get issue details for aggregate stats, get event details for a specific error event, ' +
       'and search live telemetry for related spans/errors/logs/metrics.',
     viewName: groupSearchView?.name,
     query,
     sort,
-    issueCount: queryCount,
+    issuesLoading: currentIssuesLoading,
+    issueCount: currentIssuesLoading ? null : queryCount,
     ...toLLMContextProjectFields(selectedProjects),
-    displayedProjectSlugs,
+    displayedProjectSlugs: currentIssuesLoading ? null : displayedProjectSlugs,
     environments: selection.environments,
     dateRange: selection.datetime,
-    displayedIssues: [
-      'shortId|title|issueType|level|priority|events|users|firstSeen',
-      ...groups
-        .slice(0, MAX_ITEMS)
-        .map(
-          g =>
-            `${g.shortId}|${g.title.replace(/[|\n]/g, ' ')}|${g.issueType}|${g.level}|${g.priority}|${'count' in g ? g.count : ''}|${'userCount' in g ? g.userCount : ''}|${g.firstSeen}`
-        ),
-    ].join('\n'),
+    displayedIssues: currentIssuesLoading
+      ? null
+      : [
+          'shortId|title|issueType|level|priority|events|users|firstSeen',
+          ...groups
+            .slice(0, MAX_ITEMS)
+            .map(
+              g =>
+                `${g.shortId}|${g.title.replace(/[|\n]/g, ' ')}|${g.issueType}|${g.level}|${g.priority}|${'count' in g ? g.count : ''}|${'userCount' in g ? g.userCount : ''}|${g.firstSeen}`
+            ),
+        ].join('\n'),
   });
 
   return (
