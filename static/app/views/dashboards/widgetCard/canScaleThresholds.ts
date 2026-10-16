@@ -26,13 +26,8 @@ export function canScaleThresholds(
   return (
     usesTimeSeriesData(widget.displayType) &&
     widget.queries.length > 0 &&
-    widget.queries.every(query => {
-      const [aggregate] = query.aggregates;
-      return (
-        aggregate !== undefined &&
-        query.aggregates.length === 1 &&
-        isScalableAggregate(aggregate)
-      );
-    })
+    widget.queries.every(
+      query => query.aggregates.length > 0 && query.aggregates.every(isScalableAggregate)
+    )
   );
 }

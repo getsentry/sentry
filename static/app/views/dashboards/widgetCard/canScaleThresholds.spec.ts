@@ -33,6 +33,19 @@ describe('canScaleThresholds', () => {
   });
 
   it.each([
+    ['issue counts', ['count(new_issues)', 'count(resolved_issues)']],
+    ['count and count_if', ['count()', 'count_if(level,equals,error)']],
+    ['count and sum', ['count()', `sum(${SpanFields.SPAN_DURATION})`]],
+  ])('allows multiple scalable aggregates: %s', (_name, aggregates) => {
+    expect(
+      canScaleThresholds({
+        displayType: DisplayType.LINE,
+        queries: [{...query, aggregates}],
+      })
+    ).toBe(true);
+  });
+
+  it.each([
     ['duration', [`p95(${SpanFields.SPAN_DURATION})`]],
     ['rate', ['eps()']],
     ['average', [`avg(${SpanFields.SPAN_DURATION})`]],
