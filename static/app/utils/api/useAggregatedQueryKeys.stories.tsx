@@ -24,7 +24,7 @@ export default Storybook.story('useAggregatedQueryKeys', story => {
             {
               path: {organizationIdOrSlug: organization.slug},
               query: {
-                data_source: 'discover',
+                data_source: 'errors',
                 project: -1,
                 statsPeriod: '14d',
                 query: `issue.id:[${ids.join(',')}]`,
