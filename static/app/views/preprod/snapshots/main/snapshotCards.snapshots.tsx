@@ -5,6 +5,7 @@ import type {
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {CardHeader, ImageCard, PairCard} from './snapshotCards';
+import {SnapshotGroupHeader} from './snapshotFrames';
 
 jest.mock('@sentry/scraps/badge', () => ({
   ...jest.requireActual('sentry/components/core/badge/badge'),
@@ -248,6 +249,20 @@ describe('SnapshotCards', () => {
     {tags: {area: 'snapshots'}}
   );
 
+  it.snapshot(
+    'group-header-partially-viewed',
+    () => (
+      <Wrapper>
+        <SnapshotGroupHeader
+          name="EntityHeader/dark"
+          isViewed="indeterminate"
+          onToggleViewed={noop}
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
+
   function snapshotPairCard({
     state,
     pair,
@@ -306,6 +321,30 @@ describe('SnapshotCards', () => {
     diffMode: 'split',
     isSelected: true,
   });
+
+  it.snapshot(
+    'pair-card-viewed-collapsed',
+    () => (
+      <Wrapper>
+        <PairCard
+          pair={changedPair}
+          imageBaseUrl={imageBaseUrl}
+          headBranch="Current Branch"
+          isSelected={false}
+          copyUrl={copyUrl}
+          diffMode="split"
+          overlayColor="rgba(219, 66, 66, 0.65)"
+          diffImageBaseUrl={diffImageBaseUrl}
+          snapshotKey="button-light-viewed"
+          onSelectSnapshot={noop}
+          onOpenSnapshot={noop}
+          isViewed
+          onToggleViewed={noop}
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
 
   it.snapshot(
     'image-card-added-selected-with-display-name',
