@@ -65,13 +65,12 @@ function getLogsAggregatesQueryFields(
   groupBys: readonly string[],
   visualizes: readonly Visualize[]
 ): string[] {
-  const fields = [...LOGS_AGGREGATES_SAMPLE_FIELDS];
-  for (const field of getLogsAggregatesFields(groupBys, visualizes)) {
-    if (!fields.includes(field)) {
-      fields.push(field);
-    }
-  }
-  return fields;
+  return Array.from(
+    new Set([
+      ...LOGS_AGGREGATES_SAMPLE_FIELDS,
+      ...getLogsAggregatesFields(groupBys, visualizes),
+    ])
+  );
 }
 
 export function useLogsAggregatesTable({
