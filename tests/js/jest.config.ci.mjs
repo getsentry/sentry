@@ -1,4 +1,5 @@
 import {createJestConfig} from './createJestConfig.ts';
 
-// Keep application, test-support, and lint suites together for CI sharding.
+// Discover one global list for CI sharding. Workspace configs run their selected
+// files in separate Jest processes; the root watcher also uses this combined config.
 export default createJestConfig();
