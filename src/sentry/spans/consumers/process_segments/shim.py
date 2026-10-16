@@ -32,6 +32,10 @@ TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_PLATFORM: "platform",
 }
 
+# A few of these have multiple entries per field, because which one of these attributes we get is
+# SDK-dependent. (The `resource`-prefixed ones are from OTel, while the ones without it are us.)
+# They're listed in reverse priority order, with successively-higher-priority attributes overwriting
+# lower-priority ones if they have a value.
 CONTEXT_FIELDS_BY_ATTRIBUTE_NAME: dict[str, dict[str, str]] = {
     "browser": {
         ATTRIBUTE_NAMES.BROWSER_NAME: "name",
@@ -79,9 +83,9 @@ SDK_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_SDK_VERSION: "version",
 }
 
-# There are multiple entries per field here, because which one of these attributes we get is
-# SDK-dependent. They're listed in reverse priority order, with successively-higher-priority
-# attributes overwriting lower-priority ones if they have a value.
+# As with the `contexts` map above, there are multiple entries per field/header here because SDKs
+# send request data in multiple formats. As before, entries are listed in reverse priority order so
+# the highest-priority one that has a value wins.
 REQUEST_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.URL_TEMPLATE: "url",
     ATTRIBUTE_NAMES.HTTP_ROUTE: "url",
