@@ -3,7 +3,9 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {Button} from '@sentry/scraps/button';
 
 import * as globalActions from 'sentry/components/pageFilters/actions';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -11,15 +13,21 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {getUtcDateString, getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 describe('PageFiltersContainer', () => {
   const organization = OrganizationFixture();
   const projects = [
     ProjectFixture({id: '1', slug: 'project-1'}),
     ProjectFixture({id: '2', slug: 'project-2'}),
-    ProjectFixture({id: '3', slug: 'project-3', environments: ['prod', 'staging']}),
+    ProjectFixture({
+      id: '3',
+      slug: 'project-3',
+      environments: ['prod', 'staging'],
+    }),
   ];
 
   beforeAll(() => {
@@ -342,7 +350,10 @@ describe('PageFiltersContainer', () => {
     render(<PageFiltersContainer disablePersistence />, {
       organization,
       initialRouterConfig: {
-        location: {pathname: '/organizations/org-slug/test/', query: {project: []}},
+        location: {
+          pathname: '/organizations/org-slug/test/',
+          query: {project: []},
+        },
         route: '/organizations/:orgId/test/',
       },
     });
@@ -372,7 +383,11 @@ describe('PageFiltersContainer', () => {
 
   describe('forceProject selection mode', () => {
     const forceProjectProjects = [
-      ProjectFixture({id: '1', slug: 'staging-project', environments: ['staging']}),
+      ProjectFixture({
+        id: '1',
+        slug: 'staging-project',
+        environments: ['staging'],
+      }),
       ProjectFixture({id: '2', slug: 'prod-project', environments: ['prod']}),
     ];
 
@@ -693,6 +708,82 @@ describe('PageFiltersContainer', () => {
         })
       );
     });
+
+    describe('when a chart zoom starts before the max window', () => {
+      // Mirrors how `useChartZoom` commits a drag selection.
+      function ChartZoomStub({start, end}: {end: string; start: string}) {
+        const location = useLocation();
+        const navigate = useNavigate();
+        return (
+          <Button
+            onClick={() =>
+              globalActions.updateDateTime(
+                {period: null, start, end},
+                location,
+                navigate,
+                {
+                  save: true,
+                }
+              )
+            }
+          >
+            Zoom
+          </Button>
+        );
+      }
+
+      function renderWithZoom(start: string, end: string) {
+        return render(
+          <PageFiltersContainer maxPickableDays={30}>
+            <ChartZoomStub start={start} end={end} />
+          </PageFiltersContainer>,
+          {
+            organization,
+            initialRouterConfig: {
+              location: {
+                pathname: '/organizations/org-slug/test/',
+                query: {statsPeriod: '30d'},
+              },
+              route: '/organizations/:orgId/test/',
+            },
+          }
+        );
+      }
+
+      it('clamps the start to the window and keeps the end', async () => {
+        // The first bucket of a 30d chart starts before now-30d, so dragging
+        // from the left edge yields a start slightly outside the window.
+        const start = getUtcDateString(moment().subtract(30, 'days').subtract(1, 'hour'));
+        const end = getUtcDateString(moment().subtract(20, 'days'));
+        const clampedStart = getUtcDateString(
+          moment().utc().subtract(30, 'days').add(1, 'minute').startOf('minute')
+        );
+
+        const {router} = renderWithZoom(start, end);
+        await userEvent.click(await screen.findByRole('button', {name: 'Zoom'}));
+
+        await waitFor(() =>
+          expect(router.location.query).toEqual({start: clampedStart, end})
+        );
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: null,
+          utc: null,
+          start: getUtcToLocalDateObject(clampedStart),
+          end: getUtcToLocalDateObject(end),
+        });
+      });
+
+      it('resets to the max period when the whole range is outside the window', async () => {
+        const {router} = renderWithZoom(
+          getUtcDateString(moment().subtract(45, 'days')),
+          getUtcDateString(moment().subtract(31, 'days'))
+        );
+        await userEvent.click(await screen.findByRole('button', {name: 'Zoom'}));
+
+        await waitFor(() => expect(router.location.query).toEqual({statsPeriod: '30d'}));
+        expect(PageFiltersStore.getState().selection.datetime.period).toBe('30d');
+      });
+    });
   });
 
   describe('maxDateRange param', () => {
@@ -820,7 +911,11 @@ describe('PageFiltersContainer', () => {
 
   describe('skipInitializeUrlParams', () => {
     const skipInitProjects = [
-      ProjectFixture({id: '1', slug: 'staging-project', environments: ['staging']}),
+      ProjectFixture({
+        id: '1',
+        slug: 'staging-project',
+        environments: ['staging'],
+      }),
     ];
 
     beforeEach(() => {
@@ -860,8 +955,16 @@ describe('PageFiltersContainer', () => {
       const multiProjectOrg = OrganizationFixture();
       const multiProjectProjects = [
         ProjectFixture({id: '0', slug: 'random project', isMember: true}),
-        ProjectFixture({id: '1', slug: 'staging-project', environments: ['staging']}),
-        ProjectFixture({id: '2', slug: 'prod-project', environments: ['prod']}),
+        ProjectFixture({
+          id: '1',
+          slug: 'staging-project',
+          environments: ['staging'],
+        }),
+        ProjectFixture({
+          id: '2',
+          slug: 'prod-project',
+          environments: ['prod'],
+        }),
       ];
 
       function renderForGlobalView(
