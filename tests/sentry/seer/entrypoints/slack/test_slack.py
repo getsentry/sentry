@@ -1309,6 +1309,21 @@ class SlackInvestigationEntrypointTest(TestCase):
                 "The available work is preserved; no conclusion was produced.",
             }, status
 
+    def test_run_awaiting_input_shows_waiting_card(self) -> None:
+        self._set_cache()
+        InvestigationOrchestrationRun.objects.filter(id=self.orchestration_run.id).update(
+            phase=InvestigationOrchestrationPhase.INVESTIGATING,
+            status=InvestigationOrchestrationStatus.AWAITING_INPUT,
+        )
+
+        self._update([_hypothesis()])
+
+        assert self._task_card(self._updated_blocks()) == {
+            "title": "Waiting for input",
+            "status": "pending",
+            "detail": "Seer is paused until someone responds. Open the investigation to continue.",
+        }
+
     def test_missing_status_message_ts_posts_new_message(self) -> None:
         self._set_cache(status_message_ts=None)
 

@@ -15,7 +15,10 @@ from sentry.api.event_search import (
 )
 from sentry.exceptions import InvalidSearchQuery
 from sentry.investigations.models import Investigation
-from sentry.investigations.models.orchestration import InvestigationOrchestrationPhase
+from sentry.investigations.models.orchestration import (
+    InvestigationOrchestrationPhase,
+    InvestigationOrchestrationStatus,
+)
 from sentry.issues.issue_search import issue_search_config
 from sentry.notifications.platform.templates.seer import (
     SeerInvestigationHypothesis,
@@ -134,7 +137,10 @@ def _get_detail(hypothesis: Mapping[str, Any]) -> str:
 
 
 def _get_progress(
-    phase: str | None, hypotheses: list[Mapping[str, Any]], interrupted: bool
+    phase: str | None,
+    status: str | None,
+    hypotheses: list[Mapping[str, Any]],
+    interrupted: bool,
 ) -> SeerInvestigationProgress | None:
     if interrupted:
         return SeerInvestigationProgress(
@@ -142,6 +148,12 @@ def _get_progress(
             status="error",
             detail="Seer couldn't finish the investigation. "
             "The available work is preserved; no conclusion was produced.",
+        )
+    if status == InvestigationOrchestrationStatus.AWAITING_INPUT:
+        return SeerInvestigationProgress(
+            title="Waiting for input",
+            status="pending",
+            detail="Seer is paused until someone responds. Open the investigation to continue.",
         )
     match phase:
         case (
@@ -196,7 +208,7 @@ def build_investigation_status(
     investigation: Investigation,
     projection: Mapping[str, Any] | None,
     phase: str | None = None,
-    interrupted: bool = False,
+    status: str | None = None,
     updated_at: datetime | None = None,
 ) -> tuple[SeerInvestigationStatus, str]:
     """Builds the status message data and a fingerprint of what it shows."""
@@ -206,7 +218,11 @@ def build_investigation_status(
         if isinstance(hypothesis, Mapping)
     ]
     raw_hypotheses.sort(key=lambda hypothesis: hypothesis.get("order", 0))
-    progress = _get_progress(phase, raw_hypotheses, interrupted)
+    interrupted = status in (
+        InvestigationOrchestrationStatus.FAILED,
+        InvestigationOrchestrationStatus.CANCELLED,
+    )
+    progress = _get_progress(phase, status, raw_hypotheses, interrupted)
     raw_hypotheses = raw_hypotheses[:MAX_STATUS_HYPOTHESES]
 
     hypotheses = []
