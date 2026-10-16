@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Container as ScrapsContainer} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {Node} from 'sentry/components/events/viewHierarchy/node';
@@ -211,15 +211,15 @@ function ViewHierarchy({
           <TreeContainer>
             <div ref={hoveredGhostRowRef} />
             <div ref={clickedGhostRowRef} />
-            <ScrapsContainer
+            <Container
               padding="0 lg lg lg"
               ref={setScrollContainerRef}
               style={scrollContainerStyles}
             >
-              <ScrapsContainer position="relative" style={containerStyles}>
+              <Container position="relative" style={containerStyles}>
                 {renderedItems}
-              </ScrapsContainer>
-            </ScrapsContainer>
+              </Container>
+            </Container>
           </TreeContainer>
           {defined(selectedNode) && (
             <DetailsContainer>
@@ -246,9 +246,9 @@ function ViewHierarchy({
   );
 
   return (
-    <ScrapsContainer marginLeft="xl" position="relative">
+    <Container marginLeft="xl" position="relative">
       {viewHierarchyContent}
-    </ScrapsContainer>
+    </Container>
   );
 }
 

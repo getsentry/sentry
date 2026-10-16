@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Grid as ScrapsGrid} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 
 import {ReplayMutationTree} from 'sentry/components/replays/diff/replayMutationTree';
@@ -25,7 +25,7 @@ export function ReplayDiffChooser() {
   };
 
   return (
-    <ScrapsGrid gap="md" height="100%" rows="max-content 1fr">
+    <Grid gap="md" height="100%" rows="max-content 1fr">
       <TabStateProvider<DiffType> defaultValue={DiffType.SLIDER} onChange={onTabChange}>
         <TabList>
           <TabList.Item key={DiffType.SLIDER}>{t('Slider Diff')}</TabList.Item>
@@ -49,7 +49,7 @@ export function ReplayDiffChooser() {
           </TabPanels.Item>
         </StyledTabPanels>
       </TabStateProvider>
-    </ScrapsGrid>
+    </Grid>
   );
 }
 

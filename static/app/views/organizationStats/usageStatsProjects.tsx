@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {LocationDescriptorObject} from 'history';
 
-import {Flex, Container as ScrapsContainer} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -482,16 +482,16 @@ export function UsageStatsProjects({
         </Flex>
       )}
       {!isSingleProject && (
-        <ScrapsContainer marginBottom="xl">
+        <Container marginBottom="xl">
           <SearchBar
             query={tableQuery}
             placeholder={t('Filter your projects')}
             aria-label={t('Filter projects')}
             onSearch={handleSearch}
           />
-        </ScrapsContainer>
+        </Container>
       )}
-      <ScrapsContainer marginBottom="xl" data-test-id="usage-stats-table">
+      <Container marginBottom="xl" data-test-id="usage-stats-table">
         <UsageTable
           isLoading={loading || !projectsLoaded}
           isError={isError}
@@ -503,7 +503,7 @@ export function UsageStatsProjects({
           showStoredOutcome={showStoredOutcome}
         />
         <Pagination pageLinks={pageLink} />
-      </ScrapsContainer>
+      </Container>
     </Fragment>
   );
 }
