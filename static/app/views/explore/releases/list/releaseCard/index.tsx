@@ -243,7 +243,9 @@ export function ReleaseCard({
             gap="0 md"
             width="100%"
           >
-            <ReleaseProjectColumn>{t('Project Slug')}</ReleaseProjectColumn>
+            <ReleaseProjectColumn overflow="hidden">
+              {t('Project Slug')}
+            </ReleaseProjectColumn>
             {showReleaseAdoptionStages && (
               <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
             )}
@@ -323,13 +325,7 @@ export function ReleaseCard({
             height="24px"
             overflow="hidden"
             padding="0 xl"
-            css={cssTheme => css`
-              border-bottom-right-radius: ${cssTheme.radius.md};
-
-              @container (max-width: ${cssTheme.container['3xl']}) {
-                border-bottom-left-radius: ${cssTheme.radius.md};
-              }
-            `}
+            radius={{zero: '0 0 md md', '3xl': '0 0 md 0'}}
           >
             <Text size="sm" variant="muted">
               <Tooltip title={getHiddenProjectsTooltip()}>

@@ -15,11 +15,9 @@ export function getReleaseProjectColumns(
   };
 }
 
-// eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing styles moved from releaseCard/index.tsx.
-export const ReleaseProjectColumn = styled('div')`
+export const ReleaseProjectColumn = styled(Container)`
   width: 100%;
   white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
   line-height: 20px;
 `;
@@ -28,7 +26,9 @@ export function NewIssuesColumn({children}: {children: React.ReactNode}) {
   return (
     <Text align={{zero: 'left', xl: 'right'}} tabular>
       {containerProps => (
-        <ReleaseProjectColumn {...containerProps}>{children}</ReleaseProjectColumn>
+        <ReleaseProjectColumn {...containerProps} overflow="hidden">
+          {children}
+        </ReleaseProjectColumn>
       )}
     </Text>
   );
@@ -37,10 +37,6 @@ export function NewIssuesColumn({children}: {children: React.ReactNode}) {
 const StyledAdoptionColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
 
-  @container (min-width: ${p => p.theme.container.xl}) {
-    overflow: visible;
-  }
-
   & > * {
     flex: 1;
   }
@@ -48,31 +44,27 @@ const StyledAdoptionColumn = styled(ReleaseProjectColumn)`
 
 export function AdoptionColumn({children}: {children: React.ReactNode}) {
   return (
-    <Container display={{zero: 'none', xl: 'flex'}}>
-      {containerProps => (
-        <StyledAdoptionColumn {...containerProps}>{children}</StyledAdoptionColumn>
-      )}
-    </Container>
+    <StyledAdoptionColumn
+      display={{zero: 'none', xl: 'flex'}}
+      overflow={{zero: 'hidden', xl: 'visible'}}
+    >
+      {children}
+    </StyledAdoptionColumn>
   );
 }
 
 const StyledAdoptionStageColumn = styled(ReleaseProjectColumn)`
   font-variant-numeric: tabular-nums;
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    overflow: visible;
-  }
 `;
 
 export function AdoptionStageColumn({children}: {children: React.ReactNode}) {
   return (
-    <Container display={{zero: 'none', '5xl': 'flex'}}>
-      {containerProps => (
-        <StyledAdoptionStageColumn {...containerProps}>
-          {children}
-        </StyledAdoptionStageColumn>
-      )}
-    </Container>
+    <StyledAdoptionStageColumn
+      display={{zero: 'none', '5xl': 'flex'}}
+      overflow={{zero: 'hidden', '5xl': 'visible'}}
+    >
+      {children}
+    </StyledAdoptionStageColumn>
   );
 }
 
@@ -80,7 +72,9 @@ export function CrashFreeRateColumn({children}: {children: React.ReactNode}) {
   return (
     <Text align={{zero: 'left', xl: 'center', '5xl': 'right'}} tabular>
       {containerProps => (
-        <ReleaseProjectColumn {...containerProps}>{children}</ReleaseProjectColumn>
+        <ReleaseProjectColumn {...containerProps} overflow="hidden">
+          {children}
+        </ReleaseProjectColumn>
       )}
     </Text>
   );
@@ -90,7 +84,9 @@ export function DisplaySmallCol({children}: {children: React.ReactNode}) {
   return (
     <Text align="right" display={{zero: 'none', xl: 'block'}} tabular>
       {containerProps => (
-        <ReleaseProjectColumn {...containerProps}>{children}</ReleaseProjectColumn>
+        <ReleaseProjectColumn {...containerProps} overflow="hidden">
+          {children}
+        </ReleaseProjectColumn>
       )}
     </Text>
   );

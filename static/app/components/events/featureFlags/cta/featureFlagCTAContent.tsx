@@ -74,28 +74,15 @@ const BannerIllustration = styled('img')`
   align-self: flex-end;
 `;
 
-export const BannerWrapper = styled('div')`
-  position: relative;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
+export const BannerWrapper = styled(Container)`
   background: linear-gradient(
     90deg,
     color-mix(in srgb, ${p => p.theme.tokens.background.secondary} 0%, transparent) 0%,
     ${p => p.theme.tokens.background.secondary} 70%,
     ${p => p.theme.tokens.background.secondary} 100%
   );
-  display: flex;
   flex-direction: row;
   align-items: flex-end;
   justify-content: space-between;
   gap: ${p => p.theme.space.md};
-
-  container-name: bannerWrapper;
-  container-type: inline-size;
-
-  @container bannerWrapper (max-width: 400px) {
-    img {
-      display: none;
-    }
-  }
 `;
