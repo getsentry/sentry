@@ -174,7 +174,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
                 )
 
             if request.GET.get("download"):
-                csv_content = cast(str, self._generate_csv(projects))
+                csv_content = self._generate_csv(projects)
                 response = HttpResponse(content_type="text/csv", status=200)
                 response["Content-Disposition"] = 'attachment; filename="stats_summary.csv"'
                 response.write(csv_content)
@@ -211,9 +211,9 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
 
     def _generate_csv(
         self, projects: dict[int, dict[str, dict[str, _CategoryStats]]]
-    ) -> str | None:
+    ) -> str:
         if not len(projects):
-            return None
+            return ""
 
         output = StringIO()
         csv_writer = csv.writer(output)
