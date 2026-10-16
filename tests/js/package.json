@@ -106,6 +106,7 @@
     "./projectSdkUpdates": "./fixtures/projectSdkUpdates.ts",
     "./pullRequest": "./fixtures/pullRequest.ts",
     "./queryClient": "./sentry-test/queryClient.tsx",
+    "./reactRouter": "./sentry-test/reactRouter.tsx",
     "./reactTestingLibrary": "./sentry-test/reactTestingLibrary.tsx",
     "./release": "./fixtures/release.ts",
     "./releaseMeta": "./fixtures/releaseMeta.ts",
