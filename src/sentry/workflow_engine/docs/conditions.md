@@ -260,12 +260,13 @@ the same way, but it has no dedupe or thresholds and produces no output for `OK`
 The common stateful path is
 [`StatefulDetectorHandler.evaluate`](../handlers/detector/stateful.py):
 
-1. Extract one packet-wide positive integer dedupe value.
-2. Extract one evaluation value or a mapping of `DetectorGroupKey` to value.
+1. Extract one evaluation value or `DetectorGroupValues` mapping `DetectorGroupKey` to value.
+2. Extract one packet-wide positive integer dedupe value.
 3. Load PostgreSQL detector state and Redis dedupe/counter state.
 4. Skip a group key when the packet dedupe value is not newer.
 5. Enqueue the new dedupe watermark _before_ condition evaluation.
-6. Pass each extracted value to `process_data_condition_group`.
+6. Pass each remaining value to `process_data_condition_group` through
+   `DetectorHandler.evaluate`.
 7. From a triggered group, keep triggered results that are actual
    `DetectorPriorityLevel` values and choose the maximum.
 8. Apply priority threshold rules and persist state.

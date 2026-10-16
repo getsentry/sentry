@@ -1,6 +1,7 @@
 import abc
 import dataclasses
 import time
+from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any, ClassVar, override
 from uuid import uuid4
@@ -11,7 +12,6 @@ from django.utils import timezone
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
 from sentry import features
-from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.models.organization import Organization
@@ -19,9 +19,8 @@ from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
     DataPacketEvaluationType,
     DataPacketType,
-    DetectorOccurrence,
+    DetectorEvaluations,
     EventData,
-    GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.handlers.detector.condition import DetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
@@ -422,7 +421,7 @@ class StatefulDetectorHandler(
 
     def build_detector_evidence_data(
         self,
-        group_evaluation: DataConditionGroupEvaluation,
+        group_evaluation: DataConditionGroupEvaluation | None,
         data_packet: DataPacket[DataPacketType],
         priority: DetectorPriorityLevel,
     ) -> dict[str, Any]:
@@ -432,37 +431,49 @@ class StatefulDetectorHandler(
         """
         return {}
 
-    # TODO: The stateful detector handler overrides the default evaluation logic of DetectorHandler.evaluate, yet shares
-    # much of the same logic. Refactor this method to use super().evaluate() supplemented with the state manager logic.
     @override
-    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
+    def get_event_id(self, event_data: EventData) -> str:
+        """
+        Stateful detectors always generate a new event id; the occurrence id reuses it.
+        """
+        return str(uuid4())
+
+    @override
+    def get_occurrence_id(self, group_key: DetectorGroupKey, event_id: str) -> str:
+        return event_id
+
+    @override
+    def evaluate(
+        self,
+        data_packet: DataPacket[DataPacketType],
+        values: Mapping[DetectorGroupKey, DataPacketEvaluationType],
+    ) -> DetectorEvaluations:
+        """
+        Layers dedupe, priority thresholds, and durable state over `DetectorHandler.evaluate`.
+
+        Groups that already processed this packet's dedupe value are skipped. Each remaining group's
+        condition evaluation advances its threshold counters, and only priority transitions produce
+        a result: an occurrence for a non-OK priority, or a resolution when the group returns to OK.
+        """
         dedupe_value = self.extract_dedupe_value(data_packet)
-        group_data_values = self._extract_value(data_packet)
-        state = self.state_manager.get_state_data(list(group_data_values.keys()))
+        state = self.state_manager.get_state_data(list(values.keys()))
         should_rotate_activation_id = self._should_rotate_activation_id()
-        results: dict[DetectorGroupKey, DetectorEvaluation] = {}
+        unprocessed_values: dict[DetectorGroupKey, DataPacketEvaluationType] = {}
 
-        tainted = False
-
-        for group_key, data_value in group_data_values.items():
-            state_data: DetectorStateData = state[group_key]
-            if dedupe_value <= state_data.dedupe_value:
+        for group_key, data_value in values.items():
+            if dedupe_value <= state[group_key].dedupe_value:
                 metrics.incr("workflow_engine.detector.skipping_already_processed_update")
                 continue
 
             self.state_manager.enqueue_dedupe_update(group_key, dedupe_value)
+            unprocessed_values[group_key] = data_value
 
-            detector_trigger_evaluation, evaluated_priority = self.evaluate_conditions(
-                group_data_values[group_key]
-            )
+        condition_evaluations = super().evaluate(data_packet, unprocessed_values)
+        results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
-            if detector_trigger_evaluation is not None and detector_trigger_evaluation.is_tainted():
-                tainted = True
-
-            if detector_trigger_evaluation is None or not detector_trigger_evaluation.triggered:
-                # Invalid condition result, nothing we can do
-                # Or if we didn't match any conditions in the evaluation
-                continue
+        for group_key, condition_evaluation in condition_evaluations.result.items():
+            state_data = state[group_key]
+            evaluated_priority = condition_evaluation.priority
 
             if state_data.status == evaluated_priority:
                 # evaluated priority is equal to current detector state.
@@ -504,39 +515,31 @@ class StatefulDetectorHandler(
                 new_priority,
                 activation_id,
             )
-
             results[group_key] = self._build_detector_evaluation_result(
                 group_key,
                 new_priority,
-                detector_trigger_evaluation,
+                condition_evaluation.data["trigger_group_evaluation"],
                 data_packet,
-                data_value,
+                unprocessed_values[group_key],
                 activation_id,
             )
 
         self.state_manager.commit_state_updates()
-        return GroupedDetectorEvaluationResult(result=results, tainted=tainted)
+        return DetectorEvaluations(result=results, tainted=condition_evaluations.tainted)
 
     def _create_resolve_message(
         self,
-        group_evaluation: DataConditionGroupEvaluation,
+        evaluation: DetectorEvaluation,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
-        group_key: DetectorGroupKey = None,
-        activation_id: int | None = None,
+        fingerprint: list[str],
     ) -> StatusChangeMessage:
-        fingerprint = self.build_occurrence_fingerprint(group_key, activation_id)
-
-        workflow_engine_evidence_data = self._build_workflow_engine_evidence_data(
-            group_evaluation,
-            data_packet,
-            evaluation_value,
-        )
-
         evidence_data = {
-            **dataclasses.asdict(workflow_engine_evidence_data),
+            **dataclasses.asdict(
+                self._build_detector_evidence(evaluation, data_packet, evaluation_value)
+            ),
             **self.build_detector_evidence_data(
-                group_evaluation,
+                evaluation.data["trigger_group_evaluation"],
                 data_packet,
                 DetectorPriorityLevel.OK,
             ),
@@ -555,93 +558,36 @@ class StatefulDetectorHandler(
         self,
         group_key: DetectorGroupKey,
         new_priority: DetectorPriorityLevel,
-        group_evaluation: DataConditionGroupEvaluation,
+        group_evaluation: DataConditionGroupEvaluation | None,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
         activation_id: int | None = None,
     ) -> DetectorEvaluation:
-        detector_result: IssueOccurrence | StatusChangeMessage
-        event_data: EventData | None = None
-
-        if new_priority == DetectorPriorityLevel.OK:
-            # Call the `create_resolve_message` method to create the status change.
-            detector_result = self._create_resolve_message(
-                group_evaluation,
-                data_packet,
-                evaluation_value,
-                group_key,
-                activation_id,
-            )
-        else:
-            # Call the `create_occurrence` method to create the detector occurrence.
-            detector_occurrence, event_data = self.create_occurrence(
-                group_evaluation, data_packet, new_priority
-            )
-            detector_result = self._create_decorated_issue_occurrence(
-                data_packet,
-                detector_occurrence,
-                group_evaluation,
-                new_priority,
-                group_key,
-                evaluation_value,
-                activation_id,
-            )
-
-            # Set the event data with the necessary fields
-            event_data.setdefault("environment", self.detector.config.get("environment"))
-            event_data["timestamp"] = detector_result.detection_time
-            event_data["project_id"] = detector_result.project_id
-            event_data["event_id"] = detector_result.event_id
-            event_data.setdefault("platform", "python")
-            event_data.setdefault("received", detector_result.detection_time)
-            event_data.setdefault("tags", {})
-
-        return DetectorEvaluation(
-            result=detector_result,
+        evaluation = DetectorEvaluation(
+            result=None,
             data=DetectorEvaluationData(
                 group_key=group_key,
                 trigger_group_evaluation=group_evaluation,
-                event_data=event_data,
+                event_data=None,
             ),
             triggered=new_priority != DetectorPriorityLevel.OK,
             priority=new_priority,
+        )
+        fingerprint = self.build_occurrence_fingerprint(group_key, activation_id)
+
+        if new_priority == DetectorPriorityLevel.OK:
+            resolve_message = self._create_resolve_message(
+                evaluation, data_packet, evaluation_value, fingerprint
+            )
+            return dataclasses.replace(evaluation, result=resolve_message)
+
+        return self._create_occurrence(
+            evaluation, data_packet, evaluation_value, fingerprint=fingerprint
         )
 
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
         conditions = self.detector.get_conditions()
         return list(DetectorPriorityLevel(condition.condition_result) for condition in conditions)
-
-    def _create_decorated_issue_occurrence(
-        self,
-        data_packet: DataPacket[DataPacketType],
-        detector_occurrence: DetectorOccurrence,
-        group_evaluation: DataConditionGroupEvaluation,
-        new_priority: DetectorPriorityLevel,
-        group_key: DetectorGroupKey,
-        data_value: DataPacketEvaluationType,
-        activation_id: int | None = None,
-    ) -> IssueOccurrence:
-        """
-        Decorate the issue occurrence with the data from the detector's evaluation result.
-        """
-        evidence_data = self._build_workflow_engine_evidence_data(
-            group_evaluation,
-            data_packet,
-            data_value,
-        )
-
-        fingerprint = self.build_occurrence_fingerprint(group_key, activation_id)
-
-        occurrence_id = str(uuid4())
-
-        return detector_occurrence.to_issue_occurrence(
-            fingerprint=fingerprint,
-            occurrence_id=occurrence_id,
-            event_id=occurrence_id,
-            project_id=self.detector.project_id,
-            status=new_priority,
-            additional_evidence_data=dataclasses.asdict(evidence_data),
-        )
 
     def _increment_detector_thresholds(
         self,
