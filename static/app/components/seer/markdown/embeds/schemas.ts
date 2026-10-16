@@ -442,9 +442,13 @@ export const SEER_EMBED_SCHEMAS = {
   alert: {
     description:
       'The ONLY way to reference a Sentry alert. ' +
-      'Use `id` exactly as the alerts API returns it, and set `kind` to match: ' +
-      '"metric" for a metric alert, "issue" for an issue alert, "uptime" for an ' +
-      'uptime alert, "cron" for a cron alert. ' +
+      'Set `kind` by the API the `id` came from, not by what the alert watches: ' +
+      '"issue" for a workflow id from the workflows API (`/workflows/`), including ' +
+      'a workflow that notifies on a metric, uptime, or cron monitor; ' +
+      '"metric", "uptime", or "cron" only for a detector id from the detectors ' +
+      "API (`/detectors/`), matching the detector's type. " +
+      'Workflow and detector ids are different number spaces, so a workflow id with ' +
+      '"metric" points at the wrong resource. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
       'Block: renders alert conditions and configured actions, plus the ' +
@@ -463,6 +467,10 @@ export const SEER_EMBED_SCHEMAS = {
         data: {id: '4521', kind: 'metric', name: 'Checkout p95 latency'},
       },
       {label: 'Issue alert', data: {id: '881', kind: 'issue'}},
+      {
+        label: 'Workflow notifying on a metric monitor',
+        data: {id: '6120', kind: 'issue', name: 'High error rate email'},
+      },
       {
         label: 'Uptime alert',
         data: {id: '774', kind: 'uptime', name: 'Checkout availability'},

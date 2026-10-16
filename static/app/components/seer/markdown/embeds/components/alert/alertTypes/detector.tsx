@@ -10,6 +10,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {IssueAlertBlock} from 'sentry/components/seer/markdown/embeds/components/alert/alertTypes/issue';
 import {EnabledStatusIndicator} from 'sentry/components/seer/markdown/embeds/components/enabledStatusIndicator';
 import {CronMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/cron';
 import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/metric';
@@ -25,6 +26,7 @@ import type {
   UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationActionSummary} from 'sentry/views/automations/components/automationActionSummary';
@@ -144,6 +146,7 @@ export function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
   const href = makeMonitorDetailsPathname(organization.slug, id);
   const {
     data: detector,
+    error,
     isError,
     isPending,
   } = useQuery({
@@ -151,6 +154,14 @@ export function DetectorAlertBlock({id, kind, name}: EmbedOutput<'alert'>) {
     retry: false,
   });
   const Icon = getDetectorAlertIcon(kind as DetectorAlertKind);
+
+  // Seer tends to label a workflow that notifies on a metric monitor as a
+  // "metric" alert, handing us a workflow id. Conversations already persisted
+  // with that mistake should still render, so a missing detector retries the id
+  // as a workflow.
+  if (isNotFoundError(error)) {
+    return <IssueAlertBlock id={id} kind="issue" name={name} />;
+  }
 
   return (
     <SeerEmbedBlock
