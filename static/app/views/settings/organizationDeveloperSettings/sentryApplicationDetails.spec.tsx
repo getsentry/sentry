@@ -476,8 +476,8 @@ describe('Sentry Application Details', () => {
       ).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
 
-      expect(screen.getByRole('textbox', {name: 'Client ID'})).toBeInTheDocument();
-      expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
+      expect(screen.getByLabelText('Client ID')).toHaveAttribute('readonly');
+      expect(screen.getByLabelText('Client Secret')).toHaveAttribute('readonly');
 
       await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
       expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();

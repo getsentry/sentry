@@ -1,4 +1,4 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {NewProviderForm} from 'sentry/views/settings/featureFlags/changeTracking/newProviderForm';
 
@@ -14,5 +14,6 @@ describe('NewProviderForm', () => {
         existingSecret={undefined}
       />
     );
+    expect(screen.getByLabelText('Webhook URL')).toBeDisabled();
   });
 });
