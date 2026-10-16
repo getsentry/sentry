@@ -248,7 +248,10 @@ class EventDetailFields(TypedDict):
 
 
 class ErrorEventFields(TypedDict, total=False):
-    crashFile: Annotated[str | None, ApiDescription("Crash report attachment of the event, if any")]
+    crashFile: Annotated[
+        EventAttachmentSerializerResponse | None,
+        ApiDescription("Crash report attachment of the event, if any"),
+    ]
     culprit: Annotated[str | None, ApiDescription("Function or module that caused the event")]
     dateCreated: Annotated[datetime, ApiDescription("When the event occurred (ISO 8601)")]
     fingerprints: Annotated[list[str], ApiDescription("Grouping hashes calculated for the event")]
@@ -259,10 +262,10 @@ class ErrorEventFields(TypedDict, total=False):
 
 class TransactionEventFields(TypedDict, total=False):
     startTimestamp: Annotated[
-        float, ApiDescription("When the transaction started, as a Unix timestamp in seconds")
+        float | None, ApiDescription("When the transaction started, as a Unix timestamp in seconds")
     ]
     endTimestamp: Annotated[
-        float, ApiDescription("When the transaction ended, as a Unix timestamp in seconds")
+        float | None, ApiDescription("When the transaction ended, as a Unix timestamp in seconds")
     ]
     measurements: Annotated[
         dict[str, MeasurementValue] | None,
@@ -789,7 +792,8 @@ SimpleEventSerializerResponse = TypedDict(
         ],
         "dateCreated": Annotated[datetime, ApiDescription("When the event occurred (ISO 8601)")],
         "crashFile": Annotated[
-            str | None, ApiDescription("Crash report attachment of the event, if any")
+            EventAttachmentSerializerResponse | None,
+            ApiDescription("Crash report attachment of the event, if any"),
         ],
         "metadata": Annotated[EventMetadataResponse, ApiDescription("Event metadata")],
     },

@@ -108,7 +108,7 @@ class HealthData(HealthDataOptional):
     sessionsErrored: Annotated[int, ApiDescription("Number of sessions with errors")]
     hasHealthData: Annotated[bool, ApiDescription("Whether the release has session data")]
     stats: Annotated[
-        dict[str, ReleaseHealthStats],
+        dict[str, ReleaseHealthStats] | None,
         ApiDescription("Session or user counts over time, keyed by stats period"),
     ]
 
@@ -144,5 +144,5 @@ class BaseProject(ProjectOptional):
 
 class Project(BaseProject):
     newGroups: Annotated[
-        int, ApiDescription("Number of new issues first seen in the release in the project")
+        int | None, ApiDescription("Number of new issues first seen in the release in the project")
     ]
