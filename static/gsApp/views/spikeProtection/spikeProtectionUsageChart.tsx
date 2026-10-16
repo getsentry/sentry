@@ -28,7 +28,7 @@ type SpikeProtectionUsageChartProps = {
   storedSpikes: SpikeDetails[];
 } & UsageChartProps;
 
-function SpikeProtectionUsageChart(props: SpikeProtectionUsageChartProps) {
+export function SpikeProtectionUsageChart(props: SpikeProtectionUsageChartProps) {
   const theme = useTheme();
   const {
     usageDateShowUtc,
@@ -146,9 +146,5 @@ function SpikeProtectionUsageChart(props: SpikeProtectionUsageChartProps) {
     chartSeries.push(spikeThresholdSeries, spikeRegionSeries);
   }
 
-  return (
-    <UsageChart {...props} isLoading={isLoading} chartSeries={chartSeries} />
-  );
+  return <UsageChart {...props} isLoading={isLoading} chartSeries={chartSeries} />;
 }
-
-export default SpikeProtectionUsageChart;
