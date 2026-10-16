@@ -22,7 +22,7 @@ import {
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
 
-// A completed agentic run. Seer marks the report's query cells `queryCollapsed`.
+// A completed agentic run.
 const agenticReportInvestigation = InvestigationDetailFixture({
   id: 'completed-agentic-report',
   title: 'Why does the cart latency monitor keep firing overnight?',
@@ -70,7 +70,7 @@ const agenticReportInvestigation = InvestigationDetailFixture({
           '| Opened | Duration | Peak p95 |\n| --- | ---: | ---: |\n| Oct 6, 02:14 | 3m | 1.21s |\n| Oct 4, 03:41 | 2m | 980ms |\n| Sep 12, 14:05 | 47m | 1.62s |',
       }),
       currentExecution: InvestigationBlockExecutionFixture({id: 'monitor-issues-run'}),
-      display: {type: 'table', queryCollapsed: true},
+      display: {type: 'table'},
     }),
     InvestigationBlockFixture({
       id: 'why-it-fires',
@@ -122,7 +122,7 @@ const agenticReportInvestigation = InvestigationDetailFixture({
         },
       }),
       currentExecution: InvestigationBlockExecutionFixture({id: 'overnight-windows-run'}),
-      display: {type: 'chart', queryCollapsed: true},
+      display: {type: 'chart'},
     }),
     InvestigationBlockFixture({
       id: 'day-and-night',
@@ -136,7 +136,7 @@ const agenticReportInvestigation = InvestigationDetailFixture({
           '| Window | Requests per minute | p95 |\n| --- | ---: | ---: |\n| 09:00–21:00 | 1,840 | 412ms |\n| 01:00–05:00 | 12–35 | 446ms |',
       }),
       currentExecution: InvestigationBlockExecutionFixture({id: 'day-and-night-run'}),
-      display: {type: 'table', queryCollapsed: true},
+      display: {type: 'table'},
     }),
     InvestigationBlockFixture({
       id: 'how-it-works',
@@ -162,7 +162,7 @@ const agenticReportInvestigation = InvestigationDetailFixture({
           '| Setting | Value |\n| --- | --- |\n| Measures | p95(span.duration) · transaction:/api/cart |\n| Interval | 1 minute |\n| Opens an issue | Above 800 ms |',
       }),
       currentExecution: InvestigationBlockExecutionFixture({id: 'monitor-settings-run'}),
-      display: {type: 'table', queryCollapsed: true},
+      display: {type: 'table'},
     }),
   ],
 });

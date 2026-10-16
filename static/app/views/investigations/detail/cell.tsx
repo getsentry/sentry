@@ -392,27 +392,11 @@ function QueryResult({
 
   const hasInsetContent = Boolean(header || hasExecutionAlert(block) || body);
 
-  // Start collapsed when Seer sets `queryCollapsed`, unless the cell is running
-  // or failed. Expand the cell when a new run starts so its result is visible.
-  const working = isBlockWorking(block);
-  const [expanded, setExpanded] = useState(
-    () => block.display.queryCollapsed !== true || working || hasExecutionAlert(block)
-  );
-  const [wasWorking, setWasWorking] = useState(working);
-  if (working !== wasWorking) {
-    setWasWorking(working);
-    if (working) {
-      setExpanded(true);
-    }
-  }
-
   return (
     <CellHoverSurface width="100%">
       <SeerEmbedBlock
         actions={actions}
-        expanded={expanded}
         gap="0"
-        onExpandedChange={setExpanded}
         padding="0"
         testId="query-cell"
         title={title}

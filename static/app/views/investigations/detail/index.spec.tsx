@@ -1316,37 +1316,6 @@ describe('Investigation detail', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('starts report evidence collapsed when Seer files it that way', async () => {
-    const investigation = investigationWithQueryResult();
-    investigation.blocks = [
-      {
-        ...investigation.blocks[1]!,
-        display: {type: 'table', queryCollapsed: true},
-        outputStatus: 'completed',
-        output: {
-          schemaVersion: 1,
-          preferredView: 'table',
-          tableMarkdown: '| p95 |\n| --- |\n| 820ms |',
-          chart: null,
-          chartUnavailableReason: null,
-          isEmpty: false,
-          queryLinks: [],
-        },
-      },
-    ];
-    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
-
-    renderView();
-
-    const toggle = await screen.findByRole('button', {name: 'Latency query'});
-    expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByText('820ms')).not.toBeVisible();
-
-    await userEvent.click(toggle);
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    expect(screen.getByText('820ms')).toBeVisible();
-  });
-
   it('renders the outer query title as non-editable text', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
