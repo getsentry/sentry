@@ -25,6 +25,7 @@ const REASON_TITLES: Record<string, string> = {
   buffer_overflow: t('SDK buffer overflow'),
   ignore_spans: t('Dropped by ignored spans'),
   network_error: t('Unretried network error'),
+  no_parent_span: t('Missing parent span'),
   queue_overflow: t('SDK queue overflow'),
   ratelimit_backoff: t('SDK rate-limit backoff'),
   sample_rate: t('Dropped by sample rate'),
@@ -33,6 +34,7 @@ const REASON_TITLES: Record<string, string> = {
   'filtered-transaction': t('Filtered transaction'),
   'ip-address': t('IP address filter'),
   'legacy-browsers': t('Legacy browser filter'),
+  localhost: t('Localhost filter'),
   'release-version': t('Release version filter'),
   'web-crawlers': t('Web crawler filter'),
   cors: t('Disallowed origin'),
@@ -41,6 +43,7 @@ const REASON_TITLES: Record<string, string> = {
   invalid_json: t('Malformed JSON payload'),
   invalid_transaction: t('Invalid transaction data'),
   missing_dsc: t('Missing trace context'),
+  timestamp: t('Invalid timestamp'),
   'too_large:event': t('Event payload too large'),
   'too_large:log': t('Log payload too large'),
   'too_large:profile': t('Profile payload too large'),
@@ -54,6 +57,9 @@ const REASON_TITLES: Record<string, string> = {
 };
 
 function normalizeReason(reason: string): string {
+  if (reason === 'ignored') {
+    return 'ignore_spans';
+  }
   return reason.endsWith('_usage_exceeded') ? 'usage_exceeded' : reason;
 }
 
@@ -70,6 +76,7 @@ const REASON_DESCRIPTIONS: Record<
   buffer_overflow: t('SDK buffer filled before data could be sent.'),
   ignore_spans: t('Span dropped by your ignored spans configuration.'),
   network_error: t('Request failed before reaching Sentry.'),
+  no_parent_span: t('Span skipped because no parent span was active.'),
   queue_overflow: t("SDK's send queue was full."),
   sample_rate: t('Event dropped by your configured sample rate.'),
   send_error: t('Sentry rejected the event with an error response.'),
@@ -77,6 +84,7 @@ const REASON_DESCRIPTIONS: Record<
   'filtered-transaction': t('Transaction matched the default health check filter.'),
   'ip-address': t('Event IP address matched one of your custom filters.'),
   'legacy-browsers': t('Browser matched your legacy browser filter.'),
+  localhost: t('Event was sent from a local address.'),
   'release-version': t('Event release matched one of your custom filters.'),
   'web-crawlers': t("User agent matched Sentry's known crawler list."),
   cors: t("Origin not in project's Allowed Domains."),
@@ -85,6 +93,7 @@ const REASON_DESCRIPTIONS: Record<
   invalid_json: t('Event rejected due to invalid JSON.'),
   invalid_transaction: t('Transaction contained invalid data.'),
   missing_dsc: t('Envelope was missing the required trace header.'),
+  timestamp: t('Event timestamp was too far in the past or future.'),
   'too_large:event': dataType =>
     dataType
       ? t('The %s event exceeded maximum payload size.', dataType)
@@ -124,6 +133,9 @@ const REASON_LONG_DESCRIPTIONS: Record<string, string> = {
   network_error: t(
     'The request failed outright without receiving a response, often caused by ad blockers and browser extensions.'
   ),
+  no_parent_span: t(
+    'The SDK only records some spans, such as outgoing requests, when a parent span is active. Without one, the span is never created, so no data was lost.'
+  ),
   queue_overflow: t(
     'Your application is generating events faster than the SDK can buffer and send them. The SDK allows a limited number of operations in flight at once; beyond that, new events are dropped immediately rather than queued.'
   ),
@@ -143,6 +155,9 @@ const REASON_LONG_DESCRIPTIONS: Record<string, string> = {
   ),
   'legacy-browsers': t(
     'The event was filtered because the reporting browser matched the legacy browsers inbound filter. This rule filters out events from older web browsers that are likely to provide broken telemetry.'
+  ),
+  localhost: t(
+    "The event was filtered because it came from a local address such as localhost or 127.0.0.1. This rule is enabled in your project's inbound filter settings."
   ),
   'release-version': t(
     'The event matched a custom release filter rule provided in your settings.'
@@ -164,6 +179,9 @@ const REASON_LONG_DESCRIPTIONS: Record<string, string> = {
     'The transaction was valid JSON but semantically could not be accepted.'
   ),
   missing_dsc: t('The envelope contained spans but no trace header.'),
+  timestamp: t(
+    "The event's timestamp was outside the range Sentry accepts, either older than the retention window or too far in the future. This is usually caused by an incorrect clock on the device that sent it."
+  ),
   'too_large:event': t('The event exceeded the maximum payload size.'),
   'too_large:log': t('The log event exceeded the maximum payload size.'),
   'too_large:span': t('The span event exceeded the maximum payload size.'),

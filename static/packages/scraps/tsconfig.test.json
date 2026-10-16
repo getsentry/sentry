@@ -9,5 +9,10 @@
     "types": ["jest", "node", "@testing-library/jest-dom"]
   },
   "include": ["src", "test"],
-  "exclude": []
+  "exclude": [],
+  "references": [
+    {
+      "path": "../icons"
+    }
+  ]
 }

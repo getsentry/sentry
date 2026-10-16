@@ -529,9 +529,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         )
         # Last checkin was a minute ago
         MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=env,
-            project_id=project.id,
             status=CheckInStatus.OK,
             date_added=last_checkin_ts,
         )

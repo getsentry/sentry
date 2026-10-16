@@ -1,16 +1,24 @@
+import type * as React from 'react';
 import {createRef} from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
 import {expectTypeOf} from 'expect-type';
 
-import {render, screen} from '../../test/env';
+import {lightTheme} from '@sentry/scraps/theme';
 
 import {Heading, type HeadingProps, type HeadingPropsWithRenderFunction} from './heading';
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
 
 describe('Heading', () => {
   it('renders with correct HTML element', () => {
     render(
       <Heading as="h6" align="center">
         Heading 6
-      </Heading>
+      </Heading>,
+      {wrapper: ThemeWrapper}
     );
     expect(screen.getByText('Heading 6').tagName).toBe('H6');
   });
@@ -19,7 +27,8 @@ describe('Heading', () => {
     render(
       <Heading as="h6" align="center">
         Heading 6
-      </Heading>
+      </Heading>,
+      {wrapper: ThemeWrapper}
     );
     expect(screen.getByText('Heading 6')).not.toHaveAttribute('align');
   });
@@ -28,7 +37,8 @@ describe('Heading', () => {
     render(
       <Heading as="h6" data-test-id="test-id">
         Heading 6
-      </Heading>
+      </Heading>,
+      {wrapper: ThemeWrapper}
     );
     expect(screen.getByText('Heading 6')).toHaveAttribute('data-test-id', 'test-id');
   });
@@ -36,7 +46,8 @@ describe('Heading', () => {
     render(
       <Heading as="h6" style={{color: 'red'}}>
         Heading 6
-      </Heading>
+      </Heading>,
+      {wrapper: ThemeWrapper}
     );
     expect(screen.getByText('Heading 6')).toHaveStyle({color: 'rgb(255, 0, 0)'});
   });
@@ -45,7 +56,8 @@ describe('Heading', () => {
     render(
       <Heading as="h6" ref={ref}>
         Heading 6
-      </Heading>
+      </Heading>,
+      {wrapper: ThemeWrapper}
     );
     expect(ref.current?.tagName).toBe('H6');
   });
@@ -54,7 +66,8 @@ describe('Heading', () => {
     render(
       <section>
         <Heading variant="muted">{props => <h2 {...props}>Title</h2>}</Heading>
-      </section>
+      </section>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByText('Title')?.tagName).toBe('H2');
@@ -69,7 +82,8 @@ describe('Heading', () => {
       <Heading variant="muted" aria-activedescendant="what">
         {/* @ts-expect-error - this should be a React.ElementType */}
         {props => <h2 {...props}>Title</h2>}
-      </Heading>
+      </Heading>,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByText('Title')).not.toHaveAttribute('aria-activedescendant');
@@ -85,7 +99,8 @@ describe('Heading', () => {
       <Heading variant="muted">
         {/* @ts-expect-error - className is incompatible */}
         {props => <Child {...props} />}
-      </Heading>
+      </Heading>,
+      {wrapper: ThemeWrapper}
     );
   });
 
@@ -94,7 +109,8 @@ describe('Heading', () => {
       // @ts-expect-error: Heading does not support the display prop
       <Heading as="h1" display="none">
         Title
-      </Heading>
+      </Heading>,
+      {wrapper: ThemeWrapper}
     );
     expect(screen.getByText('Title').tagName).toBe('H1');
   });

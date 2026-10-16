@@ -167,11 +167,6 @@
       "count": 1
     }
   },
-  "static/app/components/core/useScrollLock.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
   "static/app/components/customCommitsResolutionModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3019,11 +3014,6 @@
       "count": 1
     }
   },
-  "static/app/views/preprod/buildComparison/header/buildCompareHeaderContent.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/preprod/buildComparison/main/sizeCompareSelectedBuilds.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3035,11 +3025,6 @@
     }
   },
   "static/app/views/preprod/buildDetails/main/insights/insightInfoModal.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }

@@ -239,8 +239,11 @@ def _fetch_issues_from_repo_projects(
     file_projects, sentry_filenames = _get_projects_and_filenames_from_source_file(
         repo_projects.organization_id, repo_projects.repo.id, filename
     )
-    file_projects_list = list(file_projects)
-    if not file_projects:
+    # The filename lookup reads every code mapping for the repo. Keep only the
+    # projects get_repo_and_projects already decided the caller can see.
+    allowed_ids = {project.id for project in repo_projects.projects}
+    file_projects_list = [project for project in file_projects if project.id in allowed_ids]
+    if not file_projects_list:
         logger.warning(
             "No projects found for file. Using all projects.",
             extra={"file": filename, "function_name": function_name, "run_id": run_id},

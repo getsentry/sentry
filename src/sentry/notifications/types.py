@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, NamedTuple
@@ -9,6 +10,8 @@ from sentry.hybridcloud.rpc import ValueEqualityEnum
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(eq=False, frozen=True)
@@ -20,45 +23,19 @@ class NotificationOrigin:
     workflow_id: int | None
     legacy_rule_id: int | None
 
+    def __post_init__(self) -> None:
+        # identifier and link_id assume at least one ID is set; log where an origin
+        # without one is created rather than only failing when it's later used.
+        if self.workflow_id is None and self.legacy_rule_id is None:
+            logger.warning(
+                "notifications.origin.missing_identity",
+                extra={"label": self.label, "environment_id": self.environment_id},
+                stack_info=True,
+            )
+
     def is_test_notification(self) -> bool:
         return (
             self.workflow_id == TEST_NOTIFICATION_ID or self.legacy_rule_id == TEST_NOTIFICATION_ID
-        )
-
-    @classmethod
-    def from_legacy_data(
-        cls,
-        *,
-        label: str,
-        environment_id: int | None,
-        data: dict[str, Any],
-        fallback_legacy_rule_id: int,
-    ) -> NotificationOrigin:
-        actions = data.get("actions")
-        first_action = actions[0] if isinstance(actions, list) and actions else {}
-        if not isinstance(first_action, dict):
-            first_action = {}
-        workflow_id = first_action.get("workflow_id")
-        legacy_rule_id = first_action.get("legacy_rule_id")
-
-        workflow_id = int(workflow_id) if workflow_id is not None else None
-        legacy_rule_id = int(legacy_rule_id) if legacy_rule_id is not None else None
-
-        if (
-            fallback_legacy_rule_id == TEST_NOTIFICATION_ID
-            or workflow_id == TEST_NOTIFICATION_ID
-            or legacy_rule_id == TEST_NOTIFICATION_ID
-        ):
-            workflow_id = None
-            legacy_rule_id = TEST_NOTIFICATION_ID
-        elif workflow_id is None and legacy_rule_id is None:
-            legacy_rule_id = fallback_legacy_rule_id
-
-        return cls(
-            label=label,
-            environment_id=environment_id,
-            workflow_id=workflow_id,
-            legacy_rule_id=legacy_rule_id,
         )
 
     @property

@@ -39,6 +39,7 @@ if TYPE_CHECKING:
     from rest_framework.views import APIView
 
     from sentry.models.organization import Organization
+    from sentry.models.project import Project
 
 
 def _least_privileged_scope(allowed_scopes: set[str]) -> str | None:
@@ -51,8 +52,16 @@ def _least_privileged_scope(allowed_scopes: set[str]) -> str | None:
     return min(grantable_scopes) if grantable_scopes else None
 
 
-def enforce_scope(request: Request, required_scope: str) -> None:
-    """Require a scope and distinguish token failures from other denials."""
+def enforce_scope(
+    request: Request, required_scope: str, *, projects: Sequence[Project] = ()
+) -> None:
+    """
+    Require a scope and distinguish token failures from other denials.
+
+    When projects are provided, require that the requestor be able to obtain
+    the scope for every project. If not, raise PermissionDenied instead of an
+    insufficient-scope challenge since new scopes won't give them project access
+    """
     if request.access.has_scope(required_scope):
         return
     if required_scope in add_scope_hierarchy(list(request.access.scopes)):
@@ -60,9 +69,17 @@ def enforce_scope(request: Request, required_scope: str) -> None:
     if (
         agent_token.is_agent_auth(request.auth)
         and required_scope not in settings.SENTRY_TOKEN_ONLY_SCOPES
-        and request.access.would_have_scope_with_added_auth_scope(required_scope)
     ):
-        raise InsufficientScope([required_scope])
+        scope_can_be_granted = request.access.would_have_scope_with_added_auth_scope(required_scope)
+        if projects:
+            scope_can_be_granted = all(
+                request.access.would_have_project_scope_with_added_auth_scope(
+                    project, required_scope
+                )
+                for project in projects
+            )
+        if scope_can_be_granted:
+            raise InsufficientScope([required_scope])
     raise PermissionDenied
 
 
