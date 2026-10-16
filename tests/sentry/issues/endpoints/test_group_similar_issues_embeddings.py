@@ -50,6 +50,7 @@ EVENT_WITH_THREADS_STACKTRACE = {
 class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
+        self.enterContext(override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret"))
         self.login_as(self.user)
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
@@ -192,7 +193,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         )
 
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
-    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.issues.endpoints.group_similar_issues_embeddings.logger")
     def test_simple(
@@ -703,7 +703,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "skip_fallback": True,
                 },
             ),
-            headers={"content-type": "application/json;charset=utf-8"},
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                "Authorization": mock.ANY,
+                "X-Viewer-Context": mock.ANY,
+            },
         )
 
         # Include k
@@ -735,7 +739,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "k": 1,
                 },
             ),
-            headers={"content-type": "application/json;charset=utf-8"},
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                "Authorization": mock.ANY,
+                "X-Viewer-Context": mock.ANY,
+            },
         )
 
         # Include threshold
@@ -768,7 +776,11 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "skip_fallback": True,
                 },
             ),
-            headers={"content-type": "application/json;charset=utf-8"},
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                "Authorization": mock.ANY,
+                "X-Viewer-Context": mock.ANY,
+            },
         )
 
     def test_too_many_frames(self) -> None:

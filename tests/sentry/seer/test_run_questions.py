@@ -2,17 +2,18 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import Mock, patch
 
+import pytest
 from django.test import override_settings
 from urllib3.response import HTTPResponse
 
 from sentry.models.organization import Organization
 from sentry.seer.oneshot import call_seer_oneshot, run_oneshot
 from sentry.seer.run_questions import QUESTIONS, get_run_questions
+from sentry.seer.signed_seer_api import MissingViewerContextError
 from sentry.testutils.cases import TestCase
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
-    decode_viewer_context,
     get_viewer_context,
     viewer_context_scope,
 )
@@ -22,20 +23,15 @@ class CallSeerOneShotTest(TestCase):
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @patch("sentry.seer.signed_seer_api.metrics.incr")
     @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
-    def test_reports_missing_viewer_context_without_an_ambient_context(
+    def test_rejects_legacy_context_without_an_ambient_context(
         self, mock_urlopen: Mock, mock_metrics_incr: Mock
     ) -> None:
         mock_urlopen.return_value = HTTPResponse(b'{"result":{"answer":"ok"}}', status=200)
 
-        assert run_oneshot("test", {}, self.organization) == {"answer": "ok"}
+        with pytest.raises(MissingViewerContextError):
+            run_oneshot("test", {}, self.organization)
 
-        viewer_context = decode_viewer_context(
-            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
-            key="viewer-context-test-secret",
-        )
-        assert viewer_context == ViewerContext(
-            organization_id=self.organization.id,
-        )
+        mock_urlopen.assert_not_called()
         mock_metrics_incr.assert_any_call(
             "seer.viewer_context_resolution",
             tags={

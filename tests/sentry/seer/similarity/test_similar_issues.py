@@ -3,6 +3,7 @@ from typing import Any
 from unittest import mock
 from unittest.mock import ANY, MagicMock
 
+from django.test import override_settings
 from django.utils import timezone
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
@@ -23,10 +24,21 @@ from sentry.seer.similarity.types import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils import json
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 
 class GetSimilarityDataFromSeerTest(TestCase):
     def setUp(self) -> None:
+        self.enterContext(override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret"))
+        self.enterContext(
+            viewer_context_scope(
+                ViewerContext(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                    actor_type=ActorType.SYSTEM,
+                )
+            )
+        )
         self.similar_event = save_new_event({"message": "Dogs are great!"}, self.project)
         self.similar_event_hash = self.similar_event.get_primary_hash()
         self.request_params: SimilarIssuesEmbeddingsRequest = {
