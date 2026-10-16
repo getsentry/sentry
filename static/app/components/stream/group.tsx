@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import type {LocationDescriptor} from 'history';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -539,6 +540,8 @@ export function StreamGroup({
   );
 
   const onClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
+    Sentry.metrics.count('issues.list.issue-clicked', 1);
+
     if (displayReprocessingLayout) {
       return;
     }
