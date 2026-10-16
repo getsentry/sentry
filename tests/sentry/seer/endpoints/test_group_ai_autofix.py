@@ -50,6 +50,9 @@ pytestmark = [requires_snuba]
 
 USER_CONTEXT_MAX_LENGTH = 10000
 
+AGENT_TOKEN_SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
+AGENT_TOKEN_FLAG = "organizations:seer-agent-token-flow"
+
 
 def _user_context_length_calls(mock_distribution: Mock) -> list:
     return [
@@ -473,6 +476,87 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert response.data["run_id"] == 123
         mock_trigger_explorer.assert_called_once()
+
+    def _mint_agent_token(self) -> str:
+        self.login_as(user=self.user)
+        response = self.client.post(
+            f"/api/0/organizations/{self.organization.slug}/agent/token/",
+            data={"sessionId": "agent-session"},
+            format="json",
+        )
+        assert response.status_code == 200, response.content
+        return response.data["token"]
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    @with_feature(AGENT_TOKEN_FLAG)
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_push_changes")
+    def test_post_agent_token_open_pr_requires_approval(self, mock_push_changes):
+        group = self.create_group()
+        token = self._mint_agent_token()
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "open_pr", "run_id": 123},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+
+        assert response.status_code == 403, response.data
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="event:write"'
+        )
+        mock_push_changes.assert_not_called()
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    @with_feature(AGENT_TOKEN_FLAG)
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_agent_token_open_pr_stopping_point_requires_approval(self, mock_trigger_explorer):
+        group = self.create_group()
+        token = self._mint_agent_token()
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause", "stopping_point": "open_pr"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+
+        assert response.status_code == 403, response.data
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="event:write"'
+        )
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_push_changes")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_runs_analysis_but_cannot_open_pr(
+        self, mock_trigger_explorer, mock_push_changes
+    ):
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
+        token = self.create_user_auth_token(user=self.user, scope_list=["seer:write"])
+        bearer = token.plaintext_token
+
+        analysis = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {bearer}",
+        )
+        open_pr = self.client.post(
+            self._get_url(group.id),
+            data={"step": "open_pr", "run_id": 123},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {bearer}",
+        )
+
+        assert analysis.status_code == 202, analysis.data
+        assert open_pr.status_code == 403, open_pr.data
+        assert (
+            open_pr["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="event:write"'
+        )
+        mock_push_changes.assert_not_called()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_forbidden_when_ai_features_hidden(self, mock_trigger_explorer):
