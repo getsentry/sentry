@@ -1,4 +1,3 @@
-import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -42,7 +41,7 @@ import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHa
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanWaiter} from 'sentry/views/insights/pages/onboardingUtils';
 
 function useOnboardingProject() {
   const {projects} = useProjects();
@@ -61,47 +60,12 @@ function useOnboardingProject() {
   return selectedProject[0];
 }
 
-function useAiSpanWaiter(project: Project) {
-  const {selection} = usePageFilters();
-  const [shouldRefetch, setShouldRefetch] = useState(true);
-
-  const request = useSpans(
-    {
-      search: 'span.name:"gen_ai.*"',
-      fields: ['id'],
-      limit: 1,
-      enabled: !!project,
-      useQueryOptions: {
-        refetchInterval: shouldRefetch ? 5000 : undefined,
-      },
-      pageFilters: {
-        ...selection,
-        projects: [Number(project.id)],
-        datetime: {
-          period: '6h',
-          utc: true,
-          start: null,
-          end: null,
-        },
-      },
-    },
-    'api.insights.mcp.onboarding'
-  );
-
-  const hasEvents = Boolean(request.data?.length);
-
-  useEffect(() => {
-    if (hasEvents && shouldRefetch) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setShouldRefetch(false);
-    }
-  }, [hasEvents, shouldRefetch]);
-
-  return request;
-}
-
 function WaitingIndicator({project}: {project: Project}) {
-  const spanRequest = useAiSpanWaiter(project);
+  const spanRequest = useSpanWaiter({
+    project,
+    search: 'span.name:"gen_ai.*"',
+    referrer: 'api.insights.mcp.onboarding',
+  });
   const {reloadProjects, fetching} = useProjects();
   const hasEvents = Boolean(spanRequest.data?.length);
 
