@@ -4,7 +4,7 @@ import {IconSpan} from '@sentry/icons/span';
 import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack, rc} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
@@ -96,7 +96,13 @@ const GLYPH_SLOT_WIDTH = '16px';
 // Holds the status glyph. One title line tall (at the title's font size), so the
 // glyph centers on the first line of a wrapped title instead of the whole block.
 // Styled because `1lh` needs the title's font size, which no layout primitive sets.
-const GlyphSlot = styled(Flex)`
+const GlyphSlot = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: ${GLYPH_SLOT_WIDTH};
+  height: 1lh;
   font-size: ${p => p.theme.font.size.sm};
 `;
 
@@ -105,18 +111,35 @@ const GlyphSlot = styled(Flex)`
 // `TitleFlow` dissolves so the title spans both rows and the reference takes the
 // trailing column's first row; the chip then auto-places into the next free row
 // of that column, stacking under the reference (or on the first row when there
-// is none).
+// is none). The font size matches the title so `1lh` measures one title line.
+const TitleGrid = styled('div')`
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.sm};
+
+  @container (min-width: ${p => p.theme.container.sm}) {
+    grid-template-rows: auto 1fr;
+  }
+`;
 
 // Below the breakpoint a block, so the reference flows inline right after the
 // title text and wraps with it. From the breakpoint up, `display: contents` lifts
-// the title (its first child) and the reference into the grid's cells.
+// the title (its first child) and the reference into `TitleGrid`'s cells.
 // Styled because no layout primitive can switch between block and contents.
-const TitleFlow = styled(Container)`
-  font-size: ${p => p.theme.font.size.sm};
+const TitleFlow = styled('div')`
+  grid-column: 1;
 
-  > :first-child {
-    ${p => rc('grid-column', {zero: 'auto', sm: '1'}, p.theme)}
-    ${p => rc('grid-row', {zero: 'auto', sm: '1 / span 2'}, p.theme)}
+  @container (min-width: ${p => p.theme.container.sm}) {
+    display: contents;
+
+    > :first-child {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+    }
   }
 `;
 
@@ -126,8 +149,17 @@ const TitleFlow = styled(Container)`
 // Instead, make the wrapper exactly one line tall, pin it to the top of the
 // line box, and center the button inside it. No layout primitive exposes
 // `vertical-align`, hence the styled wrapper.
-const InlineReference = styled(Flex)`
+const InlineReference = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  height: 1lh;
   vertical-align: top;
+
+  @container (min-width: ${p => p.theme.container.sm}) {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
 `;
 
 // `inherit` so the text takes the link button's accent color rather than
@@ -305,42 +337,21 @@ export function ToolCall({
   return (
     <Stack gap="xs" flex={1} minWidth={0} width="100%" containerType="inline-size">
       <Flex gap="md" align="start" width="100%">
-        <GlyphSlot
-          align="center"
-          justify="center"
-          flexShrink={0}
-          width={GLYPH_SLOT_WIDTH}
-          height="1lh"
-        >
+        <GlyphSlot>
           <ToolCallIndicator
             status={status}
             aria-label={getToolCallStatusLabel(status, t)}
           />
         </GlyphSlot>
-        <Grid
-          flex={1}
-          minWidth={0}
-          columns="minmax(0, 1fr) auto"
-          rows={{zero: 'auto', sm: 'auto 1fr'}}
-          align="start"
-          gap="0 md"
-        >
-          <TitleFlow column="1" display={{zero: 'block', sm: 'contents'}}>
+        <TitleGrid>
+          <TitleFlow>
             <Text size="sm" variant="secondary" monospace wordBreak="break-word">
               {title}
             </Text>
             {reference ? (
               <Fragment>
                 {' '}
-                <InlineReference
-                  as="span"
-                  display="inline-flex"
-                  align="center"
-                  height="1lh"
-                  column={{zero: 'auto', sm: '2'}}
-                  row={{zero: 'auto', sm: '1'}}
-                  justifySelf={{zero: 'auto', sm: 'end'}}
-                >
+                <InlineReference>
                   <ReferenceLink reference={reference} />
                 </InlineReference>
               </Fragment>
@@ -356,7 +367,7 @@ export function ToolCall({
               <FailureChip label={failureLabel ?? t('Failed')} />
             </Flex>
           ) : null}
-        </Grid>
+        </TitleGrid>
       </Flex>
 
       {hasDetail ? (

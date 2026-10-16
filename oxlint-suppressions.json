@@ -157,6 +157,11 @@
       "count": 1
     }
   },
+  "static/app/components/core/chat/toolCall.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 3
+    }
+  },
   "static/app/components/core/drawer/useDrawerResizing.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
