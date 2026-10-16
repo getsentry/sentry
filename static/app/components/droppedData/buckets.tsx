@@ -10,6 +10,8 @@ import {defined} from 'sentry/utils/defined';
 // setting. Read it from the API once it's exposed instead of hardcoding it here.
 const CONFIGURED_OUTCOMES = new Set(['client_sampled', 'filtered']);
 
+const MIN_HIGHLIGHT_RATIO = 0.001;
+
 const CONFIGURED_REASONS_BY_OUTCOME: Record<string, Set<string>> = {
   client_discard: new Set([
     'before_send',
@@ -137,7 +139,7 @@ export function highlightedBuckets(
   acceptedEvents?: DroppedEventsBucket[]
 ): DroppedDataBucket[] {
   return groupIntoBuckets(droppedEvents, acceptedEvents).filter(
-    bucket => bucket.ratio > 0
+    bucket => bucket.ratio >= MIN_HIGHLIGHT_RATIO
   );
 }
 

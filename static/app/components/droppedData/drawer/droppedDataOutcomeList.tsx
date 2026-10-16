@@ -1,9 +1,11 @@
-import {Fragment, useId, useState} from 'react';
+import {useId, useState} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer, useDrawerContentContext} from '@sentry/scraps/drawer';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -15,63 +17,47 @@ import type {
   ReasonRow,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
 import {
-  dataCategoryInfo,
   formatDroppedShare,
   reasonDescription,
-  reasonLongDescription,
   reasonTitle,
   type OutcomeColors,
 } from 'sentry/components/droppedData/outcomes';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
-const COLUMN_WIDTHS = {reason: '1fr', dropped: '160px', share: '96px', toggle: '48px'};
+const COLUMN_WIDTHS = {reason: '1fr', dropped: '160px', share: '96px', actions: '48px'};
 const TABLE_COLUMNS: TableColumnConfig[] = Object.entries(COLUMN_WIDTHS).map(
   ([key, width]) => ({key, width})
 );
 const HEADER_COLUMNS = Object.values(COLUMN_WIDTHS).join(' ');
 
-function FixThisMenu({
+function ReasonActionsMenu({
   row,
-  onInvestigate,
+  onTroubleshoot,
 }: {
   row: ReasonRow;
-  onInvestigate?: (row: ReasonRow) => void;
+  onTroubleshoot?: (row: ReasonRow) => void;
 }) {
-  const organization = useOrganization();
   const {onClose: closeDroppedDataDrawer} = useDrawerContentContext();
   const {panelRef} = useDrawer();
-
-  const info = dataCategoryInfo(row.category);
-
-  const settingsTo = normalizeUrl(
-    `/settings/${organization.slug}/stats/${info ? `?dataCategory=${info.plural}` : ''}`
-  );
 
   // TODO: this will be a dynamic URL once the per-reason docs page
   // fully up-to-date.
   const docsHref = 'https://docs.sentry.io/';
 
   const items: MenuItemProps[] = [
-    ...(onInvestigate
+    ...(onTroubleshoot
       ? [
           {
-            key: 'investigate',
-            label: t('Investigate'),
+            key: 'troubleshoot',
+            label: t('Troubleshoot'),
             onAction: () => {
               closeDroppedDataDrawer?.();
-              onInvestigate(row);
+              onTroubleshoot(row);
             },
           },
         ]
       : []),
-    {
-      key: 'project-settings',
-      label: t('Project Settings'),
-      to: settingsTo,
-    },
     {
       key: 'docs',
       label: t('Go to Docs'),
@@ -86,89 +72,47 @@ function FixThisMenu({
       usePortal
       portalContainerRef={panelRef}
       trigger={(triggerProps, isOpen) => (
-        <OverlayTrigger.Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
-          showChevron={false}
-          variant="primary"
-          size="sm"
+          size="xs"
+          variant="transparent"
+          icon={<IconEllipsis />}
+          aria-label={t('Reason actions')}
           aria-expanded={isOpen}
-        >
-          {t('Learn more')}
-        </OverlayTrigger.Button>
+        />
       )}
     />
   );
 }
 
-function ReasonExpansion({
-  row,
-  onInvestigate,
-}: {
-  row: ReasonRow;
-  onInvestigate?: (row: ReasonRow) => void;
-}) {
-  const longDescription = reasonLongDescription(row.reason);
-
-  return (
-    <SimpleTable.FullWidthRow>
-      <Flex
-        align="center"
-        justify={longDescription ? 'between' : 'end'}
-        gap="md"
-        padding="lg xl"
-        background="secondary"
-      >
-        {longDescription && <Text size="md">{longDescription}</Text>}
-        <FixThisMenu row={row} onInvestigate={onInvestigate} />
-      </Flex>
-    </SimpleTable.FullWidthRow>
-  );
-}
-
 function ReasonTableRow({
   row,
-  onInvestigate,
+  onTroubleshoot,
 }: {
   row: ReasonRow;
-  onInvestigate?: (row: ReasonRow) => void;
+  onTroubleshoot?: (row: ReasonRow) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const description = reasonDescription(row.reason, row.category);
-
   return (
-    <Fragment>
-      <SimpleTable.Row>
-        <SimpleTable.RowCell direction="column" align="start" gap="xs" padding="md xl">
-          <Text size="md">{reasonTitle(row.reason)}</Text>
-          {description && (
-            <Text size="sm" variant="muted">
-              {description}
-            </Text>
-          )}
-        </SimpleTable.RowCell>
-        <SimpleTable.RowCell justify="end" padding="md xl">
-          <Text size="md" variant="muted" tabular>
-            {row.events.toLocaleString()}
-          </Text>
-        </SimpleTable.RowCell>
-        <SimpleTable.RowCell justify="end" padding="md xl">
-          <Text size="md" variant="muted" tabular>
-            {formatDroppedShare(row.shareRatio)}
-          </Text>
-        </SimpleTable.RowCell>
-        <SimpleTable.RowCell justify="center" padding="0">
-          <Button
-            size="xs"
-            variant="transparent"
-            icon={<IconChevron direction={expanded ? 'up' : 'down'} size="md" />}
-            aria-label={t('Toggle fix options')}
-            aria-expanded={expanded}
-            onClick={() => setExpanded(value => !value)}
-          />
-        </SimpleTable.RowCell>
-      </SimpleTable.Row>
-      {expanded && <ReasonExpansion row={row} onInvestigate={onInvestigate} />}
-    </Fragment>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell padding="md xl">
+        <InfoText size="md" title={reasonDescription(row.reason, row.category)}>
+          {reasonTitle(row.reason)}
+        </InfoText>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end" padding="md xl">
+        <Text size="md" variant="muted" tabular>
+          {row.events.toLocaleString()}
+        </Text>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end" padding="md xl">
+        <Text size="md" variant="muted" tabular>
+          {formatDroppedShare(row.shareRatio)}
+        </Text>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="center" padding="0">
+        <ReasonActionsMenu row={row} onTroubleshoot={onTroubleshoot} />
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 
@@ -183,11 +127,11 @@ function ColumnHeading({children}: {children: React.ReactNode}) {
 function ReasonTable({
   id,
   reasons,
-  onInvestigate,
+  onTroubleshoot,
 }: {
   id: string;
   reasons: ReasonRow[];
-  onInvestigate?: (row: ReasonRow) => void;
+  onTroubleshoot?: (row: ReasonRow) => void;
 }) {
   return (
     <SimpleTable
@@ -204,7 +148,7 @@ function ReasonTable({
           <SimpleTable.HeaderCell align="right" divider={false}>
             <ColumnHeading>{t('Share')}</ColumnHeading>
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell />
+          <SimpleTable.HeaderCell aria-label={t('Actions')} />
         </SimpleTable.HeaderRow>
       }
     >
@@ -212,7 +156,7 @@ function ReasonTable({
         <ReasonTableRow
           key={`${row.outcome}:${row.reason}`}
           row={row}
-          onInvestigate={onInvestigate}
+          onTroubleshoot={onTroubleshoot}
         />
       ))}
     </SimpleTable>
@@ -222,11 +166,11 @@ function ReasonTable({
 function OutcomeSectionRow({
   section,
   color,
-  onInvestigate,
+  onTroubleshoot,
 }: {
   color: string | undefined;
   section: OutcomeSection;
-  onInvestigate?: (row: ReasonRow) => void;
+  onTroubleshoot?: (row: ReasonRow) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const reasonTableId = useId();
@@ -270,7 +214,7 @@ function OutcomeSectionRow({
         <ReasonTable
           id={reasonTableId}
           reasons={section.reasons}
-          onInvestigate={onInvestigate}
+          onTroubleshoot={onTroubleshoot}
         />
       )}
     </Stack>
@@ -280,13 +224,13 @@ function OutcomeSectionRow({
 interface DroppedDataOutcomeListProps {
   colors: OutcomeColors;
   sections: OutcomeSection[];
-  onInvestigate?: (row: ReasonRow) => void;
+  onTroubleshoot?: (row: ReasonRow) => void;
 }
 
 export function DroppedDataOutcomeList({
   sections,
   colors,
-  onInvestigate,
+  onTroubleshoot,
 }: DroppedDataOutcomeListProps) {
   return (
     <Stack gap="md">
@@ -295,7 +239,7 @@ export function DroppedDataOutcomeList({
           key={section.outcome}
           section={section}
           color={colors[section.outcome]}
-          onInvestigate={onInvestigate}
+          onTroubleshoot={onTroubleshoot}
         />
       ))}
     </Stack>

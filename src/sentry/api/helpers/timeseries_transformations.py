@@ -1,3 +1,4 @@
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from itertools import groupby, pairwise
@@ -6,7 +7,10 @@ from statistics import fmean, pvariance
 from typing import Final, Literal
 
 from pydantic import BaseModel, ValidationError, validator
+from rest_framework.exceptions import ParseError
+from rest_framework.request import Request
 
+from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.constants import FUNCTION_PATTERN
 from sentry.search.events.fields import (
@@ -166,6 +170,27 @@ def parse_transformation(value: str) -> Transformation:
                 permitted = (SMOOTH_MODE_SMA, SMOOTH_MODE_EMA, SMOOTH_MODE_ASAP)
             message = f"expected one of {', '.join(permitted)}"
         raise InvalidSearchQuery(f"{value}: {detail['loc'][0]} argument invalid: {message}")
+
+
+def get_transformations(request: Request) -> dict[int, list[Transformation]]:
+    """Parse ordered transformations by zero-based request yAxis position."""
+    transformations: dict[int, list[Transformation]] = {}
+    axis_count = len(request.GET.getlist("yAxis", ["count()"]))
+    for key, values in request.GET.lists():
+        if key != "transformations" and not key.startswith("transformations["):
+            continue
+        match = re.fullmatch(r"transformations\[(0|[1-9][0-9]*)\]", key)
+        if match is None:
+            raise ParseError(detail="Invalid transformations index")
+        try:
+            index = int(match.group(1))
+        except ValueError:
+            raise ParseError(detail="Invalid transformations index")
+        if index >= axis_count:
+            raise ParseError(detail="transformations index must match a yAxis position")
+        with handle_query_errors():
+            transformations[index] = [parse_transformation(value) for value in values]
+    return transformations
 
 
 @dataclass(frozen=True)
