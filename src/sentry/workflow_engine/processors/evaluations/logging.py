@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, is_dataclass
+from dataclasses import fields, is_dataclass
 from typing import TYPE_CHECKING, cast, overload
 
 from sentry import features, options
@@ -76,7 +76,10 @@ def _serialize_log_value(value: object, field_name: str | None = None) -> object
         return value if isinstance(value, ALLOWED_LOG_INPUT_TYPES) else None
 
     if is_dataclass(value) and not isinstance(value, type):
-        return _serialize_log_value(asdict(value))
+        return {
+            field.name: _serialize_log_value(getattr(value, field.name), field.name)
+            for field in fields(value)
+        }
 
     if isinstance(value, Mapping):
         return {key: _serialize_log_value(item, str(key)) for key, item in value.items()}
