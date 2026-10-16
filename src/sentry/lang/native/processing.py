@@ -6,11 +6,17 @@ from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
+from requests.exceptions import RequestException
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import ParseDebugIdError
 
 from sentry import options
 from sentry.lang.native.error import SymbolicationFailed, write_error
+from sentry.lang.native.flamegraphs import (
+    MAX_SYMBOLICATION_FRAMES,
+    Flamegraphs,
+    expand_inline_frames,
+)
 from sentry.lang.native.symbolicator import FrameOrder, Symbolicator, SymbolicatorFunction
 from sentry.lang.native.utils import (
     get_event_attachment,
@@ -20,6 +26,7 @@ from sentry.lang.native.utils import (
     is_applecrashreport_event,
     is_minidump_event,
     is_native_event,
+    is_native_image,
     is_native_platform,
     native_images_from_data,
     signal_from_data,
@@ -447,7 +454,102 @@ def get_frames_for_symbolication(
     return rv
 
 
+def _get_flamegraph_stacktraces(
+    payload: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[int], list[dict[str, Any]]]:
+    frame_ids = []
+    stacktraces = []
+    original_modules = payload.get("debug_meta", {}).get("images", [])
+    modules: list[dict[str, Any]] = []
+    module_indices: dict[int, int] = {}
+    for index, image in enumerate(original_modules):
+        if is_native_image(image):
+            module_indices[index] = len(modules)
+            modules.append(image)
+    if not modules:
+        return [], [], []
+    for frame_id, frame in enumerate(payload["frames"][:MAX_SYMBOLICATION_FRAMES]):
+        frames = get_frames_for_symbolication([frame], payload, original_modules, adjustment="none")
+        if not frames:
+            continue
+        # Resolve against the captured image table before remapping to the filtered request.
+        addr_mode = frames[0].get("addr_mode")
+        if frame.get("addr_mode", "").startswith("rel:") and addr_mode is None:
+            continue
+        if addr_mode is not None:
+            module_index = module_indices.get(int(addr_mode[4:]))
+            if module_index is None:
+                continue
+            frames[0]["addr_mode"] = f"rel:{module_index}"
+        frame_ids.append(frame_id)
+        stacktraces.append({"frames": frames})
+    return modules, frame_ids, stacktraces
+
+
+def _merge_flamegraph_frames(
+    payload: dict[str, Any], frame_ids: list[int], stacktraces: list[dict[str, Any]]
+) -> dict[str, Any]:
+    output = {**payload, "frames": list(payload["frames"])}
+    chains = {}
+    for frame_id, stacktrace in zip(frame_ids, stacktraces):
+        original = payload["frames"][frame_id]
+        resolved = stacktrace.get("frames", [])
+        if not resolved or any(
+            frame.get("status") not in (None, "symbolicated") for frame in resolved
+        ):
+            continue
+        chain = []
+        for position, frame in enumerate(resolved):
+            merged = dict(original) if position == 0 else {}
+            if "platform" in original:
+                merged["platform"] = original["platform"]
+            if "data" in merged:
+                merged["data"] = dict(merged["data"])
+            _merge_frame(merged, frame, original.get("platform", payload["platform"]))
+            # Symbolicator may adjust addresses or normalize relative addressing modes.
+            # The diagnostic must retain its captured symbolication inputs.
+            merged["instruction_addr"] = original["instruction_addr"]
+            if "addr_mode" in original:
+                merged["addr_mode"] = original["addr_mode"]
+            else:
+                merged.pop("addr_mode", None)
+            if position == 0:
+                output["frames"][frame_id] = merged
+                chain.append(frame_id)
+            else:
+                chain.append(len(output["frames"]))
+                output["frames"].append(merged)
+        chains[frame_id] = chain
+    output["trees"] = expand_inline_frames(payload["trees"], chains)
+    output["_symbolication"] = {"status": "completed"}
+    return output
+
+
 def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
+    flamegraphs = Flamegraphs(symbolicator.project, data)
+    attachments_changed = False
+    for attachment_index, payload in flamegraphs.get_flamegraphs():
+        modules, frame_ids, stacktraces = _get_flamegraph_stacktraces(payload)
+        if not stacktraces:
+            continue
+        try:
+            response = symbolicator.process_payload(
+                platform=payload["platform"],
+                stacktraces=stacktraces,
+                modules=modules,
+                frame_order=FrameOrder.caller_first,
+                apply_source_context=False,
+            )
+        except (OSError, RequestException) as error:
+            sentry_sdk.capture_exception(error)
+            continue
+        if not response or response.get("status") != "completed":
+            continue
+        resolved_stacktraces = response.get("stacktraces", [])
+        if len(resolved_stacktraces) != len(frame_ids):
+            continue
+        output = _merge_flamegraph_frames(payload, frame_ids, resolved_stacktraces)
+        attachments_changed |= flamegraphs.save(attachment_index, output)
     stacktrace_infos = [
         stacktrace
         for stacktrace in find_stacktraces_in_data(data)
@@ -470,7 +572,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     ]
 
     if not any(stacktrace["frames"] for stacktrace in stacktraces):
-        return
+        return data if attachments_changed else None
 
     signal = signal_from_data(data)
 
@@ -639,7 +741,9 @@ def get_native_symbolication_functions(
         functions.append(SymbolicatorFunction.native)
         return functions  # early return to prevent duplicates
 
-    if has_native_stacktraces(stacktraces):
+    if has_native_stacktraces(stacktraces) or any(
+        attachment.get("type") == "event.flamegraph" for attachment in data.get("_attachments", [])
+    ):
         # Run native symbolication first, to prevent sending minidump / ACR events to
         # symbolicator twice (after symbolication a minidump event will have native stacktraces).
         functions.insert(0, SymbolicatorFunction.native)
