@@ -200,6 +200,9 @@ class BuildInvestigationStatusTest(TestCase):
             "!transaction:/health/": "Aug 27, 09:00–11:00 UTC",
             "transaction:/a/ transaction:/b/": "Aug 27, 09:00–11:00 UTC",
             "transaction:/a/ OR transaction:/b/": "Aug 27, 09:00–11:00 UTC",
+            "transaction:/a/ AND user.email:x@example.com": "`/a/` · Aug 27, 09:00–11:00 UTC",
+            "is:unresolved AND transaction:/a/": "`/a/` · Aug 27, 09:00–11:00 UTC",
+            "(transaction:/a/ user.email:x@example.com)": "Aug 27, 09:00–11:00 UTC",
         }
         for query, subtitle in cases.items():
             self._snapshot()["monitor"]["query"] = query
