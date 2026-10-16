@@ -81,7 +81,7 @@
     "color": "5.0.2",
     "conduit-client": "^1.0.0",
     "core-js": "3.45.0",
-    "cronstrue": "^2.50.0",
+    "cronstrue": "^3.32.0",
     "d3-selection": "^3.0.0",
     "d3-zoom": "^3.0.0",
     "diff": "8.0.3",
