@@ -1,6 +1,8 @@
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+export const FIELD_MAX_WIDTH = '900px';
+
 export function BuilderSection({
   children,
   title,
