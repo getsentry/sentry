@@ -73,8 +73,8 @@ function getStalePrefixes(
   if (!record.path) {
     return null;
   }
-  const templateSegments = record.path
-    .split('?')[0]!
+  const [routePath = ''] = record.path.split('?');
+  const templateSegments = routePath
     .replace(/^\/api\/0\//, '/')
     .split('/')
     .filter(Boolean);
@@ -98,7 +98,7 @@ function getStalePrefixes(
 
   const toPrefix = (parts: string[]) => `/${parts.join('/')}/`;
   const prefixes = [toPrefix(segments)];
-  const targetsItem = /^\{.+\}$/.test(templateSegments.at(-1)!);
+  const targetsItem = /^\{.+\}$/.test(templateSegments.at(-1) ?? '');
   if (targetsItem && segments.length > 1) {
     prefixes.push(toPrefix(segments.slice(0, -1)));
   }
