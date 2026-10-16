@@ -30,18 +30,22 @@ interface ActivitySectionProps {
    * Activity to render instead of the activity embedded in the group response.
    */
   activities?: GroupActivity[];
+  /** Bodies attached to representative entries after pairing and deduplication. */
+  bodyByActivityId?: ReadonlyMap<string, React.ReactNode>;
   /**
    * Whether to filter the activity to only show comments.
    */
   filterComments?: boolean;
+  /** Position of the comment composer in standalone feeds. */
+  inputPosition?: 'start' | 'end';
   minHeight?: number;
   onActivityChange?: (activity: GroupActivity[]) => void;
+  placeholder?: string;
   /**
    * Controls layout and input style.
    * - `sidebar` (default): fold section, compact input, collapses at 5 items
    * - `standalone`: full input, no collapse
    */
-  placeholder?: string;
   variant?: 'sidebar' | 'standalone';
 }
 
@@ -49,7 +53,9 @@ export function ActivitySection({
   group,
   activities: providedActivities,
   filterComments,
+  inputPosition = 'start',
   onActivityChange,
+  bodyByActivityId,
   variant = 'sidebar',
   minHeight = 96,
   placeholder = t('Add a comment\u2026'),
@@ -149,6 +155,7 @@ export function ActivitySection({
   const timeline = (
     <ActivityFeed
       group={group}
+      bodyByActivityId={bodyByActivityId}
       items={displayedActivities}
       inputVariant={inputVariant}
       timestampUnitStyle={timestampUnitStyle}
@@ -175,6 +182,7 @@ export function ActivitySection({
   const sidebarActivityItems = (
     <ActivityFeed
       group={group}
+      bodyByActivityId={bodyByActivityId}
       items={sidebarVisibleActivities}
       inputVariant={inputVariant}
       timestampUnitStyle={timestampUnitStyle}
@@ -210,8 +218,9 @@ export function ActivitySection({
   if (isStandalone) {
     return (
       <Grid gap="xl">
-        {noteInput}
+        {inputPosition === 'start' && noteInput}
         {timeline}
+        {inputPosition === 'end' && noteInput}
       </Grid>
     );
   }

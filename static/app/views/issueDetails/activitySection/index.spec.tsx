@@ -76,6 +76,29 @@ describe('ActivitySection', () => {
     localStorage.clear();
   });
 
+  it.each(['start', 'end'] as const)(
+    'positions the standalone composer at the %s',
+    inputPosition => {
+      render(
+        <GroupDataContextProvider group={group} project={group.project}>
+          <ActivitySection
+            group={group}
+            variant="standalone"
+            inputPosition={inputPosition}
+          />
+        </GroupDataContextProvider>
+      );
+
+      const editor = getCommentEditor();
+      const note = screen.getByText('Test Note');
+      const relation =
+        inputPosition === 'start'
+          ? Node.DOCUMENT_POSITION_FOLLOWING
+          : Node.DOCUMENT_POSITION_PRECEDING;
+      expect(editor.compareDocumentPosition(note) & relation).toBeTruthy();
+    }
+  );
+
   it('renders the input with a comment button', async () => {
     const comment = 'nice work friends';
     const postMock = MockApiClient.addMockResponse({

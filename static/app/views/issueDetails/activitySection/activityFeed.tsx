@@ -4,11 +4,11 @@ import type {Group, GroupActivityNote} from 'sentry/types/group';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import type {DisplayedActivityFeedItem} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
-import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
   isActivityNote,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
 interface ActivityFeedProps {
   group: Group;
@@ -16,12 +16,15 @@ interface ActivityFeedProps {
   items: DisplayedActivityFeedItem[];
   onCommentDelete: (item: GroupActivityNote) => Promise<void>;
   onCommentUpdate: (item: GroupActivityNote, data: NoteType) => Promise<void>;
+  /** Additional bodies for representative activities after pairing and grouping. */
+  bodyByActivityId?: ReadonlyMap<string, React.ReactNode>;
   children?: React.ReactNode;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
 export function ActivityFeed({
   items,
+  bodyByActivityId,
   children,
   group,
   inputVariant,
@@ -62,14 +65,16 @@ export function ActivityFeed({
         item={item}
         group={group}
         timestampUnitStyle={timestampUnitStyle}
-      />
+      >
+        {bodyByActivityId?.get(activity.id)}
+      </ActivityLine>
     );
   }
 
   return (
-    <ActivityLineList data-test-id="activity-timeline">
+    <Timeline.Container data-test-id="activity-timeline">
       {items.map(renderActivity)}
       {children}
-    </ActivityLineList>
+    </Timeline.Container>
   );
 }

@@ -1,0 +1,49 @@
+---
+title: Activity Timeline Layout
+description: A vertical timeline for events and related content.
+category: patterns
+source: sentry/views/issueDetails/activitySection/timeline
+---
+
+import {IconChat} from '@sentry/icons/chat';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+import * as Storybook from 'sentry/stories';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+
+Use `Timeline` to display events in a vertical list. Wrap each event in
+`Timeline.Item` and group the items with `Timeline.Container`.
+
+Provide a `marker` and `headline` for each item. Add details as children.
+
+export function TimelineExample() {
+  return (
+    <Timeline.Container>
+      <Timeline.Item
+        marker={
+          <Flex width="22px" height="22px" align="center" justify="center">
+            <IconChat />
+          </Flex>
+        }
+        headline={<Text bold>Investigation update</Text>}
+      >
+        <Stack gap="sm" paddingTop="md">
+          <Text bold>Context</Text>
+          <Text>The latest release reproduces the issue.</Text>
+        </Stack>
+      </Timeline.Item>
+      <Timeline.Item
+        marker={
+          <Flex width="22px" height="22px" align="center" justify="center">
+            <IconChat />
+          </Flex>
+        }
+        headline={<Text bold>Follow-up requested</Text>}
+      />
+    </Timeline.Container>
+  );
+}
+
+<Storybook.Demo resizable direction="column" align="stretch" standalone>
+  <TimelineExample />
+</Storybook.Demo>
