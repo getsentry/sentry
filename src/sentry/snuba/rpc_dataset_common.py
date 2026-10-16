@@ -48,7 +48,12 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
-from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
+from sentry.search.eap.columns import (
+    ColumnDefinitions,
+    ResolvedAttribute,
+    ResolvedColumn,
+    ResolvedLiteral,
+)
 from sentry.search.eap.constants import (
     DOUBLE,
     MAX_ROLLUP_POINTS,
@@ -899,7 +904,10 @@ class RPCBase:
         final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
         if params.debug:
             set_debug_meta(final_meta, rpc_response.meta, rpc_request)
+        literals = []
         for resolved_field in aggregates + groupbys:
+            if isinstance(resolved_field, ResolvedLiteral):
+                literals.append(resolved_field)
             final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 
         for timeseries in rpc_response.result_timeseries:
@@ -919,6 +927,9 @@ class RPCBase:
                 params.timeseries_granularity_secs,
                 ["time"],
             )
+        for literal in literals:
+            for row in result.timeseries:
+                row[literal.public_alias] = literal.value
 
         if comparison_delta is not None:
             if len(rpc_request.expressions) != 1:

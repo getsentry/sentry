@@ -1519,6 +1519,17 @@ class SearchResolver:
                 ),
                 [],
             )
+        # If the equation is resolveable, resolve it so we're not giving snuba extra work
+        elif len(functions) == 0:
+            return (
+                ResolvedLiteral(
+                    public_alias=f"equation|{equation}" if alias is None else alias,
+                    search_type="number",
+                    value=arithmetic.resolve_arithmetic(operation),
+                ),
+                [],
+            )
+
         lhs, lhs_contexts = (
             self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
         )
