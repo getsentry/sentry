@@ -18,6 +18,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {
   getInvestigationDetailQueryOptions,
+  INVESTIGATION_COMMENTS_PAGE_SIZE,
   investigationCommentsQueryOptions,
 } from 'sentry/views/investigations/api';
 import {CommentActions} from 'sentry/views/investigations/comments/commentActions';
@@ -68,7 +69,7 @@ function BlockThread({
       investigationId,
       blockId,
     }),
-    refetchInterval: 10_000,
+    refetchInterval: investigation?.status === 'archived' ? false : 10_000,
     select: selectJsonWithHeaders,
   });
 
@@ -132,7 +133,10 @@ function BlockThread({
               {hasOlder ? (
                 <Container as="li">
                   <Text variant="muted" size="sm">
-                    {t('Showing the latest 100 comments.')}
+                    {t(
+                      'Showing the latest %s comments.',
+                      INVESTIGATION_COMMENTS_PAGE_SIZE
+                    )}
                   </Text>
                 </Container>
               ) : null}
