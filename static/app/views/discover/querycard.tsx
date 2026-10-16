@@ -38,36 +38,36 @@ export const QueryCard = memo(function QueryCard({
 
   return (
     <Link data-test-id={`card-${title}`} onClick={handleClick} to={to}>
-        <StyledQueryCard interactive>
-          <QueryCardHeader>
-            <QueryCardContent>
-              <QueryTitle>{title}</QueryTitle>
-              <QueryDetail>{queryDetail}</QueryDetail>
-            </QueryCardContent>
-            <AvatarWrapper>
-              {createdBy ? (
-                <ActivityAvatar type="user" user={createdBy} size={34} />
-              ) : (
-                <ActivityAvatar type="system" size={34} />
-              )}
-            </AvatarWrapper>
-          </QueryCardHeader>
-          <QueryCardBody>
-            <StyledErrorBoundary mini>{renderGraph()}</StyledErrorBoundary>
-          </QueryCardBody>
-          <QueryCardFooter>
-            <DateSelected>
-              {subtitle}
-              {dateStatus ? (
-                <DateStatus>
-                  {t('Edited')} {dateStatus}
-                </DateStatus>
-              ) : null}
-            </DateSelected>
-            {renderContextMenu?.()}
-          </QueryCardFooter>
-        </StyledQueryCard>
-      </Link>
+      <StyledQueryCard interactive>
+        <QueryCardHeader>
+          <QueryCardContent>
+            <QueryTitle>{title}</QueryTitle>
+            <QueryDetail>{queryDetail}</QueryDetail>
+          </QueryCardContent>
+          <AvatarWrapper>
+            {createdBy ? (
+              <ActivityAvatar type="user" user={createdBy} size={34} />
+            ) : (
+              <ActivityAvatar type="system" size={34} />
+            )}
+          </AvatarWrapper>
+        </QueryCardHeader>
+        <QueryCardBody>
+          <StyledErrorBoundary mini>{renderGraph()}</StyledErrorBoundary>
+        </QueryCardBody>
+        <QueryCardFooter>
+          <DateSelected>
+            {subtitle}
+            {dateStatus ? (
+              <DateStatus>
+                {t('Edited')} {dateStatus}
+              </DateStatus>
+            ) : null}
+          </DateSelected>
+          {renderContextMenu?.()}
+        </QueryCardFooter>
+      </StyledQueryCard>
+    </Link>
   );
 });
 
