@@ -241,10 +241,7 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
       tsx: true,
     },
     transform: {
-      // TODO: Enable in production
-      reactCompiler:
-        options.reactCompiler &&
-        (IS_DEPLOY_PREVIEW || IS_ACCEPTANCE_TEST || IS_UI_DEV_ONLY),
+      reactCompiler: options.reactCompiler,
       react: {
         runtime: 'automatic',
         development: DEV_MODE,
@@ -576,7 +573,17 @@ const appConfig: Configuration = {
       chunks: 'async',
       maxInitialRequests: 10, // (default: 30)
       maxAsyncRequests: 10, // (default: 30)
-      cacheGroups: localeChunkGroups,
+      cacheGroups: {
+        ...localeChunkGroups,
+        // Keep charting in one chunk that only changes when echarts is
+        // upgraded, so it stays cached across deploys
+        echarts: {
+          chunks: 'async',
+          name: 'echarts',
+          test: /[\\/]node_modules[\\/](echarts|echarts-for-react|zrender)[\\/]/,
+          enforce: true,
+        },
+      },
     },
 
     // This only runs in production mode
@@ -982,6 +989,9 @@ if (IS_PRODUCTION) {
       },
       release: {
         create: false,
+        // The SDK sets `release` itself. Injecting it puts the commit SHA in
+        // every chunk, which changes every chunk hash on every deploy.
+        inject: false,
       },
       reactComponentAnnotation: {
         // Using swc-plugin-react-component-annotate instead

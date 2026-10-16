@@ -831,6 +831,7 @@ function getInvestigationStatusBlock(
     // automatically"), so only the stopped states, whose descriptions explain
     // what happened, carry it here.
     description: runStatus.variant === 'running' ? undefined : runStatus.description,
+    toolActivity: runStatus.toolActivity,
   };
 }
 

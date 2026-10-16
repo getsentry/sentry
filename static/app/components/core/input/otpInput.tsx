@@ -84,6 +84,17 @@ export function OTPInput<const Format extends string>({
       maxLength={length}
       onChange={newValue => setValue(normalizeValue(newValue))}
       onComplete={(newValue: string) => onComplete(normalizeValue(newValue))}
+      onPasteCapture={event => {
+        // input-otp only null-checks `clipboardData` when
+        // `pushPasswordManagerStrategy` is disabled. Password managers and
+        // extensions can dispatch synthetic paste events without clipboard
+        // data, which would crash its paste handler. Drop those events here,
+        // in the capture phase, before input-otp's `onPaste` runs.
+        if (!event.clipboardData) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
       pasteTransformer={pastedValue => pastedValue.replaceAll('-', '')}
       pattern={isAlphanumeric ? REGEXP_ONLY_DIGITS_AND_CHARS : REGEXP_ONLY_DIGITS}
       render={({slots}) => (

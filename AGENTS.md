@@ -95,9 +95,12 @@ Incubator rules appear as warnings in editors. The lint wrapper promotes them to
 ```bash
 pnpm test-ci <file_path>                       # run tests
 pnpm test-ci components/avatar.spec.tsx        # specific file(s)
+pnpm --filter @sentry-internal/app test        # watch Sentry app tests
 ```
 
 `test-ci` runs app tests against React Router V6 and V8, then workspace package tests once. File arguments select app tests. Set `SENTRY_REACT_ROUTER_VERSION=6` or `8` to run one version. CI uses the existing shards for each router version; only V6 shard 0 runs package tests and router build checks.
+
+`pnpm test` uses one Jest watcher for app, lint, and test-support tests. `pnpm test-all` runs all workspace test scripts once with watch mode disabled. App, lint, and test-support scripts have scoped Jest configs.
 
 ### Context-Aware Loading
 

@@ -5,7 +5,7 @@ import {escapeDoubleQuotes} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 export function generateTargetQuery({
   fields,
@@ -55,6 +55,8 @@ export function generateTargetQuery({
       }
     } else if (typeof value === 'number') {
       search.setFilterValues(groupBy, [String(value)]);
+    } else if (typeof value === 'boolean') {
+      search.setFilterValues(groupBy, [value ? 'true' : 'false']);
     } else if (!defined(value)) {
       search.addFilterValue('!has', groupBy);
     }

@@ -1,5 +1,7 @@
 import {spawnSync} from 'node:child_process';
 
+import {run} from 'sentry-test/runner';
+
 /**
  * @param {string} command
  * @param {string[]} args
@@ -22,9 +24,8 @@ const versions = selectedVersion === undefined ? ['6', '8'] : [selectedVersion];
 let appStatus = 0;
 for (const version of versions) {
   console.log(`Testing with React Router v${version}`);
-  const status = runTests(
-    process.execPath,
-    ['scripts/test.js', '--ci', '--maxWorkers=75%', '--colors', ...process.argv.slice(2)],
+  const status = await run(
+    ['--ci', '--maxWorkers=75%', '--colors', ...process.argv.slice(2)],
     {...process.env, SENTRY_REACT_ROUTER_VERSION: version}
   );
   appStatus ||= status;
