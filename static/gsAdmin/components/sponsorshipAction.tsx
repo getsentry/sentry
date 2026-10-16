@@ -35,10 +35,16 @@ export function SponsorshipAction({
     [sponsoredType, onConfirm]
   );
 
+  // Register the confirm callback whenever it changes (sponsoredType updates handleConfirm)
   useEffect(() => {
     setConfirmCallback(handleConfirm);
+  }, [setConfirmCallback, handleConfirm]);
+
+  // Disable the confirm button on mount only
+  useEffect(() => {
     disableConfirmButton(true);
-  }, [setConfirmCallback, disableConfirmButton, handleConfirm]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChange = (value: string | null) => {
     disableConfirmButton(!value);
