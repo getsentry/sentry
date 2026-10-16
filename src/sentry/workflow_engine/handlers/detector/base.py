@@ -104,8 +104,8 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     Abstract base class defining the public interface for detector handlers.
 
     DataPacketType is what we've embedded within the data packet.
-    DataPacketEvaluationType is the type of the value to be extracted from the data packet and
-    used to evaluate the conditions on the detector.
+    DataPacketEvaluationType is the value type used by condition-based handlers.
+    Handlers with a custom evaluation flow need only implement ``evaluate``.
     """
 
     def __init__(self, detector: Detector):
@@ -115,18 +115,43 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         DetectorOutcome.ISSUE_PLATFORM.dispatch
     )
 
-    @abc.abstractmethod
     def _evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluation]:
-        pass
+        tags = {
+            "detector_type": self.detector.type,
+            "result": "unknown",
+        }
+
+        try:
+            value = self.evaluate(data_packet)
+
+            tags["result"] = "tainted" if value.tainted else "success"
+
+            metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
+
+            return value.result
+        except Exception:
+            tags["result"] = "failure"
+
+            metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
+
+            raise
 
     @abc.abstractmethod
     def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
         """
-        This method is used to evaluate the data packet's value against the conditions on the detector.
+        Evaluate a completed data packet and return results for detector processing.
         """
         pass
+
+
+class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationType]):
+    """
+    Base implementation for detectors that rely on data condition groups to make decisions.
+
+    Loads the condition group and provides a default stateless evaluation flow.
+    """
 
     @abc.abstractmethod
     def extract_value(
@@ -156,16 +181,6 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         """
         pass
 
-
-class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationType]):
-    """
-    Base implementation class for detectors that rely on data condition groups to make decisions
-
-    Includes metrics tracking and condition group loading around the `_evaluate` template method
-
-    Also includes a default `evaluate` implementation that subclasses can rely on or override.
-    """
-
     def __init__(self, detector: Detector):
         super().__init__(detector)
 
@@ -189,29 +204,6 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
                 self.condition_group = None
         else:
             self.condition_group = None
-
-    def _evaluate(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
-        tags = {
-            "detector_type": self.detector.type,
-            "result": "unknown",
-        }
-
-        try:
-            value = self.evaluate(data_packet)
-
-            tags["result"] = "tainted" if value.tainted else "success"
-
-            metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
-
-            return value.result
-        except Exception:
-            tags["result"] = "failure"
-
-            metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
-
-            raise
 
     def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
         """

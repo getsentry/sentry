@@ -3,10 +3,13 @@ from typing import Any
 from unittest import mock
 from uuid import UUID
 
+import pytest
+from jsonschema import ValidationError
+
 from sentry.deletions.base import ModelRelation
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.producer import _prepare_occurrence_message
+from sentry.issues.producer import PayloadType, _prepare_occurrence_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.organization import Organization
 from sentry.testutils.abstract import Abstract
@@ -18,6 +21,8 @@ from sentry.workflow_engine.handlers.detector import (
     DetectorHandler,
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
+    LLMDetectorHandler,
+    LLMDetectorSettings,
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.handlers.detector.base import EventData
@@ -29,6 +34,7 @@ from sentry.workflow_engine.processors import (
     DataConditionGroupEvaluation,
     DetectorEvaluation,
 )
+from sentry.workflow_engine.processors.detector import process_detectors
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.registry import data_source_type_registry, detector_settings_registry
 from sentry.workflow_engine.types import (
@@ -233,6 +239,160 @@ class MockGroupedEventIdDetectorHandler(MockGroupedDetectorHandler):
         event_data["event_id"] = self.event_id
 
         return detector_occurrence, event_data
+
+
+class MockLLMDetectorHandler(LLMDetectorHandler[str, list[DetectorEvaluation]]):
+    def __init__(self, detector: Detector):
+        super().__init__(detector)
+        self.submitted_packet: DataPacket[str] | None = None
+
+    def dispatch(self, data_packet: DataPacket[str]) -> None:
+        self.submitted_packet = data_packet
+
+    def evaluate(
+        self, data_packet: DataPacket[list[DetectorEvaluation]]
+    ) -> GroupedDetectorEvaluationResult:
+        return GroupedDetectorEvaluationResult(
+            result={evaluation.data["group_key"]: evaluation for evaluation in data_packet.packet},
+            tainted=False,
+        )
+
+
+class TestLLMDetectorHandler(BaseGroupTypeTest):
+    def setUp(self) -> None:
+        super().setUp()
+
+        class LLMGroupType(GroupType):
+            type_id = 1001
+            slug = "test_llm_detector"
+            description = "Test LLM detector"
+            category = GroupCategory.METRIC.value
+
+        @detector_settings_registry.register(LLMGroupType.slug)
+        class TestLLMDetectorSettings(LLMDetectorSettings):
+            handler = MockLLMDetectorHandler
+
+        self.detector = self.create_detector(
+            project=self.project,
+            type=LLMGroupType.slug,
+            config={"prompt_key": "test-prompt-v1", "model": "test-model", "temperature": 0.5},
+        )
+        self.handler = MockLLMDetectorHandler(self.detector)
+
+    def test_dispatch_does_not_evaluate_or_publish(self) -> None:
+        packet = DataPacket(source_id="run-id", packet="trace-id")
+        with (
+            mock.patch.object(self.handler, "evaluate") as evaluate,
+            mock.patch.object(self.handler, "on_complete") as on_complete,
+        ):
+            self.handler.dispatch(packet)
+
+        assert self.handler.submitted_packet == packet
+        evaluate.assert_not_called()
+        on_complete.assert_not_called()
+
+    def test_completed_results_use_detector_processing_without_conditions(self) -> None:
+        occurrence, event_data = build_mock_occurrence_and_event(
+            self.handler, 1, PriorityLevel.HIGH
+        )
+        issue_occurrence = occurrence.to_issue_occurrence(
+            occurrence_id="11111111111111111111111111111111",
+            event_id="22222222222222222222222222222222",
+            project_id=self.project.id,
+            status=DetectorPriorityLevel.HIGH,
+            additional_evidence_data={},
+            fingerprint=["existing-fingerprint"],
+        )
+        evaluation = DetectorEvaluation(
+            result=issue_occurrence,
+            data={
+                "group_key": "finding-id",
+                "trigger_group_evaluation": build_mock_group_evaluation(),
+                "event_data": event_data,
+            },
+            triggered=True,
+            priority=DetectorPriorityLevel.HIGH,
+        )
+        packet = DataPacket(source_id="run-id", packet=[evaluation])
+
+        with mock.patch(
+            "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
+        ) as produce:
+            results = process_detectors(packet, [self.detector])
+
+        assert self.detector.workflow_condition_group_id is None
+        assert results == [(self.detector, {"finding-id": evaluation})]
+        produce.assert_called_once_with(
+            payload_type=PayloadType.OCCURRENCE,
+            occurrence=issue_occurrence,
+            status_change=None,
+            event_data=event_data,
+        )
+
+    def test_empty_completed_analysis_does_not_publish(self) -> None:
+        packet: DataPacket[list[DetectorEvaluation]] = DataPacket(source_id="run-id", packet=[])
+        with mock.patch(
+            "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
+        ) as produce:
+            assert process_detectors(packet, [self.detector]) == []
+
+        produce.assert_not_called()
+
+    def test_evaluation_errors_propagate(self) -> None:
+        with (
+            mock.patch.object(self.handler, "evaluate", side_effect=ValueError("invalid result")),
+            pytest.raises(ValueError, match="invalid result"),
+        ):
+            self.handler._evaluate(DataPacket(source_id="run-id", packet=[]))
+
+    def assert_invalid_config(self, config: dict[str, Any]) -> None:
+        self.detector.config = config
+        with pytest.raises(ValidationError):
+            self.detector.save()
+
+    def test_config_requires_prompt_key(self) -> None:
+        self.assert_invalid_config({"model": "test-model"})
+
+    def test_config_requires_model(self) -> None:
+        self.assert_invalid_config({"prompt_key": "test-prompt-v1"})
+
+    def test_config_rejects_empty_prompt_key(self) -> None:
+        self.assert_invalid_config({"prompt_key": "", "model": "test-model"})
+
+    def test_config_rejects_empty_model(self) -> None:
+        self.assert_invalid_config({"prompt_key": "test-prompt-v1", "model": ""})
+
+    def test_config_rejects_nonstring_model(self) -> None:
+        self.assert_invalid_config({"prompt_key": "test-prompt-v1", "model": 1})
+
+    def test_config_rejects_negative_temperature(self) -> None:
+        self.assert_invalid_config(
+            {"prompt_key": "test-prompt-v1", "model": "test-model", "temperature": -0.1}
+        )
+
+    def test_config_rejects_nonnumber_temperature(self) -> None:
+        self.assert_invalid_config(
+            {"prompt_key": "test-prompt-v1", "model": "test-model", "temperature": "0.5"}
+        )
+
+    def test_config_rejects_sampling_options(self) -> None:
+        self.assert_invalid_config(
+            {"prompt_key": "test-prompt-v1", "model": "test-model", "sampling_config": "baseline"}
+        )
+
+    def test_config_allows_omitting_temperature(self) -> None:
+        self.detector.config = {"prompt_key": "test-prompt-v1", "model": "test-model"}
+        self.detector.save()
+        self.detector.refresh_from_db()
+
+        assert self.detector.config == {"prompt_key": "test-prompt-v1", "model": "test-model"}
+
+    def test_config_allows_zero_temperature(self) -> None:
+        self.detector.config["temperature"] = 0
+        self.detector.save()
+        self.detector.refresh_from_db()
+
+        assert self.detector.config["temperature"] == 0
 
 
 class BaseDetectorHandlerTest(BaseGroupTypeTest):
