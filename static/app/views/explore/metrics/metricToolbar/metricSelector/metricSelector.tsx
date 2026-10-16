@@ -17,15 +17,15 @@ import {LeadWrap, ListWrap} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';

@@ -150,6 +150,7 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
     Hotkey,
     Link,
     ExternalLink,
+    Tooltip,
     lightTheme,
     darkTheme,
   } = await import(join(installed, 'dist/index.js'));
@@ -200,7 +201,8 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
             {to: {pathname: '/issues/', query: {query: 'error'}, hash: 'details'}},
             'Package link'
           ),
-          createElement(ExternalLink, {href: 'https://example.com'}, 'External link')
+          createElement(ExternalLink, {href: 'https://example.com'}, 'External link'),
+          createElement(Tooltip, {title: 'Help'}, 'Tooltip trigger')
         )
       )
     );
@@ -225,6 +227,7 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
       'type="radio"',
       'aria-label="Online"',
       'aria-label="⇧"',
+      'Tooltip trigger',
     ]) {
       if (!html.includes(label)) {
         throw new Error(`Server render failed for ${label}`);

@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {
   cloneElement,
   createContext,
@@ -18,8 +19,6 @@ import {mergeProps} from '@react-aria/utils';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {Theme} from '@sentry/scraps/theme';
-
-import {NODE_ENV} from 'sentry/constants/env';
 
 import {useStableMergeRef} from './useStableMergeRef';
 
@@ -145,7 +144,7 @@ function startGroupCoolDown(group: DelayGroup) {
   // In test mode the open path bypasses the warm-up delay entirely, so a
   // cooldown timer would only serve to leak onto the default group (which has
   // no provider cleaning it up). Match the open-path bypass and no-op here.
-  if (NODE_ENV === 'test') {
+  if (process.env.NODE_ENV === 'test') {
     group.isWarm = false;
     return;
   }
@@ -489,7 +488,7 @@ function useHoverOverlay({
     // Skip the warmup delay if the caller asked for instant open, we're in a
     // test environment, or the delay-group is already warm from a recently
     // open overlay.
-    if (delay === 0 || NODE_ENV === 'test' || group.isWarm) {
+    if (delay === 0 || process.env.NODE_ENV === 'test' || group.isWarm) {
       commitStatus('open');
       warmUpGroup(group, selfTokenRef.current);
       return;
@@ -566,22 +565,22 @@ function useHoverOverlay({
       // (type=function or object). Because we can't rely on the child element
       // implementing forwardRefs we wrap it with a span tag for the ref
       if (
-        isValidElement(triggerChildren) &&
+        isValidElement<
+          React.HTMLAttributes<HTMLElement> & React.RefAttributes<HTMLElement>
+        >(triggerChildren) &&
         (skipWrapper || typeof triggerChildren.type === 'string')
       ) {
-        const triggerRef = mergeTriggerRef(
-          (triggerChildren.props as any).ref as React.Ref<HTMLElement> | null | undefined
-        );
+        const triggerRef = mergeTriggerRef(triggerChildren.props.ref);
 
         if (showUnderline) {
           const triggerStyle = {
-            ...(triggerChildren.props as any).style,
+            ...triggerChildren.props.style,
             ...tooltipUnderline(theme, underlineColor),
           };
 
-          return cloneElement<any>(
+          return cloneElement(
             triggerChildren,
-            Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
+            Object.assign(mergeProps(triggerChildren.props, providedProps), {
               ref: triggerRef,
               style: triggerStyle,
             })
@@ -589,11 +588,11 @@ function useHoverOverlay({
         }
 
         // Basic DOM nodes can be cloned and have more props applied.
-        return cloneElement<any>(
+        return cloneElement(
           triggerChildren,
-          Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
+          Object.assign(mergeProps(triggerChildren.props, providedProps), {
             ref: triggerRef,
-            style: (triggerChildren.props as any).style,
+            style: triggerChildren.props.style,
           })
         );
       }

@@ -11,9 +11,9 @@ import {ListBox} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {Overlay} from 'sentry/components/overlay';
 import {AskSeerSetupLoading} from 'sentry/components/searchQueryBuilder/askSeer/askSeerSetupLoading';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {

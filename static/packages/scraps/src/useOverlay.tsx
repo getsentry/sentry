@@ -1,11 +1,9 @@
+import type * as React from 'react';
 import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
-import type {Boundary, Modifier} from '@popperjs/core';
+import type {Boundary, Modifier, arrow, flip, preventOverflow} from '@popperjs/core';
 import {detectOverflow} from '@popperjs/core';
-import type {ArrowModifier} from '@popperjs/core/lib/modifiers/arrow';
-import type {FlipModifier} from '@popperjs/core/lib/modifiers/flip';
-import type {PreventOverflowModifier} from '@popperjs/core/lib/modifiers/preventOverflow';
 import {useButton as useButtonAria} from '@react-aria/button';
 import type {AriaOverlayProps, OverlayTriggerProps} from '@react-aria/overlays';
 import {
@@ -21,7 +19,7 @@ import {useOverlayTriggerState} from '@react-stately/overlays';
  * overflowing. Based on
  * https://github.com/atomiks/popper.js/blob/master/src/modifiers/maxSize.js
  */
-const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options']>> = {
+const maxSize: Modifier<'maxSize', NonNullable<(typeof preventOverflow)['options']>> = {
   name: 'maxSize',
   phase: 'main',
   requiresIfExists: ['offset', 'preventOverflow', 'flip'],
@@ -38,21 +36,23 @@ const maxSize: Modifier<'maxSize', NonNullable<PreventOverflowModifier['options'
     const flippedWidthSide = basePlacement === 'left' ? 'right' : 'left';
     const flippedHeightSide = basePlacement === 'top' ? 'bottom' : 'top';
 
-    const maxHeight = ['left', 'right'].includes(basePlacement!)
-      ? // If the main axis is horizontal, then maxHeight = the boundary's height
-        height - overflow.top - overflow.bottom
-      : // Otherwise, set max height unless there is enough space on the other side to
-        // flip the popper to
-        Math.max(height - overflow[heightSide] - y, -overflow[flippedHeightSide]);
+    const maxHeight =
+      basePlacement === 'left' || basePlacement === 'right'
+        ? // If the main axis is horizontal, then maxHeight = the boundary's height
+          height - overflow.top - overflow.bottom
+        : // Otherwise, set max height unless there is enough space on the other side to
+          // flip the popper to
+          Math.max(height - overflow[heightSide] - y, -overflow[flippedHeightSide]);
 
     // If there is enough space on the other side, then allow the popper to flip
     // without constraining its size
-    const maxWidth = ['top', 'bottom'].includes(basePlacement!)
-      ? // If the main axis is vertical, then maxWidth = the boundary's width
-        width - overflow.left - overflow.right
-      : // Otherwise, set max width unless there is enough space on the other side to
-        // flip the popper to
-        Math.max(width - overflow[widthSide] - x, -overflow[flippedWidthSide]);
+    const maxWidth =
+      basePlacement === 'top' || basePlacement === 'bottom'
+        ? // If the main axis is vertical, then maxWidth = the boundary's width
+          width - overflow.left - overflow.right
+        : // Otherwise, set max width unless there is enough space on the other side to
+          // flip the popper to
+          Math.max(width - overflow[widthSide] - x, -overflow[flippedWidthSide]);
 
     state.modifiersData[name] = {
       width: maxWidth,
@@ -71,8 +71,11 @@ const applyMaxSize: Modifier<'applyMaxSize', Record<string, unknown>> = {
       return;
     }
     const {width, height} = state.modifiersData.maxSize;
-    state.styles.popper!.maxHeight = height;
-    state.styles.popper!.maxWidth = width;
+    // Popper's computeStyles modifier initializes styles before this phase.
+    // oxlint-disable-next-line typescript/no-non-null-assertion
+    const styles = state.styles.popper!;
+    styles.maxHeight = height;
+    styles.maxWidth = width;
   },
 };
 
@@ -82,6 +85,8 @@ const applyMinWidth: Modifier<'applyMinWidth', Record<string, unknown>> = {
   enabled: false, // will be enabled when overlay is open
   fn({state}) {
     const {reference} = state.rects;
+    // Popper's computeStyles modifier initializes styles before this phase.
+    // oxlint-disable-next-line typescript/no-non-null-assertion
     state.styles.popper!.minWidth = `${reference.width}px`;
   },
 };
@@ -94,12 +99,12 @@ export interface UseOverlayProps
   /**
    * Options to pass to the `arrow` modifier.
    */
-  arrowOptions?: ArrowModifier['options'];
+  arrowOptions?: (typeof arrow)['options'];
   disableTrigger?: boolean;
   /**
    * Options to pass to the `flip` modifier.
    */
-  flipOptions?: FlipModifier['options'];
+  flipOptions?: (typeof flip)['options'];
   /**
    * Fallback for `preventOverflowOptions.boundary`, called when the overlay opens
    * (and again if the function changes). Use it for boundaries that need a DOM
@@ -124,7 +129,7 @@ export interface UseOverlayProps
   /**
    * Options to pass to the `preventOverflow` modifier.
    */
-  preventOverflowOptions?: PreventOverflowModifier['options'];
+  preventOverflowOptions?: (typeof preventOverflow)['options'];
   /**
    * By default, the overlay's min-width will match the trigger's width.
    * If this is not desired, set to `false`.
@@ -135,6 +140,27 @@ export interface UseOverlayProps
    * for details.
    */
   strategy?: PopperProps<any>['strategy'];
+}
+
+interface UseOverlayResult {
+  arrowProps: {
+    placement: PopperProps<any>['placement'];
+    ref: React.Dispatch<React.SetStateAction<HTMLDivElement | null>>;
+    style: React.CSSProperties | undefined;
+  };
+  isOpen: boolean;
+  overlayProps: ReturnType<typeof useOverlayTriggerAria>['overlayProps'] &
+    ReturnType<typeof useOverlayAria>['overlayProps'] & {
+      ref: React.Dispatch<React.SetStateAction<HTMLDivElement | null>>;
+      style: React.CSSProperties | undefined;
+    };
+  overlayRef: {current: HTMLDivElement | null};
+  state: ReturnType<typeof useOverlayTriggerState>;
+  triggerProps: ReturnType<typeof useButtonAria>['buttonProps'] & {
+    ref: React.Dispatch<React.SetStateAction<HTMLElement | null>>;
+  };
+  triggerRef: {current: HTMLElement | null};
+  update: ReturnType<typeof usePopper>['update'];
 }
 
 export function useOverlay({
@@ -157,7 +183,7 @@ export function useOverlay({
   onInteractOutside,
   disableTrigger,
   strategy = 'absolute',
-}: UseOverlayProps = {}) {
+}: UseOverlayProps = {}): UseOverlayResult {
   // Callback refs for react-popper
   const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
   const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);
