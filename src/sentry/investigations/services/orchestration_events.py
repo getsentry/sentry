@@ -1028,7 +1028,7 @@ def _lock_run_after_investigation(
     )
 
 
-def _schedule_investigation_updates(investigation_id: int, database: str) -> None:
+def schedule_investigation_updates(investigation_id: int, database: str) -> None:
     from sentry.seer.entrypoints.operator import process_investigation_updates
 
     transaction.on_commit(
@@ -1152,7 +1152,7 @@ def _apply_available_events(
             ]
         )
         if projection_applied:
-            _schedule_investigation_updates(run.investigation_id, database)
+            schedule_investigation_updates(run.investigation_id, database)
         delivered.refresh_from_db()
         return _OrchestrationEventApplication(
             event=delivered,
@@ -1335,7 +1335,7 @@ def _synchronize_orchestration_projection(
                 notebook_changed = bool(_cancel_workflow_report_executions(run)) or notebook_changed
             if notebook_changed:
                 _bump_notebook(run, run.investigation)
-            _schedule_investigation_updates(run.investigation_id, database)
+            schedule_investigation_updates(run.investigation_id, database)
         run.date_updated = timezone.now()
         run.save(
             update_fields=[
