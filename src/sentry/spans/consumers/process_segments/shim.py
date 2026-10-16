@@ -38,7 +38,9 @@ CONTEXT_FIELDS_BY_ATTRIBUTE_NAME: dict[str, dict[str, str]] = {
         ATTRIBUTE_NAMES.BROWSER_VERSION: "version",
     },
     "os": {
+        f"resource.{ATTRIBUTE_NAMES.OS_NAME}": "name",
         ATTRIBUTE_NAMES.OS_NAME: "name",
+        f"resource.{ATTRIBUTE_NAMES.OS_VERSION}": "version",
         ATTRIBUTE_NAMES.OS_VERSION: "version",
         ATTRIBUTE_NAMES.OS_ROOTED: "rooted",
     },
@@ -49,7 +51,9 @@ CONTEXT_FIELDS_BY_ATTRIBUTE_NAME: dict[str, dict[str, str]] = {
         ATTRIBUTE_NAMES.DEVICE_NAME: "name",
     },
     "runtime": {
+        f"resource.{ATTRIBUTE_NAMES.PROCESS_RUNTIME_NAME}": "name",
         ATTRIBUTE_NAMES.PROCESS_RUNTIME_NAME: "name",
+        f"resource.{ATTRIBUTE_NAMES.PROCESS_RUNTIME_VERSION}": "version",
         ATTRIBUTE_NAMES.PROCESS_RUNTIME_VERSION: "version",
     },
     "profile": {
