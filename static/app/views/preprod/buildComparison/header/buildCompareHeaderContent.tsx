@@ -18,6 +18,7 @@ import {
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
+import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {
   formattedPrimaryMetricDownloadSize,
@@ -39,6 +40,14 @@ const buildCompareFeedbackOptions = {
     'feedback.source': 'preprod.buildDetails',
   },
 };
+
+function getInstallSizeStatLabels(platform: Platform | null) {
+  if (platform === 'android') {
+    return {label: t('Uncompressed Disk Size'), tooltip: t('Excluding AOT DEX')};
+  }
+
+  return {label: t('Install Size'), tooltip: t('Unencrypted install size')};
+}
 
 export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps) {
   const {
@@ -102,25 +111,32 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
 
   const hasAdminMenu = isSentryEmployee && Boolean(headArtifactId && baseArtifactId);
 
-  const stats: EntityHeaderProps['stats'] = isSizeInfoCompleted(sizeInfo)
-    ? {
-        label: t('Build size'),
-        items: [
-          {
-            type: 'text',
-            label: t('Uncompressed Disk Size'),
-            labelTooltip: t('Excluding AOT DEX'),
-            value: formattedPrimaryMetricInstallSize(sizeInfo),
-          },
-          {
-            type: 'text',
-            label: t('Bytes Transferred'),
-            labelTooltip: t('Over the network'),
-            value: formattedPrimaryMetricDownloadSize(sizeInfo),
-          },
-        ],
-      }
-    : undefined;
+  const installStat = getInstallSizeStatLabels(buildDetails?.app_info?.platform ?? null);
+  // Declared while the request is in flight, not only once it settles: the row
+  // decides the header's grid template, so resolving it late reflows the title
+  // beside it and the page below.
+  const stats: EntityHeaderProps['stats'] =
+    isLoading || isSizeInfoCompleted(sizeInfo)
+      ? {
+          label: t('Build size'),
+          items: [
+            {
+              type: 'text',
+              label: installStat.label,
+              labelTooltip: installStat.tooltip,
+              value: formattedPrimaryMetricInstallSize(sizeInfo),
+              isLoading,
+            },
+            {
+              type: 'text',
+              label: t('Bytes Transferred'),
+              labelTooltip: t('Over the network'),
+              value: formattedPrimaryMetricDownloadSize(sizeInfo),
+              isLoading,
+            },
+          ],
+        }
+      : undefined;
 
   return (
     <Fragment>

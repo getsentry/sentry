@@ -103,16 +103,50 @@ describe('BuildCompareHeaderContent', () => {
     );
 
     const stats = screen.getByRole('list', {name: 'Build size'});
-    expect(within(stats).getByText('Uncompressed Disk Size')).toBeInTheDocument();
+    expect(within(stats).getByText('Install Size')).toBeInTheDocument();
     expect(within(stats).getByText('1.02 MB')).toBeInTheDocument();
     expect(within(stats).getByText('Bytes Transferred')).toBeInTheDocument();
     expect(within(stats).getByText('512 kB')).toBeInTheDocument();
 
-    await userEvent.hover(within(stats).getByText('Uncompressed Disk Size'));
-    expect(await screen.findByText('Excluding AOT DEX')).toBeInTheDocument();
+    await userEvent.hover(within(stats).getByText('Install Size'));
+    expect(await screen.findByText('Unencrypted install size')).toBeInTheDocument();
 
     await userEvent.hover(within(stats).getByText('Bytes Transferred'));
     expect(await screen.findByText('Over the network')).toBeInTheDocument();
+  });
+
+  it('phrases the install size stat for the build platform', async () => {
+    const androidBuild = PreprodBuildDetailsWithSizeInfoFixture(completedSizeInfo, {
+      project_id: 123456,
+      app_info: {...buildDetails.app_info, platform: 'android'},
+    });
+
+    render(
+      <BuildCompareHeaderContent
+        buildDetails={androidBuild}
+        headArtifactId="artifact-1"
+      />,
+      {organization}
+    );
+
+    // The Apple build above reads "Install Size"; AOT DEX is an Android
+    // concept, so only this build may mention it.
+    const stats = screen.getByRole('list', {name: 'Build size'});
+    expect(within(stats).getByText('Uncompressed Disk Size')).toBeInTheDocument();
+    expect(within(stats).queryByText('Install Size')).not.toBeInTheDocument();
+
+    await userEvent.hover(within(stats).getByText('Uncompressed Disk Size'));
+    expect(await screen.findByText('Excluding AOT DEX')).toBeInTheDocument();
+  });
+
+  it('holds the stats row while the build details request is in flight', () => {
+    render(<BuildCompareHeaderContent headArtifactId="artifact-1" isLoading />, {
+      organization,
+    });
+
+    // Declared rather than resolved, so the header's grid template — and the
+    // page below it — does not reflow once the sizes land.
+    expect(screen.getByRole('list', {name: 'Build size'})).toBeInTheDocument();
   });
 
   it('omits the stats row when size analysis has not completed', () => {
