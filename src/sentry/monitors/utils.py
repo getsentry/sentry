@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from uuid import uuid4
 
 from django.db import router, transaction
 from django.http.request import HttpRequest
@@ -11,14 +11,12 @@ from sentry import audit_log
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.middleware import is_frontend_request
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
 from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
-from sentry.projects.project_rules.creator import ProjectRuleCreator
-from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.search.eap.occurrences.common_queries import get_group_to_trace_ids_map
 from sentry.search.eap.occurrences.query_utils import build_snuba_params_from_ids
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
@@ -31,7 +29,6 @@ from sentry.signals import (
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
-from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.db import atomic_transaction
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detector
@@ -91,6 +88,15 @@ def signal_monitor_created(project: Project, user, from_upsert: bool, monitor: M
     create_audit_log(**kwargs)
 
 
+def get_monitor_environment_ids(monitor: Monitor, environments: Sequence[Environment]) -> list[int]:
+    monitor_environments = MonitorEnvironment.objects.filter(monitor_id=monitor.id)
+    if environments:
+        monitor_environments = monitor_environments.filter(
+            environment_id__in=[e.id for e in environments]
+        )
+    return list(monitor_environments.values_list("id", flat=True))
+
+
 def get_max_runtime(max_runtime: int | None) -> timedelta:
     """
     Computes a timedelta given a max_runtime. Limits the returned timedelta
@@ -121,7 +127,9 @@ def get_max_timeout_at(checkin: MonitorCheckIn) -> datetime:
 def get_new_timeout_at(
     checkin: MonitorCheckIn, new_status: int, date_updated: datetime
 ) -> datetime | None:
-    timeout_at = get_timeout_at(checkin.monitor.get_validated_config(), new_status, date_updated)
+    timeout_at = get_timeout_at(
+        checkin.monitor_environment.monitor.get_validated_config(), new_status, date_updated
+    )
     if timeout_at is None:
         return None
 
@@ -323,102 +331,6 @@ def fetch_associated_groups(
                 trace_groups[trace_id].append({"id": group.id, "shortId": group.qualified_short_id})
 
     return trace_groups
-
-
-def create_issue_alert_rule(
-    request: AuthenticatedHttpRequest,
-    project: Project,
-    monitor: Monitor,
-    validated_issue_alert_rule: dict,
-) -> int:
-    """
-    Creates an Issue Alert `Rule` instance from a request with the given data
-    :param request: Request object
-    :param project: Project object
-    :param monitor: Monitor object being created
-    :param validated_issue_alert_rule: Dictionary of configurations for an associated Rule
-    :return: dict
-    """
-    rule = ProjectRuleCreator(
-        name=f"Monitor Alert: {monitor.name}"[:64],
-        project=project,
-        action_match="any",
-        actions=_build_issue_alert_rule_actions(validated_issue_alert_rule),
-        conditions=[
-            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
-            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "monitor.slug",
-                "match": "eq",
-                "value": monitor.slug,
-            },
-        ],
-        frequency=5,
-        environment=validated_issue_alert_rule.get("environment"),
-        filter_match="all",
-        request=request,
-        source=RuleSource.CRON_MONITOR,
-    ).run()
-    RuleActivity.objects.create(
-        rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
-    )
-    return rule.id
-
-
-def _build_issue_alert_rule_actions(issue_alert_rule: dict) -> list[dict]:
-    return [
-        {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetIdentifier": target["target_identifier"],
-            "targetType": target["target_type"],
-            "uuid": str(uuid4()),
-        }
-        for target in issue_alert_rule.get("targets", [])
-    ]
-
-
-def update_issue_alert_rule(
-    request: Request,
-    project: Project,
-    monitor: Monitor,
-    issue_alert_rule: Rule,
-    issue_alert_rule_data: dict,
-):
-    # update only slug conditions
-    conditions = issue_alert_rule.data.get("conditions", [])
-    updated = False
-    for condition in conditions:
-        if condition.get("key") == "monitor.slug":
-            condition["value"] = monitor.slug
-            updated = True
-
-    # slug condition not present, add slug to conditions
-    if not updated:
-        conditions.append(
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "monitor.slug",
-                "match": "eq",
-                "value": monitor.slug,
-            }
-        )
-
-    updated_rule = ProjectRuleUpdater(
-        rule=issue_alert_rule,
-        request=request,
-        project=project,
-        name=f"Monitor Alert: {monitor.name}"[:64],
-        environment=issue_alert_rule_data.get("environment"),
-        actions=_build_issue_alert_rule_actions(issue_alert_rule_data),
-        conditions=conditions,
-    ).run()
-
-    RuleActivity.objects.create(
-        rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value
-    )
-
-    return issue_alert_rule.id
 
 
 def ensure_cron_detector(monitor: Monitor) -> Detector | None:

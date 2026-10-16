@@ -4,6 +4,7 @@ import MockDate from 'mockdate';
  * Emotion injects its styles through the CSSOM (`insertRule`), so they are not
  * reflected in `getComputedStyle` under jsdom. Read the generated rules for an
  * element directly off `document.styleSheets` instead.
+ * @deprecated if you have to inspect the styles, use a visual regression (snapshot) test instead.
  */
 export function getEmotionRules(element: HTMLElement): string[] {
   const classes = element.className.split(' ').filter(cls => cls.startsWith('css-'));

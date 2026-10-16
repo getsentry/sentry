@@ -41,7 +41,7 @@ import {
 import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMetricAttributesTreeActions';
 import type {EAPTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/types';
 import {useTraceMeta} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 
 const MetricAttributesRendererMap = {
   ...LogAttributesRendererMap,

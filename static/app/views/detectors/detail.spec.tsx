@@ -293,6 +293,19 @@ describe('DetectorDetails', () => {
         })
       );
     });
+
+    it('displays recent issues when each firing opens its own issue', async () => {
+      render(<DetectorDetails />, {
+        organization: OrganizationFixture({
+          features: ['workflow-engine-rotate-activation-id'],
+        }),
+        initialRouterConfig,
+      });
+
+      expect(await screen.findByText('Recent Issues')).toBeInTheDocument();
+
+      expect(screen.queryByText('Ongoing Issue')).not.toBeInTheDocument();
+    });
   });
 
   describe('uptime detectors', () => {

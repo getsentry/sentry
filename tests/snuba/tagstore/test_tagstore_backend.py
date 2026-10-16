@@ -176,7 +176,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             env.name,
-            timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
+            before_now(minutes=1),
             [("foo", "bar"), ("biz", "baz")],
             "releaseme",
         )

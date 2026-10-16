@@ -21,6 +21,8 @@ const INVESTIGATION_ID = '4567';
 
 const openPeriod: GroupOpenPeriod = {
   id: '1',
+  groupId: '1',
+  shortId: 'PROJ-1',
   start: '2026-09-30T10:00:00Z',
   end: null,
   duration: '1h',

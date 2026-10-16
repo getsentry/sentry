@@ -56,14 +56,14 @@ Snuba EAP outcomes routing defaults **standard retention to 30 days** and forces
 
 Shared defaults:
 
-- `EAPClient` / `EAP_DEFAULT_STATS_PERIOD` (`src/sentry/testutils/helpers/eap.py`) inject `statsPeriod` equal to `EAP_FULL_FIDELITY_QUERY_DAYS` (**30d**) for EAP datasets and known EAP paths.
-- Suites that inherit `OrganizationEventsEndpointTestBase` also default through `client_get()` / `do_request()` to that same **30d** window (covers paths EAPClient heuristics miss, e.g. some trace-meta routes).
+- `EAPClient` / `EAP_DEFAULT_STATS_PERIOD` (`src/sentry/testutils/helpers/eap.py`) inject `statsPeriod` of `EAP_DEFAULT_STATS_PERIOD_DAYS` (**29d**, one day under the limit to survive midnight-UTC rounding) for EAP datasets and known EAP paths.
+- Suites that inherit `OrganizationEventsEndpointTestBase` also default through `client_get()` / `do_request()` to that same **29d** window (covers paths EAPClient heuristics miss, e.g. some trace-meta routes).
 
 For those suites:
 
 - Prefer **`client_get()` / `do_request()`** (or local helpers that call them). Do **not** call raw `self.client.get(...)` — flake8 **S020** flags it.
 - Keep query windows **≤30d** unless the test intentionally covers long-term retention / downsampling.
-- Rate assertions (`epm`/`eps`/`tpm`/…) must use the **actual request window** (usually `EAP_FULL_FIDELITY_QUERY_DAYS`), not a shorter hardcoded period.
+- Rate assertions (`epm`/`eps`/`tpm`/…) must use the **actual request window** (usually `EAP_DEFAULT_STATS_PERIOD_DAYS`), not a shorter hardcoded period.
 - If you must query **>30d**, set the window **and** either send `standard_retention_days` (up to 90) or explicitly assert tier-8 / downsampled behavior. Do not weaken assertions just to make CI green.
 
 ## Use Factories Instead of Directly Calling `Model.objects.create`

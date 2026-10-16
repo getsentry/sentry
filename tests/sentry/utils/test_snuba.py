@@ -19,6 +19,7 @@ from sentry.testutils.cases import TestCase
 from sentry.utils import json
 from sentry.utils.snuba import (
     ROUND_UP,
+    EmptyGroupIdIntersectionError,
     RateLimitExceeded,
     RetrySkipTimeout,
     SnubaQueryParams,
@@ -309,6 +310,15 @@ class PrepareQueryParamsTest(TestCase):
         _prepare_query_params(snuba_params)
         assert conditions == snuba_params.conditions
         assert kwargs == snuba_params.kwargs
+
+    def test_preprocess_empty_group_intersection_raises(self) -> None:
+        group = self.create_group()
+        with pytest.raises(EmptyGroupIdIntersectionError):
+            SnubaQueryParams(
+                dataset=Dataset.Events,
+                filter_keys={"group_id": [group.id]},
+                conditions=[["group_id", "!=", group.id]],
+            )
 
     def test_preprocess_group_redirects(self) -> None:
         g1 = self.create_group(id=1)

@@ -72,6 +72,23 @@ def process_projects_with_sessions(org_id, project_ids) -> None:
     # Takes a single org id and a list of project ids
 
     with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.core"):
+        # Session data has a 6h lookback, so it can still reference projects that
+        # have since been deleted. Skip those instead of failing per release later.
+        existing_project_ids = list(
+            Project.objects.filter(organization_id=org_id, id__in=project_ids).values_list(
+                "id", flat=True
+            )
+        )
+        missing_count = len(set(project_ids)) - len(existing_project_ids)
+        if missing_count:
+            metrics.incr(
+                "sentry.tasks.process_projects_with_sessions.missing_projects",
+                amount=missing_count,
+            )
+        if not existing_project_ids:
+            return
+        project_ids = existing_project_ids
+
         # Set the `has_sessions` flag for these projects
         Project.objects.filter(
             organization_id=org_id,
@@ -242,8 +259,10 @@ def _handle_release_adoption(
                     adopted=current_time,
                     last_seen=current_time,
                 )
+        except Project.DoesNotExist:
+            # The project was deleted while this task was running; nothing to adopt.
+            metrics.incr("sentry.tasks.process_projects_with_sessions.project_not_found")
         except (
-            Project.DoesNotExist,
             Environment.DoesNotExist,
             Release.DoesNotExist,
             ReleaseEnvironment.DoesNotExist,

@@ -38,6 +38,7 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {TAB_ANALYTICS} from 'sentry/views/performance/transactionSummary/tabAnalytics';
 import {TransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {
   getPerformanceBaseUrl,
@@ -52,14 +53,6 @@ import {TransactionHeader} from './header';
 import {Tab} from './tabs';
 import type {TransactionThresholdMetric} from './transactionThresholdModal';
 import {generateTransactionSummaryRoute, transactionSummaryRouteWithQuery} from './utils';
-
-type TabEvents =
-  | 'performance_views.events.events_tab_clicked'
-  | 'performance_views.spans.spans_tab_clicked';
-
-export const TAB_ANALYTICS: Partial<Record<Tab, TabEvents>> = {
-  [Tab.EVENTS]: 'performance_views.events.events_tab_clicked',
-};
 
 type Props = {
   getDocumentTitle: (name: string) => string;

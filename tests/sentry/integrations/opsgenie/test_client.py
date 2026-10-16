@@ -6,7 +6,7 @@ import responses
 
 from sentry.integrations.opsgenie.client import OpsgenieClient
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.notifications.types import TEST_NOTIFICATION_ID, NotificationOrigin
+from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.testutils.asserts import (
     assert_count_of_metric,
@@ -15,6 +15,7 @@ from sentry.testutils.asserts import (
     assert_slo_metric,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -83,7 +84,7 @@ class OpsgenieClientTest(APITestCase):
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[NotificationOrigin.from_legacy_rule(rule)],
+                rules=[create_notification_origin(rule)],
                 event=event,
                 group=group,
                 priority="P2",
@@ -150,7 +151,7 @@ class OpsgenieClientTest(APITestCase):
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[NotificationOrigin.from_legacy_rule(rule)],
+                rules=[create_notification_origin(rule)],
                 event=event,
                 group=group,
                 priority="P2",
@@ -216,7 +217,7 @@ class OpsgenieClientTest(APITestCase):
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[NotificationOrigin.from_legacy_rule(rule)],
+                rules=[create_notification_origin(rule)],
                 event=event,
                 group=group,
                 priority="P2",
@@ -261,7 +262,7 @@ class OpsgenieClientTest(APITestCase):
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         payload = client.build_issue_alert_payload(
             data=event,
-            rules=[NotificationOrigin.from_legacy_rule(rule)],
+            rules=[create_notification_origin(rule)],
             event=event,
             group=group,
             priority="P2",
@@ -299,7 +300,7 @@ class OpsgenieClientTest(APITestCase):
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         payload = client.build_issue_alert_payload(
             data=event,
-            rules=[NotificationOrigin.from_legacy_rule(rule)],
+            rules=[create_notification_origin(rule)],
             event=event,
             group=group,
             priority="P2",
@@ -343,7 +344,7 @@ class OpsgenieClientTest(APITestCase):
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[NotificationOrigin.from_legacy_rule(rule)],
+                rules=[create_notification_origin(rule)],
                 event=event,
                 group=group,
                 priority="P2",

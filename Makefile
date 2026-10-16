@@ -120,7 +120,7 @@ test-js-ci:
 
 test-python-ci:
 	@echo "--> Running CI Python tests"
-	python3 -b -m pytest \
+	python3 -b .github/workflows/scripts/pytest-selected.py \
 		tests \
 		--reuse-db \
 		--ignore tests/acceptance \
@@ -180,7 +180,7 @@ test-selective:
 	python3 .github/workflows/scripts/selective-testing/confirm-test-selection.py \
 		.cache/selected-tests.txt
 	SELECTED_TESTS_FILE=.cache/selected-tests.txt \
-	python3 -b -m pytest \
+	python3 -b .github/workflows/scripts/pytest-selected.py \
 		-n3 \
 		tests \
 		--reuse-db \

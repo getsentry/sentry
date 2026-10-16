@@ -51,13 +51,13 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
-  parseConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {
   mergeValidatedGroupByTags,
   shouldHideGroupByForValidation,
 } from 'sentry/views/explore/utils/groupByValidation';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 import {HiddenLogSearchFields} from './constants';
 

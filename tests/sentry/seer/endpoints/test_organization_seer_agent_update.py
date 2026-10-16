@@ -74,9 +74,7 @@ class TestOrganizationSeerAgentUpdate(APITestCase):
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data == {
-            "detail": "This conversation belongs to another user and is read-only."
-        }
+        assert response.data == {"detail": "You do not have access to this run."}
         mock_request.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
