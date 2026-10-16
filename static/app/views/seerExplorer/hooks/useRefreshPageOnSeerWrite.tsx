@@ -56,6 +56,38 @@ function resolvePathParam(
   return value;
 }
 
+const SCOPE_PATTERNS = [
+  /^\/organizations\/[^/]+\/projects\/[^/]+\//,
+  /^\/projects\/[^/]+\/[^/]+\//,
+  /^\/organizations\/[^/]+\//,
+];
+
+/**
+ * The same data is often served under more than one scope: a monitor is created under
+ * `/organizations/{org}/projects/{project}/detectors/` but listed from
+ * `/organizations/{org}/detectors/`, and Seer may write an issue through the unscoped
+ * `/issues/{id}/` while the page reads `/organizations/{org}/issues/{id}/`. Comparing the path
+ * below the org/project scope lets a write reach those keys too.
+ */
+function getResourcePath(url: string): string {
+  for (const pattern of SCOPE_PATTERNS) {
+    if (pattern.test(url)) {
+      return url.replace(pattern, '');
+    }
+  }
+  return url.replace(/^\//, '');
+}
+
+function isStaleUrl(url: string, prefix: string): boolean {
+  if (url.startsWith(prefix)) {
+    return true;
+  }
+  // A write to the org or project itself has no resource path; matching on an empty one would
+  // invalidate every query, so those stay limited to their full path.
+  const resourcePrefix = getResourcePath(prefix);
+  return resourcePrefix !== '' && getResourcePath(url).startsWith(resourcePrefix);
+}
+
 /**
  * The API query key URL prefixes a write can have made stale: the written resource, and when the
  * write targeted one item (`.../workflows/{workflow_id}/`) the collection that lists it. A create
@@ -159,7 +191,7 @@ export function useRefreshPageOnSeerWrite({
     queryClient.invalidateQueries({
       predicate: (query: Query) => {
         const url = safeParseQueryKey(query.queryKey)?.url;
-        return url !== undefined && prefixes.some(prefix => url.startsWith(prefix));
+        return url !== undefined && prefixes.some(prefix => isStaleUrl(url, prefix));
       },
     });
   }, [blocks, runId, queryClient, organization]);

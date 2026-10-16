@@ -17,8 +17,12 @@ const project = ProjectFixture({id: '42', slug: 'frontend'});
 const CACHED_URLS = [
   '/organizations/acme/workflows/',
   '/organizations/acme/workflows/7/',
+  '/organizations/acme/detectors/',
   '/organizations/acme/detectors/9/',
   '/organizations/acme/issues/',
+  '/organizations/acme/issues/123/',
+  '/organizations/acme/',
+  '/projects/acme/frontend/',
   '/projects/acme/frontend/rules/',
 ];
 
@@ -138,6 +142,70 @@ describe('useRefreshPageOnSeerWrite', () => {
       ],
     });
     expect(invalidatedUrls()).toEqual(['/projects/acme/frontend/rules/']);
+  });
+
+  it('reaches the same resource under a different scope', () => {
+    const {rerender, invalidatedUrls} = renderRefreshHook([]);
+
+    rerender({
+      runId: 1,
+      blocks: [
+        makeBlock('a', [
+          {
+            id: 1,
+            kind: 'api',
+            method: 'POST',
+            path: '/api/0/organizations/{organization_id_or_slug}/projects/{project_id_or_slug}/detectors/',
+            path_params: {
+              organization_id_or_slug: 'acme',
+              project_id_or_slug: 'frontend',
+            },
+            status: 201,
+          },
+          {
+            id: 2,
+            kind: 'api',
+            method: 'PUT',
+            path: '/api/0/issues/{issue_id}/',
+            path_params: {issue_id: '123'},
+            status: 200,
+          },
+        ]),
+      ],
+    });
+    expect(invalidatedUrls()).toEqual([
+      '/organizations/acme/detectors/',
+      '/organizations/acme/detectors/9/',
+      '/organizations/acme/issues/',
+      '/organizations/acme/issues/123/',
+    ]);
+  });
+
+  it('limits a write to the project itself to its own path', () => {
+    const {rerender, invalidatedUrls} = renderRefreshHook([]);
+
+    rerender({
+      runId: 1,
+      blocks: [
+        makeBlock('a', [
+          {
+            id: 1,
+            kind: 'api',
+            method: 'PUT',
+            path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/',
+            path_params: {
+              organization_id_or_slug: 'acme',
+              project_id_or_slug: 'frontend',
+            },
+            status: 200,
+          },
+        ]),
+      ],
+    });
+    expect(invalidatedUrls()).toEqual([
+      '/projects/acme/frontend/',
+      '/projects/acme/frontend/rules/',
+    ]);
   });
 
   it('invalidates everything when the written route cannot be resolved', () => {
