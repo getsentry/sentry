@@ -5,7 +5,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypedDict
 from uuid import UUID, uuid4
 
 import sentry_sdk
@@ -42,6 +42,19 @@ _SECRET_PATTERNS = (
 class SubmittedAgentProblemReport:
     id: str
     delivered: bool
+
+
+class _ScrubbedReport(TypedDict):
+    summary: str
+    expected: str
+    observed: str
+    reproduction_steps: list[str]
+    tool_name: str
+    api_endpoint: str
+    documentation_url: str
+    request_id: str
+    event_id: str
+    additional_context: str
 
 
 def scrub_report_text(value: str) -> str:
@@ -116,7 +129,7 @@ def submit_agent_problem_report(
     additional_context: str,
 ) -> SubmittedAgentProblemReport:
     """Send one agent report as a User Feedback envelope on the backend SDK client."""
-    scrubbed = {
+    scrubbed: _ScrubbedReport = {
         "summary": scrub_report_text(summary),
         "expected": scrub_report_text(expected),
         "observed": scrub_report_text(observed),

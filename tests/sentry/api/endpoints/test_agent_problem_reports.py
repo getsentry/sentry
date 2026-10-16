@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+from sentry_sdk.envelope import Envelope
+
 from sentry.agent_reports.submit import _capture_feedback_envelope
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -42,7 +44,7 @@ class AgentProblemReportsEndpointTest(APITestCase):
         assert response.status_code == 401
 
     @patch("sentry.agent_reports.submit._capture_feedback_envelope", return_value=True)
-    def test_submits_user_feedback(self, capture_envelope) -> None:
+    def test_submits_user_feedback(self, capture_envelope: MagicMock) -> None:
         response = self.get_success_response(
             **_payload(
                 summary="token=sntrys_secretvalue is rejected",
@@ -78,7 +80,7 @@ class AgentProblemReportsEndpointTest(APITestCase):
         assert payload["user"]["id"] == str(self.user.id)
 
     @patch("sentry.agent_reports.submit._capture_feedback_envelope", return_value=False)
-    def test_reports_when_sdk_is_inactive(self, capture_envelope) -> None:
+    def test_reports_when_sdk_is_inactive(self, capture_envelope: MagicMock) -> None:
         response = self.get_success_response(**_payload(), status_code=201)
 
         capture_envelope.assert_called_once()
@@ -104,7 +106,7 @@ class AgentProblemReportsEndpointTest(APITestCase):
         assert "area" in response.data
 
     @patch("sentry.agent_reports.submit._capture_feedback_envelope", return_value=True)
-    def test_truncates_long_reports(self, capture_envelope) -> None:
+    def test_truncates_long_reports(self, capture_envelope: MagicMock) -> None:
         self.get_success_response(
             **_payload(
                 expected="e" * 2000,
@@ -128,7 +130,7 @@ class AgentProblemReportsEndpointTest(APITestCase):
 def test_capture_sends_when_sdk_is_active() -> None:
     client = MagicMock()
     client.is_active.return_value = True
-    envelope = object()
+    envelope = Envelope()
 
     with patch("sentry.agent_reports.submit.sentry_sdk.get_client", return_value=client):
         assert _capture_feedback_envelope(envelope) is True
@@ -142,4 +144,4 @@ def test_capture_skips_inactive_sdk() -> None:
     client.is_active.return_value = False
 
     with patch("sentry.agent_reports.submit.sentry_sdk.get_client", return_value=client):
-        assert _capture_feedback_envelope(object()) is False
+        assert _capture_feedback_envelope(Envelope()) is False
