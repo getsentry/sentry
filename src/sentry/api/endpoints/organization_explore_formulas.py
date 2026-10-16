@@ -97,7 +97,7 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
             },
             {
                 "name": "count_tolerating",
-                "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+                "value": "count_if(`{duration}:>={threshold} and {duration}:<={frustrated}`)",
             },
         ],
         "params": [
@@ -114,7 +114,7 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
                 "value": "",
             },
             {
-                "name": "4threshold",
+                "name": "frustrated",
                 "type": "calculation",
                 "order": 2,
                 "value": "{threshold} * 4",
@@ -131,7 +131,7 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
         "references": [
             {
                 "name": "miserable_users",
-                "value": "count_unique_if(`is_transaction:True and {duration}:>{4threshold}`, user)",
+                "value": "count_unique_if(`is_transaction:True and {duration}:>{frustrated}`, user)",
             },
             {
                 "name": "total_unique_users",
@@ -152,7 +152,7 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
                 "value": "",
             },
             {
-                "name": "4threshold",
+                "name": "frustrated",
                 "type": "calculation",
                 "order": 2,
                 "value": "{threshold} * 4",
