@@ -10,10 +10,7 @@ const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}']
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
-  rules: {
-    '@sentry/scraps/prefer-primitives': 'error',
-    'react/incompatible-library': 'error',
-  },
+  rules: {'@sentry/scraps/prefer-primitives': 'error'},
   overrides: [
     {
       files: coreComponentFiles,
@@ -749,6 +746,7 @@ const config = defineConfig({
     'react/globals': 'error',
     'react/hooks': 'error',
     'react/immutability': 'error',
+    'react/incompatible-library': 'error',
     'react/invariant': 'error',
     'react/jsx-boolean-value': ['error', 'never'],
     'react/jsx-fragments': ['error', 'element'],
