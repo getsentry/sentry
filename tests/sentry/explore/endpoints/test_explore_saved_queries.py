@@ -883,6 +883,28 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["projects"] == self.project_ids
         assert data["dataset"] == "spans"
 
+    def test_post_with_range(self) -> None:
+        """For some reason saved queries use the old range parameter"""
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with range",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "interval": "1h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert response.data["range"] == "24h"
+        assert response.data["interval"] == "1h"
+
     def test_post_all_projects(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
