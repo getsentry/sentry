@@ -74,6 +74,11 @@
       "count": 2
     }
   },
+  "static/app/components/brandPageLayout/index.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 7
+    }
+  },
   "static/app/components/carousel.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1088,6 +1093,9 @@
     }
   },
   "static/app/components/replays/breadcrumbs/replayTimelineEvents.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -1816,6 +1824,11 @@
       "count": 2
     }
   },
+  "static/app/views/authV2/authLogin/components/organizationCard.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 2
+    }
+  },
   "static/app/views/authV2/authLogin/components/sms2faMethod.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 1
@@ -1928,7 +1941,7 @@
   },
   "static/app/views/dashboards/widgetBuilder/components/newWidgetBuilder.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 2
+      "count": 3
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1951,7 +1964,7 @@
   },
   "static/app/views/dashboards/widgetBuilder/components/widgetPreviewContainer.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 1
+      "count": 13
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/widgetTemplatesList.tsx": {
@@ -2182,6 +2195,11 @@
       "count": 1
     }
   },
+  "static/app/views/explore/components/viewportConstrainedPage.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    }
+  },
   "static/app/views/explore/contexts/logs/logsPageParams.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -2263,6 +2281,11 @@
   "static/app/views/explore/metrics/metricToolbar/index.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "static/app/views/explore/metrics/metricToolbar/metricSelector/metricSelector.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 14
     }
   },
   "static/app/views/explore/metrics/styles.tsx": {
@@ -2863,6 +2886,11 @@
       "count": 1
     }
   },
+  "static/app/views/navigation/topBar.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 4
+    }
+  },
   "static/app/views/navigation/useTopOffset.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
@@ -2886,6 +2914,11 @@
   "static/app/views/onboarding/scmMessaging.spec.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
+    }
+  },
+  "static/app/views/organizationLayout/index.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 2
     }
   },
   "static/app/views/organizationStats/teamInsights/teamIssuesAge.tsx": {
@@ -3276,11 +3309,6 @@
       "count": 1
     }
   },
-  "static/app/views/seerExplorer/components/emptyState.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/seerExplorer/components/explorerMenu.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -3294,6 +3322,11 @@
   "static/app/views/seerExplorer/components/inputSection.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
+    }
+  },
+  "static/app/views/seerExplorer/components/seerExplorerContent.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 2
     }
   },
   "static/app/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout.spec.tsx": {
@@ -3331,6 +3364,11 @@
       "count": 2
     },
     "@sentry/scraps/prefer-primitives": {
+      "count": 1
+    }
+  },
+  "static/app/views/seerWorkflows/overview/index.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
     }
   },
@@ -3895,6 +3933,11 @@
       "count": 1
     }
   },
+  "static/gsApp/components/features/illustrations/performanceBackground.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 2
+    }
+  },
   "static/gsApp/components/gsBanner.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4028,6 +4071,11 @@
   "static/gsApp/views/amCheckout/components/unitTypeItem.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 3
+    }
+  },
+  "static/gsApp/views/amCheckout/components/volumeSliders.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
     }
   },
   "static/gsApp/views/amCheckout/index.tsx": {

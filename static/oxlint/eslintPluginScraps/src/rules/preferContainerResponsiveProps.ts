@@ -102,7 +102,7 @@ export const preferContainerResponsiveProps = defineRule({
     schema: [],
     messages: {
       forbidden:
-        'Use primitive responsive props instead of layout CSS queries. Modal and drawer sizing and non-layout media features may use @media.',
+        'Use container responsive props instead of viewport breakpoints or layout CSS queries. Modal and drawer sizing and non-layout media features may use @media.',
     },
   },
   create(context) {
@@ -188,6 +188,14 @@ export const preferContainerResponsiveProps = defineRule({
             : key.type === 'Identifier'
               ? key.name
               : undefined;
+        if (
+          keyName?.startsWith('screen:') &&
+          !context.filename.includes('/static/packages/') &&
+          !context.filename.includes('/static/oxlint/')
+        ) {
+          context.report({node: key, messageId: 'forbidden'});
+          return;
+        }
         const query = keyName?.match(STYLE_QUERY)?.[0];
         if (query && (query === '@container' || !isNonLayoutMediaQuery(keyName!))) {
           context.report({node: key, messageId: 'forbidden'});

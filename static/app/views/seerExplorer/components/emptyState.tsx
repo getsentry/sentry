@@ -5,6 +5,7 @@ import {IconSeer} from '@sentry/icons/seer';
 
 import {Button} from '@sentry/scraps/button';
 import {Container as LayoutContainer, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -40,44 +41,51 @@ export function EmptyState({
   const theme = useTheme();
   const runIdDisplay = runId?.toString() ?? 'null';
   return (
-    <Container
-      flex="1"
-      align="center"
-      justify="center"
-      padding={{zero: 'xl', '2xs': '3xl'}}
-    >
+    <Stack flex="1" align="center" justify="center" padding={{zero: 'xl', '2xs': '3xl'}}>
       {isError ? (
         // Checked before `isLoading`: a failed load can still be polling with
         // backoff, and a spinner there would sit next to a disabled composer
         // with no way out.
         <Fragment>
           <IconSeer size="xl" />
-          <Text>
-            {errorStatusCode === 404
-              ? tct('Session not found (run_id=[runIdDisplay]).', {
-                  runIdDisplay,
-                })
-              : t('There was a problem loading the conversation.')}
-          </Text>
+          <LayoutContainer marginTop="xl" maxWidth="300px">
+            <Text as="div" align="center" variant="secondary" density="comfortable">
+              {errorStatusCode === 404
+                ? tct('Session not found (run_id=[runIdDisplay]).', {
+                    runIdDisplay,
+                  })
+                : t('There was a problem loading the conversation.')}
+            </Text>
+          </LayoutContainer>
           {onStartNewChat && (
             // The composer is disabled on this screen: sending would post into the
             // run that just failed rather than open a fresh one, so this is the way out.
-            <Text>
-              <Button variant="link" size="zero" onClick={onStartNewChat}>
-                {t('Start a new chat')}
-              </Button>
-            </Text>
+            <LayoutContainer marginTop="xl" maxWidth="300px">
+              <Text as="div" align="center" variant="secondary" density="comfortable">
+                <Button variant="link" size="zero" onClick={onStartNewChat}>
+                  {t('Start a new chat')}
+                </Button>
+              </Text>
+            </LayoutContainer>
           )}
         </Fragment>
       ) : isLoading ? (
         <Fragment>
           <LoadingIndicator size={32} />
-          <Text>{t('Ask Seer anything about your application.')}</Text>
+          <LayoutContainer marginTop="xl" maxWidth="300px">
+            <Text as="div" align="center" variant="secondary" density="comfortable">
+              {t('Ask Seer anything about your application.')}
+            </Text>
+          </LayoutContainer>
         </Fragment>
       ) : (
         <Fragment>
           <IconSeer size="xl" animation="idle" />
-          <Text>{t('Ask Seer anything about your application.')}</Text>
+          <LayoutContainer marginTop="xl" maxWidth="300px">
+            <Text as="div" align="center" variant="secondary" density="comfortable">
+              {t('Ask Seer anything about your application.')}
+            </Text>
+          </LayoutContainer>
           {onSuggestionClick && suggestions && (
             <Stack
               align="center"
@@ -111,19 +119,19 @@ export function EmptyState({
             </Stack>
           )}
           {displaySlackAgentReminder && (
-            <Text>
-              {t('Want to chat in Slack? Just @ Sentry to debug and investigate issues.')}
-            </Text>
+            <LayoutContainer marginTop="xl" maxWidth="300px">
+              <Text as="div" align="center" variant="secondary" density="comfortable">
+                {t(
+                  'Want to chat in Slack? Just @ Sentry to debug and investigate issues.'
+                )}
+              </Text>
+            </LayoutContainer>
           )}
         </Fragment>
       )}
-    </Container>
+    </Stack>
   );
 }
-
-const Container = styled(Stack)`
-  text-align: center;
-`;
 
 const SuggestionButton = styled(Button)`
   width: 100%;
@@ -137,12 +145,4 @@ const SuggestionButton = styled(Button)`
     white-space: normal;
     text-wrap: balance;
   }
-`;
-
-const Text = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
-  line-height: 1.4;
-  max-width: 300px;
 `;

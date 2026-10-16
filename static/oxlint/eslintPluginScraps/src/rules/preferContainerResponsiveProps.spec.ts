@@ -44,8 +44,8 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
       code: "const search = {'app.vitals.start.screen:sm': true};",
     },
     {
-      filename,
-      code: "const props = {direction: {zero: 'column', 'screen:md': 'row'}};",
+      filename: '/project/static/packages/scraps/src/layout/styles.spec.tsx',
+      code: "const props = {direction: {'screen:md': 'row'}};",
     },
     {
       filename,
@@ -65,6 +65,11 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
     },
   ],
   invalid: [
+    {
+      filename,
+      code: "const props = {direction: {zero: 'column', 'screen:md': 'row'}};",
+      errors: [{messageId: 'forbidden'}],
+    },
     {
       filename,
       code: "import {css} from '@emotion/react'; const highlightModalCss = css`@media (min-width: 800px) { width: 80%; }`;",

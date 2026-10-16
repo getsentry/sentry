@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useComboBox} from '@react-aria/combobox';
 import {FocusScope} from '@react-aria/focus';
@@ -15,7 +15,7 @@ import {useDebouncedValue} from '@tanstack/react-pacer';
 import {Tag} from '@sentry/scraps/badge';
 import {LeadWrap, ListWrap} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
-import {Container, Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {MenuListItem} from '@sentry/scraps/menuListItem';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -113,10 +113,6 @@ export function MetricSelector({
   usePortal?: boolean;
 }) {
   const theme = useTheme();
-  const isWideScreen = useResponsivePropValue({
-    'screen:2xs': false,
-    'screen:md': true,
-  });
   const triggerId = useId();
 
   const hasMetricUnitsUI = useHasMetricUnitsUI();
@@ -641,188 +637,176 @@ export function MetricSelector({
           style={{...overlayProps.style, display: isOpen ? 'block' : 'none'}}
         >
           {isOpen ? (
-            <Container overflow="visible">
-              {containerProps => (
-                <Overlay
-                  {...containerProps}
-                  ref={popoverRef}
-                  style={{display: 'flex', flexDirection: 'column'}}
+            <MetricSelectorOverlay
+              ref={popoverRef}
+              style={{display: 'flex', flexDirection: 'column'}}
+            >
+              <FocusScope contain>
+                <Flex
+                  minHeight="0"
+                  direction={{
+                    'screen:xs': isOverlayAboveTrigger ? 'column-reverse' : 'column',
+                    'screen:md': 'row',
+                  }}
                 >
-                  <FocusScope contain>
-                    <Flex
-                      minHeight="0"
-                      direction={{
-                        'screen:xs': isOverlayAboveTrigger ? 'column-reverse' : 'column',
-                        'screen:md': 'row',
-                      }}
-                    >
-                      <Stack
-                        minWidth="400px"
-                        minHeight={`${METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT}px`}
-                        maxHeight={`${METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT}px`}
-                        borderBottom={
-                          isOverlayAboveTrigger
-                            ? undefined
-                            : {'screen:xs': 'primary', 'screen:md': undefined}
-                        }
-                        borderTop={
-                          isOverlayAboveTrigger
-                            ? {'screen:xs': 'primary', 'screen:md': undefined}
-                            : undefined
-                        }
-                        width="100%"
-                      >
-                        <Flex align="center" justify="between" padding="sm lg">
-                          <Text size="sm" bold wrap="nowrap">
-                            {t('Application Metrics')}
-                          </Text>
-                          {isFetching ? (
-                            <LoadingIndicator size={12} style={{margin: 0}} />
-                          ) : null}
-                        </Flex>
-                        <Container padding="0 xs">
-                          <InputGroup>
-                            <InputGroup.LeadingItems disablePointerEvents>
-                              <Flex
-                                paddingLeft="2xs"
-                                align="center"
-                                justify="center"
-                                style={{
-                                  transform: 'translateY(1px) translateX(1px)',
-                                }}
-                              >
-                                <IconSearch size="xs" variant="muted" />
-                              </Flex>
-                            </InputGroup.LeadingItems>
-                            <InputGroup.Input
-                              {...comboBoxInputProps}
-                              placeholder={t('Search application metrics\u2026')}
-                              size="xs"
-                              ref={searchRef}
-                            />
-                          </InputGroup>
-                        </Container>
-                        <Container
-                          ref={scrollElementRef}
-                          overflowY="auto"
-                          flex="1"
-                          minHeight="0"
-                          padding="xs 0"
-                          onScroll={() => updateSidePanelAnchorOffset()}
-                        >
-                          {/* Hidden element that reserves width based on the longest option label */}
-                          {longestOption ? (
-                            <Container
-                              aria-hidden
-                              visibility="hidden"
-                              height={0}
-                              overflow="hidden"
-                            >
-                              <MenuListItem
-                                as="div"
-                                size="md"
-                                label={longestOption.label}
-                                leadingItems={
-                                  <Fragment>
-                                    <LeadWrap>
-                                      <IconCheckmark size="sm" />
-                                    </LeadWrap>
-                                  </Fragment>
-                                }
-                                trailingItems={longestOption.trailingItems}
-                              />
-                            </Container>
-                          ) : null}
-                          {collectionItems.length === 0 ? (
-                            <Flex align="center" justify="center" padding="xl">
-                              <Text variant="muted" size="sm">
-                                {t('No application metrics found')}
-                              </Text>
-                            </Flex>
-                          ) : (
-                            <Container
-                              width="100%"
-                              position="relative"
-                              style={{height: `${totalSize}px`}}
-                            >
-                              <Container
-                                width="100%"
-                                position="absolute"
-                                top={0}
-                                left={0}
-                                style={{
-                                  transform: `translateY(${itemsToRender[0]?.start ?? 0}px)`,
-                                }}
-                              >
-                                <ListWrap
-                                  id={listBoxProps.id}
-                                  aria-label={listBoxProps['aria-label']}
-                                  aria-labelledby={listBoxProps['aria-labelledby']}
-                                  role="listbox"
-                                  style={{padding: 0}}
-                                  ref={listElementRef}
-                                >
-                                  {itemsToRender.map(virtualRow => {
-                                    const item = collectionItems[virtualRow.index];
-                                    if (item?.type !== 'item') {
-                                      return null;
-                                    }
-
-                                    return (
-                                      <MetricListBoxOption
-                                        key={item.key}
-                                        item={item}
-                                        listState={comboBoxState}
-                                        size="md"
-                                        dataIndex={virtualRow.index}
-                                        measureRef={virtualizer.measureElement}
-                                        updateSidePanelAnchorOffset={
-                                          updateSidePanelAnchorOffset
-                                        }
-                                      />
-                                    );
-                                  })}
-                                </ListWrap>
-                              </Container>
-                            </Container>
-                          )}
-                        </Container>
-                      </Stack>
-                      {hasSelectedMetric ? (
-                        <SidePanel
-                          isWideScreen={isWideScreen}
-                          ref={setSidePanelRef}
-                          top={
-                            isOverlayAboveTrigger
-                              ? undefined
-                              : {
-                                  'screen:xs': 'auto',
-                                  'screen:md': sidePanelAnchorPosition,
-                                }
-                          }
-                          bottom={
-                            isOverlayAboveTrigger
-                              ? {
-                                  'screen:xs': 'auto',
-                                  'screen:md': sidePanelAnchorPosition,
-                                }
-                              : undefined
-                          }
-                          width={{'screen:xs': '100%', 'screen:md': '280px'}}
-                          padding="lg"
-                          minHeight="0"
-                        >
-                          <MetricDetailPanel
-                            metric={highlightedOption ?? optionFromTraceMetric}
-                            hasMetricUnitsUI={hasMetricUnitsUI}
-                          />
-                        </SidePanel>
+                  <Stack
+                    minWidth="400px"
+                    minHeight={`${METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT}px`}
+                    maxHeight={`${METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT}px`}
+                    borderBottom={
+                      isOverlayAboveTrigger
+                        ? undefined
+                        : {'screen:xs': 'primary', 'screen:md': undefined}
+                    }
+                    borderTop={
+                      isOverlayAboveTrigger
+                        ? {'screen:xs': 'primary', 'screen:md': undefined}
+                        : undefined
+                    }
+                    width="100%"
+                  >
+                    <Flex align="center" justify="between" padding="sm lg">
+                      <Text size="sm" bold wrap="nowrap">
+                        {t('Application Metrics')}
+                      </Text>
+                      {isFetching ? (
+                        <LoadingIndicator size={12} style={{margin: 0}} />
                       ) : null}
                     </Flex>
-                  </FocusScope>
-                </Overlay>
-              )}
-            </Container>
+                    <Container padding="0 xs">
+                      <InputGroup>
+                        <InputGroup.LeadingItems disablePointerEvents>
+                          <Flex
+                            paddingLeft="2xs"
+                            align="center"
+                            justify="center"
+                            style={{
+                              transform: 'translateY(1px) translateX(1px)',
+                            }}
+                          >
+                            <IconSearch size="xs" variant="muted" />
+                          </Flex>
+                        </InputGroup.LeadingItems>
+                        <InputGroup.Input
+                          {...comboBoxInputProps}
+                          placeholder={t('Search application metrics\u2026')}
+                          size="xs"
+                          ref={searchRef}
+                        />
+                      </InputGroup>
+                    </Container>
+                    <Container
+                      ref={scrollElementRef}
+                      overflowY="auto"
+                      flex="1"
+                      minHeight="0"
+                      padding="xs 0"
+                      onScroll={() => updateSidePanelAnchorOffset()}
+                    >
+                      {/* Hidden element that reserves width based on the longest option label */}
+                      {longestOption ? (
+                        <Container
+                          aria-hidden
+                          visibility="hidden"
+                          height={0}
+                          overflow="hidden"
+                        >
+                          <MenuListItem
+                            as="div"
+                            size="md"
+                            label={longestOption.label}
+                            leadingItems={
+                              <Fragment>
+                                <LeadWrap>
+                                  <IconCheckmark size="sm" />
+                                </LeadWrap>
+                              </Fragment>
+                            }
+                            trailingItems={longestOption.trailingItems}
+                          />
+                        </Container>
+                      ) : null}
+                      {collectionItems.length === 0 ? (
+                        <Flex align="center" justify="center" padding="xl">
+                          <Text variant="muted" size="sm">
+                            {t('No application metrics found')}
+                          </Text>
+                        </Flex>
+                      ) : (
+                        <Container
+                          width="100%"
+                          position="relative"
+                          style={{height: `${totalSize}px`}}
+                        >
+                          <Container
+                            width="100%"
+                            position="absolute"
+                            top={0}
+                            left={0}
+                            style={{
+                              transform: `translateY(${itemsToRender[0]?.start ?? 0}px)`,
+                            }}
+                          >
+                            <ListWrap
+                              id={listBoxProps.id}
+                              aria-label={listBoxProps['aria-label']}
+                              aria-labelledby={listBoxProps['aria-labelledby']}
+                              role="listbox"
+                              style={{padding: 0}}
+                              ref={listElementRef}
+                            >
+                              {itemsToRender.map(virtualRow => {
+                                const item = collectionItems[virtualRow.index];
+                                if (item?.type !== 'item') {
+                                  return null;
+                                }
+
+                                return (
+                                  <MetricListBoxOption
+                                    key={item.key}
+                                    item={item}
+                                    listState={comboBoxState}
+                                    size="md"
+                                    dataIndex={virtualRow.index}
+                                    measureRef={virtualizer.measureElement}
+                                    updateSidePanelAnchorOffset={
+                                      updateSidePanelAnchorOffset
+                                    }
+                                  />
+                                );
+                              })}
+                            </ListWrap>
+                          </Container>
+                        </Container>
+                      )}
+                    </Container>
+                  </Stack>
+                  {hasSelectedMetric ? (
+                    <SidePanel
+                      ref={setSidePanelRef}
+                      top={
+                        isOverlayAboveTrigger
+                          ? undefined
+                          : {'screen:xs': 'auto', 'screen:md': sidePanelAnchorPosition}
+                      }
+                      bottom={
+                        isOverlayAboveTrigger
+                          ? {'screen:xs': 'auto', 'screen:md': sidePanelAnchorPosition}
+                          : undefined
+                      }
+                      width={{'screen:xs': '100%', 'screen:md': '280px'}}
+                      padding="lg"
+                      minHeight="0"
+                    >
+                      <MetricDetailPanel
+                        metric={highlightedOption ?? optionFromTraceMetric}
+                        hasMetricUnitsUI={hasMetricUnitsUI}
+                      />
+                    </SidePanel>
+                  ) : null}
+                </Flex>
+              </FocusScope>
+            </MetricSelectorOverlay>
           ) : null}
         </PositionWrapper>,
         usePortal
@@ -831,18 +815,20 @@ export function MetricSelector({
   );
 }
 
-const SidePanel = styled(Container, {
-  shouldForwardProp: prop => prop !== 'isWideScreen',
-})<{isWideScreen: boolean}>`
-  ${p =>
-    p.isWideScreen &&
-    css`
-      position: absolute;
-      left: 100%;
-      max-height: calc(100vh - 32px);
-      overflow-y: auto;
-      background: ${p.theme.tokens.background.primary};
-      border: 1px solid ${p.theme.tokens.border.primary};
-      border-radius: ${p.theme.radius.md};
-    `}
+const MetricSelectorOverlay = styled(Overlay)`
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    overflow: visible;
+  }
+`;
+
+const SidePanel = styled(Container)`
+  @media (min-width: ${p => p.theme.breakpoints.md}) {
+    position: absolute;
+    left: 100%;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    background: ${p => p.theme.tokens.background.primary};
+    border: 1px solid ${p => p.theme.tokens.border.primary};
+    border-radius: ${p => p.theme.radius.md};
+  }
 `;

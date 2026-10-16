@@ -243,7 +243,9 @@ export function ReleaseCard({
             gap="0 md"
             width="100%"
           >
-            <ReleaseProjectColumn>{t('Project Slug')}</ReleaseProjectColumn>
+            <ReleaseProjectColumn overflow="hidden">
+              {t('Project Slug')}
+            </ReleaseProjectColumn>
             {showReleaseAdoptionStages && (
               <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
             )}

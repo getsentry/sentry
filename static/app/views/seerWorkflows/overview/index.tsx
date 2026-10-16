@@ -6,7 +6,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
@@ -17,7 +16,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {EmptyState} from '@sentry/scraps/emptyState';
-import {Container, Flex, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
@@ -84,22 +83,18 @@ const SeerTrialCTA = OverrideOrDefault({
   overrideName: 'component:seer-trial-cta',
 });
 
-const FilterBar = styled(Flex, {
-  shouldForwardProp: prop => prop !== 'isNarrow',
-})<{isNarrow: boolean}>`
-  ${p =>
-    p.isNarrow &&
-    css`
-      > * {
-        flex: 1 1 calc(50% - ${p.theme.space.md});
-        min-width: 0;
-      }
+const FilterBar = styled(Flex)`
+  @container (width < ${p => p.theme.container.sm}) {
+    > * {
+      flex: 1 1 calc(50% - ${p => p.theme.space.md});
+      min-width: 0;
+    }
 
-      > * > button {
-        width: 100%;
-        min-width: 0;
-      }
-    `}
+    > * > button {
+      width: 100%;
+      min-width: 0;
+    }
+  }
 `;
 
 const SORT_OPTIONS: Array<{label: string; value: OverviewSort}> = [
@@ -167,9 +162,7 @@ export default function AutofixOverview() {
               <SeerTrialCTA />
             </Stack>
           ) : (
-            <Container containerType="inline-size">
-              <AutofixOverviewContent organization={organization} />
-            </Container>
+            <AutofixOverviewContent organization={organization} />
           )}
         </SentryDocumentTitle>
       </PageFiltersContainer>
@@ -179,7 +172,6 @@ export default function AutofixOverview() {
 
 // Owns every request so a feature-disabled org mounts no query at all.
 function AutofixOverviewContent({organization}: {organization: Organization}) {
-  const isNarrow = useResponsivePropValue({zero: true, sm: false});
   const {selection, isReady: pageFiltersReady} = usePageFilters();
   const {initiallyLoaded: projectsLoaded} = useProjects();
   const location = useLocation();
@@ -436,7 +428,7 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
 
   return (
     <Stack gap="lg" padding={{xs: 'lg md', sm: 'lg xl'}}>
-      <FilterBar gap="md" align="center" wrap="wrap" isNarrow={isNarrow}>
+      <FilterBar gap="md" align="center" wrap="wrap">
         {pageFiltersReady && projectsLoaded ? (
           <PageFilterBar condensed>
             <ProjectPageFilter />

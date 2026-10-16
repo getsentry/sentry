@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
@@ -60,15 +60,7 @@ export function ActivityLineHeadline({
   );
 }
 
-export const ActivityLineRow = styled((props: GridProps) => (
-  <Grid
-    columns="auto minmax(0, 1fr)"
-    rows="auto auto"
-    align="start"
-    gap="0 sm"
-    {...props}
-  />
-))`
+export const ActivityLineRow = styled(Grid)`
   position: relative;
 
   &:not(:last-child)::before {

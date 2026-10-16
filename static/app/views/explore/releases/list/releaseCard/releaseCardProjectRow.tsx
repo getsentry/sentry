@@ -116,7 +116,7 @@ export function ReleaseCardProjectRow({
         align="center"
         width="100%"
       >
-        <ReleaseProjectColumn>
+        <ReleaseProjectColumn overflow="hidden">
           <ProjectBadge project={project} avatarSize={16} />
         </ReleaseProjectColumn>
 

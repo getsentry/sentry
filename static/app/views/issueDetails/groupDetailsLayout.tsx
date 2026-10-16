@@ -72,6 +72,14 @@ function EventDetailsSection({children}: {children: React.ReactNode}) {
   );
 }
 
+function EventDetailsContent({children}: {children: React.ReactNode}) {
+  return (
+    <Container padding="0 xl 2xl xl" minHeight={{zero: 'auto', '4xl': '100vh'}}>
+      {children}
+    </Container>
+  );
+}
+
 const STICKY_BACKGROUND_FADE_DISTANCE = 40;
 
 function StickyIssueEventNavigation({
@@ -248,12 +256,7 @@ export function GroupDetailsLayout({
                         hasToggleSidebar={!hasFilterBar}
                       />
                     )}
-                  <Container
-                    padding="0 xl 2xl xl"
-                    minHeight={{zero: 'auto', '4xl': '100vh'}}
-                  >
-                    {children}
-                  </Container>
+                  <EventDetailsContent>{children}</EventDetailsContent>
                 </EventDetailsSection>
               ) : (
                 <SharedTourElement<IssueDetailsTour>
@@ -277,12 +280,7 @@ export function GroupDetailsLayout({
                               hasToggleSidebar={!hasFilterBar}
                             />
                           )}
-                        <Container
-                          padding="0 xl 2xl xl"
-                          minHeight={{zero: 'auto', '4xl': '100vh'}}
-                        >
-                          {children}
-                        </Container>
+                        <EventDetailsContent>{children}</EventDetailsContent>
                       </EventDetailsSection>
                     </div>
                   )}
