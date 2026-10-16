@@ -18,6 +18,7 @@ describe('canScaleThresholds', () => {
     'count(custom_field)',
     `count_if(\`${SpanFields.SPAN_STATUS}:error\`)`,
     'failure_count()',
+    'count_web_vitals(measurements.lcp,poor)',
     'sum(session)',
     `sum(${SpanFields.SPAN_DURATION})`,
     'sum(value,metricA,gauge,none)',

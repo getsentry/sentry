@@ -6,6 +6,7 @@ import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 const SCALABLE_AGGREGATES = new Set<string>([
   AggregationKey.COUNT,
   AggregationKey.COUNT_IF,
+  AggregationKey.COUNT_WEB_VITALS,
   AggregationKey.SUM,
   AggregationKey.FAILURE_COUNT,
 ]);
