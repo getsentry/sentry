@@ -23,7 +23,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import create_workflow_notification_origin
 
 
 def without_integration_id(card: Any) -> Any:
@@ -68,7 +68,7 @@ class IssueCardLegacyParityTest(TestCase):
         return MSTeamsIssueMessageBuilder(
             self.issue_group,
             self.event,
-            [create_notification_origin(self.rule)],
+            [create_workflow_notification_origin(self.rule)],
             rpc_integration,
         ).build_group_card()
 
@@ -79,7 +79,7 @@ class IssueCardLegacyParityTest(TestCase):
             event_id=self.event.event_id,
             notification_uuid="",
             rule=SerializableRuleProxy.from_origin(
-                create_notification_origin(self.rule),
+                create_workflow_notification_origin(self.rule),
                 action_id=self.rule.id,
                 data=self.rule.data,
                 project_id=self.rule.project_id,
