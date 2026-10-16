@@ -57,6 +57,29 @@ describe('Flamegraph attachments', () => {
     expect(model.root.children[0]?.children[0]?.frame.line).toBe(42);
   });
 
+  it.each([undefined, false, true])('preserves frame classification: %s', inApp => {
+    const data = parseFlamegraphAttachment({
+      ...diagnostic,
+      frames: [{function: 'main', in_app: inApp}, diagnostic.frames[1]],
+    });
+    expect(createFlamegraph(data, 0).root.children[0]?.frame.is_application).toBe(
+      inApp ?? false
+    );
+  });
+
+  it('keeps distinct frame IDs with matching source locations separate', () => {
+    const data = parseFlamegraphAttachment({
+      ...diagnostic,
+      frames: [
+        {function: 'main', in_app: true},
+        {function: 'main', in_app: false},
+      ],
+    });
+    const root = createFlamegraph(data, 0).root.children[0]!;
+    expect(root.frame.is_application).toBe(true);
+    expect(root.children[0]?.frame.is_application).toBe(false);
+  });
+
   it('keeps each tree as an independent sample population', () => {
     const data = parseFlamegraphAttachment({
       ...diagnostic,

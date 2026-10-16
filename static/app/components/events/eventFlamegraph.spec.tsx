@@ -3,7 +3,7 @@ import {EventAttachmentFixture} from 'sentry-fixture/eventAttachment';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {EventFlamegraph} from './eventFlamegraph';
 
@@ -48,17 +48,6 @@ describe('Event flamegraph', () => {
     expect(await screen.findByText('3 samples')).toBeInTheDocument();
   });
 
-  it('treats unclassified frames as system frames', async () => {
-    MockApiClient.addMockResponse({
-      url: downloadUrl,
-      body: {...diagnostic, frames: [{instruction_addr: '0x1000'}]},
-    });
-    render(<EventFlamegraph event={event} project={project} />, {organization});
-    expect(await screen.findByText('10 samples')).toBeInTheDocument();
-    expect(screen.getByText('System Function')).toBeInTheDocument();
-    expect(screen.queryByText('System or Unclassified Function')).not.toBeInTheDocument();
-  });
-
   it('accepts string JSON downloads', async () => {
     MockApiClient.addMockResponse({url: downloadUrl, body: JSON.stringify(diagnostic)});
     render(<EventFlamegraph event={event} project={project} />, {organization});
@@ -66,27 +55,28 @@ describe('Event flamegraph', () => {
   });
 
   it('renders nothing when there is no flamegraph attachment', async () => {
-    const list = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: listUrl,
       body: [EventAttachmentFixture()],
     });
-    render(<EventFlamegraph event={event} project={project} />, {organization});
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
-    expect(screen.queryByRole('region', {name: 'Flamegraph'})).not.toBeInTheDocument();
+    const {container} = render(<EventFlamegraph event={event} project={project} />, {
+      organization,
+    });
+    await expect(screen.findByRole('region', {name: 'Flamegraph'})).rejects.toThrow();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('renders nothing when the attachments list fails', async () => {
-    const list = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: listUrl,
       statusCode: 500,
       body: {detail: 'Attachments unavailable.'},
     });
-    act(() => {
-      render(<EventFlamegraph event={event} project={project} />, {organization});
+    const {container} = render(<EventFlamegraph event={event} project={project} />, {
+      organization,
     });
-    await waitFor(() => expect(list).toHaveBeenCalledTimes(1));
-    expect(screen.queryByRole('region', {name: 'Flamegraph'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+    await expect(screen.findByRole('region', {name: 'Flamegraph'})).rejects.toThrow();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('does not fetch attachments when the feature is disabled', () => {

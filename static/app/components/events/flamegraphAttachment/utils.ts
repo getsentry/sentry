@@ -1,34 +1,66 @@
+import {z} from 'zod';
+
 import {t} from 'sentry/locale';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
-type FlamegraphAttachmentFrame = Omit<Profiling.SentrySampledProfileFrame, 'in_app'> & {
-  in_app?: boolean;
-};
+const frameSchema = z
+  .object({
+    function: z.string().optional(),
+    filename: z.string().optional(),
+    instruction_addr: z.string().optional(),
+    abs_path: z.string().optional(),
+    module: z.string().optional(),
+    package: z.string().optional(),
+    platform: z.string().optional(),
+    symbol: z.string().optional(),
+    sym_addr: z.string().optional(),
+    in_app: z.boolean().optional(),
+    lineno: z.number().int().optional(),
+    colno: z.number().int().optional(),
+  })
+  .refine(frame => Boolean(frame.function || frame.filename || frame.instruction_addr));
 
-type FlamegraphAttachmentNode = {
-  frame_id: number;
-  sample_count: number;
-  children?: FlamegraphAttachmentNode[];
-};
+const nodeSchema = z.object({
+  frame_id: z.number().int().nonnegative(),
+  sample_count: z.number().int().positive(),
+  get children() {
+    return z.array(nodeSchema).optional();
+  },
+});
 
-export type FlamegraphAttachmentTree = {
-  roots: FlamegraphAttachmentNode[];
-  thread_attributed?: boolean;
-  thread_id?: string;
-};
+const treeSchema = z.object({
+  roots: z.array(nodeSchema).min(1),
+  thread_id: z.string().optional(),
+  thread_attributed: z.boolean().optional(),
+});
 
-export type FlamegraphAttachmentData = {
-  frames: FlamegraphAttachmentFrame[];
-  platform: string;
-  trees: FlamegraphAttachmentTree[];
-  version: '1';
-};
+const flamegraphAttachmentSchema = z
+  .object({
+    version: z.literal('1'),
+    platform: z.string(),
+    frames: z.array(frameSchema).min(1),
+    trees: z.array(treeSchema).min(1),
+  })
+  .refine(data => {
+    const pending = data.trees.flatMap(tree => tree.roots);
+    while (pending.length) {
+      const node = pending.pop()!;
+      const children = node.children ?? [];
+      if (
+        node.frame_id >= data.frames.length ||
+        children.reduce((sum, child) => sum + child.sample_count, 0) > node.sample_count
+      ) {
+        return false;
+      }
+      pending.push(...children);
+    }
+    return true;
+  });
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
+export type FlamegraphAttachmentTree = z.infer<typeof treeSchema>;
+export type FlamegraphAttachmentData = z.infer<typeof flamegraphAttachmentSchema>;
 
 export function parseFlamegraphAttachment(value: unknown): FlamegraphAttachmentData {
   let payload: unknown = value;
@@ -39,101 +71,15 @@ export function parseFlamegraphAttachment(value: unknown): FlamegraphAttachmentD
       throw new Error(t('The flamegraph attachment is not valid JSON.'));
     }
   }
-  if (!isRecord(payload)) {
-    throw new Error(t('The flamegraph attachment has an unsupported format.'));
+  const result = flamegraphAttachmentSchema.safeParse(payload);
+  if (!result.success) {
+    throw new Error(
+      result.error.issues.some(issue => issue.path[0] === 'version')
+        ? t('This flamegraph attachment version is not supported.')
+        : t('The flamegraph attachment has an unsupported format.')
+    );
   }
-  if (payload.version !== '1') {
-    throw new Error(t('This flamegraph attachment version is not supported.'));
-  }
-  if (
-    typeof payload.platform !== 'string' ||
-    !Array.isArray(payload.frames) ||
-    !payload.frames.length ||
-    !Array.isArray(payload.trees) ||
-    !payload.trees.length
-  ) {
-    throw new Error(t('The flamegraph attachment is missing frames or call trees.'));
-  }
-  for (const frame of payload.frames) {
-    if (
-      !isRecord(frame) ||
-      !['function', 'filename', 'instruction_addr'].some(
-        field => typeof frame[field] === 'string' && frame[field]
-      ) ||
-      [
-        'function',
-        'filename',
-        'instruction_addr',
-        'abs_path',
-        'module',
-        'package',
-        'platform',
-        'symbol',
-        'sym_addr',
-      ].some(field => frame[field] !== undefined && typeof frame[field] !== 'string') ||
-      (frame.in_app !== undefined && typeof frame.in_app !== 'boolean') ||
-      ['lineno', 'colno'].some(
-        field => frame[field] !== undefined && !Number.isSafeInteger(frame[field])
-      )
-    ) {
-      throw new Error(t('The flamegraph attachment contains invalid frames.'));
-    }
-  }
-  for (const tree of payload.trees) {
-    if (
-      !isRecord(tree) ||
-      !Array.isArray(tree.roots) ||
-      !tree.roots.length ||
-      (tree.thread_id !== undefined && typeof tree.thread_id !== 'string') ||
-      (tree.thread_attributed !== undefined &&
-        typeof tree.thread_attributed !== 'boolean')
-    ) {
-      throw new Error(t('The flamegraph attachment contains invalid call trees.'));
-    }
-    const nodes: unknown[] = [...tree.roots];
-    while (nodes.length) {
-      const node = nodes.pop();
-      if (
-        !isRecord(node) ||
-        typeof node.frame_id !== 'number' ||
-        !Number.isSafeInteger(node.frame_id) ||
-        node.frame_id < 0 ||
-        node.frame_id >= payload.frames.length ||
-        typeof node.sample_count !== 'number' ||
-        !Number.isSafeInteger(node.sample_count) ||
-        node.sample_count <= 0
-      ) {
-        throw new Error(
-          t(
-            'The flamegraph attachment contains invalid sample counts or frame references.'
-          )
-        );
-      }
-      const children = node.children === undefined ? [] : node.children;
-      if (!Array.isArray(children)) {
-        throw new Error(t('The flamegraph attachment contains invalid call trees.'));
-      }
-      let childrenCount = 0;
-      for (const child of children) {
-        if (
-          !isRecord(child) ||
-          typeof child.sample_count !== 'number' ||
-          !Number.isSafeInteger(child.sample_count) ||
-          child.sample_count <= 0
-        ) {
-          throw new Error(t('The flamegraph attachment contains invalid sample counts.'));
-        }
-        childrenCount += child.sample_count;
-      }
-      if (childrenCount > node.sample_count) {
-        throw new Error(
-          t('Child sample counts exceed their parent in the flamegraph attachment.')
-        );
-      }
-      nodes.push(...children);
-    }
-  }
-  return payload as FlamegraphAttachmentData;
+  return result.data;
 }
 
 export function treeToSamples(tree: FlamegraphAttachmentTree): {
