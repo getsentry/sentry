@@ -1,3 +1,4 @@
+import time
 import uuid
 from datetime import datetime
 from typing import Any, TypedDict, cast
@@ -15,6 +16,7 @@ from sentry.issues.action_log.types import (
     SeerIterationStartedAction,
     TriggerAutofixAction,
 )
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -36,8 +38,10 @@ from sentry.seer.entrypoints.operator import (
     SeerAgentOperator,
     SeerAutofixOperator,
     SeerOperatorCompletionHook,
+    _agent_refresh_started_key,
     get_autofix_explorer_status,
     process_autofix_updates,
+    refresh_agent_run,
 )
 from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
 from sentry.seer.entrypoints.types import (
@@ -53,6 +57,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
+from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
 
 
 class MockCachePayload(TypedDict):
@@ -970,6 +976,27 @@ class TestSeerAgentOperatorAccess(TestCase):
 
 
 class TestSeerOperatorCompletionHook(TestCase):
+    @patch("sentry.seer.entrypoints.operator.refresh_agent_run.apply_async")
+    @patch("sentry.seer.entrypoints.operator._refresh_agent_run")
+    def test_execute_refreshes_inline(self, mock_refresh, mock_apply_async):
+        SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+
+        mock_refresh.assert_called_once_with(self.organization, MOCK_RUN_ID)
+        mock_apply_async.assert_not_called()
+
+
+class TestRefreshAgentRun(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        cache.delete(_agent_refresh_started_key(MOCK_RUN_ID))
+
+    def _refresh(self, queued_at: float | None = None) -> None:
+        refresh_agent_run(
+            organization_id=self.organization.id,
+            run_id=MOCK_RUN_ID,
+            queued_at=time.time() if queued_at is None else queued_at,
+        )
+
     def _make_state(
         self,
         blocks: list[MemoryBlock],
@@ -993,6 +1020,7 @@ class TestSeerOperatorCompletionHook(TestCase):
         *,
         cache_return_value: dict | None | object = _SENTINEL,
         registrations: dict | None = None,
+        queued_at: float | None = None,
     ) -> Mock:
         """Execute the hook with a standard mock entrypoint setup.
 
@@ -1023,7 +1051,7 @@ class TestSeerOperatorCompletionHook(TestCase):
                 return_value=True,
             ),
         ):
-            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+            self._refresh(queued_at)
 
         return mock_entrypoint_cls
 
@@ -1135,7 +1163,7 @@ class TestSeerOperatorCompletionHook(TestCase):
             {MockAgentEntrypoint.key: mock_entrypoint_cls},
             clear=True,
         ):
-            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+            self._refresh()
 
         mock_entrypoint_cls.on_agent_update.assert_not_called()
 
@@ -1172,7 +1200,7 @@ class TestSeerOperatorCompletionHook(TestCase):
                 return_value=cache_payload,
             ),
         ):
-            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+            self._refresh()
 
         mock_no_access.on_agent_update.assert_not_called()
         mock_has_access.on_agent_update.assert_called_once_with(
@@ -1274,7 +1302,57 @@ class TestSeerOperatorCompletionHook(TestCase):
             ),
             pytest.raises(IntegrationError),
         ):
-            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+            self._refresh()
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    def test_skips_when_a_later_refresh_already_ran(self, mock_fetch):
+        state = self._make_state(blocks=[])
+        queued_before_last_refresh = time.time() - 60
+        self._execute_with_mock_entrypoint(mock_fetch, state)
+
+        mock_entrypoint_cls = self._execute_with_mock_entrypoint(
+            mock_fetch, state, queued_at=queued_before_last_refresh
+        )
+
+        mock_entrypoint_cls.on_agent_update.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    def test_refreshes_when_queued_after_the_last_refresh(self, mock_fetch):
+        state = self._make_state(blocks=[])
+        self._execute_with_mock_entrypoint(mock_fetch, state)
+
+        mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
+
+        mock_entrypoint_cls.on_agent_update.assert_called_once()
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    def test_failed_read_does_not_count_as_a_refresh(self, mock_fetch):
+        queued_at = time.time() - 60
+        mock_fetch.side_effect = Exception("Seer is down")
+        with patch(
+            "sentry.seer.entrypoints.operator.SeerAgentOperator.has_access", return_value=True
+        ):
+            self._refresh(queued_at)
+        mock_fetch.side_effect = None
+
+        mock_entrypoint_cls = self._execute_with_mock_entrypoint(
+            mock_fetch, self._make_state(blocks=[]), queued_at=queued_at
+        )
+
+        mock_entrypoint_cls.on_agent_update.assert_called_once()
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    def test_raises_when_another_refresh_holds_the_lock(self, mock_fetch):
+        lock = locks.get(
+            f"seer:operator:agent-refresh:{MOCK_RUN_ID}",
+            duration=10,
+            name="seer_operator_agent_refresh",
+        )
+
+        with lock.acquire(), pytest.raises(UnableToAcquireLock):
+            self._refresh()
+
+        mock_fetch.assert_not_called()
 
 
 class TestSeerAgentOperatorCodeMode(TestCase):
