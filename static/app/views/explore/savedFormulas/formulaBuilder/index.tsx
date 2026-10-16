@@ -83,11 +83,13 @@ export default function FormulaBuilderPage() {
 }
 
 function EditFormula({formulaId}: {formulaId: string}) {
-  const {data: formula, isPending, isError, refetch} = useGetSavedFormula(formulaId);
-
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
+  const {
+    data: formula,
+    isPending,
+    isError,
+    isFetchedAfterMount,
+    refetch,
+  } = useGetSavedFormula(formulaId);
 
   if (isError) {
     return (
@@ -97,6 +99,12 @@ function EditFormula({formulaId}: {formulaId: string}) {
         </Layout.Main>
       </Layout.Body>
     );
+  }
+
+  // The draft is only seeded on mount, so wait for a fresh fetch rather than
+  // starting from a cached copy that may predate the last save.
+  if (isPending || !isFetchedAfterMount) {
+    return <LoadingIndicator />;
   }
 
   return <FormulaBuilder formula={formula} />;
