@@ -1,6 +1,5 @@
 import abc
 import dataclasses
-import logging
 import time
 from datetime import timedelta
 from typing import Any, ClassVar, override
@@ -20,21 +19,18 @@ from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
     DataPacketEvaluationType,
     DataPacketType,
-    DetectorHandler,
     DetectorOccurrence,
     EventData,
     GroupedDetectorEvaluationResult,
 )
+from sentry.workflow_engine.handlers.detector.condition import DetectorHandler
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
-from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
 )
-
-logger = logging.getLogger(__name__)
 
 REDIS_TTL = int(timedelta(days=7).total_seconds())
 
@@ -441,7 +437,7 @@ class StatefulDetectorHandler(
     @override
     def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
         dedupe_value = self.extract_dedupe_value(data_packet)
-        group_data_values = self._extract_value_from_packet(data_packet)
+        group_data_values = self._extract_value(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
         should_rotate_activation_id = self._should_rotate_activation_id()
         results: dict[DetectorGroupKey, DetectorEvaluation] = {}
@@ -456,7 +452,7 @@ class StatefulDetectorHandler(
 
             self.state_manager.enqueue_dedupe_update(group_key, dedupe_value)
 
-            detector_trigger_evaluation, evaluated_priority = self._evaluation_detector_conditions(
+            detector_trigger_evaluation, evaluated_priority = self.evaluate_conditions(
                 group_data_values[group_key]
             )
 
@@ -646,51 +642,6 @@ class StatefulDetectorHandler(
             status=new_priority,
             additional_evidence_data=dataclasses.asdict(evidence_data),
         )
-
-    def _evaluation_detector_conditions(
-        self, value: DataPacketEvaluationType
-    ) -> tuple[DataConditionGroupEvaluation | None, DetectorPriorityLevel]:
-        """
-        Evaluate the detector.workflow_condition_group against the value in the data packet.
-
-        Returns a tuple of the condition evaluation and the new priority level.
-        """
-        new_priority = DetectorPriorityLevel.OK
-        if not self.condition_group:
-            metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
-            return None, new_priority
-
-        group_evaluation, remaining_slow_conditions = process_data_condition_group(
-            self.condition_group,
-            value,
-        )
-        if remaining_slow_conditions:
-            logger.warning(
-                "Slow conditions present for detector",
-                extra={
-                    "detector_id": self.detector.id,
-                    "condition_group_id": self.condition_group.id,
-                },
-            )
-
-        if group_evaluation.triggered:
-            """
-            TODO - @saponifi3d - split the conditions results that
-            don't have a DetectorPriorityLevel result.
-
-            Log any of those conditions, as they are likely invalid / misconfigured.
-            """
-            validated_condition_results: list[DetectorPriorityLevel] = [
-                condition_evaluation.result
-                for condition_evaluation in group_evaluation.data["condition_evaluations"]
-                if condition_evaluation.triggered
-                and isinstance(condition_evaluation.result, DetectorPriorityLevel)
-            ]
-
-            if validated_condition_results:
-                new_priority = max(new_priority, *validated_condition_results)
-
-        return group_evaluation, new_priority
 
     def _increment_detector_thresholds(
         self,

@@ -35,7 +35,6 @@ from sentry.workflow_engine.processors import DataConditionGroupEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorException,
-    DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
 )
@@ -266,14 +265,9 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
     def extract_dedupe_value(self, data_packet: DataPacket[MetricUpdate]) -> int:
         return int(data_packet.packet.timestamp.timestamp())
 
-    def extract_value(
-        self, data_packet: DataPacket[MetricUpdate]
-    ) -> MetricResult | dict[DetectorGroupKey, MetricResult]:
+    def extract_value(self, data_packet: DataPacket[MetricUpdate]) -> MetricResult:
         if isinstance(data_packet.packet, AnomalyDetectionUpdate):
-            # A bare AnomalyDetectionValues dict would be interpreted as a grouped
-            # result dict, so wrap it with an explicit group key.
-            grouped: dict[DetectorGroupKey, MetricResult] = {None: data_packet.packet.values}
-            return grouped
+            return data_packet.packet.values
         return data_packet.packet.values["value"]
 
     def construct_title(
