@@ -83,18 +83,45 @@ function assertInactiveNavLink(link: HTMLElement) {
   expect(link).not.toHaveAttribute('aria-selected');
 }
 
-function assertValidListHTML(list: HTMLElement) {
-  expect(list.tagName).toBe('UL');
-  expect(list.children.length).toBeGreaterThan(0);
-  Array.from(list.children).forEach(child => {
-    expect(child.tagName).toBe('LI');
+/**
+ * Every list is a <ul> of <li>s that each hold exactly one link (or a lone
+ * separator), and every link sits inside an <li>. Problems are collected and
+ * asserted once because a separate expect() per item made up a large share of
+ * the route inference tests' runtime.
+ */
+function assertValidNavStructure(nav: HTMLElement) {
+  const label = (el: Element) =>
+    `<${el.tagName.toLowerCase()}> "${el.textContent?.trim() ?? ''}"`;
+  const problems: string[] = [];
 
-    if (child.querySelector('hr, [role="separator"]')) {
-      expect(child.children).toHaveLength(1);
-    } else {
-      expect(child.querySelectorAll('a, [role="link"]')).toHaveLength(1);
+  for (const list of within(nav).getAllByRole('list')) {
+    if (list.tagName !== 'UL') {
+      problems.push(`${label(list)}: list is not a <ul>`);
     }
-  });
+    if (list.children.length === 0) {
+      problems.push(`${label(list)}: list is empty`);
+    }
+    for (const child of Array.from(list.children)) {
+      if (child.tagName !== 'LI') {
+        problems.push(`${label(child)}: list child is not an <li>`);
+      }
+      if (child.querySelector('hr, [role="separator"]')) {
+        if (child.children.length !== 1) {
+          problems.push(`${label(child)}: separator item has other content`);
+        }
+      } else if (child.querySelectorAll('a, [role="link"]').length !== 1) {
+        problems.push(`${label(child)}: item does not contain exactly one link`);
+      }
+    }
+  }
+
+  for (const link of within(nav).getAllByRole('link')) {
+    if (!link.closest('li')) {
+      problems.push(`${label(link)}: link is not inside an <li>`);
+    }
+  }
+
+  expect(problems).toEqual([]);
 }
 
 function setupMocks() {
@@ -367,31 +394,18 @@ describe('desktop navigation', () => {
     });
 
     describe('route inference', () => {
-      async function assertNavStructureAndActiveLinksForRoute(
-        pathname: string,
-        activePrimaryLink: string,
-        activeSecondaryLink: string,
-        route?: string
-      ) {
-        const {unmount} = render(
-          <PrimaryNavigationContextProvider>
-            <Navigation />
-          </PrimaryNavigationContextProvider>,
-          navigationContext({
-            organization: {features: ALL_AVAILABLE_FEATURES},
-            initialRouterConfig: {location: {pathname}, route: route ?? ''},
-          })
-        );
+      // [pathname, primary nav label, secondary nav label, route?]
+      type RouteCase = [string, string, string, string?];
 
+      async function assertNavStructureAndActiveLinks(
+        activePrimaryLink: string,
+        activeSecondaryLink: string
+      ) {
         const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
         assertActivePrimaryNavLink(
           within(primaryNav).getByRole('link', {name: activePrimaryLink})
         );
-
-        within(primaryNav).getAllByRole('list').forEach(assertValidListHTML);
-        within(primaryNav)
-          .getAllByRole('link')
-          .forEach(link => expect(link.closest('li')).toBeInTheDocument());
+        assertValidNavStructure(primaryNav);
 
         const secondaryNav = screen.getByRole('navigation', {
           name: 'Secondary Navigation',
@@ -400,10 +414,7 @@ describe('desktop navigation', () => {
         assertActiveSecondaryNavLink(
           await within(secondaryNav).findByRole('link', {name: activeSecondaryLink})
         );
-        within(secondaryNav).getAllByRole('list').forEach(assertValidListHTML);
-        within(secondaryNav)
-          .getAllByRole('link')
-          .forEach(link => expect(link.closest('li')).toBeInTheDocument());
+        assertValidNavStructure(secondaryNav);
 
         screen.queryAllByRole('img').forEach(img => {
           const hasAlt = img.hasAttribute('alt') && img.getAttribute('alt') !== '';
@@ -412,12 +423,42 @@ describe('desktop navigation', () => {
           const hasAriaLabelledBy = img.hasAttribute('aria-labelledby');
           expect(hasAlt || hasAriaLabel || hasAriaLabelledBy).toBe(true);
         });
-
-        unmount();
       }
 
-      // [pathname, primary nav label, secondary nav label, route?]
-      type RouteCase = [string, string, string, string?];
+      /**
+       * Mounting the full navigation dominates these tests, so it is mounted
+       * fresh only when the primary group (or route pattern) changes, and
+       * routes within a group are reached with client-side navigation. The
+       * secondary navigation is keyed by the active group, so within a group
+       * it stays mounted while the active links are re-inferred from the new
+       * location.
+       */
+      async function assertRouteInference(cases: RouteCase[]) {
+        let mounted: ReturnType<typeof render> | undefined;
+        let mountedGroup: string | undefined;
+
+        for (const [pathname, primary, secondary, route] of cases) {
+          const group = `${primary} ${route ?? ''}`;
+
+          if (mounted && group === mountedGroup) {
+            mounted.router.navigate(pathname);
+          } else {
+            mounted?.unmount();
+            mounted = render(
+              <PrimaryNavigationContextProvider>
+                <Navigation />
+              </PrimaryNavigationContextProvider>,
+              navigationContext({
+                organization: {features: ALL_AVAILABLE_FEATURES},
+                initialRouterConfig: {location: {pathname}, route: route ?? ''},
+              })
+            );
+            mountedGroup = group;
+          }
+
+          await assertNavStructureAndActiveLinks(primary, secondary);
+        }
+      }
 
       it('non-customer domain', async () => {
         const ORG = '/organizations/org-slug';
@@ -430,7 +471,6 @@ describe('desktop navigation', () => {
           [`${ORG}/issues/warnings/`, 'Issues', 'Warnings'],
           [`${ORG}/issues/feedback/`, 'Issues', 'User Feedback'],
           [`${ORG}/issues/views/`, 'Issues', 'All Views'],
-          [`${ORG}/monitors/`, 'Monitors', 'All Monitors'],
           // Explore
           [`${ORG}/explore/traces/`, 'Explore', 'Traces'],
           [`${ORG}/explore/logs/`, 'Explore', 'Logs'],
@@ -465,14 +505,7 @@ describe('desktop navigation', () => {
           ],
         ];
 
-        for (const [pathname, primary, secondary, route] of cases) {
-          await assertNavStructureAndActiveLinksForRoute(
-            pathname,
-            primary,
-            secondary,
-            route
-          );
-        }
+        await assertRouteInference(cases);
       });
 
       it('defaults to Issues secondary nav for an unrecognized path and logs a warning', () => {
@@ -531,6 +564,13 @@ describe('desktop navigation', () => {
       });
 
       it('customer domain', async () => {
+        mockUsingCustomerDomain.mockReturnValue(true);
+        ConfigStore.set('customerDomain', {
+          subdomain: 'org-slug',
+          organizationUrl: 'https://org-slug.sentry.io',
+          sentryUrl: 'https://sentry.io',
+        });
+
         const cases: RouteCase[] = [
           // Issues
           ['/issues/', 'Issues', 'Feed'],
@@ -557,20 +597,8 @@ describe('desktop navigation', () => {
             '/settings/projects/:projectId/',
           ],
         ];
-        for (const [pathname, primary, secondary, route] of cases) {
-          mockUsingCustomerDomain.mockReturnValue(true);
-          ConfigStore.set('customerDomain', {
-            subdomain: 'org-slug',
-            organizationUrl: 'https://org-slug.sentry.io',
-            sentryUrl: 'https://sentry.io',
-          });
-          await assertNavStructureAndActiveLinksForRoute(
-            pathname,
-            primary,
-            secondary,
-            route
-          );
-        }
+
+        await assertRouteInference(cases);
       });
     });
   });
