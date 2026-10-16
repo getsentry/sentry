@@ -1,9 +1,15 @@
 import logging
 from enum import Enum
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from django.contrib.sessions.backends.base import SessionBase
+from django.db import router, transaction
 
+from sentry.api.helpers.oauth_consent import (
+    OAuthDecision,
+    persist_authorization,
+    resolve_organization,
+)
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apidevicecode import (
     USER_CODE_GROUP_LENGTH,
@@ -12,6 +18,7 @@ from sentry.models.apidevicecode import (
     DeviceCodeStatus,
 )
 from sentry.ratelimits import backend as ratelimiter
+from sentry.utils import metrics
 
 USER_CODE_RATE_LIMIT_WINDOW = 60
 USER_CODE_RATE_LIMIT = 10
@@ -83,6 +90,67 @@ def get_device_request(user_code: str, client_ip: str | None) -> ApiDeviceCode:
 
     validate_device_request(device)
     return device
+
+
+def complete_device_request(
+    device_id: int,
+    user_id: int,
+    decision: OAuthDecision,
+    selected_organization_id: str | None = None,
+) -> Literal["approved", "denied"]:
+    # Hold the pending request until both its decision and authorization commit.
+    with transaction.atomic(router.db_for_write(ApiDeviceCode)):
+        try:
+            device = (
+                ApiDeviceCode.objects.select_related("application")
+                .select_for_update()
+                .get(id=device_id)
+            )
+        except ApiDeviceCode.DoesNotExist:
+            raise InvalidDeviceRequest(DeviceRequestErrorCode.INVALID_CODE)
+
+        validate_device_request(device)
+        organization_id = None
+        if decision == "approve":
+            organization_id = resolve_organization(
+                device.application, user_id, selected_organization_id
+            )
+            persist_authorization(device.application, user_id, device.get_scopes(), organization_id)
+
+        status: Literal["approved", "denied"] = "approved" if decision == "approve" else "denied"
+        device.update(
+            status=status,
+            user_id=user_id if decision == "approve" else None,
+            organization_id=organization_id,
+        )
+
+    if decision == "approve":
+        metrics.incr(
+            "oauth_device.approve",
+            sample_rate=1.0,
+            tags={"org_level_access": device.application.requires_org_level_access},
+        )
+        logger.info(
+            "oauth.device-code-approved",
+            extra={
+                "device_code_id": device.id,
+                "application_id": device.application_id,
+                "user_id": user_id,
+                "organization_id": organization_id,
+            },
+        )
+    else:
+        metrics.incr("oauth_device.deny", sample_rate=1.0)
+        logger.info(
+            "oauth.device-code-denied",
+            extra={
+                "device_code_id": device.id,
+                "application_id": device.application_id,
+                "user_id": user_id,
+            },
+        )
+
+    return status
 
 
 class DeviceConsentSession(TypedDict):
