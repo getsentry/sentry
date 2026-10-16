@@ -131,7 +131,7 @@
     "sentry": "workspace:@sentry-internal/app@*",
     "sonner": "2.0.8",
     "sprintf-js": "1.0.3",
-    "type-fest": "^5.8.0",
+    "type-fest": "^5.10.0",
     "zod": "4.3.5",
     "zxcvbn": "^4.4.2"
   },
