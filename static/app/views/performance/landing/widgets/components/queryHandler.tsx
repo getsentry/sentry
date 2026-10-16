@@ -59,6 +59,7 @@ function SingleQueryHandler<T extends WidgetDataConstraint>(
       // Destroy previous data on unmount, in case enabled value changes and unmounts the query component.
       props.removeWidgetDataForKey(query.queryKey);
     },
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
@@ -110,6 +111,7 @@ function QueryResultSaver<T extends WidgetDataConstraint>(
     );
     mepContext.setIsMetricsData(isMetricsData);
     props.setWidgetDataForKey(query.queryKey, transformed);
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transformed?.hasData, transformed?.isLoading, transformed?.isErrored]);
   return <Fragment />;

@@ -126,6 +126,7 @@ export function ReleasesPromo({organization, project}: Props) {
       organization,
       project_id: project.id,
     });
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

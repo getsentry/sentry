@@ -101,6 +101,7 @@ export function ProjectSampling() {
   useEffect(() => {
     form.reset({projectRates});
     setSavedProjectRates(projectRates);
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectRates]);
 

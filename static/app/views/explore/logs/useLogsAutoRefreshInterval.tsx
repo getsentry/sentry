@@ -164,6 +164,7 @@ export function useLogsAutoRefreshInterval({
     return () => {
       resetTrackingState();
     };
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh, refreshInterval]);
 }

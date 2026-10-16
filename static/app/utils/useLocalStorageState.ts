@@ -117,6 +117,7 @@ export function useLocalStorageState<S>(
 
     setValue(initializeStorage(key, initialState));
     // We only want to update the value when the key changes
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 

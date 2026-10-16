@@ -69,6 +69,7 @@ export function useOwners({currentValue}: Options) {
       loadMoreTeams();
     },
     // Only ensure things are loaded at mount
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );

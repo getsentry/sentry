@@ -212,6 +212,7 @@ function SpansTabHeader() {
       });
     }
     // Only fire once per saved query load, keyed by id
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, savedQuery?.id]);
 

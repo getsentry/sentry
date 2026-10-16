@@ -139,6 +139,7 @@ export function makeCollection<T>(): CollectionInstance<T> {
         // bind so that this.tree() works correctly in recursive calls
         tree: store.tree.bind(store),
       }),
+      // oxlint-disable-next-line react/rule-suppression
       // eslint-disable-next-line react-hooks/exhaustive-deps
       [snapshot, store]
     );

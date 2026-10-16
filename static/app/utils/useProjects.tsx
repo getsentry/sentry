@@ -286,6 +286,7 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       loadProjectsBySlug();
       return;
     }
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slugsRef.current]);
 
@@ -303,6 +304,7 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
 
     // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
     setState(prev => ({...prev, initiallyLoaded: storeLoaded}));
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.loading]);
 

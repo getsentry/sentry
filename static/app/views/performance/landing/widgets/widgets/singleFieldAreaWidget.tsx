@@ -80,6 +80,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
       ),
       transform: transformEventsRequestToArea,
     }),
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.chartSetting, mepSetting.memoizationKey]
   );
@@ -105,6 +106,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
       },
       transform: transformDiscoverToSingleValue,
     }),
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.chartSetting, mepSetting.memoizationKey]
   );

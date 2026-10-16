@@ -145,6 +145,7 @@ export function RelocationOnboarding() {
   }, [api, navigate, localityOptions, relocationState, stepId]);
   useEffect(() => {
     fetchExistingRelocation();
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -176,6 +177,7 @@ export function RelocationOnboarding() {
   }, [api, localityOptions]);
   useEffect(() => {
     fetchPublicKeys();
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

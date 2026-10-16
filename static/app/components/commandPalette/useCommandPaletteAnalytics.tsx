@@ -128,6 +128,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
         max_drill_depth: s.maxDrillDepth,
       });
     };
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

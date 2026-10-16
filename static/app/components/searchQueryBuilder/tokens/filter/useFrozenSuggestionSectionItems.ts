@@ -168,6 +168,7 @@ export function useFrozenSuggestionSectionItems({
         })
       ),
     }));
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps -- frozenVersion forces recomputation when the render-time check resets frozenOrderRef
   }, [createItem, suggestionGroups, frozenVersion]);
 }

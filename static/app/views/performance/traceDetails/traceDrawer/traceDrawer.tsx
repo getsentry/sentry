@@ -170,6 +170,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         initialSize,
         ref: drawerRef,
       };
+      // oxlint-disable-next-line react/rule-suppression
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [props.traceGridRef, traceState.preferences.layout, drawerRef, isDrawerMinimized]);
 
@@ -278,6 +279,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
       }
       initializedRef.current = true;
     }
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.traceGridRef, minimizedBottomDrawerSize]);
 

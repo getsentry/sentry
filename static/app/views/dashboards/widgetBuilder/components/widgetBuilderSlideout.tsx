@@ -158,6 +158,7 @@ function WidgetBuilderSlideoutInner({
     // Ignore isEditing because it won't change during the
     // useful lifetime of the widget builder, but it
     // flickers when an edited widget is saved.
+    // oxlint-disable-next-line react/rule-suppression
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openWidgetTemplates, organization]);
 
