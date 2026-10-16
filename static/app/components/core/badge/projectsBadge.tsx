@@ -93,7 +93,7 @@ export function ProjectsBadge({
       // it with or clip it to.
       icons = (
         <Fragment>
-          <Container position="absolute" top="0" left="0">
+          <Container display="flex" position="absolute" top="0" left="0">
             <PlatformIcon
               platform={projectPlatforms[0] ?? ''}
               size={stacked}
@@ -102,6 +102,7 @@ export function ProjectsBadge({
             />
           </Container>
           <Container
+            display="flex"
             position="absolute"
             top={`${stackedOffset}px`}
             left={`${stackedOffset}px`}

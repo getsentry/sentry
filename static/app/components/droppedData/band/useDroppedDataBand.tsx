@@ -7,11 +7,7 @@ import type {
   CustomSeriesRenderItemParams,
   CustomSeriesRenderItemReturn,
 } from 'echarts';
-import type {
-  LinearGradientObject,
-  TooltipPositionCallback,
-  ZRColor,
-} from 'echarts/types/dist/shared';
+import type {LinearGradientObject, ZRColor} from 'echarts/types/dist/shared';
 
 import {useTimezone} from '@sentry/scraps/datetime';
 import {useRenderToString} from '@sentry/scraps/renderToString';
@@ -33,7 +29,6 @@ const BAND_PADDING = 4;
 const BOX_HEIGHT = 4;
 export const BAND_HEIGHT = BAND_PADDING + BOX_HEIGHT + BAND_PADDING;
 const BOX_BORDER_RADIUS = 2;
-const TOOLTIP_GAP = 8;
 const BLEND_WIDTH = 0.3;
 const MAX_BLEND_WIDTH = 8;
 
@@ -234,43 +229,12 @@ function droppedDataRenderItem(
   };
 }
 
-/**
- * Small position fn to see if tooltip is at the edge of the chart
- * and adjust accordingly.
- */
-const droppedDataTooltipPosition: TooltipPositionCallback = (
-  point,
-  _params,
-  dom,
-  rect,
-  size
-) => {
-  const [tooltipWidth] = size.contentSize;
-  const [chartWidth] = size.viewSize;
-
-  const anchorX = rect ? rect.x + rect.width / 2 : point[0];
-  const anchorBottom = rect ? rect.y + rect.height : point[1];
-
-  const centeredLeft = anchorX - tooltipWidth / 2;
-  const left = Math.max(0, Math.min(centeredLeft, chartWidth - tooltipWidth));
-
-  if (dom instanceof HTMLElement) {
-    const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');
-    if (arrow) {
-      arrow.style.left = left === centeredLeft ? '50%' : `${anchorX - left}px`;
-    }
-  }
-
-  return [left, anchorBottom + TOOLTIP_GAP];
-};
-
 function droppedDataTooltipOption(
   chartRef: React.RefObject<ReactEchartsRef | null>,
   renderTooltip: (bucket: DroppedDataBucket) => string
 ): CustomSeriesOption['tooltip'] {
   return {
     trigger: 'item',
-    position: droppedDataTooltipPosition,
     formatter: params => {
       if (!isChartHovered(chartRef.current)) {
         return '';
@@ -339,7 +303,6 @@ export function useDroppedDataBand({
   );
   const isVisible = buckets.length > 0;
 
-  // TODO: reconsider using the tooltip from the main chart
   const renderTooltip = useCallback(
     (bucket: DroppedDataBucket) =>
       renderToString(<DroppedDataTooltip bucket={bucket} timezone={timezone} />),

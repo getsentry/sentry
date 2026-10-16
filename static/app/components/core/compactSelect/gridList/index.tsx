@@ -5,16 +5,16 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
+import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterContext';
 import {
-  ControlContext,
   ListLabel,
   ListSeparator,
   ListWrap,
-  SelectFilterContext,
   SizeLimitMessage,
-  useVirtualizedItems,
-} from '@sentry/scraps/compactSelect';
+} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
+import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
 import {Container} from '@sentry/scraps/layout';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 

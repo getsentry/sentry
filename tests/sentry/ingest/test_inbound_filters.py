@@ -12,8 +12,10 @@ from sentry.ingest.inbound_filters import (
     _chunk_load_error_filter,
     _custom_error_filter,
     _error_message_condition,
+    _hydration_error_filter,
     get_custom_inbound_filter_generic_filters,
     get_generic_filters,
+    get_global_generic_filters,
 )
 from sentry.models.custominboundfilter import LegacyFilter
 from sentry.models.project import Project
@@ -55,8 +57,7 @@ def message_matches_filters(
 
 
 def test_custom_error_filter_empty() -> None:
-    # With no custom values configured, the filter is a no-op and must be omitted from
-    # the Relay config entirely rather than emitting an empty condition.
+    # No custom values means there is no shared condition to emit.
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
         condition = _custom_error_filter()
 
@@ -152,31 +153,106 @@ def test_error_message_condition_logentry_disabled_by_default() -> None:
     }
 
 
+def test_global_generic_filters_have_disabled_definitions(settings) -> None:
+    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = CUSTOM_PATTERNS
+
+    generic_filters = get_global_generic_filters()
+
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "chunk-load-error",
+                "isEnabled": False,
+                "condition": _chunk_load_error_filter(),
+            },
+            {
+                "id": "react-hydration-errors",
+                "isEnabled": False,
+                "condition": _hydration_error_filter(),
+            },
+            {
+                "id": "custom-error",
+                "isEnabled": False,
+                "condition": _custom_error_filter(),
+            },
+        ],
+    }
+
+
+def test_global_generic_filters_omit_custom_error_without_values(settings) -> None:
+    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = []
+
+    generic_filters = get_global_generic_filters()
+
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "chunk-load-error",
+                "isEnabled": False,
+                "condition": _chunk_load_error_filter(),
+            },
+            {
+                "id": "react-hydration-errors",
+                "isEnabled": False,
+                "condition": _hydration_error_filter(),
+            },
+        ],
+    }
+
+
 @django_db_all
-def test_custom_error_filter_omitted_without_custom_values(default_project: Project) -> None:
-    # The option is enabled by default for all projects, but with no configured custom
-    # values the filter must not appear in the Relay config (no empty no-op condition).
-    assert default_project.get_option("filters:custom-error") == "1"
+def test_custom_error_filter_omitted_without_custom_values(
+    default_project: Project, settings
+) -> None:
+    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = []
 
-    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=[]):
-        generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
+    generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
 
-    # Other default filters keep the config non-empty; only custom-error is omitted.
-    assert generic_filters is not None
-    filter_ids = {f["id"] for f in generic_filters["filters"]}
-    assert "custom-error" not in filter_ids
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "chunk-load-error",
+                "isEnabled": True,
+                "condition": _chunk_load_error_filter(),
+            },
+            {
+                "id": "react-hydration-errors",
+                "isEnabled": True,
+                "condition": _hydration_error_filter(),
+            },
+        ],
+    }
 
 
 @django_db_all
-def test_custom_error_filter_emitted_with_custom_values(default_project: Project) -> None:
-    assert default_project.get_option("filters:custom-error") == "1"
+def test_custom_error_filter_emitted_with_custom_values(default_project: Project, settings) -> None:
+    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = CUSTOM_PATTERNS
 
-    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
-        generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
+    generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
 
-    assert generic_filters is not None
-    filter_ids = {f["id"] for f in generic_filters["filters"]}
-    assert "custom-error" in filter_ids
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "chunk-load-error",
+                "isEnabled": True,
+                "condition": _chunk_load_error_filter(),
+            },
+            {
+                "id": "react-hydration-errors",
+                "isEnabled": True,
+                "condition": _hydration_error_filter(),
+            },
+            {
+                "id": "custom-error",
+                "isEnabled": True,
+                "condition": _custom_error_filter(),
+            },
+        ],
+    }
 
 
 @pytest.mark.parametrize(

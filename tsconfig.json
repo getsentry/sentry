@@ -29,9 +29,6 @@
         "./static/packages/scraps/src/*",
         "./static/app/components/core/*"
       ],
-      "sentry-fixture/*": ["./tests/js/fixtures/*"],
-      "sentry-test/*": ["./tests/js/sentry-test/*"],
-      "getsentry-test/*": ["./tests/js/getsentry-test/*"],
       "sentry-images/*": ["./static/images/*"],
       "sentry-locale/*": ["./src/sentry/locale/*"],
       "sentry-logos/*": ["./src/sentry/static/sentry/images/logos/*"],
@@ -51,6 +48,7 @@
   ],
   "exclude": [
     "./node_modules",
+    "**/*.figma.tsx",
     "static/app/serviceWorker/worker",
     // Referenced packages are checked separately and consumed as declarations.
     "static/packages"

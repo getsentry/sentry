@@ -52,7 +52,6 @@ import {
   TRACE_RIGHT_COLUMN_ODD_CLASSNAME,
   type TraceRowProps,
 } from './traceRow/traceRow';
-import {TRACE_WATERFALL_TIME_COMPRESSION_FEATURE} from './traceState/tracePreferences';
 import {
   getRovingIndexActionFromDOMEvent,
   type RovingTabIndexUserActions,
@@ -168,9 +167,6 @@ export function Trace({
 
   const traceStart = trace.root.space[0];
   const traceDuration = trace.root.space[1];
-  const hasCompressedTimelineFeature = organization.features.includes(
-    TRACE_WATERFALL_TIME_COMPRESSION_FEATURE
-  );
 
   const visibleTraceItems = useMemo(
     () => snapshotVisibleTraceItems(trace.list, forceRerender),
@@ -180,10 +176,7 @@ export function Trace({
   const timeCompressionOptions = useMemo((): TraceTimeCompressionManagerOptions => {
     const traceSpace: [start: number, duration: number] = [traceStart, traceDuration];
     return {
-      enabled:
-        hasCompressedTimelineFeature &&
-        traceState.preferences.compressed_timeline &&
-        trace.type === 'trace',
+      enabled: traceState.preferences.compressed_timeline && trace.type === 'trace',
       traceSpace,
       nodes: visibleTraceItems,
       indicators: trace.indicators,
@@ -193,7 +186,6 @@ export function Trace({
     traceDuration,
     traceStart,
     trace.type,
-    hasCompressedTimelineFeature,
     traceState.preferences.compressed_timeline,
     visibleTraceItems,
   ]);

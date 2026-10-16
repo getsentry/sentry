@@ -11,7 +11,7 @@ import {EntityHeader} from '@sentry/scraps/entityHeader';
  */
 
 const props: EntityHeaderProps = {
-  title: {label: 'Replay user', value: 'anonymous@example.com'},
+  title: {type: 'text', label: 'Replay user', value: 'anonymous@example.com'},
   metadata: {
     label: 'Replay properties',
     items: [

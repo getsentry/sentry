@@ -9,11 +9,10 @@ import {
   SectionHeader,
   SectionSeparator,
   SectionTitle,
-  SectionToggle,
   SectionWrap,
-} from '@sentry/scraps/compactSelect';
-import type {SelectKey} from '@sentry/scraps/compactSelect';
-import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
+} from '@sentry/scraps/compactSelect/styles';
+import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
+import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
 
 import {ListBoxOption, type ListBoxOptionProps} from './option';
 

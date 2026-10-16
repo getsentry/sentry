@@ -161,17 +161,11 @@ class AuthConfigEndpointTest(APITestCase):
         with patch.object(
             additional_context,
             "_callbacks",
-            {
-                lambda request: {
-                    "login_banner_markdown": banner,
-                    "login_banner_legacy_html": "<strong>Legacy banner</strong>",
-                }
-            },
+            {lambda request: {"login_banner_markdown": banner}},
         ):
             response = self.client.get(self.path)
 
         assert response.data["loginBannerMarkdown"] == banner
-        assert "loginBannerLegacyHtml" not in response.data
         assert "login_banner_markdown" not in response.data
 
     def test_additional_context_keys_are_camelized(self) -> None:

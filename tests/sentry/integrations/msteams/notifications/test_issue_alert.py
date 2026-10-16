@@ -6,6 +6,7 @@ from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.plugins.base import Notification
 from sentry.testutils.cases import MSTeamsActivityNotificationTest
+from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -35,7 +36,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
 
         notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule),
+            Notification(event=event, rule=create_notification_origin(rule)),
             ActionTargetType.MEMBER,
             self.user.id,
             notification_uuid=notification_uuid,
@@ -84,7 +85,7 @@ class MSTeamsIssueAlertNotificationTest(MSTeamsActivityNotificationTest):
 
         notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=rule),
+            Notification(event=event, rule=create_notification_origin(rule)),
             ActionTargetType.ISSUE_OWNERS,
             self.user.id,
             notification_uuid=notification_uuid,

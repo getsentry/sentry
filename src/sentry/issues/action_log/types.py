@@ -6,11 +6,14 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+from datetime import datetime
 from enum import IntEnum, StrEnum
 from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, TypedDict
 
+import orjson
 from pydantic import BaseModel
 
+# NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
 SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, str | int]]
 
 
@@ -56,7 +59,8 @@ class GroupActionType(IntEnum):
     Action kinds stored in GroupActionLogEntry.type.
 
     To add a new kind: add a value here, then add a corresponding
-    GroupAction subclass below. Values need not be contiguous.
+    GroupAction subclass below (read the GroupAction docstring first).
+    Values need not be contiguous, and must never be reused.
     """
 
     VIEW = 0
@@ -82,6 +86,7 @@ class GroupActionType(IntEnum):
     PULL_REQUEST_REOPENED = 31
     PULL_REQUEST_MERGED = 32
     PULL_REQUEST_UNLINKED = 33
+    FIRST_SEEN = 34
 
     # Certain GroupActions are mirrors of Activity records.
     # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
@@ -141,6 +146,7 @@ class ActionSource(StrEnum):
     MSTEAMS = "msteams"
     GITHUB = "github"
     GITHUB_ENTERPRISE = "github_enterprise"
+    CURSOR_ORIGIN = "cursor_origin"
     GITLAB = "gitlab"
     JIRA = "jira"
     JIRA_SERVER = "jira_server"
@@ -181,7 +187,42 @@ PULL_REQUEST_ACTION_TYPES = {
 
 
 class GroupAction(BaseModel, abc.ABC):
-    """Typed payload for a group action log entry. Frozen after construction."""
+    """
+    Typed payload for a group action log entry. Frozen after construction.
+
+    Action log entries are retained effectively indefinitely and are never migrated. A
+    payload written today will be read back years from now with ``cls(**entry.data)``,
+    using whatever this subclass looks like at that point. The subclass, its types, and its
+    docs *are* the schema: anyone must be able to interpret any stored payload from those
+    alone, without knowing what code wrote it or when.
+
+    Defining a subclass:
+
+    - Payloads must never be implementation-defined. Avoid open-ended types such as
+      ``dict[str, Any]`` or ``list[dict[str, str | dict[str, str]]]``; it's impossible to
+      tell what those contain, or whether a value from two years ago means the same thing
+      as one written today. Use nested ``BaseModel`` types, ``Literal``, or enums. Existing
+      fields marked ``NOTE: Underspecified schema`` are debt, not precedent.
+    - When the source data is loosely shaped (an upstream API response, ``Activity.data``),
+      translate it into a fixed shape when publishing rather than storing it as-is.
+    - Document anything the type doesn't say: which model an ID refers to, units, and what
+      ``None`` means.
+
+    Evolving a subclass:
+
+    - Every payload already stored must still parse and must still mean the same thing.
+      Never change the meaning of an existing field, and never reuse a GroupActionType value.
+    - Add new fields as optional with a default. If a legacy shape needs reinterpreting,
+      translate it explicitly on read (e.g. with ``@root_validator(pre=True)``) rather than
+      leaving it ambiguous.
+    - Unknown keys are ignored when parsing, so removing or renaming a field silently drops
+      that data from old payloads. Changing a field's type can also silently coerce old
+      values (pydantic v1 tries ``Union`` members left to right).
+    - Add a test that parses a literal snapshot of a currently-stored payload and asserts how
+      it's interpreted, so later changes can't break old payloads unnoticed.
+    - If the change is significant, add a new GroupActionType and subclass instead, and keep
+      the old one registered so existing entries still parse.
+    """
 
     _registry: ClassVar[dict[GroupActionType, type[GroupAction]]] = {}
     _user_visible_types: ClassVar[set[GroupActionType]] = set()
@@ -217,11 +258,35 @@ class GroupAction(BaseModel, abc.ABC):
     def get_user_visible_types(cls) -> frozenset[GroupActionType]:
         return frozenset(cls._user_visible_types)
 
+    def json_dict(self) -> dict[str, Any]:
+        """The action as JSON-safe data for storage; unlike dict(), datetimes become ISO 8601."""
+        return orjson.loads(self.json())
+
 
 class ViewAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.VIEW
+
+
+class FirstSeenAction(GroupAction):
+    """The group was created. Published exactly once per group, keyed by first_seen_idempotency_key()."""
+
+    user_visible = True
+    # When this group was first seen; may be more accurate than the entry's date_added.
+    # Due to merges, a group can be first seen multiple times; consumers should usually
+    # ignore all but the first.
+    first_seen: datetime
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.FIRST_SEEN
+
+
+def first_seen_idempotency_key(group_id: int) -> str:
+    # Temporary convention so the backfill can't duplicate live entries. Once the backfill
+    # is finished, we can stop using this.
+    return f"first_seen:{group_id}"
 
 
 class ResolveAction(GroupAction):
@@ -458,6 +523,7 @@ class UnlinkPlatformExternalIssueAction(GroupAction):
 class AutofixPrCreatedAction(GroupAction):
     user_visible = True
     run_id: str | None = None
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     pull_requests: list[dict[str, object]]
 
     @classmethod
@@ -637,7 +703,7 @@ class DeployAction(GroupAction):
 class NewProcessingIssuesAction(GroupAction):
     user_visible = True
     reprocessing_active: bool
-    # TODO Break out as separate model?
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     issues: list[dict[str, str | dict[str, str]]]
 
     @classmethod
@@ -689,6 +755,7 @@ class SetEscalatingAction(GroupAction):
     user_visible = True
     event_id: Optional[str] = None
     forecast: Optional[int] = None
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     expired_snooze: Optional[dict[str, int | str | None]] = None
 
     @classmethod
@@ -727,7 +794,7 @@ class SeerRCACompletedAction(GroupAction):
     user_visible = True
     run_id: Optional[int | str] = None
     summary: Optional[str] = None
-    # TODO Break out as separate model?
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     root_cause: Optional[dict[str, str | list[str]]] = None
 
     @classmethod
@@ -747,7 +814,7 @@ class SeerSolutionStartedAction(GroupAction):
 class SeerSolutionCompletedAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
-    # TODO Break out as separate model?
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     solution: Optional[dict[str, str | list[dict[str, str]]]] = None
     summary: Optional[str] = None
 
@@ -768,6 +835,7 @@ class SeerCodingStartedAction(GroupAction):
 class SeerCodingCompletedAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     changes: Optional[list[dict[str, str | int]]] = None
 
     @classmethod
