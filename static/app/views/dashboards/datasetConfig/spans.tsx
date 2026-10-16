@@ -213,7 +213,13 @@ export const SpansConfig: DatasetConfig<
   filterYAxisOptions,
   filterSeriesSortOptions,
   getTableFieldOptions: getPrimaryFieldOptions,
-  getTableSortOptions,
+  getTableSortOptions: (organization, widgetQuery, tags) =>
+    getTableSortOptions(
+      organization,
+      widgetQuery,
+      tags,
+      getPrimaryFieldOptions
+    ),
   getTimeseriesSortOptions: (organization, widgetQuery, tags) =>
     getTimeseriesSortOptions(organization, widgetQuery, tags, getPrimaryFieldOptions),
   getGroupByFieldOptions,
