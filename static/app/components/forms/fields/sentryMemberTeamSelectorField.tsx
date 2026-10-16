@@ -1,4 +1,5 @@
 import {useContext, useMemo} from 'react';
+import {observer} from 'mobx-react-lite';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
@@ -23,44 +24,46 @@ interface RenderFieldProps extends SelectFieldProps<any> {
   valueIsSlug?: boolean;
 }
 
-export function SentryMemberTeamSelectorField({
-  avatarSize = 20,
-  placeholder = t('Choose Teams and Members'),
-  memberOfProjectSlugs,
-  ...props
-}: RenderFieldProps) {
-  const {form} = useContext(FormContext);
-  const {multiple} = props;
-  const fieldValue = form?.getValue<string[] | null>(props.name, multiple ? [] : null);
-
-  // Coerce value to always be a list of items
-  const currentValue = useMemo(
-    () =>
-      Array.isArray(fieldValue) ? fieldValue : fieldValue ? [fieldValue] : undefined,
-    [fieldValue]
-  );
-
-  const {teams, members, fetching, onTeamSearch, onMemberSearch} = useOwners({
-    currentValue,
-  });
-  const options = useOwnerOptions({
-    teams,
-    members,
-    avatarProps: {size: avatarSize},
+export const SentryMemberTeamSelectorField = observer(
+  function SentryMemberTeamSelectorField({
+    avatarSize = 20,
+    placeholder = t('Choose Teams and Members'),
     memberOfProjectSlugs,
-  });
+    ...props
+  }: RenderFieldProps) {
+    const {form} = useContext(FormContext);
+    const {multiple} = props;
+    const fieldValue = form?.getValue<string[] | null>(props.name, multiple ? [] : null);
 
-  return (
-    <SelectField
-      placeholder={placeholder}
-      allowClear
-      onInputChange={(value: any) => {
-        onMemberSearch(value);
-        onTeamSearch(value);
-      }}
-      isLoading={fetching}
-      options={options}
-      {...props}
-    />
-  );
-}
+    // Coerce value to always be a list of items
+    const currentValue = useMemo(
+      () =>
+        Array.isArray(fieldValue) ? fieldValue : fieldValue ? [fieldValue] : undefined,
+      [fieldValue]
+    );
+
+    const {teams, members, fetching, onTeamSearch, onMemberSearch} = useOwners({
+      currentValue,
+    });
+    const options = useOwnerOptions({
+      teams,
+      members,
+      avatarProps: {size: avatarSize},
+      memberOfProjectSlugs,
+    });
+
+    return (
+      <SelectField
+        placeholder={placeholder}
+        allowClear
+        onInputChange={(value: any) => {
+          onMemberSearch(value);
+          onTeamSearch(value);
+        }}
+        isLoading={fetching}
+        options={options}
+        {...props}
+      />
+    );
+  }
+);
