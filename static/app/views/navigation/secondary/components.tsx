@@ -282,7 +282,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
       <div>
         {isMobile ? (
           <Button
-            size="xs"
+            size="sm"
             icon={<IconClose />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
@@ -290,7 +290,7 @@ function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
           />
         ) : (
           <Button
-            size="xs"
+            size="sm"
             icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
             aria-label={isCollapsed ? t('Expand') : t('Collapse')}
             onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
