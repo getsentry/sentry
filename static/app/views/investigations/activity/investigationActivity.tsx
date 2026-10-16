@@ -15,6 +15,7 @@ import {ProgressState} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
+import {INVESTIGATION_COMMENTS_PAGE_SIZE} from 'sentry/views/investigations/api';
 import {CommentActions} from 'sentry/views/investigations/comments/commentActions';
 import {
   CommentComposer,
@@ -44,7 +45,9 @@ export function InvestigationActivity({
   composerRef?: React.RefObject<HTMLDivElement | null>;
   ref?: React.Ref<HTMLElement>;
 }) {
-  const {data, isPending, refetch} = useInvestigationComments(investigation.id);
+  const {data, isPending, refetch} = useInvestigationComments(investigation.id, {
+    archived: investigation.status === 'archived',
+  });
   const blockTitles = useMemo(
     () =>
       new Map(
@@ -85,7 +88,7 @@ export function InvestigationActivity({
                 <ActivityProgressMarker state="activity" label={t('Older comments')} />
               </Grid>
               <Text variant="muted" density="comfortable">
-                {t('Showing the latest 100 comments.')}
+                {t('Showing the latest %s comments.', INVESTIGATION_COMMENTS_PAGE_SIZE)}
               </Text>
             </ActivityLineRow>
           ) : null}
