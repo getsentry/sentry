@@ -2,7 +2,7 @@ import * as React from 'react';
 import type {DistributedOmit, SetRequired} from 'type-fest';
 
 import {ControlContext} from './compactSelect/controlContext';
-import {DropdownButton, type DropdownButtonProps} from './dropdownMenu/dropdownButton';
+import {DropdownButton, type DropdownButtonProps} from './menu/dropdownButton';
 
 type TriggerEl =
   | HTMLButtonElement

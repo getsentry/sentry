@@ -2,7 +2,6 @@ import {Children, Fragment, isValidElement} from 'react';
 
 import type {SelectKey, SelectOptionOrSection} from '@sentry/scraps/compactSelect';
 import {SelectItem} from '@sentry/scraps/compactSelect/selectItem';
-import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {
   MenuItem,
@@ -11,6 +10,7 @@ import {
   MenuSectionSeparator,
   Submenu,
 } from './declarations';
+import type {MenuItemProps} from './item';
 import {MenuFooter, MenuHeader} from './layout';
 
 type Element = React.ReactElement;

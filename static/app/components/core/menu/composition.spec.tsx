@@ -3,14 +3,13 @@ import {useState} from 'react';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CompactSelect, Select} from '@sentry/scraps/compactSelect';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Menu} from '@sentry/scraps/menu';
 
 describe('composed menu primitives', () => {
   it('renders labeled sections, an explicit separator, and actions', async () => {
     const onAction = jest.fn();
     render(
-      <DropdownMenu triggerLabel="Actions">
+      <Menu.Root triggerLabel="Actions">
         <Menu.Header>Choose an action</Menu.Header>
         <Menu.Section sectionKey="edit">
           <Menu.SectionLabel>Edit</Menu.SectionLabel>
@@ -21,7 +20,7 @@ describe('composed menu primitives', () => {
           <Menu.Item itemKey="download" label="Download" />
         </Menu.Section>
         <Menu.Footer>More actions available later</Menu.Footer>
-      </DropdownMenu>
+      </Menu.Root>
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
@@ -38,11 +37,11 @@ describe('composed menu primitives', () => {
   it('opens a composed submenu from a portalled root and restores focus', async () => {
     const onAction = jest.fn();
     render(
-      <DropdownMenu triggerLabel="Actions" usePortal>
+      <Menu.Root triggerLabel="Actions" usePortal>
         <Menu.Submenu itemKey="export" label="Export">
           <Menu.Item itemKey="csv" label="CSV" onAction={onAction} />
         </Menu.Submenu>
-      </DropdownMenu>
+      </Menu.Root>
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
@@ -61,14 +60,14 @@ describe('composed menu primitives', () => {
 
   it('supports a submenu inside a labeled section', async () => {
     render(
-      <DropdownMenu triggerLabel="Actions">
+      <Menu.Root triggerLabel="Actions">
         <Menu.Section sectionKey="export">
           <Menu.SectionLabel>Export</Menu.SectionLabel>
           <Menu.Submenu itemKey="formats" label="Choose format">
             <Menu.Item itemKey="json" label="JSON" />
           </Menu.Submenu>
         </Menu.Section>
-      </DropdownMenu>
+      </Menu.Root>
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
