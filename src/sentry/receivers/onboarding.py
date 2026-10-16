@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 from django.db.models import F
@@ -70,7 +70,7 @@ from sentry.signals import (
 )
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
-from sentry.utils.safe import PathSearchable, get_path
+from sentry.utils.safe import get_path
 
 if TYPE_CHECKING:
     from sentry.auth.principal import RequestPrincipal
@@ -188,7 +188,7 @@ def record_first_event(project: Project, event: Event, **kwargs: object) -> None
             project_platform=project.platform,
             url=dict(event.tags).get("url", None),
             has_minified_stack_trace=has_event_minified_stack_trace(event),
-            sdk_name=get_path(cast("PathSearchable", event), "sdk", "name"),
+            sdk_name=get_path(event.data, "sdk", "name"),
         )
     )
 
