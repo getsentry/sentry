@@ -6,7 +6,11 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+import {
+  LOGS_AGGREGATES_TIMESTAMP_FIELD,
+  LOGS_AGGREGATES_TRACE_FIELD,
+  useLogsAggregatesTable,
+} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -109,6 +113,11 @@ describe('useLogsAggregatesTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'ourlogs',
+          field: expect.arrayContaining([
+            LOGS_AGGREGATES_TRACE_FIELD,
+            LOGS_AGGREGATES_TIMESTAMP_FIELD,
+            'count(message)',
+          ]),
           sampling: SAMPLING_MODE.NORMAL,
         }),
       })
