@@ -14,8 +14,9 @@ from rest_framework.request import Request
 from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
 from sentry.api.endpoints.timeseries import IncompleteReason
 from sentry.api.helpers.timeseries_processing import (
+    EmaSmoothTransformation,
     FillTransformation,
-    SmoothTransformation,
+    SmaSmoothTransformation,
     Transformation,
 )
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
@@ -33,14 +34,14 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
         ("transformations[0]=fill(locf)", {0: [FillTransformation(mode="locf")]}),
         (
             "transformations[0]=smooth(sma,,5)",
-            {0: [SmoothTransformation(mode="sma", window_size=5)]},
+            {0: [SmaSmoothTransformation(mode="sma", window_size=5)]},
         ),
         (
             "transformations[0]=smooth%28sma%2C5%29&transformations[0]=smooth(sma,3)",
             {
                 0: [
-                    SmoothTransformation(mode="sma", window_size=5),
-                    SmoothTransformation(mode="sma", window_size=3),
+                    SmaSmoothTransformation(mode="sma", window_size=5),
+                    SmaSmoothTransformation(mode="sma", window_size=3),
                 ]
             },
         ),
@@ -50,7 +51,7 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
             {
                 1: [
                     FillTransformation(mode="locf"),
-                    SmoothTransformation(mode="sma", window_size=3),
+                    SmaSmoothTransformation(mode="sma", window_size=3),
                 ],
                 0: [FillTransformation(mode="zero")],
             },
@@ -58,11 +59,24 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
         (
             "yAxis=count()&yAxis=avg(span.duration)&yAxis=p90(span.duration)"
             "&transformations[2]=smooth(sma,3)",
-            {2: [SmoothTransformation(mode="sma", window_size=3)]},
+            {2: [SmaSmoothTransformation(mode="sma", window_size=3)]},
         ),
         (
             "transformations[0]=fill(locf)&transformations[0]=fill(locf)",
             {0: [FillTransformation(mode="locf"), FillTransformation(mode="locf")]},
+        ),
+        (
+            "transformations[0]=smooth(ema,7)",
+            {0: [EmaSmoothTransformation(mode="ema", window_size=7)]},
+        ),
+        (
+            "transformations[0]=smooth(ema,7,0.25)&transformations[0]=smooth(sma,3)",
+            {
+                0: [
+                    EmaSmoothTransformation(mode="ema", window_size=7, smoothing_factor=0.25),
+                    SmaSmoothTransformation(mode="sma", window_size=3),
+                ]
+            },
         ),
     ],
 )
@@ -127,6 +141,13 @@ def test_decode_transformations_index_out_of_range(query: str) -> None:
         ("smooth(sma)", "smooth(sma): argument count must be 2"),
         ("fill(locf,zero)", "fill(locf,zero): argument count must be 1"),
         ("smooth(sma,5,6)", "smooth(sma,5,6): argument count must be 2"),
+        ("smooth(ema)", "smooth(ema): argument count must be 2 or 3"),
+        ("smooth(ema,7,0.5,1)", "smooth(ema,7,0.5,1): argument count must be 2 or 3"),
+        (
+            "smooth(ema,7,0)",
+            "smooth(ema,7,0): smoothing_factor argument invalid: "
+            "Smoothing factor must be greater than zero and at most one.",
+        ),
     ],
 )
 def test_decode_transformations_invalid_value(
@@ -178,7 +199,7 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             )
 
         assert response.data == {
-            "detail": "smooth(linear,3): mode argument invalid: expected one of sma"
+            "detail": "smooth(linear,3): mode argument invalid: expected one of sma, ema"
         }
 
     def test_transformations_ignored_when_feature_disabled(self) -> None:
