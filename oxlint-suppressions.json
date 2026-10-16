@@ -2654,6 +2654,9 @@
     }
   },
   "static/app/views/issueDetails/activitySection/activityLineItem/progressMarker/index.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -3209,6 +3212,9 @@
     }
   },
   "static/app/views/relocation/relocation.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
@@ -3787,6 +3793,9 @@
     }
   },
   "static/gsAdmin/views/layout.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 6
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
