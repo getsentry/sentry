@@ -22,9 +22,7 @@ import {
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
 
-// A finished agentic run as Seer files it: the summary on top, the hypotheses
-// folded away, and each section of the report followed by its evidence, which
-// Seer marks `queryCollapsed`.
+// A completed agentic run. Seer marks the report's query cells `queryCollapsed`.
 const agenticReportInvestigation = InvestigationDetailFixture({
   id: 'completed-agentic-report',
   title: 'Why does the cart latency monitor keep firing overnight?',

@@ -53,9 +53,8 @@ interface SeerEmbedBlockOwnProps {
    */
   defaultExpanded?: boolean;
   /**
-   * Holds the panel open or shut from outside, for a host that decides when
-   * the card opens. Pair it with `onExpandedChange`; left out, the card keeps
-   * its own state, starting from `defaultExpanded`.
+   * Controls whether the panel is open. Use with `onExpandedChange`. When
+   * omitted, the card manages its own state, starting from `defaultExpanded`.
    */
   expanded?: boolean;
   /** Spacing between the panel's own children. */

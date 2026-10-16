@@ -35,10 +35,7 @@ type InvestigationFixtureApiProps = {
   details?: InvestigationDetail[];
   executions?: Record<string, InvestigationExecutionDetail>;
   featureEnabled?: boolean;
-  /**
-   * Issues an investigation links to, keyed by group id. Only what the page
-   * reads off them: the header names the issue by its short ID.
-   */
+  /** Issues to return for issue requests, keyed by group id. */
   groups?: Record<string, Pick<Group, 'id' | 'shortId' | 'title'>>;
   list?: InvestigationListItem[];
   mode?: FixtureApiMode;
@@ -202,9 +199,8 @@ function createFixtureHandler(config: FixtureApiConfig): FixtureHandler {
   const issuesPath = `/organizations/${config.organizationSlug}/issues/`;
 
   return (path, options) => {
-    // The header links to the issue a breached metric investigation came from,
-    // and names it by the short ID it fetches. An issue the story does not
-    // provide is a 404 here rather than a request to the real API.
+    // Serve issue requests from `groups`. Unknown issues return a 404, so
+    // stories never call the real API.
     if (path.startsWith(issuesPath)) {
       const group = config.groups?.[path.slice(issuesPath.length).replace(/\/$/, '')];
       if (group) {

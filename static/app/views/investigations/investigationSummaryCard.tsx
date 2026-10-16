@@ -10,9 +10,8 @@ type InvestigationSummaryCardProps = {
 };
 
 /**
- * The answer, at the top of a finished investigation. The short summary leads
- * as the first sentence and the description lines follow it in one paragraph,
- * so the conclusion reads as prose rather than a headline over a caption.
+ * The investigation's conclusion: the summary as the first sentence, followed
+ * by the description, in one paragraph.
  */
 export function InvestigationSummaryCard({
   className,
@@ -23,8 +22,8 @@ export function InvestigationSummaryCard({
     return null;
   }
 
-  // Seer writes the description as separate lines, and the summary as a
-  // phrase with no closing punctuation.
+  // Seer writes the summary without a closing period and the description as
+  // separate lines.
   const paragraph = [summary, ...summaryDescription.split('\n')]
     .map(sentence => sentence.trim())
     .filter(Boolean)

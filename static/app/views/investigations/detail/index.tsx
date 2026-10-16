@@ -55,6 +55,7 @@ import {
 import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
 import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
+import {useInvestigationSourceIssue} from 'sentry/views/investigations/detail/useInvestigationSourceIssue';
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
@@ -66,7 +67,6 @@ import type {
   InvestigationBlock,
   InvestigationDetail,
 } from 'sentry/views/investigations/types';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
@@ -313,20 +313,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
   const awaitingReportCell = isAwaitingReportCell(investigation);
   const source = getInvestigationSource(investigation);
-  const {data: sourceGroup} = useQuery({
-    ...groupApiOptions({
-      organizationSlug: organization.slug,
-      groupId: source.groupId ?? '',
-      environments: [],
-    }),
-    enabled: Boolean(source.groupId),
-  });
+  const {data: sourceIssue} = useInvestigationSourceIssue(source.groupId);
   const hasDetails =
     Boolean(investigation.orchestration) ||
     visibleBlocks.length > 0 ||
     awaitingReportCell;
-  // With a summary on top, everything Seer did to reach it sits below a rule
-  // under its own heading. Without one there is nothing to set it apart from.
+  // The "Investigation details" heading only appears below a summary.
   const showDetailsHeading =
     hasDetails && Boolean(investigation.summary && investigation.summaryDescription);
 
@@ -420,7 +412,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   >
                     <Flex as="span" align="center" gap="xs">
                       <IconIssues size="xs" />
-                      {sourceGroup?.shortId ?? source.monitorName ?? t('View issue')}
+                      {sourceIssue?.shortId ?? source.monitorName ?? t('View issue')}
                     </Flex>
                   </Link>
                 ) : (
@@ -562,9 +554,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
 }
 
 /**
- * The report reads as sections: each text cell opens one, and the query cells
- * after it are the evidence for what it says, so they sit just under it rather
- * than a whole section's gap away.
+ * Text cells start a new section with a large gap. Query cells sit close to the
+ * text cell above them.
  */
 function getCellSpacing(block: InvestigationBlock, index: number) {
   if (index === 0) {
@@ -655,9 +646,8 @@ const NotebookTitleInput = styled(Input)`
 `;
 
 /**
- * The hypotheses render nothing for a run that has none to show, which can
- * leave this wrapper with no children. Dropping it then keeps the heading's gap
- * from opening up over an empty element.
+ * Hidden when empty (e.g. no hypotheses and no cells), so it doesn't add a gap
+ * below the heading.
  */
 const DetailsBody = styled(Stack)`
   &:empty {

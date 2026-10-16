@@ -317,9 +317,8 @@ export function InvestigationHypotheses({
 
 /**
  * Shared by the row and its placeholder so the panel keeps its shape when the
- * first hypothesis lands — only its contents change. It wears the same card as
- * the report's query cells below it, so a collapsed run reads as one more piece
- * of evidence rather than a different kind of block.
+ * first hypothesis lands — only its contents change. Uses the same card as the
+ * report's query cells.
  */
 function HypothesesPanel({
   children,
@@ -354,10 +353,7 @@ function HypothesesPanel({
 }
 
 /**
- * Where each verdict sits in the tally, and how it reads. Supported and
- * accepted lead because they are the answer; the work still in flight goes
- * last. Pending and investigating are one bucket: to someone glancing at a
- * collapsed row, both mean "not decided yet".
+ * Order and labels for the tally. Pending and investigating count together.
  */
 const TALLY_ORDER: Array<{
   label: (count: number) => string;
@@ -380,10 +376,8 @@ const TALLY_ORDER: Array<{
 ];
 
 /**
- * The verdicts behind the collapsed row, e.g. "1 supported • 2 refuted", so the
- * outcome is readable without opening it. Absent while there is nothing to
- * count. A status Seer added after this list was written still counts, under
- * its own name, rather than quietly shrinking the total.
+ * Counts verdicts for the panel header, e.g. "1 supported • 2 refuted".
+ * Statuses missing from `TALLY_ORDER` are counted under their own name.
  */
 function getHypothesisTally(hypotheses: InvestigationHypothesis[]): string | null {
   if (hypotheses.length === 0) {
@@ -406,7 +400,6 @@ function getHypothesisTally(hypotheses: InvestigationHypothesis[]): string | nul
       parts.push(`${count} ${humanize(status).toLowerCase()}`);
     }
   }
-  // Each part is translated; the bullet between them is punctuation, not a
-  // string a translator has anything to do with.
+  // Only the parts are translated; the bullet is punctuation.
   return parts.join(' • ');
 }
