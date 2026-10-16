@@ -15,6 +15,7 @@ from selenium.common.exceptions import (
     SessionNotCreatedException,
     WebDriverException,
 )
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
@@ -417,11 +418,9 @@ def browser(request, live_server):
         if chrome_path:
             options.binary_location = chrome_path
         chromedriver_path = request.config.getoption("chromedriver_path")
-        chrome_args = {"options": options}
-        if chromedriver_path:
-            chrome_args["executable_path"] = chromedriver_path
+        service = Service(executable_path=chromedriver_path) if chromedriver_path else None
 
-        driver = start_chrome(**chrome_args)
+        driver = start_chrome(options=options, service=service)
         if slow_network:
             driver.set_network_conditions(
                 offline=False,
