@@ -71,6 +71,20 @@ export function useGetSavedFormulas({cursor}: {cursor?: string}) {
   };
 }
 
+export function useGetSavedFormula(id: string) {
+  const organization = useOrganization();
+
+  return useQuery(
+    apiOptions.as<SavedFormula>()(
+      '/organizations/$organizationIdOrSlug/explore/formulas/$id/',
+      {
+        path: {organizationIdOrSlug: organization.slug, id},
+        staleTime: 0,
+      }
+    )
+  );
+}
+
 export function useInvalidateSavedFormulas() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
