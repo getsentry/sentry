@@ -41,12 +41,7 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
   }
 
   return (
-    <ActivityLineRow
-      columns="auto minmax(0, 1fr)"
-      rows="auto auto"
-      align="start"
-      gap="0 sm"
-    >
+    <ActivityLineRow columns="auto minmax(0, 1fr)" rows="auto auto" align="start">
       <ActivityLineMarker
         actorItem={actorActivity}
         item={activity}

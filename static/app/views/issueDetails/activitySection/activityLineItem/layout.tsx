@@ -62,6 +62,11 @@ export function ActivityLineHeadline({
 
 export const ActivityLineRow = styled(Grid)`
   position: relative;
+  column-gap: ${p => p.theme.space.xs};
+
+  @container activity-list (min-width: 90px) {
+    column-gap: ${p => p.theme.space.sm};
+  }
 
   &:not(:last-child)::before {
     content: '';

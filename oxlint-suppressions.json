@@ -2714,6 +2714,9 @@
     }
   },
   "static/app/views/issueDetails/activitySection/activityLineItem/layout.tsx": {
+    "@sentry/scraps/prefer-container-responsive-props": {
+      "count": 1
+    },
     "@sentry/scraps/prefer-primitives": {
       "count": 3
     }

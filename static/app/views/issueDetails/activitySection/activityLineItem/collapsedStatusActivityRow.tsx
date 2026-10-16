@@ -46,12 +46,7 @@ export function CollapsedStatusActivityRow({
 
 function StatusActivityToggleRow({label, onClick}: StatusActivityToggleRowProps) {
   return (
-    <ActivityLineRow
-      columns="auto minmax(0, 1fr)"
-      rows="auto auto"
-      align="start"
-      gap="0 sm"
-    >
+    <ActivityLineRow columns="auto minmax(0, 1fr)" rows="auto auto" align="start">
       <ActivityLineDotMarker />
       <Flex
         column={2}
