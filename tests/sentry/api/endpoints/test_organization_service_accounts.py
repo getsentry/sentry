@@ -47,3 +47,19 @@ class OrganizationServiceAccountIndexTest(APITestCase):
 
         assert response.status_code == 400
         assert "event:read" in str(response.data["detail"])
+
+    def test_create_rejects_projects_from_other_orgs(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_project = self.create_project(organization=self.create_organization())
+
+        with self.feature(FEATURE_FLAG):
+            response = self.get_error_response(
+                self.organization.slug,
+                method="post",
+                name="nightly-triage",
+                scopes=["event:read"],
+                projectIds=[other_project.id],
+                status_code=400,
+            )
+
+        assert str(other_project.id) in str(response.data["detail"])

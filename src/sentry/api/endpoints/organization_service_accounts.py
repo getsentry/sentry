@@ -7,6 +7,7 @@ integrate against the contract while the real implementation is built behind it.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any, NotRequired, TypedDict, cast
 
@@ -63,6 +64,7 @@ class ServiceAccountResponse(TypedDict):
     id: str
     name: str
     scopes: list[str]
+    projectIds: list[str]
     isActive: bool
     dateCreated: datetime
 
@@ -70,12 +72,14 @@ class ServiceAccountResponse(TypedDict):
 class ServiceAccountCreateRequestData(TypedDict):
     name: str
     scopes: list[str]
+    projectIds: NotRequired[list[int] | None]
     isActive: NotRequired[bool]
 
 
 class ServiceAccountUpdateRequestData(TypedDict, total=False):
     name: str
     scopes: list[str]
+    projectIds: list[int] | None
     isActive: bool
 
 
@@ -83,12 +87,14 @@ def _mock_service_account(
     service_account_id: str = _MOCK_SERVICE_ACCOUNT_ID,
     name: str = _MOCK_SERVICE_ACCOUNT_NAME,
     scopes: list[str] | None = None,
+    project_ids: Sequence[int] = (),
     is_active: bool = True,
 ) -> ServiceAccountResponse:
     return {
         "id": service_account_id,
         "name": name,
         "scopes": scopes if scopes is not None else MOCK_SERVICE_ACCOUNT_SCOPES,
+        "projectIds": [str(project_id) for project_id in project_ids],
         "isActive": is_active,
         "dateCreated": _MOCK_DATE_CREATED,
     }
@@ -101,9 +107,31 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
         allow_empty=False,
         help_text="Scopes granted to the service account. You can only grant scopes you have.",
     )
+    projectIds = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_null=True,
+        help_text=(
+            "Projects the service account can access when the organization doesn't have open"
+            " membership. Ignored while open membership is on, like team membership for people."
+        ),
+    )
     isActive = serializers.BooleanField(
         required=False, help_text="Whether the service account can be used. Defaults to true."
     )
+
+    def validate_projectIds(self, project_ids: list[int] | None) -> list[int]:
+        if not project_ids:
+            return []
+        org_project_ids = {project.id for project in self.context["organization"].projects}
+        ungrantable = set(project_ids) - (
+            org_project_ids & self.context["access"].accessible_project_ids
+        )
+        if ungrantable:
+            raise serializers.ValidationError(
+                f"You can't grant access to projects: {', '.join(map(str, sorted(ungrantable)))}"
+            )
+        return sorted(set(project_ids))
 
     def validate_scopes(self, scopes: list[str]) -> list[str]:
         ungrantable = set(scopes) - self.context["access"].scopes
@@ -202,7 +230,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         organization: RpcOrganization,
     ) -> Response:
         serializer = ServiceAccountCreateSerializer(
-            data=request.data, context={"access": request.access}
+            data=request.data, context={"access": request.access, "organization": organization}
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
@@ -211,6 +239,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
             _mock_service_account(
                 name=data["name"],
                 scopes=data["scopes"],
+                project_ids=data.get("projectIds") or (),
                 is_active=data.get("isActive", True),
             ),
             status=201,
@@ -268,7 +297,9 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         service_account_id: str,
     ) -> Response:
         serializer = ServiceAccountUpdateSerializer(
-            data=request.data, context={"access": request.access}
+            data=request.data,
+            partial=True,
+            context={"access": request.access, "organization": organization},
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
@@ -278,6 +309,7 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
                 service_account_id=service_account_id,
                 name=data.get("name", _MOCK_SERVICE_ACCOUNT_NAME),
                 scopes=data.get("scopes"),
+                project_ids=data.get("projectIds") or (),
                 is_active=data.get("isActive", True),
             )
         )
