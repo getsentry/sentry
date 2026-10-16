@@ -59,7 +59,8 @@ export function useIsInsideInteractiveElement<T extends HTMLElement>(
       },
       [interactiveElement]
     ),
-    () => interactiveElement?.matches(':focus-visible') ?? false
+    () => interactiveElement?.matches(':focus-visible') ?? false,
+    () => false
   );
 
   return {

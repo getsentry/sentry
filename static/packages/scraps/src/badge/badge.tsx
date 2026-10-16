@@ -1,7 +1,8 @@
+import type * as React from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {unreachable} from 'sentry/utils/unreachable';
+import {unreachable} from '@sentry/scraps/unreachable';
 
 type FeatureBadgeType = 'alpha' | 'beta' | 'new' | 'experimental' | 'internal';
 

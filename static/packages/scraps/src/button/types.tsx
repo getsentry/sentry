@@ -1,6 +1,7 @@
-import type {LocationDescriptor} from 'history';
+import type * as React from 'react';
 
 import type {Responsive} from '@sentry/scraps/layout';
+import type {LinkProps} from '@sentry/scraps/link';
 import type {ButtonVariant} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import type {AnalyticsProps} from '@sentry/scraps/trackingContext';
@@ -80,7 +81,7 @@ interface LinkButtonPropsWithHref extends BaseLinkButtonProps {
 }
 
 interface LinkButtonPropsWithTo extends BaseLinkButtonProps {
-  to: string | LocationDescriptor;
+  to: LinkProps['to'];
   /**
    * Opens the link in a new tab. Use sparingly — internal links typically
    * should not open in a new tab. For external links, use `href` with

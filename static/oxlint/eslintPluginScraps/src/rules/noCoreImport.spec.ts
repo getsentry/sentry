@@ -6,6 +6,10 @@ const ruleTester = new RuleTester();
 
 ruleTester.run('no-core-import', noCoreImport, {
   valid: [
+    ...['alertBadge', 'deployBadge', 'projectsBadge'].map(name => ({
+      code: `import {Badge} from "sentry/components/core/badge/${name}";`,
+      filename: '/static/app/views/test.tsx',
+    })),
     {
       code: 'import {Button} from "@sentry/scraps";',
       filename: '/project/src/foo/file.ts',

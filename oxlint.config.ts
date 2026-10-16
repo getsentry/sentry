@@ -367,6 +367,12 @@ const config = defineConfig({
         pattern: 'static/packages/icons/src',
         partialMatch: false,
       },
+      // Domain badges stay in the app after the generic badge primitives move.
+      {
+        type: 'sentry',
+        pattern: 'static/app/components/core/badge',
+        partialMatch: false,
+      },
       // Keep core stories inside Scraps; story-files still classifies them as stories.
       {
         type: 'scraps',

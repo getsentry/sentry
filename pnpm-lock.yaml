@@ -524,9 +524,6 @@ importers:
       '@react-aria/overlays':
         specifier: 3.32.1
         version: 3.32.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-aria/radio':
-        specifier: 3.13.1
-        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/selection':
         specifier: 3.28.1
         version: 3.28.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -569,9 +566,6 @@ importers:
       '@react-stately/overlays':
         specifier: 3.7.1
         version: 3.7.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@react-stately/radio':
-        specifier: 3.12.1
-        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-stately/slider':
         specifier: 3.8.1
         version: 3.8.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1196,12 +1190,21 @@ importers:
       '@react-aria/button':
         specifier: 3.15.1
         version: 3.15.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/disclosure':
+        specifier: 3.2.1
+        version: 3.2.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/i18n':
         specifier: 3.13.1
         version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/interactions':
+        specifier: 3.28.1
+        version: 3.28.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/overlays':
         specifier: 3.32.1
         version: 3.32.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-aria/radio':
+        specifier: 3.13.1
+        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-aria/slider':
         specifier: 3.9.1
         version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1211,12 +1214,27 @@ importers:
       '@react-aria/visually-hidden':
         specifier: 3.9.1
         version: 3.9.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/collections':
+        specifier: 3.13.1
+        version: 3.13.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/disclosure':
+        specifier: 3.1.1
+        version: 3.1.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/list':
+        specifier: 3.14.1
+        version: 3.14.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-stately/overlays':
         specifier: 3.7.1
         version: 3.7.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-stately/radio':
+        specifier: 3.12.1
+        version: 3.12.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@react-stately/slider':
         specifier: 3.8.1
         version: 3.8.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@react-types/shared':
+        specifier: 3.36.0
+        version: 3.36.0(react@19.3.0)
       '@sentry/icons':
         specifier: workspace:*
         version: link:../icons
@@ -1226,6 +1244,9 @@ importers:
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
+      classnames:
+        specifier: 2.3.1
+        version: 2.3.1
       framer-motion:
         specifier: 12.38.0
         version: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -1241,6 +1262,9 @@ importers:
       react-popper:
         specifier: ^2.3.0
         version: 2.3.0(@popperjs/core@2.11.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      type-fest:
+        specifier: ^5.8.0
+        version: 5.8.0
     devDependencies:
       '@jest/environment':
         specifier: 30.5.1
