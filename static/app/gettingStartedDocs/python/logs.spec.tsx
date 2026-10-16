@@ -13,7 +13,9 @@ describe('python logs onboarding docs', () => {
     });
 
     expect(
-      await screen.findByText(textWithMarkupMatcher(/enable_logs=True/))
+      await screen.findByText(
+        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+      )
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/sentry_sdk\.logger\.info/))
@@ -29,7 +31,9 @@ describe('python logs onboarding docs', () => {
     expect(await screen.findByRole('heading', {name: /Configure/})).toBeInTheDocument();
 
     expect(
-      screen.queryByText(textWithMarkupMatcher(/enable_logs=True/))
+      screen.queryByText(
+        textWithMarkupMatcher(/LoggingIntegration\(capture_sentry_logs=True\)/)
+      )
     ).not.toBeInTheDocument();
     expect(
       screen.queryByText(textWithMarkupMatcher(/sentry_sdk\.logger\.info/))
