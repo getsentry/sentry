@@ -1,4 +1,4 @@
-import {useRef, useState, type ReactNode} from 'react';
+import {Component, useRef, useState, type ReactNode} from 'react';
 import {withTheme, type CSSObject, type Theme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconWarning} from '@sentry/icons/warning';
@@ -601,7 +601,6 @@ class _QueryField extends Component<Props> {
     allFieldOptions.forEach(opt => {
       opt.trailingItems = this.renderTag(
         opt.value.kind,
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         String(opt.label),
         opt.value.meta
       );
@@ -704,8 +703,6 @@ interface BufferedInputProps extends InputProps {
   onUpdate: (value: string) => void;
   value: string;
 }
-type InputState = {value: string};
-
 /**
  * Because controlled inputs fire onChange on every key stroke,
  * we can't update the QueryField that often as it would re-render
