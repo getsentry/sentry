@@ -246,6 +246,11 @@ disabled. The options are:
 - `opera` - Opera Version 99 and lower
 - `android` - Android Version 3 and lower
 - `opera_mini` - Opera Mini Version 34 and lower
+- `chrome_mobile` - Chrome on Android and iOS, Version 110 and lower
+- `safari_mobile` - Safari on iOS, Version 15 and lower
+- `firefox_mobile` - Firefox on Android and iOS, Version 110 and lower
+- `edge_mobile` - Edge on Android and iOS, Version 110 and lower
+- `opera_mobile` - Opera on Android and iOS, Version 73 and lower
 
 Deprecated options:
 - `ie_pre_9` - Internet Explorer Version 8 and lower
@@ -267,6 +272,11 @@ Deprecated options:
             "opera",
             "android",
             "opera_mini",
+            "chrome_mobile",
+            "safari_mobile",
+            "firefox_mobile",
+            "edge_mobile",
+            "opera_mobile",
             "ie_pre_9",
             "ie9",
             "ie10",

@@ -80,3 +80,40 @@ class ProjectFilterDetailsTest(APITestCase):
         )
 
         assert project.get_option("filters:legacy-browsers") == new_subfilters
+
+    def test_put_legacy_browsers_mobile(self) -> None:
+        project = self.create_project(organization=self.organization)
+        project.update_option("filters:legacy-browsers", ["safari"])
+
+        new_subfilters = [
+            "chrome_mobile",
+            "edge_mobile",
+            "firefox_mobile",
+            "opera_mobile",
+            "safari",
+            "safari_mobile",
+        ]
+
+        self.get_success_response(
+            self.organization.slug,
+            project.slug,
+            "legacy-browsers",
+            subfilters=new_subfilters,
+            status_code=204,
+        )
+
+        assert project.get_option("filters:legacy-browsers") == new_subfilters
+
+    def test_put_legacy_browsers_rejects_unknown_subfilter(self) -> None:
+        project = self.create_project(organization=self.organization)
+        project.update_option("filters:legacy-browsers", ["safari"])
+
+        self.get_error_response(
+            self.organization.slug,
+            project.slug,
+            "legacy-browsers",
+            subfilters=["netscape"],
+            status_code=400,
+        )
+
+        assert project.get_option("filters:legacy-browsers") == ["safari"]

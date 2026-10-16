@@ -404,6 +404,11 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             "opera_mini",
             "android",
             "edge",
+            "chrome_mobile",
+            "safari_mobile",
+            "firefox_mobile",
+            "edge_mobile",
+            "opera_mobile",
         }
         assert javascript_filter_states["web-crawlers"]
         assert javascript_filter_states["filtered-transaction"]
