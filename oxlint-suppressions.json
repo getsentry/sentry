@@ -3437,11 +3437,6 @@
       "count": 4
     }
   },
-  "static/app/views/settings/organizationIntegrations/integrationCodeMappings.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/organizationIntegrations/integrationListDirectory.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3463,11 +3458,6 @@
     }
   },
   "static/app/views/settings/organizationIntegrations/repositoryProjectPathConfigForm.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/settings/organizationIntegrations/repositoryProjectPathConfigRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
