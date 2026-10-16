@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {ListItem, Menu} from '@sentry/scraps/menu';
+import {Menu} from '@sentry/scraps/menu';
 
 describe('composed menu primitives', () => {
   it('renders labeled sections, an explicit separator, and actions', async () => {
@@ -93,10 +93,10 @@ describe('composed menu primitives', () => {
           <Menu.Section sectionKey="fruit">
             <Menu.SectionLabel>Fruit</Menu.SectionLabel>
             {'Apple'.toLowerCase().includes(query.toLowerCase()) && (
-              <ListItem value="apple" label="Apple" />
+              <Menu.ListItem value="apple" label="Apple" />
             )}
             {'Pear'.toLowerCase().includes(query.toLowerCase()) && (
-              <ListItem value="pear" label="Pear" />
+              <Menu.ListItem value="pear" label="Pear" />
             )}
           </Menu.Section>
           <Menu.Footer>Selection is immediate</Menu.Footer>

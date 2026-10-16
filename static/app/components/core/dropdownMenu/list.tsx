@@ -14,7 +14,8 @@ import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
 import {Container} from '@sentry/scraps/layout';
-import {MenuHeader, MenuSectionSeparator} from '@sentry/scraps/menu';
+import {MenuSectionSeparator} from '@sentry/scraps/menu/declarations';
+import {MenuHeader} from '@sentry/scraps/menu/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';

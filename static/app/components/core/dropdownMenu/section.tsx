@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {useMenuSection} from '@react-aria/menu';
 import type {Node} from '@react-types/shared';
 
-import {MenuSectionLabel} from '@sentry/scraps/menu';
+import {MenuSectionLabel} from '@sentry/scraps/menu/declarations';
 
 import type {MenuItemProps} from './item';
 

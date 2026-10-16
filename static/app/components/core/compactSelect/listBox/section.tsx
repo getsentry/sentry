@@ -12,7 +12,7 @@ import {
 } from '@sentry/scraps/compactSelect/styles';
 import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
-import {MenuSectionLabel, MenuSectionSeparator} from '@sentry/scraps/menu';
+import {MenuSectionLabel, MenuSectionSeparator} from '@sentry/scraps/menu/declarations';
 
 import {ListBoxOption, type ListBoxOptionProps} from './option';
 

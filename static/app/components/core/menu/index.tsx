@@ -1,4 +1,5 @@
 import {
+  ListItem,
   MenuItem,
   MenuSection,
   MenuSectionLabel,
@@ -13,20 +14,12 @@ export const Menu = {
   Footer: MenuFooter,
   SearchField: MenuSearchField,
   Item: MenuItem,
+  ListItem,
   Section: MenuSection,
   SectionLabel: MenuSectionLabel,
   Separator: MenuSectionSeparator,
   Submenu,
 };
 
-export {MenuHeader, MenuFooter} from './layout';
-export {MenuSearchField, type MenuSearchFieldProps} from './searchField';
-export {
-  MenuItem,
-  ListItem,
-  MenuSection,
-  MenuSectionLabel,
-  MenuSectionSeparator,
-  Submenu,
-} from './declarations';
+export type {MenuSearchFieldProps} from './searchField';
 export type {MenuSectionProps, SubmenuProps} from './declarations';
