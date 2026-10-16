@@ -11,7 +11,7 @@ import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/type
 
 import {applyAttributeSearchFieldOverrides} from './applyAttributeSearchFieldOverrides';
 import {ATTRIBUTE_SEARCH_SECONDARY_ALIASES} from './getAttributeSearchSecondaryAliases';
-import {ATTRIBUTE_SEARCH_FIELD_DEFINITIONS} from './getFieldDefinitionFromAttributeSearchMetadata';
+import {getAttributeSearchFieldDefinition} from './getFieldDefinitionFromAttributeSearchMetadata';
 import {mergeAttributeSearchMetadata} from './mergeAttributeSearchMetadata';
 import {pickAttributeSearchFieldDefinitions} from './pickAttributeSearchFieldDefinitions';
 import {
@@ -2326,7 +2326,6 @@ const EVENT_FIELD_DEFINITIONS = applyAttributeSearchFieldOverrides(
 
 const SPAN_FIELD_DEFINITIONS = applyAttributeSearchFieldOverrides(
   {
-    ...ATTRIBUTE_SEARCH_FIELD_DEFINITIONS,
     ...EVENT_FIELD_DEFINITIONS,
     ...SPAN_AGGREGATION_FIELDS,
     [SpanFields.NAME]: {
@@ -2468,7 +2467,6 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
 
 const LOG_FIELD_DEFINITIONS = applyAttributeSearchFieldOverrides(
   {
-    ...ATTRIBUTE_SEARCH_FIELD_DEFINITIONS,
     ...LOG_AGGREGATION_FIELDS,
     ...EVENT_FIELD_DEFINITIONS,
     [OurLogKnownFieldKey.CODE_LINE_NUMBER]: {
@@ -2519,7 +2517,6 @@ const LOG_FIELD_DEFINITIONS = applyAttributeSearchFieldOverrides(
 );
 
 const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  ...ATTRIBUTE_SEARCH_FIELD_DEFINITIONS,
   [FieldKey.TIMESTAMP]: {
     desc: t('The time the metric was recorded'),
     kind: FieldKind.FIELD,
@@ -3301,6 +3298,49 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   },
 };
 
+/**
+ * Spans, logs and trace metrics accept every `@sentry/conventions` search attribute.
+ * Keys defined in the dataset's map win; any other attribute falls back to its
+ * attribute search definition plus the dataset's override for that key, built on
+ * first lookup rather than copying every attribute into each map at import.
+ */
+function makeAttributeSearchFieldLookup(
+  definitions: Record<string, FieldDefinition>,
+  overrides: Record<string, Partial<FieldDefinition>> = {}
+): (key: string) => FieldDefinition | undefined {
+  const fromAttributeSearch = new Map<string, FieldDefinition>();
+  return key => {
+    if (Object.hasOwn(definitions, key)) {
+      return definitions[key];
+    }
+    const cached = fromAttributeSearch.get(key);
+    if (cached) {
+      return cached;
+    }
+    const definition = getAttributeSearchFieldDefinition(key);
+    if (!definition) {
+      return;
+    }
+    const withOverride = Object.hasOwn(overrides, key)
+      ? {...definition, ...overrides[key]}
+      : definition;
+    fromAttributeSearch.set(key, withOverride);
+    return withOverride;
+  };
+}
+
+const getSpanFieldDefinition = makeAttributeSearchFieldLookup(
+  SPAN_FIELD_DEFINITIONS,
+  FIELD_DEFINITION_OVERRIDES
+);
+const getLogFieldDefinition = makeAttributeSearchFieldLookup(
+  LOG_FIELD_DEFINITIONS,
+  FIELD_DEFINITION_OVERRIDES
+);
+const getTraceMetricFieldDefinition = makeAttributeSearchFieldLookup(
+  TRACEMETRIC_FIELD_DEFINITIONS
+);
+
 function _getFieldFromMappings(
   type:
     | 'event'
@@ -3346,12 +3386,13 @@ function _getFieldFromMappings(
         }
       }
       return null;
-    case 'preprod':
+    case 'preprod': {
       if (Object.hasOwn(PREPROD_FIELD_DEFINITIONS, key)) {
         return PREPROD_FIELD_DEFINITIONS[key];
       }
-      if (Object.hasOwn(SPAN_FIELD_DEFINITIONS, key)) {
-        return SPAN_FIELD_DEFINITIONS[key];
+      const preprodSpanDefinition = getSpanFieldDefinition(key);
+      if (preprodSpanDefinition) {
+        return preprodSpanDefinition;
       }
 
       if (kind === FieldKind.MEASUREMENT) {
@@ -3367,10 +3408,12 @@ function _getFieldFromMappings(
       }
 
       return null;
+    }
 
-    case 'span':
-      if (Object.hasOwn(SPAN_FIELD_DEFINITIONS, key)) {
-        return SPAN_FIELD_DEFINITIONS[key] ?? null;
+    case 'span': {
+      const spanDefinition = getSpanFieldDefinition(key);
+      if (spanDefinition) {
+        return spanDefinition;
       }
 
       // In EAP we have numeric tags that can be passed as parameters to
@@ -3393,10 +3436,12 @@ function _getFieldFromMappings(
       }
 
       return null;
+    }
 
-    case 'log':
-      if (Object.hasOwn(LOG_FIELD_DEFINITIONS, key)) {
-        return LOG_FIELD_DEFINITIONS[key];
+    case 'log': {
+      const logDefinition = getLogFieldDefinition(key);
+      if (logDefinition) {
+        return logDefinition;
       }
 
       // In EAP we have numeric tags that can be passed as parameters to
@@ -3419,10 +3464,12 @@ function _getFieldFromMappings(
       }
 
       return null;
+    }
 
-    case 'tracemetric':
-      if (Object.hasOwn(TRACEMETRIC_FIELD_DEFINITIONS, key)) {
-        return TRACEMETRIC_FIELD_DEFINITIONS[key];
+    case 'tracemetric': {
+      const traceMetricDefinition = getTraceMetricFieldDefinition(key);
+      if (traceMetricDefinition) {
+        return traceMetricDefinition;
       }
 
       // In EAP we have numeric tags that can be passed as parameters to
@@ -3445,6 +3492,7 @@ function _getFieldFromMappings(
       }
 
       return null;
+    }
 
     case 'event':
     default:
@@ -3483,9 +3531,7 @@ export const getFieldDefinition = (
   }
 
   if (type === 'span' || type === 'log' || type === 'tracemetric') {
-    return Object.hasOwn(ATTRIBUTE_SEARCH_FIELD_DEFINITIONS, key)
-      ? (ATTRIBUTE_SEARCH_FIELD_DEFINITIONS[key] ?? null)
-      : null;
+    return getAttributeSearchFieldDefinition(key) ?? null;
   }
 
   return null;
