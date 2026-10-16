@@ -2,6 +2,7 @@ import {useEffect, useState, type ReactNode} from 'react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
+import {Container} from '@sentry/scraps/layout';
 
 import type {RequestOptions} from 'sentry/api';
 import type {ResponseMeta} from 'sentry/types/api';
@@ -157,7 +158,12 @@ export function InvestigationFixtureApi({
   return (
     <OrganizationContext value={organization}>
       <QueryClientProvider client={queryClient}>
-        <GlobalDrawer>{children}</GlobalDrawer>
+        {/* The product's own headings (Activity, chart titles, the thread
+            drawer) aren't story sections, so keep them out of the Scraps page
+            index. */}
+        <Container display="contents" data-storybook-demo>
+          <GlobalDrawer>{children}</GlobalDrawer>
+        </Container>
       </QueryClientProvider>
     </OrganizationContext>
   );

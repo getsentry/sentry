@@ -275,6 +275,27 @@ describe('InvestigationFixtureApi', () => {
     });
   });
 
+  it('keeps product headings out of the Scraps page index', async () => {
+    const investigation = InvestigationDetailFixture({id: 'page-index', blocks: []});
+
+    render(
+      <InvestigationFixtureApi
+        organizationSlug="storybook-page-index-test"
+        details={[investigation]}
+      >
+        <InvestigationActivity investigation={investigation} />
+      </InvestigationFixtureApi>,
+      {organization}
+    );
+
+    // The Scraps table of contents skips headings inside story demos.
+    expect(
+      (await screen.findByRole('heading', {name: 'Activity'})).closest(
+        '[data-storybook-demo]'
+      )
+    ).not.toBeNull();
+  });
+
   describe('comments', () => {
     it('serves no comments by default, so detail stories render the Activity section', async () => {
       const investigation = InvestigationDetailFixture({
