@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {DataCategory} from 'sentry/types/core';
@@ -26,130 +26,120 @@ type Props = AdminConfirmRenderProps & {
   subscription: Subscription;
 };
 
-type State = {
-  freeEvents?: number;
-};
+export function AddGiftEventsAction({
+  billedCategoryInfo,
+  dataCategory,
+  subscription,
+  setConfirmCallback,
+  disableConfirmButton,
+  onConfirm,
+}: Props) {
+  const [freeEvents, setFreeEvents] = useState<number | undefined>(undefined);
 
-/**
- * Rendered as part of a openAdminConfirmModal call
- */
-export class AddGiftEventsAction extends Component<Props, State> {
-  state: State = {
-    freeEvents: undefined,
-  };
-
-  componentDidMount() {
-    this.props.setConfirmCallback(this.handleConfirm);
-    this.props.disableConfirmButton(true);
-  }
-
-  handleChange = (value: string) => {
-    const freeEvents = this.coerceValue(value);
-    this.props.disableConfirmButton(freeEvents === 0);
-    this.setState({freeEvents});
-  };
-
-  coerceValue(value: string) {
+  function coerceValue(value: string) {
     const intValue = parseInt(value, 10);
 
     if (isNaN(intValue) || intValue < 0) {
-      return;
+      return undefined;
     }
 
     return intValue;
   }
 
-  handleConfirm = (params: AdminConfirmParams) => {
-    const {onConfirm, dataCategory} = this.props;
-
-    const freeEvents = this.calculatedTotal;
-    const freeEventsKey = getFreeEventsKey(dataCategory);
-
-    onConfirm?.({[freeEventsKey]: freeEvents, ...params});
-
-    this.resetValue();
-  };
-
-  resetValue = () => {
-    this.setState({freeEvents: 0});
-  };
-
-  get calculatedTotal() {
-    const {billedCategoryInfo} = this.props;
-    const {freeEvents} = this.state;
-
+  const calculatedTotal = (() => {
     if (!freeEvents) {
       return 0;
     }
     return freeEvents * (billedCategoryInfo?.freeEventsMultiple ?? 0);
+  })();
+
+  const handleConfirm = useCallback(
+    (params: AdminConfirmParams) => {
+      const freeEventsKey = getFreeEventsKey(dataCategory);
+      const total = freeEvents ? freeEvents * (billedCategoryInfo?.freeEventsMultiple ?? 0) : 0;
+      onConfirm?.({[freeEventsKey]: total, ...params});
+      setFreeEvents(0);
+    },
+    [billedCategoryInfo?.freeEventsMultiple, dataCategory, freeEvents, onConfirm]
+  );
+
+  useEffect(() => {
+    setConfirmCallback(handleConfirm);
+    disableConfirmButton(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    setConfirmCallback(handleConfirm);
+  }, [handleConfirm, setConfirmCallback]);
+
+  function handleChange(value: string) {
+    const newFreeEvents = coerceValue(value);
+    disableConfirmButton(newFreeEvents === 0 || newFreeEvents === undefined);
+    setFreeEvents(newFreeEvents);
   }
 
-  render() {
-    const {billedCategoryInfo, dataCategory, subscription} = this.props;
-    const {freeEvents} = this.state;
+  function getlabel() {
+    const categoryName = getPlanCategoryName({
+      plan: subscription.planDetails,
+      category: dataCategory,
+      capitalize: false,
+    });
 
-    function getlabel() {
-      const categoryName = getPlanCategoryName({
-        plan: subscription.planDetails,
-        category: dataCategory,
-        capitalize: false,
-      });
-
-      if (isByteCategory(dataCategory)) {
-        return `How many ${categoryName} in GB?`;
-      }
-      if (isContinuousProfiling(dataCategory)) {
-        return 'How many profile hours?';
-      }
-      if (isEmergeCategory(dataCategory)) {
-        return `How many ${categoryName}?`;
-      }
-
-      const multiplier = billedCategoryInfo?.freeEventsMultiple ?? 0;
-      const addToMessage =
-        multiplier > 1
-          ? ` in multiples of ${multiplier.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}s?`
-          : '?';
-      return `How many ${categoryName}${addToMessage} (50 is ${(50 * multiplier).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')} ${categoryName})`;
+    if (isByteCategory(dataCategory)) {
+      return `How many ${categoryName} in GB?`;
+    }
+    if (isContinuousProfiling(dataCategory)) {
+      return 'How many profile hours?';
+    }
+    if (isEmergeCategory(dataCategory)) {
+      return `How many ${categoryName}?`;
     }
 
-    const total = this.calculatedTotal.toLocaleString();
-    function getHelp() {
-      let postFix = '';
-      if (isContinuousProfiling(dataCategory)) {
-        if (total === '1') {
-          postFix = ' hour';
-        } else {
-          postFix = ' hours';
-        }
-      }
-      if (isByteCategory(dataCategory)) {
-        postFix = ' GB';
-      }
-      if (dataCategory === DataCategory.SIZE_ANALYSIS) {
-        postFix = total === '1' ? ' build' : ' builds';
-      }
-      if (dataCategory === DataCategory.INSTALLABLE_BUILD) {
-        postFix = total === '1' ? ' install' : ' installs';
-      }
-      return `Total: ${total}${postFix}`;
-    }
-
-    return (
-      <TextField
-        autoFocus
-        inline={false}
-        stacked
-        flexibleControlStateSize
-        data-test-id={`num-free-${dataCategory}`}
-        label={getlabel()}
-        help={getHelp()}
-        name={dataCategory}
-        inputMode="numeric"
-        pattern="[0-9]*"
-        value={freeEvents && !isNaN(freeEvents) ? freeEvents.toString() : ''}
-        onChange={this.handleChange}
-      />
-    );
+    const multiplier = billedCategoryInfo?.freeEventsMultiple ?? 0;
+    const addToMessage =
+      multiplier > 1
+        ? ` in multiples of ${multiplier.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')}s?`
+        : '?';
+    return `How many ${categoryName}${addToMessage} (50 is ${(50 * multiplier).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')} ${categoryName})`;
   }
+
+  const total = calculatedTotal.toLocaleString();
+  function getHelp() {
+    let postFix = '';
+    if (isContinuousProfiling(dataCategory)) {
+      if (total === '1') {
+        postFix = ' hour';
+      } else {
+        postFix = ' hours';
+      }
+    }
+    if (isByteCategory(dataCategory)) {
+      postFix = ' GB';
+    }
+    if (dataCategory === DataCategory.SIZE_ANALYSIS) {
+      postFix = total === '1' ? ' build' : ' builds';
+    }
+    if (dataCategory === DataCategory.INSTALLABLE_BUILD) {
+      postFix = total === '1' ? ' install' : ' installs';
+    }
+    return `Total: ${total}${postFix}`;
+  }
+
+  return (
+    <TextField
+      autoFocus
+      inline={false}
+      stacked
+      flexibleControlStateSize
+      data-test-id={`num-free-${dataCategory}`}
+      label={getlabel()}
+      help={getHelp()}
+      name={dataCategory}
+      inputMode="numeric"
+      pattern="[0-9]*"
+      value={freeEvents && !isNaN(freeEvents) ? freeEvents.toString() : ''}
+      onChange={handleChange}
+    />
+  );
 }
