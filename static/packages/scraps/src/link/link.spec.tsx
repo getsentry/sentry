@@ -15,8 +15,27 @@ function ThemeWrapper({children}: {children: React.ReactNode}) {
 }
 
 describe('Link without a router', () => {
+  it('applies text styles without resetting layout spacing', () => {
+    render(<Link to="/issues/">Link</Link>, {wrapper: ThemeWrapper});
+
+    const link = screen.getByRole('link', {name: 'Link'});
+    const rules = Array.from(document.styleSheets)
+      .flatMap(sheet => Array.from(sheet.cssRules))
+      .filter(rule =>
+        Array.from(link.classList).some(name => rule.cssText.includes(name))
+      )
+      .map(rule => rule.cssText)
+      .join(' ');
+
+    expect(rules).toContain('text-box-edge: text text');
+    expect(rules).toContain('text-box-trim: trim-both');
+    expect(rules).not.toMatch(/margin:\s*0/);
+    expect(rules).not.toMatch(/padding:\s*0/);
+  });
+
   it.each<[LinkProps['to'], string]>([
     ['/issues/?query=error#details', '/issues/?query=error#details'],
+    ['https://example.com/', 'https://example.com/'],
     ['../settings/', '../settings/'],
     [
       {pathname: '/issues/', search: '?query=error', hash: '#details'},
@@ -102,14 +121,18 @@ describe('Link without a router', () => {
     expect(link).not.toHaveAttribute('analyticsParams');
   });
 
-  it('removes disabled destinations', () => {
+  it.each<LinkProps['to']>([
+    'https://example.com/',
+    {pathname: '/issues/', query: {query: 'error'}},
+  ])('removes the disabled destination %j', to => {
     render(
-      <Link disabled to={{pathname: '/issues/', query: {query: 'error'}}}>
+      <Link disabled to={to}>
         Issues
       </Link>,
       {wrapper: ThemeWrapper}
     );
     const link = screen.getByText('Issues');
+    expect(link).toBeEnabled();
     expect(link).not.toHaveAttribute('href');
     expect(link).not.toHaveAttribute('to');
   });
@@ -151,7 +174,7 @@ describe('Link with a supplied behavior', () => {
 });
 
 describe('ExternalLink', () => {
-  it.each([true, false])(
+  it.each([undefined, true, false])(
     'sets secure new-tab attributes when openInNewTab is %s',
     openInNewTab => {
       render(
@@ -162,12 +185,12 @@ describe('ExternalLink', () => {
       );
       const link = screen.getByRole('link', {name: 'External'});
       expect(link).toHaveAttribute('href', 'https://example.com');
-      if (openInNewTab) {
-        expect(link).toHaveAttribute('target', '_blank');
-        expect(link).toHaveAttribute('rel', 'noreferrer noopener');
-      } else {
+      if (openInNewTab === false) {
         expect(link).not.toHaveAttribute('target');
         expect(link).not.toHaveAttribute('rel');
+      } else {
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noreferrer noopener');
       }
     }
   );
