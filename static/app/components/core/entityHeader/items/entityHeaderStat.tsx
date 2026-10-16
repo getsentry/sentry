@@ -1,3 +1,5 @@
+import {VisuallyHidden} from '@react-aria/visually-hidden';
+
 import {ROW_HEIGHT, STAT_VALUE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
@@ -78,25 +80,71 @@ const LABEL_STYLES = {
   wrap: 'nowrap',
 } as const;
 
-function StatValue(props: EntityHeaderStatProps) {
+/**
+ * Which node carries the stat's whole fact — "1.02 MB Download Size" — so it
+ * is read in one go rather than as "1.02 MB", then "Download Size".
+ *
+ * A link has an anchor to put it on. A text stat has no such element, so the
+ * name goes on whichever node a tooltip has already made focusable and the
+ * other is hidden; with neither focusable, on a visually hidden node with both
+ * visual ones hidden. Nothing focusable is ever hidden, which is why a stat
+ * with a tooltip on *both* halves keeps its two separate announcements —
+ * there is no node left that can be hidden safely.
+ */
+type StatNaming = 'anchor' | 'label' | 'value' | 'hidden' | 'split';
+
+function getStatNaming(props: EntityHeaderStatProps): StatNaming {
+  if (props.type === 'link') {
+    return 'anchor';
+  }
+
+  const hasFocusableValue = Boolean(props.valueTooltip);
+  const hasFocusableLabel = Boolean(props.labelTooltip);
+
+  if (hasFocusableValue && hasFocusableLabel) {
+    return 'split';
+  }
+  if (hasFocusableLabel) {
+    return 'label';
+  }
+  if (hasFocusableValue) {
+    return 'value';
+  }
+  return 'hidden';
+}
+
+interface StatNamingProps {
+  composedName: string;
+  naming: StatNaming;
+}
+
+function StatValue(props: EntityHeaderStatProps & StatNamingProps) {
+  const {naming, composedName} = props;
+  // Hidden wherever something else speaks it: the anchor, the label, or the
+  // visually hidden node beside them.
+  const isHidden = naming === 'anchor' || naming === 'label' || naming === 'hidden';
+
   if (props.type === 'text' && props.valueTooltip) {
     return (
-      <InfoText title={props.valueTooltip} {...VALUE_STYLES}>
+      <InfoText
+        title={props.valueTooltip}
+        aria-label={naming === 'value' ? composedName : undefined}
+        {...VALUE_STYLES}
+      >
         {props.value}
       </InfoText>
     );
   }
 
-  // Hidden on a link stat, where the anchor's own name already speaks it.
   return (
-    <Text aria-hidden={props.type === 'link'} {...VALUE_STYLES}>
+    <Text aria-hidden={isHidden} {...VALUE_STYLES}>
       {props.value}
     </Text>
   );
 }
 
-function StatLabel(props: EntityHeaderStatProps) {
-  const {label, labelTooltip} = props;
+function StatLabel(props: EntityHeaderStatProps & StatNamingProps) {
+  const {label, labelTooltip, naming, composedName} = props;
 
   if (props.type === 'link') {
     const {to, onClick, value} = props;
@@ -134,14 +182,19 @@ function StatLabel(props: EntityHeaderStatProps) {
 
   if (labelTooltip) {
     return (
-      <InfoText title={labelTooltip} variant="muted" {...LABEL_STYLES}>
+      <InfoText
+        title={labelTooltip}
+        variant="muted"
+        aria-label={naming === 'label' ? composedName : undefined}
+        {...LABEL_STYLES}
+      >
         {label}
       </InfoText>
     );
   }
 
   return (
-    <Text {...LABEL_STYLES} variant="muted">
+    <Text aria-hidden={naming === 'hidden'} {...LABEL_STYLES} variant="muted">
       {label}
     </Text>
   );
@@ -156,17 +209,20 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
     );
   }
 
+  const naming = getStatNaming(props);
+  const composedName = `${props.value} ${props.label}`;
+
   return (
     <Flex as="li" align="center" height={ROW_HEIGHT} flexShrink={0} minWidth={0}>
       {/*
         A stat is one fact split across two elements, which a screen reader
-        moving element by element reads as two: "0", then "link, Dead Clicks".
-        On a link stat the anchor is named from both, so it reads "0 Dead
-        Clicks" in one go.
+        moving element by element would otherwise read as two: "0", then "link,
+        Dead Clicks". Named from both, it reads "0 Dead Clicks" in one go.
       */}
+      {naming === 'hidden' && <VisuallyHidden>{composedName}</VisuallyHidden>}
       <Flex align="baseline" gap="xs" minWidth={0}>
-        <StatValue {...props} />
-        <StatLabel {...props} />
+        <StatValue {...props} naming={naming} composedName={composedName} />
+        <StatLabel {...props} naming={naming} composedName={composedName} />
       </Flex>
     </Flex>
   );

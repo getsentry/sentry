@@ -254,6 +254,66 @@ describe('EntityHeader', () => {
       expect(screen.queryByRole('link', {name: 'Rage Clicks'})).not.toBeInTheDocument();
     });
 
+    it('names a text stat from its value and label together', () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {type: 'text', label: 'Rage Clicks', value: 2},
+              {
+                type: 'text',
+                label: 'Download Size',
+                value: '1.02 MB',
+                labelTooltip: 'Bytes transferred over the network',
+              },
+            ],
+          }}
+        />
+      );
+
+      // With neither half focusable, the whole fact sits on a node of its own
+      // and the two visual halves step out of the way.
+      expect(screen.getByText('2 Rage Clicks')).toBeInTheDocument();
+      expect(screen.getByText('2')).toHaveAttribute('aria-hidden', 'true');
+      expect(screen.getByText('Rage Clicks')).toHaveAttribute('aria-hidden', 'true');
+
+      // A tooltip has already made the label focusable, so the name goes there
+      // rather than onto a third node the user would meet separately.
+      const tooltipped = screen.getByLabelText('1.02 MB Download Size');
+      expect(tooltipped).toHaveTextContent('Download Size');
+      expect(screen.getByText('1.02 MB')).toHaveAttribute('aria-hidden', 'true');
+      expect(screen.queryByText('1.02 MB Download Size')).not.toBeInTheDocument();
+    });
+
+    it('keeps both announcements when a text stat tooltips value and label', () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {
+                type: 'text',
+                label: 'Errors',
+                value: 3,
+                labelTooltip: 'Errors recorded during this replay',
+                valueTooltip: 'Two in javascript, one in python',
+              },
+            ],
+          }}
+        />
+      );
+
+      // Two tooltips are two focusable nodes, and hiding either would strand a
+      // tab stop outside the accessibility tree. Nothing is hidden, and the
+      // stat keeps the two announcements it had before.
+      expect(screen.getByText('3')).not.toHaveAttribute('aria-hidden', 'true');
+      expect(screen.getByText('Errors')).not.toHaveAttribute('aria-hidden', 'true');
+      expect(screen.queryByLabelText('3 Errors')).not.toBeInTheDocument();
+    });
+
     it('signals navigating with colour and explaining with an underline', () => {
       render(
         <EntityHeader

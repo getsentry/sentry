@@ -335,11 +335,13 @@ Keep the value to the single number the label names. Anything that explains it b
 
 The row is a list, and `label` names it — "Replay stats". Without it a screen reader meets a run of numbers with nothing saying what they count. People sit beside that list rather than inside it: a list named for its stats cannot hold something that is not one.
 
-A stat is one fact split across two elements, which a screen reader moving element by element otherwise reads as two: "0", then "Dead Clicks".
+A stat is one fact split across two elements, which a screen reader moving element by element would otherwise read as two: "0", then "Dead Clicks". So every stat is named from the value and the label together and reads "4 Dead Clicks" in one go.
 
-On a `link` stat the anchor is named from the value and the label together, so it reads "4 Dead Clicks" in one go, and the value is hidden since the name already speaks it. A `text` stat is still two elements — adjacent and read in order, but visited separately.
+Where that name sits depends on what the stat already has. A `link` carries it on the anchor, and the value is hidden since the name speaks it. A `text` stat has no such element, so it goes on whichever half a tooltip has already made focusable — and the other half is hidden — or, with no tooltip at all, on a visually hidden node beside the two.
 
-That is why a `link` stat's `value` is text rather than a node: the name is composed from it. A graphic there would leave the link named by its label alone, silently dropping the half that says how many.
+Nothing focusable is ever hidden. A `text` stat with a tooltip on _both_ halves therefore has two focusable nodes and nothing safe to hide, and keeps the two separate announcements; prefer a tooltip on one half.
+
+That is also why a stat's `value` is text rather than a node: the name is composed from it. A graphic there would leave the stat named by its label alone, silently dropping the half that says how many.
 
 ### Types
 
