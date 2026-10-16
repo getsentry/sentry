@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -30,7 +31,7 @@ from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
     serialize_ingestion_status,
 )
-from sentry.api.helpers.timeseries_transformations import get_transformations
+from sentry.api.helpers.timeseries_transformations import Transformation, get_transformations
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
@@ -206,12 +207,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         ):
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
+            transformations = {}
             if features.has(
                 "organizations:explore-interpolation-and-smoothing",
                 organization,
                 actor=request.user,
             ):
-                get_transformations(request)
+                transformations = get_transformations(request)
 
             dataset = self.get_dataset(request, organization)
             # Add more here until top events is supported on all the datasets
@@ -267,6 +269,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     rollup,
                     comparison_delta,
                     additional_queries,
+                    transformations,
                 )
                 ingestion_delay_status = None
                 if ingestion_delay_future is not None:
@@ -355,6 +358,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         rollup: int,
         comparison_delta: timedelta | None,
         additional_queries: AdditionalQueries,
+        transformations: Mapping[int, Sequence[Transformation]] | None = None,
     ) -> SnubaTSResult | dict[str, SnubaTSResult]:
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         include_other = request.GET.get("excludeOther") != "1"
@@ -423,6 +427,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     sampling_mode=snuba_params.sampling_mode,
                     equations=self.get_equation_list(organization, request, param_name="groupBy"),
                     additional_queries=additional_queries,
+                    transformations=transformations,
                 )
             return dataset.top_events_timeseries(
                 timeseries_columns=query_columns,
@@ -453,6 +458,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 sampling_mode=snuba_params.sampling_mode,
                 comparison_delta=comparison_delta,
                 additional_queries=additional_queries,
+                transformations=transformations,
             )
 
         return dataset.timeseries_query(
@@ -528,20 +534,25 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
     ) -> list[TimeSeries]:
         serialized_result = []
         if isinstance(result, SnubaTSResult):
-            for axis in axes:
+            for axis_index, axis in enumerate(axes):
                 serialized_result.append(
-                    self.serialize_timeseries(result, axis, rollup, boundaries)
+                    self.serialize_timeseries(result, axis, rollup, boundaries, axis_index)
                 )
         else:
             for key, value in result.items():
-                for axis in axes:
+                for axis_index, axis in enumerate(axes):
                     serialized_result.append(
-                        self.serialize_timeseries(value, axis, rollup, boundaries)
+                        self.serialize_timeseries(value, axis, rollup, boundaries, axis_index)
                     )
         return serialized_result
 
     def serialize_timeseries(
-        self, result: SnubaTSResult, axis: str, rollup: int, boundaries: BucketBoundaries
+        self,
+        result: SnubaTSResult,
+        axis: str,
+        rollup: int,
+        boundaries: BucketBoundaries,
+        axis_index: int = 0,
     ) -> TimeSeries:
         unit, field_type = self.get_unit_and_type(axis, result.data["meta"]["fields"][axis])
         series_meta = SeriesMeta(
@@ -563,8 +574,15 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         )
 
         timeseries_values = []
+        value_column = axis
+        if "processed_timeseries" in result.data:
+            value_column = result.data["processed_timeseries"].transformation_aliases.get(
+                axis_index, axis
+            )
         for row in result.data["data"]:
-            value_row = Row(timestamp=row["time"] * 1000, value=row.get(axis, 0), incomplete=False)
+            value_row = Row(
+                timestamp=row["time"] * 1000, value=row.get(value_column, 0), incomplete=False
+            )
 
             if reason := boundaries.incomplete_reason(row["time"], rollup):
                 value_row["incomplete"] = True

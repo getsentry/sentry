@@ -46,9 +46,9 @@ class StatsMeta(TypedDict):
 
 class Row(TypedDict):
     timestamp: float
-    value: float
+    value: float | None
     incomplete: bool
-    comparisonValue: NotRequired[float]
+    comparisonValue: NotRequired[float | None]
     sampleCount: NotRequired[float]
     sampleRate: NotRequired[float | None]
     confidence: NotRequired[Literal["low", "high"] | None]
