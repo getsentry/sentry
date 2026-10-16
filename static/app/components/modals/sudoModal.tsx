@@ -492,10 +492,7 @@ export function SudoModal({
                     variant="secondary"
                     disabled={isSubmitting}
                     onClick={() => {
-                      superuserForm.setFieldValue(
-                        'superuserAccessCategory',
-                        'cops_csm'
-                      );
+                      superuserForm.setFieldValue('superuserAccessCategory', 'cops_csm');
                       superuserForm.setFieldValue('superuserReason', 'COPS and CSM use');
                       superuserForm.handleSubmit();
                     }}
