@@ -140,6 +140,9 @@ class BitbucketRepositoryProviderTest(TestCase):
         assert self.repo.name == "renamed"
         assert self.repo.config == {"name": "sentryuser/newsdiffs", "webhook_id": "hook-uuid"}
 
+    def test_on_delete_repository_without_webhook(self) -> None:
+        self.provider.on_delete_repository(self.repo)
+
     @responses.activate
     def test_build_repository_config(self) -> None:
         full_repo_name = "laurynsentry/helloworld"
