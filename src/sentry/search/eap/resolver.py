@@ -1519,13 +1519,18 @@ class SearchResolver:
                 ),
                 [],
             )
-        # If the equation is resolveable, resolve it so we're not giving snuba extra work
-        elif len(functions) == 0:
+        # Fold equations that are only literals so Snuba does not evaluate them.
+        # Field equations such as `span.duration / 1000` still go through the RPC.
+        elif len(fields) == 0 and len(functions) == 0:
+            try:
+                value = arithmetic.resolve_arithmetic(operation)
+            except ZeroDivisionError:
+                raise arithmetic.ArithmeticValidationError("division by 0 is not allowed")
             return (
                 ResolvedLiteral(
                     public_alias=f"equation|{equation}" if alias is None else alias,
                     search_type="number",
-                    value=arithmetic.resolve_arithmetic(operation),
+                    value=value,
                 ),
                 [],
             )

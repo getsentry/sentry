@@ -133,6 +133,14 @@ def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]) -> bool:
     return False
 
 
+def apply_resolved_literals(timeseries: SnubaData, resolved_fields: list[ResolvedColumn]) -> None:
+    """Copy constant equations onto each bucket. They are not sent to Snuba."""
+    for resolved_field in resolved_fields:
+        if isinstance(resolved_field, ResolvedLiteral):
+            for row in timeseries:
+                row[resolved_field.public_alias] = resolved_field.value
+
+
 class RPCBase:
     """Utility Methods"""
 
@@ -904,10 +912,7 @@ class RPCBase:
         final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
         if params.debug:
             set_debug_meta(final_meta, rpc_response.meta, rpc_request)
-        literals = []
         for resolved_field in aggregates + groupbys:
-            if isinstance(resolved_field, ResolvedLiteral):
-                literals.append(resolved_field)
             final_meta["fields"][resolved_field.public_alias] = resolved_field.search_type
 
         for timeseries in rpc_response.result_timeseries:
@@ -927,9 +932,7 @@ class RPCBase:
                 params.timeseries_granularity_secs,
                 ["time"],
             )
-        for literal in literals:
-            for row in result.timeseries:
-                row[literal.public_alias] = literal.value
+        apply_resolved_literals(result.timeseries, aggregates)
 
         if comparison_delta is not None:
             if len(rpc_request.expressions) != 1:
@@ -1175,6 +1178,7 @@ class RPCBase:
             result_key = create_result_key(row, groupby_columns, {})
             result_groupby = create_groupby_dict(row, groupby_columns, {}, stringify_none=False)
             result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key], config)
+            apply_resolved_literals(result.timeseries, aggregates)
             final_result[result_key] = SnubaTSResult(
                 {
                     "data": result.timeseries,
@@ -1192,6 +1196,7 @@ class RPCBase:
             result = cls.process_timeseries_list(
                 [timeseries for timeseries in other_response.result_timeseries], config
             )
+            apply_resolved_literals(result.timeseries, aggregates)
             if check_timeseries_has_data(result.timeseries, y_axes):
                 final_result[OTHER_KEY] = SnubaTSResult(
                     {

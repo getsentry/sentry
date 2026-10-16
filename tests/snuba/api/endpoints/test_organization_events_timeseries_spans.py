@@ -2319,6 +2319,55 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             "interval": 60_000,
         }
 
+    def test_nested_divide_by_zero_equation(self) -> None:
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": "equation|1 / (1 - 1)",
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "division by 0 is not allowed"
+
+    def test_top_events_literal_equation(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "foo", "status": "success"}},
+                    start_ts=self.start + timedelta(minutes=1),
+                ),
+            ],
+        )
+
+        self.end = self.start + timedelta(minutes=3)
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1m",
+                "yAxis": ["count()", "equation|3 + 3"],
+                "groupBy": ["transaction", "count()"],
+                "orderby": ["-count()"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "excludeOther": 1,
+                "topEvents": 1,
+            },
+        )
+        assert response.status_code == 200, response.content
+        equation_series = [
+            series for series in response.data["timeSeries"] if series["yAxis"] == "equation|3 + 3"
+        ]
+        assert len(equation_series) == 1
+        assert equation_series[0]["values"] == build_expected_timeseries(
+            self.start, 60_000, [6.0, 6.0, 6.0], ignore_accuracy=True
+        )
+
     def test_equation_all_symbols(self) -> None:
         self.store_spans(
             [
