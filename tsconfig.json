@@ -28,6 +28,7 @@
         "./static/packages/scraps/src/*",
         "./static/app/components/core/*"
       ],
+      "scraps-test/*": ["./static/packages/scraps/test/*"],
       "sentry-images/*": ["./static/images/*"],
       "sentry-locale/*": ["./src/sentry/locale/*"],
       "sentry-logos/*": ["./src/sentry/static/sentry/images/logos/*"],

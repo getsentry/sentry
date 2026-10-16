@@ -1,11 +1,10 @@
 import React from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {render, screen} from '@testing-library/react';
+import {getEmotionRules} from 'scraps-test/getEmotionRules';
 
 import {Image} from '@sentry/scraps/image';
 import {lightTheme} from '@sentry/scraps/theme';
-
-import {getEmotionRules} from '../../test/getEmotionRules';
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;

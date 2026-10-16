@@ -118,7 +118,7 @@ try {
   await writeFile(
     join(consumer, 'private.mjs'),
     `import {rejects} from 'node:assert/strict';
-for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes', 'code/inlineCode', 'hotkey/kbd']) {
+for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes', 'code/inlineCode', 'hotkey/kbd', 'interactionStateLayer']) {
   await rejects(import('@sentry/scraps/' + subpath), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
 }
 `
@@ -145,7 +145,6 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
     Image,
     DescriptionList,
     Prose,
-    InteractionStateLayer,
     Radio,
     StatusIndicator,
     Hotkey,
@@ -193,7 +192,6 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
             createElement(DescriptionList.Details, null, 'Details')
           ),
           createElement(Prose, null, createElement('code', null, 'Prose code')),
-          createElement(InteractionStateLayer, null, 'State layer'),
           createElement(Radio, {'aria-label': 'Package radio'}),
           createElement(StatusIndicator, {variant: 'success', 'aria-label': 'Online'}),
           createElement(Hotkey, {value: 'shift+k'}),
@@ -224,7 +222,6 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
       '<dt',
       '<dd',
       'Prose code',
-      'State layer',
       'type="radio"',
       'aria-label="Online"',
       'aria-label="⇧"',

@@ -22,6 +22,5 @@ export * from './renderToString';
 export * from './useScrollLock';
 export * from './image';
 export * from './descriptionList';
-export {default as InteractionStateLayer} from './interactionStateLayer';
 export * from './radio';
 export * from './statusIndicator';

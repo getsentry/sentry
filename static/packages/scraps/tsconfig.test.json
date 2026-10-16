@@ -6,7 +6,11 @@
     "declarationMap": true,
     "outDir": ".types",
     "tsBuildInfoFile": ".types/tsconfig.tsbuildinfo",
-    "types": ["jest", "node", "@testing-library/jest-dom"]
+    "types": ["jest", "node", "@testing-library/jest-dom"],
+    "paths": {
+      "@sentry/scraps/*": ["./src/*"],
+      "scraps-test/*": ["./test/*"]
+    }
   },
   "include": ["src", "test"],
   "exclude": [],

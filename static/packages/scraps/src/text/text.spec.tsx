@@ -3,10 +3,9 @@ import {createRef, Fragment} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {render, screen} from '@testing-library/react';
 import {expectTypeOf} from 'expect-type';
+import {getEmotionRules} from 'scraps-test/getEmotionRules';
 
 import {lightTheme as theme} from '@sentry/scraps/theme';
-
-import {getEmotionRules} from '../../test/getEmotionRules';
 
 import {Text, type TextProps, type TextPropsWithRenderFunction} from './index';
 

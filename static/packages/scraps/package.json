@@ -107,10 +107,6 @@
       "types": "./dist/descriptionList/index.d.ts",
       "import": "./dist/descriptionList/index.js"
     },
-    "./interactionStateLayer": {
-      "types": "./dist/interactionStateLayer/index.d.ts",
-      "import": "./dist/interactionStateLayer/index.js"
-    },
     "./radio": {
       "types": "./dist/radio/index.d.ts",
       "import": "./dist/radio/index.js"

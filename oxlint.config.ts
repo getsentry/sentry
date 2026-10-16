@@ -356,7 +356,7 @@ const config = defineConfig({
     // Shared test helpers and assets use source aliases, not package dependencies.
     // Keep workspace package imports subject to dependency checks.
     'import-x/internal-regex':
-      '^(?:sentry-(?:fixture|test|images|locale|logos|fonts)|getsentry-(?:test|images))(?:/|$)',
+      '^(?:sentry-(?:fixture|test|images|locale|logos|fonts)|getsentry-(?:test|images)|scraps-test)(?:/|$)',
     // Analyze both static and dynamic imports for boundary checks.
     // https://www.jsboundaries.dev/docs/setup/settings/#boundariesdependency-nodes
     'boundaries/dependency-nodes': ['import', 'dynamic-import'],
@@ -1857,13 +1857,6 @@ const config = defineConfig({
           },
         ],
       },
-    },
-    {
-      files: [
-        'static/packages/scraps/src/**/*.spec.{ts,tsx}',
-        'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
-      ],
-      rules: {'import/no-relative-parent-imports': 'off'},
     },
     {
       files: ['**/*.stories.tsx'],
