@@ -298,14 +298,6 @@ function ReleasesListInnerPage() {
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [releases]);
 
-  const shouldShowQuickstart = Boolean(
-    selectedProject &&
-    // Has not set up releases
-    !selectedProject?.features.includes('releases') &&
-    // Has no releases
-    !releases?.length
-  );
-
   const selectedProjects = useSelectedProjectsForLLMContext();
 
   useLLMContext({
@@ -322,7 +314,9 @@ function ReleasesListInnerPage() {
     activeStatus,
     selectedTab,
     currentSelectedDateRange: selection.datetime,
-    onboarding: !isReleasesPending && shouldShowQuickstart,
+    onboarding: Boolean(
+      selectedProject && !selectedProject.features.includes('releases')
+    ),
     ...toLLMContextProjectFields(selectedProjects),
   });
 
@@ -450,6 +444,13 @@ function ReleasesListInnerPage() {
 
   const showReleaseAdoptionStages =
     hasAnyMobileProject && selection.environments.length === 1;
+  const shouldShowQuickstart = Boolean(
+    selectedProject &&
+    // Has not set up releases
+    !selectedProject?.features.includes('releases') &&
+    // Has no releases
+    !releases?.length
+  );
   const releasesPageLinks = data?.headers.Link;
 
   const releasesErrorMessage = useMemo(() => {
