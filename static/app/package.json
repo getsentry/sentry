@@ -65,7 +65,7 @@
     "@sentry/sqlish": "1.0.1",
     "@sentry/status-page-list": "^0.6.1",
     "@tanstack/query-async-storage-persister": "5.101.4",
-    "@tanstack/react-devtools": "0.9.9",
+    "@tanstack/react-devtools": "0.10.13",
     "@tanstack/react-form": "1.28.6",
     "@tanstack/react-form-devtools": "0.2.20",
     "@tanstack/react-pacer": "^0.22.1",
