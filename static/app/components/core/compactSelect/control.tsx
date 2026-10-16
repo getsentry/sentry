@@ -1,12 +1,4 @@
-import {
-  Fragment,
-  isValidElement,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme, css} from '@emotion/react';
@@ -20,7 +12,6 @@ import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {MenuFooter as SharedMenuFooter} from '@sentry/scraps/menu/footer';
 import {MenuSearchField} from '@sentry/scraps/menu/searchField';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import type {FormSize} from '@sentry/scraps/theme';
@@ -112,8 +103,6 @@ export interface ControlProps
   menuFooter?:
     | React.ReactNode
     | ((actions: {closeOverlay: () => void; resetSearch: () => void}) => React.ReactNode);
-  /** Composed content above the scrolling options. */
-  menuHeader?: React.ReactNode;
   /**
    * Items to be displayed in the trailing (right) side of the menu's header.
    */
@@ -196,7 +185,6 @@ export function Control<Value extends SelectKey>({
   menuHeaderTrailingItems,
   menuBody,
   menuFooter,
-  menuHeader,
   onOpenChange,
   items = [],
   isOptionDisabled,
@@ -559,12 +547,11 @@ export function Control<Value extends SelectKey>({
               }
               maxHeight={overlayProps.style?.maxHeight}
               maxHeightProp={maxMenuHeight}
-              data-menu-has-header={!!menuHeader || !!menuTitle || clearable}
+              data-menu-has-header={!!menuTitle || clearable}
               data-menu-has-search={searchEnabled}
               data-menu-has-footer={!!menuFooter}
             >
               <FocusScope contain>
-                {menuHeader}
                 {(menuTitle ||
                   menuHeaderTrailingItems ||
                   (clearable && hasSelection)) && (
@@ -595,27 +582,24 @@ export function Control<Value extends SelectKey>({
                     value={searchInputValue}
                     onFocus={onSearchFocus}
                     onBlur={onSearchBlur}
+                    onChange={e => updateSearch(e.target.value)}
                     {...searchKeyboardProps}
-                    onChange={updateSearch}
                   />
                 )}
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})
                   : menuBody}
                 {!hideOptions && <Stack minHeight="0">{children}</Stack>}
-                {menuFooter &&
-                  (isValidElement(menuFooter) && menuFooter.type === SharedMenuFooter ? (
-                    menuFooter
-                  ) : (
-                    <SharedMenuFooter>
-                      {typeof menuFooter === 'function'
-                        ? menuFooter({
-                            closeOverlay: overlayState.close,
-                            resetSearch: () => updateSearch(''),
-                          })
-                        : menuFooter}
-                    </SharedMenuFooter>
-                  ))}
+                {menuFooter && (
+                  <MenuFooter>
+                    {typeof menuFooter === 'function'
+                      ? menuFooter({
+                          closeOverlay: overlayState.close,
+                          resetSearch: () => updateSearch(''),
+                        })
+                      : menuFooter}
+                  </MenuFooter>
+                )}
               </FocusScope>
             </StyledOverlay>
           )}
@@ -742,4 +726,11 @@ const StyledPositionWrapper = styled(PositionWrapper, {
   min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p?.zIndex};
+`;
+
+const MenuFooter = styled('div')`
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 -1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
+  z-index: 2;
 `;

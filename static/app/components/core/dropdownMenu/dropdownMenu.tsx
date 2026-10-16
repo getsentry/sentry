@@ -5,7 +5,6 @@ import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
 
 import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
-import {composeMenu} from '@sentry/scraps/menu/collection';
 import type {TriggerProps} from '@sentry/scraps/overlayTrigger';
 
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
@@ -40,6 +39,12 @@ interface BaseDropdownMenuProps
       | 'shouldApplyMinWidth'
       | 'strategy'
     > {
+  /**
+   * Items to display inside the dropdown menu. If the item has a `children`
+   * prop, it will be rendered as a menu section. If it has a `children` prop
+   * and its `submenu` prop is set, it will be rendered as a submenu.
+   */
+  items: MenuItemProps[];
   /**
    * Pass class name to the outer wrap
    */
@@ -77,7 +82,8 @@ interface BaseDropdownMenuProps
   /**
    * Whether to render the menu inside a React portal (false by default). This should
    * only be enabled if necessary, e.g. when the dropdown menu is inside a small,
-   * scrollable container that messes with the menu's position.
+   * scrollable container that messes with the menu's position. Some features, namely
+   * submenus, will not work correctly inside portals.
    *
    * Consider passing `strategy` as `'fixed'` before using `usePortal`
    */
@@ -97,25 +103,7 @@ type DropdownMenuTriggerProps =
       triggerLabel?: never;
     };
 
-export type DropdownMenuProps = BaseDropdownMenuProps &
-  DropdownMenuTriggerProps & {
-    /** Actions, sections, and submenus in the existing array API. */
-    items: MenuItemProps[];
-    /** JSX declarations for the composition API. */
-    children?: React.ReactNode;
-  };
-
-export type ComposedDropdownMenuProps = BaseDropdownMenuProps &
-  DropdownMenuTriggerProps & {
-    children: React.ReactNode;
-    items?: never;
-  };
-
-type RuntimeDropdownMenuProps = BaseDropdownMenuProps &
-  DropdownMenuTriggerProps & {
-    children?: React.ReactNode;
-    items?: MenuItemProps[];
-  };
+export type DropdownMenuProps = BaseDropdownMenuProps & DropdownMenuTriggerProps;
 
 /**
  * A menu component that renders both the trigger button and the dropdown
@@ -123,7 +111,6 @@ type RuntimeDropdownMenuProps = BaseDropdownMenuProps &
  */
 function DropdownMenu({
   items,
-  children,
   disabledKeys,
   trigger,
   triggerLabel,
@@ -151,11 +138,9 @@ function DropdownMenu({
   // This prop is from popperJS and is an alternative to portals. Use this with components like modals where portalling to document body doesn't work well.
   strategy,
   ...props
-}: RuntimeDropdownMenuProps) {
-  const composition = useMemo(() => composeMenu(children), [children]);
-  const resolvedItems = items ?? composition.items;
+}: DropdownMenuProps) {
   const size = explicitSize ?? 'md';
-  const isDisabled = disabledProp ?? resolvedItems.length === 0;
+  const isDisabled = disabledProp ?? (!items || items.length === 0);
 
   const {rootOverlayState} = useContext(DropdownMenuContext);
   const {
@@ -218,11 +203,7 @@ function DropdownMenu({
           },
         }}
         overlayState={overlayState}
-        items={resolvedItems}
-        menuHeader={composition.header}
-        menuFooter={props.menuFooter ?? composition.footer}
-        separatorBeforeKeys={composition.separatorBeforeKeys}
-        autoSectionSeparators={items !== undefined}
+        items={items}
       />
     );
 

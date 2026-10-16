@@ -44,13 +44,11 @@ interface GridListProps<T extends ListItemBase>
    * `useGridList()`.
    */
   listState: ListState<T>;
-  autoSectionSeparators?: boolean;
   children?: CollectionChildren<T>;
   /**
    * Text label to be rendered as heading on top of grid list.
    */
   label?: React.ReactNode;
-  separatorBeforeKeys?: Set<string>;
   size?: GridListOptionProps<ListItemBase>['size'];
   /**
    * Message to be displayed when some options are hidden due to `sizeLimit`.
@@ -79,8 +77,6 @@ function GridList<T extends ListItemBase>({
   sizeLimitMessage,
   keyDownHandler,
   virtualized,
-  autoSectionSeparators = true,
-  separatorBeforeKeys,
   ...props
 }: GridListProps<T>) {
   const {t} = useTranslation();
@@ -152,11 +148,6 @@ function GridList<T extends ListItemBase>({
                       node={item}
                       listState={listState}
                       size={size}
-                      useSharedSeparator={!autoSectionSeparators}
-                      showSeparator={
-                        autoSectionSeparators ||
-                        separatorBeforeKeys?.has(String(item.key)) === true
-                      }
                     />
                   );
                 }

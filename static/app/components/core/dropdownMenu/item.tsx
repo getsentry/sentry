@@ -21,7 +21,6 @@ export interface MenuItemProps extends MenuListItemProps {
    * Item key. Must be unique across the entire menu, including sub-menus.
    */
   key: string;
-  'aria-label'?: string;
   /**
    * Sub-items that are nested inside this item. By default, sub-items are
    * rendered collectively as menu sections inside the current menu. If
@@ -65,11 +64,8 @@ export interface MenuItemProps extends MenuListItemProps {
   submenu?:
     | boolean
     | {
-        /** Composed regions and separators for this submenu. */
-        footer?: React.ReactNode;
-        header?: React.ReactNode;
         position?: UseOverlayProps['position'];
-        separatorBeforeKeys?: Set<string>;
+        search?: {placeholder?: string};
         title?: string;
       };
   /**

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useContext, useMemo, useRef, useState} from 'react';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
@@ -14,9 +14,7 @@ import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
 import {Container} from '@sentry/scraps/layout';
-import {MenuSectionSeparator} from '@sentry/scraps/menu/declarations';
-import {MenuHeader} from '@sentry/scraps/menu/header';
-import {Text} from '@sentry/scraps/text';
+import {MenuSearchField} from '@sentry/scraps/menu/searchField';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -45,7 +43,6 @@ export interface DropdownMenuListProps
    * The open state of the current overlay that contains this menu
    */
   overlayState: OverlayState;
-  autoSectionSeparators?: boolean;
   /**
    * Whether the menu should close when an item has been clicked/selected
    */
@@ -58,12 +55,15 @@ export interface DropdownMenuListProps
    * To be displayed below the menu items
    */
   menuFooter?: React.ReactNode;
-  menuHeader?: React.ReactNode;
+  menuSearch?: {
+    onChange: (value: string) => void;
+    value: string;
+    placeholder?: string;
+  };
   /**
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
-  separatorBeforeKeys?: Set<string>;
   size?: MenuItemProps['size'];
   /**
    * Style overrides applied to the position wrapper. Useful for overriding
@@ -74,11 +74,9 @@ export interface DropdownMenuListProps
 }
 
 type DropdownMenuCollectionProps = {
-  autoSectionSeparators: boolean;
   closeOnSelect: boolean;
   collection: Array<Node<MenuItemProps>>;
   onClose: DropdownMenuListProps['onClose'];
-  separatorBeforeKeys: Set<string>;
   separatorProps: ReturnType<typeof useSeparator>['separatorProps'];
   state: TreeState<MenuItemProps>;
   disableTextSelection?: boolean;
@@ -100,8 +98,6 @@ function DropdownMenuCollectionItem({
   separatorProps,
   size,
   state,
-  autoSectionSeparators,
-  separatorBeforeKeys,
 }: DropdownMenuCollectionItemProps): React.ReactNode {
   if (node.type === 'section') {
     return (
@@ -114,8 +110,6 @@ function DropdownMenuCollectionItem({
           separatorProps={separatorProps}
           size={size}
           state={state}
-          autoSectionSeparators={autoSectionSeparators}
-          separatorBeforeKeys={separatorBeforeKeys}
         />
       </DropdownMenuSection>
     );
@@ -157,21 +151,17 @@ function DropdownMenuCollection({
   state,
   disableTextSelection,
   size,
-  autoSectionSeparators,
-  separatorBeforeKeys,
 }: DropdownMenuCollectionProps) {
   return (
     <Fragment>
       {collection.map((node, i) => {
         const isLastNode = collection.length - 1 === i;
-        const showSeparator = autoSectionSeparators
-          ? !isLastNode &&
-            (node.type === 'section' || collection[i + 1]?.type === 'section')
-          : separatorBeforeKeys.has(String(node.key));
+        const showSeparator =
+          !isLastNode &&
+          (node.type === 'section' || collection[i + 1]?.type === 'section');
 
         return (
           <Fragment key={node.key}>
-            {!autoSectionSeparators && showSeparator && <MenuSectionSeparator />}
             <DropdownMenuCollectionItem
               node={node}
               closeOnSelect={closeOnSelect}
@@ -180,10 +170,8 @@ function DropdownMenuCollection({
               separatorProps={separatorProps}
               size={size}
               state={state}
-              autoSectionSeparators={autoSectionSeparators}
-              separatorBeforeKeys={separatorBeforeKeys}
             />
-            {autoSectionSeparators && showSeparator && <Separator {...separatorProps} />}
+            {showSeparator && <Separator {...separatorProps} />}
           </Fragment>
         );
       })}
@@ -197,9 +185,7 @@ function DropdownMenuList({
   size,
   menuTitle,
   menuFooter,
-  menuHeader,
-  autoSectionSeparators = true,
-  separatorBeforeKeys = new Set(),
+  menuSearch,
   disableTextSelection,
   overlayState,
   overlayPositionProps,
@@ -212,7 +198,7 @@ function DropdownMenuList({
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
 
   // Implement focus states, keyboard navigation, aria-label,...
-  const menuRef = useRef(null);
+  const menuRef = useRef<HTMLUListElement>(null);
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
   const {separatorProps} = useSeparator({elementType: 'li'});
 
@@ -281,14 +267,25 @@ function DropdownMenuList({
       >
         <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
-            {menuHeader ??
-              (menuTitle && (
-                <MenuHeader>
-                  <Text as="div" size="sm" bold>
-                    {menuTitle}
-                  </Text>
-                </MenuHeader>
-              ))}
+            {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
+            {menuSearch && (
+              <MenuSearchField
+                aria-label={menuSearch.placeholder ?? 'Search'}
+                placeholder={menuSearch.placeholder ?? 'Search…'}
+                value={menuSearch.value}
+                onChange={event => menuSearch.onChange(event.target.value)}
+                onKeyDown={event => {
+                  if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    menuRef.current
+                      ?.querySelector<HTMLElement>('[role^="menuitem"]')
+                      ?.focus();
+                  } else if (event.key === 'ArrowLeft' && parentMenuState) {
+                    parentMenuState.selectionManager.clearSelection();
+                  }
+                }}
+              />
+            )}
             <DropdownMenuListWrap
               ref={menuRef}
               hasTitle={!!menuTitle}
@@ -306,8 +303,6 @@ function DropdownMenuList({
                 separatorProps={separatorProps}
                 size={size}
                 state={state}
-                autoSectionSeparators={autoSectionSeparators}
-                separatorBeforeKeys={separatorBeforeKeys}
               />
             </DropdownMenuListWrap>
             {menuFooter}
@@ -347,6 +342,23 @@ function removeHiddenItemsAndSetHref(source: MenuItemProps[]): MenuItemProps[] {
     });
 }
 
+function filterMenuItems(items: MenuItemProps[], search: string): MenuItemProps[] {
+  const query = search.trim().toLocaleLowerCase();
+  if (!query) {
+    return items;
+  }
+
+  return items.flatMap(item => {
+    if (item.children && !item.submenu) {
+      const children = filterMenuItems(item.children, query);
+      return children.length > 0 ? [{...item, children}] : [];
+    }
+
+    const label = item.textValue ?? (typeof item.label === 'string' ? item.label : '');
+    return label.toLocaleLowerCase().includes(query) ? [item] : [];
+  });
+}
+
 /**
  * Recursively finds and returns disabled items
  */
@@ -373,29 +385,34 @@ export function DropdownMenuContent({
   items,
   disabledKeys,
   size,
+  menuSearch,
   ...props
 }: DropdownMenuContentProps) {
   const activeItems = useMemo(() => removeHiddenItemsAndSetHref(items), [items]);
-  const defaultDisabledKeys = useMemo(() => getDisabledKeys(activeItems), [activeItems]);
+  const visibleItems = useMemo(
+    () =>
+      menuSearch?.value ? filterMenuItems(activeItems, menuSearch.value) : activeItems,
+    [activeItems, menuSearch]
+  );
+  const defaultDisabledKeys = useMemo(
+    () => getDisabledKeys(visibleItems),
+    [visibleItems]
+  );
 
   return (
     <DropdownMenuList
       {...props}
       size={size}
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
-      items={activeItems}
+      items={visibleItems}
+      menuSearch={menuSearch}
     >
       {(item: MenuItemProps) => {
         const {onAction: _onAction, ...itemProps} = item;
 
         if (item.children && item.children.length > 0 && !item.submenu) {
           return (
-            <Section
-              key={item.key}
-              title={item.label}
-              aria-label={item['aria-label']}
-              items={item.children}
-            >
+            <Section key={item.key} title={item.label} items={item.children}>
               {sectionItem => {
                 const {onAction: _sectionOnAction, ...sectionItemProps} = sectionItem;
 
@@ -439,6 +456,7 @@ function DropdownSubmenu({
   const {rootOverlayState} = useContext(DropdownMenuContext);
   const submenu = node.value?.submenu;
   const options = typeof submenu === 'object' ? submenu : {};
+  const [search, setSearch] = useState('');
   const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
   const {
     isOpen,
@@ -493,10 +511,11 @@ function DropdownSubmenu({
           closeOnSelect={closeOnSelect}
           disableTextSelection={disableTextSelection}
           menuTitle={options.title}
-          menuHeader={options.header}
-          menuFooter={options.footer}
-          separatorBeforeKeys={options.separatorBeforeKeys}
-          autoSectionSeparators={options.separatorBeforeKeys === undefined}
+          menuSearch={
+            options.search
+              ? {...options.search, value: search, onChange: setSearch}
+              : undefined
+          }
           size={size}
           {...menuProps}
           items={items}
@@ -543,6 +562,18 @@ const DropdownMenuListWrap = styled('ul')<{
   &:focus {
     outline: none;
   }
+`;
+
+const MenuTitle = styled('div')`
+  flex-shrink: 0;
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  font-size: ${p => p.theme.font.size.sm};
+  color: ${p => p.theme.tokens.content.primary};
+  white-space: nowrap;
+  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
+  box-shadow: 0 1px 0 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
+  z-index: 2;
 `;
 
 const Separator = styled('li')`
