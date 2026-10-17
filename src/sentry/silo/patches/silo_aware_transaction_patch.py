@@ -1,6 +1,7 @@
-import re
-import traceback
+import os
+import sys
 from collections.abc import Callable
+from types import FrameType
 from typing import TYPE_CHECKING, Any
 
 from django.db import router, transaction
@@ -15,6 +16,11 @@ _default_get_connection = transaction.get_connection
 
 if TYPE_CHECKING:
     from sentry.db.models import Model
+
+
+_PYTEST_RUNNER = os.path.join("_pytest", "runner.py")
+_DJANGO_TESTCASES = os.path.join("django", "test", "testcases.py")
+_TESTCASE_SETUP_TEARDOWN = frozenset(("_pre_setup", "_post_teardown"))
 
 
 class MismatchedSiloTransactionError(Exception):
@@ -74,17 +80,19 @@ def is_in_test_case_body() -> bool:
     This should not be used as a general-purpose utility function. Avoid calling it
     in places other than `validate_transaction_using_for_silo_mode` if at all possible.
     """
-    frames = [str(frame) for (frame, _) in traceback.walk_stack(None)]
-
-    def seek(module_path: str, function_name: str) -> bool:
-        """Check whether the named function has been called in the current stack."""
-        pattern = re.compile(rf"/{re.escape(module_path)}\b.*\b{re.escape(function_name)}>$")
-        return any(pattern.search(frame) for frame in frames)
-
-    return seek("_pytest/runner.py", "pytest_runtest_call") and not (
-        seek("django/test/testcases.py", "_pre_setup")
-        or seek("django/test/testcases.py", "_post_teardown")
-    )
+    # Compare code-object attributes instead of str(frame) + regex: this runs on every
+    # transaction.atomic/on_commit/get_connection call in tests.
+    in_runtest_call = False
+    frame: FrameType | None = sys._getframe(1)
+    while frame is not None:
+        code = frame.f_code
+        name = code.co_name
+        if name in _TESTCASE_SETUP_TEARDOWN and code.co_filename.endswith(_DJANGO_TESTCASES):
+            return False
+        if name == "pytest_runtest_call" and code.co_filename.endswith(_PYTEST_RUNNER):
+            in_runtest_call = True
+        frame = frame.f_back
+    return in_runtest_call
 
 
 def validate_transaction_using_for_silo_mode(using: str | None) -> None:
@@ -94,29 +102,29 @@ def validate_transaction_using_for_silo_mode(using: str | None) -> None:
     if using is None:
         raise TransactionMissingDBException("'using' must be specified when creating a transaction")
 
-    if in_test_environment() and not is_in_test_case_body():
-        # During setup and teardown of a test environment, allow treating it as one
-        # DB. But make sure we enforce as normal during the actual test case.
+    current_silo_mode = SiloMode.get_current_mode()
+    if current_silo_mode == SiloMode.MONOLITH:
         return
 
-    current_silo_mode = SiloMode.get_current_mode()
     control_db = _get_db_for_model_if_available(ControlOutbox)
     cell_db = _get_db_for_model_if_available(CellOutbox)
-
-    both_silos_route_to_same_db = control_db == cell_db
-
-    if both_silos_route_to_same_db or current_silo_mode == SiloMode.MONOLITH:
+    if control_db == cell_db:
         return
 
-    elif using == control_db and current_silo_mode != SiloMode.CONTROL:
-        raise MismatchedSiloTransactionError(
-            f"Cannot use transaction.atomic({using}) except in Control Mode"
-        )
-
+    if using == control_db and current_silo_mode != SiloMode.CONTROL:
+        error = f"Cannot use transaction.atomic({using}) except in Control Mode"
     elif using == cell_db and current_silo_mode != SiloMode.CELL:
-        raise MismatchedSiloTransactionError(
-            f"Cannot use transaction.atomic({using}) except in Cell Mode"
-        )
+        error = f"Cannot use transaction.atomic({using}) except in Cell Mode"
+    else:
+        return
+
+    # During setup and teardown of a test environment, allow treating it as one
+    # DB. But make sure we enforce as normal during the actual test case. Checked
+    # last because walking the stack is expensive.
+    if in_test_environment() and not is_in_test_case_body():
+        return
+
+    raise MismatchedSiloTransactionError(error)
 
 
 def patch_silo_aware_atomic() -> None:
