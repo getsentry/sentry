@@ -8,11 +8,11 @@ import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container} from '@sentry/scraps/layout';
+import type {FormSize, Theme} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import type {FormSize, Theme} from 'sentry/utils/theme';
 
 /**
  * Menu item priority. Determines the text and background color.

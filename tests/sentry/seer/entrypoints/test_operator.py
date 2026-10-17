@@ -31,6 +31,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
 )
+from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.operator import (
     SEER_EVENT_TO_ACTIVITY_TYPE,
     SeerAgentOperator,
@@ -38,17 +39,19 @@ from sentry.seer.entrypoints.operator import (
     SeerOperatorCompletionHook,
     get_autofix_explorer_status,
     process_autofix_updates,
+    process_investigation_updates,
 )
 from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
 from sentry.seer.entrypoints.types import (
     SeerAgentEntrypoint,
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
+    SeerInvestigationEntrypoint,
     SeerOperatorCacheResult,
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils.asserts import assert_failure_metric
+from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.options import override_options
@@ -1338,3 +1341,148 @@ class TestSeerAgentOperatorCodeMode(TestCase):
 
         mock_client_cls.assert_called_once()
         assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
+
+
+class TestProcessInvestigationUpdates(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.investigation = self.create_investigation(organization=self.organization)
+        self.orchestration_run = self.create_investigation_orchestration_run(
+            investigation=self.investigation
+        )
+        self.cache_payload = {"organization_id": self.organization.id}
+
+    def _make_entrypoint(self, *, has_access: bool = True) -> Mock:
+        entrypoint_cls = Mock(spec=SeerInvestigationEntrypoint)
+        entrypoint_cls.has_access.return_value = has_access
+        return entrypoint_cls
+
+    def _set_cache(self, entrypoint_key: str, cache_payload: dict[str, Any]) -> None:
+        SeerOperatorInvestigationCache.set(
+            entrypoint_key=entrypoint_key,
+            investigation_id=self.investigation.id,
+            cache_payload=cache_payload,
+        )
+
+    def _process(self, registrations: dict[str, Mock]) -> None:
+        with (
+            self.feature("organizations:investigations"),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.investigation_entrypoint_registry.registrations",
+                registrations,
+                clear=True,
+            ),
+        ):
+            process_investigation_updates(investigation_id=self.investigation.id)
+
+    def test_calls_entrypoint_on_cache_hit(self) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self._set_cache("slack", self.cache_payload)
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_called_once_with(
+            cache_payload=self.cache_payload, run=self.orchestration_run
+        )
+
+    def test_skips_on_cache_miss(self) -> None:
+        entrypoint_cls = self._make_entrypoint()
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_halts_without_operator_access(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self._set_cache("slack", self.cache_payload)
+
+        with patch.dict(
+            "sentry.seer.entrypoints.operator.investigation_entrypoint_registry.registrations",
+            {"slack": entrypoint_cls},
+            clear=True,
+        ):
+            process_investigation_updates(investigation_id=self.investigation.id)
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_halt_metric(mock_record, "no_operator_access")
+
+    def test_skips_entrypoint_without_access(self) -> None:
+        entrypoint_cls = self._make_entrypoint(has_access=False)
+        self._set_cache("slack", self.cache_payload)
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+
+    def test_cache_miss_does_not_stop_others(self) -> None:
+        missing_cls = self._make_entrypoint()
+        cached_cls = self._make_entrypoint()
+        self._set_cache("cached", self.cache_payload)
+
+        self._process({"missing": missing_cls, "cached": cached_cls})
+
+        missing_cls.on_investigation_update.assert_not_called()
+        cached_cls.on_investigation_update.assert_called_once_with(
+            cache_payload=self.cache_payload, run=self.orchestration_run
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_records_failure_on_org_mismatch(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        other_org = self.create_organization()
+        self._set_cache("slack", {"organization_id": other_org.id})
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_failure_metric(mock_record, "org_mismatch")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_records_failure_when_run_is_missing(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        investigation = self.create_investigation(organization=self.organization)
+
+        with (
+            self.feature("organizations:investigations"),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.investigation_entrypoint_registry.registrations",
+                {"slack": entrypoint_cls},
+                clear=True,
+            ),
+        ):
+            process_investigation_updates(investigation_id=investigation.id)
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_failure_metric(mock_record, "run_not_found")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch(
+        "sentry.seer.entrypoints.operator.Organization.objects.get_from_cache",
+        side_effect=Organization.DoesNotExist,
+    )
+    def test_records_failure_when_organization_is_missing(
+        self, mock_get_from_cache: Mock, mock_record: Mock
+    ) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self._set_cache("slack", self.cache_payload)
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_failure_metric(mock_record, "organization_not_found")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_entrypoint_failure_does_not_stop_others(self, mock_record: Mock) -> None:
+        failing_cls = self._make_entrypoint()
+        failing_cls.on_investigation_update.side_effect = Exception("boom")
+        other_cls = self._make_entrypoint()
+        self._set_cache("failing", self.cache_payload)
+        self._set_cache("other", self.cache_payload)
+
+        self._process({"failing": failing_cls, "other": other_cls})
+
+        other_cls.on_investigation_update.assert_called_once_with(
+            cache_payload=self.cache_payload, run=self.orchestration_run
+        )
+        assert_failure_metric(mock_record, Exception("boom"))

@@ -1,8 +1,9 @@
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
+import type {StrictCSSObject, Theme} from '@sentry/scraps/theme';
+
 import {growIn} from 'sentry/styles/animations';
-import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 interface RadioProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,

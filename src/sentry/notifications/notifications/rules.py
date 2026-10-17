@@ -28,7 +28,6 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
-    NotificationOrigin,
     NotificationSettingEnum,
 )
 from sentry.notifications.utils import (
@@ -42,14 +41,13 @@ from sentry.notifications.utils import (
     has_integrations,
 )
 from sentry.notifications.utils.links import (
-    create_link_to_workflow,
     get_group_settings_link,
     get_integration_link,
     get_issue_replay_link,
     get_rules,
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
-from sentry.notifications.utils.rules import get_rule_or_workflow_id
+from sentry.notifications.utils.rules import get_workflow_url
 from sentry.plugins.base.structs import Notification
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.actor import Actor
@@ -290,21 +288,15 @@ class AlertRuleNotification(ProjectNotification):
     def get_notification_title(
         self, provider: ExternalProviders, context: Mapping[str, Any] | None = None
     ) -> str:
-        from sentry.integrations.messaging.message_builder import build_rule_url
-
         title_str = "Alert triggered"
 
         if self.rules:
-            key, value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
-
-            match key:
-                case "workflow_id":
-                    rule_url = absolute_uri(create_link_to_workflow(self.organization.slug, value))
-                case "legacy_rule_id":
-                    rule_url = build_rule_url(self.rules[0], self.group, self.project)
-
+            text = self.rules[0].label
+            workflow_url = get_workflow_url(self.rules[0], self.organization.slug)
             title_str += (
-                f" {self.format_url(text=self.rules[0].label, url=rule_url, provider=provider)}"
+                f" {self.format_url(text=text, url=workflow_url, provider=provider)}"
+                if workflow_url
+                else f" {text}"
             )
 
             if len(self.rules) > 1:
@@ -352,27 +344,25 @@ class AlertRuleNotification(ProjectNotification):
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
-        alert_id = None
-        if self.rules:
-            rule = self.rules[0]
-            alert_id = rule.link_id if isinstance(rule, NotificationOrigin) else rule.id
+        origin = self.rules[0] if self.rules else None
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            "alert_id": alert_id,
+            "workflow_id": origin.workflow_id if origin else None,
+            "alert_id": origin.legacy_rule_id if origin else None,
             **super().get_log_params(recipient),
         }
 
     def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
-        log_params = self.get_log_params(recipient)
+        origin = self.rules[0] if self.rules else None
         try:
             analytics.record(
                 AlertSentEvent(
                     organization_id=self.organization.id,
                     project_id=self.project.id,
                     provider=provider.name,
-                    alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+                    alert_id=origin.link_id if origin else "",
                     alert_type="issue_alert",
                     external_id=str(recipient.id),
                     notification_uuid=self.notification_uuid,

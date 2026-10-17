@@ -429,6 +429,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
         `[data-snapshot-key="${CSS.escape(initialSnapshotKey)}"]`
       );
       if (!el || !scrollRef.current) {
+        // oxlint-disable-next-line react/todo
         if (retries-- > 0) {
           requestAnimationFrame(adjustScroll);
         }

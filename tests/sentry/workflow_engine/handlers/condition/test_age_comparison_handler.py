@@ -4,7 +4,6 @@ import pytest
 from jsonschema import ValidationError
 
 from sentry.models.group import Group
-from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.workflow_engine.handlers.condition.age_comparison_handler import (
     AgeComparisonConditionHandler,
@@ -28,30 +27,11 @@ class TestAgeComparisonCondition(ConditionTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
-        self.payload = {
-            "id": AgeComparisonFilter.id,
-            "comparison_type": AgeComparisonType.OLDER,
-            "value": "10",
-            "time": "hour",
-        }
         self.dc = self.create_data_condition(
             type=self.condition,
             comparison={"comparison_type": AgeComparisonType.OLDER, "value": 10, "time": "hour"},
             condition_result=True,
         )
-
-    def test_dual_write(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "comparison_type": AgeComparisonType.OLDER,
-            "value": 10,
-            "time": "hour",
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_preview_filters_groups_by_age(self) -> None:
         plan = ActionFilterPreviewPlan(DataConditionGroup.Type.ALL)
@@ -65,20 +45,6 @@ class TestAgeComparisonCondition(ConditionTestCase):
 
         self.group.update(first_seen=datetime.now(timezone.utc) - timedelta(hours=3))
         assert not Group.objects.filter(id=self.group.id).filter(*plan.group_filters).exists()
-
-    def test_dual_write__negative_value(self) -> None:
-        self.payload["value"] = "-10"
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "comparison_type": AgeComparisonType.NEWER,
-            "value": 10,
-            "time": "hour",
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_json_schema(self) -> None:
         self.dc.comparison.update({"comparison_type": AgeComparisonType.NEWER})

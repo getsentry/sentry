@@ -1329,8 +1329,12 @@ class SearchResolver:
                     extra={
                         "organization_id": self.params.organization_id,
                         "function_name": function_name,
+                        "column": column,
+                        "query_string": self.params.query_string,
                     },
                 )
+                if self.config.disable_deprecated_functions:
+                    raise
                 return self._resolve_function(
                     deprecated_definition, function_name, alias, columns, default_value
                 )
@@ -1515,6 +1519,22 @@ class SearchResolver:
                 ),
                 [],
             )
+        # Fold equations that are only literals so Snuba does not evaluate them.
+        # Field equations such as `span.duration / 1000` still go through the RPC.
+        elif len(fields) == 0 and len(functions) == 0:
+            try:
+                value = arithmetic.resolve_arithmetic(operation)
+            except ZeroDivisionError:
+                raise arithmetic.ArithmeticValidationError("division by 0 is not allowed")
+            return (
+                ResolvedLiteral(
+                    public_alias=f"equation|{equation}" if alias is None else alias,
+                    search_type="number",
+                    value=value,
+                ),
+                [],
+            )
+
         lhs, lhs_contexts = (
             self._resolve_operation(operation.lhs) if operation.lhs is not None else (None, [])
         )

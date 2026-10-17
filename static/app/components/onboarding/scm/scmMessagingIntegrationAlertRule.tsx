@@ -5,14 +5,14 @@ import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
 import {
-  type IssueAlertNotificationProps,
-  providerDetails,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {
   ChannelField,
   ChannelSelect,
   useMessagingIntegrationAlertRule,
 } from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
+import {
+  type IssueAlertNotificationProps,
+  providerDetails,
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 

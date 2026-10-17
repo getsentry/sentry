@@ -6,7 +6,10 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {t} from 'sentry/locale';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
-interface CopyAsDropdownProps extends Omit<DropdownMenuProps, 'trigger'> {
+interface CopyAsDropdownProps extends Omit<
+  DropdownMenuProps,
+  'trigger' | 'triggerLabel'
+> {
   items: DropdownMenuProps['items'];
 }
 

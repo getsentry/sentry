@@ -329,6 +329,7 @@ function Confidence({value}: {value?: number}) {
 function ProbabilityList({
   entries,
   selected,
+  // oxlint-disable-next-line react/todo
   getLabel = label => label,
 }: {
   /** `[label, probability]` pairs. */

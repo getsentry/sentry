@@ -12,7 +12,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
-import {getOrderedContextItems} from 'sentry/components/events/contexts';
+import {getOrderedContextItems} from 'sentry/components/events/contexts/contextItems';
 import {
   getContextIcon,
   getContextSummary,
