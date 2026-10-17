@@ -6,7 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
 import {ActivityLineRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
-import {ActivityLineDotMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker';
+import {ActivityLineDotMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/marker';
 
 interface CollapsedStatusActivityRowProps {
   children: ReactNode;

@@ -1,7 +1,6 @@
 import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {CommitFixture} from 'sentry-fixture/commit';
 import {GroupFixture} from 'sentry-fixture/group';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {RepositoryFixture} from 'sentry-fixture/repository';
@@ -339,6 +338,65 @@ describe('ActivitySection', () => {
     expect(screen.getByText(`${user.name} commented`)).toBeInTheDocument();
     expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Comment Actions'})).toBeInTheDocument();
+  });
+
+  it('renders activity sources', async () => {
+    const activityGroup = GroupFixture({
+      id: '1338',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          commentId: 'note-1',
+          data: {text: 'User note'},
+          dateCreated: '2020-01-01T00:00:00',
+          source: 'mcp:claude-code',
+          user,
+        },
+        {
+          type: GroupActivityType.SET_RESOLVED,
+          id: 'resolved-1',
+          data: {},
+          dateCreated: '2020-01-02T00:00:00',
+          source: 'sentry-cli',
+          user,
+        },
+        {
+          type: GroupActivityType.SET_UNRESOLVED,
+          id: 'unresolved-1',
+          data: {},
+          dateCreated: '2020-01-03T00:00:00',
+          source: 'api',
+          user: null,
+        },
+        {
+          type: GroupActivityType.SET_PUBLIC,
+          id: 'public-1',
+          data: {},
+          dateCreated: '2020-01-04T00:00:00',
+          source: 'web',
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByText('User note')).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Claude via MCP'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'via Sentry CLI'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'via API'})).toBeInTheDocument();
+    expect(screen.getAllByTestId('user-activity-actor')).toHaveLength(3);
+    expect(screen.queryByText(/^via /)).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByRole('img', {name: 'Claude via MCP'}));
+    expect(await screen.findByText('Claude via MCP')).toBeInTheDocument();
+    expect(screen.getByText(`${user.name} (${user.email})`)).toBeInTheDocument();
   });
 
   it('renders provider-specific icon for create issue in activity line items', async () => {
@@ -1387,7 +1445,7 @@ describe('ActivitySection', () => {
         data: {},
       } satisfies GroupActivity,
       expectedCopy: ['Autofix triggered'],
-      expectedMarker: 'Activity update',
+      expectedMarker: 'Seer activity',
     },
   ])('renders $name activity copy', async ({activity, expectedCopy, expectedMarker}) => {
     const activityGroup = GroupFixture({
@@ -1399,12 +1457,7 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
         <ActivitySection group={activityGroup} variant="standalone" />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: expectedMarker ? ['issue-activity-progress'] : [],
-        }),
-      }
+      </GroupDataContextProvider>
     );
 
     for (const copy of expectedCopy) {
@@ -1438,36 +1491,6 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Reprocessed')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '4 new events'})).toBeInTheDocument();
     expect(screen.getByRole('img', {name: 'Activity update'})).toBeInTheDocument();
-  });
-
-  it('shows progress markers behind activity progress', () => {
-    const activityGroup = GroupFixture({
-      id: '1339',
-      activity: [
-        {
-          type: GroupActivityType.SET_RESOLVED,
-          id: 'resolved-1',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {},
-          user,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
-        <ActivitySection group={activityGroup} variant="standalone" />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({
-          features: ['issue-activity-progress'],
-        }),
-      }
-    );
-
-    expect(screen.getByRole('img', {name: 'Fix Applied'})).toBeInTheDocument();
-    expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
   });
 
   it.each([

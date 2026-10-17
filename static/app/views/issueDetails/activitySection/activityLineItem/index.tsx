@@ -7,7 +7,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ActivityFeedItem} from './activityFeedItem';
 import {getActivityItem} from './activityItem';
 import {ActivityLineHeadline, ActivityLineRow} from './layout';
-import {ActivityLineMarker} from './progressMarker';
+import {ActivityLineMarker} from './marker';
 
 interface ActivityLineProps {
   group: Group;
@@ -17,7 +17,6 @@ interface ActivityLineProps {
 
 export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProps) {
   const organization = useOrganization();
-  const showProgress = organization.features.includes('issue-activity-progress');
   const {issueCategory, project} = group;
   const {activity} = item;
   const activityItem = useMemo(
@@ -42,11 +41,7 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
 
   return (
     <ActivityLineRow>
-      <ActivityLineMarker
-        actorItem={actorActivity}
-        item={activity}
-        showProgress={showProgress}
-      />
+      <ActivityLineMarker item={actorActivity} />
       <ActivityLineHeadline
         title={activityItem.title}
         details={activityItem.details}
