@@ -2,7 +2,8 @@ import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -10,6 +11,8 @@ import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedData
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {
   droppedEventsToOutcomeGroups,
+  filterDroppedEventsByScope,
+  type DroppedDataScope,
   type ReasonRow,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
 import {
@@ -42,17 +45,23 @@ export function DroppedDataDrawer({
     interval: interval ?? chartInterval,
   });
 
-  const groups = useMemo(
-    () => droppedEventsToOutcomeGroups(droppedEvents ?? [], acceptedEvents ?? [], 'all'),
-    [droppedEvents, acceptedEvents]
+  const [scope, setScope] = useState<DroppedDataScope>('contributing');
+  const scopedDroppedEvents = useMemo(
+    () => filterDroppedEventsByScope(droppedEvents ?? [], scope),
+    [droppedEvents, scope]
   );
+  const groups = useMemo(
+    () => droppedEventsToOutcomeGroups(droppedEvents ?? [], acceptedEvents ?? [], scope),
+    [droppedEvents, acceptedEvents, scope]
+  );
+  // Colored from every outcome so colors stay stable when the scope changes.
   const outcomeColors = useMemo(
     () =>
       getOutcomeColors(
-        [...groups.unintentional, ...groups.intentional].map(section => section.outcome),
+        (droppedEvents ?? []).map(event => event.outcome),
         theme
       ),
-    [groups, theme]
+    [droppedEvents, theme]
   );
 
   const [outcomeSelection, setOutcomeSelection] = useState<OutcomeSelection>({});
@@ -71,9 +80,22 @@ export function DroppedDataDrawer({
   return (
     <Fragment>
       <DrawerHeader>
-        <Text size="md" variant="muted">
-          {t('Dropped Data')}
-        </Text>
+        <Flex flex="1" align="center" justify="between" gap="md">
+          <Text size="md" variant="muted">
+            {t('Dropped Data')}
+          </Text>
+          <SegmentedControl
+            aria-label={t('Filter by contribution')}
+            size="xs"
+            value={scope}
+            onChange={setScope}
+          >
+            <SegmentedControl.Item key="contributing">
+              {t('Contributing values')}
+            </SegmentedControl.Item>
+            <SegmentedControl.Item key="all">{t('All values')}</SegmentedControl.Item>
+          </SegmentedControl>
+        </Flex>
       </DrawerHeader>
       <DrawerBody>
         {isError ? (
@@ -86,7 +108,7 @@ export function DroppedDataDrawer({
         ) : (
           <Stack gap="xl">
             <DroppedDataChart
-              droppedEvents={droppedEvents ?? []}
+              droppedEvents={scopedDroppedEvents}
               colors={outcomeColors}
               selection={outcomeSelection}
               onSelectionChange={setOutcomeSelection}
