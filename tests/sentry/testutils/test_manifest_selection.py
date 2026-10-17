@@ -106,6 +106,8 @@ def test_manifest_run_preserves_sentry_parent_subset_order(tmp_path: Path) -> No
         "PYTEST_PARALLEL_WORKER_ID",
         "PYTEST_PARALLEL_WORKER_COUNT",
         "PYTEST_PARALLEL_MANIFEST",
+        # CI's pytest-selected.py loads pytest_shard_plugin this way.
+        "PYTEST_PLUGINS",
     ):
         env.pop(name, None)
     env.update(
