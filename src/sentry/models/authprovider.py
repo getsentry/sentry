@@ -142,14 +142,24 @@ class AuthProvider(ReplicatedControlModel):
                         .filter(**deletion_filter)
                         .first()
                     )
-                    if deletion is None or deletion.in_progress:
+                    if deletion is None:
+                        # Another concurrent enable may already have canceled it.
+                        sentry_app.refresh_from_db()
+                        if sentry_app.status != SentryAppStatus.INTERNAL:
+                            logger.warning(
+                                "SCIM installation deletion already in progress",
+                                extra={"organization_id": self.organization_id},
+                            )
+                            return
+                    elif deletion.in_progress:
                         logger.warning(
                             "SCIM installation deletion already in progress",
                             extra={"organization_id": self.organization_id},
                         )
                         return
-                    ScheduledDeletion.cancel(sentry_app)
-                    sentry_app.update(status=SentryAppStatus.INTERNAL)
+                    else:
+                        ScheduledDeletion.cancel(sentry_app)
+                        sentry_app.update(status=SentryAppStatus.INTERNAL)
             self.flags.scim_enabled = True
             logger.warning(
                 "SCIM installation already exists",
