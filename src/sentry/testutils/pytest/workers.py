@@ -79,6 +79,7 @@ def parallel_max_workers() -> int:
 
 def configure_worker_env(env: dict[str, str], _worker_id: int) -> None:
     env.pop("DJANGO_SETTINGS_MODULE", None)
+    env.pop("PYTEST_SHARD_PARTS", None)
     for key in tuple(env):
         if key.startswith("PYTEST_XDIST_"):
             del env[key]

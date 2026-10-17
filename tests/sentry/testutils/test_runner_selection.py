@@ -305,7 +305,7 @@ def test_cell_name_keeps_xdist_run_uid_fallback() -> None:
         assert sentry_plugin._cell_seed() == "legacy-run"
 
 
-def test_worker_env_pops_django_and_xdist_only_from_dict() -> None:
+def test_worker_env_removes_parent_process_state_from_dict() -> None:
     with mock.patch.dict(os.environ):
         os.environ["DJANGO_SETTINGS_MODULE"] = "sentinel.settings"
         os.environ["PYTEST_XDIST_WORKER"] = "gw1"
@@ -313,12 +313,14 @@ def test_worker_env_pops_django_and_xdist_only_from_dict() -> None:
             "DJANGO_SETTINGS_MODULE": "sentry.conf.server",
             "PYTEST_XDIST_WORKER": "gw1",
             "PYTEST_XDIST_TESTRUNUID": "abc",
+            "PYTEST_SHARD_PARTS": "parent-parts.json",
             "KEEP": "1",
         }
         sentry_plugin.pytest_parallel_worker_env(env, 3)
         assert "DJANGO_SETTINGS_MODULE" not in env
         assert "PYTEST_XDIST_WORKER" not in env
         assert "PYTEST_XDIST_TESTRUNUID" not in env
+        assert "PYTEST_SHARD_PARTS" not in env
         assert env["KEEP"] == "1"
         assert os.environ["DJANGO_SETTINGS_MODULE"] == "sentinel.settings"
         assert os.environ["PYTEST_XDIST_WORKER"] == "gw1"

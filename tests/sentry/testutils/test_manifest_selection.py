@@ -49,6 +49,7 @@ def test_manifest_run_preserves_sentry_parent_subset_order(tmp_path: Path) -> No
     worker_selection = tmp_path / "worker-selected.txt"
     parent_order_path = tmp_path / "parent-order.json"
     run_order_path = tmp_path / "run-order.txt"
+    worker_shard_parts_path = tmp_path / "worker-shard-parts.txt"
     parent_selection.write_text("test_a.py\ntest_b.py\n", encoding="utf-8")
     worker_selection.write_text("test_a.py\n", encoding="utf-8")
 
@@ -58,6 +59,12 @@ def test_manifest_run_preserves_sentry_parent_subset_order(tmp_path: Path) -> No
         "from pathlib import Path\n"
         "import pytest\n"
         "from sentry.testutils.pytest import sentry as sentry_plugin\n"
+        "\n"
+        "def pytest_configure(config):\n"
+        "    if os.environ.get('_PYTEST_PARALLEL_WORKER') == '1':\n"
+        "        Path(os.environ['WORKER_SHARD_PARTS']).write_text(\n"
+        "            os.environ.get('PYTEST_SHARD_PARTS', ''), encoding='utf-8'\n"
+        "        )\n"
         "\n"
         "def pytest_ignore_collect(collection_path, config):\n"
         "    return sentry_plugin.pytest_ignore_collect(collection_path, config)\n"
@@ -71,6 +78,8 @@ def test_manifest_run_preserves_sentry_parent_subset_order(tmp_path: Path) -> No
         "        )\n"
         "\n"
         "def pytest_parallel_worker_env(env, worker_id):\n"
+        "    from sentry.testutils.pytest.workers import configure_worker_env\n"
+        "    configure_worker_env(env, worker_id)\n"
         "    env['SELECTED_TESTS_FILE'] = env['WORKER_SELECTED_TESTS_FILE']\n"
         "    env['TEST_GROUP'] = '1'\n"
         "    env['SENTRY_SHUFFLE_TESTS_SEED'] = '999'\n",
@@ -90,6 +99,7 @@ def test_manifest_run_preserves_sentry_parent_subset_order(tmp_path: Path) -> No
         (suite / f"test_{prefix}.py").write_text(test_source, encoding="utf-8")
 
     env = os.environ.copy()
+    env.pop("DJANGO_SETTINGS_MODULE", None)
     for name in (
         "_PYTEST_PARALLEL_WORKER",
         "_PYTEST_PARALLEL_WORKER_ENTRY",
@@ -108,6 +118,8 @@ def test_manifest_run_preserves_sentry_parent_subset_order(tmp_path: Path) -> No
             "WORKER_SELECTED_TESTS_FILE": str(worker_selection),
             "PARENT_ORDER": str(parent_order_path),
             "RUN_ORDER": str(run_order_path),
+            "WORKER_SHARD_PARTS": str(worker_shard_parts_path),
+            "PYTEST_SHARD_PARTS": str(tmp_path / "parent-parts.json"),
             "TOTAL_TEST_GROUPS": "2",
             "TEST_GROUP": "0",
             "TEST_GROUP_STRATEGY": "item",
@@ -137,6 +149,7 @@ def test_manifest_run_preserves_sentry_parent_subset_order(tmp_path: Path) -> No
     )
 
     assert result.returncode == 0, f"{result.stdout}\n{result.stderr}"
+    assert worker_shard_parts_path.read_text(encoding="utf-8") == ""
     parent_order = json.loads(parent_order_path.read_text(encoding="utf-8"))
     run_order = run_order_path.read_text(encoding="utf-8").splitlines()
     original_order = [
