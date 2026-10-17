@@ -1,8 +1,9 @@
 """pytest plugin for one shard of a full run, loaded by pytest-selected.py.
 
 The sentry plugin has already limited collection to this shard's files. This
-keeps only this shard's part of each file split across shards, and runs the
-files slowest first so a slow file can't start last on an xdist worker.
+keeps only this shard's part of each file that is split across shards, using
+the same nodeid hash as the sentry plugin's per-test split. It only deselects,
+so the remaining tests keep collection order.
 """
 
 from __future__ import annotations
@@ -18,15 +19,14 @@ def item_part(nodeid: str, parts: int) -> int:
     return int(sha256(nodeid.encode()).hexdigest(), 16) % parts
 
 
-@pytest.hookimpl(trylast=True)
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    plan_file = os.environ.get("PYTEST_SHARD_PLAN")
-    if not plan_file:
+    parts_file = os.environ.get("PYTEST_SHARD_PARTS")
+    if not parts_file:
         return
-    with open(plan_file) as f:
-        plan = json.load(f)
-    parts: dict[str, list[int]] = plan["parts"]
-    rank = {path: i for i, path in enumerate(plan["order"])}
+    with open(parts_file) as f:
+        parts: dict[str, list[int]] = json.load(f)
+    if not parts:
+        return
 
     keep, discard = [], []
     for item in items:
@@ -35,8 +35,6 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             discard.append(item)
         else:
             keep.append(item)
-    # Stable, so tests within a file keep their order.
-    keep.sort(key=lambda item: rank.get(item.nodeid.split("::", 1)[0], len(rank)))
     items[:] = keep
     if discard:
         config.hook.pytest_deselected(items=discard)
