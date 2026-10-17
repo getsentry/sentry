@@ -91,7 +91,7 @@ class ErrorPageEmbedTest(TestCase):
         )
         assert resp.status_code == 200, resp.content
         assert resp["Access-Control-Allow-Origin"] == "*"
-        self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+        self.assertTemplateUsed(resp, "sentry/error-page-embed.css")
 
     def test_endpoint_reflects_region_url_by_default(self) -> None:
         resp = self.client.get(
@@ -101,7 +101,7 @@ class ErrorPageEmbedTest(TestCase):
         )
         assert resp.status_code == 200, resp.content
         assert resp["Access-Control-Allow-Origin"] == "*"
-        self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+        self.assertTemplateUsed(resp, "sentry/error-page-embed.css")
 
         region_url = get_local_locality().to_url(self.path_with_qs)
         body = resp.content.decode("utf8")
@@ -121,7 +121,7 @@ class ErrorPageEmbedTest(TestCase):
             )
             assert resp.status_code == 200, resp.content
             assert resp["Access-Control-Allow-Origin"] == "*"
-            self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+            self.assertTemplateUsed(resp, "sentry/error-page-embed.css")
 
             control_url = urljoin("http://controlsilo.testserver", self.path_with_qs)
             body = resp.content.decode("utf8")
@@ -136,8 +136,74 @@ class ErrorPageEmbedTest(TestCase):
             HTTP_ACCEPT="text/html, text/javascript",
         )
         assert resp.status_code == 200, resp.content
-        self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+        self.assertTemplateUsed(resp, "sentry/error-page-embed.css")
         assert b"Fermer" in resp.content  # Close
+
+    def _get_dialog(self, path: str) -> dict:
+        resp = self.client.get(
+            path,
+            HTTP_REFERER="http://example.com",
+            HTTP_ACCEPT="text/html, text/javascript",
+        )
+        assert resp.status_code == 200, resp.content
+        body = resp.content.decode("utf8")
+        start = body.index("dialog = /**/") + len("dialog = /**/")
+        return json.loads(body[start : body.index(";/**/", start)])
+
+    def test_dialog_fields(self) -> None:
+        dialog = self._get_dialog(f"{self.path_with_qs}&name=Jane&email=jane%40example.com")
+
+        assert dialog["powered_by"] == "Crash reports powered by"
+        assert dialog["fields"] == [
+            {
+                "label": "Name",
+                "tag": "input",
+                "type": "text",
+                "name": "name",
+                "value": "Jane",
+                "attrs": {
+                    "placeholder": "Jane Bloggs",
+                    "maxlength": "128",
+                    "required": True,
+                    "id": "id_name",
+                },
+            },
+            {
+                "label": "Email",
+                "tag": "input",
+                "type": "email",
+                "name": "email",
+                "value": "jane@example.com",
+                "attrs": {
+                    "placeholder": "jane@example.com",
+                    "maxlength": "75",
+                    "required": True,
+                    "id": "id_email",
+                },
+            },
+            {
+                "label": "What happened?",
+                "tag": "textarea",
+                "type": None,
+                "name": "comments",
+                "value": None,
+                "attrs": {
+                    "cols": "40",
+                    "rows": "10",
+                    "placeholder": "I clicked on 'X' and then hit 'Confirm'",
+                    "maxlength": "4096",
+                    "required": True,
+                    "id": "id_comments",
+                },
+            },
+        ]
+
+    def test_dialog_without_branding(self) -> None:
+        self.project.update_option("feedback:branding", "0")
+
+        dialog = self._get_dialog(self.path_with_qs)
+
+        assert dialog["powered_by"] is None
 
     def test_xss(self) -> None:
         user_feedback_options = {}
@@ -166,7 +232,7 @@ class ErrorPageEmbedTest(TestCase):
             HTTP_ACCEPT="text/html, text/javascript",
         )
         assert resp.status_code == 200, resp.content
-        self.assertTemplateUsed(resp, "sentry/error-page-embed.html")
+        self.assertTemplateUsed(resp, "sentry/error-page-embed.css")
 
         for xss_payload in user_feedback_options.values():
             assert xss_payload not in resp.content

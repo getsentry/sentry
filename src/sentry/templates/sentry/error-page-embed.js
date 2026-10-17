@@ -15,13 +15,84 @@
 
   /* eslint-disable eslint-js/spaced-comment */
   var strings = /*{{ strings }}*/ '';
-  var template = /*{{ template }}*/ '';
+  var dialog = /*{{ dialog }}*/ '';
   var endpoint = /*{{ endpoint }}*/ '';
   /* eslint-enable */
 
   var setChild = function (target, child) {
-    target.innerHTML = '';
+    target.textContent = '';
     target.appendChild(child);
+  };
+
+  var el = function (tag, attrs, children) {
+    var node = document.createElement(tag);
+    for (var name in attrs) {
+      node.setAttribute(name, attrs[name] === true ? '' : attrs[name]);
+    }
+    for (var i = 0; i < (children || []).length; i++) {
+      var child = children[i];
+      node.appendChild(
+        typeof child === 'string' ? document.createTextNode(child) : child
+      );
+    }
+    return node;
+  };
+
+  var buildField = function (field) {
+    var widget = el(field.tag, field.attrs);
+    widget.name = field.name;
+    if (field.type) {
+      widget.type = field.type;
+    }
+    if (field.value !== null) {
+      widget.defaultValue = field.value;
+    }
+    return el('div', {class: 'form-field clearfix'}, [
+      el('label', {}, [field.label]),
+      widget,
+    ]);
+  };
+
+  var buildDialog = function () {
+    var submitChildren = [
+      el('button', {type: 'submit', class: 'btn'}, [dialog.submit_label]),
+      el('button', {class: 'close'}, [dialog.close_label]),
+    ];
+    if (dialog.powered_by !== null) {
+      submitChildren.push(
+        el('p', {class: 'powered-by'}, [
+          dialog.powered_by + ' ',
+          el('a', {href: 'https://sentry.io'}, ['Sentry']),
+        ])
+      );
+    }
+
+    var style = document.createElement('style');
+    style.textContent = dialog.style;
+
+    return [
+      style,
+      el(
+        'div',
+        {
+          class: 'sentry-error-embed clearfix',
+          role: 'dialog',
+          'aria-modal': 'true',
+          'aria-labelledby': 'sentry-error-embed-heading',
+        },
+        [
+          el('header', {}, [
+            el('h2', {id: 'sentry-error-embed-heading'}, [dialog.title]),
+            el('p', {}, [dialog.subtitle + ' ', el('span', {}, [dialog.subtitle2])]),
+          ]),
+          el('form', {}, [
+            el('div', {class: 'error-wrapper'}),
+            el('div', {class: 'form-content'}, dialog.fields.map(buildField)),
+            el('div', {class: 'form-submit clearfix'}, submitChildren),
+          ]),
+        ]
+      ),
+    ];
   };
 
   var buildMessage = function (className, message) {
@@ -66,7 +137,10 @@
     var self = this;
     this.element = document.createElement('div');
     this.element.className = 'sentry-error-embed-wrapper';
-    this.element.innerHTML = template;
+    var nodes = buildDialog();
+    for (var n = 0; n < nodes.length; n++) {
+      this.element.appendChild(nodes[n]);
+    }
     self.element.onclick = function (e) {
       if (e.target !== self.element) {
         return;
@@ -181,7 +255,7 @@
   };
 
   SentryErrorEmbed.prototype.onSuccess = function () {
-    this._errorWrapper.innerHTML = '';
+    this._errorWrapper.textContent = '';
     setChild(this._formContent, FORM_SUCCESS);
     this._submitBtn.parentNode.removeChild(this._submitBtn);
     if (handleFocus) {
