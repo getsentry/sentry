@@ -48,7 +48,7 @@ describe('Toast', () => {
     act(() => {
       toast.error('First error', {duration: Infinity});
       toast.error('Second error', {duration: Infinity});
-      toast.error('Third error', {duration: Infinity});
+      toast.error('Third error', {id: 'third-error', duration: Infinity});
     });
 
     expect(await screen.findByText('First error')).toBeInTheDocument();
@@ -128,12 +128,30 @@ describe('Toast', () => {
     expect(screen.getByText('Success')).toBeInTheDocument();
   });
 
-  it('updates a toast when its variant changes', async () => {
+  it('keeps explicit IDs separate from automatic replacement', async () => {
+    render(<div />);
+    act(() => {
+      toast.message('Other notification', {duration: Infinity});
+      toast.loading('Loading', {id: 'operation', duration: Infinity});
+    });
+
+    expect(await screen.findByText('Loading')).toBeInTheDocument();
+    expect(screen.getByText('Other notification')).toBeInTheDocument();
+
+    act(() => void toast.success('Success', {duration: Infinity}));
+
+    await waitForElementToBeRemoved(() => screen.queryByText('Other notification'));
+    expect(screen.getByText('Success')).toBeInTheDocument();
+    expect(screen.getByText('Loading')).toBeInTheDocument();
+  });
+
+  it('updates only the given id when its variant changes', async () => {
     let toastId: string | number = '';
 
     render(<div />);
     act(() => {
       toastId = toast.loading('Loading', {duration: Infinity});
+      toast.loading('Other operation', {duration: Infinity});
     });
 
     expect(await screen.findByText('Loading')).toBeInTheDocument();
@@ -142,6 +160,11 @@ describe('Toast', () => {
 
     expect(await screen.findByText('Success')).toBeInTheDocument();
     expect(screen.queryByText('Loading')).not.toBeInTheDocument();
+    expect(screen.getByText('Other operation')).toBeInTheDocument();
+
+    act(() => void toast.message('Other notification', {duration: Infinity}));
+    await waitForElementToBeRemoved(() => screen.queryByText('Other operation'));
+    expect(screen.getByText('Success')).toBeInTheDocument();
   });
 
   it('runs an action and dismisses the toast', async () => {

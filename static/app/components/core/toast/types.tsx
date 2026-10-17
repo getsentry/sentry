@@ -15,7 +15,7 @@ export interface ToastOptions {
   action?: ToastAction;
   /** ms. Use `Infinity` to keep the toast until it is dismissed. */
   duration?: number;
-  /** Pass an existing id to replace that toast instead of adding one. */
+  /** Opts out of automatic replacement. Reuse the id to update the same toast. */
   id?: string | number;
   onDismiss?: () => void;
 }
