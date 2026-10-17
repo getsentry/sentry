@@ -25,7 +25,13 @@ _SOCKET_METHODS = (
     "sendmsg",
     "sendto",
 )
-_RESOLVER_FUNCTIONS = ("getaddrinfo", "gethostbyaddr", "gethostbyname", "gethostbyname_ex", "getnameinfo")
+_RESOLVER_FUNCTIONS = (
+    "getaddrinfo",
+    "gethostbyaddr",
+    "gethostbyname",
+    "gethostbyname_ex",
+    "getnameinfo",
+)
 _BLOCKED_MESSAGE = (
     "Network access outside loopback is disabled by pytest-parallel; "
     "use @pytest.mark.enable_network to allow it for this test"
@@ -178,7 +184,11 @@ def _guard_resolver(name: str, original: Callable[..., Any]) -> Callable[..., An
                 address = address[0]
         if address is None or address == "" or address == b"":
             return original(*args, **kwargs)
-        if _is_loopback_host(address) or _is_unspecified_host(address) or _is_local_hostname(address):
+        if (
+            _is_loopback_host(address)
+            or _is_unspecified_host(address)
+            or _is_local_hostname(address)
+        ):
             return original(*args, **kwargs)
         raise PermissionError(_BLOCKED_MESSAGE)
 

@@ -27,14 +27,14 @@ Serial runs do not install the network guard.
 
 Sentry uses `pytest_parallel.api` to identify the controller, serial process, and worker. Each worker keeps its scheduler index for resource names and database suffixes.
 
-| Resource | Controller or serial process | Worker `n` |
-| --- | --- | --- |
-| Redis database | `9` | `9 + n` |
-| Redis Cluster key prefix | `test-main:` | `test-gw{n}:` |
-| Kafka topic and group suffix | None | `-gw{n}` |
-| Snowflake ID | `0` | `n + 1` |
-| Database suffix | None | `gw{n}` |
-| Snuba URL | Default URL | `http://127.0.0.1:1230+n` when `SENTRY_TEST_PER_WORKER_SNUBA=1` |
+| Resource                     | Controller or serial process | Worker `n`                                                      |
+| ---------------------------- | ---------------------------- | --------------------------------------------------------------- |
+| Redis database               | `9`                          | `9 + n`                                                         |
+| Redis Cluster key prefix     | `test-main:`                 | `test-gw{n}:`                                                   |
+| Kafka topic and group suffix | None                         | `-gw{n}`                                                        |
+| Snowflake ID                 | `0`                          | `n + 1`                                                         |
+| Database suffix              | None                         | `gw{n}`                                                         |
+| Snuba URL                    | Default URL                  | `http://127.0.0.1:1230+n` when `SENTRY_TEST_PER_WORKER_SNUBA=1` |
 
 The backend and acceptance workflows set `SENTRY_TEST_PER_WORKER_SNUBA=1` and bootstrap one Snuba instance per worker. The controller and serial process hold `.work/sentry-service.lock` while test service validation and Redis setup run.
 

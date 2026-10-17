@@ -13,15 +13,18 @@ from pytest_parallel.worker import ResultReporter
 
 
 def _report(nodeid: str, when: str, outcome: str, attempt: int) -> dict[str, Any]:
-    report = cast(Any, pytest.TestReport(
-        nodeid=nodeid,
-        location=("test_retry.py", 1, nodeid),
-        keywords={},
-        outcome=cast(Any, outcome),
-        longrepr="retry failed" if outcome in {"failed", "rerun"} else None,
-        when=cast(Any, when),
-        duration=0.01,
-    ))
+    report = cast(
+        Any,
+        pytest.TestReport(
+            nodeid=nodeid,
+            location=("test_retry.py", 1, nodeid),
+            keywords={},
+            outcome=cast(Any, outcome),
+            longrepr="retry failed" if outcome in {"failed", "rerun"} else None,
+            when=cast(Any, when),
+            duration=0.01,
+        ),
+    )
     report._json_report_extra = {when: {"stdout": f"attempt {attempt}"}}
     return {
         "version": 1,
@@ -78,7 +81,9 @@ def _harness(tmp_path: Path) -> tuple[Coordinator, WorkerState, Any, dict[str, A
 
 
 def _read_events(state: WorkerState, events: list[dict[str, Any]]) -> None:
-    state.result_path.write_text("".join(json.dumps(event) + "\n" for event in events), encoding="utf-8")
+    state.result_path.write_text(
+        "".join(json.dumps(event) + "\n" for event in events), encoding="utf-8"
+    )
 
 
 def test_retry_attempts_replay_reports_and_complete_once(tmp_path: Path) -> None:
@@ -171,15 +176,17 @@ def test_stop_between_attempts_finishes_protocol_without_completing_test(tmp_pat
     reporter.session = session
 
     reporter.pytest_runtest_logstart(nodeid, ("test_retry.py", 1, "test_retry"))
-    reporter.pytest_runtest_logreport(pytest.TestReport(
-        nodeid=nodeid,
-        location=("test_retry.py", 1, "test_retry"),
-        keywords={},
-        outcome=cast(Any, "rerun"),
-        longrepr="retry failed",
-        when=cast(Any, "setup"),
-        duration=0.01,
-    ))
+    reporter.pytest_runtest_logreport(
+        pytest.TestReport(
+            nodeid=nodeid,
+            location=("test_retry.py", 1, "test_retry"),
+            keywords={},
+            outcome=cast(Any, "rerun"),
+            longrepr="retry failed",
+            when=cast(Any, "setup"),
+            duration=0.01,
+        )
+    )
     stop_path.touch()
 
     with pytest.raises(Session.Interrupted):
@@ -223,15 +230,18 @@ def test_report_serialization_keeps_json_report_extra() -> None:
     config = cast(Any, Mock())
     config.hook.pytest_report_to_serializable.return_value = None
     reporter.config = config
-    report = cast(Any, pytest.TestReport(
-        nodeid="test_retry.py::test_retry",
-        location=("test_retry.py", 1, "test_retry"),
-        keywords={},
-        outcome="passed",
-        longrepr=None,
-        when="call",
-        duration=0.01,
-    ))
+    report = cast(
+        Any,
+        pytest.TestReport(
+            nodeid="test_retry.py::test_retry",
+            location=("test_retry.py", 1, "test_retry"),
+            keywords={},
+            outcome="passed",
+            longrepr=None,
+            when="call",
+            duration=0.01,
+        ),
+    )
     report._json_report_extra = {"call": {"stdout": "attempt output"}, "metadata": {"worker": 0}}
 
     assert reporter._serialize_report(report)["_json_report_extra"] == report._json_report_extra

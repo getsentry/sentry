@@ -23,7 +23,9 @@ def _make_item(nodeid: str) -> Mock:
     return item
 
 
-def _assigned_nodeids(items: list[Mock], num_workers: int, balance: str = "round-robin") -> list[list[str]]:
+def _assigned_nodeids(
+    items: list[Mock], num_workers: int, balance: str = "round-robin"
+) -> list[list[str]]:
     files: list[FileUnit] = []
     by_key: dict[str, FileUnit] = {}
     for item in items:
@@ -124,7 +126,9 @@ def test_spawn_uses_multiprocessing_context(tmp_path: Path) -> None:
     assert args[4] == tmp_path / "worker_0_results.jsonl"
     assert args[5] == tmp_path / "worker_0_output.txt"
     process.start.assert_called_once_with()
-    assert workers == [(0, process, tmp_path / "worker_0_results.jsonl", tmp_path / "worker_0_output.txt")]
+    assert workers == [
+        (0, process, tmp_path / "worker_0_results.jsonl", tmp_path / "worker_0_output.txt")
+    ]
 
 
 def test_forwarded_args_strips_jobs_options() -> None:
@@ -132,7 +136,9 @@ def test_forwarded_args_strips_jobs_options() -> None:
     config.known_args_namespace.file_or_dir = ["tests/"]
     coordinator = Coordinator(cast(Any, config), 1)
 
-    with patch("pytest_parallel.coordinator.sys.argv", ["pytest", "tests/", "-q", "-j", "4", "--jobs=8"]):
+    with patch(
+        "pytest_parallel.coordinator.sys.argv", ["pytest", "tests/", "-q", "-j", "4", "--jobs=8"]
+    ):
         args = coordinator._forwarded_args()
 
     assert args == ["-q"]
@@ -242,7 +248,10 @@ def test_explicit_spawn_on_linux_skips_thread_guard() -> None:
 
 def test_unsupported_start_method_raises_usage_error() -> None:
     with (
-        patch("pytest_parallel.coordinator.multiprocessing.get_context", side_effect=ValueError("no fork")),
+        patch(
+            "pytest_parallel.coordinator.multiprocessing.get_context",
+            side_effect=ValueError("no fork"),
+        ),
         pytest.raises(pytest.UsageError, match="not supported"),
     ):
         _multiprocessing_context("fork")
@@ -276,7 +285,11 @@ def test_count_balance_assigns_largest_files_first_and_preserves_order() -> None
     ]
 
 
-def _make_marked_item(nodeid: str, groups: list[tuple[object, ...]], kwargs_list: list[dict[str, object]] | None = None) -> Mock:
+def _make_marked_item(
+    nodeid: str,
+    groups: list[tuple[object, ...]],
+    kwargs_list: list[dict[str, object]] | None = None,
+) -> Mock:
     item = _make_item(nodeid)
     marks = []
     for idx, args in enumerate(groups):
@@ -380,7 +393,9 @@ def test_forwarded_args_uses_invocation_params_and_strips_coordinator_flags(
         f"--basetemp={tmp_path / 'basetemp' / 'worker-0'}",
         f"--override-ini=cache_dir={tmp_path / 'basetemp' / 'worker-0' / 'pytest-cache'}",
     ]
-    assert not any(arg.startswith(("--junitxml", "--junit-xml", "--parallel-drain")) for arg in worker_args)
+    assert not any(
+        arg.startswith(("--junitxml", "--junit-xml", "--parallel-drain")) for arg in worker_args
+    )
     assert "cacheprovider" not in worker_args
     assert "pytest_cacheprovider" not in worker_args
     assert "--lf" not in worker_args

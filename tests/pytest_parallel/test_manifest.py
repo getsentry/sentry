@@ -99,17 +99,24 @@ def test_load_manifest_rejects_corrupt_and_unreadable(tmp_path: Path) -> None:
         load_manifest(missing)
 
     wrong_shape = tmp_path / "shape.json"
-    wrong_shape.write_text(json.dumps({"version": True, "files": ["a.py"], "nodeids": ["a.py::test_a"]}), encoding="utf-8")
+    wrong_shape.write_text(
+        json.dumps({"version": True, "files": ["a.py"], "nodeids": ["a.py::test_a"]}),
+        encoding="utf-8",
+    )
     with pytest.raises(ManifestError):
         load_manifest(wrong_shape)
 
     wrong_version = tmp_path / "version.json"
-    wrong_version.write_text(json.dumps({"version": 2, "files": ["a.py"], "nodeids": ["a.py::test_a"]}), encoding="utf-8")
+    wrong_version.write_text(
+        json.dumps({"version": 2, "files": ["a.py"], "nodeids": ["a.py::test_a"]}), encoding="utf-8"
+    )
     with pytest.raises(ManifestError):
         load_manifest(wrong_version)
 
     non_string = tmp_path / "strings.json"
-    non_string.write_text(json.dumps({"version": 1, "files": ["a.py"], "nodeids": [1]}), encoding="utf-8")
+    non_string.write_text(
+        json.dumps({"version": 1, "files": ["a.py"], "nodeids": [1]}), encoding="utf-8"
+    )
     with pytest.raises(ManifestError):
         load_manifest(non_string)
 
@@ -181,7 +188,9 @@ def test_dump_manifest_preserves_duplicate_nodeids_and_file_order(tmp_path: Path
     assert loaded.nodeids == ("a.py::test_b", "b.py::test_a", "a.py::test_b")
 
 
-def test_spawn_manifest_env_overwrites_hook_and_nodeid_mode_clears_it(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_spawn_manifest_env_overwrites_hook_and_nodeid_mode_clears_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     monkeypatch.setenv(MANIFEST_ENV, "stale")
     manifest_coordinator = _coordinator(tmp_path, "manifest")
 

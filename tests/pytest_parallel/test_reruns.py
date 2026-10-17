@@ -7,17 +7,27 @@ import sys
 import textwrap
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
+from unittest.mock import Mock
 
 import pytest
 
 pytest.importorskip("pytest_rerunfailures")
+pytest.importorskip("pytest_jsonreport")
+
+from pytest_jsonreport import plugin as json_report_plugin
+
+from sentry.testutils.pytest import json_report_reruns
 
 
 def _clean_env() -> dict[str, str]:
     env = os.environ.copy()
     env["PYTEST_ADDOPTS"] = ""
-    for name in ("_PYTEST_PARALLEL_WORKER", "_PYTEST_PARALLEL_WORKER_ENTRY", "PYTEST_PARALLEL_WORKER_ID"):
+    for name in (
+        "_PYTEST_PARALLEL_WORKER",
+        "_PYTEST_PARALLEL_WORKER_ENTRY",
+        "PYTEST_PARALLEL_WORKER_ID",
+    ):
         env.pop(name, None)
     return env
 
@@ -65,7 +75,9 @@ def _run_json_suite(
         ),
         encoding="utf-8",
     )
+    (tmp_path / "pytest.ini").write_text("[pytest]\n", encoding="utf-8")
     env = _clean_env()
+    env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     env["PYTEST_JSON_REPORT_FILE"] = str(json_path)
     env["PYTEST_JSON_WORKER_MARKER"] = str(worker_write_marker)
     result = subprocess.run(
@@ -73,6 +85,12 @@ def _run_json_suite(
             sys.executable,
             "-m",
             "pytest",
+            "-p",
+            "pytest_parallel.plugin",
+            "-p",
+            "pytest_rerunfailures",
+            "-p",
+            "pytest_jsonreport.plugin",
             str(test_file),
             "-j",
             "1",
@@ -91,8 +109,17 @@ def _run_json_suite(
     )
     assert json_path.exists(), result.stdout
     assert junit_path.exists(), result.stdout
-    assert worker_write_marker.read_text(encoding="utf-8") == "JSONReportWorker:True:True", result.stdout
+    assert worker_write_marker.read_text(encoding="utf-8") == "JSONReportWorker:True:True", (
+        result.stdout
+    )
     return result, json.loads(json_path.read_text(encoding="utf-8"))
+
+
+def test_sentry_json_report_reruns_ignores_parallel_worker(monkeypatch: pytest.MonkeyPatch) -> None:
+    worker_type = cast(Any, json_report_plugin).JSONReportWorker
+    monkeypatch.setattr(json_report_plugin, "JSONReport", worker_type)
+
+    json_report_reruns.pytest_plugin_registered(worker_type(), Mock())
 
 
 def test_fail_then_pass_preserves_report_extras_and_single_writer_files(tmp_path: Path) -> None:
@@ -302,6 +329,7 @@ def test_maxfail_coordinates_retry_with_another_worker(
         ),
         encoding="utf-8",
     )
+    (tmp_path / "pytest.ini").write_text("[pytest]\n", encoding="utf-8")
     (tmp_path / "test_a_retry.py").write_text(
         textwrap.dedent(
             f"""
@@ -340,27 +368,40 @@ def test_maxfail_coordinates_retry_with_another_worker(
             import sys
             import threading
             import pytest
-            from pytest_parallel.coordinator import Coordinator
+
+            class StopObserver:
+                @pytest.hookimpl
+                def pytest_configure(self, config):
+                    from pytest_parallel.coordinator import Coordinator
+
+                    stopped = threading.Event()
+                    original = Coordinator._trigger_global_stop
+
+                    def trigger(stop_path, worker_states):
+                        original(stop_path, worker_states)
+                        stopped.set()
+
+                    Coordinator._trigger_global_stop = staticmethod(trigger)
+
+                    def release_retry():
+                        if stopped.wait(5):
+                            from pathlib import Path
+                            Path(sys.argv[1]).touch()
+
+                    releaser = threading.Thread(target=release_retry, daemon=True)
+                    releaser.start()
 
             def main():
-                stopped = threading.Event()
-                original = Coordinator._trigger_global_stop
-
-                def trigger(stop_path, worker_states):
-                    original(stop_path, worker_states)
-                    stopped.set()
-
-                Coordinator._trigger_global_stop = staticmethod(trigger)
-
-                def release_retry():
-                    if stopped.wait(5):
-                        from pathlib import Path
-                        Path(sys.argv[1]).touch()
-
-                releaser = threading.Thread(target=release_retry, daemon=True)
-                releaser.start()
-                result = pytest.main(sys.argv[2:])
-                releaser.join(1)
+                result = pytest.main(
+                    [
+                        "-p",
+                        "pytest_parallel.plugin",
+                        "-p",
+                        "pytest_rerunfailures",
+                        *sys.argv[2:],
+                    ],
+                    plugins=[StopObserver()],
+                )
                 raise SystemExit(int(result))
 
             if __name__ == "__main__":
@@ -370,6 +411,7 @@ def test_maxfail_coordinates_retry_with_another_worker(
         encoding="utf-8",
     )
     env = _clean_env()
+    env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     env["PYTEST_RETRY_STARTED"] = str(retry_started)
     env["PYTEST_RETRY_RELEASE"] = str(retry_release)
     result = subprocess.run(

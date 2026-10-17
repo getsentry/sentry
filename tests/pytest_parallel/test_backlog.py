@@ -115,7 +115,9 @@ def test_coordinator_work_dir_is_created_under_explicit_basetemp(tmp_path: Path)
 
 def test_work_dir_inside_explicit_basetemp(tmp_path: Path) -> None:
     base = tmp_path / "base"
-    (tmp_path / "test_a.py").write_text("def test_a(tmp_path):\n (tmp_path / 'x').write_text('1')\n assert True\n")
+    (tmp_path / "test_a.py").write_text(
+        "def test_a(tmp_path):\n (tmp_path / 'x').write_text('1')\n assert True\n"
+    )
     res = _run([str(tmp_path), "-j", "1", "-q", f"--basetemp={base}"], tmp_path)
     assert res.returncode == 0, res.stdout
     assert (base / "worker-0").exists()
@@ -123,10 +125,7 @@ def test_work_dir_inside_explicit_basetemp(tmp_path: Path) -> None:
 
 def test_worker_native_fd_output_goes_to_worker_output(tmp_path: Path) -> None:
     (tmp_path / "test_native.py").write_text(
-        "import os\n"
-        "def test_native():\n"
-        "    os.write(1, b'NATIVE_FD_MARKER\\n')\n"
-        "    assert True\n"
+        "import os\ndef test_native():\n    os.write(1, b'NATIVE_FD_MARKER\\n')\n    assert True\n"
     )
     res = _run([str(tmp_path), "-j", "1", "-q", "-s"], tmp_path)
     assert res.returncode == 0, res.stdout
@@ -180,7 +179,9 @@ def test_sigterm_reaps_worker_and_removes_work_dir(tmp_path: Path) -> None:
     deadline = time.monotonic() + 8.0
     while not ready.exists() and time.monotonic() < deadline:
         time.sleep(0.02)
-    assert ready.exists(), proc.communicate(timeout=1)[0] if proc.poll() is not None else "worker did not start"
+    assert ready.exists(), (
+        proc.communicate(timeout=1)[0] if proc.poll() is not None else "worker did not start"
+    )
     proc.send_signal(signal.SIGTERM)
     stdout, _ = proc.communicate(timeout=8.0)
     assert proc.returncode != 0, stdout
@@ -218,7 +219,9 @@ def _worker_isolation_suite(root: Path, junit: Path) -> None:
         )
 
 
-def _assert_isolated_workers(root: Path, base: Path, junit: Path, result: subprocess.CompletedProcess[str]) -> None:
+def _assert_isolated_workers(
+    root: Path, base: Path, junit: Path, result: subprocess.CompletedProcess[str]
+) -> None:
     assert result.returncode == 0, result.stdout
     assert (base / "sentinel.txt").is_file()
     assert (base / "worker-0").is_dir()
@@ -246,7 +249,9 @@ def test_pytest_ini_addopts_do_not_leak_into_workers(tmp_path: Path) -> None:
     (base / "sentinel.txt").write_text("keep")
     junit = root / "shared-junit.xml"
     _worker_isolation_suite(root, junit)
-    (root / "pytest.ini").write_text(f"[pytest]\naddopts = {_quoted_addopts('-pcacheprovider', junit, base)}\n")
+    (root / "pytest.ini").write_text(
+        f"[pytest]\naddopts = {_quoted_addopts('-pcacheprovider', junit, base)}\n"
+    )
     result = _run([str(root), "-j", "2", "-q"], root)
     _assert_isolated_workers(root, base, junit, result)
 
@@ -286,9 +291,13 @@ def test_ini_pyproject_and_pytest_addopts_are_sanitized_together(tmp_path: Path)
     (base / "sentinel.txt").write_text("keep")
     junit = root / "shared-junit.xml"
     _worker_isolation_suite(root, junit)
-    (root / "pytest.ini").write_text(f"[pytest]\naddopts = {_quoted_addopts('-pcacheprovider', junit, base)}\n")
+    (root / "pytest.ini").write_text(
+        f"[pytest]\naddopts = {_quoted_addopts('-pcacheprovider', junit, base)}\n"
+    )
     pyproject_addopts = _quoted_addopts("-p cacheprovider", junit, base)
-    (root / "pyproject.toml").write_text(f"[tool.pytest.ini_options]\naddopts = {pyproject_addopts!r}\n")
+    (root / "pyproject.toml").write_text(
+        f"[tool.pytest.ini_options]\naddopts = {pyproject_addopts!r}\n"
+    )
     result = _run(
         [str(root), "-j", "2", "-q"],
         root,
@@ -313,7 +322,9 @@ def test_ini_log_file_is_per_worker(tmp_path: Path) -> None:
     (root / "test_b.py").write_text(body)
     result = _run([str(root), "-j", "2", "-q"], root)
     assert result.returncode == 0, result.stdout
-    shared = (root / "shared.log").read_text(encoding="utf-8") if (root / "shared.log").exists() else ""
+    shared = (
+        (root / "shared.log").read_text(encoding="utf-8") if (root / "shared.log").exists() else ""
+    )
     assert "PYTEST_PARALLEL_WORKER_ID=" not in shared
     for worker_id in (0, 1):
         text = (root / f"shared.worker-{worker_id}.log").read_text(encoding="utf-8")

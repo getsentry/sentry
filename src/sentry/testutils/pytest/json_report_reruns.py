@@ -11,7 +11,7 @@ See also:
 """
 
 import pytest
-import pytest_jsonreport.plugin
+from pytest_jsonreport.plugin import JSONReport as JSONReportPlugin
 
 JSONTestItem = dict[str, list[object]]
 JSONTestItems = dict[str, JSONTestItem]
@@ -19,7 +19,7 @@ JSONTestItems = dict[str, JSONTestItem]
 
 def pytest_plugin_registered(plugin: object, manager: pytest.PytestPluginManager) -> None:
     """Only register if/when the plugin we're extending is registered."""
-    if isinstance(plugin, pytest_jsonreport.plugin.JSONReport):
+    if isinstance(plugin, JSONReportPlugin):
         json_tests = getattr(plugin, "_json_tests")
         manager.register(PytestRerunJSONReporter(json_tests))
 

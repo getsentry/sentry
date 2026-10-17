@@ -85,7 +85,9 @@ def test_worker_count_capped_by_schedulable_file_groups(tmp_path: Path) -> None:
     assert "requested 8 workers capped to 1 (1 scheduling units)" in result.stdout
 
 
-def test_invalid_max_workers_hook_raises_usage_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_invalid_max_workers_hook_raises_usage_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     (tmp_path / "test_a.py").write_text("def test_a():\n    assert True\n")
     monkeypatch.delenv("_PYTEST_PARALLEL_WORKER", raising=False)
     monkeypatch.delenv("PYTEST_PARALLEL_WORKER_ID", raising=False)

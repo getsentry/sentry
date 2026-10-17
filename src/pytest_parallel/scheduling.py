@@ -56,11 +56,15 @@ def validate_group_names(values: object, path: Path, source: str) -> list[str]:
     if values is None:
         return []
     if isinstance(values, str | bytes) or not isinstance(values, Sequence):
-        raise pytest.UsageError(f"{source} for {path} must return a list of group names or None, got {values!r}")
+        raise pytest.UsageError(
+            f"{source} for {path} must return a list of group names or None, got {values!r}"
+        )
     names: list[str] = []
     for raw in values:
         if not isinstance(raw, str) or not raw.strip():
-            raise pytest.UsageError(f"{source} for {path} requires non-empty string group names, got {raw!r}")
+            raise pytest.UsageError(
+                f"{source} for {path} requires non-empty string group names, got {raw!r}"
+            )
         names.append(raw.strip())
     return names
 
@@ -213,5 +217,7 @@ def format_plan_text(plan: dict[str, Any]) -> str:
         for unit in worker["units"]:
             kind = "pinned" if unit["pinned"] else "auto"
             groups = ",".join(unit["groups"]) if unit["groups"] else "-"
-            lines.append(f"  [{kind}] groups={groups} weight={unit['weight']:g} files={', '.join(unit['files'])}")
+            lines.append(
+                f"  [{kind}] groups={groups} weight={unit['weight']:g} files={', '.join(unit['files'])}"
+            )
     return "\n".join(lines)

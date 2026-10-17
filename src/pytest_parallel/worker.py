@@ -158,7 +158,9 @@ class ResultReporter:
             raise session.Interrupted("worker collection mismatch")
 
     @pytest.hookimpl(tryfirst=True)
-    def pytest_runtest_protocol(self, item: pytest.Item, nextitem: pytest.Item | None) -> bool | None:
+    def pytest_runtest_protocol(
+        self, item: pytest.Item, nextitem: pytest.Item | None
+    ) -> bool | None:
         if self._should_stop():
             item.session.shouldstop = "stopped by coordinator"
             return True
@@ -185,7 +187,9 @@ class ResultReporter:
                     raise RuntimeError(f"unexpected test start for {nodeid!r}")
                 expected_nodeid = self.expected_nodeids[self._expected_index]
                 if expected_nodeid != nodeid:
-                    raise RuntimeError(f"expected test start for {expected_nodeid!r}, got {nodeid!r}")
+                    raise RuntimeError(
+                        f"expected test start for {expected_nodeid!r}, got {nodeid!r}"
+                    )
             attempt = 1
         self._rerunning.discard(nodeid)
         self._active_attempt = (nodeid, attempt)
@@ -209,7 +213,9 @@ class ResultReporter:
             yield
 
     @pytest.hookimpl(hookwrapper=True)
-    def pytest_runtest_teardown(self, item: pytest.Item, nextitem: pytest.Item | None) -> Generator[None]:
+    def pytest_runtest_teardown(
+        self, item: pytest.Item, nextitem: pytest.Item | None
+    ) -> Generator[None]:
         with self._record_uncaptured_phase_output():
             yield
 
@@ -309,7 +315,9 @@ class ResultReporter:
             }
         )
 
-    def pytest_sessionfinish(self, session: pytest.Session, exitstatus: int | pytest.ExitCode) -> None:
+    def pytest_sessionfinish(
+        self, session: pytest.Session, exitstatus: int | pytest.ExitCode
+    ) -> None:
         self._emit(
             {
                 "type": "session_finish",
@@ -370,7 +378,11 @@ def run_worker(
         ramp_delay=ramp_delay,
         manifest_path=manifest_path,
     )
-    with output_path.open("a", encoding="utf-8") as output_file, redirect_stdout(output_file), redirect_stderr(output_file):
+    with (
+        output_path.open("a", encoding="utf-8") as output_file,
+        redirect_stdout(output_file),
+        redirect_stderr(output_file),
+    ):
         saved_fds: list[int] = []
         try:
             for fd in (1, 2):

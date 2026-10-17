@@ -21,7 +21,9 @@ def _clean_env() -> dict[str, str]:
     return env
 
 
-def _run_pytest(args: list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:
+def _run_pytest(
+    args: list[str], cwd: Path | None = None, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, "-m", "pytest", *args],
         cwd=cwd,
@@ -73,9 +75,7 @@ def test_worker_os_exit_0_mid_suite_cannot_produce_false_success(tmp_path: Path)
 def test_worker_sigkill_reports_signal_and_last_test(tmp_path: Path) -> None:
     test_file = tmp_path / "test_sigkill.py"
     test_file.write_text(
-        "import os, signal\n"
-        "def test_killed():\n"
-        "    os.kill(os.getpid(), signal.SIGKILL)\n"
+        "import os, signal\ndef test_killed():\n    os.kill(os.getpid(), signal.SIGKILL)\n"
     )
     result = _run_pytest([str(test_file), "-j", "1", "-q"])
     assert result.returncode != 0, result.stdout
@@ -141,10 +141,19 @@ def test_phase_outcomes_and_junitxml_match_serial(tmp_path: Path) -> None:
     parallel_xml = tmp_path / "parallel.xml"
 
     serial_res = _run_pytest([str(suite), "--serial", f"--junitxml={serial_xml}", "--durations=0"])
-    parallel_res = _run_pytest([str(suite), "-j", "1", f"--junitxml={parallel_xml}", "--durations=0"])
+    parallel_res = _run_pytest(
+        [str(suite), "-j", "1", f"--junitxml={parallel_xml}", "--durations=0"]
+    )
 
     assert serial_res.returncode == parallel_res.returncode
-    for expected_fragment in ("2 failed", "2 passed", "2 skipped", "1 xfailed", "1 xpassed", "2 errors"):
+    for expected_fragment in (
+        "2 failed",
+        "2 passed",
+        "2 skipped",
+        "1 xfailed",
+        "1 xpassed",
+        "2 errors",
+    ):
         assert expected_fragment in serial_res.stdout, serial_res.stdout
         assert expected_fragment in parallel_res.stdout, parallel_res.stdout
     assert "captured fail stdout" in parallel_res.stdout
@@ -163,7 +172,9 @@ def test_collection_error_aborts_execution_by_default(tmp_path: Path) -> None:
     good = tmp_path / "test_good.py"
     marker = tmp_path / "ran.txt"
     bad.write_text("import non_existent_module_xyz\n")
-    good.write_text(f"from pathlib import Path\ndef test_ok():\n    Path({str(marker)!r}).write_text('ran')\n")
+    good.write_text(
+        f"from pathlib import Path\ndef test_ok():\n    Path({str(marker)!r}).write_text('ran')\n"
+    )
 
     res = _run_pytest([str(tmp_path), "-j", "2"])
     assert res.returncode == int(pytest.ExitCode.INTERRUPTED), res.stdout
@@ -180,7 +191,9 @@ def test_continue_on_collection_errors_preserves_failure_status(tmp_path: Path) 
     assert res.returncode == int(pytest.ExitCode.TESTS_FAILED), res.stdout
 
 
-def test_programmatic_pytest_main_ignores_unrelated_sys_argv(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_programmatic_pytest_main_ignores_unrelated_sys_argv(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     test_file = tmp_path / "test_prog.py"
     test_file.write_text("def test_alpha():\n    assert True\ndef test_beta():\n    assert True\n")
 
@@ -200,7 +213,9 @@ def test_programmatic_pytest_main_ignores_unrelated_sys_argv(tmp_path: Path, mon
     assert all(r[0].endswith("test_alpha") for r in recorded)
 
 
-def test_in_memory_execution_plugin_is_rejected_with_usage_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_in_memory_execution_plugin_is_rejected_with_usage_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     test_file = tmp_path / "test_plug.py"
     test_file.write_text("def test_one():\n    assert True\n")
 
@@ -218,8 +233,7 @@ def test_in_memory_execution_plugin_is_rejected_with_usage_error(tmp_path: Path,
 def test_worker_collection_mismatch_fails_loudly(tmp_path: Path) -> None:
     test_file = tmp_path / "test_mismatch.py"
     test_file.write_text(
-        "import os, pytest\n"
-        " WORKER = os.environ.get('_PYTEST_PARALLEL_WORKER') == '1'\n"
+        "import os, pytest\n WORKER = os.environ.get('_PYTEST_PARALLEL_WORKER') == '1'\n"
     )
     test_file.write_text(
         "import os, pytest\n"
@@ -292,7 +306,9 @@ def test_pdb_is_rejected_in_parallel_mode(tmp_path: Path) -> None:
     assert res.returncode == int(pytest.ExitCode.USAGE_ERROR), res.stdout
 
 
-def test_jsonl_protocol_rejects_truncated_and_malformed_streams(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_jsonl_protocol_rejects_truncated_and_malformed_streams(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     test_file = tmp_path / "test_proto.py"
     test_file.write_text("def test_ok():\n    assert True\n")
 
@@ -306,7 +322,9 @@ def test_jsonl_protocol_rejects_truncated_and_malformed_streams(tmp_path: Path, 
             self.pid = 99999
 
         def start(self) -> None:
-            self._results_path.write_text('{"version": 1, "type": "test_start", "nodeid": ', encoding="utf-8")
+            self._results_path.write_text(
+                '{"version": 1, "type": "test_start", "nodeid": ', encoding="utf-8"
+            )
             self.exitcode = 0
 
         def is_alive(self) -> bool:
@@ -327,7 +345,9 @@ def test_jsonl_protocol_rejects_truncated_and_malformed_streams(tmp_path: Path, 
     assert rc == int(pytest.ExitCode.TESTS_FAILED)
 
 
-def _make_harness(tmp_path: Path, assigned: list[str]) -> tuple[Coordinator, Any, Any, dict[str, Any]]:
+def _make_harness(
+    tmp_path: Path, assigned: list[str]
+) -> tuple[Coordinator, Any, Any, dict[str, Any]]:
     from pytest_parallel.coordinator import WorkerState
 
     config = Mock()
@@ -420,10 +440,13 @@ def test_partial_jsonl_line_is_buffered_until_newline(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     ("events", "expected_error_substring"),
     [
-        (['{"version": 2, "type": "collection", "nodeids": ["a.py::test_1"]}'], "unsupported protocol version"),
+        (
+            ['{"version": 2, "type": "collection", "nodeids": ["a.py::test_1"]}'],
+            "unsupported protocol version",
+        ),
         (['{"version": 1, "type": "unknown_event"}'], "unknown event type"),
-        (['not-json'], "malformed JSON"),
-        (['[1, 2, 3]'], "non-object JSON"),
+        (["not-json"], "malformed JSON"),
+        (["[1, 2, 3]"], "non-object JSON"),
         (
             [
                 '{"version": 1, "type": "collection", "nodeids": ["a.py::test_1"]}',
@@ -491,7 +514,9 @@ def test_protocol_validation_rejects_invalid_events(
     state.result_path.write_text("\n".join(events) + "\n", encoding="utf-8")
 
     coordinator._read_worker_events(state, items, session, terminal, final=True)
-    assert any(expected_error_substring in err for err in state.protocol_errors), state.protocol_errors
+    assert any(expected_error_substring in err for err in state.protocol_errors), (
+        state.protocol_errors
+    )
 
     coordinator._reconcile_worker(state, items, session, terminal, None)
     assert session.testsfailed > 0

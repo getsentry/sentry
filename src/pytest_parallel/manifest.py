@@ -29,7 +29,10 @@ def dump_manifest(path: Path, nodeids: Sequence[str]) -> None:
         if file_part not in seen:
             seen.add(file_part)
             files.append(file_part)
-    text = json.dumps({"version": 1, "files": files, "nodeids": list(nodeids)}, ensure_ascii=False) + "\n"
+    text = (
+        json.dumps({"version": 1, "files": files, "nodeids": list(nodeids)}, ensure_ascii=False)
+        + "\n"
+    )
     temporary = path.with_name(f".{path.name}.tmp")
     try:
         temporary.write_text(text, encoding="utf-8")

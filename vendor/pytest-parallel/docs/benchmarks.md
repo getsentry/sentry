@@ -23,12 +23,12 @@ All runs succeeded (non-zero exits abort the harness). Work is verified by pytes
 
 ## Results (macOS, Python 3.14.7, pytest 9.0.3, 4 workers, median of 3)
 
-| Suite | Collection only | Serial | Parallel count | Parallel round-robin |
-| --- | ---: | ---: | ---: | ---: |
-| uniform (8 files × 10 tests) | 0.458s | 0.598s | 0.996s | 0.777s |
-| uneven (80 + 7×1 tests) | 0.279s | 0.311s | 0.831s | 1.225s |
-| many_tiny (40 files × 1 test) | 0.329s | 0.327s | 0.658s | 0.747s |
-| single_file (100 parametrized) | 0.252s | 0.370s | 0.758s | 0.717s |
+| Suite                          | Collection only | Serial | Parallel count | Parallel round-robin |
+| ------------------------------ | --------------: | -----: | -------------: | -------------------: |
+| uniform (8 files × 10 tests)   |          0.458s | 0.598s |         0.996s |               0.777s |
+| uneven (80 + 7×1 tests)        |          0.279s | 0.311s |         0.831s |               1.225s |
+| many_tiny (40 files × 1 test)  |          0.329s | 0.327s |         0.658s |               0.747s |
+| single_file (100 parametrized) |          0.252s | 0.370s |         0.758s |               0.717s |
 
 ## Interpretation and limitations
 

@@ -110,7 +110,9 @@ _STRIP_PREFIX_OPTIONS: tuple[str, ...] = (
     "--junit-xml=",
 )
 
-_STRIP_FLAG_OPTIONS: frozenset[str] = frozenset({"--lf", "--ff", "--nf", "--cache-clear", "--sw", "--stepwise"})
+_STRIP_FLAG_OPTIONS: frozenset[str] = frozenset(
+    {"--lf", "--ff", "--nf", "--cache-clear", "--sw", "--stepwise"}
+)
 
 _CACHE_PROVIDER_PLUGINS: frozenset[str] = frozenset({"cacheprovider", "pytest_cacheprovider"})
 
@@ -240,7 +242,11 @@ class Coordinator:
             if explicit_basetemp:
                 base = Path(explicit_basetemp)
                 if not base.is_absolute():
-                    rootpath = self.config.rootpath if isinstance(getattr(self.config, "rootpath", None), Path) else Path.cwd()
+                    rootpath = (
+                        self.config.rootpath
+                        if isinstance(getattr(self.config, "rootpath", None), Path)
+                        else Path.cwd()
+                    )
                     base = rootpath / base
                 base.mkdir(parents=True, exist_ok=True)
                 self._work_dir = Path(tempfile.mkdtemp(prefix="pytest_parallel_", dir=base))
@@ -249,7 +255,11 @@ class Coordinator:
         return self._work_dir
 
     def show_plan(self, session: pytest.Session, mode: str) -> bool:
-        rootpath = self.config.rootpath if isinstance(getattr(self.config, "rootpath", None), Path) else Path.cwd()
+        rootpath = (
+            self.config.rootpath
+            if isinstance(getattr(self.config, "rootpath", None), Path)
+            else Path.cwd()
+        )
         if not session.items:
             plan = plan_dict([], [], balance=self.balance, pins={}, rootpath=rootpath)
         else:
@@ -266,7 +276,9 @@ class Coordinator:
         _, plan, _ = self._build_plan(items)
         return plan
 
-    def _build_plan(self, items: Sequence[Any]) -> tuple[list[list[Any]], dict[str, Any], list[list[Unit]]]:
+    def _build_plan(
+        self, items: Sequence[Any]
+    ) -> tuple[list[list[Any]], dict[str, Any], list[list[Unit]]]:
         session = getattr(items[0], "session", None) if items else None
         units = self._build_units(items, session)
         max_workers = self._resolve_max_workers()
@@ -274,7 +286,11 @@ class Coordinator:
         num_workers = max(1, min(self.requested_workers, len(units), max_workers))
         pins = self._resolve_pins(units, num_workers, session)
         buckets = assign_units(units, num_workers, balance=self.balance, pins=pins)
-        rootpath = self.config.rootpath if isinstance(getattr(self.config, "rootpath", None), Path) else Path.cwd()
+        rootpath = (
+            self.config.rootpath
+            if isinstance(getattr(self.config, "rootpath", None), Path)
+            else Path.cwd()
+        )
         plan = plan_dict(buckets, units, balance=self.balance, pins=pins, rootpath=rootpath)
         groups = [[item for unit in bucket for item in unit.items] for bucket in buckets]
         if self.collection == "manifest":
@@ -293,7 +309,11 @@ class Coordinator:
         return groups, plan, buckets
 
     def _build_units(self, items: Sequence[Any], session: Any | None = None) -> list[Unit]:
-        rootpath = self.config.rootpath if isinstance(getattr(self.config, "rootpath", None), Path) else Path.cwd()
+        rootpath = (
+            self.config.rootpath
+            if isinstance(getattr(self.config, "rootpath", None), Path)
+            else Path.cwd()
+        )
         files: list[FileUnit] = []
         by_key: dict[str, FileUnit] = {}
         for item in items:
@@ -309,26 +329,38 @@ class Coordinator:
             hook = self._scoped_hook(session, self._absolute_file(file_unit))
             if hook is not None and hasattr(hook, "pytest_parallel_file_groups"):
                 try:
-                    results = hook.pytest_parallel_file_groups(path=file_unit.path, items=list(file_unit.items))
+                    results = hook.pytest_parallel_file_groups(
+                        path=file_unit.path, items=list(file_unit.items)
+                    )
                 except AttributeError:
                     results = []
                 if isinstance(results, list):
                     for result in results:
-                        file_unit.groups.update(_validate_hook_groups(result, file_unit.path, "pytest_parallel_file_groups"))
+                        file_unit.groups.update(
+                            _validate_hook_groups(
+                                result, file_unit.path, "pytest_parallel_file_groups"
+                            )
+                        )
             weight: float = float(len(file_unit.items))
             if hook is not None and hasattr(hook, "pytest_parallel_file_weight"):
                 try:
-                    hook_weight = hook.pytest_parallel_file_weight(path=file_unit.path, items=list(file_unit.items))
+                    hook_weight = hook.pytest_parallel_file_weight(
+                        path=file_unit.path, items=list(file_unit.items)
+                    )
                 except AttributeError:
                     hook_weight = None
                 if hook_weight is not None:
                     weight = _validate_hook_weight(hook_weight, file_unit.path)
                     if not file_unit.items and weight != weight:
-                        raise pytest.UsageError(f"pytest_parallel_file_weight for {file_unit.path} is invalid")
+                        raise pytest.UsageError(
+                            f"pytest_parallel_file_weight for {file_unit.path} is invalid"
+                        )
             file_unit.weight = weight
         return merge_units(files)
 
-    def _resolve_pins(self, units: Sequence[Unit], num_workers: int, session: Any | None = None) -> dict[int, int]:
+    def _resolve_pins(
+        self, units: Sequence[Unit], num_workers: int, session: Any | None = None
+    ) -> dict[int, int]:
         hook = getattr(self.config, "hook", None)
         pins: dict[int, int] = {}
         caller = getattr(hook, "pytest_parallel_shard_worker", None) if hook is not None else None
@@ -372,18 +404,32 @@ class Coordinator:
         key_path = Path(file_unit.key)
         if key_path.is_absolute():
             return key_path
-        rootpath = self.config.rootpath if isinstance(getattr(self.config, "rootpath", None), Path) else Path.cwd()
+        rootpath = (
+            self.config.rootpath
+            if isinstance(getattr(self.config, "rootpath", None), Path)
+            else Path.cwd()
+        )
         return rootpath / file_unit.path
 
     def _absolute_unit_path(self, path: Path) -> Path:
         if path.is_absolute():
             return path
-        rootpath = self.config.rootpath if isinstance(getattr(self.config, "rootpath", None), Path) else Path.cwd()
+        rootpath = (
+            self.config.rootpath
+            if isinstance(getattr(self.config, "rootpath", None), Path)
+            else Path.cwd()
+        )
         return rootpath / path
 
-    def _shard_worker_results(self, caller: Any, session: Any | None, unit: Unit, num_workers: int) -> list[Any]:
+    def _shard_worker_results(
+        self, caller: Any, session: Any | None, unit: Unit, num_workers: int
+    ) -> list[Any]:
         shard = unit.shard()
-        if session is None or not hasattr(caller, "get_hookimpls") or not hasattr(session, "gethookproxy"):
+        if (
+            session is None
+            or not hasattr(caller, "get_hookimpls")
+            or not hasattr(session, "gethookproxy")
+        ):
             return list(caller(shard=shard, num_workers=num_workers) or [])
         applicable: set[object] = set()
         for path in unit.files:
@@ -404,7 +450,11 @@ class Coordinator:
             seen.add(function)
             argnames = tuple(getattr(impl, "argnames", ()) or ())
             values = {"shard": shard, "num_workers": num_workers}
-            kwargs = values if not argnames else {name: value for name, value in values.items() if name in argnames}
+            kwargs = (
+                values
+                if not argnames
+                else {name: value for name, value in values.items() if name in argnames}
+            )
             results.append(function(**kwargs))
         return results
 
@@ -579,10 +629,7 @@ class Coordinator:
             if isinstance(getattr(self.config, "rootpath", None), Path)
             else Path.cwd()
         )
-        assigned_files = {
-            (rootpath / nodeid.partition("::")[0]).resolve()
-            for nodeid in nodeids
-        }
+        assigned_files = {(rootpath / nodeid.partition("::")[0]).resolve() for nodeid in nodeids}
         arguments: list[str] = []
         for raw_path in raw_positionals:
             raw = str(raw_path)
@@ -685,7 +732,11 @@ class Coordinator:
         if explicit_basetemp:
             base = Path(explicit_basetemp)
             if not base.is_absolute():
-                rootpath = self.config.rootpath if isinstance(getattr(self.config, "rootpath", None), Path) else Path.cwd()
+                rootpath = (
+                    self.config.rootpath
+                    if isinstance(getattr(self.config, "rootpath", None), Path)
+                    else Path.cwd()
+                )
                 base = rootpath / base
             return base / f"worker-{worker_id}"
         return self._ensure_work_dir() / "basetemp" / f"worker-{worker_id}"
@@ -698,7 +749,11 @@ class Coordinator:
         if explicit_basetemp:
             base = Path(explicit_basetemp)
             if not base.is_absolute():
-                rootpath = self.config.rootpath if isinstance(getattr(self.config, "rootpath", None), Path) else Path.cwd()
+                rootpath = (
+                    self.config.rootpath
+                    if isinstance(getattr(self.config, "rootpath", None), Path)
+                    else Path.cwd()
+                )
                 base = rootpath / base
             base.mkdir(parents=True, exist_ok=True)
         else:
@@ -743,7 +798,14 @@ class Coordinator:
 
                 process = context.Process(
                     target=run_worker,
-                    args=(env, nodeids, forwarded_args, str(self.config.rootpath), result_path, output_path),
+                    args=(
+                        env,
+                        nodeids,
+                        forwarded_args,
+                        str(self.config.rootpath),
+                        result_path,
+                        output_path,
+                    ),
                 )
                 process.start()
                 workers.append((index, process, result_path, output_path))
@@ -762,7 +824,11 @@ class Coordinator:
     ) -> None:
         terminal = session.config.get_terminal_writer()
         terminal_reporter = session.config.pluginmanager.get_plugin("terminalreporter")
-        previous_showfspath = getattr(terminal_reporter, "showfspath", None) if terminal_reporter is not None else None
+        previous_showfspath = (
+            getattr(terminal_reporter, "showfspath", None)
+            if terminal_reporter is not None
+            else None
+        )
         if terminal_reporter is not None:
             terminal_reporter.showfspath = False
 
@@ -800,7 +866,11 @@ class Coordinator:
                     if not state.process.is_alive():
                         alive.discard(index)
                 if alive:
-                    if global_stop_requested and drain_deadline is not None and time.monotonic() >= drain_deadline:
+                    if (
+                        global_stop_requested
+                        and drain_deadline is not None
+                        and time.monotonic() >= drain_deadline
+                    ):
                         self._terminate_live_workers(workers)
                         alive.clear()
                     else:
@@ -855,7 +925,10 @@ class Coordinator:
                 if process.is_alive() and hasattr(process, "kill"):
                     process.kill()
                     process.join(timeout=1.0)
-                elif getattr(process, "pid", None) is not None and getattr(process, "exitcode", None) is None:
+                elif (
+                    getattr(process, "pid", None) is not None
+                    and getattr(process, "exitcode", None) is None
+                ):
                     process.join(timeout=1.0)
             except Exception:
                 pass
@@ -965,11 +1038,15 @@ class Coordinator:
 
     def _handle_collection_event(self, state: WorkerState, event: dict[str, Any]) -> None:
         if state.collected_nodeids is not None:
-            state.protocol_errors.append(f"duplicate collection event from worker {state.worker_id}")
+            state.protocol_errors.append(
+                f"duplicate collection event from worker {state.worker_id}"
+            )
             return
         nodeids = event.get("nodeids")
         if not isinstance(nodeids, list) or not all(isinstance(x, str) for x in nodeids):
-            state.protocol_errors.append(f"invalid collection nodeids from worker {state.worker_id}")
+            state.protocol_errors.append(
+                f"invalid collection nodeids from worker {state.worker_id}"
+            )
             return
         collected = [str(x) for x in nodeids]
         state.collected_nodeids = collected
@@ -998,11 +1075,15 @@ class Coordinator:
     ) -> None:
         report_data = event.get("report")
         if not isinstance(report_data, dict):
-            state.protocol_errors.append(f"invalid collect_report payload from worker {state.worker_id}")
+            state.protocol_errors.append(
+                f"invalid collect_report payload from worker {state.worker_id}"
+            )
             return
         collect_report = self._deserialize_collect_report(report_data)
         if collect_report is None:
-            state.protocol_errors.append(f"failed to deserialize collect_report from worker {state.worker_id}")
+            state.protocol_errors.append(
+                f"failed to deserialize collect_report from worker {state.worker_id}"
+            )
             return
         if collect_report.failed:
             state.collect_failed = True
@@ -1041,7 +1122,9 @@ class Coordinator:
             state.pending_retry = None
         else:
             expected_index = len(state.started)
-            next_nodeid = state.assigned[expected_index] if expected_index < len(state.assigned) else None
+            next_nodeid = (
+                state.assigned[expected_index] if expected_index < len(state.assigned) else None
+            )
             if next_nodeid != nodeid or attempt != 1:
                 state.protocol_errors.append(
                     f"out-of-order test_start on worker {state.worker_id}: expected "
@@ -1054,7 +1137,9 @@ class Coordinator:
         item = items_by_nodeid.get(nodeid)
         location = _parse_location(event.get("location"), item, nodeid)
         state.last_nodeid = nodeid
-        state.current_test = ActiveTestState(nodeid=nodeid, location=location, attempt=cast(int, attempt))
+        state.current_test = ActiveTestState(
+            nodeid=nodeid, location=location, attempt=cast(int, attempt)
+        )
 
     def _handle_report_event(
         self,
@@ -1086,7 +1171,12 @@ class Coordinator:
                 f"invalid report outcome {outcome!r} for {nodeid!r} on worker {state.worker_id}"
             )
             return
-        if isinstance(duration, bool) or not isinstance(duration, int | float) or not math.isfinite(duration) or duration < 0.0:
+        if (
+            isinstance(duration, bool)
+            or not isinstance(duration, int | float)
+            or not math.isfinite(duration)
+            or duration < 0.0
+        ):
             state.protocol_errors.append(
                 f"invalid report duration {duration!r} for {nodeid!r} on worker {state.worker_id}"
             )
@@ -1159,7 +1249,9 @@ class Coordinator:
         attempt = event.get("attempt")
         final = event.get("final")
         if not isinstance(nodeid, str) or not nodeid:
-            state.protocol_errors.append(f"invalid test_finish nodeid from worker {state.worker_id}")
+            state.protocol_errors.append(
+                f"invalid test_finish nodeid from worker {state.worker_id}"
+            )
             return
         if state.current_test is None or state.current_test.nodeid != nodeid:
             state.protocol_errors.append(
@@ -1184,7 +1276,9 @@ class Coordinator:
                 f"invalid final flag {final!r} for {nodeid!r} attempt {active.attempt} on worker {state.worker_id}"
             )
             return
-        rerun_reports = [report for report in active.reports.values() if cast(str, report.outcome) == "rerun"]
+        rerun_reports = [
+            report for report in active.reports.values() if cast(str, report.outcome) == "rerun"
+        ]
         if final == bool(rerun_reports):
             state.protocol_errors.append(
                 f"attempt completion disagrees with rerun reports for {nodeid!r} attempt {active.attempt} "
@@ -1205,7 +1299,13 @@ class Coordinator:
             state.current_test = None
             return
         setuponly = bool(getattr(self.config.option, "setuponly", False))
-        if final and setup_rep is not None and setup_rep.passed and not setuponly and "call" not in active.reports:
+        if (
+            final
+            and setup_rep is not None
+            and setup_rep.passed
+            and not setuponly
+            and "call" not in active.reports
+        ):
             state.protocol_errors.append(
                 f"missing call report for passed setup on {nodeid!r} on worker {state.worker_id}"
             )
@@ -1257,7 +1357,10 @@ class Coordinator:
                 if current is not None and current.nodeid == nodeid
                 else None
             )
-            if active_attempt != (nodeid, attempt) and state.last_finished_attempt != (nodeid, attempt):
+            if active_attempt != (nodeid, attempt) and state.last_finished_attempt != (
+                nodeid,
+                attempt,
+            ):
                 state.protocol_errors.append(
                     f"warning for {nodeid!r} attempt {attempt!r} without a matching test attempt "
                     f"on worker {state.worker_id}"
@@ -1331,7 +1434,9 @@ class Coordinator:
         terminal_reporter: Any,
     ) -> None:
         exitcode = state.process.exitcode
-        global_stopped = bool(state.stopped_by_coordinator or session.shouldfail or session.shouldstop)
+        global_stopped = bool(
+            state.stopped_by_coordinator or session.shouldfail or session.shouldstop
+        )
 
         if global_stopped and not state.protocol_errors:
             return
@@ -1367,7 +1472,9 @@ class Coordinator:
             )
 
         expected_exit = 1 if state.failed_nodeids else 0
-        if not failure_reasons and (exitcode != expected_exit or state.session_exitstatus != expected_exit):
+        if not failure_reasons and (
+            exitcode != expected_exit or state.session_exitstatus != expected_exit
+        ):
             failure_reasons.append(
                 f"worker {state.worker_id} exit status mismatch: process={exit_desc}, "
                 f"session={state.session_exitstatus}, expected={expected_exit}"
@@ -1379,7 +1486,9 @@ class Coordinator:
         output_text = ""
         if state.output_path.exists():
             try:
-                output_text = state.output_path.read_text(encoding="utf-8", errors="replace").strip()
+                output_text = state.output_path.read_text(
+                    encoding="utf-8", errors="replace"
+                ).strip()
             except OSError:
                 output_text = ""
 
@@ -1396,14 +1505,20 @@ class Coordinator:
         if state.current_test is not None:
             active = state.current_test
             state.current_test = None
-            session.config.hook.pytest_runtest_logstart(nodeid=active.nodeid, location=active.location)
+            session.config.hook.pytest_runtest_logstart(
+                nodeid=active.nodeid, location=active.location
+            )
             for phase in _PHASE_ORDER:
                 if phase in active.reports:
                     session.config.hook.pytest_runtest_logreport(report=active.reports[phase])
             missing_phase: ReportPhase = (
                 "setup"
                 if "setup" not in active.reports
-                else ("call" if "call" not in active.reports and active.reports["setup"].passed else "teardown")
+                else (
+                    "call"
+                    if "call" not in active.reports and active.reports["setup"].passed
+                    else "teardown"
+                )
             )
             crash_report = pytest.TestReport(
                 nodeid=active.nodeid,
@@ -1415,11 +1530,21 @@ class Coordinator:
                 duration=0.0,
             )
             session.config.hook.pytest_runtest_logreport(report=crash_report)
-            session.config.hook.pytest_runtest_logfinish(nodeid=active.nodeid, location=active.location)
+            session.config.hook.pytest_runtest_logfinish(
+                nodeid=active.nodeid, location=active.location
+            )
         else:
-            target_nodeid = unreported[0] if unreported else (state.last_nodeid or f"<worker_{state.worker_id}>")
+            target_nodeid = (
+                unreported[0]
+                if unreported
+                else (state.last_nodeid or f"<worker_{state.worker_id}>")
+            )
             target_item = items_by_nodeid.get(target_nodeid)
-            target_location = target_item.location if target_item is not None else (target_nodeid.partition("::")[0], None, target_nodeid)
+            target_location = (
+                target_item.location
+                if target_item is not None
+                else (target_nodeid.partition("::")[0], None, target_nodeid)
+            )
             crash_report = pytest.TestReport(
                 nodeid=target_nodeid,
                 location=target_location,
@@ -1429,9 +1554,13 @@ class Coordinator:
                 when="setup",
                 duration=0.0,
             )
-            session.config.hook.pytest_runtest_logstart(nodeid=target_nodeid, location=target_location)
+            session.config.hook.pytest_runtest_logstart(
+                nodeid=target_nodeid, location=target_location
+            )
             session.config.hook.pytest_runtest_logreport(report=crash_report)
-            session.config.hook.pytest_runtest_logfinish(nodeid=target_nodeid, location=target_location)
+            session.config.hook.pytest_runtest_logfinish(
+                nodeid=target_nodeid, location=target_location
+            )
 
         if state.last_nodeid and state.last_nodeid not in self._failed_nodeids:
             self._failed_nodeids.append(state.last_nodeid)
@@ -1463,7 +1592,9 @@ class Coordinator:
             data = dict(raw_report)
             data.setdefault("$report_type", "TestReport")
             try:
-                restored = self.config.hook.pytest_report_from_serializable(config=self.config, data=dict(data))
+                restored = self.config.hook.pytest_report_from_serializable(
+                    config=self.config, data=dict(data)
+                )
                 if not isinstance(restored, pytest.TestReport):
                     restored = pytest.TestReport._from_json(dict(data))
             except Exception:
@@ -1488,11 +1619,15 @@ class Coordinator:
             report.wasxfail = wasxfail
         return report
 
-    def _deserialize_collect_report(self, raw_report: dict[str, Any]) -> pytest.CollectReport | None:
+    def _deserialize_collect_report(
+        self, raw_report: dict[str, Any]
+    ) -> pytest.CollectReport | None:
         data = dict(raw_report)
         data.setdefault("$report_type", "CollectReport")
         try:
-            restored = self.config.hook.pytest_report_from_serializable(config=self.config, data=dict(data))
+            restored = self.config.hook.pytest_report_from_serializable(
+                config=self.config, data=dict(data)
+            )
             if not isinstance(restored, pytest.CollectReport):
                 restored = pytest.CollectReport._from_json(dict(data))
         except Exception:
@@ -1534,7 +1669,11 @@ def _parse_location(
     nodeid: str,
 ) -> tuple[str, int | None, str]:
     if isinstance(raw_location, list | tuple) and len(raw_location) == 3:
-        lineno = int(raw_location[1]) if isinstance(raw_location[1], int) and not isinstance(raw_location[1], bool) else None
+        lineno = (
+            int(raw_location[1])
+            if isinstance(raw_location[1], int) and not isinstance(raw_location[1], bool)
+            else None
+        )
         return (str(raw_location[0]), lineno, str(raw_location[2]))
     if item is not None:
         return item.location
@@ -1667,7 +1806,9 @@ def _extract_parallel_groups(item: ShardItem) -> list[str]:
         if "name" in kwargs:
             raw_names.append(kwargs["name"])
         if not raw_names:
-            raise pytest.UsageError("parallel_group marker requires at least one non-empty group name")
+            raise pytest.UsageError(
+                "parallel_group marker requires at least one non-empty group name"
+            )
         for raw_name in raw_names:
             if not isinstance(raw_name, str) or not raw_name.strip():
                 raise pytest.UsageError(
@@ -1708,7 +1849,9 @@ def _resolve_start_method_name(start_method: StartMethod | None = None) -> str:
     return start_method
 
 
-def _multiprocessing_context(start_method: StartMethod | None = None) -> multiprocessing.context.BaseContext:
+def _multiprocessing_context(
+    start_method: StartMethod | None = None,
+) -> multiprocessing.context.BaseContext:
     method_name = _resolve_start_method_name(start_method)
     try:
         return multiprocessing.get_context(method_name)
@@ -1735,4 +1878,8 @@ def _assert_safe_to_start_workers(start_method: StartMethod | None = None) -> No
 
 def _active_non_main_threads() -> list[threading.Thread]:
     main_thread = threading.main_thread()
-    return [thread for thread in threading.enumerate() if thread is not main_thread and thread.is_alive()]
+    return [
+        thread
+        for thread in threading.enumerate()
+        if thread is not main_thread and thread.is_alive()
+    ]

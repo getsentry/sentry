@@ -17,7 +17,9 @@ __version__ = "0.2.0"
 
 _DEFAULT_MAX_WORKERS = 64
 _DEFAULT_DRAIN_SECONDS = 5.0
-_RAMP_PATTERN = re.compile(r"^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[+-]?(?:inf|infinity|nan))\s*([smhSMH]?)$")
+_RAMP_PATTERN = re.compile(
+    r"^([+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[+-]?(?:inf|infinity|nan))\s*([smhSMH]?)$"
+)
 _DECIMAL_PATTERN = re.compile(r"-?\d+")
 _RUN_ID_ENV = "PYTEST_PARALLEL_RUN_ID"
 _COLLECTION_SEED_ENV = "PYTEST_PARALLEL_COLLECTION_SEED"
@@ -45,7 +47,9 @@ class ParallelHookSpec:
         """Mutate a worker subprocess environment."""
 
     @pytest.hookspec
-    def pytest_parallel_file_groups(self, path: object, items: list[pytest.Item]) -> list[str] | None:
+    def pytest_parallel_file_groups(
+        self, path: object, items: list[pytest.Item]
+    ) -> list[str] | None:
         """Return additional affinity group names for one test file, or None."""
 
     @pytest.hookspec(firstresult=True)
@@ -162,7 +166,9 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
 
 @pytest.hookimpl(tryfirst=True)
-def pytest_load_initial_conftests(early_config: pytest.Config, parser: pytest.Parser, args: list[str]) -> None:
+def pytest_load_initial_conftests(
+    early_config: pytest.Config, parser: pytest.Parser, args: list[str]
+) -> None:
     _publish_process_identity(early_config)
     json_report_enabled = getattr(early_config.known_args_namespace, "json_report", False)
     if not json_report_enabled or find_spec("pytest_jsonreport") is None:
@@ -177,7 +183,9 @@ def pytest_runtestloop(session: pytest.Session) -> bool | None:
     plan_mode = _parse_plan(session.config.getoption("parallel_plan", default=None))
     if os.environ.get(_WORKER_MARKER_ENV):
         return None
-    collection = _parse_collection(session.config.getoption("parallel_collection", default="nodeid"))
+    collection = _parse_collection(
+        session.config.getoption("parallel_collection", default="nodeid")
+    )
     if getattr(session.config.option, "setupplan", False):
         return None
     if session.config.getoption("parallel_serial", default=False):
@@ -189,12 +197,16 @@ def pytest_runtestloop(session: pytest.Session) -> bool | None:
     ramp = _parse_ramp(session.config.getoption("parallel_ramp", default=None))
     drain = _parse_drain(session.config.getoption("parallel_drain", default=None))
     balance = _parse_balance(session.config.getoption("parallel_balance", default="count"))
-    start_method = _parse_start_method(session.config.getoption("parallel_start_method", default="auto"))
+    start_method = _parse_start_method(
+        session.config.getoption("parallel_start_method", default="auto")
+    )
     _parse_network(session.config.getoption("parallel_network", default="loopback"))
 
     if requested <= 0:
         if plan_mode is not None:
-            raise pytest.UsageError("--parallel-plan requires parallel execution (remove --serial / -j 0)")
+            raise pytest.UsageError(
+                "--parallel-plan requires parallel execution (remove --serial / -j 0)"
+            )
         return None
 
     numprocesses = getattr(session.config.option, "numprocesses", None)
@@ -204,13 +216,17 @@ def pytest_runtestloop(session: pytest.Session) -> bool | None:
             "use one of them, or pass --serial to let xdist own distribution."
         )
 
-    if getattr(session.config.option, "usepdb", False) or getattr(session.config.option, "trace", False):
+    if getattr(session.config.option, "usepdb", False) or getattr(
+        session.config.option, "trace", False
+    ):
         raise pytest.UsageError(
             "pytest-parallel does not support interactive debugging (--pdb or --trace) in parallel workers; "
             "pass --serial to debug interactively."
         )
 
-    if session.testsfailed and not getattr(session.config.option, "continue_on_collection_errors", False):
+    if session.testsfailed and not getattr(
+        session.config.option, "continue_on_collection_errors", False
+    ):
         raise session.Interrupted(
             f"{session.testsfailed} error{'s' if session.testsfailed != 1 else ''} during collection"
         )

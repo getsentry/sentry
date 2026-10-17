@@ -232,7 +232,9 @@ def test_uncaptured_output_s_flag_and_terminal_dimensions(tmp_path: Path) -> Non
 
 
 @pytest.mark.parametrize("workers", ["1", "2"])
-def test_warnings_forwarded_without_duplicating_collection_warnings(tmp_path: Path, workers: str) -> None:
+def test_warnings_forwarded_without_duplicating_collection_warnings(
+    tmp_path: Path, workers: str
+) -> None:
     (tmp_path / "test_warn_a.py").write_text(
         "import warnings\n"
         "warnings.warn('collection_time_warning_once', UserWarning)\n"

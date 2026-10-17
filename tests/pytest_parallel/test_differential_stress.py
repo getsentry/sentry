@@ -111,7 +111,15 @@ def test_differential_mixed_suite_serial_vs_parallel(tmp_path: Path) -> None:
     parallel_xml = tmp_path / "parallel.xml"
 
     serial_proc = subprocess.run(
-        [sys.executable, "-m", "pytest", str(suite_dir), "--serial", f"--junitxml={serial_xml}", "-q"],
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            str(suite_dir),
+            "--serial",
+            f"--junitxml={serial_xml}",
+            "-q",
+        ],
         check=False,
         text=True,
         stdout=subprocess.PIPE,
@@ -216,7 +224,16 @@ def test_repeated_parallel_runs_have_deterministic_results(tmp_path: Path) -> No
     for run_idx in range(3):
         xml_path = tmp_path / f"run_{run_idx}.xml"
         res = subprocess.run(
-            [sys.executable, "-m", "pytest", str(suite_dir), "-j", "2", f"--junitxml={xml_path}", "-q"],
+            [
+                sys.executable,
+                "-m",
+                "pytest",
+                str(suite_dir),
+                "-j",
+                "2",
+                f"--junitxml={xml_path}",
+                "-q",
+            ],
             check=False,
             text=True,
             stdout=subprocess.PIPE,
@@ -230,7 +247,9 @@ def test_repeated_parallel_runs_have_deterministic_results(tmp_path: Path) -> No
     assert list(scratch_tmp.glob("pytest_parallel_*")) == []
 
 
-def measure_suite_benchmark(suite_dir: Path, extra_args: list[str], scratch_tmp: Path) -> dict[str, float]:
+def measure_suite_benchmark(
+    suite_dir: Path, extra_args: list[str], scratch_tmp: Path
+) -> dict[str, float]:
     import resource
 
     from pytest_parallel.plugin import BalanceStrategy
@@ -257,9 +276,13 @@ def measure_suite_benchmark(suite_dir: Path, extra_args: list[str], scratch_tmp:
     )
     wall_time_s = time.monotonic() - wall_start
     rusage_after = resource.getrusage(resource.RUSAGE_CHILDREN)
-    cpu_time_s = (rusage_after.ru_utime - rusage_before.ru_utime) + (rusage_after.ru_stime - rusage_before.ru_stime)
+    cpu_time_s = (rusage_after.ru_utime - rusage_before.ru_utime) + (
+        rusage_after.ru_stime - rusage_before.ru_stime
+    )
 
-    balance: BalanceStrategy = "count" if "--parallel-balance=count" in extra_args else "round-robin"
+    balance: BalanceStrategy = (
+        "count" if "--parallel-balance=count" in extra_args else "round-robin"
+    )
     files: list[FileUnit] = []
     for file_path in sorted(suite_dir.glob("test_*.py")):
         count = int(file_path.stem.rsplit("_", 1)[-1])
@@ -296,8 +319,12 @@ def test_schedule_imbalance_and_benchmark_metrics(tmp_path: Path) -> None:
             "    assert i >= 0\n"
         )
 
-    rr_metrics = measure_suite_benchmark(suite_dir, ["-j", "2", "--parallel-balance=round-robin"], scratch_tmp)
-    count_metrics = measure_suite_benchmark(suite_dir, ["-j", "2", "--parallel-balance=count"], scratch_tmp)
+    rr_metrics = measure_suite_benchmark(
+        suite_dir, ["-j", "2", "--parallel-balance=round-robin"], scratch_tmp
+    )
+    count_metrics = measure_suite_benchmark(
+        suite_dir, ["-j", "2", "--parallel-balance=count"], scratch_tmp
+    )
 
     assert rr_metrics["imbalance_ratio"] > 1.5
     assert count_metrics["imbalance_ratio"] == 1.0

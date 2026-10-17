@@ -78,8 +78,7 @@ def _body_marker(root: Path) -> Path:
     marker = root / "ran.txt"
     root.mkdir(parents=True, exist_ok=True)
     (root / "test_body.py").write_text(
-        "from pathlib import Path\n"
-        f"def test_body():\n    Path({str(marker)!r}).write_text('ran')\n"
+        f"from pathlib import Path\ndef test_body():\n    Path({str(marker)!r}).write_text('ran')\n"
     )
     return marker
 
@@ -369,7 +368,9 @@ def _drain_suite(root: Path) -> tuple[Path, Path]:
 
 def test_zero_drain_does_not_finish_inflight_teardown(tmp_path: Path) -> None:
     started, done = _drain_suite(tmp_path)
-    result = _run([str(tmp_path), "-j", "2", "-x", "--parallel-drain=0", "-q"], tmp_path, timeout=20)
+    result = _run(
+        [str(tmp_path), "-j", "2", "-x", "--parallel-drain=0", "-q"], tmp_path, timeout=20
+    )
     assert result.returncode != 0, result.stdout
     assert started.exists(), result.stdout
     assert not done.exists(), result.stdout
@@ -377,7 +378,9 @@ def test_zero_drain_does_not_finish_inflight_teardown(tmp_path: Path) -> None:
 
 def test_one_second_drain_finishes_short_teardown(tmp_path: Path) -> None:
     _started, done = _drain_suite(tmp_path)
-    result = _run([str(tmp_path), "-j", "2", "-x", "--parallel-drain=1s", "-q"], tmp_path, timeout=20)
+    result = _run(
+        [str(tmp_path), "-j", "2", "-x", "--parallel-drain=1s", "-q"], tmp_path, timeout=20
+    )
     assert result.returncode != 0, result.stdout
     assert done.exists(), result.stdout
 

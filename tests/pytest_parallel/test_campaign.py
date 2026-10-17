@@ -22,7 +22,9 @@ def _clean_env() -> dict[str, str]:
     return env
 
 
-def _run(args: list[str], cwd: Path, *, merge_output: bool = True) -> subprocess.CompletedProcess[str]:
+def _run(
+    args: list[str], cwd: Path, *, merge_output: bool = True
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, "-m", "pytest", *args],
         cwd=cwd,
@@ -86,7 +88,9 @@ def test_shard_is_frozen() -> None:
 
 
 def test_hooks_weights_groups_and_pin_via_plan(tmp_path: Path) -> None:
-    (tmp_path / "test_heavy.py").write_text("def test_a():\n assert True\ndef test_b():\n assert True\n")
+    (tmp_path / "test_heavy.py").write_text(
+        "def test_a():\n assert True\ndef test_b():\n assert True\n"
+    )
     (tmp_path / "test_light.py").write_text("def test_c():\n assert True\n")
     (tmp_path / "test_db1.py").write_text("def test_d():\n assert True\n")
     (tmp_path / "test_db2.py").write_text("def test_e():\n assert True\n")
@@ -107,7 +111,12 @@ def test_hooks_weights_groups_and_pin_via_plan(tmp_path: Path) -> None:
     db_units = [u for w in plan["workers"] for u in w["units"] if "db" in u["groups"]]
     assert db_units
     assert all(u["worker"] == 1 and u["pinned"] for u in db_units)
-    heavy = [u for w in plan["workers"] for u in w["units"] if any(Path(path).name == "test_heavy.py" for path in u["files"])]
+    heavy = [
+        u
+        for w in plan["workers"]
+        for u in w["units"]
+        if any(Path(path).name == "test_heavy.py" for path in u["files"])
+    ]
     assert heavy[0]["weight"] == 10.0
 
 
@@ -152,7 +161,9 @@ def test_conftest_hooks_stay_inside_their_directory(tmp_path: Path) -> None:
     units = [unit for worker in plan["workers"] for unit in worker["units"]]
 
     def unit_for(suffix: str) -> dict[str, Any]:
-        matches = [unit for unit in units if any(str(path).endswith(suffix) for path in unit["files"])]
+        matches = [
+            unit for unit in units if any(str(path).endswith(suffix) for path in unit["files"])
+        ]
         assert len(matches) == 1, units
         return matches[0]
 
@@ -213,7 +224,9 @@ def test_json_plan_empty_collection_exits_zero(tmp_path: Path) -> None:
 
 def test_plan_text_runs_no_tests(tmp_path: Path) -> None:
     marker = tmp_path / "ran.txt"
-    (tmp_path / "test_a.py").write_text(f"from pathlib import Path\ndef test_a():\n Path({str(marker)!r}).write_text('x')\n")
+    (tmp_path / "test_a.py").write_text(
+        f"from pathlib import Path\ndef test_a():\n Path({str(marker)!r}).write_text('x')\n"
+    )
     res = _run([str(tmp_path), "-j", "2", "--parallel-plan"], tmp_path)
     assert res.returncode == 0, res.stdout
     assert "pytest-parallel plan:" in res.stdout
@@ -322,7 +335,9 @@ def test_maxfail_drain_allows_teardown(tmp_path: Path) -> None:
 
 
 def test_start_methods_smoke(tmp_path: Path) -> None:
-    (tmp_path / "test_a.py").write_text("def test_a():\n assert True\ndef test_b():\n assert True\n")
+    (tmp_path / "test_a.py").write_text(
+        "def test_a():\n assert True\ndef test_b():\n assert True\n"
+    )
     for method in ("spawn", "forkserver"):
         res = _run([str(tmp_path), "-j", "1", f"--parallel-start-method={method}", "-q"], tmp_path)
         assert res.returncode == 0, (method, res.stdout)
@@ -350,6 +365,8 @@ def test_xdist_conflict_or_skip(tmp_path: Path) -> None:
 
 
 def test_setup_plan_falls_back_to_serial(tmp_path: Path) -> None:
-    (tmp_path / "test_a.py").write_text("import pytest\n@pytest.fixture\ndef f():\n return 1\ndef test_a(f):\n assert f == 1\n")
+    (tmp_path / "test_a.py").write_text(
+        "import pytest\n@pytest.fixture\ndef f():\n return 1\ndef test_a(f):\n assert f == 1\n"
+    )
     res = _run([str(tmp_path), "--setup-plan", "-q"], tmp_path)
     assert "test_a" in res.stdout, res.stdout
