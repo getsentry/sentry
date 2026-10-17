@@ -7,6 +7,7 @@ import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Literal
 from unittest import mock
 
@@ -193,6 +194,18 @@ def test_in_test_environment_parallel_worker_without_xdist() -> None:
         assert in_test_environment() is False
         os.environ["_PYTEST_PARALLEL_WORKER"] = "1"
         assert in_test_environment() is True
+
+
+def test_selenium_controller_options_skip_parallel_workers() -> None:
+    from sentry.testutils.pytest import selenium
+
+    get_option = mock.Mock()
+    get_ini = mock.Mock()
+    config = SimpleNamespace(option=SimpleNamespace(), getoption=get_option, getini=get_ini)
+    with _role("worker", 0):
+        selenium.pytest_configure(config)
+    get_option.assert_not_called()
+    get_ini.assert_not_called()
 
 
 def test_pytest_parallel_max_workers() -> None:
