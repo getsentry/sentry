@@ -15,6 +15,9 @@ any (an empty table has no pages on disk). Tables whose only rows are the ones
 the last real flush produced, so ``post_migrate`` does not have to run again.
 When they don't match, Django's flush runs. Either way every table ends up
 empty apart from the ``post_migrate`` rows.
+
+The tables stay locked while the rows are counted and deleted, so a row
+committed in between can't outlive the test.
 """
 
 from __future__ import annotations
@@ -23,7 +26,7 @@ from collections.abc import Collection
 
 import pytest
 from django.core.management import call_command
-from django.db import connections, transaction
+from django.db import OperationalError, connections, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.test import TransactionTestCase
 
@@ -56,25 +59,17 @@ def _tables_with_pages(connection: BaseDatabaseWrapper) -> frozenset[str]:
         return frozenset(row[0] for row in cursor.fetchall())
 
 
-def _other_transactions_open(connection: BaseDatabaseWrapper) -> bool:
+def _lock_tables(connection: BaseDatabaseWrapper) -> None:
     """
-    TRUNCATE waits for other open transactions (a leaked thread, say) to finish
-    and then removes their rows too. DELETE would not see their uncommitted
-    rows, so leave those cases to Django's flush.
+    Takes the same lock as TRUNCATE. DELETE can't see another transaction's
+    uncommitted rows, so if one has touched any table (a leaked thread, say)
+    this times out and Django's TRUNCATE waits for it instead.
     """
+    tables = connection.introspection.django_table_names(only_existing=True, include_views=False)
+    qn = connection.ops.quote_name
     with connection.cursor() as cursor:
-        cursor.execute(
-            """
-            SELECT EXISTS (
-                SELECT 1 FROM pg_stat_activity
-                WHERE datname = current_database()
-                  AND pid <> pg_backend_pid()
-                  AND xact_start IS NOT NULL
-            )
-            """
-        )
-        row = cursor.fetchone()
-        return bool(row and row[0])
+        cursor.execute("SET LOCAL lock_timeout = '1s'")
+        cursor.execute(f"LOCK TABLE {', '.join(qn(t) for t in tables)} IN ACCESS EXCLUSIVE MODE")
 
 
 def _fingerprint(connection: BaseDatabaseWrapper, tables: Collection[str]) -> str:
@@ -107,29 +102,35 @@ def _django_flush(db_name: str) -> None:
     _post_migrate_rows[db_name] = (seeded, _fingerprint(connection, seeded))
 
 
-def flush_database(db_name: str) -> None:
+def _delete_rows(db_name: str, seeded: tuple[frozenset[str], str]) -> bool:
+    """Delete every row post_migrate didn't create, or return False if that isn't safe."""
     connection = connections[db_name]
-    tables = _tables_with_pages(connection)
+    try:
+        with transaction.atomic(using=db_name):
+            _lock_tables(connection)
+            tables = _tables_with_pages(connection)
+            if not seeded[0] <= tables or _fingerprint(connection, seeded[0]) != seeded[1]:
+                return False
+            to_delete = sorted(tables - seeded[0])
+            if to_delete:
+                # Foreign keys are deferred, so the order of the deletes does
+                # not matter. The fence keeps the outbox write audit from
+                # flagging the deletes.
+                qn = connection.ops.quote_name
+                with unguarded_write(using=db_name), connection.cursor() as cursor:
+                    cursor.execute("; ".join(f"DELETE FROM {qn(t)}" for t in to_delete))
+    except OperationalError as e:
+        # lock_not_available or deadlock_detected
+        if getattr(e.__cause__, "pgcode", None) not in ("55P03", "40P01"):
+            raise
+        return False
+    return True
 
+
+def flush_database(db_name: str) -> None:
     seeded = _post_migrate_rows.get(db_name)
-    if (
-        seeded is None
-        or _other_transactions_open(connection)
-        or not seeded[0] <= tables
-        or _fingerprint(connection, seeded[0]) != seeded[1]
-    ):
+    if seeded is None or not _delete_rows(db_name, seeded):
         _django_flush(db_name)
-        return
-
-    to_delete = sorted(tables - seeded[0])
-    if not to_delete:
-        return
-    # Foreign keys are deferred, so the order of the deletes does not matter.
-    # The fence keeps the outbox write audit from flagging the deletes.
-    qn = connection.ops.quote_name
-    with transaction.atomic(using=db_name), unguarded_write(using=db_name):
-        with connection.cursor() as cursor:
-            cursor.execute("; ".join(f"DELETE FROM {qn(t)}" for t in to_delete))
 
 
 _original_fixture_teardown = TransactionTestCase._fixture_teardown  # type: ignore[attr-defined]
@@ -150,3 +151,8 @@ def _fixture_teardown(self: TransactionTestCase) -> None:
 
 def pytest_configure(config: pytest.Config) -> None:
     TransactionTestCase._fixture_teardown = _fixture_teardown  # type: ignore[attr-defined]
+
+
+def pytest_unconfigure(config: pytest.Config) -> None:
+    TransactionTestCase._fixture_teardown = _original_fixture_teardown  # type: ignore[attr-defined]
+    _post_migrate_rows.clear()

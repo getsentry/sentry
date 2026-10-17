@@ -31,6 +31,22 @@ def _relay_server_container_name() -> str:
     return "sentry_test_relay_server"
 
 
+def _wait_until_ready(url: str, timeout: float) -> None:
+    deadline = time.monotonic() + timeout
+    last_result = "not probed"
+    while (remaining := deadline - time.monotonic()) > 0:
+        try:
+            status = requests.get(url, timeout=min(1, remaining)).status_code
+        except requests.RequestException as e:
+            last_result = f"{type(e).__name__}: {e}"
+        else:
+            if status == 200:
+                return
+            last_result = f"HTTP {status}"
+        time.sleep(max(0, min(0.05, deadline - time.monotonic())))
+    raise TimeoutError(last_result)
+
+
 def _get_template_dir():
     return path.abspath(path.join(path.dirname(__file__), "template"))
 
@@ -193,23 +209,17 @@ def relay_server(relay_server_setup, settings):
             # seconds, and exponential backoff overshoots that by up to the last sleep.
             # The deadline matches the previous backoff schedule's total.
             readiness_url = f"{url}/api/relay/healthcheck/ready/"
-            deadline = time.monotonic() + 25.5
-            while True:
+            try:
+                _wait_until_ready(readiness_url, timeout=25.5)
+            except TimeoutError as e:
                 try:
-                    if requests.get(readiness_url, timeout=1).status_code == 200:
-                        break
-                except Exception as ex:
-                    if time.monotonic() >= deadline:
-                        _log.exception(str(ex))
-                        raise ValueError(
-                            f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) {url}:\n{container.logs().decode()}"
-                        ) from ex
-                else:
-                    if time.monotonic() >= deadline:
-                        raise ValueError(
-                            f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}) {readiness_url}:\n{container.logs().decode()}"
-                        )
-                time.sleep(0.05)
+                    logs = container.logs().decode()
+                finally:
+                    if not environ.get("RELAY_TEST_KEEP_CONTAINER", False):
+                        _remove_container_if_exists(docker_client, container_name)
+                raise ValueError(
+                    f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}, last result: {e}) {readiness_url}:\n{logs}"
+                ) from e
 
         yield {"url": relay_server_setup["url"]}
 

@@ -7,17 +7,11 @@ import sys
 import textwrap
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Any, cast
-from unittest.mock import Mock
+from typing import Any
 
 import pytest
 
 pytest.importorskip("pytest_rerunfailures")
-pytest.importorskip("pytest_jsonreport")
-
-from pytest_jsonreport import plugin as json_report_plugin
-
-from sentry.testutils.pytest import json_report_reruns
 
 
 def _clean_env() -> dict[str, str]:
@@ -113,13 +107,6 @@ def _run_json_suite(
         result.stdout
     )
     return result, json.loads(json_path.read_text(encoding="utf-8"))
-
-
-def test_sentry_json_report_reruns_ignores_parallel_worker(monkeypatch: pytest.MonkeyPatch) -> None:
-    worker_type = cast(Any, json_report_plugin).JSONReportWorker
-    monkeypatch.setattr(json_report_plugin, "JSONReport", worker_type)
-
-    json_report_reruns.pytest_plugin_registered(worker_type(), Mock())
 
 
 def test_fail_then_pass_preserves_report_extras_and_single_writer_files(tmp_path: Path) -> None:

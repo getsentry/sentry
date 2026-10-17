@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import shlex
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -158,8 +159,31 @@ def file_weights(files: list[str]) -> dict[str, float]:
     return weights
 
 
+def per_file_plan_applies(args: list[str], files: list[str]) -> bool:
+    """Whether planning by file gives each shard the tests pytest would run.
+
+    `-m`/`-k` filter after the plan, so most shards could end up with no
+    selected tests (e.g. `-m snuba_ci` in Snuba's CI). The sentry plugin
+    matches the planned paths relative to the rootdir, which
+    pytest_shard_plugin checks is the working directory.
+    """
+    every_arg = [*args, *shlex.split(os.environ.get("PYTEST_ADDOPTS", ""))]
+    if any(arg.startswith(("-m", "-k")) and not arg.startswith("--") for arg in every_arg):
+        return False
+    return not any(os.path.isabs(f) or f.startswith(os.pardir + os.sep) for f in files)
+
+
 def run_full_shard(args: list[str], total: int, group: int) -> int:
     files = list_test_files(args)
+    if not per_file_plan_applies(args, files):
+        # As before per-file sharding: every shard collects everything and the
+        # sentry plugin keeps its hash share of the items.
+        print(
+            "pytest-selected: -m/-k or paths outside the working directory, so "
+            "every shard collects everything and keeps its hash share",
+            file=sys.stderr,
+        )
+        return int(pytest.main(args))
     plan = plan_full_shards(file_weights(files), total) if files else None
     if plan is None:
         return int(pytest.main(args))
