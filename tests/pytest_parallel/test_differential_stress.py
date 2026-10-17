@@ -14,7 +14,10 @@ import pytest
 def _clean_env(tmp_dir: Path | None = None) -> dict[str, str]:
     env = os.environ.copy()
     env.pop("_PYTEST_PARALLEL_WORKER", None)
+    env.pop("_PYTEST_PARALLEL_WORKER_ENTRY", None)
     env.pop("PYTEST_PARALLEL_WORKER_ID", None)
+    env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+    env["PYTEST_PLUGINS"] = "pytest_parallel.plugin"
     if tmp_dir is not None:
         env["TMPDIR"] = str(tmp_dir)
     return env
@@ -124,6 +127,7 @@ def test_differential_mixed_suite_serial_vs_parallel(tmp_path: Path) -> None:
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        cwd=suite_dir,
         env=_clean_env(scratch_tmp),
     )
     parallel_proc = subprocess.run(
@@ -142,6 +146,7 @@ def test_differential_mixed_suite_serial_vs_parallel(tmp_path: Path) -> None:
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        cwd=suite_dir,
         env=_clean_env(scratch_tmp),
     )
 
@@ -180,6 +185,7 @@ def test_sigint_cleans_up_workers_and_temp_dirs(tmp_path: Path) -> None:
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
+        cwd=suite_dir,
         env=_clean_env(scratch_tmp),
     )
     deadline = time.monotonic() + 5.0
@@ -238,6 +244,7 @@ def test_repeated_parallel_runs_have_deterministic_results(tmp_path: Path) -> No
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            cwd=suite_dir,
             env=_clean_env(scratch_tmp),
         )
         assert res.returncode == 0, res.stdout
@@ -261,6 +268,7 @@ def measure_suite_benchmark(
         check=True,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        cwd=suite_dir,
         env=_clean_env(scratch_tmp),
     )
     collection_overhead_s = time.monotonic() - collect_start
@@ -272,6 +280,7 @@ def measure_suite_benchmark(
         check=True,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        cwd=suite_dir,
         env=_clean_env(scratch_tmp),
     )
     wall_time_s = time.monotonic() - wall_start

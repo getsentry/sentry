@@ -20,7 +20,10 @@ from pytest_parallel.network import network_blocked
 def _clean_env() -> dict[str, str]:
     env = os.environ.copy()
     env.pop("_PYTEST_PARALLEL_WORKER", None)
+    env.pop("_PYTEST_PARALLEL_WORKER_ENTRY", None)
     env.pop("PYTEST_PARALLEL_WORKER_ID", None)
+    env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+    env["PYTEST_PLUGINS"] = "pytest_parallel.plugin"
     return env
 
 
@@ -66,6 +69,7 @@ def test_network_hot_path_caches_peer_and_still_blocks_external() -> None:
                 client.sendto(b"x", ("192.0.2.1", 9))
 
 
+@pytest.mark.enable_network
 def test_network_guard_allows_only_active_live_server_endpoint() -> None:
     import socket
 
@@ -105,20 +109,20 @@ def test_network_guard_allows_only_active_live_server_endpoint() -> None:
         with network_blocked(live_server_host=host):
             assert socket.getaddrinfo(host, 0)
             with pytest.raises(PermissionError, match="outside loopback"):
-                socket.getaddrinfo("198.51.100.11", 0)
-            server.bind((host, 0))
+                socket.getaddrinfo("outside.invalid", 0)
+            server.bind(("0.0.0.0", 0))
             server.listen()
             peer, _ = server.accept()
             assert peer is accepted
             assert peer.recv(1) == b"x"
-            client.connect(bound[server])
+            client.connect((host, bound[server][1]))
             client.sendall(b"x")
 
             with socket.socket() as other, pytest.raises(PermissionError, match="outside loopback"):
                 other.connect((host, 43211))
             server.close()
             with socket.socket() as late, pytest.raises(PermissionError, match="outside loopback"):
-                late.connect(bound[server])
+                late.connect((host, bound[server][1]))
 
 
 def test_connected_unix_socket_sendmsg_is_allowed() -> None:

@@ -270,7 +270,10 @@ def _socket_endpoint(address: Any) -> tuple[str, int] | None:
 
 
 def _is_live_server_bind(address: Any, live_server_host: str | None) -> bool:
-    return _same_host(_address_host(address), live_server_host)
+    host = _address_host(address)
+    return bool(live_server_host) and (
+        _same_host(host, live_server_host) or _is_unspecified_host(host)
+    )
 
 
 def _is_live_server_endpoint(

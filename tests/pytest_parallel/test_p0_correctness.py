@@ -13,21 +13,31 @@ import pytest
 
 from pytest_parallel.coordinator import Coordinator
 
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+
 
 def _clean_env() -> dict[str, str]:
     env = os.environ.copy()
     env.pop("_PYTEST_PARALLEL_WORKER", None)
     env.pop("_PYTEST_PARALLEL_WORKER_ENTRY", None)
     env.pop("PYTEST_PARALLEL_WORKER_ID", None)
+    env.pop("DJANGO_SETTINGS_MODULE", None)
+    env["PYTEST_ADDOPTS"] = ""
+    env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+    env["PYTHONPATH"] = os.pathsep.join(
+        filter(None, [str(_REPO_ROOT / "src"), env.get("PYTHONPATH")])
+    )
     return env
 
 
 def _run_pytest(
     args: list[str], cwd: Path | None = None, env: dict[str, str] | None = None
 ) -> subprocess.CompletedProcess[str]:
+    target = Path(args[0])
+    test_root = target if target.is_dir() else target.parent
     return subprocess.run(
-        [sys.executable, "-m", "pytest", *args],
-        cwd=cwd,
+        [sys.executable, "-m", "pytest", "-p", "pytest_parallel.plugin", *args],
+        cwd=cwd or test_root,
         env=env or _clean_env(),
         check=False,
         text=True,

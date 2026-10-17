@@ -18,6 +18,7 @@ from pytest_parallel.scheduling import FileUnit, assign_units, merge_units
 def _clean_env() -> dict[str, str]:
     env = os.environ.copy()
     env.pop("_PYTEST_PARALLEL_WORKER", None)
+    env.pop("_PYTEST_PARALLEL_WORKER_ENTRY", None)
     env.pop("PYTEST_PARALLEL_WORKER_ID", None)
     return env
 
