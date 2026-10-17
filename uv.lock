@@ -492,10 +492,10 @@ wheels = [
 
 [[package]]
 name = "execnet"
-version = "1.9.0"
+version = "2.1.2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/execnet-1.9.0-py2.py3-none-any.whl", hash = "sha256:a295f7cc774947aac58dde7fdc85f4aa00c42adf5d8f5468fc630c1acf30a142" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/execnet-2.1.2-py3-none-any.whl", hash = "sha256:67fba928dd5a544b783f6056f449e5e3931a5c378b128bc18501f7ea79e296ec" },
 ]
 
 [[package]]
@@ -1890,23 +1890,15 @@ wheels = [
 ]
 
 [[package]]
-name = "pytest-workaround-12888"
-version = "1.0.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_workaround_12888-1.0.0-py3-none-any.whl", hash = "sha256:eacf051c4668958243339d06786efcbec7659cf2d2074942dc559b6f3090a811" },
-]
-
-[[package]]
 name = "pytest-xdist"
-version = "3.0.2"
+version = "3.8.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "execnet" },
     { name = "pytest" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_xdist-3.0.2-py3-none-any.whl", hash = "sha256:9feb9a18e1790696ea23e1434fa73b325ed4998b0e9fcb221f16fd1945e6df1b" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_xdist-3.8.0-py3-none-any.whl", hash = "sha256:202ca578cfeb7370784a8c33d6d05bc6e13b4f25b5053c30a152269fd10f0b88" },
 ]
 
 [[package]]
@@ -2337,7 +2329,6 @@ dev = [
     { name = "pytest-json-report" },
     { name = "pytest-rerunfailures" },
     { name = "pytest-sentry" },
-    { name = "pytest-workaround-12888" },
     { name = "pytest-xdist" },
     { name = "responses" },
     { name = "ruff" },
@@ -2510,8 +2501,7 @@ dev = [
     { name = "pytest-json-report", specifier = ">=1.5.0" },
     { name = "pytest-rerunfailures", specifier = ">=16.2" },
     { name = "pytest-sentry", specifier = ">=0.3.0" },
-    { name = "pytest-workaround-12888", specifier = ">=1.0.0" },
-    { name = "pytest-xdist", specifier = ">=3.0.2" },
+    { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "responses", specifier = ">=0.23.1" },
     { name = "ruff", specifier = ">=0.14.0" },
     { name = "selenium", specifier = ">=4.16.0" },
