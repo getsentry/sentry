@@ -182,7 +182,7 @@ def _guard_resolver(name: str, original: Callable[..., Any]) -> Callable[..., An
             address = args[0] if args else kwargs.get("sockaddr")
             if isinstance(address, tuple) and address:
                 address = address[0]
-        if address is None or address == "" or address == b"":
+        if address is None or (isinstance(address, (str, bytes)) and not address):
             return original(*args, **kwargs)
         if (
             _is_loopback_host(address)

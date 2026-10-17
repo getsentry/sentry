@@ -107,6 +107,28 @@ def test_network_blocked_allows_local_bind_and_hostname() -> None:
             listener.listen()
 
 
+def test_network_guard_accepts_empty_byte_hostname() -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-bb",
+            "-c",
+            "import socket\n"
+            "from pytest_parallel.network import network_blocked\n"
+            "with network_blocked():\n"
+            "    socket.getaddrinfo(b'', 0)\n",
+        ],
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        cwd=Path(__file__).parents[2],
+        env=_clean_env(),
+    )
+
+    assert result.returncode == 0, result.stdout
+
+
 def test_serial_network_is_not_guarded(tmp_path: Path) -> None:
     test_file = tmp_path / "test_serial_net.py"
     test_file.write_text(
