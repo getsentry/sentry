@@ -932,7 +932,7 @@ function IssueListOverviewInner({
   // Visible rows may span a subset of the page-filter selection; keep those
   // separate from the hard selected project filter the agent should scope to.
   const displayedProjectSlugs = [...new Set(groups.map(g => g.project.slug))];
-  // Right after a filter change, groups still hold the previous filters' issues.
+  // Right after a filter change, groups may still hold the previous filters' issues.
   const currentIssuesLoading =
     issuesLoading || !isEqual(requestParams, previousRequestParams);
 
