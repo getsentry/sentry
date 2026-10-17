@@ -645,6 +645,7 @@ class PerforceIntegrationProvider(IntegrationProvider):
     name = "Perforce"
     metadata = metadata
     integration_cls = PerforceIntegration
+    reject_pending_deletion_reinstall = True
     features = frozenset(
         [
             IntegrationFeatures.STACKTRACE_LINK,

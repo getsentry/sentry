@@ -244,6 +244,7 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
     name = "Cursor Origin"
     metadata = metadata
     integration_cls = CursorOriginIntegration
+    reject_pending_deletion_reinstall = True
 
     # Origin's install redirect returns the installation directly, so unlike GitHub
     # there is no separate OAuth identity to link.
