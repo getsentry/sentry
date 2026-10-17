@@ -2209,7 +2209,15 @@ class SnubaTagStorage(TagStorage):
                 project_ids=list(filters["project_id"]),
                 start=cast("datetime", start),
                 end=cast("datetime", end),
-                environment=cast("str | None", filters.get("environment")),
+                environment=(
+                    list(
+                        Environment.objects.filter(id__in=environments).values_list(
+                            "name", flat=True
+                        )
+                    )
+                    if environments
+                    else None
+                ),
                 tag_key=key,
                 tag_substr_query=query,
                 tenant_ids=tenant_ids,
