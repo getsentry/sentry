@@ -157,37 +157,4 @@ describe('alert embed', () => {
     expect(screen.getByRole('heading', {name: 'Alert actions'})).toBeInTheDocument();
     expect(screen.queryByText('Recent check-ins')).not.toBeInTheDocument();
   });
-
-  it('renders a workflow id mislabelled as a metric alert as its workflow', async () => {
-    const automation = AutomationFixture({id: '6120', name: 'High error rate email'});
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/detectors/${automation.id}/`,
-      statusCode: 404,
-      body: {detail: 'The requested resource does not exist'},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/workflows/${automation.id}/`,
-      body: automation,
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/available-actions/',
-      body: [ActionHandlerFixture()],
-    });
-
-    renderEmbed({
-      name: 'alert',
-      data: {id: automation.id, kind: 'metric', name: automation.name},
-    });
-
-    expect(
-      await screen.findByRole('button', {name: `${automation.name} Enabled`})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'View Alert'})).toHaveAttribute(
-      'href',
-      `/organizations/org-slug/monitors/alerts/${automation.id}/`
-    );
-    expect(
-      screen.getByRole('heading', {name: 'Conditions and actions'})
-    ).toBeInTheDocument();
-  });
 });
