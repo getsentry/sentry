@@ -294,7 +294,9 @@ jobs:
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         env:
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
+          SENTRY_FIXTURE_TIMING_OUT: ${{ github.workspace }}/.artifacts/fixture-timing
         run: |
+          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -p sentry.testutils.pytest.fixture_timing"
           if [ -n "${XDIST_WORKERS}" ]; then
             export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
             timeout -k 30 1200 make test-python-ci || {
@@ -307,6 +309,16 @@ jobs:
           else
             make test-python-ci
           fi
+
+      - name: Upload timing artifacts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: timing-${{ matrix.instance }}
+          path: |
+            .artifacts/pytest.json
+            .artifacts/fixture-timing.*.json
+          retention-days: 7
 
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
