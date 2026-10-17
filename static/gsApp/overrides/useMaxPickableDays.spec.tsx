@@ -56,7 +56,7 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 30/30 days for tracemetrics', () => {
+    it('returns 30/90 for tracemetrics', () => {
       const {result} = renderHookWithProviders(() =>
         useMaxPickableDays({
           dataCategories: [DataCategory.TRACE_METRICS],
@@ -66,7 +66,7 @@ describe('useMaxPickableDays', () => {
       expect(result.current).toEqual({
         defaultPeriod: '24h',
         maxPickableDays: 30,
-        maxUpgradableDays: 30,
+        maxUpgradableDays: 90,
       });
     });
 
@@ -132,6 +132,10 @@ describe('useMaxPickableDays', () => {
       organization,
       effectiveRetentions: {
         span: {
+          standard: 90,
+          downsampled: 396,
+        },
+        traceMetric: {
           standard: 90,
           downsampled: 396,
         },
@@ -210,7 +214,7 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 30/30 days for tracemetrics', () => {
+    it('returns 396/396 days for tracemetrics', () => {
       const {result} = renderHookWithProviders(
         () =>
           useMaxPickableDays({
@@ -221,8 +225,8 @@ describe('useMaxPickableDays', () => {
 
       expect(result.current).toEqual({
         defaultPeriod: '24h',
-        maxPickableDays: 30,
-        maxUpgradableDays: 30,
+        maxPickableDays: 396,
+        maxUpgradableDays: 396,
       });
     });
 

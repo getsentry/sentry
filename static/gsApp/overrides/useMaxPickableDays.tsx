@@ -77,10 +77,21 @@ function getMaxPickableDaysBySubscription(
       };
     }
     case DataCategory.TRACE_METRICS: {
-      // TODO: undecided for now, fixed at 30 days
+      // EAP stores full-fidelity data for 30 days (EAP_FULL_FIDELITY_RETENTION_DAYS).
+      // Queries beyond that window return downsampled data with reduced fidelity.
+      const maxPickableDays = Math.max(
+        ...[
+          30, // default 30 day retention
+          subscription?.effectiveRetentions?.traceMetric?.standard,
+          subscription?.effectiveRetentions?.traceMetric?.downsampled,
+        ].filter<number>(defined)
+      );
       return {
-        maxPickableDays: 30,
-        maxUpgradableDays: 30,
+        maxPickableDays,
+        maxUpgradableDays: Math.max(
+          90, // use 90 as a placeholder, business plans get downsampled retention
+          maxPickableDays
+        ),
         defaultPeriod: '24h',
       };
     }
