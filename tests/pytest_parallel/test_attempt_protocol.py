@@ -7,6 +7,7 @@ from unittest.mock import Mock
 
 import pytest
 from _pytest.main import Session
+from _pytest.subtests import SubtestContext
 
 from pytest_parallel.coordinator import Coordinator, WorkerState
 from pytest_parallel.worker import ResultReporter
@@ -119,6 +120,64 @@ def test_retry_attempts_replay_reports_and_complete_once(tmp_path: Path) -> None
     ]
     assert session.config.hook.pytest_runtest_logstart.call_count == 2
     assert session.config.hook.pytest_runtest_logfinish.call_count == 2
+
+
+def test_subtest_reports_replay_before_call_report(tmp_path: Path) -> None:
+    coordinator, state, session, items = _harness(tmp_path)
+    nodeid = state.assigned[0]
+
+    def subtest_report(index: int) -> dict[str, Any]:
+        report = pytest.SubtestReport(
+            nodeid=nodeid,
+            location=("test_retry.py", 1, nodeid),
+            keywords={},
+            outcome="passed",
+            longrepr=None,
+            when="call",
+            duration=0.01,
+            context=SubtestContext(msg=None, kwargs={"index": index}),
+        )
+        data = report._to_json()
+        data["$report_type"] = report.__class__.__name__
+        return {
+            "version": 1,
+            "type": "report",
+            "nodeid": nodeid,
+            "attempt": 1,
+            "when": "call",
+            "outcome": "passed",
+            "duration": report.duration,
+            "report": data,
+        }
+
+    events = [
+        {"version": 1, "type": "collection", "nodeids": [nodeid]},
+        {"version": 1, "type": "test_start", "nodeid": nodeid, "attempt": 1},
+        _report(nodeid, "setup", "passed", 1),
+        subtest_report(0),
+        subtest_report(1),
+        subtest_report(2),
+        _report(nodeid, "call", "passed", 1),
+        _report(nodeid, "teardown", "passed", 1),
+        {"version": 1, "type": "test_finish", "nodeid": nodeid, "attempt": 1, "final": True},
+    ]
+    _read_events(state, events)
+
+    coordinator._read_worker_events(state, items, session, Mock(), final=True)
+
+    reports = [call.kwargs["report"] for call in config_report_calls(session)]
+    assert state.protocol_errors == []
+    assert [report.when for report in reports] == [
+        "setup",
+        "call",
+        "call",
+        "call",
+        "call",
+        "teardown",
+    ]
+    assert [report.context.kwargs["index"] for report in reports[1:4]] == [0, 1, 2]
+    assert type(reports[4]) is pytest.TestReport
+    assert state.completed == [nodeid]
 
 
 def config_report_calls(session: Any) -> list[Any]:

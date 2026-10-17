@@ -164,6 +164,7 @@ class ActiveTestState:
     location: tuple[str, int | None, str]
     attempt: int
     reports: dict[str, pytest.TestReport] = field(default_factory=dict)
+    subtest_reports: list[pytest.SubtestReport] = field(default_factory=list)
 
 
 @dataclass
@@ -1200,11 +1201,6 @@ class Coordinator:
                 f"report after rerun outcome for {nodeid!r} attempt {active.attempt} on worker {state.worker_id}"
             )
             return
-        if when in active.reports:
-            state.protocol_errors.append(
-                f"duplicate {when!r} report for {nodeid!r} on worker {state.worker_id}"
-            )
-            return
         if when == "setup" and active.reports:
             state.protocol_errors.append(
                 f"out-of-order setup report for {nodeid!r} on worker {state.worker_id}"
@@ -1232,7 +1228,20 @@ class Coordinator:
             return
 
         state.last_nodeid = nodeid
-        active.reports[when] = report
+        if isinstance(report, pytest.SubtestReport):
+            if when != "call" or "call" in active.reports:
+                state.protocol_errors.append(
+                    f"invalid subtest report phase for {nodeid!r} on worker {state.worker_id}"
+                )
+                return
+            active.subtest_reports.append(report)
+        else:
+            if when in active.reports:
+                state.protocol_errors.append(
+                    f"duplicate {when!r} report for {nodeid!r} on worker {state.worker_id}"
+                )
+                return
+            active.reports[when] = report
         if report.failed and not hasattr(report, "wasxfail") and nodeid not in state.failed_nodeids:
             state.failed_nodeids.append(nodeid)
             self._failed += 1
@@ -1329,6 +1338,9 @@ class Coordinator:
             terminal.write(uncaptured_stdout)
             terminal.flush()
         for phase in _PHASE_ORDER:
+            if phase == "call":
+                for subtest_report in active.subtest_reports:
+                    session.config.hook.pytest_runtest_logreport(report=subtest_report)
             phase_report = active.reports.get(phase)
             if phase_report is not None:
                 session.config.hook.pytest_runtest_logreport(report=phase_report)
@@ -1595,7 +1607,10 @@ class Coordinator:
                 restored = self.config.hook.pytest_report_from_serializable(
                     config=self.config, data=dict(data)
                 )
-                if not isinstance(restored, pytest.TestReport):
+                if data["$report_type"] == pytest.SubtestReport.__name__:
+                    if not isinstance(restored, pytest.SubtestReport):
+                        restored = pytest.SubtestReport._from_json(dict(data))
+                elif not isinstance(restored, pytest.TestReport):
                     restored = pytest.TestReport._from_json(dict(data))
             except Exception:
                 return None
