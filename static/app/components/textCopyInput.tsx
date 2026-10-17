@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {InputGroup} from '@sentry/scraps/input';
 import type {InputProps} from '@sentry/scraps/input';
+import type {FormSize} from '@sentry/scraps/theme';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {t} from 'sentry/locale';
@@ -52,13 +53,7 @@ export function TextCopyInput({
         {...inputProps}
       />
       <InputGroup.TrailingItems>
-        <StyledCopyButton
-          aria-label={t('Copy to clipboard')}
-          variant="transparent"
-          size={size === 'xs' ? 'xs' : 'sm'}
-          onCopy={onCopy}
-          text={children}
-        />
+        <InputCopyButton size={size} onCopy={onCopy} text={children} />
       </InputGroup.TrailingItems>
     </InputGroup>
   );
@@ -67,6 +62,26 @@ export function TextCopyInput({
 const StyledInput = styled(InputGroup.Input)`
   direction: ltr;
 `;
+
+export function InputCopyButton({
+  text,
+  onCopy,
+  size,
+}: {
+  text: string;
+  onCopy?: (value: string) => void;
+  size?: FormSize;
+}) {
+  return (
+    <StyledCopyButton
+      aria-label={t('Copy to clipboard')}
+      variant="transparent"
+      size={size === 'xs' ? 'xs' : 'sm'}
+      onCopy={onCopy}
+      text={text}
+    />
+  );
+}
 
 const StyledCopyButton = styled(CopyToClipboardButton)`
   padding: ${p => p.theme.space.xs};
