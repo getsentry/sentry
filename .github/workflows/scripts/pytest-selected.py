@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import shlex
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -195,7 +196,44 @@ def run_full_shard(args: list[str], total: int, group: int) -> int:
     return int(pytest.main(args))
 
 
+_XDIST_DISTRIBUTION_FLAGS = {"-n", "--numprocesses", "--dist"}
+
+
+def rewrite_pytest_addopts() -> None:
+    runner = os.environ.get("SENTRY_TEST_RUNNER")
+    if runner not in {"parallel", "serial"}:
+        return
+    tokens = shlex.split(os.environ.get("PYTEST_ADDOPTS", ""))
+    kept: list[str] = []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        flag, separator, _value = token.partition("=")
+        if flag in _XDIST_DISTRIBUTION_FLAGS:
+            index += 1
+            if separator == "" and index < len(tokens) and not tokens[index].startswith("-"):
+                index += 1
+            continue
+        kept.append(token)
+        index += 1
+    if runner == "parallel":
+        slots = os.environ.get("SENTRY_TEST_WORKERS") or os.environ.get("XDIST_WORKERS") or "2"
+        kept.extend(
+            [
+                "-j",
+                slots,
+                "--parallel-collection=manifest",
+                "--parallel-network=inherit",
+                "--parallel-drain=60s",
+            ]
+        )
+    else:
+        kept.append("--serial")
+    os.environ["PYTEST_ADDOPTS"] = shlex.join(kept)
+
+
 def main(args: list[str]) -> int:
+    rewrite_pytest_addopts()
     selected_file = os.environ.get("SELECTED_TESTS_FILE")
     total = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     group = int(os.environ.get("TEST_GROUP", 0))

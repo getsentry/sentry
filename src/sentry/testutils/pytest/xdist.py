@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 
+from sentry.testutils.pytest import workers
+
 _TEST_REDIS_DB = 9
 _SNUBA_BASE_PORT = 1230
 # Redis defaults to 16 DBs (0-15). With base DB 9, max 7 workers (gw0-gw6).
@@ -18,23 +20,38 @@ if _worker_num is not None and _worker_num >= _MAX_WORKERS:
 
 
 def get_redis_db() -> int:
+    if workers.parallel_worker_index() is not None:
+        return workers.get_redis_db()
     if _worker_num is not None:
         return _TEST_REDIS_DB + _worker_num
     return _TEST_REDIS_DB
 
 
 def get_redis_cluster_key_prefix() -> str:
-    # workers share redis-cluster, so each worker writes under its own prefix
+    if workers.parallel_worker_index() is not None:
+        return workers.get_redis_cluster_key_prefix()
     return f"test-{_worker_id or 'main'}:"
 
 
 def get_kafka_topic(base_name: str) -> str:
+    if workers.parallel_worker_index() is not None:
+        return workers.get_kafka_topic(base_name)
     if _worker_id:
         return f"{base_name}-{_worker_id}"
     return base_name
 
 
 def get_snuba_url() -> str | None:
+    if workers.parallel_worker_index() is not None:
+        return workers.get_snuba_url()
     if _worker_num is not None and os.environ.get("XDIST_PER_WORKER_SNUBA"):
         return f"http://127.0.0.1:{_SNUBA_BASE_PORT + _worker_num}"
     return None
+
+
+def get_snowflake_id() -> int:
+    if workers.parallel_worker_index() is not None:
+        return workers.snowflake_id()
+    if _worker_num is not None:
+        return _worker_num + 1
+    return 0

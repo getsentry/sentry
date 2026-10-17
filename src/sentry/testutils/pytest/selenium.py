@@ -372,9 +372,19 @@ def pytest_addoption(parser):
     group._addoption("--slow-network", dest="slow_network", help="slow the network (chrome)")
 
 
+def _parallel_worker() -> bool:
+    if os.environ.get("_PYTEST_PARALLEL_WORKER"):
+        return True
+    try:
+        from pytest_parallel.api import current_worker
+    except ImportError:
+        return False
+    return current_worker() is not None
+
+
 def pytest_configure(config):
-    if hasattr(config, "workerinput"):
-        return  # xdist worker
+    if hasattr(config, "workerinput") or _parallel_worker():
+        return
 
     config.option.selenium_driver = (
         config.getoption("selenium_driver")

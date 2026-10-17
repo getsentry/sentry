@@ -22,7 +22,7 @@ from rediscluster.exceptions import RedisClusterException
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
 from sentry.testutils.cell import TestEnvCellDirectory
-from sentry.testutils.pytest import xdist
+from sentry.testutils.pytest import workers, xdist
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import cell
 from sentry.types.cell import Cell
@@ -76,9 +76,7 @@ def _configure_test_env_cells() -> None:
     r = random.Random(xdist_uid) if xdist_uid else random
     cell_name = "testregion" + "".join(r.choices(string.digits, k=6))
 
-    # Under xdist, each worker gets a unique snowflake_id (1, 2, 3, ...) so
-    # concurrent model creation doesn't produce colliding IDs.
-    cell_snowflake_id = xdist._worker_num + 1 if xdist._worker_num is not None else 0
+    cell_snowflake_id = xdist.get_snowflake_id()
 
     default_cell = Cell(
         cell_name,
@@ -389,6 +387,7 @@ def pytest_configure(config: pytest.Config) -> None:
     register_extensions()
 
     if not SENTRY_SKIP_SERVICE_VALIDATION:
+        workers.acquire_controller_service_lock()
         from sentry.utils.redis import clusters
 
         with clusters.get("default").all() as client:
@@ -595,6 +594,20 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
+
+
+def pytest_parallel_max_workers() -> int:
+    return workers.parallel_max_workers()
+
+
+def pytest_parallel_worker_env(env: dict[str, str], worker_id: int) -> None:
+    workers.configure_worker_env(env, worker_id)
+
+
+@pytest.fixture(scope="session")
+def django_db_modify_db_settings_xdist_suffix(request: pytest.FixtureRequest) -> None:
+    workerinput = getattr(request.config, "workerinput", None)
+    workers.apply_database_suffix(workerinput if isinstance(workerinput, dict) else None)
 
 
 def pytest_xdist_setupnodes() -> None:

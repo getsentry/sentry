@@ -23,8 +23,16 @@ class OuterFired(Exception):
     pass
 
 
+def _parallel_worker() -> bool:
+    try:
+        from pytest_parallel.api import current_worker
+    except ImportError:
+        return False
+    return current_worker() is not None
+
+
 @pytest.mark.skipif(
-    "PYTEST_XDIST_WORKER" in os.environ,
+    "PYTEST_XDIST_WORKER" in os.environ or _parallel_worker(),
     reason="signal.signal/setitimer require the main thread; xdist workers run tests in non-main threads",
 )
 class TestTimeoutAlarm:
