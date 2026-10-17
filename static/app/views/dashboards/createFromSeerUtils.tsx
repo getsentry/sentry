@@ -1,7 +1,10 @@
 import * as Sentry from '@sentry/react';
+import type {Location} from 'history';
 
 import {validateDashboard} from 'sentry/actionCreators/dashboards';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import type {Organization} from 'sentry/types/organization';
+import {decodeList} from 'sentry/utils/queryString';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 
 import {
@@ -19,6 +22,15 @@ const DASHBOARD_ARTIFACT_KEY = 'dashboard';
 type DashboardArtifact = {
   title: string;
   widgets: WidgetArtifact[];
+  environment?: string[];
+  projects?: number[];
+};
+
+export type GeneratedDashboard = {
+  environment: string[];
+  projects: number[];
+  title: string;
+  widgets: Widget[];
 };
 
 type WidgetArtifact = {
@@ -105,10 +117,7 @@ function applyLimitDefaults(limit: number | null | undefined): number {
  */
 export function extractDashboardFromSession(
   session: NonNullable<SeerExplorerResponse['session']>
-): {
-  title: string;
-  widgets: Widget[];
-} | null {
+): GeneratedDashboard | null {
   for (const block of (session.blocks ?? []).toReversed()) {
     const artifact = block.artifacts?.find(
       a => a.key === DASHBOARD_ARTIFACT_KEY && a.data
@@ -117,6 +126,8 @@ export function extractDashboardFromSession(
       const data = artifact.data as DashboardArtifact;
       return {
         title: data.title,
+        projects: data.projects ?? [],
+        environment: data.environment ?? [],
         widgets: assignDefaultLayout(
           applySeerWidgetDefaults(data.widgets.map(normalizeWidgetCase)).map(
             assignTempId
@@ -127,6 +138,66 @@ export function extractDashboardFromSession(
     }
   }
   return null;
+}
+
+export type GeneratedDashboardPageFilters = {
+  environment?: string[];
+  project?: string[];
+};
+
+/**
+ * Determines the page filter query params the preview needs so that a
+ * generated dashboard's widgets query the projects and environments Seer
+ * scoped the dashboard to. Without these, preview requests fall back to
+ * "My Projects" and the events APIs reject widget filters on other projects.
+ *
+ * Returns null when the current URL selection already covers the dashboard.
+ * An explicit selection is only ever widened, so the user's choice is kept.
+ */
+export function getGeneratedDashboardPageFilters({
+  dashboard,
+  query,
+}: {
+  dashboard: Pick<GeneratedDashboard, 'environment' | 'projects'>;
+  query: Location['query'];
+}): GeneratedDashboardPageFilters | null {
+  const update: GeneratedDashboardPageFilters = {};
+
+  const selectedProjectIds = decodeList(query.project)
+    .map(Number)
+    .filter(id => !Number.isNaN(id));
+  const selectedProjectIdSet = new Set(selectedProjectIds);
+  const missingProjectIds = [...new Set(dashboard.projects)].filter(
+    id => !selectedProjectIdSet.has(id)
+  );
+
+  if (!selectedProjectIdSet.has(ALL_ACCESS_PROJECTS) && missingProjectIds.length > 0) {
+    update.project = [...selectedProjectIds, ...missingProjectIds].map(String);
+  }
+
+  if (dashboard.environment.length > 0 && decodeList(query.environment).length === 0) {
+    update.environment = dashboard.environment;
+  }
+
+  return update.project || update.environment ? update : null;
+}
+
+/**
+ * Whether the URL query already reflects the given page filter update.
+ */
+export function queryHasPageFilters(
+  query: Location['query'],
+  pageFilters: GeneratedDashboardPageFilters
+): boolean {
+  const matches = (key: keyof GeneratedDashboardPageFilters) => {
+    const expected = pageFilters[key];
+    if (!expected) {
+      return true;
+    }
+    const actual = new Set(decodeList(query[key]));
+    return actual.size === expected.length && expected.every(value => actual.has(value));
+  };
+  return matches('project') && matches('environment');
 }
 
 export function statusIsTerminal(status?: string | null) {

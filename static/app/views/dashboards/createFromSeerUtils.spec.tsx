@@ -1,6 +1,8 @@
 import {
   applySeerWidgetDefaults,
   extractDashboardFromSession,
+  getGeneratedDashboardPageFilters,
+  queryHasPageFilters,
   splitDashboardPrompt,
   statusIsTerminal,
 } from 'sentry/views/dashboards/createFromSeerUtils';
@@ -153,5 +155,125 @@ describe('extractDashboardFromSession', () => {
     expect(result!.widgets[0]!.title).toBe('Count');
     expect(result!.widgets[0]!.displayType).toBe('line');
     expect(result!.widgets[0]!.widgetType).toBe('spans');
+    expect(result!.projects).toEqual([]);
+    expect(result!.environment).toEqual([]);
+  });
+
+  it('extracts the project and environment scope from the artifact', () => {
+    const session = makeSession({
+      blocks: [
+        {
+          id: 'block-1',
+          message: {content: 'Here is your dashboard', role: 'assistant'},
+          timestamp: new Date().toISOString(),
+          artifacts: [
+            {
+              key: 'dashboard',
+              reason: 'generated',
+              data: {
+                title: 'My Dashboard',
+                projects: [1, 2],
+                environment: ['production'],
+                widgets: [],
+              },
+            },
+          ],
+        },
+      ],
+    });
+
+    const result = extractDashboardFromSession(session);
+
+    expect(result!.projects).toEqual([1, 2]);
+    expect(result!.environment).toEqual(['production']);
+  });
+});
+
+describe('getGeneratedDashboardPageFilters', () => {
+  function makeDashboard(
+    overrides: Partial<
+      Parameters<typeof getGeneratedDashboardPageFilters>[0]['dashboard']
+    >
+  ) {
+    return {projects: [], environment: [], ...overrides};
+  }
+
+  it('returns null when the dashboard has no project or environment scope', () => {
+    expect(
+      getGeneratedDashboardPageFilters({dashboard: makeDashboard({}), query: {}})
+    ).toBeNull();
+  });
+
+  it('selects the generated projects when none are selected', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({projects: [2, 3]}),
+        query: {},
+      })
+    ).toEqual({project: ['2', '3']});
+  });
+
+  it('widens an explicit project selection', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({projects: [1, 2]}),
+        query: {project: '2'},
+      })
+    ).toEqual({project: ['2', '1']});
+  });
+
+  it('returns null when the selection already covers the generated projects', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({projects: [2]}),
+        query: {project: ['1', '2']},
+      })
+    ).toBeNull();
+  });
+
+  it('returns null when all projects are selected', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({projects: [2]}),
+        query: {project: '-1'},
+      })
+    ).toBeNull();
+  });
+
+  it('applies the generated environments when none are selected', () => {
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({environment: ['production']}),
+        query: {},
+      })
+    ).toEqual({environment: ['production']});
+
+    expect(
+      getGeneratedDashboardPageFilters({
+        dashboard: makeDashboard({environment: ['production']}),
+        query: {environment: 'staging'},
+      })
+    ).toBeNull();
+  });
+});
+
+describe('queryHasPageFilters', () => {
+  it('matches single and multiple query values regardless of order', () => {
+    expect(queryHasPageFilters({project: '1'}, {project: ['1']})).toBe(true);
+    expect(queryHasPageFilters({project: ['2', '1']}, {project: ['1', '2']})).toBe(true);
+    expect(
+      queryHasPageFilters(
+        {project: ['1', '2'], environment: 'production'},
+        {project: ['1', '2'], environment: ['production']}
+      )
+    ).toBe(true);
+  });
+
+  it('does not match when values differ', () => {
+    expect(queryHasPageFilters({}, {project: ['1']})).toBe(false);
+    expect(queryHasPageFilters({project: '1'}, {project: ['1', '2']})).toBe(false);
+    expect(
+      queryHasPageFilters({project: '1'}, {project: ['1'], environment: ['production']})
+    ).toBe(false);
   });
 });
