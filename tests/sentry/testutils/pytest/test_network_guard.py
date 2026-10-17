@@ -62,6 +62,13 @@ def test_blocks_external_resolution() -> None:
 
 
 @pytest.mark.usefixtures("guard")
+@pytest.mark.parametrize("host", [EXTERNAL_IP, "2130706433", "0177.0000.0000.0001"])
+def test_numeric_hosts_resolve_without_a_record(host: str) -> None:
+    assert socket.getaddrinfo(host, 80)
+    assert network_guard.get_records() == []
+
+
+@pytest.mark.usefixtures("guard")
 def test_allows_local_targets() -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
         server.bind(("127.0.0.1", 0))

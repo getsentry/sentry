@@ -267,18 +267,29 @@ def _guard_sendmsg(original: Callable[..., Any]) -> Callable[..., Any]:
     return sendmsg
 
 
+def _is_numeric_host(host: str) -> bool:
+    try:
+        _parse_ip(host)
+    except ValueError:
+        pass
+    else:
+        return True
+    # The resolver parses legacy IPv4 forms such as "2130706433" or
+    # "0177.0.0.1" with inet_aton and sends no DNS query for them.
+    try:
+        socket.inet_aton(host)
+    except (OSError, ValueError):
+        return False
+    return True
+
+
 def _check_resolve(kind: str, host: str | None) -> bool:
     """Return whether the lookup is for a non-local host that was let through."""
     nodeid = _current_nodeid
     if nodeid is None or not host or _host_allowed(host):
         return False
-    if kind != "gethostbyaddr" and kind != "getnameinfo":
-        try:
-            _parse_ip(host)
-        except ValueError:
-            pass
-        else:
-            return False  # a numeric address needs no lookup; the connect is checked
+    if kind != "gethostbyaddr" and kind != "getnameinfo" and _is_numeric_host(host):
+        return False  # a numeric address needs no lookup; the connect is checked
     _blocked(nodeid, kind, host)
     return True
 
