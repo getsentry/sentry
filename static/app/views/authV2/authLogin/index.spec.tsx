@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -65,6 +66,50 @@ describe('AuthLogin', () => {
     });
   }
 
+  function mockFocusedPasswordOrganization(warnings: string[]) {
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {nextUri: '/organizations/acme/issues/'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: true,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'password',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: null,
+        warnings,
+      },
+    });
+  }
+
+  function renderFocusedPasswordOrganization() {
+    return render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/auth/login/acme/',
+          query: {next: '/organizations/acme/issues/?query=is:unresolved'},
+        },
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+  }
+
+  function syncOrganizationLoginLocation(router: {
+    location: {pathname: string; search: string};
+  }) {
+    setWindowLocation(
+      `http://localhost${router.location.pathname}${router.location.search}`
+    );
+    const returnUrl = `${window.location.pathname}${window.location.search}`;
+    expect(returnUrl).toBe(`${router.location.pathname}${router.location.search}`);
+    return returnUrl;
+  }
+
   function renderWithLoadingState() {
     return render(
       <BrandedAuthLoadingProvider>
@@ -112,6 +157,9 @@ describe('AuthLogin', () => {
       await screen.findByRole('heading', {name: 'Sign in to Sentry'})
     ).toBeInTheDocument();
     expect(screen.getByText('Authentication ready')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
     expect(trackAnalytics).toHaveBeenCalledWith(
       'auth.login.rendered',
       {
@@ -196,6 +244,9 @@ describe('AuthLogin', () => {
     expect(
       screen.queryByRole('button', {name: 'Clear organization login context'})
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
   });
 
   it('shows both SSO and password auth when SSO is optional for a single org', async () => {
@@ -228,6 +279,9 @@ describe('AuthLogin', () => {
     expect(screen.getByRole('button', {name: 'SSO'})).toBeEnabled();
     expect(
       screen.queryByRole('button', {name: 'Clear organization login context'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
     ).not.toBeInTheDocument();
   });
 
@@ -265,6 +319,9 @@ describe('AuthLogin', () => {
     expect(
       screen.queryByRole('button', {name: 'Clear organization login context'})
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
   });
 
   it('requires SSO without offering another org in single-org mode', async () => {
@@ -296,6 +353,9 @@ describe('AuthLogin', () => {
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Wrong organization'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
     ).not.toBeInTheDocument();
   });
 
@@ -356,6 +416,9 @@ describe('AuthLogin', () => {
     expect(
       screen.queryByRole('heading', {name: 'Sign in to Sentry'})
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
   });
 
   it('uses the existing MFA flow for demo authentication', async () => {
@@ -377,6 +440,9 @@ describe('AuthLogin', () => {
 
     expect(await screen.findByRole('textbox', {name: 'One-time password'})).toBeVisible();
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders the error boundary when demo authentication fails', async () => {
@@ -444,6 +510,9 @@ describe('AuthLogin', () => {
     expect(
       screen.queryByRole('button', {name: 'Clear organization login context'})
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
   });
 
@@ -482,6 +551,9 @@ describe('AuthLogin', () => {
     expect(
       screen.queryByRole('heading', {name: 'Sign in to Sentry'})
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
   });
 
   it('redirects when the authenticated organization is not found', async () => {
@@ -509,6 +581,9 @@ describe('AuthLogin', () => {
     );
     expect(
       screen.queryByRole('heading', {name: 'Sign in to Sentry'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
     ).not.toBeInTheDocument();
   });
 
@@ -538,6 +613,9 @@ describe('AuthLogin', () => {
     expect(screen.getByRole('button', {name: 'Retry'})).toBeEnabled();
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders authentication providers from the auth config', async () => {
@@ -572,6 +650,9 @@ describe('AuthLogin', () => {
       'href',
       '/auth/register/'
     );
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders warnings above the configured login banner', async () => {
@@ -672,6 +753,9 @@ describe('AuthLogin', () => {
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
     expect(screen.queryByText('or')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
     await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
     expect(
       await screen.findByText(
@@ -722,6 +806,9 @@ describe('AuthLogin', () => {
       await screen.findByRole('textbox', {name: 'Email'}),
       'user@example.com'
     );
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
     await userEvent.type(screen.getByLabelText('Password'), 'secret');
     await userEvent.click(screen.getByRole('button', {name: 'Log in to Sentry'}));
 
@@ -834,6 +921,9 @@ describe('AuthLogin', () => {
     expect(screen.queryByText('Acme')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'SSO'})).not.toBeInTheDocument();
     expect(screen.queryByText('or')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
   });
 
   it('returns to login when auth config fails to refetch after cancellation', async () => {
@@ -899,5 +989,325 @@ describe('AuthLogin', () => {
     expect(
       screen.queryByRole('textbox', {name: 'One-time password'})
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a membership warning and account switch for a signed-in non-member', async () => {
+    mockFocusedPasswordOrganization([
+      'Your account (ada@example.com) is not a member of the Acme organization.',
+    ]);
+
+    renderFocusedPasswordOrganization();
+
+    expect(
+      await screen.findByText(
+        'Your account (ada@example.com) is not a member of the Acme organization.'
+      )
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', {name: 'Sign in with a different account'})
+    ).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'SSO'})).toBeDisabled();
+    expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+  });
+
+  it('returns to the same organization login after switching accounts', async () => {
+    mockFocusedPasswordOrganization([
+      'Your account (ada@example.com) is not a member of the Acme organization.',
+    ]);
+    const logoutRequest = MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+    });
+
+    const {router} = renderFocusedPasswordOrganization();
+    const returnUrl = syncOrganizationLoginLocation(router);
+
+    expect(decodeURIComponent(returnUrl)).toContain(
+      '/organizations/acme/issues/?query=is:unresolved'
+    );
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Sign in with a different account'})
+    );
+
+    await waitFor(() => expect(logoutRequest).toHaveBeenCalledTimes(1));
+    expect(logoutRequest).toHaveBeenCalledWith(
+      '/auth/',
+      expect.objectContaining({method: 'DELETE'})
+    );
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).toHaveBeenCalledWith(returnUrl);
+    expect(testableWindowLocation.assign).not.toHaveBeenCalledWith(
+      '/organizations/acme/issues/'
+    );
+  });
+
+  it('shows password authentication after reloading the anonymous organization login', async () => {
+    mockAuthConfig();
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'password',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: null,
+        warnings: [],
+      },
+    });
+    const loginRequest = MockApiClient.addMockResponse({
+      url: '/auth/login/',
+      method: 'POST',
+      body: {nextUri: 'https://acme.sentry.io/issues/', user: UserFixture()},
+    });
+
+    const {router} = renderFocusedPasswordOrganization();
+    syncOrganizationLoginLocation(router);
+
+    expect(await screen.findByRole('textbox', {name: 'Email'})).toBeVisible();
+    expect(screen.getByLabelText('Password')).toBeVisible();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Email'}), 'ada@example.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'secret');
+    await userEvent.click(screen.getByRole('button', {name: 'Log in to Sentry'}));
+
+    await waitFor(() => expect(loginRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        'https://acme.sentry.io/issues/'
+      )
+    );
+  });
+
+  it('ignores repeated account switches while logout is in progress', async () => {
+    mockFocusedPasswordOrganization([
+      'Your account (ada@example.com) is not a member of the Acme organization.',
+    ]);
+    const logoutDelay = Promise.withResolvers<void>();
+    const logoutRequest = MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      asyncDelay: logoutDelay.promise,
+    });
+
+    const {router} = renderFocusedPasswordOrganization();
+    const returnUrl = syncOrganizationLoginLocation(router);
+    const switchAccount = await screen.findByRole('button', {
+      name: 'Sign in with a different account',
+    });
+    await userEvent.click(switchAccount);
+
+    await waitFor(() => expect(logoutRequest).toHaveBeenCalledTimes(1));
+    expect(switchAccount).toBeDisabled();
+    expect(switchAccount).toHaveAttribute('aria-busy', 'true');
+    await userEvent.click(switchAccount);
+    expect(logoutRequest).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+
+    await act(async () => {
+      logoutDelay.resolve();
+      await logoutDelay.promise;
+    });
+
+    await waitFor(() =>
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(returnUrl)
+    );
+    expect(logoutRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a retryable error when switching accounts fails', async () => {
+    mockFocusedPasswordOrganization([
+      'Your account (ada@example.com) is not a member of the Acme organization.',
+    ]);
+    const logoutRequest = MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      statusCode: 500,
+      body: {detail: 'Logout failed'},
+    });
+
+    const {router} = renderFocusedPasswordOrganization();
+    const returnUrl = syncOrganizationLoginLocation(router);
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Sign in with a different account'})
+    );
+
+    expect(
+      await screen.findByText('Unable to sign in with a different account. Try again.')
+    ).toBeVisible();
+    expect(
+      screen.getByRole('button', {name: 'Sign in with a different account'})
+    ).toBeEnabled();
+    expect(logoutRequest).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+
+    const retryLogout = MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+    });
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Sign in with a different account'})
+    );
+
+    await waitFor(() => expect(retryLogout).toHaveBeenCalledTimes(1));
+    await waitFor(() =>
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(returnUrl)
+    );
+    expect(logoutRequest).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByText('Unable to sign in with a different account. Try again.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('follows the single logout provider instead of the organization login', async () => {
+    mockFocusedPasswordOrganization([
+      'Your account (ada@example.com) is not a member of the Acme organization.',
+    ]);
+    MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      body: {sloUrl: 'https://idp.example.com/logout'},
+    });
+
+    const {router} = renderFocusedPasswordOrganization();
+    const returnUrl = syncOrganizationLoginLocation(router);
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Sign in with a different account'})
+    );
+
+    await waitFor(() =>
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        'https://idp.example.com/logout'
+      )
+    );
+    expect(testableWindowLocation.assign).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).not.toHaveBeenCalledWith(returnUrl);
+  });
+
+  it('renders organization warnings as text with the login banner', async () => {
+    const membershipWarning =
+      'Your account (ada@example.com) is not a member of the <b>Acme</b> organization.';
+    const sessionWarning =
+      'Read the [docs](https://example.com/docs) before trying again.';
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {
+        canRegister: true,
+        githubLoginLink: '',
+        googleLoginLink: '',
+        hasNewsletter: false,
+        loginBannerMarkdown:
+          'Try agent monitoring. [Learn more](https://example.com/agents).',
+        pendingMfa: null,
+        serverHostname: 'sentry.example.com',
+        vstsLoginLink: '',
+        warning: 'Your session has expired.',
+      } satisfies AuthConfig,
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'password',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: null,
+        warnings: [membershipWarning, sessionWarning],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    const membership = await screen.findByText(membershipWarning);
+    const session = screen.getByText(sessionWarning);
+    const genericWarning = screen.getByText('Your session has expired.');
+    const bannerLink = screen.getByRole('link', {name: 'Learn more'});
+
+    expect(membership.compareDocumentPosition(session)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(session.compareDocumentPosition(genericWarning)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(genericWarning.compareDocumentPosition(bannerLink)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(screen.queryByRole('link', {name: 'docs'})).not.toBeInTheDocument();
+    expect(document.querySelector('b')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Sign in with a different account'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders a session warning shared by both login configs once', async () => {
+    const sessionExpired = 'Your session has expired.';
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {
+        canRegister: true,
+        githubLoginLink: '',
+        googleLoginLink: '',
+        hasNewsletter: false,
+        pendingMfa: null,
+        serverHostname: 'sentry.example.com',
+        vstsLoginLink: '',
+        warning: sessionExpired,
+      } satisfies AuthConfig,
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'password',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: null,
+        warnings: [sessionExpired],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    expect(await screen.findByText(sessionExpired)).toBeInTheDocument();
+    expect(screen.getAllByText(sessionExpired)).toHaveLength(1);
+  });
+
+  it('does not render alerts for an empty organization warning list', async () => {
+    mockFocusedPasswordOrganization([]);
+
+    renderFocusedPasswordOrganization();
+
+    expect(
+      await screen.findByRole('button', {name: 'Sign in with a different account'})
+    ).toBeEnabled();
+    expect(document.querySelectorAll('.ref-warning')).toHaveLength(0);
+    expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
   });
 });
