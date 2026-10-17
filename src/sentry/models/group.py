@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from django.core.cache import cache
 from django.db import models
 from django.db.models import Q, QuerySet
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.http import urlencode
@@ -753,9 +753,21 @@ class GroupManager(BaseManager["Group"]):
 
             modified_groups_list.append(group)
 
-        Group.objects.bulk_update(
-            modified_groups_list, ["status", "substatus", "priority", "resolved_at"]
-        )
+        updated_fields = ["status", "substatus", "priority", "resolved_at"]
+
+        Group.objects.bulk_update(modified_groups_list, updated_fields)
+
+        # if the post update signal is disabled, we must manually send the post save signal
+        # failure to do this means the group status will not sync with the
+        # group_attributes table in snuba
+        if not options.get("groups.enable-post-update-signal"):
+            for group in modified_groups_list:
+                post_save.send_robust(
+                    sender=Group,
+                    instance=group,
+                    created=False,
+                    update_fields=updated_fields,
+                )
 
         for group in modified_groups_list:
             activity = Activity.objects.create_group_activity(
