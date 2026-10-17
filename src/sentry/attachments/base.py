@@ -37,6 +37,7 @@ class CachedAttachment:
         stored_id: str | None = None,
         cache=None,
         rate_limited=None,
+        rate_limit_reason: str | None = None,
         size=None,
         retention_days=None,
         **kwargs,
@@ -49,6 +50,8 @@ class CachedAttachment:
         self.type = type or "event.attachment"
         assert isinstance(self.type, str), self.type
         self.rate_limited = rate_limited
+        # The reason code of the quota that rate limited this attachment, as reported by Relay.
+        self.rate_limit_reason = rate_limit_reason
         self.retention_days = retention_days or default_attachment_retention()
 
         if size is not None:
@@ -113,6 +116,7 @@ class CachedAttachment:
                 "id": self.id,
                 "name": self.name,
                 "rate_limited": self.rate_limited,
+                "rate_limit_reason": self.rate_limit_reason,
                 "content_type": self.content_type,
                 "type": self.type,
                 "size": self.size or None,  # None for backwards compatibility
