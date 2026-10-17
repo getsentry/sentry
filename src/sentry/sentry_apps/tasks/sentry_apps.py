@@ -623,7 +623,13 @@ def workflow_notification(
         data = kwargs.get("data", {})
         data.update({"issue": _webhook_issue_data(group=issue, serialized_group=serialize(issue))})
 
-    send_webhooks(installation=install, event=event, data=data, actor=user)
+    send_webhooks(
+        installation=install,
+        event=event,
+        data=data,
+        actor=user,
+        idempotency_key=kwargs.get("idempotency_key"),
+    )
 
     analytics_event: analytics.Event | None = None
     if event == SentryAppEventType.ISSUE_ASSIGNED:

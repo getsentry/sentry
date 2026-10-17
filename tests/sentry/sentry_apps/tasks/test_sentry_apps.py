@@ -1676,6 +1676,7 @@ class TestWorkflowNotification(TestCase):
         ((_, kwargs),) = safe_urlopen.call_args_list
         assert kwargs["url"] == self.sentry_app.webhook_url
         assert kwargs["headers"]["Sentry-Hook-Resource"] == "issue"
+        assert "Idempotency-Key" not in kwargs["headers"]
         data = json.loads(kwargs["data"])
         issue_data = data["data"]["issue"]
         assert data["action"] == "resolved"
@@ -1702,6 +1703,23 @@ class TestWorkflowNotification(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=3
         )
+
+    def test_resolved_webhook_reuses_queued_idempotency_key(self, safe_urlopen: MagicMock) -> None:
+        key = "a" * 32
+
+        # The same queued task can be retried without generating a new key.
+        for _ in range(2):
+            workflow_notification(
+                self.install.id,
+                self.issue.id,
+                "resolved",
+                self.user.id,
+                idempotency_key=key,
+            )
+
+        assert safe_urlopen.call_count == 2
+        for call in safe_urlopen.call_args_list:
+            assert call.kwargs["headers"]["Idempotency-Key"] == key
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_sends_resolved_webhook_as_Sentry_without_user(
