@@ -121,6 +121,7 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
+from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.services.nodestore.django.models import Node
@@ -655,6 +656,17 @@ class ExhaustiveFixtures(Fixtures):
             tag_value="production",
             branch_name="release",
         )
+        seer_workflow_config = SeerWorkflowConfig.create_configurable(
+            org.id,
+            SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            projects=[project.id],
+            environments=["production"],
+        )
+        seer_workflow_config.service_account_id = 1
+        seer_workflow_config.daily_spend_limit_cents = 500
+        seer_workflow_config.run_spend_limit_cents = 100
+        seer_workflow_config.investigation_spend_limit_cents = 25
+        seer_workflow_config.save()
 
         CodeReviewEvent.objects.create(
             organization=org,
