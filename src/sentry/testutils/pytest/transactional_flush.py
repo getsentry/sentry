@@ -56,6 +56,27 @@ def _tables_with_pages(connection: BaseDatabaseWrapper) -> frozenset[str]:
         return frozenset(row[0] for row in cursor.fetchall())
 
 
+def _other_transactions_open(connection: BaseDatabaseWrapper) -> bool:
+    """
+    TRUNCATE waits for other open transactions (a leaked thread, say) to finish
+    and then removes their rows too. DELETE would not see their uncommitted
+    rows, so leave those cases to Django's flush.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM pg_stat_activity
+                WHERE datname = current_database()
+                  AND pid <> pg_backend_pid()
+                  AND xact_start IS NOT NULL
+            )
+            """
+        )
+        row = cursor.fetchone()
+        return bool(row and row[0])
+
+
 def _fingerprint(connection: BaseDatabaseWrapper, tables: Collection[str]) -> str:
     if not tables:
         return ""
@@ -93,6 +114,7 @@ def flush_database(db_name: str) -> None:
     seeded = _post_migrate_rows.get(db_name)
     if (
         seeded is None
+        or _other_transactions_open(connection)
         or not seeded[0] <= tables
         or _fingerprint(connection, seeded[0]) != seeded[1]
     ):
@@ -110,11 +132,11 @@ def flush_database(db_name: str) -> None:
             cursor.execute("; ".join(f"DELETE FROM {qn(t)}" for t in to_delete))
 
 
-_original_fixture_teardown = TransactionTestCase._fixture_teardown
+_original_fixture_teardown = TransactionTestCase._fixture_teardown  # type: ignore[attr-defined]
 
 
 def _fixture_teardown(self: TransactionTestCase) -> None:
-    db_names = self._databases_names(include_mirrors=False)
+    db_names = self._databases_names(include_mirrors=False)  # type: ignore[attr-defined]
     if (
         self.available_apps is not None
         or self.serialized_rollback
@@ -127,4 +149,4 @@ def _fixture_teardown(self: TransactionTestCase) -> None:
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    TransactionTestCase._fixture_teardown = _fixture_teardown  # type: ignore[method-assign]
+    TransactionTestCase._fixture_teardown = _fixture_teardown  # type: ignore[attr-defined]
