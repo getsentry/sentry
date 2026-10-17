@@ -125,6 +125,44 @@ def test_network_guard_allows_only_active_live_server_endpoint() -> None:
                 late.connect((host, bound[server][1]))
 
 
+@pytest.mark.enable_network
+def test_network_guard_keeps_live_server_from_an_earlier_test() -> None:
+    import socket
+
+    host = "192.0.2.12"
+    bound: dict[socket.socket, tuple[str, int]] = {}
+    peers: dict[socket.socket, tuple[str, int]] = {}
+
+    def bind(sock: socket.socket, address: tuple[str, int]) -> None:
+        bound[sock] = (address[0], address[1] or 43220)
+
+    def connect(sock: socket.socket, address: tuple[str, int]) -> None:
+        peers[sock] = address
+
+    def accept(sock: socket.socket) -> tuple[socket.socket, tuple[str, int]]:
+        peers[accepted] = (host, 43221)
+        return accepted, peers[accepted]
+
+    with (
+        socket.socket() as server,
+        socket.socket() as client,
+        socket.socket() as accepted,
+        patch.object(socket.socket, "bind", bind),
+        patch.object(socket.socket, "getsockname", lambda sock: bound[sock]),
+        patch.object(socket.socket, "connect", connect),
+        patch.object(socket.socket, "getpeername", lambda sock: peers[sock]),
+        patch.object(socket.socket, "listen", lambda sock, backlog=0: None),
+        patch.object(socket.socket, "accept", accept),
+    ):
+        # The guard is entered per test; a session live server binds in the first.
+        with network_blocked(live_server_host=host):
+            server.bind((host, 0))
+            server.listen()
+        with network_blocked(live_server_host=host):
+            assert server.accept()[0] is accepted
+            client.connect((host, bound[server][1]))
+
+
 def test_connected_unix_socket_sendmsg_is_allowed() -> None:
     import socket
 

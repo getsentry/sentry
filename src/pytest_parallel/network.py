@@ -38,10 +38,16 @@ _BLOCKED_MESSAGE = (
 )
 
 
+# Process-wide because the guard is entered once per test, but a session-scoped
+# live server binds during one test and keeps accepting in later ones.
+_LIVE_SERVER_SOCKETS: weakref.WeakSet[socket.socket] = weakref.WeakSet()
+_LIVE_SERVER_ENDPOINTS: dict[tuple[str, int], weakref.WeakSet[socket.socket]] = {}
+
+
 @contextmanager
 def network_blocked(*, live_server_host: str | None = None) -> Iterator[None]:
-    live_server_sockets: weakref.WeakSet[socket.socket] = weakref.WeakSet()
-    live_server_endpoints: dict[tuple[str, int], weakref.WeakSet[socket.socket]] = {}
+    live_server_sockets = _LIVE_SERVER_SOCKETS
+    live_server_endpoints = _LIVE_SERVER_ENDPOINTS
     originals: list[tuple[Any, str, Callable[..., Any]]] = []
     try:
         for name in _SOCKET_METHODS:
