@@ -107,8 +107,9 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         if not should_create_open_periods(detector.group_type.type_id):
             return GroupOpenPeriod.objects.none()
 
-        detector_group_ids = DetectorGroup.objects.filter(detector=detector).values_list(
-            "group_id", flat=True
+        # Postgres badly overestimates the subquery form and JIT compiles every call
+        detector_group_ids = list(
+            DetectorGroup.objects.filter(detector=detector).values_list("group_id", flat=True)
         )
 
         return get_open_periods_for_groups(
