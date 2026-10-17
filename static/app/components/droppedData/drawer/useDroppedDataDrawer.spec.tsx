@@ -99,7 +99,7 @@ describe('useDroppedDataDrawer', () => {
     expect(router.location.query.droppedData).toBe('true');
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-    await waitForDrawerToHide('Dropped Data');
+    await waitForDrawerToHide('Dropped Events');
     await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
   });
 
@@ -117,7 +117,7 @@ describe('useDroppedDataDrawer', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
     expect(
-      await screen.findByText('There was an error loading dropped data.')
+      await screen.findByText('There was an error loading dropped events.')
     ).toBeInTheDocument();
     expect(failedRequest).toHaveBeenCalledTimes(1);
 
@@ -155,7 +155,7 @@ describe('useDroppedDataDrawer', () => {
       await screen.findByRole('button', {name: 'Open dropped data'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('complementary', {name: 'Dropped Data'})
+      screen.queryByRole('complementary', {name: 'Dropped Events'})
     ).not.toBeInTheDocument();
     expect(droppedDataRequest).not.toHaveBeenCalled();
   });
@@ -177,7 +177,9 @@ describe('useDroppedDataDrawer', () => {
     );
 
     expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
-    expect(screen.getAllByRole('complementary', {name: 'Dropped Data'})).toHaveLength(1);
+    expect(screen.getAllByRole('complementary', {name: 'Dropped Events'})).toHaveLength(
+      1
+    );
   });
 
   it('closes when navigating back', async () => {
@@ -192,7 +194,7 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
 
     router.navigate(-1);
-    await waitForDrawerToHide('Dropped Data');
+    await waitForDrawerToHide('Dropped Events');
   });
 
   it('stays open and refreshes when zooming changes the time range', async () => {
@@ -250,7 +252,9 @@ describe('useDroppedDataDrawer', () => {
         expect.objectContaining({query: expect.objectContaining({interval: '4h'})})
       )
     );
-    expect(screen.getByRole('complementary', {name: 'Dropped Data'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('complementary', {name: 'Dropped Events'})
+    ).toBeInTheDocument();
   });
 
   it('closes when navigating to another page', async () => {
@@ -265,7 +269,7 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
 
     router.navigate('/issues/');
-    await waitForDrawerToHide('Dropped Data');
+    await waitForDrawerToHide('Dropped Events');
   });
 
   describe('legend filtering', () => {
@@ -519,7 +523,7 @@ describe('useDroppedDataDrawer', () => {
       screen.getByRole('complementary', {name: 'Seer Explorer Drawer'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('complementary', {name: 'Dropped Data'})
+      screen.queryByRole('complementary', {name: 'Dropped Events'})
     ).not.toBeInTheDocument();
   });
 });
