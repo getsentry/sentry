@@ -13,7 +13,7 @@ class ReleaseFileSerializerResponse(TypedDict):
     dist: str | None
     headers: dict[str, Any]
     size: int
-    sha1: str
+    sha1: str | None
     dateCreated: datetime
 
 
