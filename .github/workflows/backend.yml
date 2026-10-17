@@ -223,15 +223,15 @@ jobs:
       MATRIX_INSTANCE_TOTAL: ${{ needs.calculate-shards.outputs.shard-count }}
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
-      XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: ${{ github.event_name == 'pull_request' && '2' || '3' }}
+      SENTRY_TEST_PER_WORKER_SNUBA: '1'
+      SENTRY_TEST_WORKERS: ${{ github.event_name == 'pull_request' && '2' || '3' }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       # Overlaps the per-worker ClickHouse bootstrap with devservices up.
       - name: Start per-worker Snuba bootstrap in the background
-        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        if: env.SENTRY_TEST_PER_WORKER_SNUBA == '1'
         env:
           DEVSERVICES_STATUS_FILE: ${{ runner.temp }}/devservices-ci/up.exit
         run: python3 .github/workflows/scripts/bootstrap-snuba.py --start
@@ -281,7 +281,7 @@ jobs:
           rm odiff-linux-x64
 
       - name: Bootstrap per-worker Snuba instances
-        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        if: env.SENTRY_TEST_PER_WORKER_SNUBA == '1'
         run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
 
       - name: Download selected tests artifact
@@ -295,12 +295,12 @@ jobs:
         env:
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
         run: |
-          if [ -n "${XDIST_WORKERS}" ]; then
-            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+          if [ -n "${SENTRY_TEST_WORKERS}" ]; then
+            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -j ${SENTRY_TEST_WORKERS}"
             timeout -k 30 1200 make test-python-ci || {
               rc=$?
               if [ "$rc" -eq 124 ]; then
-                echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
+                echo "::error::Test run timed out after 20 minutes"
               fi
               exit "$rc"
             }
@@ -346,8 +346,8 @@ jobs:
             devservices logs
           fi
 
-          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
-            for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
+          if [ "${SENTRY_TEST_PER_WORKER_SNUBA}" = "1" ]; then
+            for i in $(seq 0 $(( ${SENTRY_TEST_WORKERS} - 1 ))); do
               echo "--- snuba-gw${i} logs ---"
               docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
             done

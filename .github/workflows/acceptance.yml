@@ -67,8 +67,8 @@ jobs:
       MATRIX_INSTANCE_TOTAL: ${{ needs.files-changed.outputs.backend_all == 'true' && '5' || '10' }}
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
-      XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '2'
+      SENTRY_TEST_PER_WORKER_SNUBA: '1'
+      SENTRY_TEST_WORKERS: '2'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -125,14 +125,14 @@ jobs:
         wait: setup
 
       - name: Bootstrap per-worker Snuba instances
-        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        if: env.SENTRY_TEST_PER_WORKER_SNUBA == '1'
         run: python3 .github/workflows/scripts/bootstrap-snuba.py
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -j ${SENTRY_TEST_WORKERS}"
           timeout -k 30 1200 make run-acceptance || rc=$?
-          [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
+          [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes"
           exit "${rc:-0}"
 
       - name: Inspect failure
@@ -142,8 +142,8 @@ jobs:
             devservices logs
           fi
 
-          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
-            for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
+          if [ "${SENTRY_TEST_PER_WORKER_SNUBA}" = "1" ]; then
+            for i in $(seq 0 $(( ${SENTRY_TEST_WORKERS} - 1 ))); do
               echo "--- snuba-gw${i} logs ---"
               docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
             done
