@@ -10,7 +10,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import threading
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
 from typing import Any
 
 import orjson
@@ -140,6 +140,46 @@ class ViewerContextHook:
         if ctx is None:
             return contextlib.nullcontext()
         return viewer_context_scope(ctx)
+
+
+class LocalCacheClearHook:
+    """
+    ContextHook that clears process-local caches when a task finishes.
+
+    Web requests clear these caches on Django's `request_finished`. Tasks used
+    to clear them on Celery's `task_postrun`, which no longer fires since tasks
+    moved to taskworker (the last connections were removed in #100326). Without
+    this, a long-running worker keeps organization, project and user options
+    read by an earlier task, and uses them for every later one.
+    """
+
+    def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
+        return None
+
+    @contextlib.contextmanager
+    def on_execute(self, headers: dict[str, str]) -> Iterator[None]:
+        try:
+            yield
+        finally:
+            clear_local_caches()
+
+
+def clear_local_caches() -> None:
+    """Clear the caches that `task_postrun` used to clear after each task."""
+    # Imported here because models can't be imported while the task app is set up.
+    from sentry.models.groupmeta import GroupMeta
+    from sentry.models.options.organization_option import OrganizationOption
+    from sentry.models.options.project_option import ProjectOption
+    from sentry.users.models.user_option import UserOption
+
+    try:
+        OrganizationOption.objects.clear_local_cache()
+        ProjectOption.objects.clear_local_cache()
+        UserOption.objects.clear_local_cache()
+        GroupMeta.objects.clear_local_cache()
+        options.default_store.maybe_clean_local_cache()
+    except Exception:
+        logger.exception("taskworker.clear_local_caches.failed")
 
 
 _producers: dict[str, SingletonProducer] = {}
