@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import Any
+from uuid import uuid4
 
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.group import Group
@@ -144,6 +145,7 @@ def send_workflow_webhooks(
             type=event_type,
             user_id=coerce_id_from(user),
             data=data,
+            idempotency_key=uuid4().hex,
         )
 
 
