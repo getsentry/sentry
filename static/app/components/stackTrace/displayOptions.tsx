@@ -6,10 +6,26 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {t} from 'sentry/locale';
 
+interface FrameDetailOption {
+  label: string;
+  value: string;
+  disabled?: boolean;
+  tooltip?: string;
+}
+
+interface DisplayOptionsProps {
+  /** Extra toggles listed after the minified option, e.g. native frame details. */
+  frameDetails?: {
+    onChange: (values: string[]) => void;
+    options: FrameDetailOption[];
+    value: string[];
+  };
+}
+
 /**
  * A single dropdown that consolidates view, sort, and display toggles.
  */
-export function DisplayOptions() {
+export function DisplayOptions({frameDetails}: DisplayOptionsProps) {
   const {
     view,
     setView,
@@ -82,8 +98,14 @@ export function DisplayOptions() {
       <CompositeSelect.Region
         label={t('Display')}
         multiple
-        value={isMinified ? ['minified'] : []}
-        onChange={opts => setIsMinified(opts.some(opt => opt.value === 'minified'))}
+        value={[...(isMinified ? ['minified'] : []), ...(frameDetails?.value ?? [])]}
+        onChange={opts => {
+          const values = opts.map(opt => opt.value);
+          if (hasMinifiedStacktrace) {
+            setIsMinified(values.includes('minified'));
+          }
+          frameDetails?.onChange(values);
+        }}
         options={[
           {
             label: minifiedLabel,
@@ -91,6 +113,7 @@ export function DisplayOptions() {
             disabled: !hasMinifiedStacktrace,
             tooltip: hasMinifiedStacktrace ? undefined : minifiedUnavailableTooltip,
           },
+          ...(frameDetails?.options ?? []),
         ]}
       />
     </CompositeSelect>

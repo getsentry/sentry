@@ -5,6 +5,7 @@ import {Exception} from 'sentry/components/events/interfaces/exception';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
+import {IssueThreadStackTrace} from 'sentry/components/stackTrace/native/issueThreadStackTrace';
 import type {Entry, EntryMap, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -12,6 +13,7 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isNativePlatform} from 'sentry/utils/platform';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getHangProfileData,
   MetricKitHangProfileSection,
@@ -24,9 +26,13 @@ interface EventStackTraceProps {
 }
 
 export function EventStackTrace({event, group, projectSlug}: EventStackTraceProps) {
-  const shouldUseNewStackTrace =
-    // New stack trace is currently only non-native platforms.
-    !isNativePlatform(event.platform);
+  const organization = useOrganization();
+  const isNativeEvent = isNativePlatform(event.platform);
+  const hasNativeStackTrace = organization.features.includes(
+    'issue-details-native-stack-trace'
+  );
+  const shouldUseNewStackTrace = !isNativeEvent || hasNativeStackTrace;
+  const shouldUseNewNativeThreadStackTrace = isNativeEvent && hasNativeStackTrace;
   const eventEntries = useMemo(() => {
     return event.entries.reduce<Partial<EntryMap>>((entryMap, entry) => {
       (entryMap as Record<string, Entry>)[entry.type] = entry;
@@ -87,13 +93,23 @@ export function EventStackTrace({event, group, projectSlug}: EventStackTraceProp
         )}
       {defined(eventEntries[EntryType.THREADS]) && (
         <EntryErrorBoundary type={EntryType.THREADS}>
-          <Threads
-            event={event}
-            data={eventEntries[EntryType.THREADS].data}
-            projectSlug={projectSlug}
-            groupingCurrentLevel={groupingCurrentLevel}
-            group={group}
-          />
+          {shouldUseNewNativeThreadStackTrace ? (
+            <IssueThreadStackTrace
+              event={event}
+              data={eventEntries[EntryType.THREADS].data}
+              projectSlug={projectSlug}
+              groupingCurrentLevel={groupingCurrentLevel}
+              group={group}
+            />
+          ) : (
+            <Threads
+              event={event}
+              data={eventEntries[EntryType.THREADS].data}
+              projectSlug={projectSlug}
+              groupingCurrentLevel={groupingCurrentLevel}
+              group={group}
+            />
+          )}
         </EntryErrorBoundary>
       )}
     </Fragment>

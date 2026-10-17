@@ -85,6 +85,92 @@ describe('IssueStackTrace', () => {
     });
   });
 
+  it('loads the Apple crash report for a native exception without threads', async () => {
+    const {stacktrace} = makeCopyTestData();
+    stacktrace.frames = [
+      FrameFixture({
+        platform: 'cocoa',
+        function: 'causeCrash',
+        rawFunction: null,
+        module: null,
+      }),
+    ];
+    const exception = {
+      type: 'EXC_BAD_ACCESS',
+      value: 'invalid address',
+      module: null,
+      mechanism: null,
+      threadId: null,
+      rawStacktrace: null,
+      stacktrace,
+    };
+    const event = EventFixture({
+      platform: 'cocoa',
+      entries: [{type: 'exception', data: {values: [exception]}}],
+    });
+    const report = MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/events/${event.id}/apple-crash-report`,
+      match: [MockApiClient.matchQuery({minified: 'false'})],
+      body: 'Thread 0 Crashed: causeCrash',
+    });
+
+    render(
+      <IssueStackTrace event={event} values={[exception]} projectSlug="project-slug" />
+    );
+
+    expect(await screen.findByText('causeCrash')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'EXC_BAD_ACCESS'})).toBeInTheDocument();
+    expect(report).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
+    await userEvent.keyboard('{Escape}');
+
+    expect(await screen.findByText('Thread 0 Crashed: causeCrash')).toBeInTheDocument();
+    expect(report).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
+      'href',
+      `/projects/org-slug/project-slug/events/${event.id}/apple-crash-report?minified=false&download=1`
+    );
+  });
+
+  it.each(['cocoa', 'c'] as const)(
+    'formats standalone %s raw traces without requesting an Apple report',
+    async platform => {
+      const {stacktrace} = makeCopyTestData();
+      stacktrace.frames = [
+        FrameFixture({platform, function: 'logMessage', rawFunction: null, module: null}),
+      ];
+      const event = EventFixture({
+        platform,
+        entries: [{type: 'stacktrace', data: stacktrace}],
+      });
+      const report = MockApiClient.addMockResponse({
+        url: `/projects/org-slug/project-slug/events/${event.id}/apple-crash-report`,
+        body: 'Unexpected Apple report',
+      });
+      render(
+        <IssueStackTrace
+          event={event}
+          stacktrace={stacktrace}
+          projectSlug="project-slug"
+        />
+      );
+
+      expect(
+        await screen.findByTestId('native-stack-trace-frame-title')
+      ).toHaveTextContent('logMessage');
+      await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+      expect(
+        screen.getByRole('option', {name: 'Absolute Addresses'})
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
+      await userEvent.keyboard('{Escape}');
+      expect(screen.getByText(/logMessage/, {selector: 'pre'})).toBeInTheDocument();
+      expect(report).not.toHaveBeenCalled();
+    }
+  );
+
   it('does not render when event has threads', () => {
     const {event, stacktrace} = makeStackTraceData();
     const eventWithThreads = EventFixture({
