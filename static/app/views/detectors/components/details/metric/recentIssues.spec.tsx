@@ -13,7 +13,7 @@ describe('MetricDetectorRecentIssues', () => {
       id: '30',
       groupId: '200',
       shortId: 'PROJ-2',
-      start: '2025-06-01T12:00:00Z',
+      start: '2017-10-16T12:00:00Z',
       end: null,
       isOpen: true,
     }),
@@ -21,8 +21,8 @@ describe('MetricDetectorRecentIssues', () => {
       id: '20',
       groupId: '200',
       shortId: 'PROJ-2',
-      start: '2025-06-01T10:00:00Z',
-      end: '2025-06-01T10:30:00Z',
+      start: '2017-10-16T10:00:00Z',
+      end: '2017-10-16T10:30:00Z',
       isOpen: false,
     }),
   ];
@@ -31,10 +31,29 @@ describe('MetricDetectorRecentIssues', () => {
     id: '10',
     groupId: '100',
     shortId: 'PROJ-1',
-    start: '2025-05-31T08:00:00Z',
-    end: '2025-05-31T09:00:00Z',
+    start: '2017-10-15T08:00:00Z',
+    end: '2017-10-15T09:00:00Z',
     isOpen: false,
   });
+
+  const resolvedIssueOpenPeriods = [
+    GroupOpenPeriodFixture({
+      id: '50',
+      groupId: '300',
+      shortId: 'PROJ-3',
+      start: '2017-10-10T12:00:00Z',
+      end: '2017-10-10T12:20:00Z',
+      isOpen: false,
+    }),
+    GroupOpenPeriodFixture({
+      id: '40',
+      groupId: '300',
+      shortId: 'PROJ-3',
+      start: '2017-10-10T10:00:00Z',
+      end: '2017-10-10T10:30:00Z',
+      isOpen: false,
+    }),
+  ];
 
   it('lists each issue once with how many open periods it had', async () => {
     const openPeriodsRequest = MockApiClient.addMockResponse({
@@ -99,39 +118,49 @@ describe('MetricDetectorRecentIssues', () => {
     expect(screen.getAllByRole('row')).toHaveLength(5);
   });
 
+  it('shows how long an issue was open in total and each open period in line with the columns', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: resolvedIssueOpenPeriods,
+    });
+
+    render(<MetricDetectorRecentIssues detector={detector} />);
+
+    const issueRow = within(await screen.findByRole('row', {name: /PROJ-3/}));
+
+    expect(issueRow.getByText('50min')).toBeInTheDocument();
+
+    await userEvent.click(issueRow.getByRole('button', {name: 'Show open periods'}));
+
+    const [latestOpenPeriodRow, earliestOpenPeriodRow] = screen.getAllByRole('row', {
+      name: /^Opened/,
+    });
+
+    expect(within(latestOpenPeriodRow!).getByText('20min')).toBeInTheDocument();
+
+    expect(within(earliestOpenPeriodRow!).getByText('30min')).toBeInTheDocument();
+
+    const columnCount = screen.getAllByRole('columnheader').length;
+
+    expect(within(latestOpenPeriodRow!).getAllByRole('cell')).toHaveLength(columnCount);
+  });
+
   it('zooms an issue to the span of all of its open periods', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/open-periods/',
-      body: [
-        GroupOpenPeriodFixture({
-          id: '30',
-          groupId: '200',
-          shortId: 'PROJ-2',
-          start: '2017-10-10T12:00:00Z',
-          end: '2017-10-10T12:30:00Z',
-          isOpen: false,
-        }),
-        GroupOpenPeriodFixture({
-          id: '20',
-          groupId: '200',
-          shortId: 'PROJ-2',
-          start: '2017-10-10T10:00:00Z',
-          end: '2017-10-10T10:30:00Z',
-          isOpen: false,
-        }),
-      ],
+      body: resolvedIssueOpenPeriods,
     });
 
     const {router} = render(<MetricDetectorRecentIssues detector={detector} />);
 
-    const issueRow = within(await screen.findByRole('row', {name: /PROJ-2/}));
+    const issueRow = within(await screen.findByRole('row', {name: /PROJ-3/}));
 
     await userEvent.click(issueRow.getByRole('button', {name: 'Zoom'}));
 
     expect(router.location.query).toEqual(
       expect.objectContaining({
         start: '2017-10-10T09:50:00',
-        end: '2017-10-10T12:40:00',
+        end: '2017-10-10T12:30:00',
       })
     );
   });

@@ -1,10 +1,10 @@
 import {Fragment, useState} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
+import sumBy from 'lodash/sumBy';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
-import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
@@ -35,12 +35,20 @@ const RECENT_ISSUES_LIMIT = 5;
 const OPEN_PERIODS_LIMIT = 100;
 
 const RECENT_ISSUE_COLUMNS: TableColumnConfig[] = [
+  {key: 'expand', width: 'min-content'},
   {key: 'issue', width: '1fr'},
   {key: 'status', width: 'min-content'},
   {key: 'lastOpened', width: '1fr'},
+  {key: 'duration', width: 'min-content'},
   {key: 'openPeriods', width: 'min-content'},
   {key: 'zoom', width: 'min-content'},
 ];
+
+function getOpenPeriodDurationSeconds(openPeriod: GroupOpenPeriod, now: Date): number {
+  const openPeriodEnd = openPeriod.end ? new Date(openPeriod.end) : now;
+
+  return (openPeriodEnd.getTime() - new Date(openPeriod.start).getTime()) / 1000;
+}
 
 interface DateParams {
   end: string | undefined;
@@ -177,9 +185,11 @@ function RecentIssuesTable({
 function RecentIssuesTableHeader() {
   return (
     <SimpleTable.HeaderRow>
-      <SimpleTable.HeaderCell>{t('Issue')}</SimpleTable.HeaderCell>
+      <SimpleTable.HeaderCell />
+      <SimpleTable.HeaderCell divider={false}>{t('Issue')}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{t('Last Opened')}</SimpleTable.HeaderCell>
+      <SimpleTable.HeaderCell>{t('Duration')}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell>{t('Open Periods')}</SimpleTable.HeaderCell>
       <SimpleTable.HeaderCell />
     </SimpleTable.HeaderRow>
@@ -192,12 +202,15 @@ interface RecentIssueProps {
 }
 
 function RecentIssue({issue, onZoom}: RecentIssueProps) {
+  const [now] = useState(() => new Date());
+
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <Fragment>
       <RecentIssueRow
         issue={issue}
+        now={now}
         isExpanded={isExpanded}
         onToggleExpanded={() => setIsExpanded(!isExpanded)}
         onZoom={onZoom}
@@ -207,6 +220,7 @@ function RecentIssue({issue, onZoom}: RecentIssueProps) {
           <IssueOpenPeriodRow
             key={openPeriod.id}
             openPeriod={openPeriod}
+            now={now}
             onZoom={onZoom}
           />
         ))}
@@ -217,12 +231,14 @@ function RecentIssue({issue, onZoom}: RecentIssueProps) {
 interface RecentIssueRowProps {
   isExpanded: boolean;
   issue: IssueOpenPeriods;
+  now: Date;
   onToggleExpanded: () => void;
   onZoom: (start: Date, end?: Date) => void;
 }
 
 function RecentIssueRow({
   issue,
+  now,
   isExpanded,
   onToggleExpanded,
   onZoom,
@@ -239,22 +255,26 @@ function RecentIssueRow({
     ? new Date(latestOpenPeriod.end)
     : undefined;
 
+  const totalOpenDurationSeconds = sumBy(issue.openPeriods, openPeriod =>
+    getOpenPeriodDurationSeconds(openPeriod, now)
+  );
+
   return (
     <SimpleTable.Row>
+      <SimpleTable.RowCell paddingRight="0">
+        <Button
+          size="xs"
+          variant="transparent"
+          icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
+          aria-label={isExpanded ? t('Hide open periods') : t('Show open periods')}
+          aria-expanded={isExpanded}
+          onClick={onToggleExpanded}
+        />
+      </SimpleTable.RowCell>
       <SimpleTable.RowCell>
-        <Flex align="center" gap="xs">
-          <Button
-            size="xs"
-            variant="transparent"
-            icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
-            aria-label={isExpanded ? t('Hide open periods') : t('Show open periods')}
-            aria-expanded={isExpanded}
-            onClick={onToggleExpanded}
-          />
-          <Link to={`/organizations/${organization.slug}/issues/${issue.groupId}/`}>
-            {issue.shortId ?? t('View Issue')}
-          </Link>
-        </Flex>
+        <Link to={`/organizations/${organization.slug}/issues/${issue.groupId}/`}>
+          {issue.shortId ?? t('View Issue')}
+        </Link>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         {latestOpenPeriod.isOpen ? (
@@ -265,6 +285,9 @@ function RecentIssueRow({
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <DateTime date={latestOpenPeriod.start} />
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
+        <Duration seconds={totalOpenDurationSeconds} abbreviation />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Text tabular>{issue.openPeriods.length}</Text>
@@ -282,47 +305,46 @@ function RecentIssueRow({
 }
 
 interface IssueOpenPeriodRowProps {
+  now: Date;
   onZoom: (start: Date, end?: Date) => void;
   openPeriod: GroupOpenPeriod;
 }
 
-function IssueOpenPeriodRow({openPeriod, onZoom}: IssueOpenPeriodRowProps) {
-  const [now] = useState(() => new Date());
-
+function IssueOpenPeriodRow({openPeriod, now, onZoom}: IssueOpenPeriodRowProps) {
   const openPeriodStart = new Date(openPeriod.start);
 
   const openPeriodEnd = openPeriod.end ? new Date(openPeriod.end) : undefined;
 
-  const openPeriodDurationSeconds =
-    ((openPeriodEnd ?? now).getTime() - openPeriodStart.getTime()) / 1000;
+  const openPeriodDurationSeconds = getOpenPeriodDurationSeconds(openPeriod, now);
 
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell column="1 / -1" background="secondary">
-        <Grid
-          columns="1fr 1fr min-content min-content"
-          align="center"
-          gap="md"
-          width="100%"
-          paddingLeft="2xl"
-        >
-          <Text>
-            {t('Started')} <DateTime date={openPeriodStart} />
-          </Text>
-          <Text>
-            {openPeriodEnd ? (
-              <Fragment>
-                {t('Ended')} <DateTime date={openPeriodEnd} />
-              </Fragment>
-            ) : (
-              t('Ongoing')
-            )}
-          </Text>
-          <Duration seconds={openPeriodDurationSeconds} abbreviation />
-          <Button size="xs" onClick={() => onZoom(openPeriodStart, openPeriodEnd)}>
-            {t('Zoom')}
-          </Button>
-        </Grid>
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch" />
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch">
+        <Text>
+          {t('Opened')} <DateTime date={openPeriodStart} />
+        </Text>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch" />
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch">
+        <Text>
+          {openPeriodEnd ? (
+            <Fragment>
+              {t('Closed')} <DateTime date={openPeriodEnd} />
+            </Fragment>
+          ) : (
+            t('Ongoing')
+          )}
+        </Text>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch">
+        <Duration seconds={openPeriodDurationSeconds} abbreviation />
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch" />
+      <SimpleTable.RowCell background="secondary" alignSelf="stretch" justify="end">
+        <Button size="xs" onClick={() => onZoom(openPeriodStart, openPeriodEnd)}>
+          {t('Zoom')}
+        </Button>
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
@@ -333,6 +355,9 @@ function RecentIssuesTableSkeleton() {
     <SimpleTable columns={RECENT_ISSUE_COLUMNS} header={<RecentIssuesTableHeader />}>
       {[0, 1, 2].map(index => (
         <SimpleTable.Row key={index}>
+          <SimpleTable.RowCell paddingRight="0">
+            <Placeholder height="24px" width="24px" />
+          </SimpleTable.RowCell>
           <SimpleTable.RowCell>
             <Placeholder height="20px" width="80px" />
           </SimpleTable.RowCell>
@@ -341,6 +366,9 @@ function RecentIssuesTableSkeleton() {
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
             <Placeholder height="20px" width="60%" />
+          </SimpleTable.RowCell>
+          <SimpleTable.RowCell>
+            <Placeholder height="20px" width="40px" />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
             <Placeholder height="20px" width="24px" />
