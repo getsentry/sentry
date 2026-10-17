@@ -962,3 +962,74 @@ class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
             assert scim_token_display.token is None
             assert scim_token_display.token_last_characters is not None
             assert len(scim_token_display.token_last_characters) == 4
+
+
+    def test_reenable_scim_cancels_pending_installation_deletion(self) -> None:
+        from sentry.constants import SentryAppStatus
+        from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
+
+        organization, auth_provider = self.create_org_and_auth_provider()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auth_provider.enable_scim(self.user)
+            auth_provider.save()
+            install = SentryAppInstallationForProvider.objects.get(
+                organization_id=organization.id, provider="dummy_scim"
+            )
+            sentry_app = install.sentry_app_installation.sentry_app
+
+            auth_provider.disable_scim()
+            auth_provider.save()
+            deletion = ScheduledDeletion.objects.get(
+                model_name=sentry_app._meta.object_name, object_id=sentry_app.id
+            )
+            assert not deletion.in_progress
+
+            auth_provider.enable_scim(self.user)
+            auth_provider.save()
+
+            sentry_app.refresh_from_db()
+            auth_provider.refresh_from_db()
+            assert auth_provider.flags.scim_enabled is True
+            assert sentry_app.status == SentryAppStatus.INTERNAL
+            assert not ScheduledDeletion.objects.filter(
+                model_name=sentry_app._meta.object_name, object_id=sentry_app.id
+            ).exists()
+            assert (
+                SentryAppInstallationForProvider.objects.filter(
+                    organization_id=organization.id, provider="dummy_scim"
+                ).count()
+                == 1
+            )
+
+    def test_reenable_scim_does_not_revive_installation_deletion_in_progress(self) -> None:
+        from sentry.constants import SentryAppStatus
+        from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
+
+        organization, auth_provider = self.create_org_and_auth_provider()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            auth_provider.enable_scim(self.user)
+            auth_provider.save()
+            install = SentryAppInstallationForProvider.objects.get(
+                organization_id=organization.id, provider="dummy_scim"
+            )
+            sentry_app = install.sentry_app_installation.sentry_app
+
+            auth_provider.disable_scim()
+            auth_provider.save()
+            ScheduledDeletion.objects.filter(
+                model_name=sentry_app._meta.object_name, object_id=sentry_app.id
+            ).update(in_progress=True)
+
+            auth_provider.enable_scim(self.user)
+            auth_provider.save()
+
+            auth_provider.refresh_from_db()
+            sentry_app.refresh_from_db()
+            assert auth_provider.flags.scim_enabled is False
+            assert sentry_app.status == SentryAppStatus.DELETION_IN_PROGRESS
+            assert (
+                SentryAppInstallationForProvider.objects.filter(
+                    organization_id=organization.id, provider="dummy_scim"
+                ).count()
+                == 1
+            )
