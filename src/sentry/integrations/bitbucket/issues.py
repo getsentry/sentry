@@ -156,7 +156,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
                 raise IntegrationConfigurationError(message)
         super().raise_error(exc, identity)
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data, user=None, **kwargs):
         client = self.get_client()
         if not data.get("repo"):
             raise IntegrationFormError({"repo": ["Repository is required"]})
