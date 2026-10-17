@@ -1,4 +1,4 @@
-export type DroppedEventTag = 'intentional' | 'unintentional';
+type DroppedEventTag = 'intentional' | 'unintentional';
 
 export interface DroppedEventsBucket {
   category: string;
