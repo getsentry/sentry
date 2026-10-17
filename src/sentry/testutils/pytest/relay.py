@@ -188,22 +188,28 @@ def relay_server(relay_server_setup, settings):
             # (authenticated with the upstream, spool capacity, memory); posting before then
             # races startup and Relay rejects the request with a 503. This mirrors production,
             # where load balancers route ingest traffic only to Relays passing this same probe.
+            #
+            # Poll at a fixed short interval: Relay is usually ready within a couple of
+            # seconds, and exponential backoff overshoots that by up to the last sleep.
+            # The deadline matches the previous backoff schedule's total.
             readiness_url = f"{url}/api/relay/healthcheck/ready/"
-            for i in range(8):
+            deadline = time.monotonic() + 25.5
+            while True:
                 try:
-                    if requests.get(readiness_url).status_code == 200:
+                    if requests.get(readiness_url, timeout=1).status_code == 200:
                         break
                 except Exception as ex:
-                    if i == 7:
+                    if time.monotonic() >= deadline:
                         _log.exception(str(ex))
                         raise ValueError(
                             f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) {url}:\n{container.logs().decode()}"
                         ) from ex
-                time.sleep(0.1 * 2**i)
-            else:
-                raise ValueError(
-                    f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}) {readiness_url}:\n{container.logs().decode()}"
-                )
+                else:
+                    if time.monotonic() >= deadline:
+                        raise ValueError(
+                            f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}) {readiness_url}:\n{container.logs().decode()}"
+                        )
+                time.sleep(0.05)
 
         yield {"url": relay_server_setup["url"]}
 
