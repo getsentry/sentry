@@ -43,7 +43,7 @@ export function DroppedDataDrawer({
   });
 
   const groups = useMemo(
-    () => droppedEventsToOutcomeGroups(droppedEvents ?? [], acceptedEvents ?? []),
+    () => droppedEventsToOutcomeGroups(droppedEvents ?? [], acceptedEvents ?? [], 'all'),
     [droppedEvents, acceptedEvents]
   );
   const outcomeColors = useMemo(
