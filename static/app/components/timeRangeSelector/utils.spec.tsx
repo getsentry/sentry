@@ -28,8 +28,12 @@ describe('parseStatsPeriod', () => {
     jest.useFakeTimers().setSystemTime(new Date('2001-11-15T12:34:56.789Z'));
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
+  afterEach(async () => {
+    try {
+      await jest.runOnlyPendingTimersAsync();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('parses a range of hours', () => {

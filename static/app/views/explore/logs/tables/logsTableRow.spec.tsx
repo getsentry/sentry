@@ -7,6 +7,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {
   act,
+  cleanup,
   render,
   screen,
   userEvent,
@@ -271,10 +272,6 @@ describe('logsTableRow', () => {
     });
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
   it('uses the row hint for expanded details and the debug API link', async () => {
     const previousUser = ConfigStore.get('user');
     try {
@@ -303,73 +300,85 @@ describe('logsTableRow', () => {
     }
   });
 
-  it('hovering the row causes prefetching of the row details', async () => {
-    jest.useFakeTimers();
-    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
-    render(
-      <LogRowContent
-        dataRow={rowData}
-        routingHint="row-hint"
-        highlightTerms={[]}
-        meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{current: null}}
-      />,
-      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
-    );
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('hovering the row causes prefetching of the row details', async () => {
+      jest.useFakeTimers();
+      expect(rowDetailsMock).toHaveBeenCalledTimes(0);
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          routingHint="row-hint"
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+      );
 
-    expect(screen.queryByLabelText('Toggle trace details')).not.toBeInTheDocument(); // Fake button
-    const row = screen.getByTestId('log-table-row');
-    await userEvent.hover(row, {delay: null});
+      expect(screen.queryByLabelText('Toggle trace details')).not.toBeInTheDocument(); // Fake button
+      const row = screen.getByTestId('log-table-row');
+      await userEvent.hover(row, {delay: null});
 
-    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
-    expect(screen.getByLabelText('Toggle trace details')).toBeInTheDocument(); // Real button immediately rendered
+      expect(rowDetailsMock).toHaveBeenCalledTimes(0);
+      expect(screen.getByLabelText('Toggle trace details')).toBeInTheDocument(); // Real button immediately rendered
 
-    // Wrap timer advancement in act to avoid warnings
-    act(() => {
-      jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+      // Wrap timer advancement in act to avoid warnings
+      act(() => {
+        jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+      });
+
+      await waitFor(() => {
+        // Prefetching is triggered after the hover timeout
+        expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+      });
+      // Flush the .then() callback that reads cached data after prefetch
+      await act(async () => {});
+      expect(rowDetailsMock.mock.calls[0]![1].query).toMatchObject({
+        timestamp: Math.trunc(rowDataTimestamp),
+        routing_hint: 'row-hint',
+      });
+      expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
     });
 
-    await waitFor(() => {
-      // Prefetching is triggered after the hover timeout
-      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
-    });
-    // Flush the .then() callback that reads cached data after prefetch
-    await act(async () => {});
-    expect(rowDetailsMock.mock.calls[0]![1].query).toMatchObject({
-      timestamp: Math.trunc(rowDataTimestamp),
-      routing_hint: 'row-hint',
-    });
-    expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
-  });
+    it('hovering an embedded row causes prefetching of the row details', async () => {
+      jest.useFakeTimers();
+      expect(rowDetailsMock).toHaveBeenCalledTimes(0);
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+          embedded
+          blockRowExpanding
+          onEmbeddedRowClick={jest.fn()}
+        />,
+        {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+      );
 
-  it('hovering an embedded row causes prefetching of the row details', async () => {
-    jest.useFakeTimers();
-    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
-    render(
-      <LogRowContent
-        dataRow={rowData}
-        highlightTerms={[]}
-        meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{current: null}}
-        embedded
-        blockRowExpanding
-        onEmbeddedRowClick={jest.fn()}
-      />,
-      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
-    );
+      const row = screen.getByTestId('log-table-row');
+      await userEvent.hover(row, {delay: null});
 
-    const row = screen.getByTestId('log-table-row');
-    await userEvent.hover(row, {delay: null});
+      act(() => {
+        jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+      });
 
-    act(() => {
-      jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+      await waitFor(() => {
+        expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+      });
+      // Flush the .then() callback that reads cached data after prefetch
+      await act(async () => {});
     });
-
-    await waitFor(() => {
-      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
-    });
-    // Flush the .then() callback that reads cached data after prefetch
-    await act(async () => {});
   });
 
   it('renders row details', async () => {

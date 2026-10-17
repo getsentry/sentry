@@ -1,7 +1,13 @@
 import {act} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   LLMContextProvider,
@@ -54,12 +60,15 @@ describe('SeerXRayOverlay', () => {
     jest.useFakeTimers({advanceTimers: true});
   });
 
-  afterEach(() => {
-    // RTL's own unmount-on-cleanup afterEach hasn't necessarily run yet, so
-    // the just-finished test's SeerXRayOverlay may still be mounted here.
-    act(() => setXRayModeEnabled(false));
-    jest.useRealTimers();
-    Range.prototype.getBoundingClientRect = originalRangeGetBoundingClientRect;
+  afterEach(async () => {
+    try {
+      cleanup();
+      act(() => setXRayModeEnabled(false));
+      await act(() => jest.runOnlyPendingTimersAsync());
+    } finally {
+      jest.useRealTimers();
+      Range.prototype.getBoundingClientRect = originalRangeGetBoundingClientRect;
+    }
   });
 
   it('renders nothing when XRay mode is disabled', () => {

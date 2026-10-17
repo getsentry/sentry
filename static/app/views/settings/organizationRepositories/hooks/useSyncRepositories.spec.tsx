@@ -1,7 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as indicator from 'sentry/actionCreators/indicator';
 
@@ -83,116 +88,120 @@ describe('useSyncRepositories', () => {
     expect(result.current.isSyncing).toBe(true);
   });
 
-  it('sets isSyncing to false and shows success toast when last_sync changes', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/123/repo-sync/',
-      method: 'POST',
-      body: {},
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
+    it('sets isSyncing to false and shows success toast when last_sync changes', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/123/repo-sync/',
+        method: 'POST',
+        body: {},
+      });
 
-    const onSynced = jest.fn();
-    const {result} = renderHookWithProviders(
-      () =>
-        useSyncRepositories(integration, {
-          onSynced,
+      const onSynced = jest.fn();
+      const {result} = renderHookWithProviders(
+        () =>
+          useSyncRepositories(integration, {
+            onSynced,
+          }),
+        {organization}
+      );
+
+      await waitFor(() => expect(result.current.syncNow).toBeDefined());
+
+      jest.useFakeTimers();
+
+      act(() => {
+        result.current.syncNow?.();
+      });
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/123/',
+        body: OrganizationIntegrationsFixture({
+          id: '123',
+          configData: {last_sync: 'new-value'},
         }),
-      {organization}
-    );
+      });
 
-    await waitFor(() => expect(result.current.syncNow).toBeDefined());
+      act(() => {
+        jest.advanceTimersByTime(5_000);
+      });
 
-    jest.useFakeTimers();
+      await waitFor(() => expect(result.current.isSyncing).toBe(false));
 
-    act(() => {
-      result.current.syncNow?.();
+      expect(indicator.addSuccessMessage).toHaveBeenCalledWith(
+        'Repositories synced successfully'
+      );
+      expect(onSynced).toHaveBeenCalled();
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/123/',
-      body: OrganizationIntegrationsFixture({
-        id: '123',
-        configData: {last_sync: 'new-value'},
-      }),
+    it('shows a still-syncing toast and advances poll interval at phase boundary', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/123/repo-sync/',
+        method: 'POST',
+        body: {},
+      });
+
+      const {result} = renderHookWithProviders(() => useSyncRepositories(integration), {
+        organization,
+      });
+
+      await waitFor(() => expect(result.current.syncNow).toBeDefined());
+
+      jest.useFakeTimers();
+
+      act(() => {
+        result.current.syncNow?.();
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(30_000);
+      });
+
+      expect(indicator.addLoadingMessage).toHaveBeenCalledWith(
+        'Repositories still syncing, this may take a few minutes'
+      );
+      expect(result.current.isSyncing).toBe(true);
     });
 
-    act(() => {
-      jest.advanceTimersByTime(5_000);
+    it('sets isSyncing to false and shows error toast after all phases are exhausted', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/123/repo-sync/',
+        method: 'POST',
+        body: {},
+      });
+
+      const {result} = renderHookWithProviders(() => useSyncRepositories(integration), {
+        organization,
+      });
+
+      await waitFor(() => expect(result.current.syncNow).toBeDefined());
+
+      jest.useFakeTimers();
+
+      act(() => {
+        result.current.syncNow?.();
+      });
+
+      act(() => {
+        jest.advanceTimersByTime(30_000 + 60_000 * 4.5);
+      });
+
+      await waitFor(() => {
+        expect(result.current.isSyncing).toBe(false);
+      });
+
+      expect(indicator.addErrorMessage).toHaveBeenCalledWith(
+        'Repositories still syncing — giving up polling. Come back later to check.'
+      );
     });
-
-    // Restore real timers so waitFor's interval can tick and the refetch
-    // Promise chain resolves naturally.
-    jest.useRealTimers();
-
-    await waitFor(() => expect(result.current.isSyncing).toBe(false));
-
-    expect(indicator.addSuccessMessage).toHaveBeenCalledWith(
-      'Repositories synced successfully'
-    );
-    expect(onSynced).toHaveBeenCalled();
-  });
-
-  it('shows a still-syncing toast and advances poll interval at phase boundary', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/123/repo-sync/',
-      method: 'POST',
-      body: {},
-    });
-
-    const {result} = renderHookWithProviders(() => useSyncRepositories(integration), {
-      organization,
-    });
-
-    await waitFor(() => expect(result.current.syncNow).toBeDefined());
-
-    jest.useFakeTimers();
-
-    act(() => {
-      result.current.syncNow?.();
-    });
-
-    act(() => {
-      jest.advanceTimersByTime(30_000);
-    });
-
-    jest.useRealTimers();
-
-    expect(indicator.addLoadingMessage).toHaveBeenCalledWith(
-      'Repositories still syncing, this may take a few minutes'
-    );
-    expect(result.current.isSyncing).toBe(true);
-  });
-
-  it('sets isSyncing to false and shows error toast after all phases are exhausted', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/integrations/123/repo-sync/',
-      method: 'POST',
-      body: {},
-    });
-
-    const {result} = renderHookWithProviders(() => useSyncRepositories(integration), {
-      organization,
-    });
-
-    await waitFor(() => expect(result.current.syncNow).toBeDefined());
-
-    jest.useFakeTimers();
-
-    act(() => {
-      result.current.syncNow?.();
-    });
-
-    act(() => {
-      jest.advanceTimersByTime(30_000 + 60_000 * 4.5);
-    });
-
-    jest.useRealTimers();
-
-    await waitFor(() => {
-      expect(result.current.isSyncing).toBe(false);
-    });
-
-    expect(indicator.addErrorMessage).toHaveBeenCalledWith(
-      'Repositories still syncing — giving up polling. Come back later to check.'
-    );
   });
 });

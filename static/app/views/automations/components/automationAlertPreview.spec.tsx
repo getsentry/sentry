@@ -3,7 +3,14 @@ import {ActionFilterFixture, DataConditionFixture} from 'sentry-fixture/automati
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
@@ -68,9 +75,20 @@ function PreviewTest({
 }
 
 describe('AutomationAlertPreview', () => {
-  it('does not refetch when a configuration change is reverted before debounce settles', async () => {
-    jest.useFakeTimers();
-    try {
+  describe('debounced configuration changes', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('does not refetch when a configuration change is reverted before debounce settles', async () => {
+      jest.useFakeTimers();
+
       const model = new FormModel();
       model.setInitialData({projectIds: ['1'], frequency: 30});
       const previewRequest = MockApiClient.addMockResponse({
@@ -92,9 +110,7 @@ describe('AutomationAlertPreview', () => {
 
       expect(screen.getByText('No matching alerts found')).toBeInTheDocument();
       expect(previewRequest).toHaveBeenCalledTimes(1);
-    } finally {
-      jest.useRealTimers();
-    }
+    });
   });
 
   it('does not replace the current preview with a late response', async () => {
@@ -201,9 +217,20 @@ describe('AutomationAlertPreview', () => {
     expect(previewRequest).toHaveBeenCalledTimes(1);
   });
 
-  it('regenerates the preview after the project field is removed and recreated', async () => {
-    jest.useFakeTimers();
-    try {
+  describe('removed project fields', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('regenerates the preview after the project field is removed and recreated', async () => {
+      jest.useFakeTimers();
+
       const model = new FormModel();
       model.setInitialData({projectIds: ['1'], frequency: 30, environment: null});
       const group = GroupFixture({id: '123', title: 'Preview issue'});
@@ -244,9 +271,7 @@ describe('AutomationAlertPreview', () => {
 
       expect(await screen.findByText('Preview issue')).toBeInTheDocument();
       await waitFor(() => expect(previewRequest).toHaveBeenCalledTimes(2));
-    } finally {
-      jest.useRealTimers();
-    }
+    });
   });
 
   it('paginates issues locally and resets when the alert changes', async () => {

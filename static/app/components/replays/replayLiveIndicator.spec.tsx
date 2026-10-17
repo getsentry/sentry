@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
+import {cleanup, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {
@@ -25,9 +25,19 @@ jest.mock('sentry/utils/replays/hooks/useReplayProjectSlug', () => ({
   useReplayProjectSlug: () => 'test-project',
 }));
 
-jest.useFakeTimers();
-
 describe('useLiveBadge', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('should return isLive=true when replay finished within 5 minutes', () => {
     const now = Date.now();
     const startedAt = new Date(now - 60_000); // 1 minute ago
@@ -129,6 +139,17 @@ describe('useLiveBadge', () => {
 });
 
 describe('useLiveRefresh', () => {
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   const organization = OrganizationFixture();
 
   function createWrapper() {
@@ -143,6 +164,7 @@ describe('useLiveRefresh', () => {
   }
 
   beforeEach(() => {
+    jest.useFakeTimers();
     MockApiClient.clearMockResponses();
   });
 

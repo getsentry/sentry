@@ -91,8 +91,12 @@ describe('partitionDateTimeIntoHeatMapWindows', () => {
       jest.useFakeTimers().setSystemTime(new Date('2024-01-31T00:00:00.000Z'));
     });
 
-    afterEach(() => {
-      jest.useRealTimers();
+    afterEach(async () => {
+      try {
+        await jest.runOnlyPendingTimersAsync();
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('Partitions into statsPeriod offsets that overlap the newer neighbor', () => {

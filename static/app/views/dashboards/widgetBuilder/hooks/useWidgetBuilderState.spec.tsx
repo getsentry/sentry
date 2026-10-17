@@ -1,4 +1,4 @@
-import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {AggregationKeyWithAlias, Column} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -34,12 +34,17 @@ describe('useWidgetBuilderState', () => {
     jest.useFakeTimers();
   });
 
-  afterEach(() => {
-    // nuqs' update queue is a module singleton, so anything a test leaves
-    // pending would be applied on top of the next test's initial URL.
-    flushUrlUpdates();
-    jest.useRealTimers();
-    jest.clearAllMocks();
+  afterEach(async () => {
+    try {
+      cleanup();
+      // nuqs' update queue is a module singleton, so anything a test leaves
+      // pending would be applied on top of the next test's initial URL.
+      flushUrlUpdates();
+      await act(() => jest.runOnlyPendingTimersAsync());
+    } finally {
+      jest.useRealTimers();
+      jest.clearAllMocks();
+    }
   });
 
   it('returns the widget builder state from the query params', () => {

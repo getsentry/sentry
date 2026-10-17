@@ -7,6 +7,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
+  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -402,41 +403,55 @@ describe('CreateProject', () => {
     expect(screen.getByPlaceholderText('project-slug')).toHaveValue('apple-ios');
   });
 
-  it('should preserve user-entered project slug when filter bar auto-selects a platform', async () => {
-    // Regression test: PlatformPicker's debounceSearch captured setPlatform from the
-    // initial render. After the user typed a slug, handlePlatformChange was recreated with
-    // the new projectName — but debounceSearch still held the stale version with
-    // projectName='', so auto-selection via the filter bar would wipe the user's slug.
-    const {organization} = initializeOrg({
-      organization: {
-        access: ['project:read'],
-        features: ['team-roles'],
-        allowMemberProjectCreation: true,
-      },
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
+    it('should preserve user-entered project slug when filter bar auto-selects a platform', async () => {
+      // Regression test: PlatformPicker's debounceSearch captured setPlatform from the
+      // initial render. After the user typed a slug, handlePlatformChange was recreated with
+      // the new projectName — but debounceSearch still held the stale version with
+      // projectName='', so auto-selection via the filter bar would wipe the user's slug.
+      const {organization} = initializeOrg({
+        organization: {
+          access: ['project:read'],
+          features: ['team-roles'],
+          allowMemberProjectCreation: true,
+        },
+      });
 
-    jest.useFakeTimers();
-    render(<CreateProject />, {organization});
+      jest.useFakeTimers();
+      render(<CreateProject />, {organization});
 
-    await userEvent.type(screen.getByPlaceholderText('project-slug'), 'my-custom-slug', {
-      delay: null,
+      await userEvent.type(
+        screen.getByPlaceholderText('project-slug'),
+        'my-custom-slug',
+        {
+          delay: null,
+        }
+      );
+      expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-custom-slug');
+
+      // Type a platform name that exactly matches "Android" (triggers debounce auto-selection)
+      await userEvent.type(screen.getByPlaceholderText('Filter Platforms'), 'android', {
+        delay: null,
+      });
+
+      // Run all pending timers and flush React state updates
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      // The user's slug must be preserved, not replaced by the auto-selected platform id
+      expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-custom-slug');
     });
-    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-custom-slug');
-
-    // Type a platform name that exactly matches "Android" (triggers debounce auto-selection)
-    await userEvent.type(screen.getByPlaceholderText('Filter Platforms'), 'android', {
-      delay: null,
-    });
-
-    // Run all pending timers and flush React state updates
-    act(() => {
-      jest.runAllTimers();
-    });
-
-    jest.useRealTimers();
-
-    // The user's slug must be preserved, not replaced by the auto-selected platform id
-    expect(screen.getByPlaceholderText('project-slug')).toHaveValue('my-custom-slug');
   });
 
   it('should allow platform to fill the project name again after the user clears it', async () => {
