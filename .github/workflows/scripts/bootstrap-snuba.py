@@ -44,6 +44,10 @@ SNUBA_ENV = {
 
 ENV_ARGS = [flag for k, v in SNUBA_ENV.items() for flag in ("-e", f"{k}={v}")]
 
+# reset_snuba POSTs 8 /tests/<dataset>/drop requests in parallel before every Snuba
+# test. A single API process runs them under one GIL; extra processes let them overlap.
+SNUBA_API_PROCESSES = 4
+
 # What `snuba bootstrap` talks to. In early mode phase 1 only waits for these.
 BOOTSTRAP_DEPENDENCIES = ("snuba-clickhouse-1", "kafka-kafka-1", "redis-redis-1")
 
@@ -253,6 +257,8 @@ def start_worker_container(worker_id: int, *, image: str, network: str) -> None:
         "DEBUG=1",
         image,
         "api",
+        "--processes",
+        str(SNUBA_API_PROCESSES),
     )
     if r.returncode != 0:
         raise RuntimeError(f"docker run {name} failed: {r.stderr.strip()}")
