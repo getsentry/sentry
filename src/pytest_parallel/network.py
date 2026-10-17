@@ -243,6 +243,7 @@ def _guard_resolver(
             or _is_unspecified_host(address)
             or _is_local_hostname(address)
             or _same_host(address, live_server_host)
+            or (name == "getaddrinfo" and _is_numeric_host(address))
         ):
             return original(*args, **kwargs)
         raise PermissionError(_BLOCKED_MESSAGE)
@@ -295,6 +296,17 @@ def _normalized_host(host: Any) -> str:
     if not isinstance(host, str):
         return ""
     return host.casefold().rstrip(".")
+
+
+def _is_numeric_host(host: Any) -> bool:
+    normalized = _normalized_host(host)
+    if not normalized:
+        return False
+    try:
+        ipaddress.ip_address(normalized)
+        return True
+    except ValueError:
+        return False
 
 
 def _is_unspecified_host(host: Any) -> bool:

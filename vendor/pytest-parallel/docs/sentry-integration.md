@@ -23,6 +23,8 @@ def test_external_service():
 
 Serial runs do not install the network guard.
 
+`getaddrinfo` may parse numeric IP literals locally so tests can validate addresses. This does not permit socket connections to an external address.
+
 When `DJANGO_LIVE_TEST_SERVER_ADDRESS` is set, a worker may bind the Django live test server to that host. The guard allows `listen` and `accept` on that bound socket and permits socket traffic to its active host and port. Other ports on the configured host remain blocked.
 
 ## Isolate worker resources
