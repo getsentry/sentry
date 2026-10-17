@@ -286,6 +286,7 @@ describe('useDroppedDataDrawer', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      await userEvent.click(await screen.findByRole('radio', {name: 'All values'}));
       expect(await screen.findByText('40 Dropped Events')).toBeInTheDocument();
       expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
       expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
@@ -310,6 +311,7 @@ describe('useDroppedDataDrawer', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      await userEvent.click(await screen.findByRole('radio', {name: 'All values'}));
       const heading = await screen.findByRole('heading', {name: 'Configured Drops'});
       const isAfterHeading = (text: string) =>
         Boolean(
@@ -335,6 +337,7 @@ describe('useDroppedDataDrawer', () => {
       });
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      await userEvent.click(await screen.findByRole('radio', {name: 'All values'}));
       expect(await screen.findByText('40 Dropped Events')).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'Client Discard'}));
