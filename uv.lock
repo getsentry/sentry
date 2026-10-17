@@ -1890,14 +1890,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pytest-workaround-12888"
-version = "1.0.0"
-source = { registry = "https://pypi.devinfra.sentry.io/simple" }
-wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/pytest_workaround_12888-1.0.0-py3-none-any.whl", hash = "sha256:eacf051c4668958243339d06786efcbec7659cf2d2074942dc559b6f3090a811" },
-]
-
-[[package]]
 name = "pytest-xdist"
 version = "3.0.2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
@@ -2337,7 +2329,6 @@ dev = [
     { name = "pytest-json-report" },
     { name = "pytest-rerunfailures" },
     { name = "pytest-sentry" },
-    { name = "pytest-workaround-12888" },
     { name = "pytest-xdist" },
     { name = "responses" },
     { name = "ruff" },
@@ -2510,7 +2501,6 @@ dev = [
     { name = "pytest-json-report", specifier = ">=1.5.0" },
     { name = "pytest-rerunfailures", specifier = ">=16.2" },
     { name = "pytest-sentry", specifier = ">=0.3.0" },
-    { name = "pytest-workaround-12888", specifier = ">=1.0.0" },
     { name = "pytest-xdist", specifier = ">=3.0.2" },
     { name = "responses", specifier = ">=0.23.1" },
     { name = "ruff", specifier = ">=0.14.0" },
