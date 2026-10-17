@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from django.db import models
+from django.db import models, router, transaction
 from django.utils import timezone
 
 from bitfield import TypedClassBitField
@@ -119,11 +119,48 @@ class AuthProvider(ReplicatedControlModel):
             )
             return
 
-        # check if we have a scim app already
-
-        if SentryAppInstallationForProvider.objects.filter(
-            organization_id=self.organization_id, provider="okta_scim"
-        ).exists():
+        # Reuse an existing SCIM app if its asynchronous deletion has not started.
+        installation = (
+            SentryAppInstallationForProvider.objects.filter(
+                organization_id=self.organization_id,
+                provider=f"{self.provider}_scim",
+            )
+            .select_related("sentry_app_installation__sentry_app")
+            .first()
+        )
+        if installation:
+            sentry_app = installation.sentry_app_installation.sentry_app
+            if sentry_app.status == SentryAppStatus.DELETION_IN_PROGRESS:
+                deletion_filter = {
+                    "app_label": sentry_app._meta.app_label,
+                    "model_name": sentry_app._meta.object_name,
+                    "object_id": sentry_app.id,
+                }
+                with transaction.atomic(using=router.db_for_write(ScheduledDeletion)):
+                    deletion = (
+                        ScheduledDeletion.objects.select_for_update()
+                        .filter(**deletion_filter)
+                        .first()
+                    )
+                    if deletion is None:
+                        # Another concurrent enable may already have canceled it.
+                        sentry_app.refresh_from_db()
+                        if sentry_app.status != SentryAppStatus.INTERNAL:
+                            logger.warning(
+                                "SCIM installation deletion already in progress",
+                                extra={"organization_id": self.organization_id},
+                            )
+                            return
+                    elif deletion.in_progress:
+                        logger.warning(
+                            "SCIM installation deletion already in progress",
+                            extra={"organization_id": self.organization_id},
+                        )
+                        return
+                    else:
+                        ScheduledDeletion.cancel(sentry_app)
+                        sentry_app.update(status=SentryAppStatus.INTERNAL)
+            self.flags.scim_enabled = True
             logger.warning(
                 "SCIM installation already exists",
                 extra={"organization_id": self.organization_id},
