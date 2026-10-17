@@ -116,8 +116,14 @@ def test_network_guard_accepts_empty_byte_hostname() -> None:
             "-c",
             "import socket\n"
             "from pytest_parallel.network import network_blocked\n"
+            "def resolve():\n"
+            "    try:\n"
+            "        return socket.getaddrinfo(b'', 0)\n"
+            "    except socket.gaierror as exc:\n"
+            "        return exc.errno\n"
+            "unguarded = resolve()\n"
             "with network_blocked():\n"
-            "    socket.getaddrinfo(b'', 0)\n",
+            "    assert resolve() == unguarded\n",
         ],
         check=False,
         text=True,
@@ -140,6 +146,10 @@ def test_network_guard_allows_numeric_ip_resolution() -> None:
             "with network_blocked():\n"
             "    result = socket.getaddrinfo('169.254.169.254', 0)\n"
             "    assert result[0][4][0] == '169.254.169.254'\n"
+            "    assert socket.getaddrinfo('2130706433', 0)[0][4][0] == '127.0.0.1'\n"
+            "    assert socket.getaddrinfo('0177.0000.0000.0001', 0)[0][4][0] == '127.0.0.1'\n"
+            "    assert socket.gethostbyname('172.31.255.31') == '172.31.255.31'\n"
+            "    assert socket.gethostbyname_ex('2130706433')[2] == ['127.0.0.1']\n"
             "    try:\n"
             "        socket.getaddrinfo('external.invalid', 0)\n"
             "    except PermissionError:\n"

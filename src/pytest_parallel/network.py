@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import _socket
 import ipaddress
 import socket
 import weakref
@@ -32,6 +33,7 @@ _RESOLVER_FUNCTIONS = (
     "gethostbyname_ex",
     "getnameinfo",
 )
+_FORWARD_RESOLVERS = frozenset(("getaddrinfo", "gethostbyname", "gethostbyname_ex"))
 _BLOCKED_MESSAGE = (
     "Network access outside loopback is disabled by pytest-parallel; "
     "use @pytest.mark.enable_network to allow it for this test"
@@ -249,7 +251,7 @@ def _guard_resolver(
             or _is_unspecified_host(address)
             or _is_local_hostname(address)
             or _same_host(address, live_server_host)
-            or (name == "getaddrinfo" and _is_numeric_host(address))
+            or (name in _FORWARD_RESOLVERS and _is_numeric_host(address))
         ):
             return original(*args, **kwargs)
         raise PermissionError(_BLOCKED_MESSAGE)
@@ -308,14 +310,13 @@ def _normalized_host(host: Any) -> str:
 
 
 def _is_numeric_host(host: Any) -> bool:
-    normalized = _normalized_host(host)
-    if not normalized:
-        return False
+    # Ask the unguarded resolver: it also accepts inet_aton forms such as
+    # "2130706433" and "0177.0.0.1" without a DNS lookup.
     try:
-        ipaddress.ip_address(normalized)
-        return True
-    except ValueError:
+        _socket.getaddrinfo(host, None, 0, 0, 0, socket.AI_NUMERICHOST)
+    except (OSError, UnicodeError, TypeError, ValueError):
         return False
+    return True
 
 
 def _is_unspecified_host(host: Any) -> bool:
