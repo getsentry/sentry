@@ -1700,7 +1700,7 @@ class ExploreSavedQueriesTest(APITestCase):
                 },
             )
         assert response.status_code == 400, response.content
-        assert "Cross event queries are limited to 7 days." in str(response.content)
+        assert "Cross event queries are limited to 7 days." in response.content.decode()
 
     def test_get_returns_cross_events_metrics(self) -> None:
         query = {
