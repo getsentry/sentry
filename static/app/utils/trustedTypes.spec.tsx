@@ -89,6 +89,58 @@ describe('trustedTypes', () => {
     expect(() => trustedScriptUrl('https://evil.example.com/x.js')).toThrow(TypeError);
   });
 
+  it('registers sentry-external-script-url when supported', async () => {
+    const trustedTypes = fakeTrustedTypes();
+    setTrustedTypes(trustedTypes);
+
+    const {installTrustedTypesPolicies} = await loadModule();
+    installTrustedTypesPolicies();
+
+    expect(trustedTypes.createPolicy).toHaveBeenCalledWith(
+      'sentry-external-script-url',
+      expect.anything()
+    );
+  });
+
+  it('sets an allowlisted external script src', async () => {
+    setTrustedTypes(fakeTrustedTypes());
+
+    const {installTrustedTypesPolicies, setExternalScriptSrc} = await loadModule();
+    installTrustedTypesPolicies();
+
+    const script = document.createElement('script');
+    setExternalScriptSrc(script, 'https://plausible.io/js/script.js');
+
+    expect(script.src).toBe('https://plausible.io/js/script.js');
+  });
+
+  it.each([
+    'https://evil.example.com/x.js',
+    'http://plausible.io/js/script.js',
+    'https://plausible.io.evil.example.com/x.js',
+  ])('refuses the external script url %s', async url => {
+    setTrustedTypes(fakeTrustedTypes());
+
+    const {installTrustedTypesPolicies, setExternalScriptSrc} = await loadModule();
+    installTrustedTypesPolicies();
+
+    expect(() => setExternalScriptSrc(document.createElement('script'), url)).toThrow(
+      TypeError
+    );
+  });
+
+  it('sets the raw external src when Trusted Types is unsupported', async () => {
+    setTrustedTypes(undefined);
+
+    const {installTrustedTypesPolicies, setExternalScriptSrc} = await loadModule();
+    installTrustedTypesPolicies();
+
+    const script = document.createElement('script');
+    setExternalScriptSrc(script, 'https://plausible.io/js/script.js');
+
+    expect(script.src).toBe('https://plausible.io/js/script.js');
+  });
+
   it('warms the dompurify policy so a rejected name surfaces at boot', async () => {
     setTrustedTypes(fakeTrustedTypes());
 
