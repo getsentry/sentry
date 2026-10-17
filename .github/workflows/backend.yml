@@ -225,6 +225,8 @@ jobs:
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: ${{ github.event_name == 'pull_request' && '2' || '3' }}
+      # Record tests that reach hosts outside the runner without failing them.
+      SENTRY_NETWORK_GUARD: report
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -352,6 +354,15 @@ jobs:
               docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
             done
           fi
+
+      - name: Upload network guard report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: network-guard-${{ github.run_id }}-${{ matrix.instance }}
+          path: .artifacts/network-guard.json
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Collect test data
         uses: ./.github/actions/collect-test-data
