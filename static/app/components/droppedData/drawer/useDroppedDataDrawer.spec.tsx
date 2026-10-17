@@ -356,6 +356,109 @@ describe('useDroppedDataDrawer', () => {
     });
   });
 
+  describe('contributing and all values', () => {
+    beforeEach(() => {
+      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('shows only unintentional drops by default', async () => {
+      mockMultiOutcomeDroppedData();
+
+      render(<DroppedDataTrigger />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+      expect(screen.getByRole('radio', {name: 'Contributing values'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Client Discard'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('checkbox', {name: 'Inbound Filter'})
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('Dropped by before send')).toBeInTheDocument();
+      expect(screen.queryByText('Dropped by ignored spans')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: 'Configured Drops'})
+      ).not.toBeInTheDocument();
+      // 10 unintentional drops out of 60 accepted + 10 dropped.
+      expect(screen.getByText('14.29%')).toBeInTheDocument();
+    });
+
+    it('recomputes shares when switching to all values and back', async () => {
+      mockMultiOutcomeDroppedData();
+
+      render(<DroppedDataTrigger />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      expect(await screen.findByText('14.29%')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('radio', {name: 'All values'}));
+
+      expect(screen.getByText('40 Dropped Events')).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', {name: 'Inbound Filter'})).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Configured Drops'})).toBeInTheDocument();
+      expect(screen.getByText('Dropped by ignored spans')).toBeInTheDocument();
+      // 10 unintentional drops out of 60 accepted + 40 dropped.
+      expect(screen.getByText('10%')).toBeInTheDocument();
+      expect(screen.queryByText('14.29%')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('radio', {name: 'Contributing values'}));
+
+      expect(screen.getByText('10 Dropped Events')).toBeInTheDocument();
+      expect(screen.getByText('14.29%')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('heading', {name: 'Configured Drops'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps contributing shares when a legend outcome is deselected', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-dropped/`,
+        body: {
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+          droppedEvents: [
+            DroppedEventFixture({
+              outcome: 'client_discard',
+              reason: 'before_send',
+              count: 10,
+            }),
+            DroppedEventFixture({count: 20}),
+            DroppedEventFixture({
+              outcome: 'filtered',
+              reason: 'ignore_spans',
+              count: 30,
+              tags: ['intentional'],
+            }),
+          ],
+          acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 40})],
+        },
+      });
+
+      render(<DroppedDataTrigger />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      expect(await screen.findByText('30 Dropped Events')).toBeInTheDocument();
+      // 10 client discards out of 40 accepted + 30 unintentional drops.
+      expect(screen.getAllByText('14.29%')).toHaveLength(2);
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Rate Limited'}));
+
+      expect(screen.getByText('10 Dropped Events')).toBeInTheDocument();
+      expect(screen.getAllByText('14.29%')).toHaveLength(2);
+    });
+  });
+
   it('hands off to Seer Explorer from a reason’s troubleshoot action', async () => {
     const seerOrganization = OrganizationFixture({
       openMembership: true,
