@@ -269,6 +269,7 @@ class LlmGenerateRequest(TypedDict):
     provider: str
     model: str
     referrer: str
+    feature: NotRequired[str]
     prompt: str
     system_prompt: str
     temperature: float

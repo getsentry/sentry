@@ -41,6 +41,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         assert response.status_code == 200
         assert response.data == {"title": "My Assigned Errors"}
         mock_request.assert_called_once()
+        assert mock_request.call_args.args[0]["feature"] == "summarization"
 
     @patch("sentry.seer.endpoints.issue_view_title_generate.make_llm_generate_request")
     def test_title_is_stripped(self, mock_request: MagicMock) -> None:
