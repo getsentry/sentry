@@ -215,6 +215,12 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
         buffer.process_spans(chunk, now)
 
 
+def _fresh_buffer(buffer: SpansBuffer) -> SpansBuffer:
+    # An earlier permutation can leave state such as `any_shard_at_limit` behind.
+    _delete_span_buffer_keys(buffer.client)
+    return SpansBuffer(assigned_shards=buffer.assigned_shards, slice_id=buffer.slice_id)
+
+
 def _span_order(spans: Sequence[Span | _SplitBatch]) -> str:
     """Name a permutation by span id initials, with `|` for a batch split, e.g. `d | b a c`."""
     return " ".join("|" if isinstance(span, _SplitBatch) else span.span_id[0] for span in spans)
@@ -570,7 +576,7 @@ def test_basic(buffer: SpansBuffer, subtests: pytest.Subtests) -> None:
         ]
     ):
         with subtests.test(msg=_span_order(spans)):
-            _delete_span_buffer_keys(buffer.client)
+            buffer = _fresh_buffer(buffer)
             process_spans(spans, buffer, now=0)
 
             assert_ttls(buffer.client)
@@ -767,7 +773,7 @@ def test_deep(buffer: SpansBuffer, subtests: pytest.Subtests) -> None:
     ]
     for spans in itertools.permutations(spans_to_permute):
         with subtests.test(msg=_span_order(spans)):
-            _delete_span_buffer_keys(buffer.client)
+            buffer = _fresh_buffer(buffer)
             process_spans(spans, buffer, now=0)
 
             assert_ttls(buffer.client)
@@ -843,7 +849,7 @@ def test_deep2(buffer: SpansBuffer, subtests: pytest.Subtests) -> None:
         ]
     ):
         with subtests.test(msg=_span_order(spans)):
-            _delete_span_buffer_keys(buffer.client)
+            buffer = _fresh_buffer(buffer)
             process_spans(spans, buffer, now=0)
 
             assert_ttls(buffer.client)
@@ -912,7 +918,7 @@ def test_parent_in_other_project(buffer: SpansBuffer, subtests: pytest.Subtests)
         ]
     ):
         with subtests.test(msg=_span_order(spans)):
-            _delete_span_buffer_keys(buffer.client)
+            buffer = _fresh_buffer(buffer)
             process_spans(spans, buffer, now=0)
 
             assert_ttls(buffer.client)
