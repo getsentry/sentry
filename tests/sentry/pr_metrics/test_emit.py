@@ -3,7 +3,9 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
+from django.db import connections, router
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.grouplink import GroupLink
@@ -1600,6 +1602,26 @@ class PrMetricsEmissionTest(TestCase):
     def test_resolved_group_ids_includes_commit_link_via_activity(self) -> None:
         group_id, _ = self._link_commit_group(key="a" * 40)
         self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
+        with CaptureQueriesContext(connections[router.db_for_read(GroupLink)]) as queries:
+            assert resolved_group_ids(self.pull_request) == [group_id]
+
+        group_link_queries = [
+            query["sql"] for query in queries if 'FROM "sentry_grouplink"' in query["sql"]
+        ]
+        assert len(group_link_queries) == 1
+        assert '"sentry_commit"' not in group_link_queries[0]
+
+    def test_resolved_group_ids_excludes_matching_sha_in_another_repository(self) -> None:
+        group_id, _ = self._link_commit_group(key="a" * 40)
+        other_repo = self.create_repo(self.project, name="another/repo")
+        other_commit = self.create_commit(repo=other_repo, key="a" * 40)
+        self.create_group_link(
+            group=self.create_group(project=self.project),
+            linked_id=other_commit.id,
+            linked_type=GroupLink.LinkedType.commit,
+            relationship=GroupLink.Relationship.resolves,
+        )
+        self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
         assert resolved_group_ids(self.pull_request) == [group_id]
 
     def test_resolved_group_ids_merges_pr_and_commit_links(self) -> None:
@@ -1652,9 +1674,10 @@ class PrMetricsEmissionTest(TestCase):
         assert resolved_group_ids(self.pull_request) == []
 
     def test_resolved_group_ids_ignores_untracked_commit_shas(self) -> None:
-        # A SHA in the activity that has no Commit row in Sentry doesn't error.
+        # An empty commit ID list must not remove the direct PR links from the OR.
+        pr_group_id = self._link_group()
         self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
-        assert resolved_group_ids(self.pull_request) == []
+        assert resolved_group_ids(self.pull_request) == [pr_group_id]
 
     def test_resolved_group_ids_with_commits_falls_back_to_pr_links_when_no_activity(
         self,
