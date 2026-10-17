@@ -33,16 +33,18 @@ INNER_TESTS = textwrap.dedent(
 )
 
 
-@pytest.fixture(params=[(), ("-n", "2", "--dist=loadfile")], ids=["inprocess", "xdist"])
+@pytest.fixture(params=[(), ("-j", "2")], ids=["inprocess", "parallel"])
 def tests(request: pytest.FixtureRequest, tmp_path: Path) -> dict[str, dict[str, Any]]:
     (tmp_path / "pytest.ini").write_text("[pytest]\n")
     (tmp_path / "test_inner.py").write_text(INNER_TESTS)
     env = {
-        k: v for k, v in os.environ.items() if not k.startswith(("PYTEST_", "DJANGO_", "SENTRY_"))
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith(("PYTEST_", "_PYTEST_", "DJANGO_", "SENTRY_"))
     }
     env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     plugins = (
-        "xdist.plugin",
+        "pytest_parallel.plugin",
         "pytest_rerunfailures",
         "pytest_jsonreport.plugin",
         "sentry.testutils.pytest.json_report_reruns",

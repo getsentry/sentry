@@ -209,8 +209,8 @@ def test_programmatic_pytest_main_ignores_unrelated_sys_argv(
     test_file.write_text("def test_alpha():\n    assert True\ndef test_beta():\n    assert True\n")
 
     monkeypatch.delenv("_PYTEST_PARALLEL_WORKER", raising=False)
+    monkeypatch.delenv("_PYTEST_PARALLEL_WORKER_ENTRY", raising=False)
     monkeypatch.delenv("PYTEST_PARALLEL_WORKER_ID", raising=False)
-    monkeypatch.setattr(sys, "argv", ["custom-wrapper", "--definitely-not-a-pytest-flag"])
 
     recorded: list[tuple[str, str, str]] = []
 
@@ -218,7 +218,13 @@ def test_programmatic_pytest_main_ignores_unrelated_sys_argv(
         def pytest_runtest_logreport(self, report: pytest.TestReport) -> None:
             recorded.append((report.nodeid, str(report.when), report.outcome))
 
-    rc = pytest.main([str(test_file), "-k", "alpha", "-j", "1", "-q"], plugins=[RecordingPlugin()])
+    # Restore argv before this test's own teardown: Sentry's teardown hooks
+    # use sys.argv[0] to check that they run under pytest.
+    with monkeypatch.context() as m:
+        m.setattr(sys, "argv", ["custom-wrapper", "--definitely-not-a-pytest-flag"])
+        rc = pytest.main(
+            [str(test_file), "-k", "alpha", "-j", "1", "-q"], plugins=[RecordingPlugin()]
+        )
     assert rc == 0
     assert [r[1] for r in recorded] == ["setup", "call", "teardown"]
     assert all(r[0].endswith("test_alpha") for r in recorded)
@@ -231,6 +237,7 @@ def test_in_memory_execution_plugin_is_rejected_with_usage_error(
     test_file.write_text("def test_one():\n    assert True\n")
 
     monkeypatch.delenv("_PYTEST_PARALLEL_WORKER", raising=False)
+    monkeypatch.delenv("_PYTEST_PARALLEL_WORKER_ENTRY", raising=False)
     monkeypatch.delenv("PYTEST_PARALLEL_WORKER_ID", raising=False)
 
     class ExecutionMutatingPlugin:
@@ -324,6 +331,7 @@ def test_jsonl_protocol_rejects_truncated_and_malformed_streams(
     test_file.write_text("def test_ok():\n    assert True\n")
 
     monkeypatch.delenv("_PYTEST_PARALLEL_WORKER", raising=False)
+    monkeypatch.delenv("_PYTEST_PARALLEL_WORKER_ENTRY", raising=False)
     monkeypatch.delenv("PYTEST_PARALLEL_WORKER_ID", raising=False)
 
     class TruncatingProcess:

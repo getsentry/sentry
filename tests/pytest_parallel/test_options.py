@@ -32,6 +32,7 @@ def test_auto_honors_python_cpu_count_override(tmp_path: Path) -> None:
         (tmp_path / f"test_cpu_{idx}.py").write_text("def test_ok():\n    assert True\n")
     env = os.environ.copy()
     env.pop("_PYTEST_PARALLEL_WORKER", None)
+    env.pop("_PYTEST_PARALLEL_WORKER_ENTRY", None)
     env.pop("PYTEST_PARALLEL_WORKER_ID", None)
     env["PYTHON_CPU_COUNT"] = "3"
 
@@ -70,6 +71,7 @@ def test_worker_count_capped_by_schedulable_file_groups(tmp_path: Path) -> None:
     )
     env = os.environ.copy()
     env.pop("_PYTEST_PARALLEL_WORKER", None)
+    env.pop("_PYTEST_PARALLEL_WORKER_ENTRY", None)
     env.pop("PYTEST_PARALLEL_WORKER_ID", None)
 
     result = subprocess.run(
@@ -90,6 +92,7 @@ def test_invalid_max_workers_hook_raises_usage_error(
 ) -> None:
     (tmp_path / "test_a.py").write_text("def test_a():\n    assert True\n")
     monkeypatch.delenv("_PYTEST_PARALLEL_WORKER", raising=False)
+    monkeypatch.delenv("_PYTEST_PARALLEL_WORKER_ENTRY", raising=False)
     monkeypatch.delenv("PYTEST_PARALLEL_WORKER_ID", raising=False)
 
     class BadMaxWorkersPlugin:
