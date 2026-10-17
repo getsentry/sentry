@@ -48,7 +48,8 @@ class ProjectLegacyWebhooksEndpointTest(APITestCase):
         assert stored == "http://example.com/hook\nhttps://other.com/hook"
         assert ProjectOption.objects.get_value(self.project, "webhooks:enabled") is True
 
-    def test_post_can_disable_webhooks(self) -> None:
+    @patch("socket.getaddrinfo", return_value=[(2, 1, 6, "", ("81.0.0.1", 0))])
+    def test_post_can_disable_webhooks(self, mock_getaddrinfo: MagicMock) -> None:
         ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
         response = self.get_success_response(

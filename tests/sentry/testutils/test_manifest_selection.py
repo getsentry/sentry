@@ -132,6 +132,8 @@ def test_manifest_run_preserves_sentry_parent_subset_order(tmp_path: Path) -> No
             sys.executable,
             "-m",
             "pytest",
+            "-p",
+            "pytest_parallel.plugin",
             ".",
             f"--rootdir={suite}",
             "-j",
