@@ -42,7 +42,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         comment = notification.activity.data["text"]
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>  \n{comment}"
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack&notification_uuid={notification_uuid}|{self.group.title}>  \n{comment}"
         )
         assert (
             blocks[2]["elements"][0]["text"]
@@ -70,7 +70,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         comment = notification.activity.data["text"]
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=note_activity-slack&notification_uuid={notification_uuid}|*N+1 Query*>  \n{comment}"
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=note_activity-slack&notification_uuid={notification_uuid}|N+1 Query>  \n{comment}"
         )
         assert (
             blocks[2]["elements"][0]["text"]
@@ -105,7 +105,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f"<http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=note_activity-slack&notification_uuid={notification_uuid}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>  \n{comment}"
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{event.group.id}/?referrer=note_activity-slack&notification_uuid={notification_uuid}|{TEST_ISSUE_OCCURRENCE.issue_title}>  \n{comment}"
         )
         assert (
             blocks[2]["elements"][0]["text"]
