@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import importlib
 import json
 import os
@@ -96,8 +97,17 @@ class TestMain:
 
 
 plan_full_shards = _mod.plan_full_shards
-list_test_files = _mod.list_test_files
 item_part = importlib.import_module("pytest_shard_plugin").item_part
+
+
+def pieces_per_shard(n):
+    return mock.patch.object(_mod, "PIECES_PER_SHARD", n)
+
+
+def write_files(root, files):
+    for path in files:
+        (root / path).parent.mkdir(parents=True, exist_ok=True)
+        (root / path).write_text("def test_one(): pass\ndef test_two(): pass\n")
 
 
 def assert_runs_every_test_once(plan, tests):
@@ -111,19 +121,19 @@ def assert_runs_every_test_once(plan, tests):
 
 
 class TestPlanFullShards:
-    def test_packs_whole_files_by_weight(self, monkeypatch):
-        monkeypatch.setattr(_mod, "PIECES_PER_SHARD", 1)
+    def test_packs_whole_files_by_weight(self):
         weights = {f"t{i}.py": 1.0 for i in range(24)} | {"z.py": 0.0}
-        plan = plan_full_shards(weights, 4)
+        with pieces_per_shard(1):
+            plan = plan_full_shards(weights, 4)
         assert plan is not None
         assert [len(s.files) for s in plan] == [7, 6, 6, 6]
         assert all(not s.parts for s in plan)
 
-    def test_splits_slow_files_across_shards(self, monkeypatch):
-        monkeypatch.setattr(_mod, "PIECES_PER_SHARD", 12)
+    def test_splits_slow_files_across_shards(self):
         # Shards hold 24s, so files over 2s are cut into 2s parts.
         weights = {"big.py": 10.0} | {f"t{i}.py": 1.0 for i in range(86)}
-        plan = plan_full_shards(weights, 4)
+        with pieces_per_shard(12):
+            plan = plan_full_shards(weights, 4)
         assert plan is not None
         holders = [s for s in plan if "big.py" in s.files]
         assert sorted(s.parts["big.py"] for s in holders) == [(i, 4) for i in range(4)]
@@ -145,9 +155,9 @@ class TestPlanFullShards:
         weights = {f"t{i}.py": float(i % 13 + 1) ** 2 for i in range(500)} | {"big.py": 900.0}
         plan = plan_full_shards(weights, 10)
         assert plan is not None
-        loads = []
-        for shard in plan:
-            loads.append(sum(weights[p] / shard.parts.get(p, (0, 1))[1] for p in shard.files))
+        loads = [
+            sum(weights[p] / shard.parts.get(p, (0, 1))[1] for p in shard.files) for shard in plan
+        ]
         assert max(loads) - min(loads) <= 1.0
 
     def test_every_test_runs_exactly_once(self):
@@ -160,31 +170,28 @@ class TestPlanFullShards:
             assert_runs_every_test_once(plan, tests)
 
 
-class TestListTestFiles:
-    def test_lists_python_files_under_roots_minus_ignores(self, tmp_path, monkeypatch):
-        monkeypatch.chdir(tmp_path)
-        for path in (
-            "tests/a/test_a.py",
-            "tests/a/helpers.py",
-            "tests/a/conftest.py",
-            "tests/a/__pycache__/test_a.py",
-            "tests/skip/test_s.py",
-            "tests/data.json",
-            "other/test_o.py",
-        ):
-            (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
-            (tmp_path / path).touch()
-        args = ["tests", "--ignore", "tests/skip", "-o", "x=y", "--junit-xml=out.xml"]
-        assert list_test_files(args) == ["tests/a/helpers.py", "tests/a/test_a.py"]
-
-
-def run_full_main(tmp_path, monkeypatch, files, durations, total, group):
-    monkeypatch.chdir(tmp_path)
-    for path in files:
+def test_list_test_files_lists_python_files_under_roots_minus_ignores(tmp_path):
+    for path in (
+        "tests/a/test_a.py",
+        "tests/a/helpers.py",
+        "tests/a/conftest.py",
+        "tests/a/__pycache__/test_a.py",
+        "tests/skip/test_s.py",
+        "tests/data.json",
+        "other/test_o.py",
+    ):
         (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / path).write_text("def test_one(): pass\ndef test_two(): pass\n")
+        (tmp_path / path).touch()
+    args = ["tests", "--ignore", "tests/skip", "-o", "x=y", "--junit-xml=out.xml"]
+    with contextlib.chdir(tmp_path):
+        assert _mod.list_test_files(args) == ["tests/a/helpers.py", "tests/a/test_a.py"]
+
+
+def run_full_main(tmp_path, files, durations, total, group):
+    write_files(tmp_path, files)
     durations_file = tmp_path / "durations.json"
-    durations_file.write_text(json.dumps(durations))
+    if durations is not None:
+        durations_file.write_text(json.dumps(durations))
     calls = []
 
     def fake_main(args):
@@ -192,64 +199,53 @@ def run_full_main(tmp_path, monkeypatch, files, durations, total, group):
         calls.append((args, *(os.environ.get(k) for k in env)))
         return pytest.ExitCode.OK
 
-    env = {"TOTAL_TEST_GROUPS": str(total), "TEST_GROUP": str(group)}
-    monkeypatch.delenv("SELECTED_TESTS_FILE", raising=False)
-    monkeypatch.setattr(_mod, "DURATIONS_FILE", durations_file)
-    with mock.patch.dict(os.environ, env), mock.patch.object(pytest, "main", fake_main):
+    env = {"SELECTED_TESTS_FILE": "", "TOTAL_TEST_GROUPS": str(total), "TEST_GROUP": str(group)}
+    with (
+        contextlib.chdir(tmp_path),
+        mock.patch.dict(os.environ, env),
+        mock.patch.object(_mod, "DURATIONS_FILE", durations_file),
+        mock.patch.object(pytest, "main", fake_main),
+    ):
         return main(["tests", "-q"]), calls
 
 
 class TestFullRunMain:
-    def test_runs_only_this_shards_files(self, tmp_path, monkeypatch):
+    def test_runs_only_this_shards_files(self, tmp_path):
         files = ["tests/test_a.py", "tests/test_b.py", "tests/test_new.py"]
-        monkeypatch.setattr(_mod, "PIECES_PER_SHARD", 1)
         durations = {"seconds_per_test": 1.0, "files": {"tests/test_a.py": 3.0}}
-        exit_code, calls = run_full_main(tmp_path, monkeypatch, files, durations, 2, 1)
+        with pieces_per_shard(1):
+            exit_code, calls = run_full_main(tmp_path, files, durations, 2, 1)
         shard_file = ".artifacts/full-tests.shard-1.txt"
+        parts_file = ".artifacts/full-tests.shard-1.json"
         assert exit_code == 0
-        assert calls == [
-            (["tests", "-q"], shard_file, "1", "0", ".artifacts/full-tests.shard-1.json")
-        ]
+        assert calls == [(["tests", "-q"], shard_file, "1", "0", parts_file)]
         # test_a.py (3s) on its own; test_new.py is estimated from its 2 tests.
         assert (tmp_path / shard_file).read_text() == "tests/test_b.py\ntests/test_new.py\n"
-        assert json.loads((tmp_path / ".artifacts/full-tests.shard-1.json").read_text()) == {}
+        assert json.loads((tmp_path / parts_file).read_text()) == {}
 
-    def test_without_durations_every_shard_collects_everything(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(_mod, "DURATIONS_FILE", tmp_path / "missing.json")
-        monkeypatch.delenv("SELECTED_TESTS_FILE", raising=False)
-        calls = []
-        env = {"TOTAL_TEST_GROUPS": "3", "TEST_GROUP": "1"}
-        with (
-            mock.patch.dict(os.environ, env),
-            mock.patch.object(
-                pytest,
-                "main",
-                lambda args: calls.append((args, os.environ["TOTAL_TEST_GROUPS"])) or 0,
-            ),
-        ):
-            main(["tests"])
-        assert calls == [(["tests"], "3")]
-
-    def test_new_and_renamed_files_run_once_with_estimated_weight(self, tmp_path, monkeypatch):
-        # test_renamed.py was test_old.py when the weights were recorded: the stale
+    def test_new_and_renamed_files_run_once_with_estimated_weight(self, tmp_path):
+        # test_renamed.py was test_old.py when the durations were recorded: the stale
         # entry is ignored and the new name is weighted by its 2 tests, like any new file.
         files = [f"tests/test_{i}.py" for i in range(8)] + ["tests/test_renamed.py"]
         durations = {
             "seconds_per_test": 1.5,
             "files": {f"tests/test_{i}.py": 3.0 for i in range(8)} | {"tests/test_old.py": 9.0},
         }
-        monkeypatch.chdir(tmp_path)
-        for path in files:
-            (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
-            (tmp_path / path).write_text("def test_one(): pass\ndef test_two(): pass\n")
         durations_file = tmp_path / "durations.json"
         durations_file.write_text(json.dumps(durations))
-        monkeypatch.setattr(_mod, "DURATIONS_FILE", durations_file)
-
-        monkeypatch.setattr(_mod, "PIECES_PER_SHARD", 1)
-        weights = _mod.file_weights(_mod.list_test_files(["tests"]))
+        write_files(tmp_path, files)
+        with (
+            contextlib.chdir(tmp_path),
+            mock.patch.object(_mod, "DURATIONS_FILE", durations_file),
+            pieces_per_shard(1),
+        ):
+            weights = _mod.file_weights(_mod.list_test_files(["tests"]))
+            plan = plan_full_shards(weights, 3)
         assert weights["tests/test_renamed.py"] == 3.0
         assert "tests/test_old.py" not in weights
-        plan = plan_full_shards(weights, 3)
         assert plan is not None
         assert sorted(f for s in plan for f in s.files) == sorted(files)
+
+    def test_without_durations_every_shard_collects_everything(self, tmp_path):
+        _, calls = run_full_main(tmp_path, ["tests/test_a.py"], None, 3, 1)
+        assert calls == [(["tests", "-q"], "", "3", "1", None)]
