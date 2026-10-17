@@ -88,7 +88,7 @@ def build_test_message_blocks(
         if workflow_id:
             title_link += f"&workflow_id={workflow_id}&alert_type=issue"
 
-    title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
+    title_text = f":red_circle: <{title_link}|{formatted_title}>"
 
     if rule and workflow_id:
         block_id = f'{{"issue":{group.id},"workflow":{workflow_id}}}'
