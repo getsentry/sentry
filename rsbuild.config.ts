@@ -395,7 +395,16 @@ const appConfig: Configuration = {
       },
       {
         test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
-        type: 'asset',
+        oneOf: [
+          {
+            // PlatformIcon looks up icons by a runtime string, so every icon is
+            // bundled. Emit files so a page only downloads the icons it renders
+            // instead of inlining all of them into the boot chunk.
+            include: /[\\/]node_modules[\\/]platformicons[\\/]/,
+            type: 'asset/resource',
+          },
+          {type: 'asset'},
+        ],
       },
     ],
   },
@@ -427,14 +436,6 @@ const appConfig: Configuration = {
       /moment\/locale/,
       new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
     ),
-
-    /**
-     * The platformicons package uses dynamic require() to load SVG files:
-     * require(`../${format === "lg" ? "svg_80x80" : "svg"}/${icon}.svg`)
-     *
-     * This plugin tells rspack where to find those SVG files
-     */
-    new rspack.ContextReplacementPlugin(/platformicons/, /\.svg$/),
 
     /**
      * Extract CSS into separate files.
