@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import os
+import random as stdlib_random
 import re
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Literal
+from typing import Any, Literal, cast
 from unittest import mock
 
 import pytest
@@ -23,8 +24,8 @@ def _role(role: Literal["controller", "worker", "serial"], index: int | None) ->
     run = RunInfo(run_id="test", role=role, collection_seed=None)
     worker = None if index is None else WorkerInfo(index=index, count=7)
     with (
-        mock.patch("pytest_parallel.api.current_run", return_value=run),
-        mock.patch("pytest_parallel.api.current_worker", return_value=worker),
+        mock.patch("sentry.testutils.pytest.workers.current_run", return_value=run),
+        mock.patch("sentry.testutils.pytest.workers.current_worker", return_value=worker),
     ):
         yield
 
@@ -97,7 +98,10 @@ def test_selenium_controller_options_skip_parallel_workers() -> None:
     get_option = mock.Mock()
     get_ini = mock.Mock()
     config = SimpleNamespace(option=SimpleNamespace(), getoption=get_option, getini=get_ini)
-    with _role("worker", 0):
+    with (
+        _role("worker", 0),
+        mock.patch.object(selenium, "current_worker", return_value=WorkerInfo(index=0, count=7)),
+    ):
         selenium.pytest_configure(config)
     get_option.assert_not_called()
     get_ini.assert_not_called()
@@ -145,7 +149,7 @@ def test_effective_database_names_use_worker_suffix(request: pytest.FixtureReque
     suffix = workers.database_suffix(workers.parallel_worker_index())
 
     for alias in aliases:
-        database = settings.DATABASES[alias]
+        database = cast(dict[str, Any], settings.DATABASES[alias])
         assert database["NAME"] == original_names[alias]
         test_name = database.get("TEST", {}).get("NAME") or f"test_{database['NAME']}"
         if suffix is None:
@@ -171,14 +175,12 @@ def test_parallel_run_shares_cell_name_and_worker_snowflakes() -> None:
     with (
         mock.patch.dict(os.environ),
         mock.patch.multiple(settings, create=True, **settings_to_restore),
-        mock.patch.object(
-            sentry_plugin.random,
-            "Random",
-            wraps=sentry_plugin.random.Random,
+        mock.patch(
+            "sentry.testutils.pytest.sentry.random.Random", wraps=stdlib_random.Random
         ) as random_factory,
         mock.patch.object(sentry_plugin, "Cell") as cell_factory,
         mock.patch.object(sentry_plugin, "TestEnvCellDirectory"),
-        mock.patch.object(sentry_plugin.cell, "set_global_directory"),
+        mock.patch("sentry.testutils.pytest.sentry.cell.set_global_directory"),
         mock.patch.object(sentry_plugin, "monkey_patch_single_process_silo_mode_state"),
     ):
         with _role("controller", None):

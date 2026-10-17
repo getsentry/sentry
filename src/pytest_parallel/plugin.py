@@ -45,11 +45,11 @@ class ParallelHookSpec:
         """Mutate a worker subprocess environment."""
 
     @pytest.hookspec
-    def pytest_parallel_file_groups(self, path: object, items: list) -> list[str] | None:
+    def pytest_parallel_file_groups(self, path: object, items: list[pytest.Item]) -> list[str] | None:
         """Return additional affinity group names for one test file, or None."""
 
     @pytest.hookspec(firstresult=True)
-    def pytest_parallel_file_weight(self, path: object, items: list) -> float | None:
+    def pytest_parallel_file_weight(self, path: object, items: list[pytest.Item]) -> float | None:
         """Return the estimated relative cost of one test file, or None for its test count."""
 
     @pytest.hookspec
@@ -243,7 +243,7 @@ def pytest_runtestloop(session: pytest.Session) -> bool | None:
 
 
 @pytest.hookimpl(hookwrapper=True, tryfirst=True)
-def pytest_runtest_protocol(item: pytest.Item, nextitem: pytest.Item | None):
+def pytest_runtest_protocol(item: pytest.Item, nextitem: pytest.Item | None) -> Generator[None]:
     if item.get_closest_marker("enable_network") is not None:
         yield
         return

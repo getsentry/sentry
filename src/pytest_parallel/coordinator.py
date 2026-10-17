@@ -5,6 +5,7 @@ import json
 import math
 import multiprocessing
 import os
+import platform
 import shlex
 import shutil
 import signal
@@ -148,8 +149,11 @@ _KEEP_VALUE_OPTIONS: frozenset[str] = frozenset(
 
 
 class ShardItem(Protocol):
-    nodeid: str
-    location: tuple[str, int | None, str]
+    @property
+    def nodeid(self) -> str: ...
+
+    @property
+    def location(self) -> tuple[str, int | None, str]: ...
 
 
 @dataclass
@@ -336,8 +340,6 @@ class Coordinator:
                 results = self._shard_worker_results(caller, session, unit, num_workers)
             except AttributeError:
                 continue
-            if not isinstance(results, list):
-                results = [results]
             requested: set[int] = set()
             for result in results:
                 if result is None:
@@ -531,7 +533,9 @@ class Coordinator:
             return value
         return None
 
-    def _forwarded_args(self, worker_id: int | None = None) -> list[str]:
+    def _forwarded_args(
+        self, worker_id: int | None = None, nodeids: Sequence[str] = ()
+    ) -> list[str]:
         positionals, parser_value_options = self._parser_context()
         invocation = _sanitize_worker_args(
             self._invocation_args(),
@@ -564,13 +568,33 @@ class Coordinator:
         args.append(f"--basetemp={basetemp}")
         args.append(f"--override-ini=cache_dir={basetemp / 'pytest-cache'}")
         if self.collection == "manifest":
-            args.extend(self._collection_arguments())
+            args.extend(self._collection_arguments(nodeids))
         return args
 
-    def _collection_arguments(self) -> list[str]:
+    def _collection_arguments(self, nodeids: Sequence[str]) -> list[str]:
         known = getattr(self.config, "known_args_namespace", None)
         raw_positionals = getattr(known, "file_or_dir", []) or []
-        return [str(path) for path in raw_positionals]
+        rootpath = (
+            self.config.rootpath
+            if isinstance(getattr(self.config, "rootpath", None), Path)
+            else Path.cwd()
+        )
+        assigned_files = {
+            (rootpath / nodeid.partition("::")[0]).resolve()
+            for nodeid in nodeids
+        }
+        arguments: list[str] = []
+        for raw_path in raw_positionals:
+            raw = str(raw_path)
+            path = Path(raw.partition("::")[0])
+            if not path.is_absolute():
+                path = Path.cwd() / path
+            if path.is_file():
+                if path.resolve() in assigned_files:
+                    arguments.append(str(path))
+            else:
+                arguments.append(raw)
+        return arguments
 
     def _invocation_args(self) -> list[str]:
         invocation_params = getattr(self.config, "invocation_params", None)
@@ -686,7 +710,7 @@ class Coordinator:
             for pos, entry in enumerate(active):
                 index, nodeids = entry[0], entry[1]
                 ramp_rank = entry[2] if len(entry) > 2 else pos
-                forwarded_args = self._forwarded_args(worker_id=index)
+                forwarded_args = self._forwarded_args(worker_id=index, nodeids=nodeids)
                 result_path = work_dir / f"worker_{index}_results.jsonl"
                 output_path = work_dir / f"worker_{index}_output.txt"
                 result_path.touch()
@@ -1017,11 +1041,11 @@ class Coordinator:
             state.pending_retry = None
         else:
             expected_index = len(state.started)
-            expected_nodeid = state.assigned[expected_index] if expected_index < len(state.assigned) else None
-            if expected_nodeid != nodeid or attempt != 1:
+            next_nodeid = state.assigned[expected_index] if expected_index < len(state.assigned) else None
+            if next_nodeid != nodeid or attempt != 1:
                 state.protocol_errors.append(
                     f"out-of-order test_start on worker {state.worker_id}: expected "
-                    f"{expected_nodeid!r} attempt 1, got {nodeid!r} attempt {attempt!r}"
+                    f"{next_nodeid!r} attempt 1, got {nodeid!r} attempt {attempt!r}"
                 )
                 return
             state.started.append(nodeid)
@@ -1081,7 +1105,7 @@ class Coordinator:
                 f"active attempt is {active.attempt}"
             )
             return
-        if any(report.outcome == "rerun" for report in active.reports.values()):
+        if any(cast(str, report.outcome) == "rerun" for report in active.reports.values()):
             state.protocol_errors.append(
                 f"report after rerun outcome for {nodeid!r} attempt {active.attempt} on worker {state.worker_id}"
             )
@@ -1160,7 +1184,7 @@ class Coordinator:
                 f"invalid final flag {final!r} for {nodeid!r} attempt {active.attempt} on worker {state.worker_id}"
             )
             return
-        rerun_reports = [report for report in active.reports.values() if report.outcome == "rerun"]
+        rerun_reports = [report for report in active.reports.values() if cast(str, report.outcome) == "rerun"]
         if final == bool(rerun_reports):
             state.protocol_errors.append(
                 f"attempt completion disagrees with rerun reports for {nodeid!r} attempt {active.attempt} "
@@ -1671,9 +1695,10 @@ def _item_file(item: Any, rootpath: Path) -> tuple[Path, str]:
 
 def _resolve_start_method_name(start_method: StartMethod | None = None) -> str:
     if start_method is None or start_method == "auto":
-        if sys.platform == "darwin":
+        system = platform.system()
+        if system == "Darwin":
             return "spawn"
-        if sys.platform.startswith("linux"):
+        if system == "Linux":
             return "forkserver"
         return "spawn"
     if start_method not in {"fork", "spawn", "forkserver"}:

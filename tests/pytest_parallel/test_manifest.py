@@ -38,6 +38,9 @@ def _run(
     extra_env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
+    config_file = cwd / "pytest.ini"
+    if not config_file.exists():
+        config_file.write_text("[pytest]\n", encoding="utf-8")
     for name in (
         "_PYTEST_PARALLEL_WORKER",
         "_PYTEST_PARALLEL_WORKER_ENTRY",
@@ -46,10 +49,21 @@ def _run(
         MANIFEST_ENV,
     ):
         env.pop(name, None)
+    env["PYTEST_ADDOPTS"] = ""
+    env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
     if extra_env:
         env.update(extra_env)
     return subprocess.run(
-        [sys.executable, "-m", "pytest", *args, "--parallel-start-method=spawn", "-q"],
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-p",
+            "pytest_parallel.plugin",
+            *args,
+            "--parallel-start-method=spawn",
+            "-q",
+        ],
         cwd=cwd,
         env=env,
         check=False,
@@ -200,7 +214,7 @@ def test_spawn_manifest_env_overwrites_hook_and_nodeid_mode_clears_it(tmp_path: 
     assert MANIFEST_ENV not in nodeid_context.Process.call_args.kwargs["args"][0]
 
 
-def test_manifest_forwarding_appends_directory_not_nodeids(tmp_path: Path) -> None:
+def test_manifest_forwarding_preserves_directory_collection_arguments(tmp_path: Path) -> None:
     config = Mock()
     config.known_args_namespace.file_or_dir = [str(tmp_path)]
     config.invocation_params.args = (str(tmp_path), "--parallel-collection=manifest", "-q")
@@ -210,9 +224,10 @@ def test_manifest_forwarding_appends_directory_not_nodeids(tmp_path: Path) -> No
     config.rootpath = tmp_path
     manifest_coordinator = Coordinator(cast(Any, config), 1, collection="manifest")
     manifest_coordinator._work_dir = tmp_path
-    manifest_args = manifest_coordinator._forwarded_args(worker_id=0)
-    assert manifest_args[-1] == str(tmp_path)
-    assert manifest_args.count(str(tmp_path)) == 1
+    manifest_args = manifest_coordinator._forwarded_args(
+        worker_id=0, nodeids=["test_sample.py::test_ok"]
+    )
+    assert str(tmp_path) in manifest_args
     assert "--parallel-collection=manifest" not in manifest_args
     assert not any("::" in arg for arg in manifest_args)
 
@@ -220,6 +235,23 @@ def test_manifest_forwarding_appends_directory_not_nodeids(tmp_path: Path) -> No
     nodeid_coordinator._work_dir = tmp_path
     nodeid_args = nodeid_coordinator._forwarded_args(worker_id=0)
     assert str(tmp_path) not in nodeid_args
+
+
+def test_manifest_workers_collect_only_their_explicit_files(tmp_path: Path) -> None:
+    suite = tmp_path / "suite"
+    suite.mkdir()
+    test_a = suite / "test_a.py"
+    test_a.write_text("def test_a():\n    assert True\n", encoding="utf-8")
+    test_b = suite / "test_b.py"
+    test_b.write_text("def test_b():\n    assert True\n", encoding="utf-8")
+
+    result = _run(
+        [str(test_a), str(test_b), "-j", "2", "--parallel-collection=manifest"],
+        suite,
+    )
+
+    assert result.returncode == 0, _output(result)
+    assert "2 passed" in _output(result)
 
 
 def test_invalid_parallel_collection_is_usage_error(tmp_path: Path) -> None:

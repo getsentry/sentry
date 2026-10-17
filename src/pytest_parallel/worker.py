@@ -218,7 +218,7 @@ class ResultReporter:
         if self._active_attempt is None or self._active_attempt[0] != report.nodeid:
             raise RuntimeError(f"report for {report.nodeid!r} without an active attempt")
         attempt = self._active_attempt[1]
-        if report.outcome == "rerun":
+        if str(report.outcome) == "rerun":
             self._rerunning.add(report.nodeid)
         self._emit(
             {

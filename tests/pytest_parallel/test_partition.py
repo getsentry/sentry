@@ -41,7 +41,7 @@ def _assigned_nodeids(items: list[Mock], num_workers: int, balance: str = "round
     return [[item.nodeid for unit in bucket for item in unit.items] for bucket in buckets]
 
 
-def test_round_robin_preserves_file_order():
+def test_round_robin_preserves_file_order() -> None:
     items = [
         _make_item("a.py::test_1"),
         _make_item("a.py::test_2"),
@@ -59,7 +59,7 @@ def test_round_robin_preserves_file_order():
     assert buckets[2] == ["c.py::test_1", "c.py::test_2"]
 
 
-def test_preserves_test_order_within_file():
+def test_preserves_test_order_within_file() -> None:
     items = [
         _make_item("f.py::TestA::test_3"),
         _make_item("f.py::TestA::test_1"),
@@ -76,7 +76,7 @@ def test_preserves_test_order_within_file():
     assert buckets[1] == []
 
 
-def test_single_worker_gets_everything():
+def test_single_worker_gets_everything() -> None:
     items = [_make_item(f"f{i}.py::test") for i in range(5)]
 
     buckets = _assigned_nodeids(items, 1)
@@ -85,7 +85,7 @@ def test_single_worker_gets_everything():
     assert len(buckets[0]) == 5
 
 
-def test_more_workers_than_files():
+def test_more_workers_than_files() -> None:
     items = [_make_item("a.py::test_1"), _make_item("b.py::test_1")]
 
     buckets = _assigned_nodeids(items, 4)
@@ -96,7 +96,7 @@ def test_more_workers_than_files():
     assert buckets[3] == []
 
 
-def test_spawn_uses_multiprocessing_context(tmp_path):
+def test_spawn_uses_multiprocessing_context(tmp_path: Path) -> None:
     config = Mock()
     config.hook.pytest_parallel_worker_env = Mock()
     config.known_args_namespace.file_or_dir = []
@@ -127,7 +127,7 @@ def test_spawn_uses_multiprocessing_context(tmp_path):
     assert workers == [(0, process, tmp_path / "worker_0_results.jsonl", tmp_path / "worker_0_output.txt")]
 
 
-def test_forwarded_args_strips_jobs_options():
+def test_forwarded_args_strips_jobs_options() -> None:
     config = Mock()
     config.known_args_namespace.file_or_dir = ["tests/"]
     coordinator = Coordinator(cast(Any, config), 1)
@@ -138,7 +138,9 @@ def test_forwarded_args_strips_jobs_options():
     assert args == ["-q"]
 
 
-def test_forwarded_args_sanitizes_ini_and_pytest_addopts(tmp_path, monkeypatch):
+def test_forwarded_args_sanitizes_ini_and_pytest_addopts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     config = Mock()
     config.known_args_namespace.file_or_dir = ["tests/", "from-ini", "from-env"]
     config.invocation_params.args = ("tests/", "-k", "keep-me", "--log-file=cli.log")
@@ -181,9 +183,9 @@ def test_forwarded_args_sanitizes_ini_and_pytest_addopts(tmp_path, monkeypatch):
     ]
 
 
-def test_multiprocessing_context_uses_spawn_on_macos():
+def test_multiprocessing_context_uses_spawn_on_macos() -> None:
     with (
-        patch("pytest_parallel.coordinator.sys.platform", "darwin"),
+        patch("pytest_parallel.coordinator.platform.system", return_value="Darwin"),
         patch("pytest_parallel.coordinator.multiprocessing.get_context") as get_context,
     ):
         _multiprocessing_context()
@@ -191,9 +193,9 @@ def test_multiprocessing_context_uses_spawn_on_macos():
     get_context.assert_called_once_with("spawn")
 
 
-def test_multiprocessing_context_uses_forkserver_on_linux():
+def test_multiprocessing_context_uses_forkserver_on_linux() -> None:
     with (
-        patch("pytest_parallel.coordinator.sys.platform", "linux"),
+        patch("pytest_parallel.coordinator.platform.system", return_value="Linux"),
         patch("pytest_parallel.coordinator.multiprocessing.get_context") as get_context,
     ):
         _multiprocessing_context()
@@ -201,14 +203,14 @@ def test_multiprocessing_context_uses_forkserver_on_linux():
     get_context.assert_called_once_with("forkserver")
 
 
-def test_linux_fork_guard_rejects_active_background_threads():
+def test_linux_fork_guard_rejects_active_background_threads() -> None:
     main = Mock()
     thread = Mock()
     thread.name = "plugin-thread"
     thread.is_alive.return_value = True
 
     with (
-        patch("pytest_parallel.coordinator.sys.platform", "linux"),
+        patch("pytest_parallel.coordinator.platform.system", return_value="Linux"),
         patch("pytest_parallel.coordinator.threading.main_thread", return_value=main),
         patch("pytest_parallel.coordinator.threading.enumerate", return_value=[main, thread]),
         pytest.raises(pytest.UsageError, match="plugin-thread"),
@@ -216,29 +218,29 @@ def test_linux_fork_guard_rejects_active_background_threads():
         _assert_safe_to_start_workers("fork")
 
 
-def test_spawn_platforms_skip_thread_guard():
+def test_spawn_platforms_skip_thread_guard() -> None:
     thread = Mock()
     thread.is_alive.return_value = True
 
     with (
-        patch("pytest_parallel.coordinator.sys.platform", "darwin"),
+        patch("pytest_parallel.coordinator.platform.system", return_value="Darwin"),
         patch("pytest_parallel.coordinator.threading.enumerate", return_value=[thread]),
     ):
         _assert_safe_to_start_workers()
 
 
-def test_explicit_spawn_on_linux_skips_thread_guard():
+def test_explicit_spawn_on_linux_skips_thread_guard() -> None:
     thread = Mock()
     thread.is_alive.return_value = True
 
     with (
-        patch("pytest_parallel.coordinator.sys.platform", "linux"),
+        patch("pytest_parallel.coordinator.platform.system", return_value="Linux"),
         patch("pytest_parallel.coordinator.threading.enumerate", return_value=[thread]),
     ):
         _assert_safe_to_start_workers("spawn")
 
 
-def test_unsupported_start_method_raises_usage_error():
+def test_unsupported_start_method_raises_usage_error() -> None:
     with (
         patch("pytest_parallel.coordinator.multiprocessing.get_context", side_effect=ValueError("no fork")),
         pytest.raises(pytest.UsageError, match="not supported"),
@@ -246,7 +248,7 @@ def test_unsupported_start_method_raises_usage_error():
         _multiprocessing_context("fork")
 
 
-def test_count_balance_assigns_largest_files_first_and_preserves_order():
+def test_count_balance_assigns_largest_files_first_and_preserves_order() -> None:
     items = [
         _make_item("small_a.py::test_1"),
         _make_item("small_b.py::test_1"),
@@ -286,7 +288,7 @@ def _make_marked_item(nodeid: str, groups: list[tuple[object, ...]], kwargs_list
     return item
 
 
-def test_parallel_group_combines_connected_files_without_mutating_nodeid():
+def test_parallel_group_combines_connected_files_without_mutating_nodeid() -> None:
     items = [
         _make_marked_item("f1.py::test_a", [(" db ",)]),
         _make_item("f2.py::test_b"),
@@ -304,7 +306,7 @@ def test_parallel_group_combines_connected_files_without_mutating_nodeid():
     assert buckets[1] == ["f2.py::test_b"]
 
 
-def test_parallel_group_rejects_empty_or_non_string_names():
+def test_parallel_group_rejects_empty_or_non_string_names() -> None:
     bad_empty = [_make_marked_item("f1.py::test_a", [("   ",)])]
     with pytest.raises(pytest.UsageError, match="non-empty"):
         _extract_parallel_groups(bad_empty[0])
@@ -318,7 +320,9 @@ def test_parallel_group_rejects_empty_or_non_string_names():
         _extract_parallel_groups(bad_kwarg[0])
 
 
-def test_forwarded_args_uses_invocation_params_and_strips_coordinator_flags(tmp_path, monkeypatch):
+def test_forwarded_args_uses_invocation_params_and_strips_coordinator_flags(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     config = Mock()
     config.known_args_namespace.file_or_dir = ["tests/"]
     config.invocation_params.args = (

@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any
 from unittest.mock import Mock
 
 import pytest
@@ -33,10 +34,10 @@ def _run(args: list[str], cwd: Path, *, merge_output: bool = True) -> subprocess
     )
 
 
-def _plan_json(output: str) -> dict:
+def _plan_json(output: str) -> dict[str, Any]:
     start = output.index("{")
     plan, _ = json.JSONDecoder().raw_decode(output[start:])
-    return plan  # type: ignore[return-value]
+    return plan
 
 
 def _item(nodeid: str) -> Mock:
@@ -150,7 +151,7 @@ def test_conftest_hooks_stay_inside_their_directory(tmp_path: Path) -> None:
     plan = _plan_json(res.stdout)
     units = [unit for worker in plan["workers"] for unit in worker["units"]]
 
-    def unit_for(suffix: str) -> dict:
+    def unit_for(suffix: str) -> dict[str, Any]:
         matches = [unit for unit in units if any(str(path).endswith(suffix) for path in unit["files"])]
         assert len(matches) == 1, units
         return matches[0]

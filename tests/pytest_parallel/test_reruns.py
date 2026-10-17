@@ -7,6 +7,7 @@ import sys
 import textwrap
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -21,7 +22,9 @@ def _clean_env() -> dict[str, str]:
     return env
 
 
-def _run_json_suite(tmp_path: Path, test_source: str, *, reruns: int = 1) -> tuple[subprocess.CompletedProcess[str], dict]:
+def _run_json_suite(
+    tmp_path: Path, test_source: str, *, reruns: int = 1
+) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
     pytest.importorskip("pytest_jsonreport")
     test_file = tmp_path / "test_retry.py"
     test_file.write_text(test_source, encoding="utf-8")
