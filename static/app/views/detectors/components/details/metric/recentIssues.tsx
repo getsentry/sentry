@@ -66,10 +66,9 @@ interface MetricDetectorRecentIssuesProps {
    */
   intervalSeconds?: number;
 }
-
 /**
- * Lists the detector's most recent issues and their open periods, for orgs where each
- * activation opens its own issue.
+ * Show the detector's most recent issues for the time range the user specified
+ * Each issue's open periods are grouped together and visible within a dropdown
  */
 export function MetricDetectorRecentIssues({
   detector,
