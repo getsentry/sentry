@@ -5,6 +5,7 @@ import pytest
 from django.db import connections, router, transaction
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
@@ -246,6 +247,44 @@ def test_project_get_option_does_not_reload(
         )
 
     assert not build_project_config.called
+
+
+@django_db_all
+def test_compute_projectkey_config_sees_options_saved_by_another_process(
+    default_project,
+    default_projectkey,
+    django_cache,
+):
+    organization = default_project.organization
+    OrganizationOption.objects.set_value(organization, "sentry:sensitive_fields", ["org_old"])
+    ProjectOption.objects.set_value(default_project, "sentry:sensitive_fields", ["project_old"])
+
+    # A long-running task worker computes a config and keeps the options it read
+    # in its process-local cache. Nothing ends a request in a worker, so
+    # `request_finished` never clears that cache.
+    config = compute_projectkey_config(default_projectkey)
+    assert config["config"]["datascrubbingSettings"]["sensitiveFields"] == [
+        "org_old",
+        "project_old",
+    ]
+    org_key = OrganizationOption.objects._make_key(organization.id)
+    project_key = ProjectOption.objects._make_key(default_project.id)
+    stale_org = OrganizationOption.objects._option_cache[org_key]
+    stale_project = ProjectOption.objects._option_cache[project_key]
+
+    # Another process (a web request) saves new values. The database and the
+    # shared cache have them; this worker's local cache does not.
+    OrganizationOption.objects.set_value(organization, "sentry:sensitive_fields", ["org_new"])
+    ProjectOption.objects.set_value(default_project, "sentry:sensitive_fields", ["project_new"])
+    OrganizationOption.objects._option_cache[org_key] = stale_org
+    ProjectOption.objects._option_cache[project_key] = stale_project
+
+    config = compute_projectkey_config(default_projectkey)
+
+    assert config["config"]["datascrubbingSettings"]["sensitiveFields"] == [
+        "org_new",
+        "project_new",
+    ]
 
 
 @django_db_all
