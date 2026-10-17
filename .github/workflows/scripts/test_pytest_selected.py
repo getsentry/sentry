@@ -93,3 +93,141 @@ class TestMain:
             tmp_path, ["a.py", "b.py"], {}, 2, 0, exit_code=pytest.ExitCode.NO_TESTS_COLLECTED
         )
         assert exit_code == 0
+
+
+plan_full_shards = _mod.plan_full_shards
+list_test_files = _mod.list_test_files
+item_part = importlib.import_module("pytest_shard_plugin").item_part
+
+
+def assert_runs_every_test_once(plan, tests):
+    """`tests` maps each file to its test ids. Checks each one runs on exactly one shard."""
+    ran = []
+    for shard in plan:
+        assert sorted(shard.order) == shard.files
+        for path in shard.files:
+            part, parts = shard.parts.get(path, (0, 1))
+            ran += [t for t in tests[path] if parts == 1 or item_part(t, parts) == part]
+    assert sorted(ran) == sorted(t for ids in tests.values() for t in ids)
+
+
+class TestPlanFullShards:
+    def test_packs_whole_files_by_weight(self, monkeypatch):
+        monkeypatch.setattr(_mod, "PIECES_PER_SHARD", 1)
+        weights = {f"t{i}.py": 1.0 for i in range(24)} | {"z.py": 0.0}
+        plan = plan_full_shards(weights, 4)
+        assert plan is not None
+        assert [len(s.files) for s in plan] == [7, 6, 6, 6]
+        assert all(not s.parts for s in plan)
+
+    def test_splits_slow_files_across_shards(self):
+        # Shards hold 24s, so files over 2s are cut into 2s parts.
+        weights = {"big.py": 10.0} | {f"t{i}.py": 1.0 for i in range(86)}
+        plan = plan_full_shards(weights, 4)
+        assert plan is not None
+        holders = [s for s in plan if "big.py" in s.files]
+        assert sorted(s.parts["big.py"] for s in holders) == [(i, 4) for i in range(4)]
+        # The slow file runs first.
+        assert all(s.order[0] == "big.py" for s in holders)
+
+    def test_never_splits_a_file_past_the_shard_count(self):
+        plan = plan_full_shards({"big.py": 100.0, "a.py": 1.0, "b.py": 1.0}, 3)
+        assert plan is not None
+        assert sorted(s.parts["big.py"] for s in plan) == [(0, 3), (1, 3), (2, 3)]
+
+    def test_no_plan_when_a_shard_would_be_empty(self):
+        assert plan_full_shards({"a.py": 0.0}, 2) is None
+
+    def test_same_weights_same_plan(self):
+        weights = {f"t{i}.py": float(i % 13) for i in range(200)}
+        assert plan_full_shards(weights, 7) == plan_full_shards(dict(reversed(weights.items())), 7)
+
+    def test_balances_shards(self):
+        weights = {f"t{i}.py": float(i % 13 + 1) ** 2 for i in range(500)} | {"big.py": 900.0}
+        plan = plan_full_shards(weights, 10)
+        assert plan is not None
+        loads = []
+        for shard in plan:
+            loads.append(sum(weights[p] / shard.parts.get(p, (0, 1))[1] for p in shard.files))
+        assert max(loads) - min(loads) <= 1.0
+
+    def test_every_test_runs_exactly_once(self):
+        tests = {f"t{i}.py": [f"t{i}.py::test_{j}" for j in range(i % 50)] for i in range(300)}
+        tests["big.py"] = [f"big.py::Test::test_{j}[{k}]" for j in range(40) for k in range(30)]
+        weights = {path: len(ids) * 0.5 for path, ids in tests.items()}
+        for total in (2, 7, 22):
+            plan = plan_full_shards(weights, total)
+            assert plan is not None and len(plan) == total
+            assert_runs_every_test_once(plan, tests)
+
+
+class TestListTestFiles:
+    def test_lists_python_files_under_roots_minus_ignores(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        for path in (
+            "tests/a/test_a.py",
+            "tests/a/helpers.py",
+            "tests/a/conftest.py",
+            "tests/a/__pycache__/test_a.py",
+            "tests/skip/test_s.py",
+            "tests/data.json",
+            "other/test_o.py",
+        ):
+            (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+            (tmp_path / path).touch()
+        args = ["tests", "--ignore", "tests/skip", "-o", "x=y", "--junit-xml=out.xml"]
+        assert list_test_files(args) == ["tests/a/helpers.py", "tests/a/test_a.py"]
+
+
+def run_full_main(tmp_path, monkeypatch, files, durations, total, group):
+    monkeypatch.chdir(tmp_path)
+    for path in files:
+        (tmp_path / path).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / path).write_text("def test_one(): pass\ndef test_two(): pass\n")
+    durations_file = tmp_path / "durations.json"
+    durations_file.write_text(json.dumps(durations))
+    calls = []
+
+    def fake_main(args):
+        env = ("SELECTED_TESTS_FILE", "TOTAL_TEST_GROUPS", "TEST_GROUP", "PYTEST_SHARD_PLAN")
+        calls.append((args, *(os.environ.get(k) for k in env)))
+        return pytest.ExitCode.OK
+
+    env = {"TOTAL_TEST_GROUPS": str(total), "TEST_GROUP": str(group)}
+    monkeypatch.delenv("SELECTED_TESTS_FILE", raising=False)
+    monkeypatch.setattr(_mod, "DURATIONS_FILE", durations_file)
+    with mock.patch.dict(os.environ, env), mock.patch.object(pytest, "main", fake_main):
+        return main(["tests", "-q"]), calls
+
+
+class TestFullRunMain:
+    def test_runs_only_this_shards_files(self, tmp_path, monkeypatch):
+        files = ["tests/test_a.py", "tests/test_b.py", "tests/test_new.py"]
+        monkeypatch.setattr(_mod, "PIECES_PER_SHARD", 1)
+        durations = {"seconds_per_test": 1.0, "files": {"tests/test_a.py": 3.0}}
+        exit_code, calls = run_full_main(tmp_path, monkeypatch, files, durations, 2, 1)
+        shard_file = ".artifacts/full-tests.shard-1.txt"
+        assert exit_code == 0
+        assert calls == [
+            (["tests", "-q"], shard_file, "1", "0", ".artifacts/full-tests.shard-1.json")
+        ]
+        # test_a.py (3s) on its own; test_new.py is estimated from its 2 tests.
+        assert (tmp_path / shard_file).read_text() == "tests/test_b.py\ntests/test_new.py\n"
+        plan = json.loads((tmp_path / ".artifacts/full-tests.shard-1.json").read_text())
+        assert plan == {"order": ["tests/test_b.py", "tests/test_new.py"], "parts": {}}
+
+    def test_without_durations_every_shard_collects_everything(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(_mod, "DURATIONS_FILE", tmp_path / "missing.json")
+        monkeypatch.delenv("SELECTED_TESTS_FILE", raising=False)
+        calls = []
+        env = {"TOTAL_TEST_GROUPS": "3", "TEST_GROUP": "1"}
+        with (
+            mock.patch.dict(os.environ, env),
+            mock.patch.object(
+                pytest,
+                "main",
+                lambda args: calls.append((args, os.environ["TOTAL_TEST_GROUPS"])) or 0,
+            ),
+        ):
+            main(["tests"])
+        assert calls == [(["tests"], "3")]

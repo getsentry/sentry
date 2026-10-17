@@ -1,24 +1,36 @@
 #!/usr/bin/env python3
-"""Run one shard of a selective pytest run, with the selection split by file.
+"""Run one shard of a sharded pytest run, with the tests split by file.
 
 Usage: python3 -b pytest-selected.py [pytest args...]
 
-Without this, every shard imports every file in SELECTED_TESTS_FILE and the
-pytest plugin then drops the tests that belong to other shards. Instead, each
-shard gets its own whole files, balanced by the per-file test counts in
-`selected-tests.counts.json`. A file too big for one shard gets several shards,
-which split it by test. pytest args pass through unchanged.
+Without this, every shard imports every test file and the pytest plugin then
+drops the tests that belong to other shards. Instead, each shard only imports
+its own files. pytest args pass through unchanged.
+
+- Selective runs (SELECTED_TESTS_FILE set): each shard gets whole selected
+  files, balanced by the per-file test counts in `selected-tests.counts.json`.
+  A file too big for one shard gets several shards, which split it by test.
+- Full runs: each shard gets whole files and slices of the slowest files,
+  balanced by the per-file durations in `backend-test-durations.json`. The plan
+  depends only on the checkout, so a commit always gets the same shards. Without
+  that file, every shard collects everything and keeps its hash share.
 """
 
 from __future__ import annotations
 
 import json
+import math
 import os
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import pytest
+
+DURATIONS_FILE = Path(__file__).parent / "backend-test-durations.json"
+# Full runs split files slower than 1/PIECES_PER_SHARD of a shard by test, so
+# that no single file holds up an xdist worker at the end of a shard.
+PIECES_PER_SHARD = 12
 
 
 @dataclass(frozen=True)
@@ -28,6 +40,10 @@ class Shard:
     # several shards.
     item_groups: int = 1
     item_group: int = 0
+    # Full runs only: {path: (part, parts)} for files split across shards, and
+    # the order to run files in, slowest first.
+    parts: dict[str, tuple[int, int]] = field(default_factory=dict)
+    order: list[str] = field(default_factory=list)
 
 
 def plan_shards(weights: dict[str, int], total: int) -> list[Shard]:
@@ -66,10 +82,128 @@ def plan_shards(weights: dict[str, int], total: int) -> list[Shard]:
     return shards
 
 
+def plan_full_shards(weights: dict[str, float], total: int) -> list[Shard] | None:
+    """Split every test file into `total` shards. Every shard must compute the same plan.
+
+    Files slower than 1/PIECES_PER_SHARD of a shard are cut into that many equal
+    parts, each on a different shard. Parts and whole files go heaviest first
+    onto the lightest shard. Returns None if a shard would get no files.
+    """
+    target = sum(weights.values()) / total
+    cap = target / PIECES_PER_SHARD
+    pieces = []
+    for path, weight in weights.items():
+        parts = min(total, math.ceil(weight / cap)) if cap and weight > cap else 1
+        pieces += [(weight / parts, path, part, parts) for part in range(parts)]
+
+    loads = [0.0] * total
+    shards: list[dict[str, tuple[float, int, int]]] = [{} for _ in range(total)]
+    for weight, path, part, parts in sorted(pieces, key=lambda p: (-p[0], p[1], p[2])):
+        i = min((i for i in range(total) if path not in shards[i]), key=lambda i: (loads[i], i))
+        shards[i][path] = (weight, part, parts)
+        loads[i] += weight
+
+    if not all(shards):
+        return None
+    return [
+        Shard(
+            sorted(files),
+            parts={path: (part, parts) for path, (_, part, parts) in files.items() if parts > 1},
+            order=sorted(files, key=lambda path: (-files[path][0], path)),
+        )
+        for files in shards
+    ]
+
+
+def list_test_files(args: list[str]) -> list[str]:
+    """Every .py file pytest could collect from the paths in `args`, minus --ignore.
+
+    Non-test files are harmless: pytest doesn't collect them either way. Missing
+    one that pytest does collect would drop its tests, so this errs wide.
+    """
+    roots, ignored = [], set()
+    it = iter(args)
+    for arg in it:
+        if arg == "--ignore":
+            ignored.add(os.path.normpath(next(it, "")))
+        elif arg.startswith("--ignore="):
+            ignored.add(os.path.normpath(arg.split("=", 1)[1]))
+        elif not arg.startswith("-") and os.path.exists(arg):
+            roots.append(os.path.normpath(arg))
+
+    files: set[str] = set()
+    for root in roots:
+        if os.path.isfile(root):
+            files.add(root)
+        for dirpath, dirnames, filenames in os.walk(root):
+            if dirpath in ignored:
+                dirnames[:] = []
+                continue
+            dirnames[:] = [d for d in dirnames if d != "__pycache__"]
+            for name in filenames:
+                path = os.path.join(dirpath, name)
+                if name.endswith(".py") and name != "conftest.py" and path not in ignored:
+                    files.add(path)
+    return sorted(files)
+
+
+def file_weights(files: list[str]) -> dict[str, float]:
+    """Seconds per file from the last full run, estimated from test counts for new files."""
+    durations = json.loads(DURATIONS_FILE.read_text())
+    known: dict[str, float] = durations["files"]
+    weights = {}
+    for path in files:
+        if path in known:
+            weights[path] = known[path]
+        elif os.path.basename(path).startswith("test_"):
+            from count_test_items import count_tests_in_file
+
+            weights[path] = count_tests_in_file(Path(path)) * durations["seconds_per_test"]
+        else:
+            weights[path] = 0.0
+    return weights
+
+
+def run_full_shard(args: list[str], total: int, group: int) -> int:
+    files = list_test_files(args)
+    plan = plan_full_shards(file_weights(files), total) if files else None
+    if plan is None:
+        return int(pytest.main(args))
+    shard = plan[group]
+
+    print(
+        f"pytest-selected: shard {group + 1}/{total} runs {len(shard.files)} of "
+        f"{len(files)} files, {len(shard.parts)} of them split",
+        file=sys.stderr,
+    )
+    artifacts = Path(".artifacts")
+    artifacts.mkdir(exist_ok=True)
+    shard_file = artifacts / f"full-tests.shard-{group}.txt"
+    shard_file.write_text("".join(f"{path}\n" for path in shard.files))
+    plan_file = shard_file.with_suffix(".json")
+    plan_file.write_text(json.dumps({"order": shard.order, "parts": shard.parts}))
+    # SELECTED_TESTS_FILE makes the sentry pytest plugin skip other shards'
+    # files at collection; pytest_shard_plugin (loaded in xdist workers too)
+    # keeps this shard's parts of split files and sets the run order.
+    os.environ["SELECTED_TESTS_FILE"] = str(shard_file)
+    os.environ["TOTAL_TEST_GROUPS"] = "1"
+    os.environ["TEST_GROUP"] = "0"
+    os.environ["PYTEST_SHARD_PLAN"] = str(plan_file)
+    os.environ["PYTHONPATH"] = os.pathsep.join(
+        filter(None, [str(Path(__file__).parent), os.environ.get("PYTHONPATH")])
+    )
+    os.environ["PYTEST_PLUGINS"] = ",".join(
+        filter(None, [os.environ.get("PYTEST_PLUGINS"), "pytest_shard_plugin"])
+    )
+    return int(pytest.main(args))
+
+
 def main(args: list[str]) -> int:
     selected_file = os.environ.get("SELECTED_TESTS_FILE")
     total = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     group = int(os.environ.get("TEST_GROUP", 0))
+    if not selected_file and total > 1 and DURATIONS_FILE.is_file():
+        return run_full_shard(args, total, group)
     if not selected_file or not os.path.isfile(selected_file) or total <= 1:
         return int(pytest.main(args))
     with open(selected_file) as f:
@@ -107,4 +241,5 @@ if __name__ == "__main__":
     # Match `python -m pytest`, which puts the working directory (not this
     # script's directory) first on sys.path.
     sys.path[0] = os.getcwd()
+    sys.path.append(str(Path(__file__).parent))
     raise SystemExit(main(sys.argv[1:]))
