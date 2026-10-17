@@ -122,7 +122,7 @@ def test_retry_attempts_replay_reports_and_complete_once(tmp_path: Path) -> None
     assert session.config.hook.pytest_runtest_logfinish.call_count == 2
 
 
-def test_subtest_reports_replay_before_call_report(tmp_path: Path) -> None:
+def test_subtest_reports_can_arrive_before_phase_reports(tmp_path: Path) -> None:
     coordinator, state, session, items = _harness(tmp_path)
     nodeid = state.assigned[0]
 
@@ -153,10 +153,10 @@ def test_subtest_reports_replay_before_call_report(tmp_path: Path) -> None:
     events = [
         {"version": 1, "type": "collection", "nodeids": [nodeid]},
         {"version": 1, "type": "test_start", "nodeid": nodeid, "attempt": 1},
-        _report(nodeid, "setup", "passed", 1),
         subtest_report(0),
         subtest_report(1),
         subtest_report(2),
+        _report(nodeid, "setup", "passed", 1),
         _report(nodeid, "call", "passed", 1),
         _report(nodeid, "teardown", "passed", 1),
         {"version": 1, "type": "test_finish", "nodeid": nodeid, "attempt": 1, "final": True},

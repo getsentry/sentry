@@ -1206,13 +1206,6 @@ class Coordinator:
                 f"out-of-order setup report for {nodeid!r} on worker {state.worker_id}"
             )
             return
-        if when == "call":
-            setup_rep = active.reports.get("setup")
-            if setup_rep is None or "teardown" in active.reports or not setup_rep.passed:
-                state.protocol_errors.append(
-                    f"invalid call phase transition for {nodeid!r} on worker {state.worker_id}"
-                )
-                return
         if when == "teardown" and "setup" not in active.reports:
             state.protocol_errors.append(
                 f"teardown report before setup for {nodeid!r} on worker {state.worker_id}"
@@ -1226,6 +1219,17 @@ class Coordinator:
                 f"invalid serialized TestReport for {nodeid!r} ({when}) on worker {state.worker_id}"
             )
             return
+
+        if when == "call":
+            setup_rep = active.reports.get("setup")
+            if "teardown" in active.reports or (
+                not isinstance(report, pytest.SubtestReport)
+                and (setup_rep is None or not setup_rep.passed)
+            ):
+                state.protocol_errors.append(
+                    f"invalid call phase transition for {nodeid!r} on worker {state.worker_id}"
+                )
+                return
 
         state.last_nodeid = nodeid
         if isinstance(report, pytest.SubtestReport):
