@@ -963,7 +963,6 @@ class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
             assert scim_token_display.token_last_characters is not None
             assert len(scim_token_display.token_last_characters) == 4
 
-
     def test_reenable_scim_cancels_pending_installation_deletion(self) -> None:
         from sentry.constants import SentryAppStatus
         from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
