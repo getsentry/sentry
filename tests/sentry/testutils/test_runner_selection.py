@@ -257,6 +257,54 @@ def test_effective_database_names_use_one_runner_suffix(request: pytest.FixtureR
         assert re.search(r"_gw\d+_gw\d+$", test_name) is None
 
 
+def test_parallel_run_shares_cell_name_and_worker_snowflakes() -> None:
+    from django.conf import settings
+
+    setting_names = (
+        "SILO_MODE",
+        "SENTRY_LOCAL_CELL",
+        "SENTRY_FALLBACK_CELL",
+        "SENTRY_SUBNET_SECRET",
+        "SENTRY_CONTROL_ADDRESS",
+        "APIGATEWAY_PROXY_SKIP_RELAY",
+    )
+    settings_to_restore = {name: getattr(settings, name, None) for name in setting_names}
+
+    with (
+        mock.patch.dict(os.environ),
+        mock.patch.multiple(settings, create=True, **settings_to_restore),
+        mock.patch.object(
+            sentry_plugin.random,
+            "Random",
+            wraps=sentry_plugin.random.Random,
+        ) as random_factory,
+        mock.patch.object(sentry_plugin, "Cell") as cell_factory,
+        mock.patch.object(sentry_plugin, "TestEnvCellDirectory"),
+        mock.patch.object(sentry_plugin.cell, "set_global_directory"),
+        mock.patch.object(sentry_plugin, "monkey_patch_single_process_silo_mode_state"),
+    ):
+        os.environ.pop("PYTEST_XDIST_TESTRUNUID", None)
+        with _role("controller", None):
+            sentry_plugin._configure_test_env_cells()
+        with _role("worker", 0):
+            sentry_plugin._configure_test_env_cells()
+        with _role("worker", 1):
+            sentry_plugin._configure_test_env_cells()
+
+        random_factory.assert_has_calls([mock.call("test")] * 3)
+        cells = [call.args for call in cell_factory.call_args_list]
+        assert [call[0] for call in cells] == [cells[0][0]] * 3
+        assert [call[1] for call in cells] == [0, 1, 2]
+
+
+def test_cell_name_keeps_xdist_run_uid_fallback() -> None:
+    with (
+        mock.patch.dict(os.environ, {"PYTEST_XDIST_TESTRUNUID": "legacy-run"}),
+        _role("serial", None),
+    ):
+        assert sentry_plugin._cell_seed() == "legacy-run"
+
+
 def test_worker_env_pops_django_and_xdist_only_from_dict() -> None:
     with mock.patch.dict(os.environ):
         os.environ["DJANGO_SETTINGS_MODULE"] = "sentinel.settings"

@@ -13,6 +13,17 @@ _MAX_WORKERS = 7
 _service_lock_fds: list[int] = []
 
 
+def parallel_run_id() -> str | None:
+    try:
+        from pytest_parallel.api import current_run
+    except ImportError:
+        return None
+    run = current_run()
+    if run is None or run.role not in {"controller", "worker"}:
+        return None
+    return run.run_id
+
+
 def parallel_worker_index() -> int | None:
     try:
         from pytest_parallel.api import current_run, current_worker

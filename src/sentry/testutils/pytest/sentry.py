@@ -60,6 +60,10 @@ def configure_split_db() -> None:
     settings.DATABASE_ROUTERS = ("sentry.db.router.TestSiloMultiDatabaseRouter",)
 
 
+def _cell_seed() -> str | None:
+    return workers.parallel_run_id() or os.environ.get("PYTEST_XDIST_TESTRUNUID")
+
+
 def get_default_silo_mode_for_test_cases() -> SiloMode:
     return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.CELL
 
@@ -70,10 +74,8 @@ def _configure_test_env_cells() -> None:
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
     # depends on cell attributes, use `override_cells` in your test case.
-    # Under xdist, seed deterministically so all workers generate the same name
-    # (divergent names break xdist's requirement for identical test collection).
-    xdist_uid = os.environ.get("PYTEST_XDIST_TESTRUNUID")
-    r = random.Random(xdist_uid) if xdist_uid else random
+    seed = _cell_seed()
+    r = random.Random(seed) if seed else random
     cell_name = "testregion" + "".join(r.choices(string.digits, k=6))
 
     cell_snowflake_id = xdist.get_snowflake_id()
