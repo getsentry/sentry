@@ -1,7 +1,7 @@
-import os
+import functools
 import sys
 from collections.abc import Callable
-from types import FrameType
+from types import CodeType, FrameType
 from typing import TYPE_CHECKING, Any
 
 from django.db import router, transaction
@@ -16,11 +16,6 @@ _default_get_connection = transaction.get_connection
 
 if TYPE_CHECKING:
     from sentry.db.models import Model
-
-
-_PYTEST_RUNNER = os.path.join("_pytest", "runner.py")
-_DJANGO_TESTCASES = os.path.join("django", "test", "testcases.py")
-_TESTCASE_SETUP_TEARDOWN = frozenset(("_pre_setup", "_post_teardown"))
 
 
 class MismatchedSiloTransactionError(Exception):
@@ -80,19 +75,30 @@ def is_in_test_case_body() -> bool:
     This should not be used as a general-purpose utility function. Avoid calling it
     in places other than `validate_transaction_using_for_silo_mode` if at all possible.
     """
-    # Compare code-object attributes instead of str(frame) + regex: this runs on every
-    # transaction.atomic/on_commit/get_connection call in tests.
-    in_runtest_call = False
+    test_call, setup_teardown = _test_frame_codes()
+    in_test_call = False
     frame: FrameType | None = sys._getframe(1)
     while frame is not None:
-        code = frame.f_code
-        name = code.co_name
-        if name in _TESTCASE_SETUP_TEARDOWN and code.co_filename.endswith(_DJANGO_TESTCASES):
+        if frame.f_code in setup_teardown:
             return False
-        if name == "pytest_runtest_call" and code.co_filename.endswith(_PYTEST_RUNNER):
-            in_runtest_call = True
+        in_test_call = in_test_call or frame.f_code is test_call
         frame = frame.f_back
-    return in_runtest_call
+    return in_test_call
+
+
+@functools.cache
+def _test_frame_codes() -> tuple[CodeType, frozenset[CodeType]]:
+    # Imported lazily: this module also loads in production, where pytest isn't installed.
+    from _pytest.runner import pytest_runtest_call
+    from django.test import testcases
+
+    setup_teardown = frozenset(
+        getattr(method, "__func__", method).__code__
+        for cls in (testcases.SimpleTestCase, testcases.TransactionTestCase)
+        for name in ("_pre_setup", "_post_teardown")
+        if (method := vars(cls).get(name)) is not None
+    )
+    return pytest_runtest_call.__code__, setup_teardown
 
 
 def validate_transaction_using_for_silo_mode(using: str | None) -> None:
