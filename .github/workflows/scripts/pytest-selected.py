@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import shlex
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -161,7 +162,27 @@ def file_weights(files: list[str]) -> dict[str, float]:
     return weights
 
 
+def filters_tests(args: list[str]) -> bool:
+    """Whether `args` or PYTEST_ADDOPTS select tests by marker or keyword.
+
+    The file plan balances every test in each file, so with `-m`/`-k` most
+    shards can end up with files that have no selected tests at all (e.g.
+    `-m snuba_ci` in Snuba's CI).
+    """
+    every_arg = [*args, *shlex.split(os.environ.get("PYTEST_ADDOPTS", ""))]
+    return any(arg.startswith(("-m", "-k")) and not arg.startswith("--") for arg in every_arg)
+
+
 def run_full_shard(args: list[str], total: int, group: int) -> int:
+    if filters_tests(args):
+        # Every shard collects everything; the sentry plugin then keeps its
+        # hash share of the items, which spreads the selected tests evenly.
+        print(
+            "pytest-selected: -m/-k given, so every shard collects everything "
+            "and keeps its hash share",
+            file=sys.stderr,
+        )
+        return int(pytest.main(args))
     files = list_test_files(args)
     plan = plan_full_shards(file_weights(files), total) if files else None
     if plan is None:

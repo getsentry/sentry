@@ -4,6 +4,7 @@ import contextlib
 import importlib
 import json
 import os
+from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -199,7 +200,12 @@ def run_full_main(tmp_path, files, durations, total, group):
         calls.append((args, *(os.environ.get(k) for k in env)))
         return pytest.ExitCode.OK
 
-    env = {"SELECTED_TESTS_FILE": "", "TOTAL_TEST_GROUPS": str(total), "TEST_GROUP": str(group)}
+    env = {
+        "SELECTED_TESTS_FILE": "",
+        "TOTAL_TEST_GROUPS": str(total),
+        "TEST_GROUP": str(group),
+        "PYTEST_ADDOPTS": "",
+    }
     with (
         contextlib.chdir(tmp_path),
         mock.patch.dict(os.environ, env),
@@ -249,3 +255,47 @@ class TestFullRunMain:
     def test_without_durations_every_shard_collects_everything(self, tmp_path):
         _, calls = run_full_main(tmp_path, ["tests/test_a.py"], None, 3, 1)
         assert calls == [(["tests", "-q"], "", "3", "1", None)]
+
+
+@pytest.mark.parametrize(
+    ("args", "addopts", "filtered"),
+    [
+        (["tests", "-q"], "--reruns=5 -n 3 --dist=loadfile", False),
+        (["tests", "-m", "snuba_ci"], "", True),
+        (["tests", "-msnuba_ci"], "", True),
+        (["tests", "-k", "not slow"], "", True),
+        (["tests"], "-k 'not __In' -m snuba_ci -n 3", True),
+        (["tests", "--max-worker-restart=1"], "", False),
+    ],
+)
+def test_filters_tests(args: list[str], addopts: str, filtered: bool) -> None:
+    with mock.patch.dict(os.environ, {"PYTEST_ADDOPTS": addopts}):
+        assert _mod.filters_tests(args) is filtered
+
+
+def test_filtered_full_run_falls_back_to_hash_sharding(tmp_path: Path) -> None:
+    write_files(tmp_path, ["tests/test_a.py", "tests/test_b.py"])
+    durations_file = tmp_path / "durations.json"
+    durations_file.write_text(json.dumps({"seconds_per_test": 1.0, "files": {}}))
+    calls: list[tuple[object, ...]] = []
+
+    def fake_main(args: list[str]) -> pytest.ExitCode:
+        env = ("SELECTED_TESTS_FILE", "TOTAL_TEST_GROUPS", "TEST_GROUP", "PYTEST_SHARD_PARTS")
+        calls.append((args, *(os.environ.get(k) for k in env)))
+        return pytest.ExitCode.OK
+
+    env = {
+        "SELECTED_TESTS_FILE": "",
+        "TOTAL_TEST_GROUPS": "16",
+        "TEST_GROUP": "12",
+        "PYTEST_ADDOPTS": "-m snuba_ci",
+    }
+    with (
+        contextlib.chdir(tmp_path),
+        mock.patch.dict(os.environ, env),
+        mock.patch.object(_mod, "DURATIONS_FILE", durations_file),
+        mock.patch.object(pytest, "main", fake_main),
+    ):
+        assert main(["tests", "-q"]) == 0
+    # The sentry plugin hashes items into 16 groups, as before per-file sharding.
+    assert calls == [(["tests", "-q"], "", "16", "12", None)]
