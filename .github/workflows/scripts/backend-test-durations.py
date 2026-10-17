@@ -17,26 +17,12 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
-import os
 from collections import defaultdict
-from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
-
-SCHEMA = 1
-# Every shard of one attempt of one run must agree on these.
-RUN_FIELDS = ("schema", "unit", "commit", "run_id", "run_attempt", "shards")
 
 
-def extract(pytest_json: Path, env: Mapping[str, str] | None = None) -> dict[str, Any]:
-    """Sum setup, call and teardown time per file from a pytest-json-report file.
-
-    Subtests (`subtests` in the report) ran inside the parent's call, so the
-    call duration already includes them. Reruns are left out.
-    """
-    if env is None:
-        env = os.environ
+def extract(pytest_json: Path) -> dict[str, object]:
+    """Sum setup, call and teardown time per file from a pytest-json-report file."""
     files: dict[str, float] = defaultdict(float)
     tests = 0
     for test in json.loads(pytest_json.read_text()).get("tests", []):
@@ -44,53 +30,18 @@ def extract(pytest_json: Path, env: Mapping[str, str] | None = None) -> dict[str
         path = test["nodeid"].split("::", 1)[0]
         for stage in ("setup", "call", "teardown"):
             files[path] += test.get(stage, {}).get("duration", 0.0)
-    return {
-        "schema": SCHEMA,
-        "unit": "seconds",
-        "commit": env.get("GITHUB_SHA"),
-        "run_id": env.get("GITHUB_RUN_ID"),
-        "run_attempt": env.get("GITHUB_RUN_ATTEMPT"),
-        "shard": int(env.get("TEST_GROUP", 0)),
-        "shards": int(env.get("TOTAL_TEST_GROUPS", 1)),
-        "files": dict(files),
-        "tests": tests,
-    }
+    return {"files": dict(files), "tests": tests}
 
 
-def validate(shards: list[dict[str, Any]]) -> None:
-    """Reject inputs that would skew the weights: mixed runs, gaps, bad numbers."""
-    if not shards:
-        raise ValueError("no shard durations given")
-    for shard in shards:
-        if shard.get("schema") != SCHEMA or shard.get("unit") != "seconds":
-            raise ValueError(f"unsupported durations format: {shard.get('schema')!r}")
-    runs = {tuple(shard.get(field) for field in RUN_FIELDS) for shard in shards}
-    if len(runs) > 1:
-        raise ValueError(f"durations come from more than one run: {sorted(map(str, runs))}")
-    (run,) = runs
-    if None in run:
-        raise ValueError(f"durations are missing run details: {dict(zip(RUN_FIELDS, run))}")
-    indexes = sorted(shard["shard"] for shard in shards)
-    if indexes != list(range(shards[0]["shards"])):
-        raise ValueError(f"expected shards 0..{shards[0]['shards'] - 1} once each, got {indexes}")
-    for shard in shards:
-        values = [*shard["files"].values(), shard["tests"]]
-        if not all(isinstance(v, (int, float)) and math.isfinite(v) and v >= 0 for v in values):
-            raise ValueError(f"shard {shard['shard']} has a negative or non-finite duration")
-
-
-def merge(shards: list[dict[str, Any]]) -> dict[str, Any]:
-    validate(shards)
+def merge(shards: list[dict[str, object]]) -> dict[str, object]:
     files: dict[str, float] = defaultdict(float)
     tests = 0
     for shard in shards:
-        tests += shard["tests"]
-        for path, seconds in shard["files"].items():
+        tests += shard["tests"]  # type: ignore[operator]
+        for path, seconds in shard["files"].items():  # type: ignore[attr-defined]
             files[path] += seconds
     total = sum(files.values())
-    first = shards[0]
     return {
-        "source": {field: first[field] for field in ("commit", "run_id", "run_attempt", "shards")},
         # For files added since: their AST test count times this.
         "seconds_per_test": round(total / tests, 3) if tests else 0.0,
         "files": {path: round(files[path], 1) for path in sorted(files)},

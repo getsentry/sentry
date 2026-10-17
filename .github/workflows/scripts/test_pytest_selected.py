@@ -203,6 +203,7 @@ def run_full_main(
     durations: dict[str, object] | None,
     total: int,
     group: int,
+    addopts: str = "",
 ) -> tuple[int, list[tuple[object, ...]]]:
     write_files(tmp_path, files)
     durations_file = tmp_path / "durations.json"
@@ -219,7 +220,7 @@ def run_full_main(
         "SELECTED_TESTS_FILE": "",
         "TOTAL_TEST_GROUPS": str(total),
         "TEST_GROUP": str(group),
-        "PYTEST_ADDOPTS": "",
+        "PYTEST_ADDOPTS": addopts,
     }
     with (
         contextlib.chdir(tmp_path),
@@ -271,96 +272,29 @@ class TestFullRunMain:
         _, calls = run_full_main(tmp_path, ["tests/test_a.py"], None, 3, 1)
         assert calls == [(["tests", "-q"], "", "3", "1", None)]
 
+    def test_filtered_run_falls_back_to_hash_sharding(self, tmp_path: Path) -> None:
+        durations = {"seconds_per_test": 1.0, "files": {}}
+        _, calls = run_full_main(
+            tmp_path, ["tests/test_a.py", "tests/test_b.py"], durations, 16, 12, "-m snuba_ci"
+        )
+        assert calls == [(["tests", "-q"], "", "16", "12", None)]
+
 
 @pytest.mark.parametrize(
-    ("args", "supported"),
+    ("args", "addopts", "files", "applies"),
     [
-        (["tests", "-q"], True),
-        (["tests", "--ignore", "tests/skip"], True),
-        (["ABSOLUTE"], False),
-        (["../outside"], False),
-        (["tests", "--rootdir=."], False),
-        (["tests", "-c", "setup.cfg"], False),
-        (["-q"], False),
+        (["tests"], "--reruns=5 -n 3 --dist=loadfile", ["tests/a.py"], True),
+        (["tests", "--max-worker-restart=1"], "", ["tests/a.py"], True),
+        (["tests", "-m", "snuba_ci"], "", ["tests/a.py"], False),
+        (["tests", "-msnuba_ci"], "", ["tests/a.py"], False),
+        (["tests", "-k", "not slow"], "", ["tests/a.py"], False),
+        (["tests"], "-k 'not __In' -m snuba_ci", ["tests/a.py"], False),
+        (["/abs/tests"], "", ["/abs/tests/a.py"], False),
+        (["../tests"], "", ["../tests/a.py"], False),
     ],
 )
-def test_per_file_sharding_needs_paths_relative_to_the_working_directory(
-    tmp_path: Path, args: list[str], supported: bool
+def test_per_file_plan_applies(
+    args: list[str], addopts: str, files: list[str], applies: bool
 ) -> None:
-    (tmp_path / "work" / "tests" / "skip").mkdir(parents=True)
-    (tmp_path / "outside").mkdir()
-    (tmp_path / "work" / "setup.cfg").touch()
-    args = [str(tmp_path / "work" / "tests") if a == "ABSOLUTE" else a for a in args]
-    with contextlib.chdir(tmp_path / "work"):
-        assert _mod.per_file_sharding_supported(args) is supported
-
-
-def test_absolute_root_falls_back_to_hash_sharding(tmp_path: Path) -> None:
-    write_files(tmp_path, ["tests/test_a.py", "tests/test_b.py"])
-    durations_file = tmp_path / "durations.json"
-    durations_file.write_text(json.dumps({"seconds_per_test": 1.0, "files": {}}))
-    calls: list[tuple[object, ...]] = []
-
-    def fake_main(args: list[str]) -> pytest.ExitCode:
-        calls.append((args, os.environ.get("SELECTED_TESTS_FILE"), os.environ["TEST_GROUP"]))
-        return pytest.ExitCode.OK
-
-    args = [str(tmp_path / "tests"), "-q"]
-    env = {
-        "SELECTED_TESTS_FILE": "",
-        "TOTAL_TEST_GROUPS": "2",
-        "TEST_GROUP": "1",
-        "PYTEST_ADDOPTS": "",
-    }
-    with (
-        contextlib.chdir(tmp_path),
-        mock.patch.dict(os.environ, env),
-        mock.patch.object(_mod, "DURATIONS_FILE", durations_file),
-        mock.patch.object(pytest, "main", fake_main),
-    ):
-        assert main(args) == 0
-    assert calls == [(args, "", "1")]
-
-
-@pytest.mark.parametrize(
-    ("args", "addopts", "filtered"),
-    [
-        (["tests", "-q"], "--reruns=5 -n 3 --dist=loadfile", False),
-        (["tests", "-m", "snuba_ci"], "", True),
-        (["tests", "-msnuba_ci"], "", True),
-        (["tests", "-k", "not slow"], "", True),
-        (["tests"], "-k 'not __In' -m snuba_ci -n 3", True),
-        (["tests", "--max-worker-restart=1"], "", False),
-    ],
-)
-def test_filters_tests(args: list[str], addopts: str, filtered: bool) -> None:
     with mock.patch.dict(os.environ, {"PYTEST_ADDOPTS": addopts}):
-        assert _mod.filters_tests(args) is filtered
-
-
-def test_filtered_full_run_falls_back_to_hash_sharding(tmp_path: Path) -> None:
-    write_files(tmp_path, ["tests/test_a.py", "tests/test_b.py"])
-    durations_file = tmp_path / "durations.json"
-    durations_file.write_text(json.dumps({"seconds_per_test": 1.0, "files": {}}))
-    calls: list[tuple[object, ...]] = []
-
-    def fake_main(args: list[str]) -> pytest.ExitCode:
-        env = ("SELECTED_TESTS_FILE", "TOTAL_TEST_GROUPS", "TEST_GROUP", "PYTEST_SHARD_PARTS")
-        calls.append((args, *(os.environ.get(k) for k in env)))
-        return pytest.ExitCode.OK
-
-    env = {
-        "SELECTED_TESTS_FILE": "",
-        "TOTAL_TEST_GROUPS": "16",
-        "TEST_GROUP": "12",
-        "PYTEST_ADDOPTS": "-m snuba_ci",
-    }
-    with (
-        contextlib.chdir(tmp_path),
-        mock.patch.dict(os.environ, env),
-        mock.patch.object(_mod, "DURATIONS_FILE", durations_file),
-        mock.patch.object(pytest, "main", fake_main),
-    ):
-        assert main(["tests", "-q"]) == 0
-    # The sentry plugin hashes items into 16 groups, as before per-file sharding.
-    assert calls == [(["tests", "-q"], "", "16", "12", None)]
+        assert _mod.per_file_plan_applies(args, files) is applies

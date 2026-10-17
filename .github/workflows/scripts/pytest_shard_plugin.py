@@ -21,9 +21,8 @@ def item_part(nodeid: str, parts: int) -> int:
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    # The shard's file list is relative to the working directory, and the
-    # sentry plugin matches it against paths relative to the rootdir. If they
-    # differ, every file would be skipped (or kept) on every shard.
+    # pytest-selected.py writes paths relative to the working directory, and
+    # the sentry plugin matches them relative to the rootdir.
     if os.environ.get("PYTEST_SHARD_PARTS") and config.rootpath != Path.cwd().resolve():
         raise pytest.UsageError(
             f"pytest_shard_plugin: rootdir {config.rootpath} is not the working "

@@ -113,8 +113,12 @@ def plan_full_shards(weights: dict[str, float], total: int) -> list[Shard] | Non
     ]
 
 
-def _parse_paths(args: list[str]) -> tuple[list[str], set[str]]:
-    """The existing paths in `args` and the --ignore'd ones, normalized."""
+def list_test_files(args: list[str]) -> list[str]:
+    """Every .py file pytest could collect from the paths in `args`, minus --ignore.
+
+    Non-test files are harmless: pytest doesn't collect them either way. Missing
+    one that pytest does collect would drop its tests, so this errs wide.
+    """
     roots, ignored = [], set()
     it = iter(args)
     for arg in it:
@@ -124,16 +128,7 @@ def _parse_paths(args: list[str]) -> tuple[list[str], set[str]]:
             ignored.add(os.path.normpath(arg.split("=", 1)[1]))
         elif not arg.startswith("-") and os.path.exists(arg):
             roots.append(os.path.normpath(arg))
-    return roots, ignored
 
-
-def list_test_files(args: list[str]) -> list[str]:
-    """Every .py file pytest could collect from the paths in `args`, minus --ignore.
-
-    Non-test files are harmless: pytest doesn't collect them either way. Missing
-    one that pytest does collect would drop its tests, so this errs wide.
-    """
-    roots, ignored = _parse_paths(args)
     files: set[str] = set()
     for root in roots:
         if os.path.isfile(root):
@@ -148,26 +143,6 @@ def list_test_files(args: list[str]) -> list[str]:
                 if name.endswith(".py") and name != "conftest.py" and path not in ignored:
                     files.add(path)
     return sorted(files)
-
-
-def per_file_sharding_supported(args: list[str]) -> bool:
-    """Whether the file paths written for the sentry plugin will match its nodeids.
-
-    The plugin compares them with paths relative to pytest's rootdir, which
-    pytest_shard_plugin checks is the working directory. Anything else falls
-    back to per-test hash sharding.
-    """
-    if any(
-        arg in ("-c", "--config-file", "--rootdir")
-        or arg.startswith(("--config-file=", "--rootdir="))
-        for arg in [*args, *shlex.split(os.environ.get("PYTEST_ADDOPTS", ""))]
-    ):
-        return False
-    roots, _ = _parse_paths(args)
-    return bool(roots) and all(
-        not os.path.isabs(root) and root != os.pardir and not root.startswith(os.pardir + os.sep)
-        for root in roots
-    )
 
 
 def file_weights(files: list[str]) -> dict[str, float]:
@@ -187,35 +162,31 @@ def file_weights(files: list[str]) -> dict[str, float]:
     return weights
 
 
-def filters_tests(args: list[str]) -> bool:
-    """Whether `args` or PYTEST_ADDOPTS select tests by marker or keyword.
+def per_file_plan_applies(args: list[str], files: list[str]) -> bool:
+    """Whether planning by file gives each shard the tests pytest would run.
 
-    The file plan balances every test in each file, so with `-m`/`-k` most
-    shards can end up with files that have no selected tests at all (e.g.
-    `-m snuba_ci` in Snuba's CI).
+    `-m`/`-k` filter after the plan, so most shards could end up with no
+    selected tests (e.g. `-m snuba_ci` in Snuba's CI). The sentry plugin
+    matches the planned paths relative to the rootdir, which
+    pytest_shard_plugin checks is the working directory.
     """
     every_arg = [*args, *shlex.split(os.environ.get("PYTEST_ADDOPTS", ""))]
-    return any(arg.startswith(("-m", "-k")) and not arg.startswith("--") for arg in every_arg)
+    if any(arg.startswith(("-m", "-k")) and not arg.startswith("--") for arg in every_arg):
+        return False
+    return not any(os.path.isabs(f) or f.startswith(os.pardir + os.sep) for f in files)
 
 
 def run_full_shard(args: list[str], total: int, group: int) -> int:
-    if filters_tests(args):
-        # Every shard collects everything; the sentry plugin then keeps its
-        # hash share of the items, which spreads the selected tests evenly.
-        print(
-            "pytest-selected: -m/-k given, so every shard collects everything "
-            "and keeps its hash share",
-            file=sys.stderr,
-        )
-        return int(pytest.main(args))
-    if not per_file_sharding_supported(args):
-        print(
-            "pytest-selected: paths are not relative to the working directory, "
-            "so every shard collects everything and keeps its hash share",
-            file=sys.stderr,
-        )
-        return int(pytest.main(args))
     files = list_test_files(args)
+    if not per_file_plan_applies(args, files):
+        # As before per-file sharding: every shard collects everything and the
+        # sentry plugin keeps its hash share of the items.
+        print(
+            "pytest-selected: -m/-k or paths outside the working directory, so "
+            "every shard collects everything and keeps its hash share",
+            file=sys.stderr,
+        )
+        return int(pytest.main(args))
     plan = plan_full_shards(file_weights(files), total) if files else None
     if plan is None:
         return int(pytest.main(args))

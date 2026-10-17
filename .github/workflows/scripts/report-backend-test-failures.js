@@ -21,7 +21,6 @@ import {basename, dirname} from 'node:path';
 
 const MAX_FAILURES = 30;
 const MAX_TRACEBACK_LINES = 50;
-const MAX_SUBTESTS = 5;
 const MAX_BODY_LENGTH = 65_000;
 export const COMMENT_MARKER = '<!-- BACKEND_TEST_FAILURES -->';
 
@@ -43,27 +42,26 @@ export function parseFailures(files, core) {
       .filter(t => t.outcome === 'failed')
       .map(t => ({
         nodeid: t.nodeid ?? 'unknown',
-        longrepr: (t.call ?? t.setup ?? t.teardown ?? {}).longrepr ?? '',
-        // A parent whose subtests failed only says "contains N failed
-        // subtests"; the assertions live in each subtest's own longrepr.
-        subtests: (t.subtests ?? [])
-          .filter(s => s.outcome === 'failed')
-          .map(s => ({
-            description: describeSubtest(s.context),
-            longrepr: s.longrepr ?? '',
-          })),
+        longrepr:
+          failedSubtests(t) || ((t.call ?? t.setup ?? t.teardown ?? {}).longrepr ?? ''),
         artifactDir,
       }));
   });
 }
 
-// Same shape pytest prints after SUBFAILED: "[msg] (k=v, ...)".
-export function describeSubtest(context) {
-  const parts = [];
-  if (context?.msg !== null && context?.msg !== undefined) parts.push(`[${context.msg}]`);
-  const kwargs = Object.entries(context?.kwargs ?? {});
-  if (kwargs.length) parts.push(`(${kwargs.map(([k, v]) => `${k}=${v}`).join(', ')})`);
-  return parts.join(' ') || '(<subtest>)';
+// The parent's own longrepr only says "contains N failed subtests". Render
+// each failed subtest the way pytest's SUBFAILED line does.
+function failedSubtests(test) {
+  return (test.subtests ?? [])
+    .filter(s => s.outcome === 'failed')
+    .map(({context, longrepr}) => {
+      const kwargs = Object.entries(context?.kwargs ?? {}).map(([k, v]) => `${k}=${v}`);
+      const msg =
+        context?.msg === null || context?.msg === undefined ? [] : [`[${context.msg}]`];
+      const description = [...msg, ...(kwargs.length ? [`(${kwargs.join(', ')})`] : [])];
+      return `SUBFAILED ${description.join(' ') || '(<subtest>)'}\n${longrepr ?? ''}`;
+    })
+    .join('\n\n');
 }
 
 // Maps artifact directory names to GitHub Actions job log URLs.
@@ -125,39 +123,24 @@ function truncateBody(body) {
   );
 }
 
-function truncateTraceback(tb) {
-  if (!tb) return tb;
-  const lines = tb.split('\n');
-  if (lines.length <= MAX_TRACEBACK_LINES) return tb;
-  return (
-    lines.slice(0, MAX_TRACEBACK_LINES).join('\n') +
-    `\n... (${lines.length - MAX_TRACEBACK_LINES} more lines)`
-  );
-}
-
-const codeBlock = text => `\`\`\`\n${text}\n\`\`\`\n\n`;
-
 // Renders <details> blocks for each failure (no header).
 export function buildFailureBlocks(failures) {
   return failures
-    .map(({nodeid, longrepr, subtests = [], jobUrl}) => {
+    .map(({nodeid, longrepr, jobUrl}) => {
+      let tb = longrepr;
+      if (tb) {
+        const lines = tb.split('\n');
+        if (lines.length > MAX_TRACEBACK_LINES) {
+          tb =
+            lines.slice(0, MAX_TRACEBACK_LINES).join('\n') +
+            `\n... (${lines.length - MAX_TRACEBACK_LINES} more lines)`;
+        }
+      }
       const logLink = jobUrl ? ` — <a href="${jobUrl}">log</a>` : '';
-      // Subtest descriptions can contain reprs like "<class ...>", so they go
-      // inside code blocks rather than the HTML summary.
-      const body = subtests.length
-        ? subtests
-            .slice(0, MAX_SUBTESTS)
-            .map(({description, longrepr: tb}) =>
-              codeBlock(
-                `SUBFAILED ${description}\n${truncateTraceback(tb) || 'No traceback available'}`
-              )
-            )
-            .join('') +
-          (subtests.length > MAX_SUBTESTS
-            ? `... and ${subtests.length - MAX_SUBTESTS} more failed subtests.\n\n`
-            : '')
-        : codeBlock(truncateTraceback(longrepr) || 'No traceback available');
-      return `<details><summary><code>${nodeid}</code>${logLink}</summary>\n\n${body}</details>\n\n`;
+      return (
+        `<details><summary><code>${nodeid}</code>${logLink}</summary>\n\n` +
+        `\`\`\`\n${tb || 'No traceback available'}\n\`\`\`\n\n</details>\n\n`
+      );
     })
     .join('');
 }

@@ -216,12 +216,7 @@ def process_spans(spans: Sequence[Span | _SplitBatch], buffer: SpansBuffer, now)
 
 
 def _fresh_buffer(buffer: SpansBuffer) -> SpansBuffer:
-    """
-    Reset Redis and Python-side state between subtests. The fixture's setup
-    (options, Redis cluster client) is what the subtests share; a new
-    SpansBuffer drops attributes such as `any_shard_at_limit` and the cached
-    store that an earlier permutation may have changed.
-    """
+    # An earlier permutation can leave state such as `any_shard_at_limit` behind.
     _delete_span_buffer_keys(buffer.client)
     return SpansBuffer(assigned_shards=buffer.assigned_shards, slice_id=buffer.slice_id)
 

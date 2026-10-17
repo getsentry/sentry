@@ -9,7 +9,6 @@ import {
   buildFailureBlocks,
   COMMENT_MARKER,
   commitMarker,
-  describeSubtest,
   extractNodeids,
   parseFailures,
   reportShard,
@@ -66,24 +65,6 @@ const SETUP_FAILURE = {
       message: 'KeyError: "missing"',
     },
   },
-};
-
-// Shape written by sentry.testutils.pytest.json_report_reruns.
-const SUBTEST_FAILURE = {
-  nodeid: 'tests/sentry/web/test_client_config.py::test_client_config_features',
-  outcome: 'failed',
-  setup: {outcome: 'passed', duration: 0.5},
-  call: {outcome: 'failed', duration: 2.0, longrepr: 'contains 1 failed subtest'},
-  subtests: [
-    {outcome: 'passed', duration: 0.1, context: {msg: null, kwargs: {factory: "'a'"}}},
-    {
-      outcome: 'failed',
-      duration: 0.1,
-      longrepr:
-        'def test():\n>       assert 1 == 2\nE       AssertionError: subtest boom',
-      context: {msg: 'm', kwargs: {factory: '<function make at 0x1>', n: '2'}},
-    },
-  ],
 };
 
 // -- Helpers -----------------------------------------------------------------
@@ -243,24 +224,6 @@ describe('parseFailures', () => {
     assert.equal(parseFailures([file], mockCore()).length, 0);
   });
 
-  it('surfaces failed subtests with their context and traceback', () => {
-    const file = createArtifactFile(
-      'pytest-results-backend-111-0',
-      'pytest.json',
-      makePytestJson([SUBTEST_FAILURE])
-    );
-
-    const failures = parseFailures([file], mockCore());
-
-    assert.equal(failures.length, 1);
-    assert.deepEqual(failures[0].subtests, [
-      {
-        description: '[m] (factory=<function make at 0x1>, n=2)',
-        longrepr: SUBTEST_FAILURE.subtests[1].longrepr,
-      },
-    ]);
-  });
-
   it('aggregates failures across multiple files', () => {
     const file1 = createArtifactFile(
       'pytest-results-backend-111-0',
@@ -274,6 +237,34 @@ describe('parseFailures', () => {
     );
 
     assert.equal(parseFailures([file1, file2], mockCore()).length, 2);
+  });
+
+  it('uses failed subtests instead of the parent summary', () => {
+    const file = createArtifactFile(
+      'pytest-results-backend-111-0',
+      'pytest.json',
+      makePytestJson([
+        {
+          nodeid: 'tests/a.py::test_a',
+          outcome: 'failed',
+          call: {outcome: 'failed', longrepr: 'contains 1 failed subtest'},
+          subtests: [
+            {outcome: 'passed', context: {msg: null, kwargs: {n: '1'}}},
+            {
+              outcome: 'failed',
+              longrepr: 'AssertionError: boom',
+              context: {msg: 'm', kwargs: {f: '<function f>', n: '2'}},
+            },
+          ],
+        },
+      ])
+    );
+
+    const [failure] = parseFailures([file], mockCore());
+    assert.equal(
+      failure.longrepr,
+      'SUBFAILED [m] (f=<function f>, n=2)\nAssertionError: boom'
+    );
   });
 });
 
@@ -299,47 +290,7 @@ describe('extractNodeids', () => {
   });
 });
 
-describe('describeSubtest', () => {
-  it('matches pytest SUBFAILED descriptions', () => {
-    assert.equal(describeSubtest({msg: 'x', kwargs: {a: '1'}}), '[x] (a=1)');
-    assert.equal(
-      describeSubtest({msg: null, kwargs: {a: '1', b: "'s'"}}),
-      "(a=1, b='s')"
-    );
-    assert.equal(describeSubtest({msg: null, kwargs: {}}), '(<subtest>)');
-  });
-});
-
 describe('buildFailureBlocks', () => {
-  it('renders failed subtests instead of the parent summary', () => {
-    const blocks = buildFailureBlocks([
-      {
-        nodeid: 'a::b',
-        longrepr: 'contains 1 failed subtest',
-        subtests: [
-          {description: '(<class X>)', longrepr: 'AssertionError: subtest boom'},
-        ],
-      },
-    ]);
-    assert.ok(blocks.includes('<code>a::b</code>'));
-    assert.ok(
-      blocks.includes('```\nSUBFAILED (<class X>)\nAssertionError: subtest boom\n```')
-    );
-    assert.ok(!blocks.includes('contains 1 failed subtest'));
-    assert.deepEqual([...extractNodeids(blocks)], ['a::b']);
-  });
-
-  it('caps the number of rendered subtests', () => {
-    const subtests = Array.from({length: 7}, (_, i) => ({
-      description: `(i=${i})`,
-      longrepr: `boom ${i}`,
-    }));
-    const blocks = buildFailureBlocks([{nodeid: 'a::b', longrepr: '', subtests}]);
-    assert.ok(blocks.includes('boom 4'));
-    assert.ok(!blocks.includes('boom 5'));
-    assert.ok(blocks.includes('... and 2 more failed subtests.'));
-  });
-
   it('renders a details block per failure', () => {
     const blocks = buildFailureBlocks([{nodeid: 'a::b::c', longrepr: 'traceback here'}]);
     assert.ok(blocks.includes('<details>'));

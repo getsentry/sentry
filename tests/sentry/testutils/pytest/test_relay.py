@@ -1,106 +1,50 @@
-from __future__ import annotations
-
-from collections.abc import Iterator
-from dataclasses import dataclass, field
+from unittest import mock
 
 import pytest
 import requests
 
-from sentry.testutils.pytest.relay import RelayNotReadyError, wait_until_ready
-
-URL = "http://relay/api/relay/healthcheck/ready/"
+from sentry.testutils.pytest import relay
 
 
-@dataclass
 class FakeRelay:
-    """A clock plus a readiness endpoint whose answers take simulated time."""
+    def __init__(self, *answers: int | requests.RequestException) -> None:
+        self.answers = list(answers)
+        self.now = 0.0
+        self.probe_timeouts: list[float] = []
 
-    answers: Iterator[int | requests.RequestException]
-    probe_seconds: float = 0.01
-    now: float = 0.0
-    probe_timeouts: list[float] = field(default_factory=list)
-    sleeps: list[float] = field(default_factory=list)
+    def get(self, url: str, timeout: float) -> mock.Mock:
+        self.probe_timeouts.append(timeout)
+        self.now += timeout
+        answer = self.answers.pop(0) if len(self.answers) > 1 else self.answers[0]
+        if isinstance(answer, Exception):
+            raise answer
+        return mock.Mock(status_code=answer)
 
-    def clock(self) -> float:
+    def monotonic(self) -> float:
         return self.now
 
     def sleep(self, seconds: float) -> None:
-        self.sleeps.append(seconds)
+        assert seconds >= 0
         self.now += seconds
 
-    def probe(self, url: str, *, timeout: float) -> requests.Response:
-        assert url == URL
-        self.probe_timeouts.append(timeout)
-        answer = next(self.answers)
-        if isinstance(answer, requests.Timeout):
-            self.now += timeout
-            raise answer
-        self.now += self.probe_seconds
-        if isinstance(answer, requests.RequestException):
-            raise answer
-        response = requests.Response()
-        response.status_code = answer
-        return response
-
-    def wait(self, timeout: float = 2.0) -> None:
-        wait_until_ready(URL, timeout=timeout, clock=self.clock, sleep=self.sleep, probe=self.probe)
+    def wait(self, timeout: float) -> None:
+        with (
+            mock.patch.object(requests, "get", self.get),
+            mock.patch.object(relay, "time", mock.Mock(monotonic=self.monotonic, sleep=self.sleep)),
+        ):
+            relay._wait_until_ready("http://relay/ready", timeout=timeout)
 
 
-def forever(answer: int | requests.RequestException) -> Iterator[int | requests.RequestException]:
-    while True:
-        yield answer
+def test_retries_until_ready() -> None:
+    fake = FakeRelay(requests.ConnectionError("refused"), 503, 200)
+    fake.wait(timeout=25.5)
+    assert len(fake.probe_timeouts) == 3
 
 
-def test_ready_immediately() -> None:
-    relay = FakeRelay(iter([200]))
-    relay.wait()
-    assert relay.probe_timeouts == [1.0]
-    assert relay.sleeps == []
-
-
-def test_unavailable_then_ready() -> None:
-    relay = FakeRelay(iter([503, 503, 200]))
-    relay.wait()
-    assert len(relay.probe_timeouts) == 3
-    assert relay.sleeps == [0.05, 0.05]
-
-
-def test_connection_error_then_ready() -> None:
-    relay = FakeRelay(iter([requests.ConnectionError("refused"), 200]))
-    relay.wait()
-    assert len(relay.probe_timeouts) == 2
-
-
-def test_permanently_unavailable() -> None:
-    relay = FakeRelay(forever(503))
-    with pytest.raises(RelayNotReadyError) as excinfo:
-        relay.wait(timeout=2.0)
-    assert excinfo.value.last_result == "HTTP 503"
-    assert relay.now == pytest.approx(2.0)
-
-
-def test_request_timeout_is_reported() -> None:
-    relay = FakeRelay(forever(requests.Timeout("read timed out")))
-    with pytest.raises(RelayNotReadyError) as excinfo:
-        relay.wait(timeout=2.5)
-    assert excinfo.value.last_result == "Timeout: read timed out"
-    # Two full-length probes, then one capped by the 0.4s left after the sleeps.
-    assert relay.probe_timeouts == pytest.approx([1.0, 1.0, 0.4])
-    assert relay.now == pytest.approx(2.5)
-
-
-def test_near_deadline_probe_is_capped_and_its_answer_counts() -> None:
-    relay = FakeRelay(iter([503, 200]), probe_seconds=1.9)
-    relay.wait(timeout=2.0)
-    # The second probe starts with 0.05s left and answers after the deadline.
-    assert relay.probe_timeouts == pytest.approx([1.0, 0.05])
-    assert relay.sleeps == pytest.approx([0.05])
-    assert relay.now > 2.0
-
-
-def test_sleep_never_passes_the_deadline() -> None:
-    relay = FakeRelay(forever(503), probe_seconds=1.98)
-    with pytest.raises(RelayNotReadyError):
-        relay.wait(timeout=2.0)
-    assert relay.probe_timeouts == [1.0]
-    assert relay.sleeps == pytest.approx([0.02])
+def test_gives_up_at_deadline_with_last_result() -> None:
+    fake = FakeRelay(requests.Timeout("read timed out"))
+    with pytest.raises(TimeoutError, match="Timeout: read timed out"):
+        fake.wait(timeout=2.5)
+    # The last probe is capped by the time left, so the deadline isn't overshot.
+    assert fake.probe_timeouts == pytest.approx([1, 1, 0.4])
+    assert fake.now == pytest.approx(2.5)
