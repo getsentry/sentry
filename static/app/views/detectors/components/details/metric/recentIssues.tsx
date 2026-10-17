@@ -31,7 +31,6 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 const RECENT_ISSUES_LIMIT = 5;
 
-// The most one request returns. A flappy issue can fill it alone, leaving fewer issues to show.
 const OPEN_PERIODS_LIMIT = 100;
 
 const RECENT_ISSUE_COLUMNS: TableColumnConfig[] = [
@@ -47,7 +46,11 @@ const RECENT_ISSUE_COLUMNS: TableColumnConfig[] = [
 function getOpenPeriodDurationSeconds(openPeriod: GroupOpenPeriod, now: Date): number {
   const openPeriodEnd = openPeriod.end ? new Date(openPeriod.end) : now;
 
-  return (openPeriodEnd.getTime() - new Date(openPeriod.start).getTime()) / 1000;
+  const openPeriodEndMilliseconds = openPeriodEnd.getTime();
+
+  const openPeriodStartMilliseconds = new Date(openPeriod.start).getTime();
+
+  return (openPeriodEndMilliseconds - openPeriodStartMilliseconds) / 1000;
 }
 
 interface DateParams {
