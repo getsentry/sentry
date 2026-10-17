@@ -108,8 +108,17 @@ def _configure_test_env_cells() -> None:
 _COLLECT_ALLOWED_FILES: frozenset[str] | None = None
 
 
+def _parallel_manifest_worker() -> bool:
+    return os.environ.get("_PYTEST_PARALLEL_WORKER") == "1" and bool(
+        os.environ.get("PYTEST_PARALLEL_MANIFEST")
+    )
+
+
 def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool | None:
     # Skip importing test files not in SELECTED_TESTS_FILE (selective CI runs only).
+    if _parallel_manifest_worker():
+        return None
+
     global _COLLECT_ALLOWED_FILES
     selected_file = os.environ.get("SELECTED_TESTS_FILE")
     if not selected_file:
@@ -525,6 +534,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             if "_requires_symbolicator" in marker.args:
                 item.add_marker(symbolicator_mark)
                 break
+
+    if _parallel_manifest_worker():
+        return
 
     keep, discard = [], []
 
