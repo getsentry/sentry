@@ -20,6 +20,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
+from pytest_parallel.api import current_worker
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.retries import TimedRetryPolicy
@@ -373,17 +374,11 @@ def pytest_addoption(parser):
 
 
 def _parallel_worker() -> bool:
-    if os.environ.get("_PYTEST_PARALLEL_WORKER"):
-        return True
-    try:
-        from pytest_parallel.api import current_worker
-    except ImportError:
-        return False
-    return current_worker() is not None
+    return bool(os.environ.get("_PYTEST_PARALLEL_WORKER")) or current_worker() is not None
 
 
 def pytest_configure(config):
-    if hasattr(config, "workerinput") or _parallel_worker():
+    if _parallel_worker():
         return
 
     config.option.selenium_driver = (

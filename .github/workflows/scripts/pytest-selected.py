@@ -22,7 +22,6 @@ from __future__ import annotations
 import json
 import math
 import os
-import shlex
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -30,9 +29,6 @@ from pathlib import Path
 import pytest
 
 DURATIONS_FILE = Path(__file__).parent / "backend-test-durations.json"
-# Full runs split files slower than 1/PIECES_PER_SHARD of a shard by test.
-# Files run in collection order, so a big file that starts late on an xdist
-# worker holds up the whole shard; this bounds how big that can be.
 PIECES_PER_SHARD = 48
 
 
@@ -180,9 +176,6 @@ def run_full_shard(args: list[str], total: int, group: int) -> int:
     shard_file.write_text("".join(f"{path}\n" for path in shard.files))
     parts_file = shard_file.with_suffix(".json")
     parts_file.write_text(json.dumps(shard.parts))
-    # SELECTED_TESTS_FILE makes the sentry pytest plugin skip other shards'
-    # files at collection; pytest_shard_plugin (loaded in xdist workers too)
-    # keeps this shard's part of each split file.
     os.environ["SELECTED_TESTS_FILE"] = str(shard_file)
     os.environ["TOTAL_TEST_GROUPS"] = "1"
     os.environ["TEST_GROUP"] = "0"
@@ -196,44 +189,7 @@ def run_full_shard(args: list[str], total: int, group: int) -> int:
     return int(pytest.main(args))
 
 
-_XDIST_DISTRIBUTION_FLAGS = {"-n", "--numprocesses", "--dist"}
-
-
-def rewrite_pytest_addopts() -> None:
-    runner = os.environ.get("SENTRY_TEST_RUNNER")
-    if runner not in {"parallel", "serial"}:
-        return
-    tokens = shlex.split(os.environ.get("PYTEST_ADDOPTS", ""))
-    kept: list[str] = []
-    index = 0
-    while index < len(tokens):
-        token = tokens[index]
-        flag, separator, _value = token.partition("=")
-        if flag in _XDIST_DISTRIBUTION_FLAGS:
-            index += 1
-            if separator == "" and index < len(tokens) and not tokens[index].startswith("-"):
-                index += 1
-            continue
-        kept.append(token)
-        index += 1
-    if runner == "parallel":
-        slots = os.environ.get("SENTRY_TEST_WORKERS") or os.environ.get("XDIST_WORKERS") or "2"
-        kept.extend(
-            [
-                "-j",
-                slots,
-                "--parallel-collection=manifest",
-                "--parallel-network=inherit",
-                "--parallel-drain=60s",
-            ]
-        )
-    else:
-        kept.append("--serial")
-    os.environ["PYTEST_ADDOPTS"] = shlex.join(kept)
-
-
 def main(args: list[str]) -> int:
-    rewrite_pytest_addopts()
     selected_file = os.environ.get("SELECTED_TESTS_FILE")
     total = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     group = int(os.environ.get("TEST_GROUP", 0))

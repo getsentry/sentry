@@ -22,10 +22,27 @@ from typing import Any, Literal, Protocol, cast
 import pytest
 
 from .manifest import MANIFEST_ENV, dump_manifest
-from .plugin import _DEFAULT_DRAIN_SECONDS, _DEFAULT_MAX_WORKERS, BalanceStrategy, CollectionMode, StartMethod
-from .scheduling import FileUnit, Unit, assign_units, format_plan_text, merge_units, plan_dict
-from .scheduling import validate_group_names as _validate_hook_groups
-from .scheduling import validate_weight as _validate_hook_weight
+from .plugin import (
+    _DEFAULT_DRAIN_SECONDS,
+    _DEFAULT_MAX_WORKERS,
+    BalanceStrategy,
+    CollectionMode,
+    StartMethod,
+)
+from .scheduling import (
+    FileUnit,
+    Unit,
+    assign_units,
+    format_plan_text,
+    merge_units,
+    plan_dict,
+)
+from .scheduling import (
+    validate_group_names as _validate_hook_groups,
+)
+from .scheduling import (
+    validate_weight as _validate_hook_weight,
+)
 
 PLAN_PRINTED = pytest.StashKey[bool]()
 

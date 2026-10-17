@@ -12,7 +12,14 @@ from typing import Any
 
 import pytest
 
-from .manifest import MANIFEST_ENV, Manifest, ManifestError, arrange_assigned, ignores_collection, load_manifest
+from .manifest import (
+    MANIFEST_ENV,
+    Manifest,
+    ManifestError,
+    arrange_assigned,
+    ignores_collection,
+    load_manifest,
+)
 
 _PROTOCOL_VERSION = 1
 

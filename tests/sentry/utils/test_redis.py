@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import uuid
 from collections.abc import Generator
 from typing import Any
@@ -17,7 +16,7 @@ from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.testutils.helpers.redis import use_redis_cluster
-from sentry.testutils.pytest import xdist
+from sentry.testutils.pytest import workers
 from sentry.utils import imports
 from sentry.utils.redis import (
     RBClusterManager,
@@ -312,9 +311,11 @@ def prefixed_clusters() -> Generator[tuple[Any, Any, Any, str]]:
 
 
 def test_worker_key_prefix_is_configured() -> None:
-    prefix = xdist.get_redis_cluster_key_prefix()
+    prefix = workers.get_redis_cluster_key_prefix()
     assert options.get("redis.clusters")["cluster"]["key_prefix"] == prefix
-    assert prefix == f"test-{os.environ.get('PYTEST_XDIST_WORKER', 'main')}:"
+    worker_index = workers.parallel_worker_index()
+    expected = f"test-gw{worker_index}:" if worker_index is not None else "test-main:"
+    assert prefix == expected
     assert "{" not in prefix
 
 

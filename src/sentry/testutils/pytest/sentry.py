@@ -22,7 +22,7 @@ from rediscluster.exceptions import RedisClusterException
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
 from sentry.testutils.cell import TestEnvCellDirectory
-from sentry.testutils.pytest import workers, xdist
+from sentry.testutils.pytest import workers
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import cell
 from sentry.types.cell import Cell
@@ -61,7 +61,7 @@ def configure_split_db() -> None:
 
 
 def _cell_seed() -> str | None:
-    return workers.parallel_run_id() or os.environ.get("PYTEST_XDIST_TESTRUNUID")
+    return workers.parallel_run_id()
 
 
 def get_default_silo_mode_for_test_cases() -> SiloMode:
@@ -78,7 +78,7 @@ def _configure_test_env_cells() -> None:
     r = random.Random(seed) if seed else random
     cell_name = "testregion" + "".join(r.choices(string.digits, k=6))
 
-    cell_snowflake_id = xdist.get_snowflake_id()
+    cell_snowflake_id = workers.snowflake_id()
 
     default_cell = Cell(
         cell_name,
@@ -168,13 +168,6 @@ def pytest_configure(config: pytest.Config) -> None:
         category=UnsupportedBackend,
     )
 
-    # pytest-xdist 3.5+ sorts --dist=loadfile/loadscope work units by test count
-    # by default. Keep collection order so worker assignment and run order stay
-    # as they were (and SENTRY_SHUFFLE_TESTS ordering isn't overridden), since
-    # some unresolved flakes depend on it.
-    if hasattr(config.option, "loadscopereorder"):
-        config.option.loadscopereorder = False
-
     config.addinivalue_line("markers", "migrations: requires --migrations")
     config.addinivalue_line("markers", "symbolicator: test requires access to symbolicator")
 
@@ -211,9 +204,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     configure_split_db()
 
-    if os.environ.get("PYTEST_XDIST_WORKER"):
-        # On the rare case we hit a PostgreSQL deadlock, fail fast and let
-        # pytest --reruns retry it.
+    if workers.parallel_worker_index() is not None:
         for alias in settings.DATABASES:
             settings.DATABASES[alias].setdefault("OPTIONS", {})[  # type: ignore[index]
                 "options"
@@ -282,7 +273,7 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
     settings.SENTRY_RATELIMITER_OPTIONS = {}
 
-    if snuba_url := xdist.get_snuba_url():
+    if snuba_url := workers.get_snuba_url():
         settings.SENTRY_SNUBA = snuba_url
 
     settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 1
@@ -302,11 +293,11 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SENTRY_OPTIONS.update(
         {
             "redis.clusters": {
-                "default": {"hosts": {0: {"db": xdist.get_redis_db()}}},
+                "default": {"hosts": {0: {"db": workers.get_redis_db()}}},
                 "cluster": {
                     "is_redis_cluster": True,
                     "hosts": [{"host": "0.0.0.0", "port": port} for port in range(7000, 7006)],
-                    "key_prefix": xdist.get_redis_cluster_key_prefix(),
+                    "key_prefix": workers.get_redis_cluster_key_prefix(),
                 },
             },
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
@@ -619,11 +610,7 @@ def pytest_parallel_worker_env(env: dict[str, str], worker_id: int) -> None:
 
 
 @pytest.fixture(scope="session")
-def django_db_modify_db_settings_xdist_suffix(request: pytest.FixtureRequest) -> None:
-    workerinput = getattr(request.config, "workerinput", None)
-    workers.apply_database_suffix(workerinput if isinstance(workerinput, dict) else None)
-
-
-def pytest_xdist_setupnodes() -> None:
-    # prevent out-of-order django initialization
-    os.environ.pop("DJANGO_SETTINGS_MODULE", None)
+def django_db_modify_db_settings_parallel_suffix(
+    django_db_modify_db_settings_tox_suffix: None,  # noqa: ARG001
+) -> None:
+    workers.apply_database_suffix()

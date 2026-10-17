@@ -3,8 +3,9 @@ from __future__ import annotations
 import fcntl
 import os
 import subprocess
-from collections.abc import Mapping
 from pathlib import Path
+
+from pytest_parallel.api import current_run, current_worker
 
 _REDIS_DB = 9
 _SNUBA_BASE_PORT = 1230
@@ -14,10 +15,6 @@ _service_lock_fds: list[int] = []
 
 
 def parallel_run_id() -> str | None:
-    try:
-        from pytest_parallel.api import current_run
-    except ImportError:
-        return None
     run = current_run()
     if run is None or run.role not in {"controller", "worker"}:
         return None
@@ -25,13 +22,6 @@ def parallel_run_id() -> str | None:
 
 
 def parallel_worker_index() -> int | None:
-    try:
-        from pytest_parallel.api import current_run, current_worker
-    except ImportError:
-        return None
-    run = current_run()
-    if run is None or run.role != "worker":
-        return None
     worker = current_worker()
     if worker is None:
         return None
@@ -61,7 +51,7 @@ def get_kafka_topic(base_name: str) -> str:
 
 def get_snuba_url() -> str | None:
     index = parallel_worker_index()
-    if index is None or not os.environ.get("XDIST_PER_WORKER_SNUBA"):
+    if index is None or not os.environ.get("SENTRY_TEST_PER_WORKER_SNUBA"):
         return None
     return f"http://127.0.0.1:{_SNUBA_BASE_PORT + index}"
 
@@ -80,31 +70,19 @@ def parallel_max_workers() -> int:
 def configure_worker_env(env: dict[str, str], _worker_id: int) -> None:
     env.pop("DJANGO_SETTINGS_MODULE", None)
     env.pop("PYTEST_SHARD_PARTS", None)
-    for key in tuple(env):
-        if key.startswith("PYTEST_XDIST_"):
-            del env[key]
 
 
-def database_suffix(
-    runner: str, worker_index: int | None, xdist_workerid: str | None
-) -> str | None:
-    if runner == "parallel":
-        if type(worker_index) is int:
-            return f"gw{worker_index}"
-        return None
-    return xdist_workerid
+def database_suffix(worker_index: int | None) -> str | None:
+    if type(worker_index) is int:
+        return f"gw{worker_index}"
+    return None
 
 
-def apply_database_suffix(workerinput: Mapping[str, object] | None) -> None:
-    from pytest_django.fixtures import _set_suffix_to_test_databases
-
-    if os.environ.get("SENTRY_TEST_RUNNER") == "parallel":
-        suffix = database_suffix("parallel", parallel_worker_index(), None)
-    else:
-        raw = workerinput.get("workerid") if workerinput else None
-        workerid = raw if isinstance(raw, str) else None
-        suffix = database_suffix("xdist", None, workerid)
+def apply_database_suffix() -> None:
+    suffix = database_suffix(parallel_worker_index())
     if suffix is not None:
+        from pytest_django.fixtures import _set_suffix_to_test_databases
+
         _set_suffix_to_test_databases(suffix=suffix)
 
 
@@ -131,10 +109,6 @@ def acquire_service_lock(path: Path) -> int:
 
 
 def acquire_controller_service_lock() -> None:
-    try:
-        from pytest_parallel.api import current_run
-    except ImportError:
-        return
     run = current_run()
     if run is None or run.role not in {"controller", "serial"}:
         return
