@@ -1,0 +1,324 @@
+---
+title: Flamegraph Attachment
+description: Count-based flamegraphs for version-1 event attachments.
+category: patterns
+source: sentry/components/events/flamegraphAttachment
+---
+
+import {FlamegraphAttachment} from 'sentry/components/events/flamegraphAttachment';
+import * as Storybook from 'sentry/stories';
+
+Use this viewer for parsed `event.flamegraph` attachments. Each call tree represents an independent sample population. The selector changes the displayed tree without combining counts across threads.
+
+Existing MetricKit stacktrace flamegraphs continue to use `StacktraceFlamegraph`.
+
+## Find the Hot Path
+
+This synthetic feed-loading example has three independent call trees:
+
+- **Thread 1, responsible thread**: 1,000 samples. Image decoding accounts for 480 samples, making it the largest branch. Hover over `decodeImage` and its system frames to inspect sample counts and source locations. Consider moving decoding off the main thread or caching decoded images.
+- **Thread 2**: 600 samples. Repeated database reads dominate background feed hydration. Compare the `loadAuthor` and `loadComments` branches to identify opportunities to batch queries.
+- **Thread 3**: 400 samples. Background synchronization splits work between JSON decoding and persistence.
+
+Frame widths represent sample counts, not elapsed time. Parent counts include their children. Samples that end at a parent remain visible without a child frame.
+
+<Storybook.Demo direction="column" align="stretch" padding="xl" maxHeight="none">
+  <FlamegraphAttachment
+    data={{
+      version: '1',
+      platform: 'cocoa',
+      frames: [
+        {function: 'main', filename: 'main.swift', lineno: 12, in_app: true},
+        {function: 'UIApplicationMain', module: 'UIKitCore', in_app: false},
+        {function: 'CFRunLoopRun', module: 'CoreFoundation', in_app: false},
+        {
+          function: 'FeedViewController.viewDidLoad',
+          filename: 'FeedViewController.swift',
+          lineno: 28,
+          in_app: true,
+        },
+        {
+          function: 'FeedViewModel.loadFeed',
+          filename: 'FeedViewModel.swift',
+          lineno: 54,
+          in_app: true,
+        },
+        {
+          function: 'FeedViewModel.buildSections',
+          filename: 'FeedViewModel.swift',
+          lineno: 96,
+          in_app: true,
+        },
+        {
+          function: 'FeedCell.configure',
+          filename: 'FeedCell.swift',
+          lineno: 73,
+          in_app: true,
+        },
+        {
+          function: 'ImageLoader.loadThumbnail',
+          filename: 'ImageLoader.swift',
+          lineno: 41,
+          in_app: true,
+        },
+        {
+          function: 'ImageLoader.decodeImage',
+          filename: 'ImageLoader.swift',
+          lineno: 88,
+          in_app: true,
+        },
+        {function: 'CGImageSourceCreateImageAtIndex', module: 'ImageIO', in_app: false},
+        {function: 'JPEGDecoder.decodeScan', module: 'ImageIO', in_app: false},
+        {function: 'vImageConvert_AnyToAny', module: 'Accelerate', in_app: false},
+        {
+          function: 'TextLayout.measure',
+          filename: 'TextLayout.swift',
+          lineno: 35,
+          in_app: true,
+        },
+        {
+          function: 'CTFramesetterSuggestFrameSizeWithConstraints',
+          module: 'CoreText',
+          in_app: false,
+        },
+        {
+          function: 'FeedViewController.applySnapshot',
+          filename: 'FeedViewController.swift',
+          lineno: 112,
+          in_app: true,
+        },
+        {function: 'UICollectionView.layoutSubviews', module: 'UIKitCore', in_app: false},
+        {
+          function: 'FeedRepository.hydrateFeed',
+          filename: 'FeedRepository.swift',
+          lineno: 62,
+          in_app: true,
+        },
+        {
+          function: 'FeedRepository.loadAuthor',
+          filename: 'FeedRepository.swift',
+          lineno: 124,
+          in_app: true,
+        },
+        {
+          function: 'FeedRepository.loadComments',
+          filename: 'FeedRepository.swift',
+          lineno: 148,
+          in_app: true,
+        },
+        {
+          function: 'Database.fetch',
+          filename: 'Database.swift',
+          lineno: 57,
+          in_app: true,
+        },
+        {function: 'sqlite3_step', module: 'libsqlite3', in_app: false},
+        {function: 'sqlite3BtreeNext', module: 'libsqlite3', in_app: false},
+        {
+          function: 'FeedRepository.mapRecords',
+          filename: 'FeedRepository.swift',
+          lineno: 182,
+          in_app: true,
+        },
+        {
+          function: 'SyncWorker.run',
+          filename: 'SyncWorker.swift',
+          lineno: 31,
+          in_app: true,
+        },
+        {
+          function: 'SyncWorker.decodeResponse',
+          filename: 'SyncWorker.swift',
+          lineno: 65,
+          in_app: true,
+        },
+        {function: 'JSONDecoder.decode', module: 'Foundation', in_app: false},
+        {
+          function: 'SyncWorker.persistChanges',
+          filename: 'SyncWorker.swift',
+          lineno: 92,
+          in_app: true,
+        },
+        {
+          function: 'Database.transaction',
+          filename: 'Database.swift',
+          lineno: 104,
+          in_app: true,
+        },
+        {function: 'sqlite3WalFrames', module: 'libsqlite3', in_app: false},
+        {function: 'fsync', module: 'libsystem_kernel', in_app: false},
+      ],
+      trees: [
+        {
+          thread_id: '1',
+          thread_attributed: true,
+          roots: [
+            {
+              frame_id: 0,
+              sample_count: 1000,
+              children: [
+                {
+                  frame_id: 1,
+                  sample_count: 980,
+                  children: [
+                    {
+                      frame_id: 2,
+                      sample_count: 960,
+                      children: [
+                        {
+                          frame_id: 3,
+                          sample_count: 940,
+                          children: [
+                            {
+                              frame_id: 4,
+                              sample_count: 900,
+                              children: [
+                                {
+                                  frame_id: 5,
+                                  sample_count: 720,
+                                  children: [
+                                    {
+                                      frame_id: 6,
+                                      sample_count: 680,
+                                      children: [
+                                        {
+                                          frame_id: 7,
+                                          sample_count: 500,
+                                          children: [
+                                            {
+                                              frame_id: 8,
+                                              sample_count: 480,
+                                              children: [
+                                                {
+                                                  frame_id: 9,
+                                                  sample_count: 460,
+                                                  children: [
+                                                    {frame_id: 10, sample_count: 340},
+                                                    {frame_id: 11, sample_count: 100},
+                                                  ],
+                                                },
+                                              ],
+                                            },
+                                          ],
+                                        },
+                                        {
+                                          frame_id: 12,
+                                          sample_count: 160,
+                                          children: [{frame_id: 13, sample_count: 140}],
+                                        },
+                                      ],
+                                    },
+                                  ],
+                                },
+                                {
+                                  frame_id: 14,
+                                  sample_count: 150,
+                                  children: [{frame_id: 15, sample_count: 130}],
+                                },
+                              ],
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          thread_id: '2',
+          roots: [
+            {
+              frame_id: 16,
+              sample_count: 600,
+              children: [
+                {
+                  frame_id: 17,
+                  sample_count: 320,
+                  children: [
+                    {
+                      frame_id: 19,
+                      sample_count: 300,
+                      children: [
+                        {
+                          frame_id: 20,
+                          sample_count: 280,
+                          children: [{frame_id: 21, sample_count: 240}],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  frame_id: 18,
+                  sample_count: 200,
+                  children: [
+                    {
+                      frame_id: 19,
+                      sample_count: 180,
+                      children: [
+                        {
+                          frame_id: 20,
+                          sample_count: 160,
+                          children: [{frame_id: 21, sample_count: 120}],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {frame_id: 22, sample_count: 60},
+              ],
+            },
+          ],
+        },
+        {
+          thread_id: '3',
+          roots: [
+            {
+              frame_id: 23,
+              sample_count: 400,
+              children: [
+                {
+                  frame_id: 24,
+                  sample_count: 220,
+                  children: [{frame_id: 25, sample_count: 200}],
+                },
+                {
+                  frame_id: 26,
+                  sample_count: 160,
+                  children: [
+                    {
+                      frame_id: 27,
+                      sample_count: 150,
+                      children: [
+                        {
+                          frame_id: 28,
+                          sample_count: 130,
+                          children: [{frame_id: 29, sample_count: 110}],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    }}
+  />
+</Storybook.Demo>
+
+```jsx
+<FlamegraphAttachment data={parsedAttachment} />
+```
+
+## Props
+
+| Prop   | Type                       | Description                                                                                                     |
+| ------ | -------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `data` | `FlamegraphAttachmentData` | Validated version-1 frames and call trees. Use `parseFlamegraphAttachment` at the attachment download boundary. |
+
+The graph reuses the profiling canvas renderer and hover tooltips. The call-tree selector has an accessible label, and the selected tree's sample total is displayed as text.
