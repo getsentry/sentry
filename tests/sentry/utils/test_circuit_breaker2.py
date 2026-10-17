@@ -494,6 +494,31 @@ class ShouldAllowRequestTest(TestCase):
                 "Couldn't get state from redis for circuit breaker '%s'", breaker.key
             )
 
+    @patch("sentry.utils.circuit_breaker2.logger")
+    def test_failed_redis_execute_does_not_leak_commands_into_next_call(
+        self, mock_logger: MagicMock
+    ) -> None:
+        breaker = self.breaker
+        pipeline_class = type(breaker.limiter.client.pipeline())
+        original_execute = pipeline_class.execute
+        calls = {"count": 0}
+
+        # Mimic redis-py failing to get a connection: raise without resetting the pipeline, which
+        # leaves the queued commands on it
+        def flaky_execute(pipeline: Any, *args: Any, **kwargs: Any) -> Any:
+            calls["count"] += 1
+            if calls["count"] == 1:
+                raise TimeoutError("Timeout connecting to server")
+            return original_execute(pipeline, *args, **kwargs)
+
+        with patch.object(pipeline_class, "execute", autospec=True, side_effect=flaky_execute):
+            assert breaker._get_state_and_remaining_time() == (CircuitBreakerState.OK, None)
+            assert mock_logger.exception.call_count == 1
+
+            # The second read must only see its own two GETs
+            assert breaker._get_state_and_remaining_time() == (CircuitBreakerState.OK, None)
+            assert mock_logger.exception.call_count == 1
+
 
 # --- Rate-based circuit breaker tests ---
 
