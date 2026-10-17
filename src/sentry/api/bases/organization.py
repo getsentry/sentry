@@ -26,6 +26,7 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.auth.legacy_scopes import access_has_scope
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -134,7 +135,7 @@ class OrganizationPermission(DemoSafePermission):
                 raise SuperuserRequired(orgSlug=org_slug)
 
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
-        return any(request.access.has_scope(s) for s in allowed_scopes)
+        return any(access_has_scope(request, s) for s in allowed_scopes)
 
     def is_member_disabled_from_limit(
         self,

@@ -12,6 +12,7 @@ from sentry.dashboards.endpoints.organization_dashboards import (
     PREBUILT_DASHBOARDS,
     PrebuiltDashboardId,
 )
+from sentry.models.apitoken import ApiToken
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -3147,3 +3148,77 @@ class OrganizationDashboardsCreateScopeTest(OrganizationDashboardWidgetTestCase)
             format="json",
         )
         assert response.status_code == 200, response.content
+
+
+class OrganizationDashboardsLegacyReadWritesTest(OrganizationDashboardWidgetTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            self.old_token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+            self.new_token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+        self.url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.details_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
+
+    def _use_token(self, token: ApiToken) -> None:
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_read_scope_writes_without_cutoff(self) -> None:
+        self._use_token(self.new_token)
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+
+    def test_token_before_cutoff_keeps_read_scope_writes(self) -> None:
+        self._use_token(self.old_token)
+        with override_options({"api.legacy-read-writes.max-user-token-id": self.old_token.id}):
+            with outbox_runner():
+                response = self.client.post(self.url, data={"title": "Created"})
+            assert response.status_code == 201, response.content
+
+            response = self.client.delete(self.details_url)
+            assert response.status_code == 204, response.content
+
+    def test_token_after_cutoff_cannot_write_with_read_scope(self) -> None:
+        self._use_token(self.new_token)
+        with override_options({"api.legacy-read-writes.max-user-token-id": self.old_token.id}):
+            response = self.client.get(self.url)
+            assert response.status_code == 200, response.content
+
+            response = self.client.post(self.url, data={"title": "Created"})
+            assert response.status_code == 403
+            assert "legacy:" not in response.get("WWW-Authenticate", "")
+
+            response = self.client.delete(self.details_url)
+            assert response.status_code == 403
+        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Created"
+        ).exists()
+
+    def test_token_after_cutoff_can_write_with_write_scope(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=["org:write"])
+        self._use_token(token)
+        with override_options({"api.legacy-read-writes.max-user-token-id": self.old_token.id}):
+            with outbox_runner():
+                response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+
+    def test_session_keeps_read_scope_writes_after_cutoff(self) -> None:
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(member)
+        with override_options({"api.legacy-read-writes.max-user-token-id": self.old_token.id}):
+            with outbox_runner():
+                response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content

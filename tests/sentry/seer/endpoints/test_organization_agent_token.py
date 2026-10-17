@@ -409,7 +409,11 @@ def _public_get_endpoints() -> tuple[PublicGetEndpoint, ...]:
         allowed_scopes: set[str] = set()
         for permission_class in view.permission_classes:
             scope_map = getattr(permission_class, "scope_map", {})
-            allowed_scopes.update(scope_map.get(method, ()))
+            # Compatibility scopes are satisfied by their read scope for agent tokens.
+            allowed_scopes.update(
+                settings.LEGACY_READ_WRITE_SCOPES.get(scope, scope)
+                for scope in scope_map.get(method, ())
+            )
 
         silo_limit = getattr(view, "silo_limit", None)
         silo_modes: frozenset[SiloMode] = getattr(silo_limit, "modes", frozenset())
@@ -450,7 +454,11 @@ def _public_mutation_endpoints() -> tuple[PublicMutationEndpoint, ...]:
         allowed_scopes: set[str] = set()
         for permission_class in view.permission_classes:
             scope_map = getattr(permission_class, "scope_map", {})
-            allowed_scopes.update(scope_map.get(method, ()))
+            # Compatibility scopes are satisfied by their read scope for agent tokens.
+            allowed_scopes.update(
+                settings.LEGACY_READ_WRITE_SCOPES.get(scope, scope)
+                for scope in scope_map.get(method, ())
+            )
         assert allowed_scopes, (path, method, view.__name__)
 
         silo_limit = getattr(view, "silo_limit", None)

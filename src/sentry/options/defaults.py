@@ -357,6 +357,17 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Personal auth tokens with an id above this get strict read scopes: they don't
+# satisfy `settings.LEGACY_READ_WRITE_SCOPES`. Token ids are used instead of
+# creation dates because cell replicas don't carry the control token's date_added.
+# 0 disables the cutoff, so every credential keeps the legacy read-write behavior.
+register(
+    "api.legacy-read-writes.max-user-token-id",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # POST rate limit for ProjectTransferEndpoint, overridable via automator.
 register(
     "api.project-transfer.rate-limit-overrides",
