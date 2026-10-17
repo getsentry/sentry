@@ -11,12 +11,24 @@ from __future__ import annotations
 import json
 import os
 from hashlib import sha256
+from pathlib import Path
 
 import pytest
 
 
 def item_part(nodeid: str, parts: int) -> int:
     return int(sha256(nodeid.encode()).hexdigest(), 16) % parts
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    # The shard's file list is relative to the working directory, and the
+    # sentry plugin matches it against paths relative to the rootdir. If they
+    # differ, every file would be skipped (or kept) on every shard.
+    if os.environ.get("PYTEST_SHARD_PARTS") and config.rootpath != Path.cwd().resolve():
+        raise pytest.UsageError(
+            f"pytest_shard_plugin: rootdir {config.rootpath} is not the working "
+            f"directory {Path.cwd()}; run pytest-selected.py from the rootdir"
+        )
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:

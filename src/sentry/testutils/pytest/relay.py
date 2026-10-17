@@ -6,6 +6,7 @@ import logging
 import shutil
 import sys
 import time
+from collections.abc import Callable
 from os import environ, path
 from unittest import mock
 from urllib.parse import urlparse
@@ -29,6 +30,48 @@ def _relay_server_container_name() -> str:
     if xdist._worker_id:
         return f"sentry_test_relay_server_{xdist._worker_id}"
     return "sentry_test_relay_server"
+
+
+class RelayNotReadyError(Exception):
+    def __init__(self, url: str, last_result: str) -> None:
+        super().__init__(f"{url} was not ready in time, last result: {last_result}")
+        self.last_result = last_result
+
+
+def wait_until_ready(
+    url: str,
+    *,
+    timeout: float,
+    interval: float = 0.05,
+    request_timeout: float = 1.0,
+    clock: Callable[[], float] = time.monotonic,
+    sleep: Callable[[float], None] = time.sleep,
+    probe: Callable[..., requests.Response] = requests.get,
+) -> None:
+    """
+    Poll `url` until it answers 200, or raise RelayNotReadyError after `timeout`
+    seconds.
+
+    No probe starts after the deadline, and each probe's timeout is capped by
+    the time left, so the wait overshoots the deadline by at most one probe.
+    A 200 from a probe that started before the deadline counts as ready even
+    if it arrives after it.
+    """
+    deadline = clock() + timeout
+    last_result = "not probed"
+    while (remaining := deadline - clock()) > 0:
+        try:
+            status = probe(url, timeout=min(request_timeout, remaining)).status_code
+        except requests.RequestException as e:
+            last_result = f"{type(e).__name__}: {e}"
+        else:
+            if status == 200:
+                return
+            last_result = f"HTTP {status}"
+        remaining = deadline - clock()
+        if remaining > 0:
+            sleep(min(interval, remaining))
+    raise RelayNotReadyError(url, last_result)
 
 
 def _get_template_dir():
@@ -193,23 +236,17 @@ def relay_server(relay_server_setup, settings):
             # seconds, and exponential backoff overshoots that by up to the last sleep.
             # The deadline matches the previous backoff schedule's total.
             readiness_url = f"{url}/api/relay/healthcheck/ready/"
-            deadline = time.monotonic() + 25.5
-            while True:
+            try:
+                wait_until_ready(readiness_url, timeout=25.5)
+            except RelayNotReadyError as e:
                 try:
-                    if requests.get(readiness_url, timeout=1).status_code == 200:
-                        break
-                except Exception as ex:
-                    if time.monotonic() >= deadline:
-                        _log.exception(str(ex))
-                        raise ValueError(
-                            f"relay did not start in time (now: {datetime.datetime.now().isoformat()}) {url}:\n{container.logs().decode()}"
-                        ) from ex
-                else:
-                    if time.monotonic() >= deadline:
-                        raise ValueError(
-                            f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}) {readiness_url}:\n{container.logs().decode()}"
-                        )
-                time.sleep(0.05)
+                    logs = container.logs().decode()
+                finally:
+                    if not environ.get("RELAY_TEST_KEEP_CONTAINER", False):
+                        _remove_container_if_exists(docker_client, container_name)
+                raise ValueError(
+                    f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}, last result: {e.last_result}) {readiness_url}:\n{logs}"
+                ) from e
 
         yield {"url": relay_server_setup["url"]}
 

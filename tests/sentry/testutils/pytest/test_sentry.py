@@ -181,6 +181,33 @@ def _check_sharding(
 IGNORE = ["--ignore", "tests/shardcheck/ignored"]
 
 
+def test_relative_root_runs_each_test_once(project: Path) -> None:
+    logs = _check_sharding(project, ["tests", *IGNORE])
+    assert all("1 of them split" in log for log in logs)
+
+
+def test_relative_root_runs_each_test_once_with_xdist(project: Path) -> None:
+    logs = _check_sharding(
+        project, ["-p", "xdist.plugin", "-n", "2", "tests", *IGNORE], collect_only=False
+    )
+    assert all("1 of them split" in log for log in logs)
+
+
+def test_root_outside_tests_runs_each_test_once(project: Path) -> None:
+    logs = _check_sharding(project, ["tests", "other", *IGNORE])
+    assert all("runs" in log for log in logs)
+
+
+def test_absolute_root_falls_back_to_hash_sharding(project: Path) -> None:
+    logs = _check_sharding(project, [str(project / "tests"), *IGNORE])
+    assert all("keeps its hash share" in log for log in logs)
+
+
+def test_rootdir_option_falls_back_to_hash_sharding(project: Path) -> None:
+    logs = _check_sharding(project, ["--rootdir=.", "tests", *IGNORE])
+    assert all("keeps its hash share" in log for log in logs)
+
+
 @pytest.mark.parametrize(
     ("args", "env"),
     [
