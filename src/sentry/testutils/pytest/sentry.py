@@ -296,7 +296,7 @@ def pytest_configure(config: pytest.Config) -> None:
                 "default": {"hosts": {0: {"db": workers.get_redis_db()}}},
                 "cluster": {
                     "is_redis_cluster": True,
-                    "hosts": [{"host": "0.0.0.0", "port": port} for port in range(7000, 7006)],
+                    "hosts": [{"host": "127.0.0.1", "port": port} for port in range(7000, 7006)],
                     "key_prefix": workers.get_redis_cluster_key_prefix(),
                 },
             },

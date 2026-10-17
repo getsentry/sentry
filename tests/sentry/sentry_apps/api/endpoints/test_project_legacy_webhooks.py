@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import APITestCase
 
@@ -29,7 +31,8 @@ class ProjectLegacyWebhooksEndpointTest(APITestCase):
         assert response.data["urls"] == []
         assert response.data["enabled"] is False
 
-    def test_post_stores_urls_and_enabled(self) -> None:
+    @patch("socket.getaddrinfo", return_value=[(2, 1, 6, "", ("81.0.0.1", 0))])
+    def test_post_stores_urls_and_enabled(self, mock_getaddrinfo: MagicMock) -> None:
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -60,7 +63,8 @@ class ProjectLegacyWebhooksEndpointTest(APITestCase):
         assert response.data["enabled"] is False
         assert ProjectOption.objects.get_value(self.project, "webhooks:enabled") is False
 
-    def test_post_only_enabled_preserves_urls(self) -> None:
+    @patch("socket.getaddrinfo", return_value=[(2, 1, 6, "", ("81.0.0.1", 0))])
+    def test_post_only_enabled_preserves_urls(self, mock_getaddrinfo: MagicMock) -> None:
         ProjectOption.objects.set_value(self.project, "webhooks:urls", "http://example.com/hook")
         ProjectOption.objects.set_value(self.project, "webhooks:enabled", False)
 
@@ -75,7 +79,8 @@ class ProjectLegacyWebhooksEndpointTest(APITestCase):
         assert response.data["enabled"] is True
         assert response.data["urls"] == ["http://example.com/hook"]
 
-    def test_post_only_urls_preserves_enabled(self) -> None:
+    @patch("socket.getaddrinfo", return_value=[(2, 1, 6, "", ("81.0.0.1", 0))])
+    def test_post_only_urls_preserves_enabled(self, mock_getaddrinfo: MagicMock) -> None:
         ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
         response = self.get_success_response(
