@@ -3,12 +3,13 @@ import {useTheme} from '@emotion/react';
 
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Separator} from '@sentry/scraps/separator';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {
-  droppedEventsToOutcomeSections,
+  droppedEventsToOutcomeGroups,
   type ReasonRow,
 } from 'sentry/components/droppedData/drawer/outcomeSections';
 import {
@@ -41,24 +42,30 @@ export function DroppedDataDrawer({
     interval: interval ?? chartInterval,
   });
 
-  const sections = useMemo(
-    () => droppedEventsToOutcomeSections(droppedEvents ?? [], acceptedEvents ?? []),
+  const groups = useMemo(
+    () => droppedEventsToOutcomeGroups(droppedEvents ?? [], acceptedEvents ?? []),
     [droppedEvents, acceptedEvents]
   );
   const outcomeColors = useMemo(
     () =>
       getOutcomeColors(
-        sections.map(section => section.outcome),
+        [...groups.unintentional, ...groups.intentional].map(section => section.outcome),
         theme
       ),
-    [sections, theme]
+    [groups, theme]
   );
 
   const [outcomeSelection, setOutcomeSelection] = useState<OutcomeSelection>({});
-  const selectedSections = useMemo(
-    () =>
-      sections.filter(section => isOutcomeSelected(outcomeSelection, section.outcome)),
-    [sections, outcomeSelection]
+  const selectedGroups = useMemo(
+    () => ({
+      unintentional: groups.unintentional.filter(section =>
+        isOutcomeSelected(outcomeSelection, section.outcome)
+      ),
+      intentional: groups.intentional.filter(section =>
+        isOutcomeSelected(outcomeSelection, section.outcome)
+      ),
+    }),
+    [groups, outcomeSelection]
   );
 
   return (
@@ -85,10 +92,25 @@ export function DroppedDataDrawer({
               onSelectionChange={setOutcomeSelection}
             />
             <DroppedDataOutcomeList
-              sections={selectedSections}
+              sections={selectedGroups.unintentional}
               colors={outcomeColors}
               onTroubleshoot={onTroubleshoot}
             />
+            {selectedGroups.intentional.length > 0 && (
+              <Stack gap="md">
+                <Stack gap="xl" padding="0 xl">
+                  <Separator orientation="horizontal" border="primary" />
+                  <Heading as="h3" size="xl">
+                    {t('Configured Drops')}
+                  </Heading>
+                </Stack>
+                <DroppedDataOutcomeList
+                  sections={selectedGroups.intentional}
+                  colors={outcomeColors}
+                  onTroubleshoot={onTroubleshoot}
+                />
+              </Stack>
+            )}
           </Stack>
         )}
       </DrawerBody>
