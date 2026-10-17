@@ -445,7 +445,8 @@ export const SEER_EMBED_SCHEMAS = {
       'Monitors decide when data becomes an issue; an Alert is the rule that runs ' +
       'actions (email, Slack, tickets, webhooks) when issues from its projects or ' +
       'connected Monitors match its triggers and filters. ' +
-      "Use the Alert's id from the workflows API (`/workflows/`) with `kind` " +
+      "Use the Alert's id from the workflows API (`/workflows/`, " +
+      'get_organization_workflow / list_organization_workflows) with `kind` ' +
       '"issue". This holds for every Alert, including one connected to a metric, ' +
       'cron, or uptime Monitor. ' +
       'Reference the Monitor itself with the `monitor` embed, never with this one. ' +
@@ -478,13 +479,19 @@ export const SEER_EMBED_SCHEMAS = {
   },
   monitor: {
     description:
-      'The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, ' +
-      'or mobile build detector). Use the numeric id from the detectors API ' +
-      '(get_organization_detector / list_organization_detectors) — do NOT use the ' +
-      '"id" field from the monitors API, which is a GUID and will not work here. ' +
+      'The ONLY way to reference a Sentry Monitor. ' +
+      'A Monitor decides when data becomes an issue: a metric, cron, uptime, or ' +
+      "mobile builds Monitor, or a project's default Error or Issue Stream Monitor. " +
+      'Use the numeric id from the detectors API (`/detectors/`, ' +
+      'get_organization_detector / list_organization_detectors). ' +
+      'Do NOT use the GUID `id` from the Crons API (`/monitors/`, ' +
+      'list_organization_monitors); look up the cron Monitor in the detectors API ' +
+      'instead. ' +
+      'To reference an Alert that acts on issues from a Monitor, use the `alert` ' +
+      'embed. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
-      'Block: loads the live monitor and renders its type-specific configuration/rules. ' +
+      'Block: loads the live Monitor and renders its type-specific configuration. ' +
       'Never use a markdown link for monitor references.',
     level: ['inline', 'block'],
     schema: z.object({
