@@ -622,6 +622,13 @@ register(
 )
 
 # User Feedback Options
+# Accept agent reports about the MCP, API, and documentation as User Feedback.
+register(
+    "agent.problem-reports.enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "feedback.organizations.slug-denylist",
     type=Sequence,

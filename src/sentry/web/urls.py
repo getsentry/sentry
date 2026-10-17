@@ -1301,6 +1301,11 @@ urlpatterns += [
         api.agent_skills_index,
         name="sentry-agent-skills-index",
     ),
+    re_path(
+        r"^\.well-known/agent-problem-reports$",
+        api.agent_problem_reports_doc,
+        name="sentry-agent-problem-reports-doc",
+    ),
     # Force a 404 of favicon.ico.
     # This url is commonly requested by browsers, and without
     # blocking this, it was treated as a 200 OK for a react page view.
