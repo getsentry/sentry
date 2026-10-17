@@ -219,6 +219,12 @@ class SentryPermission(ScopedPermission):
     ) -> None:
         from sentry.api.base import logger
 
+        if is_system_auth(request.auth):
+            # System access ignores the organization context, so skip fetching the
+            # organization with all of its projects and teams.
+            request.access = access.SystemAccess()
+            return
+
         user_id = request.user.id if request.user else None
         agent_auth = request.auth if agent_token.is_agent_auth(request.auth) else None
 
