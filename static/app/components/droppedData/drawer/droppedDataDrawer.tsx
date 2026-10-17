@@ -82,7 +82,7 @@ export function DroppedDataDrawer({
       <DrawerHeader>
         <Flex flex="1" align="center" justify="between" gap="md">
           <Text size="md" variant="muted">
-            {t('Dropped Data')}
+            {t('Dropped Events')}
           </Text>
           <SegmentedControl
             aria-label={t('Filter by contribution')}
@@ -100,7 +100,7 @@ export function DroppedDataDrawer({
       <DrawerBody>
         {isError ? (
           <LoadingError
-            message={t('There was an error loading dropped data.')}
+            message={t('There was an error loading dropped events.')}
             onRetry={() => void refetch()}
           />
         ) : isPending ? (
