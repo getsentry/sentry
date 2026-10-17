@@ -34,6 +34,19 @@ export interface OutcomeGroups {
   unintentional: OutcomeSection[];
 }
 
+export type DroppedDataScope = 'contributing' | 'all';
+
+function isUnintentional(event: DroppedEventsBucket): boolean {
+  return event.tags.includes('unintentional');
+}
+
+export function filterDroppedEventsByScope(
+  droppedEvents: DroppedEventsBucket[],
+  scope: DroppedDataScope
+): DroppedEventsBucket[] {
+  return scope === 'all' ? droppedEvents : droppedEvents.filter(isUnintentional);
+}
+
 export function droppedEventsToOutcomeSections(
   droppedEvents: DroppedEventsBucket[],
   acceptedEvents: DroppedEventsBucket[]
@@ -44,13 +57,15 @@ export function droppedEventsToOutcomeSections(
 
 export function droppedEventsToOutcomeGroups(
   droppedEvents: DroppedEventsBucket[],
-  acceptedEvents: DroppedEventsBucket[]
+  acceptedEvents: DroppedEventsBucket[],
+  scope: DroppedDataScope
 ): OutcomeGroups {
-  const totalEvents = sumCounts(droppedEvents) + sumCounts(acceptedEvents);
+  const scopedEvents = filterDroppedEventsByScope(droppedEvents, scope);
+  const totalEvents = sumCounts(scopedEvents) + sumCounts(acceptedEvents);
   const unintentional: DroppedEventsBucket[] = [];
   const intentional: DroppedEventsBucket[] = [];
-  for (const event of droppedEvents) {
-    if (event.tags.includes('unintentional')) {
+  for (const event of scopedEvents) {
+    if (isUnintentional(event)) {
       unintentional.push(event);
     } else {
       intentional.push(event);
