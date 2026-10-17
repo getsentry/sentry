@@ -15,7 +15,7 @@ import pytest
 
 from pytest_parallel.api import RunInfo, WorkerInfo
 from sentry.testutils.pytest import sentry as sentry_plugin
-from sentry.testutils.pytest import workers
+from sentry.testutils.pytest import workers, xdist
 from sentry.utils.env import in_test_environment
 
 
@@ -81,6 +81,11 @@ def test_serial_uses_main_slot() -> None:
     ):
         os.environ["SENTRY_TEST_PER_WORKER_SNUBA"] = "1"
         _assert_main_slot()
+
+
+def test_legacy_xdist_get_redis_db_forwards_to_workers() -> None:
+    with _role("worker", 4):
+        assert xdist.get_redis_db() == workers.get_redis_db() == 13
 
 
 def test_in_test_environment_parallel_worker() -> None:
