@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -229,6 +230,31 @@ def test_database_suffix_parallel_controller() -> None:
 
 def test_database_suffix_xdist_workerid() -> None:
     assert workers.database_suffix("xdist", 4, "gw3") == "gw3"
+
+
+def test_effective_database_names_use_one_runner_suffix(request: pytest.FixtureRequest) -> None:
+    from django.conf import settings
+
+    aliases = ("default", "control", "secondary")
+    original_names = {alias: settings.DATABASES[alias]["NAME"] for alias in aliases}
+    request.getfixturevalue("django_db_modify_db_settings")
+    workerinput = getattr(request.config, "workerinput", None)
+    workerid = workerinput.get("workerid") if isinstance(workerinput, dict) else None
+    suffix = workers.database_suffix(
+        os.environ.get("SENTRY_TEST_RUNNER", "xdist"),
+        workers.parallel_worker_index(),
+        workerid if isinstance(workerid, str) else None,
+    )
+
+    for alias in aliases:
+        database = settings.DATABASES[alias]
+        assert database["NAME"] == original_names[alias]
+        test_name = database.get("TEST", {}).get("NAME") or f"test_{database['NAME']}"
+        if suffix is None:
+            assert re.search(r"_gw\d+$", test_name) is None
+        else:
+            assert test_name.endswith(f"_{suffix}")
+        assert re.search(r"_gw\d+_gw\d+$", test_name) is None
 
 
 def test_worker_env_pops_django_and_xdist_only_from_dict() -> None:
