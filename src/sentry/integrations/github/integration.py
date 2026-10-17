@@ -715,6 +715,7 @@ class GitHubIntegrationProvider(IntegrationProvider):
     can_add_externally = True
     metadata = metadata
     integration_cls: type[IntegrationInstallation] = GitHubIntegration
+    reject_pending_deletion_reinstall = True
     features = frozenset(
         [
             IntegrationFeatures.COMMITS,
@@ -819,7 +820,6 @@ class GitHubInstallationError(StrEnum):
     INVALID_STATE = "Invalid state"
     MISSING_TOKEN = "Missing access token"
     MISSING_LOGIN = "Missing login info"
-    PENDING_DELETION = "GitHub installation pending deletion."
     INSTALLATION_EXISTS = "Github installed on another Sentry organization."
     USER_MISMATCH = "Authenticated user is not the same as who installed the app."
     MISSING_INTEGRATION = "Integration does not exist."
@@ -1014,7 +1014,7 @@ def validate_github_installation(
 ) -> str | None:
     """
     Resolves the installation_id from pipeline state (handling chosen_installation),
-    checks for pending deletion and user mismatch against existing integrations.
+    and checks for user mismatch against existing integrations.
 
     Returns the resolved installation_id, or None if the user needs to install the
     GitHub App first (caller should redirect).
@@ -1028,14 +1028,6 @@ def validate_github_installation(
     installation_id = pipeline.fetch_state("installation_id")
     if installation_id is None:
         return None
-
-    pending_deletion = OrganizationIntegration.objects.filter(
-        integration__provider=GitHubIntegrationProvider.key,
-        organization_id=pipeline.organization.id,
-        status=ObjectStatus.PENDING_DELETION,
-    ).exists()
-    if pending_deletion:
-        raise GitHubPipelineError(GitHubInstallationError.PENDING_DELETION)
 
     try:
         integration = Integration.objects.get(
@@ -1255,8 +1247,8 @@ class GithubOrganizationSelectionApiStep:
                     return PipelineStepResult.error(e.message)
                 pipeline.bind_state("installation_id", chosen_installation_id)
 
-            # Validate whatever installation_id is in pipeline state — handles
-            # pending deletion check and user mismatch against existing integrations.
+            # Validate whatever installation_id is in pipeline state, including
+            # user mismatch against existing integrations.
             try:
                 installation_id = validate_github_installation(pipeline)
             except GitHubPipelineError as e:
