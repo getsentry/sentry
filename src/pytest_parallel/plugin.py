@@ -272,7 +272,7 @@ def pytest_runtest_protocol(item: pytest.Item, nextitem: pytest.Item | None) -> 
 
     from .network import network_blocked
 
-    with network_blocked():
+    with network_blocked(live_server_host=os.environ.get("DJANGO_LIVE_TEST_SERVER_ADDRESS")):
         yield
 
 

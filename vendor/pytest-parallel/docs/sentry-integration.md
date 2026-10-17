@@ -23,6 +23,8 @@ def test_external_service():
 
 Serial runs do not install the network guard.
 
+When `DJANGO_LIVE_TEST_SERVER_ADDRESS` is set, a worker may bind the Django live test server to that host. The guard allows `listen` and `accept` on that bound socket and permits socket traffic to its active host and port. Other ports on the configured host remain blocked.
+
 ## Isolate worker resources
 
 Sentry uses `pytest_parallel.api` to identify the controller, serial process, and worker. Each worker keeps its scheduler index for resource names and database suffixes.

@@ -22,13 +22,15 @@ The guarded resolvers are `getaddrinfo`, `gethostbyname`, `gethostbyname_ex`, `g
 
 A resolver call is allowed when the host is `None`, empty, loopback, unspecified, or the local hostname.
 
+When `DJANGO_LIVE_TEST_SERVER_ADDRESS` is set, its exact host may also be resolved and bound. The guard tracks the successfully bound socket and its active port for the current test. For this exception, only that socket may listen or accept, and socket traffic to that active endpoint is allowed. Other ports on the configured host stay blocked. Accepted connections may use their socket for the rest of the test.
+
 The local hostname is the string from `socket.gethostname()`. The guard also accepts that name's first label. The comparison is case-insensitive. A trailing dot on the queried name is ignored.
 
 The guard does not look at `AI_PASSIVE`. An empty host is allowed without that flag.
 
 ## Non-loopback connect and external lookup stay blocked
 
-`connect` and `connect_ex` raise `PermissionError` when the address is not loopback and is not the local hostname.
+`connect` and `connect_ex` raise `PermissionError` when the address is not loopback, the local hostname, or an active Django live test server endpoint.
 
 `sendto` and `sendmsg` raise `PermissionError` when the explicit address is outside that set.
 

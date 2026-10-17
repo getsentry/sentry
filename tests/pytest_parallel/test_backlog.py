@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
+from unittest.mock import patch
 
 import pytest
 
@@ -63,6 +64,61 @@ def test_network_hot_path_caches_peer_and_still_blocks_external() -> None:
             client.send(b"x")
             with pytest.raises(PermissionError, match="outside loopback"):
                 client.sendto(b"x", ("192.0.2.1", 9))
+
+
+def test_network_guard_allows_only_active_live_server_endpoint() -> None:
+    import socket
+
+    host = "192.0.2.10"
+    bound: dict[socket.socket, tuple[str, int]] = {}
+    peers: dict[socket.socket, tuple[str, int]] = {}
+
+    def bind(sock: socket.socket, address: tuple[str, int]) -> None:
+        bound[sock] = (address[0], address[1] or 43210)
+
+    def getsockname(sock: socket.socket) -> tuple[str, int]:
+        return bound.get(sock, ("0.0.0.0", 0))
+
+    def connect(sock: socket.socket, address: tuple[str, int]) -> None:
+        peers[sock] = address
+
+    def getpeername(sock: socket.socket) -> tuple[str, int]:
+        return peers[sock]
+
+    def accept(sock: socket.socket) -> tuple[socket.socket, tuple[str, int]]:
+        peers[accepted] = (host, 43211)
+        return accepted, peers[accepted]
+
+    with (
+        socket.socket() as server,
+        socket.socket() as client,
+        socket.socket() as accepted,
+        patch.object(socket.socket, "bind", bind),
+        patch.object(socket.socket, "getsockname", getsockname),
+        patch.object(socket.socket, "connect", connect),
+        patch.object(socket.socket, "getpeername", getpeername),
+        patch.object(socket.socket, "listen", lambda sock, backlog=0: None),
+        patch.object(socket.socket, "accept", accept),
+        patch.object(socket.socket, "recv", lambda sock, size, flags=0: b"x"),
+        patch.object(socket.socket, "sendall", lambda sock, data, flags=0: None),
+    ):
+        with network_blocked(live_server_host=host):
+            assert socket.getaddrinfo(host, 0)
+            with pytest.raises(PermissionError, match="outside loopback"):
+                socket.getaddrinfo("198.51.100.11", 0)
+            server.bind((host, 0))
+            server.listen()
+            peer, _ = server.accept()
+            assert peer is accepted
+            assert peer.recv(1) == b"x"
+            client.connect(bound[server])
+            client.sendall(b"x")
+
+            with socket.socket() as other, pytest.raises(PermissionError, match="outside loopback"):
+                other.connect((host, 43211))
+            server.close()
+            with socket.socket() as late, pytest.raises(PermissionError, match="outside loopback"):
+                late.connect(bound[server])
 
 
 def test_connected_unix_socket_sendmsg_is_allowed() -> None:
