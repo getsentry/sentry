@@ -2,15 +2,13 @@ import type {GroupOpenPeriod} from 'sentry/types/group';
 
 export interface IssueOpenPeriods {
   groupId: string;
-  /**
-   * Newest first
-   */
   openPeriods: [GroupOpenPeriod, ...GroupOpenPeriod[]];
   shortId: string | null;
 }
 
 /**
- * Groups newest-first open periods by their issue, keeping issues in the order of their newest open period.
+ * The backend returns a list of open periods for a detector
+ * On the frontend, we want to group them by issue, keeping issues in the order of their newest open period
  */
 export function groupOpenPeriodsByIssue(
   openPeriods: GroupOpenPeriod[]
