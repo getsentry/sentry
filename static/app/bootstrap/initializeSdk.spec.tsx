@@ -105,8 +105,7 @@ describe('initializeSdk', () => {
     });
 
     const ignoreErrors = jest.mocked(Sentry.init).mock.lastCall?.[0]?.ignoreErrors ?? [];
-    const message =
-      "TypeError: can't access property \"getDataParams\", M is undefined";
+    const message = 'TypeError: can\'t access property "getDataParams", M is undefined';
 
     expect(
       ignoreErrors.some(pattern =>
