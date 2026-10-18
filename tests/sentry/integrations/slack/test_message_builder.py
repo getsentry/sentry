@@ -227,9 +227,7 @@ def build_test_message_blocks(
     }
     blocks.append(context)
 
-    popup_text = (
-        f"[{project.slug}] {title}: {text}" if text is not None else f"[{project.slug}] {title}"
-    )
+    popup_text = f"[{project.slug}] {title}: {text}" if text is not None else f"[{project.slug}] {title}"
     return {
         "blocks": blocks,
         "text": popup_text,
@@ -238,9 +236,7 @@ def build_test_message_blocks(
 
 class BuildAttachmentTitleTest(TestCase):
     def test_uses_the_exception_type(self) -> None:
-        group = self.create_group(
-            data={"type": "error", "metadata": {"type": "ValueError", "value": "bad"}}
-        )
+        group = self.create_group(data={"type": "error", "metadata": {"type": "ValueError", "value": "bad"}})
         assert build_attachment_title(group) == "ValueError"
 
     def test_synthetic_prefers_function_to_type(self) -> None:
@@ -333,9 +329,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             event=event,
         )
 
-        assert SlackIssuesMessageBuilder(
-            group, event.for_group(group)
-        ).build() == build_test_message_blocks(
+        assert SlackIssuesMessageBuilder(group, event.for_group(group)).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
@@ -359,6 +353,33 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
         assert SlackIssuesMessageBuilder(group).build() == test_message
+
+    def test_build_group_block_uses_event_environment(self) -> None:
+        development = self.create_environment(self.project, name="development")
+        production = self.create_environment(self.project, name="production")
+        first_rule = self.create_project_rule(
+            project=self.project,
+            name="development rule",
+            environment_id=development.id,
+        )
+        second_rule = self.create_project_rule(
+            project=self.project,
+            name="production rule",
+            environment_id=production.id,
+        )
+        event = self.store_event(
+            data={"message": "Hello world", "environment": production.name},
+            project_id=self.project.id,
+        )
+        assert event.group
+
+        blocks = SlackIssuesMessageBuilder(
+            event.group, event.for_group(event.group), rules=[first_rule, second_rule]
+        ).build()
+
+        title_text = blocks["blocks"][0]["text"]["text"]
+        assert "environment=production" in title_text
+        assert "environment=development" not in title_text
 
     def test_build_group_block_noa(self) -> None:
         rule = self.create_project_rule(project=self.project)
@@ -386,9 +407,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert origin.legacy_rule_id is not None
         assert origin.workflow_id is not None
 
-        assert SlackIssuesMessageBuilder(
-            group, rules=[origin]
-        ).build() == build_test_message_blocks(
+        assert SlackIssuesMessageBuilder(group, rules=[origin]).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
@@ -430,9 +449,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             event=event,
         )
 
-        assert SlackIssuesMessageBuilder(
-            group, event.for_group(group)
-        ).build() == build_test_message_blocks(
+        assert SlackIssuesMessageBuilder(group, event.for_group(group)).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
@@ -538,9 +555,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         "sentry.integrations.slack.message_builder.issues.get_option_groups",
         wraps=get_option_groups,
     )
-    def test_build_group_block_prune_duplicate_assignees(
-        self, mock_get_option_groups: MagicMock
-    ) -> None:
+    def test_build_group_block_prune_duplicate_assignees(self, mock_get_option_groups: MagicMock) -> None:
         user2 = self.create_user()
         self.create_member(user=user2, organization=self.organization)
         team2 = self.create_team(organization=self.organization, members=[self.user, user2])
@@ -763,10 +778,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             initial_assignee=self.user,
         )
 
-        assert (
-            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
-            == expected_blocks
-        )
+        assert SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build() == expected_blocks
 
         # suggested user/suspect commit for user with name
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
@@ -780,16 +792,11 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             suggested_assignees=f"#{self.team.slug}, {user2.name}",
             initial_assignee=self.user,
         )
-        assert (
-            SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build()
-            == expected_blocks
-        )
+        assert SlackIssuesMessageBuilder(group, event.for_group(group), tags={"foo"}).build() == expected_blocks
 
     def test_team_recipient(self) -> None:
         issue_alert_group = self.create_group(project=self.project)
-        ret = SlackIssuesMessageBuilder(
-            issue_alert_group, recipient=Actor.from_object(self.team)
-        ).build()
+        ret = SlackIssuesMessageBuilder(issue_alert_group, recipient=Actor.from_object(self.team)).build()
         assert isinstance(ret, dict)
         has_actions = False
         for section in ret["blocks"]:
@@ -801,24 +808,15 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     def test_team_recipient_already_assigned(self) -> None:
         issue_alert_group = self.create_group(project=self.project)
-        GroupAssignee.objects.create(
-            project=self.project, group=issue_alert_group, user_id=self.user.id
-        )
-        ret = SlackIssuesMessageBuilder(
-            issue_alert_group, recipient=Actor.from_object(self.team)
-        ).build()
+        GroupAssignee.objects.create(project=self.project, group=issue_alert_group, user_id=self.user.id)
+        ret = SlackIssuesMessageBuilder(issue_alert_group, recipient=Actor.from_object(self.team)).build()
         assert isinstance(ret, dict)
-        assert (
-            ret["blocks"][2]["elements"][2]["initial_option"]["text"]["text"]
-            == self.user.get_display_name()
-        )
+        assert ret["blocks"][2]["elements"][2]["initial_option"]["text"]["text"] == self.user.get_display_name()
         assert ret["blocks"][2]["elements"][2]["initial_option"]["value"] == f"user:{self.user.id}"
 
     def test_build_group_generic_issue_block(self) -> None:
         """Test that a generic issue type's Slack alert contains the expected values"""
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
+        event = self.store_event(data={"message": "Hello world", "level": "error"}, project_id=self.project.id)
         group_event = event.for_group(event.groups[0])
         occurrence = self.build_occurrence(level="info")
         occurrence.save()
@@ -842,9 +840,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     def test_build_group_generic_issue_block_no_escaping(self) -> None:
         """Test that a generic issue type's Slack alert contains the expected values"""
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
+        event = self.store_event(data={"message": "Hello world", "level": "error"}, project_id=self.project.id)
         group_event = event.for_group(event.groups[0])
         # should also trim whitespace
         text = "\n\n\n      <bye> ```asdf```      "
@@ -894,9 +890,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
 
     def test_truncates_long_query(self) -> None:
-        event = self.store_event(
-            data={"message": "a" * 5000, "level": "error"}, project_id=self.project.id
-        )
+        event = self.store_event(data={"message": "a" * 5000, "level": "error"}, project_id=self.project.id)
         group_event = event.for_group(event.groups[0])
 
         occurrence = self.build_occurrence(
@@ -1011,9 +1005,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                         found_old_suggested_assignees = True
 
         assert found_suggested_in_context, "Suggested assignees should be in context block"
-        assert not found_old_suggested_assignees, (
-            "Old 'Suggested Assignees:' format should not appear"
-        )
+        assert not found_old_suggested_assignees, "Old 'Suggested Assignees:' format should not appear"
 
     def _has_autofix_button(self, blocks: dict[str, Any]) -> bool:
         for block in blocks.get("blocks", []):
@@ -1079,14 +1071,14 @@ class ActionsTest(TestCase):
         group = self.create_group(project=self.project)
         MOCKIDENTITY = Mock()
 
-        assert build_actions(
-            group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
-        ) == ([], "", True)
+        assert build_actions(group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY) == (
+            [],
+            "",
+            True,
+        )
 
     def _assert_message_actions_list(self, actions, expected):
-        actions_dict = [
-            {"name": a.name, "label": a.label, "type": a.type, "value": a.value} for a in actions
-        ]
+        actions_dict = [{"name": a.name, "label": a.label, "type": a.type, "value": a.value} for a in actions]
         assert expected in actions_dict
 
     def test_ignore_has_escalating(self) -> None:
@@ -1235,14 +1227,10 @@ class ActionsTest(TestCase):
 class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, OccurrenceTestMixin):
     @freeze_time("2024-02-23")
     def setUp(self) -> None:
-        self.endpoint_regression_issue = self.create_group(
-            type=PerformanceP95EndpointRegressionGroupType.type_id
-        )
+        self.endpoint_regression_issue = self.create_group(type=PerformanceP95EndpointRegressionGroupType.type_id)
 
         self.cron_issue = self.create_group(type=MonitorIncidentType.type_id)
-        self.feedback_issue = self.create_group(
-            type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW
-        )
+        self.feedback_issue = self.create_group(type=FeedbackGroup.type_id, substatus=GroupSubStatus.NEW)
 
     @freeze_time("2024-02-23")
     @patch("sentry.models.Group.get_recommended_event_for_environments")
@@ -1276,10 +1264,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         assert group
 
         context_without_error_user_count = get_context(group)
-        assert (
-            context_without_error_user_count
-            == f"State: *New*   First Seen: *{time_since(group.first_seen)}*"
-        )
+        assert context_without_error_user_count == f"State: *New*   First Seen: *{time_since(group.first_seen)}*"
 
         group.times_seen = 3
         group.substatus = GroupSubStatus.ONGOING
@@ -1339,9 +1324,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
 
     def test_get_tags(self) -> None:
         # don't use default tags. if we don't pass in tags to get_tags, we don't return any
-        tags = get_tags(
-            self.endpoint_regression_issue, self.endpoint_regression_issue.get_latest_event()
-        )
+        tags = get_tags(self.endpoint_regression_issue, self.endpoint_regression_issue.get_latest_event())
         assert not tags
 
 

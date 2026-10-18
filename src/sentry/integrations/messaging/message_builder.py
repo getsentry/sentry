@@ -49,9 +49,7 @@ def format_actor_option_non_slack(actor: Team | RpcUser) -> _NonSlackActorOption
 
 
 def format_actor_options_non_slack(actors: Iterable[Team | RpcUser]) -> list[_NonSlackActorOption]:
-    return sorted(
-        (format_actor_option_non_slack(actor) for actor in actors), key=lambda dct: dct["text"]
-    )
+    return sorted((format_actor_option_non_slack(actor) for actor in actors), key=lambda dct: dct["text"])
 
 
 def format_actor_option_slack(actor: Team | RpcUser) -> _SlackActorOption:
@@ -60,9 +58,7 @@ def format_actor_option_slack(actor: Team | RpcUser) -> _SlackActorOption:
 
 
 def format_actor_options_slack(actors: Iterable[Team | RpcUser]) -> list[_SlackActorOption]:
-    return sorted(
-        (format_actor_option_slack(actor) for actor in actors), key=lambda dct: dct["text"]["text"]
-    )
+    return sorted((format_actor_option_slack(actor) for actor in actors), key=lambda dct: dct["text"]["text"])
 
 
 def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
@@ -105,6 +101,14 @@ def fetch_environment_name(rule_env: int) -> str | None:
         return env.name
 
 
+def get_environment_param(event: Event | GroupEvent | None, environment_id: int | None) -> dict[str, str]:
+    if event is not None and (environment := event.get_tag("environment")):
+        return {"environment": environment}
+    if environment_id is not None and (environment_name := fetch_environment_name(environment_id)) is not None:
+        return {"environment": environment_name}
+    return {}
+
+
 def get_title_link(
     group: Group,
     event: Event | GroupEvent | None,
@@ -119,11 +123,7 @@ def get_title_link(
     other_params = {}
     # add in rule id if we have it
     if workflow_id:
-        if (
-            environment_id is not None
-            and (environment_name := fetch_environment_name(environment_id)) is not None
-        ):
-            other_params["environment"] = environment_name
+        other_params.update(get_environment_param(event, environment_id))
         # hard code for issue alerts
         other_params["workflow_id"] = str(workflow_id)
         other_params["alert_type"] = "issue"
@@ -151,9 +151,7 @@ def get_title_link(
             }
         )
     else:
-        url = group.get_absolute_url(
-            params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params}
-        )
+        url = group.get_absolute_url(params={"referrer": EXTERNAL_PROVIDERS[provider], **other_params})
 
     return url
 
@@ -177,9 +175,7 @@ def build_attachment_text(group: Group, event: Event | GroupEvent | None = None)
     return None
 
 
-def build_attachment_replay_link(
-    group: Group, url_format: str, event: Event | GroupEvent | None = None
-) -> str | None:
+def build_attachment_replay_link(group: Group, url_format: str, event: Event | GroupEvent | None = None) -> str | None:
     has_replay = features.has("organizations:session-replay", group.organization)
     if has_replay and group.has_replays():
         referrer = EXTERNAL_PROVIDERS[ExternalProviders.SLACK]
@@ -217,9 +213,7 @@ def get_timestamp(group: Group, event: GroupEvent | None) -> float:
     return (max(ts, event.datetime) if event else ts).timestamp()
 
 
-def get_color(
-    event_for_tags: GroupEvent | None, notification: BaseNotification | None, group: Group
-) -> str:
+def get_color(event_for_tags: GroupEvent | None, notification: BaseNotification | None, group: Group) -> str:
     if notification:
         if not isinstance(notification, AlertRuleNotification):
             return "info"
