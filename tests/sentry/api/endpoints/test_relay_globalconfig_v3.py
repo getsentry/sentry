@@ -32,37 +32,40 @@ def call_endpoint(client, relay, private_key):
     return inner
 
 
+# Set options to Relay's non-default values to avoid Relay skipping deserialization.
+RELAY_NON_DEFAULT_OPTIONS = {
+    "profiling.profile_metrics.unsampled_profiles.enabled": True,
+    "profiling.profile_metrics.unsampled_profiles.platforms": ["fake-platform"],
+    "profiling.profile_metrics.unsampled_profiles.sample_rate": 1.0,
+    "relay.span-usage-metric": True,
+    "relay.sessions-eap.rollout-rate": 1.0,
+    "relay.objectstore-attachments.sample-rate": 1.0,
+    "relay.kafka.span-v2.sample-rate": 1.0,
+    "relay.metric-bucket-distribution-encodings": {
+        "profiles": "array",
+        "spans": "array",
+        "transactions": "array",
+    },
+    "relay.metric-bucket-set-encodings": {
+        "profiles": "base64",
+        "spans": "base64",
+        "transactions": "base64",
+    },
+    "relay.attachment-inline.limit": 123,
+    "relay.upload-max-chunk.size": 123,
+}
+
+
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     "inbound_filters_custom_error_values", [[], [("MyError", "Mixed CASE message *")]]
 )
-@override_options(
-    {
-        # Set options to Relay's non-default values to avoid Relay skipping deserialization
-        "profiling.profile_metrics.unsampled_profiles.enabled": True,
-        "profiling.profile_metrics.unsampled_profiles.platforms": ["fake-platform"],
-        "profiling.profile_metrics.unsampled_profiles.sample_rate": 1.0,
-        "relay.span-usage-metric": True,
-        "relay.sessions-eap.rollout-rate": 1.0,
-        "relay.objectstore-attachments.sample-rate": 1.0,
-        "relay.kafka.span-v2.sample-rate": 1.0,
-        "relay.metric-bucket-distribution-encodings": {
-            "profiles": "array",
-            "spans": "array",
-            "transactions": "array",
-        },
-        "relay.metric-bucket-set-encodings": {
-            "profiles": "base64",
-            "spans": "base64",
-            "transactions": "base64",
-        },
-        "relay.attachment-inline.limit": 123,
-        "relay.upload-max-chunk.size": 123,
-    }
-)
 def test_global_config(settings, inbound_filters_custom_error_values) -> None:
     settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = inbound_filters_custom_error_values
-    config = get_global_config()
+    # Entered after the `settings` fixture's override so it exits first. As a decorator it
+    # exited before the fixture's teardown, which then restored its SENTRY_OPTIONS.
+    with override_options(RELAY_NON_DEFAULT_OPTIONS):
+        config = get_global_config()
 
     normalized = normalize_global_config(config)
     expected = deepcopy(config)
