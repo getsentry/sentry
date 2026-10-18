@@ -1,6 +1,11 @@
+from collections.abc import Generator
+from unittest.mock import patch
 from urllib.parse import urlparse
 
+import pytest
 from selenium.webdriver.common.by import By
+from slack_sdk.errors import SlackApiError
+from slack_sdk.web import SlackResponse
 
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.slack.views.link_team import build_team_linking_url
@@ -61,6 +66,24 @@ class SlackLinkTeamTest(AcceptanceTestCase):
             )
         )
         self.path = linking_url.path
+
+    @pytest.fixture(autouse=True)
+    def mock_chat_postMessage(self) -> Generator[None]:
+        # The fake token makes the real Slack API answer invalid_auth, which the view swallows.
+        response = SlackResponse(
+            client=None,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": False, "error": "invalid_auth"},
+            headers={},
+            status_code=200,
+        )
+        with patch(
+            "slack_sdk.web.WebClient.chat_postMessage",
+            side_effect=SlackApiError("invalid_auth", response),
+        ) as self.mock_post:
+            yield
 
     def test_link_team(self) -> None:
         self.login_as(self.user)
