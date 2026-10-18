@@ -41,7 +41,6 @@ const optionalNonEmptyString = z.preprocess(
   z.string().min(1).optional()
 );
 
-
 /**
  * Page filters shared by every query embed. Seer supplies these separately from
  * the search string so the frontend can hand them to the canonical URL builders
@@ -218,10 +217,10 @@ export const SEER_EMBED_SCHEMAS = {
           'when that is the only id you have.'
       ),
       shortId: optionalNonEmptyString.describe(
-          'The issue short ID exactly as the issues API returns it in `shortId` ' +
-            '(e.g. "JAVASCRIPT-22SP"): a project slug, a hyphen, and a short ' +
-            'alphanumeric suffix. Omit it rather than guessing one.'
-        ),
+        'The issue short ID exactly as the issues API returns it in `shortId` ' +
+          '(e.g. "JAVASCRIPT-22SP"): a project slug, a hyphen, and a short ' +
+          'alphanumeric suffix. Omit it rather than guessing one.'
+      ),
     }),
     examples: [
       {
@@ -730,8 +729,8 @@ export const SEER_EMBED_SCHEMAS = {
       timestamp: isoTimestampSchema.optional(),
       view: z.enum(['summary', 'attributes', 'attribute']).default('summary'),
       attribute: optionalNonEmptyString.describe(
-          'Required when view is "attribute". The attribute key to break down, e.g. "severity".'
-        ),
+        'Required when view is "attribute". The attribute key to break down, e.g. "severity".'
+      ),
     }),
     examples: [
       {
