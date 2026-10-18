@@ -437,6 +437,52 @@ describe('TagDetailsDrawerContent', () => {
     expect(await screen.findByText('id:123')).toBeInTheDocument();
   });
 
+  it('escapes reserved tag keys in the tag value link', async () => {
+    const projectIdTag: TagWithTopValues = {
+      key: 'project_id',
+      name: 'Project_id',
+      totalValues: 3,
+      uniqueValues: 1,
+      topValues: [
+        {
+          count: 3,
+          name: '42',
+          value: '42',
+          key: 'project_id',
+          lastSeen: '2024-01-01T00:00:00Z',
+          firstSeen: '2024-01-01T00:00:00Z',
+        },
+      ],
+    };
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/project_id/',
+      body: projectIdTag,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/project_id/values/',
+      body: [
+        {
+          count: 3,
+          firstSeen: '2024-01-01T00:00:00Z',
+          lastSeen: '2024-01-01T00:00:00Z',
+          name: '42',
+          value: '42',
+          key: 'project_id',
+        },
+      ],
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('project_id'),
+    });
+
+    expect(await screen.findByRole('link', {name: '42'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/1/events/recommended/?query=tags%5Bproject_id%5D%3A%2242%22'
+    );
+  });
+
   it('renders empty tag value label and hides copy action', async () => {
     const makeTopValue = (value: string, count: number) => ({
       count,
