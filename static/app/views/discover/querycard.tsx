@@ -1,4 +1,4 @@
-import {PureComponent} from 'react';
+import {memo} from 'react';
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
@@ -21,58 +21,55 @@ type Props = {
   title?: string;
 };
 
-export class QueryCard extends PureComponent<Props> {
-  handleClick = () => {
-    const {onEventClick} = this.props;
+export const QueryCard = memo(function QueryCard({
+  title,
+  subtitle,
+  queryDetail,
+  renderContextMenu,
+  renderGraph,
+  createdBy,
+  dateStatus,
+  onEventClick,
+  to,
+}: Props) {
+  const handleClick = () => {
     onEventClick?.();
   };
 
-  render() {
-    const {
-      title,
-      subtitle,
-      queryDetail,
-      renderContextMenu,
-      renderGraph,
-      createdBy,
-      dateStatus,
-    } = this.props;
-
-    return (
-      <Link data-test-id={`card-${title}`} onClick={this.handleClick} to={this.props.to}>
-        <StyledQueryCard interactive>
-          <QueryCardHeader>
-            <QueryCardContent>
-              <QueryTitle>{title}</QueryTitle>
-              <QueryDetail>{queryDetail}</QueryDetail>
-            </QueryCardContent>
-            <AvatarWrapper>
-              {createdBy ? (
-                <ActivityAvatar type="user" user={createdBy} size={34} />
-              ) : (
-                <ActivityAvatar type="system" size={34} />
-              )}
-            </AvatarWrapper>
-          </QueryCardHeader>
-          <QueryCardBody>
-            <StyledErrorBoundary mini>{renderGraph()}</StyledErrorBoundary>
-          </QueryCardBody>
-          <QueryCardFooter>
-            <DateSelected>
-              {subtitle}
-              {dateStatus ? (
-                <DateStatus>
-                  {t('Edited')} {dateStatus}
-                </DateStatus>
-              ) : null}
-            </DateSelected>
-            {renderContextMenu?.()}
-          </QueryCardFooter>
-        </StyledQueryCard>
-      </Link>
-    );
-  }
-}
+  return (
+    <Link data-test-id={`card-${title}`} onClick={handleClick} to={to}>
+      <StyledQueryCard interactive>
+        <QueryCardHeader>
+          <QueryCardContent>
+            <QueryTitle>{title}</QueryTitle>
+            <QueryDetail>{queryDetail}</QueryDetail>
+          </QueryCardContent>
+          <AvatarWrapper>
+            {createdBy ? (
+              <ActivityAvatar type="user" user={createdBy} size={34} />
+            ) : (
+              <ActivityAvatar type="system" size={34} />
+            )}
+          </AvatarWrapper>
+        </QueryCardHeader>
+        <QueryCardBody>
+          <StyledErrorBoundary mini>{renderGraph()}</StyledErrorBoundary>
+        </QueryCardBody>
+        <QueryCardFooter>
+          <DateSelected>
+            {subtitle}
+            {dateStatus ? (
+              <DateStatus>
+                {t('Edited')} {dateStatus}
+              </DateStatus>
+            ) : null}
+          </DateSelected>
+          {renderContextMenu?.()}
+        </QueryCardFooter>
+      </StyledQueryCard>
+    </Link>
+  );
+});
 
 const AvatarWrapper = styled('span')`
   border: 3px solid ${p => p.theme.tokens.border.primary};
