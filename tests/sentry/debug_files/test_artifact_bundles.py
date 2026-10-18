@@ -1189,9 +1189,7 @@ class IndexArtifactBundlesForReleaseTest(TestCase):
             patch("sentry.debug_files.artifact_bundles.metrics") as mock_metrics,
         ):
             # Should not raise; the deleted-file case must be handled gracefully.
-            index_artifact_bundles_for_release(
-                self.organization.id, [(artifact_bundle, None)]
-            )
+            index_artifact_bundles_for_release(self.organization.id, [(artifact_bundle, None)])
 
         mock_sdk.capture_exception.assert_not_called()
         mock_metrics.incr.assert_any_call("artifact_bundle_indexing.bundle_file_deleted")
