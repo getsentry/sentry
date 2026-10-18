@@ -432,6 +432,8 @@ The sanitized `trigger_evaluation`, `filter_evaluations`, and `delayed` attribut
 JSON strings because EAP ingestion discards nested protobuf key/value lists. Scalar
 attributes and primitive arrays, such as `triggered_action_ids`, retain their native types.
 
+### Tracing a Missing Action
+
 When tracing a missing action, check the boundaries in order:
 
 1. Was the source mapped to an enabled detector?
@@ -444,22 +446,3 @@ When tracing a missing action, check the boundaries in order:
 8. Was the action suppressed by frequency or event-level deduplication?
 9. Was fire history created and the action task scheduled?
 10. Did the action handler reject missing or invalid external configuration?
-
-## Recommended Tests
-
-- [`test_integration.py`](../../../../tests/sentry/workflow_engine/test_integration.py)
-  covers the full detector and workflow paths.
-- [`test_stateful.py`](../../../../tests/sentry/workflow_engine/handlers/detector/test_stateful.py)
-  covers state transitions and Redis behavior.
-- [`test_detector.py`](../../../../tests/sentry/workflow_engine/processors/test_detector.py)
-  covers detector output and event detector selection.
-- [`test_workflow.py`](../../../../tests/sentry/workflow_engine/processors/test_workflow.py)
-  covers workflow evaluation.
-- [`test_data_condition_group.py`](../../../../tests/sentry/workflow_engine/processors/test_data_condition_group.py)
-  covers condition logic and fast/slow splitting.
-- [`test_delayed_workflow.py`](../../../../tests/sentry/workflow_engine/processors/test_delayed_workflow.py)
-  covers delayed queries and action firing.
-- [`test_schedule.py`](../../../../tests/sentry/workflow_engine/processors/test_schedule.py)
-  covers cohort scheduling and batches.
-- [`test_actions.py`](../../../../tests/sentry/workflow_engine/tasks/test_actions.py)
-  covers action task reconstruction and dispatch.
