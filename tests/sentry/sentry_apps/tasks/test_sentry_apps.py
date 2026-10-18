@@ -678,13 +678,14 @@ class TestProcessResourceChange(TestCase):
         )
         event = self.store_event(data={}, project_id=self.project.id)
         assert event.group is not None
+        group_id = event.group.id
 
         def queue_webhooks(event_id: str) -> dict[int, str]:
             delay.reset_mock()
             process_resource_change_bound(
                 action="created",
                 sender="Group",
-                instance_id=str(event.group.id),
+                instance_id=str(group_id),
                 event_id=event_id,
             )
             assert delay.call_count == 2
