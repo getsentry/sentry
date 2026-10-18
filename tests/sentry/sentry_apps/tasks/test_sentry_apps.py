@@ -699,9 +699,12 @@ class TestProcessResourceChange(TestCase):
         assert set(first) == {self.install.id, second_install.id}
         assert first[self.install.id] != first[second_install.id]
         for installation_id, key in first.items():
-            assert key == sha256(
-                f"{installation_id}:issue.created:{event.event_id}".encode()
-            ).hexdigest()[:32]
+            assert (
+                key
+                == sha256(f"{installation_id}:issue.created:{event.event_id}".encode()).hexdigest()[
+                    :32
+                ]
+            )
 
         # Same issue, but a different event ID, should yield a new key.
         new_event_id = "f" * 32
@@ -1042,9 +1045,9 @@ class TestProcessResourceChange(TestCase):
         assert data["installation"]["uuid"] == install.uuid
         assert data["data"]["error"]["event_id"] == event.event_id
         assert data["data"]["error"]["issue_id"] == str(event.group_id)
-        expected_key = sha256(
-            f"{install.id}:error.created:{event.event_id}".encode()
-        ).hexdigest()[:32]
+        expected_key = sha256(f"{install.id}:error.created:{event.event_id}".encode()).hexdigest()[
+            :32
+        ]
         assert kwargs["headers"]["Idempotency-Key"] == expected_key
         assert kwargs["headers"].keys() >= {
             "Content-Type",

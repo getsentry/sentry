@@ -386,9 +386,7 @@ def _process_resource_change(
             # For issue.created use the event that created the issue, not the
             # group ID. Error resource changes already use the event ID.
             subject_id = (
-                kwargs.get("event_id")
-                if event == SentryAppEventType.ISSUE_CREATED
-                else instance_id
+                kwargs.get("event_id") if event == SentryAppEventType.ISSUE_CREATED else instance_id
             )
 
             for installation in installations:
@@ -813,9 +811,7 @@ def send_resource_change_webhook(
                 message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
             )
 
-    send_webhooks(
-        installation, event, data=data, idempotency_key=kwargs.get("idempotency_key")
-    )
+    send_webhooks(installation, event, data=data, idempotency_key=kwargs.get("idempotency_key"))
 
     metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
