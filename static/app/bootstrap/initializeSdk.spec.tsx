@@ -1,6 +1,9 @@
 import * as Sentry from '@sentry/react';
 
-import {ERROR_MAP as origErrorMap} from 'sentry/utils/requestError/requestError';
+import {
+  ERROR_MAP as origErrorMap,
+  RequestError,
+} from 'sentry/utils/requestError/requestError';
 
 import {
   addEndpointTagToRequestError,
@@ -175,6 +178,44 @@ describe('isFilteredRequestErrorEvent', () => {
   });
 
   describe('requests that never got a response', () => {
+    it.each(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const)(
+      'filters a status-zero %s fetch failure as the main error and as a cause',
+      method => {
+        const error = new RequestError(
+          method,
+          '/assistant/',
+          new Error('API Request Error'),
+          {
+            status: 0,
+            statusText: 'error',
+            responseJSON: undefined,
+            responseText: '',
+            getResponseHeader: () => null,
+          }
+        );
+        const exception = {type: error.name, value: error.message};
+
+        expect(
+          isFilteredRequestErrorEvent({exception: {values: [exception]}})
+        ).toBeTruthy();
+        expect(
+          isFilteredRequestErrorEvent({
+            exception: {
+              values: [exception, {type: 'Error', value: 'Could not load data'}],
+            },
+          })
+        ).toBeTruthy();
+      }
+    );
+
+    it('does not filter a server error as a no-response request', () => {
+      expect(
+        isFilteredRequestErrorEvent({
+          exception: {values: [{type: 'RequestError', value: 'GET /assistant/ 500'}]},
+        })
+      ).toBeFalsy();
+    });
+
     for (const method of [...methods, 'PATCH']) {
       it(`recognizes ${method} RequestErrors without a status`, () => {
         const event = {
