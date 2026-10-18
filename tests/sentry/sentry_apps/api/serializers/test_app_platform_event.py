@@ -1,5 +1,4 @@
 import datetime
-from hashlib import sha256
 from typing import Any
 
 import orjson
@@ -197,42 +196,38 @@ class AppPlatformEventSerializerTest(TestCase):
             },
         )
 
-    def test_issue_created_idempotency_key_is_stable_across_retries(self) -> None:
-        original = self._issue_event()
-        retry = self._issue_event()
-        expected = sha256(f"{self.install.id}:issue.created:7604140174".encode()).hexdigest()[:32]
+    def test_explicit_idempotency_key_is_forwarded(self) -> None:
+        key = "a" * 32
+        result = AppPlatformEvent[dict[str, Any]](
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=self.install,
+            data={"issue": {"id": "7604140174"}},
+            idempotency_key=key,
+        )
+        assert result.sentry_headers["Idempotency-Key"] == key
+        assert result.headers["Idempotency-Key"] == key
+        assert result.loggable_headers["Idempotency-Key"] == key
 
-        assert original.headers["Idempotency-Key"] == expected
-        assert retry.headers["Idempotency-Key"] == expected
-        assert original.loggable_headers["Idempotency-Key"] == expected
-        assert len(expected) == 32
+        error = AppPlatformEvent[dict[str, Any]](
+            resource=SentryAppResourceType.ERROR,
+            action=ErrorActionType.CREATED,
+            install=self.install,
+            data={"error": {"event_id": "b" * 32}},
+            idempotency_key="c" * 32,
+        )
+        assert error.headers["Idempotency-Key"] == "c" * 32
 
-    def test_error_created_idempotency_key_is_stable_across_retries(self) -> None:
-        event_id = "0123456789abcdef0123456789abcdef"
-
-        def create_event(event_id: str) -> AppPlatformEvent[dict[str, Any]]:
-            return AppPlatformEvent[dict[str, Any]](
-                resource=SentryAppResourceType.ERROR,
-                action=ErrorActionType.CREATED,
-                install=self.install,
-                data={"error": {"event_id": event_id}},
-            )
-
-        expected = sha256(f"{self.install.id}:error.created:{event_id}".encode()).hexdigest()[:32]
-        assert create_event(event_id).headers["Idempotency-Key"] == expected
-        assert create_event(event_id).headers["Idempotency-Key"] == expected
-        assert create_event("f" * 32).headers["Idempotency-Key"] != expected
-
-    def test_idempotency_key_only_on_creation_webhooks_with_an_id(self) -> None:
+    def test_idempotency_key_requires_explicit_value(self) -> None:
         cases: list[tuple[SentryAppResourceType, SentryAppActionType, dict[str, Any]]] = [
             (SentryAppResourceType.ISSUE, IssueActionType.ASSIGNED, {"issue": {"id": "123"}}),
+            (SentryAppResourceType.ISSUE, IssueActionType.CREATED, {"issue": {"id": "123"}}),
             (
                 SentryAppResourceType.EVENT_ALERT,
                 IssueAlertActionType.TRIGGERED,
                 {"event": {"event_id": "123"}},
             ),
-            (SentryAppResourceType.ISSUE, IssueActionType.CREATED, {"issue": {}}),
-            (SentryAppResourceType.ERROR, ErrorActionType.CREATED, {"error": {}}),
+            (SentryAppResourceType.ERROR, ErrorActionType.CREATED, {"error": {"event_id": "123"}}),
         ]
         for resource, action, data in cases:
             event = AppPlatformEvent[dict[str, Any]](
@@ -240,25 +235,6 @@ class AppPlatformEventSerializerTest(TestCase):
             )
             assert "Idempotency-Key" not in event.sentry_headers
             assert "Idempotency-Key" not in event.headers
-
-    def test_idempotency_key_differs_between_installations(self) -> None:
-        other_app = self.create_sentry_app(organization=self.organization)
-        other_install = self.create_sentry_app_installation(
-            organization=self.organization,
-            slug=other_app.slug,
-        )
-
-        original = self._issue_event()
-
-        other = AppPlatformEvent[dict[str, Any]](
-            resource=SentryAppResourceType.ISSUE,
-            action=IssueActionType.CREATED,
-            install=other_install,
-            data=original.data,
-        )
-
-        assert self.install.id != other_install.id
-        assert original.headers["Idempotency-Key"] != other.headers["Idempotency-Key"]
 
     def test_text_summary_appended_when_enabled(self) -> None:
         result = self._issue_event()

@@ -1,7 +1,6 @@
 from collections.abc import Mapping
 from enum import StrEnum
 from functools import cached_property
-from hashlib import sha256
 from time import time
 from typing import Any, TypedDict
 from uuid import uuid4
@@ -9,12 +8,7 @@ from uuid import uuid4
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.utils.headers import mask_header_values, parse_custom_headers
-from sentry.sentry_apps.utils.webhooks import (
-    ErrorActionType,
-    IssueActionType,
-    SentryAppActionType,
-    SentryAppResourceType,
-)
+from sentry.sentry_apps.utils.webhooks import SentryAppActionType, SentryAppResourceType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
@@ -65,31 +59,7 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         self.data = data
         self.actor = actor
         self.include_text_summary = False
-
-        def get_idempotency_key() -> str | None:
-            if idempotency_key is not None:
-                return idempotency_key
-
-            subject_id = None
-
-            if (
-                self.resource == SentryAppResourceType.ISSUE
-                and self.action == IssueActionType.CREATED
-            ):
-                subject_id = get_path(self.data, "issue", "id")
-            elif (
-                self.resource == SentryAppResourceType.ERROR
-                and self.action == ErrorActionType.CREATED
-            ):
-                subject_id = get_path(self.data, "error", "event_id")
-
-            if not subject_id:
-                return None
-
-            value = f"{self.install.id}:{self.resource}.{self.action}:{subject_id}"
-            return sha256(value.encode("utf-8")).hexdigest()[:32]
-
-        self.idempotency_key = get_idempotency_key()
+        self.idempotency_key = idempotency_key
 
     def get_actor(self) -> AppPlatformEventActor:
         # when sentry auto assigns, auto resolves, etc.
