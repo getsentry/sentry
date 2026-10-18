@@ -56,7 +56,7 @@ For backend-scoped changes, prioritize running the individual relevant pytest fi
 
 ```bash
 # Run a specific test file. Do not run pytest by itself; it'll take forever!
-.venv/bin/pytest -n3 -svv --reuse-db tests/sentry/api/test_base.py
+.venv/bin/pytest -j3 -svv --reuse-db tests/sentry/api/test_base.py
 ```
 
 #### Database Operations

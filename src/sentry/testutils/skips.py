@@ -4,7 +4,7 @@ import socket
 
 import pytest
 
-from sentry.testutils.pytest import xdist
+from sentry.testutils.pytest import workers
 
 
 def _service_available(host: str, port: int) -> bool:
@@ -23,7 +23,7 @@ def _requires_service_message(name: str) -> str:
 
 @pytest.fixture(scope="session")
 def _requires_snuba() -> None:
-    snuba_url = xdist.get_snuba_url()
+    snuba_url = workers.get_snuba_url()
     port = int(snuba_url.rsplit(":", 1)[1]) if snuba_url else 1218
     if not _service_available("127.0.0.1", port):
         pytest.fail(_requires_service_message("snuba"))

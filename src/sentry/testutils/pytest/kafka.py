@@ -8,7 +8,7 @@ from arroyo.processing import StreamProcessor
 from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
 
-from sentry.testutils.pytest import xdist
+from sentry.testutils.pytest import workers
 
 _log = logging.getLogger(__name__)
 
@@ -75,8 +75,8 @@ def scope_consumers():
 
     """
     all_consumers: MutableMapping[str, StreamProcessor | None] = {
-        xdist.get_kafka_topic("ingest-events"): None,
-        xdist.get_kafka_topic("outcomes"): None,
+        workers.get_kafka_topic("ingest-events"): None,
+        workers.get_kafka_topic("outcomes"): None,
     }
 
     yield all_consumers
@@ -113,7 +113,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
         from sentry.utils.batching_kafka_consumer import create_topics
 
         cluster_name = "default"
-        topic_event_name = xdist.get_kafka_topic("ingest-events")
+        topic_event_name = workers.get_kafka_topic("ingest-events")
 
         if scope_consumers[topic_event_name] is not None:
             # reuse whatever was already created (will ignore the settings)
@@ -124,7 +124,7 @@ def session_ingest_consumer(scope_consumers, kafka_admin, task_runner):
         admin.delete_topic(topic_event_name)
         create_topics(cluster_name, [topic_event_name])
 
-        group_id = xdist.get_kafka_topic("test-consumer")
+        group_id = workers.get_kafka_topic("test-consumer")
 
         consumer = get_stream_processor(
             "ingest-attachments",

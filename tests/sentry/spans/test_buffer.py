@@ -116,8 +116,6 @@ def _normalize_output(output: dict[SegmentKey, FlushedSegment]):
 
 
 def _delete_span_buffer_keys(client: StrictRedis[bytes] | RedisCluster[bytes]) -> None:
-    # The cluster client has no key prefix, and other xdist workers share the cluster.
-    # FLUSHALL would delete their keys too, so delete only the span buffer keys.
     for key in client.scan_iter(match="span-buf:*"):
         client.delete(key)
 

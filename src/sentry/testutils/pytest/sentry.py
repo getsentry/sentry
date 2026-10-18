@@ -22,7 +22,7 @@ from rediscluster.exceptions import RedisClusterException
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
 from sentry.testutils.cell import TestEnvCellDirectory
-from sentry.testutils.pytest import xdist
+from sentry.testutils.pytest import workers
 from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import cell
 from sentry.types.cell import Cell
@@ -60,6 +60,10 @@ def configure_split_db() -> None:
     settings.DATABASE_ROUTERS = ("sentry.db.router.TestSiloMultiDatabaseRouter",)
 
 
+def _cell_seed() -> str | None:
+    return workers.parallel_run_id()
+
+
 def get_default_silo_mode_for_test_cases() -> SiloMode:
     return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.CELL
 
@@ -70,15 +74,11 @@ def _configure_test_env_cells() -> None:
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
     # depends on cell attributes, use `override_cells` in your test case.
-    # Under xdist, seed deterministically so all workers generate the same name
-    # (divergent names break xdist's requirement for identical test collection).
-    xdist_uid = os.environ.get("PYTEST_XDIST_TESTRUNUID")
-    r = random.Random(xdist_uid) if xdist_uid else random
+    seed = _cell_seed()
+    r = random.Random(seed) if seed else random
     cell_name = "testregion" + "".join(r.choices(string.digits, k=6))
 
-    # Under xdist, each worker gets a unique snowflake_id (1, 2, 3, ...) so
-    # concurrent model creation doesn't produce colliding IDs.
-    cell_snowflake_id = xdist._worker_num + 1 if xdist._worker_num is not None else 0
+    cell_snowflake_id = workers.snowflake_id()
 
     default_cell = Cell(
         cell_name,
@@ -110,8 +110,17 @@ def _configure_test_env_cells() -> None:
 _COLLECT_ALLOWED_FILES: frozenset[str] | None = None
 
 
+def _parallel_manifest_worker() -> bool:
+    return os.environ.get("_PYTEST_PARALLEL_WORKER") == "1" and bool(
+        os.environ.get("PYTEST_PARALLEL_MANIFEST")
+    )
+
+
 def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool | None:
     # Skip importing test files not in SELECTED_TESTS_FILE (selective CI runs only).
+    if _parallel_manifest_worker():
+        return None
+
     global _COLLECT_ALLOWED_FILES
     selected_file = os.environ.get("SELECTED_TESTS_FILE")
     if not selected_file:
@@ -159,13 +168,6 @@ def pytest_configure(config: pytest.Config) -> None:
         category=UnsupportedBackend,
     )
 
-    # pytest-xdist 3.5+ sorts --dist=loadfile/loadscope work units by test count
-    # by default. Keep collection order so worker assignment and run order stay
-    # as they were (and SENTRY_SHUFFLE_TESTS ordering isn't overridden), since
-    # some unresolved flakes depend on it.
-    if hasattr(config.option, "loadscopereorder"):
-        config.option.loadscopereorder = False
-
     config.addinivalue_line("markers", "migrations: requires --migrations")
     config.addinivalue_line("markers", "symbolicator: test requires access to symbolicator")
 
@@ -202,9 +204,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     configure_split_db()
 
-    if os.environ.get("PYTEST_XDIST_WORKER"):
-        # On the rare case we hit a PostgreSQL deadlock, fail fast and let
-        # pytest --reruns retry it.
+    if workers.parallel_worker_index() is not None:
         for alias in settings.DATABASES:
             settings.DATABASES[alias].setdefault("OPTIONS", {})[  # type: ignore[index]
                 "options"
@@ -273,7 +273,7 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
     settings.SENTRY_RATELIMITER_OPTIONS = {}
 
-    if snuba_url := xdist.get_snuba_url():
+    if snuba_url := workers.get_snuba_url():
         settings.SENTRY_SNUBA = snuba_url
 
     settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 1
@@ -293,11 +293,11 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.SENTRY_OPTIONS.update(
         {
             "redis.clusters": {
-                "default": {"hosts": {0: {"db": xdist.get_redis_db()}}},
+                "default": {"hosts": {0: {"db": workers.get_redis_db()}}},
                 "cluster": {
                     "is_redis_cluster": True,
-                    "hosts": [{"host": "0.0.0.0", "port": port} for port in range(7000, 7006)],
-                    "key_prefix": xdist.get_redis_cluster_key_prefix(),
+                    "hosts": [{"host": "127.0.0.1", "port": port} for port in range(7000, 7006)],
+                    "key_prefix": workers.get_redis_cluster_key_prefix(),
                 },
             },
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
@@ -389,6 +389,7 @@ def pytest_configure(config: pytest.Config) -> None:
     register_extensions()
 
     if not SENTRY_SKIP_SERVICE_VALIDATION:
+        workers.acquire_controller_service_lock()
         from sentry.utils.redis import clusters
 
         with clusters.get("default").all() as client:
@@ -527,6 +528,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
                 item.add_marker(symbolicator_mark)
                 break
 
+    if _parallel_manifest_worker():
+        return
+
     keep, discard = [], []
 
     # Filter by selected test files if SELECTED_TESTS_FILE is set
@@ -597,6 +601,16 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         config.hook.pytest_deselected(items=discard)
 
 
-def pytest_xdist_setupnodes() -> None:
-    # prevent out-of-order django initialization
-    os.environ.pop("DJANGO_SETTINGS_MODULE", None)
+def pytest_parallel_max_workers() -> int:
+    return workers.parallel_max_workers()
+
+
+def pytest_parallel_worker_env(env: dict[str, str], worker_id: int) -> None:
+    workers.configure_worker_env(env, worker_id)
+
+
+@pytest.fixture(scope="session")
+def django_db_modify_db_settings_parallel_suffix(
+    django_db_modify_db_settings_tox_suffix: None,  # noqa: ARG001
+) -> None:
+    workers.apply_database_suffix()

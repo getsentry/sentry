@@ -4,7 +4,7 @@ from sentry import options
 from sentry.cache.redis import RedisCache, RedisClusterCache, ValueTooLarge
 from sentry.exceptions import MissingTTL
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.pytest.xdist import get_redis_db
+from sentry.testutils.pytest.workers import get_redis_db
 from sentry.utils.redis import redis_clusters
 
 clients = pytest.mark.parametrize(

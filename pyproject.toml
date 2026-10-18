@@ -186,7 +186,6 @@ dev = [
   "pytest-json-report>=1.5.0",
   "pytest-rerunfailures>=16.2",
   "pytest-sentry>=0.3.0",
-  "pytest-xdist>=3.8.0",
   "responses>=0.23.1",
   "ruff>=0.14.0",
   "selenium>=4.16.0",
@@ -279,6 +278,7 @@ ignore = [
 ".github/*" = ["T20"]
 "devenv/*.py" = ["T20"]
 "src/sentry/build/*" = ["T20"]
+"vendor/pytest-parallel/benchmarks/*.py" = ["T20"]
 "tools/*" = ["T20"]
 "**/migrations/*" = ["I"]
 
@@ -288,7 +288,7 @@ known-first-party = ["sentry"]
 [tool.pytest.ini_options]
 python_files = "test_*.py sentry/testutils/*"
 # note: When updating the traceback format, make sure to update .github/pytest.json
-addopts = "--tb=short --nomigrations"
+addopts = "-p pytest_parallel.plugin --tb=short --nomigrations --parallel-collection=manifest --parallel-drain=60s"
 # TODO: --import-mode=importlib will become the default soon,
 # currently we have a few relative imports that don't work with that.
 markers = [
@@ -311,8 +311,6 @@ filterwarnings = [
   # The following warning filters are for pytest only.
   "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
 
-  # pytest has not yet implemented the replacement for this yet
-  "ignore:The --looponfail command line argument.*",
 
   # `ATTRIBUTE_NAMES` is a constant from the `sentry-conventions` library.
   # We don't want to immediately block any sentry-conventions library updates
@@ -325,7 +323,6 @@ filterwarnings = [
   # 32 bytes. Tests use short secrets intentionally; production secrets are long enough.
   "ignore:.*HMAC key.*below the minimum recommended length.*:jwt.warnings.InsecureKeyLengthWarning",
 ]
-looponfailroots = ["src", "tests"]
 
 [tool.mypy]
 python_version = "3.13"
@@ -387,6 +384,7 @@ module = [
   "onelogin.saml2.constants.*",
   "onelogin.saml2.idp_metadata_parser.*",
   "pymemcache.*",
+  "pytest_parallel.*",
   "P4",
   "rb.*",
   "statsd.*",
@@ -1378,7 +1376,6 @@ module = [
     "sentry.testutils.pytest.sentry",
     "sentry.testutils.pytest.stale_database_reads",
     "sentry.testutils.pytest.unittest",
-    "sentry.testutils.pytest.xdist",
     "sentry.testutils.relay",
     "sentry.testutils.requests",
     "sentry.testutils.silo",

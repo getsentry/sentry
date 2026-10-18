@@ -571,7 +571,7 @@ class PerforceP4PortValidationTest(IntegrationTestCase):
                 provider="perforce",
                 name="Perforce",
                 external_id="perforce-test",
-                metadata={"p4port": "abc:1234", "user": "u", "password": "p"},
+                metadata={"p4port": "invalid", "user": "u", "password": "p"},
             )
         installation = integration.get_installation(self.organization.id)
         client = installation.get_client()

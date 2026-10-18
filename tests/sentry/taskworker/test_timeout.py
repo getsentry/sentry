@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import signal
 import time
 from collections.abc import Generator
@@ -8,6 +7,7 @@ from types import FrameType
 
 import pytest
 
+from pytest_parallel.api import current_worker
 from sentry.taskworker.timeout import InnerTimeoutError, timeout_alarm
 
 
@@ -23,9 +23,13 @@ class OuterFired(Exception):
     pass
 
 
+def _parallel_worker() -> bool:
+    return current_worker() is not None
+
+
 @pytest.mark.skipif(
-    "PYTEST_XDIST_WORKER" in os.environ,
-    reason="signal.signal/setitimer require the main thread; xdist workers run tests in non-main threads",
+    _parallel_worker(),
+    reason="signal.signal/setitimer require the main thread; parallel workers run tests in non-main threads",
 )
 class TestTimeoutAlarm:
     @staticmethod
