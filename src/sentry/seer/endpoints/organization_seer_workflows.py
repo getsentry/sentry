@@ -7,7 +7,6 @@ from typing import TypedDict
 from django.db.models import Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
-from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -64,19 +63,14 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
     )
 
     def get(self, request: Request, organization: Organization) -> Response:
-        triage_enabled = features.has("organizations:seer-night-shift", organization)
         cleanup_enabled = features.has(
             "organizations:seer-workflows-monitor-cleanup", organization, actor=request.user
         )
-        if not triage_enabled and not cleanup_enabled:
-            raise NotFound
 
-        visible_runs = Q(pk__in=[])
-        if triage_enabled:
-            # Historical Agentic triage runs may not have a workflow config.
-            visible_runs |= Q(workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE) | Q(
-                workflow_config__isnull=True
-            )
+        # Historical Agentic triage runs may not have a workflow config.
+        visible_runs = Q(workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE) | Q(
+            workflow_config__isnull=True
+        )
         if cleanup_enabled:
             projects = self.get_projects(request, organization, include_all_accessible=True)
             # Until scanned projects are recorded, only the triggering user can see the run.
