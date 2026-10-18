@@ -1,5 +1,6 @@
 import {
   act,
+  cleanup,
   render,
   screen,
   userEvent,
@@ -64,11 +65,21 @@ describe('Toast', () => {
     });
   });
 
-  it('dismisses automatically after the configured duration', async () => {
-    jest.useFakeTimers();
-    const onDismiss = jest.fn();
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('dismisses automatically after the configured duration', async () => {
+      jest.useFakeTimers();
+      const onDismiss = jest.fn();
 
-    try {
       render(<div />);
       act(() => void toast.message('Temporary', {duration: 1000, onDismiss}));
       expect(await screen.findByRole('status')).toHaveTextContent('Temporary');
@@ -78,9 +89,7 @@ describe('Toast', () => {
 
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
       expect(onDismiss).toHaveBeenCalledTimes(1);
-    } finally {
-      jest.useRealTimers();
-    }
+    });
   });
 
   it('stacks toasts of the same variant', async () => {

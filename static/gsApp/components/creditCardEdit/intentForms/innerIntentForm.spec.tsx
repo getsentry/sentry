@@ -1,6 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 
@@ -36,27 +43,37 @@ describe('InnerIntentForm', () => {
     });
   });
 
-  it('shows warning when Stripe hooks return null', async () => {
-    jest.useFakeTimers();
-
-    const stripeImport = await import('@stripe/react-stripe-js');
-    jest.spyOn(stripeImport, 'useStripe').mockReturnValue(null);
-    jest.spyOn(stripeImport, 'useElements').mockReturnValue(null);
-
-    render(<InnerIntentForm {...defaultProps} />);
-
-    act(() => {
-      jest.advanceTimersByTime(10001);
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
+    it('shows warning when Stripe hooks return null', async () => {
+      jest.useFakeTimers();
 
-    expect(
-      screen.getByText(
-        /To add or update your payment method, you may need to disable any ad or tracker blocking extensions/
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Save Payment Method'})).toBeEnabled();
+      const stripeImport = await import('@stripe/react-stripe-js');
+      jest.spyOn(stripeImport, 'useStripe').mockReturnValue(null);
+      jest.spyOn(stripeImport, 'useElements').mockReturnValue(null);
 
-    jest.useRealTimers();
+      render(<InnerIntentForm {...defaultProps} />);
+
+      act(() => {
+        jest.advanceTimersByTime(10001);
+      });
+
+      expect(
+        screen.getByText(
+          /To add or update your payment method, you may need to disable any ad or tracker blocking extensions/
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Save Payment Method'})).toBeEnabled();
+    });
   });
 
   it('shows error message when provided', () => {

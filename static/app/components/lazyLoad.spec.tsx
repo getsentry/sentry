@@ -1,6 +1,6 @@
 import {lazy} from 'react';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {ROOT_ELEMENT} from 'sentry/constants';
@@ -25,11 +25,16 @@ describe('LazyLoad', () => {
   beforeEach(() => {
     jest.useFakeTimers();
   });
-  afterEach(() => {
-    initialLoaderRoot?.remove();
-    initialLoaderRoot = null;
-    jest.restoreAllMocks();
-    jest.useRealTimers();
+  afterEach(async () => {
+    try {
+      cleanup();
+      initialLoaderRoot?.remove();
+      initialLoaderRoot = null;
+      await act(() => jest.runOnlyPendingTimersAsync());
+    } finally {
+      jest.useRealTimers();
+      jest.restoreAllMocks();
+    }
   });
 
   it('reuses the initial server loader when it is present', () => {

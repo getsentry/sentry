@@ -2,7 +2,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
@@ -72,8 +79,6 @@ function renderReleasesSelect({
 }
 
 describe('Dashboards > ReleasesSelectControl', () => {
-  afterEach(() => jest.useRealTimers());
-
   it('updates menu title with selection', async () => {
     renderReleasesSelect();
 
@@ -104,143 +109,155 @@ describe('Dashboards > ReleasesSelectControl', () => {
     expect(screen.getByText('+1')).toBeInTheDocument();
   });
 
-  it('triggers search when filtering by releases', async () => {
-    const organization = OrganizationFixture();
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('triggers search when filtering by releases', async () => {
+      const organization = OrganizationFixture();
 
-    // Initialize PageFiltersStore
-    PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [1],
-        environments: ['production'],
-      })
-    );
+      // Initialize PageFiltersStore
+      PageFiltersStore.init();
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({
+          projects: [1],
+          environments: ['production'],
+        })
+      );
 
-    // Mock initial releases
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/`,
-      body: [
-        ReleaseFixture({
-          version: 'sentry-android-shop@1.2.0',
-          dateCreated: '2021-03-19T01:00:00Z',
-        }),
-      ],
+      // Mock initial releases
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/`,
+        body: [
+          ReleaseFixture({
+            version: 'sentry-android-shop@1.2.0',
+            dateCreated: '2021-03-19T01:00:00Z',
+          }),
+        ],
+      });
+
+      // Mock search results
+      const searchMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/`,
+        body: [
+          ReleaseFixture({
+            version: 'sentry-android-shop@1.2.0',
+            dateCreated: '2021-03-19T01:00:00Z',
+          }),
+        ],
+        match: [MockApiClient.matchQuery({query: 'se'})],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {data: []},
+      });
+
+      render(
+        <ReleasesSelectControl
+          selectedReleases={[]}
+          sortBy={ReleasesSortOption.DATE}
+          handleChangeFilter={jest.fn()}
+        />,
+        {organization}
+      );
+
+      expect(await screen.findByText('All Releases')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByText('All Releases'));
+      jest.useFakeTimers();
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      await user.type(screen.getByPlaceholderText('Search…'), 'se');
+
+      expect(searchMock).not.toHaveBeenCalled();
+
+      await act(() => jest.advanceTimersByTimeAsync(DEFAULT_DEBOUNCE_DURATION));
+
+      await waitFor(() => expect(searchMock).toHaveBeenCalledTimes(1));
     });
 
-    // Mock search results
-    const searchMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/`,
-      body: [
-        ReleaseFixture({
-          version: 'sentry-android-shop@1.2.0',
-          dateCreated: '2021-03-19T01:00:00Z',
-        }),
-      ],
-      match: [MockApiClient.matchQuery({query: 'se'})],
+    it('resets search on close', async () => {
+      const organization = OrganizationFixture();
+
+      // Initialize PageFiltersStore
+      PageFiltersStore.init();
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({
+          projects: [1],
+          environments: ['production'],
+        })
+      );
+
+      const initialMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/`,
+        body: [
+          ReleaseFixture({
+            version: 'sentry-android-shop@1.2.0',
+            dateCreated: '2021-03-19T01:00:00Z',
+          }),
+        ],
+      });
+
+      const searchMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/`,
+        body: [
+          ReleaseFixture({
+            version: 'sentry-android-shop@1.2.0',
+            dateCreated: '2021-03-19T01:00:00Z',
+          }),
+        ],
+        match: [MockApiClient.matchQuery({query: 'se'})],
+      });
+      const pendingSearchMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/`,
+        body: [],
+        match: [MockApiClient.matchQuery({query: 'sentry'})],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {data: []},
+      });
+
+      render(
+        <ReleasesSelectControl
+          selectedReleases={[]}
+          sortBy={ReleasesSortOption.DATE}
+          handleChangeFilter={jest.fn()}
+        />,
+        {organization}
+      );
+
+      expect(await screen.findByText('All Releases')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByText('All Releases'));
+      jest.useFakeTimers();
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await user.type(searchInput, 'se');
+
+      await act(() => jest.advanceTimersByTimeAsync(DEFAULT_DEBOUNCE_DURATION));
+
+      await waitFor(() => expect(searchMock).toHaveBeenCalledTimes(1));
+
+      await user.type(searchInput, 'ntry');
+      expect(pendingSearchMock).not.toHaveBeenCalled();
+
+      // Close the dropdown
+      await user.click(document.body);
+      await act(() => jest.advanceTimersByTimeAsync(DEFAULT_DEBOUNCE_DURATION));
+
+      // Closing resets to the cached initial results and cancels the pending search.
+      expect(initialMock).toHaveBeenCalledTimes(1);
+      expect(pendingSearchMock).not.toHaveBeenCalled();
     });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {data: []},
-    });
-
-    render(
-      <ReleasesSelectControl
-        selectedReleases={[]}
-        sortBy={ReleasesSortOption.DATE}
-        handleChangeFilter={jest.fn()}
-      />,
-      {organization}
-    );
-
-    expect(await screen.findByText('All Releases')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('All Releases'));
-    jest.useFakeTimers();
-    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-    await user.type(screen.getByPlaceholderText('Search…'), 'se');
-
-    expect(searchMock).not.toHaveBeenCalled();
-
-    await act(() => jest.advanceTimersByTimeAsync(DEFAULT_DEBOUNCE_DURATION));
-
-    await waitFor(() => expect(searchMock).toHaveBeenCalledTimes(1));
-  });
-
-  it('resets search on close', async () => {
-    const organization = OrganizationFixture();
-
-    // Initialize PageFiltersStore
-    PageFiltersStore.init();
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [1],
-        environments: ['production'],
-      })
-    );
-
-    const initialMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/`,
-      body: [
-        ReleaseFixture({
-          version: 'sentry-android-shop@1.2.0',
-          dateCreated: '2021-03-19T01:00:00Z',
-        }),
-      ],
-    });
-
-    const searchMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/`,
-      body: [
-        ReleaseFixture({
-          version: 'sentry-android-shop@1.2.0',
-          dateCreated: '2021-03-19T01:00:00Z',
-        }),
-      ],
-      match: [MockApiClient.matchQuery({query: 'se'})],
-    });
-    const pendingSearchMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/`,
-      body: [],
-      match: [MockApiClient.matchQuery({query: 'sentry'})],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {data: []},
-    });
-
-    render(
-      <ReleasesSelectControl
-        selectedReleases={[]}
-        sortBy={ReleasesSortOption.DATE}
-        handleChangeFilter={jest.fn()}
-      />,
-      {organization}
-    );
-
-    expect(await screen.findByText('All Releases')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('All Releases'));
-    jest.useFakeTimers();
-    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-    const searchInput = screen.getByPlaceholderText('Search…');
-    await user.type(searchInput, 'se');
-
-    await act(() => jest.advanceTimersByTimeAsync(DEFAULT_DEBOUNCE_DURATION));
-
-    await waitFor(() => expect(searchMock).toHaveBeenCalledTimes(1));
-
-    await user.type(searchInput, 'ntry');
-    expect(pendingSearchMock).not.toHaveBeenCalled();
-
-    // Close the dropdown
-    await user.click(document.body);
-    await act(() => jest.advanceTimersByTimeAsync(DEFAULT_DEBOUNCE_DURATION));
-
-    // Closing resets to the cached initial results and cancels the pending search.
-    expect(initialMock).toHaveBeenCalledTimes(1);
-    expect(pendingSearchMock).not.toHaveBeenCalled();
   });
 
   it('triggers handleChangeFilter with the release versions', async () => {

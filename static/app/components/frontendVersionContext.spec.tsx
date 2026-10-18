@@ -1,4 +1,4 @@
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as constants from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -32,9 +32,14 @@ describe('FrontendVersionProvider', () => {
     ConfigStore.set('sentryMode', 'SAAS');
   });
 
-  afterEach(() => {
-    jest.restoreAllMocks();
-    jest.useRealTimers();
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(() => jest.runOnlyPendingTimersAsync());
+    } finally {
+      jest.useRealTimers();
+      jest.restoreAllMocks();
+    }
   });
 
   it('provides state="current" when server version matches current version', async () => {

@@ -1,4 +1,4 @@
-import {act, renderGlobalModal} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderGlobalModal} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {RedirectToProjectModal} from 'sentry/components/modals/redirectToProject';
@@ -9,6 +9,16 @@ jest.mock('sentry/utils/recreateRoute', () => ({
 }));
 
 describe('RedirectToProjectModal', () => {
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(async () => {
+        await jest.runOnlyPendingTimersAsync();
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
   it('has timer to redirect to new slug after mounting', () => {
     jest.useFakeTimers();
 

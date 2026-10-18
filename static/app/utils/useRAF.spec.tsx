@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {flushSync} from 'react-dom';
 
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useRAF} from 'sentry/utils/useRAF';
 
@@ -10,8 +10,13 @@ describe('useRAF', () => {
     jest.useFakeTimers();
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(() => jest.runOnlyPendingTimersAsync());
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('keeps polling without a render and stops when disabled', () => {

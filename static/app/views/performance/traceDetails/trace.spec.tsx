@@ -7,6 +7,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   act,
+  cleanup,
   render,
   screen,
   userEvent,
@@ -242,10 +243,6 @@ describe('trace view', () => {
   });
 
   describe('attribute pinning', () => {
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
     function SyncWindowLocation({children}: {children: React.ReactNode}) {
       const location = useLocation();
       useLayoutEffect(() => {
@@ -601,48 +598,60 @@ describe('trace view', () => {
       expect(router.location.query.pinnedAttribute).toBe('custom.region');
     });
 
-    it('preserves pinned child values, selection and zoom when expanding an EAP parent', async () => {
-      jest.useFakeTimers();
-      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-      const {renderTrace, root, traceRequest} = setupPinnedTrace();
-      const attributeRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/',
-        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
-        body: {
-          data: [
-            {span_id: root.event_id, 'custom.region': 'root-region'},
-            ...root.children.map(child => ({
-              span_id: child.event_id,
-              'custom.region': 'child-region',
-            })),
-          ],
-        },
+    describe('with fake timers', () => {
+      afterEach(async () => {
+        try {
+          cleanup();
+          await act(async () => {
+            await jest.runOnlyPendingTimersAsync();
+          });
+        } finally {
+          jest.useRealTimers();
+        }
       });
-      const query = {pinnedAttribute: 'custom.region', fov: '100,500'};
-      const {router} = renderTrace(query);
-      expect(await screen.findByText('child-region')).toBeInTheDocument();
-      const rootDescription = screen.getByText('pinnable root');
-      await user.click(rootDescription);
-      await waitFor(() => expect(router.location.query.node).toBe('span-pin-root'));
-      const rootRow = rootDescription.closest<HTMLElement>('.TraceRow')!;
-      const expandButton = within(rootRow).getByRole('button', {name: '1'});
+      it('preserves pinned child values, selection and zoom when expanding an EAP parent', async () => {
+        jest.useFakeTimers();
+        const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+        const {renderTrace, root, traceRequest} = setupPinnedTrace();
+        const attributeRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+          body: {
+            data: [
+              {span_id: root.event_id, 'custom.region': 'root-region'},
+              ...root.children.map(child => ({
+                span_id: child.event_id,
+                'custom.region': 'child-region',
+              })),
+            ],
+          },
+        });
+        const query = {pinnedAttribute: 'custom.region', fov: '100,500'};
+        const {router} = renderTrace(query);
+        expect(await screen.findByText('child-region')).toBeInTheDocument();
+        const rootDescription = screen.getByText('pinnable root');
+        await user.click(rootDescription);
+        await waitFor(() => expect(router.location.query.node).toBe('span-pin-root'));
+        const rootRow = rootDescription.closest<HTMLElement>('.TraceRow')!;
+        const expandButton = within(rootRow).getByRole('button', {name: '1'});
 
-      await user.click(expandButton);
-      expect(screen.queryByText('child-region')).not.toBeInTheDocument();
-      await user.click(expandButton);
+        await user.click(expandButton);
+        expect(screen.queryByText('child-region')).not.toBeInTheDocument();
+        await user.click(expandButton);
 
-      const childRow = (await screen.findByText('pinnable child')).closest<HTMLElement>(
-        '.TraceRow'
-      )!;
-      expect(within(childRow).getByText('child-region')).toBeInTheDocument();
-      expect(within(rootRow).getByText('root-region')).toBeInTheDocument();
-      // Let the debounced field-of-view URL update finish before checking selection.
-      await act(() => jest.advanceTimersByTimeAsync(1000));
-      expect(router.location.query.node).toBe('span-pin-root');
-      expect(router.location.query.fov).toBe('100,500');
-      expect(router.location.query.pinnedAttribute).toBe('custom.region');
-      expect(traceRequest).toHaveBeenCalledTimes(1);
-      expect(attributeRequest).toHaveBeenCalledTimes(1);
+        const childRow = (await screen.findByText('pinnable child')).closest<HTMLElement>(
+          '.TraceRow'
+        )!;
+        expect(within(childRow).getByText('child-region')).toBeInTheDocument();
+        expect(within(rootRow).getByText('root-region')).toBeInTheDocument();
+        // Let the debounced field-of-view URL update finish before checking selection.
+        await act(() => jest.advanceTimersByTimeAsync(1000));
+        expect(router.location.query.node).toBe('span-pin-root');
+        expect(router.location.query.fov).toBe('100,500');
+        expect(router.location.query.pinnedAttribute).toBe('custom.region');
+        expect(traceRequest).toHaveBeenCalledTimes(1);
+        expect(attributeRequest).toHaveBeenCalledTimes(1);
+      });
     });
 
     it('pins, resizes, replaces and unpins an attribute from the drawer', async () => {

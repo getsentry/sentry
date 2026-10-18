@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/datetime';
 import {RelativeTime} from '@sentry/scraps/relativeTime';
@@ -22,8 +22,13 @@ describe('RelativeTime', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-09-01T00:00:00Z'));
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
+  afterEach(async () => {
+    try {
+      cleanup();
+      await act(() => jest.runOnlyPendingTimersAsync());
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('renders the label and relative time in the header', () => {

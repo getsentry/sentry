@@ -6,7 +6,14 @@ import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
@@ -440,39 +447,50 @@ describe('Core StackTrace', () => {
     );
   });
 
-  it('renders source map info tooltip when frame map metadata exists', async () => {
-    jest.useFakeTimers();
-    const {event, stacktrace} = makeStackTraceData();
-    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+  describe('source map info tooltip', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('renders source map info tooltip when frame map metadata exists', async () => {
+      jest.useFakeTimers();
+      const {event, stacktrace} = makeStackTraceData();
+      const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 
-    render(
-      <TestStackTraceProvider
-        event={event}
-        stacktrace={{
-          ...stacktrace,
-          frames: [
-            {
-              ...frame,
-              inApp: true,
-              origAbsPath: '/home/ubuntu/raven/scripts/runner.min.js',
-              mapUrl: 'https://cdn.example.com/runner.min.js.map',
-            },
-          ],
-        }}
-      >
-        <DisplayOptions />
-        <StackTraceFrames frameContextComponent={FrameContent} />
-      </TestStackTraceProvider>
-    );
+      render(
+        <TestStackTraceProvider
+          event={event}
+          stacktrace={{
+            ...stacktrace,
+            frames: [
+              {
+                ...frame,
+                inApp: true,
+                origAbsPath: '/home/ubuntu/raven/scripts/runner.min.js',
+                mapUrl: 'https://cdn.example.com/runner.min.js.map',
+              },
+            ],
+          }}
+        >
+          <DisplayOptions />
+          <StackTraceFrames frameContextComponent={FrameContent} />
+        </TestStackTraceProvider>
+      );
 
-    await userEvent.hover(screen.getByText('raven/scripts/runner.py'), {delay: null});
-    act(() => jest.advanceTimersByTime(2000));
+      await userEvent.hover(screen.getByText('raven/scripts/runner.py'), {delay: null});
+      act(() => jest.advanceTimersByTime(2000));
 
-    expect(await screen.findByText('Source Map')).toBeInTheDocument();
-    expect(
-      await screen.findByText('https://cdn.example.com/runner.min.js.map')
-    ).toBeInTheDocument();
-    jest.useRealTimers();
+      expect(await screen.findByText('Source Map')).toBeInTheDocument();
+      expect(
+        await screen.findByText('https://cdn.example.com/runner.min.js.map')
+      ).toBeInTheDocument();
+    });
   });
 
   it('renders unminify action when frame source map debugger data is unresolved', async () => {
@@ -587,48 +605,59 @@ describe('Core StackTrace', () => {
     );
   });
 
-  it.each([
-    {
-      filename: 'raven/scripts/runner.py',
-      absPath: '/home/ubuntu/raven/scripts/runner.py',
-    },
-    {filename: longFilename, absPath: longFilename},
-    {filename: longFilename, absPath: null},
-  ])(
-    'shows the full path in the filename tooltip (case %#)',
-    async ({filename, absPath}) => {
-      jest.useFakeTimers();
-      const {event, stacktrace} = makeStackTraceData();
+  describe('frame filename tooltips', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it.each([
+      {
+        filename: 'raven/scripts/runner.py',
+        absPath: '/home/ubuntu/raven/scripts/runner.py',
+      },
+      {filename: longFilename, absPath: longFilename},
+      {filename: longFilename, absPath: null},
+    ])(
+      'shows the full path in the filename tooltip (case %#)',
+      async ({filename, absPath}) => {
+        jest.useFakeTimers();
+        const {event, stacktrace} = makeStackTraceData();
 
-      render(
-        <TestStackTraceProvider
-          event={event}
-          stacktrace={{
-            ...stacktrace,
-            frames: [
-              {
-                ...stacktrace.frames[stacktrace.frames.length - 1]!,
-                filename,
-                absPath,
-                inApp: false,
-              },
-            ],
-          }}
-        >
-          <DisplayOptions />
-          <StackTraceFrames frameContextComponent={FrameContent} />
-        </TestStackTraceProvider>
-      );
+        render(
+          <TestStackTraceProvider
+            event={event}
+            stacktrace={{
+              ...stacktrace,
+              frames: [
+                {
+                  ...stacktrace.frames[stacktrace.frames.length - 1]!,
+                  filename,
+                  absPath,
+                  inApp: false,
+                },
+              ],
+            }}
+          >
+            <DisplayOptions />
+            <StackTraceFrames frameContextComponent={FrameContent} />
+          </TestStackTraceProvider>
+        );
 
-      await userEvent.hover(screen.getByText(filename), {delay: null});
-      act(() => jest.advanceTimersByTime(2000));
+        await userEvent.hover(screen.getByText(filename), {delay: null});
+        act(() => jest.advanceTimersByTime(2000));
 
-      expect(
-        await screen.findByText(absPath ?? filename, {selector: '[data-tooltip] span'})
-      ).toBeVisible();
-      jest.useRealTimers();
-    }
-  );
+        expect(
+          await screen.findByText(absPath ?? filename, {selector: '[data-tooltip] span'})
+        ).toBeVisible();
+      }
+    );
+  });
 
   it('shows copy path and code mapping setup actions on hover for collapsed frames', async () => {
     const {event, stacktrace} = makeStackTraceData();
@@ -978,36 +1007,47 @@ describe('Core StackTrace', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows URL link in tooltip when absPath is an http URL', async () => {
-    jest.useFakeTimers({advanceTimers: true});
-    const {event, stacktrace} = makeStackTraceData();
-    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+  describe('URL link tooltip', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+    it('shows URL link in tooltip when absPath is an http URL', async () => {
+      jest.useFakeTimers({advanceTimers: true});
+      const {event, stacktrace} = makeStackTraceData();
+      const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
 
-    render(
-      <TestStackTraceProvider
-        event={event}
-        stacktrace={{
-          ...stacktrace,
-          frames: [
-            {
-              ...frame,
-              absPath: 'https://example.com/static/app.js',
-              filename: 'app.js',
-              inApp: true,
-            },
-          ],
-        }}
-      >
-        <StackTraceFrames frameContextComponent={FrameContent} />
-      </TestStackTraceProvider>
-    );
+      render(
+        <TestStackTraceProvider
+          event={event}
+          stacktrace={{
+            ...stacktrace,
+            frames: [
+              {
+                ...frame,
+                absPath: 'https://example.com/static/app.js',
+                filename: 'app.js',
+                inApp: true,
+              },
+            ],
+          }}
+        >
+          <StackTraceFrames frameContextComponent={FrameContent} />
+        </TestStackTraceProvider>
+      );
 
-    await userEvent.hover(screen.getByText('app.js'), {delay: null});
-    act(() => jest.advanceTimersByTime(2000));
+      await userEvent.hover(screen.getByText('app.js'), {delay: null});
+      act(() => jest.advanceTimersByTime(2000));
 
-    expect(
-      await screen.findByRole('link', {name: 'https://example.com/static/app.js'})
-    ).toBeInTheDocument();
-    jest.useRealTimers();
+      expect(
+        await screen.findByRole('link', {name: 'https://example.com/static/app.js'})
+      ).toBeInTheDocument();
+    });
   });
 });

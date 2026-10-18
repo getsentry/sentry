@@ -6,6 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   act,
+  cleanup,
   render,
   screen,
   userEvent,
@@ -276,51 +277,62 @@ describe('LogsInfiniteTable', () => {
     expect(loadingIndicator).toBeInTheDocument();
   });
 
-  it('should be interactable', async () => {
-    jest.useFakeTimers();
-    const traceItemMocks = [];
-    for (const log of mockLogsData) {
-      traceItemMocks.push(
-        MockApiClient.addMockResponse({
-          url: `/projects/${organization.slug}/${project.slug}/trace-items/${log[OurLogKnownFieldKey.ID]}/`,
-          method: 'GET',
-          body: {
-            itemId: log[OurLogKnownFieldKey.ID],
-            links: null,
-            meta: {},
-            timestamp: log[OurLogKnownFieldKey.TIMESTAMP],
-            attributes: [],
-          },
-        })
-      );
-    }
-    renderWithProviders(
-      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
-    );
-
-    await waitFor(() => {
-      expect(screen.getByTestId('logs-table')).toBeInTheDocument();
-    });
-
-    const allTreeRows = await screen.findAllByTestId('log-table-row');
-    expect(allTreeRows).toHaveLength(3);
-    for (const row of allTreeRows) {
-      for (const field of visibleColumnFields) {
-        await userEvent.hover(row, {delay: null});
-        act(() => {
-          jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+  describe('with fake timers', () => {
+    afterEach(async () => {
+      try {
+        cleanup();
+        await act(async () => {
+          await jest.runOnlyPendingTimersAsync();
         });
-        const cell = await within(row).findByTestId(`log-table-cell-${field}`);
-        const actionsButton = within(cell).queryByRole('button', {
-          name: 'Actions',
-        });
-        expect(actionsButton).toBeInTheDocument();
+      } finally {
+        jest.useRealTimers();
       }
-    }
-    for (const mock of traceItemMocks) {
-      expect(mock).toHaveBeenCalled();
-    }
-    jest.useRealTimers();
+    });
+    it('should be interactable', async () => {
+      jest.useFakeTimers();
+      const traceItemMocks = [];
+      for (const log of mockLogsData) {
+        traceItemMocks.push(
+          MockApiClient.addMockResponse({
+            url: `/projects/${organization.slug}/${project.slug}/trace-items/${log[OurLogKnownFieldKey.ID]}/`,
+            method: 'GET',
+            body: {
+              itemId: log[OurLogKnownFieldKey.ID],
+              links: null,
+              meta: {},
+              timestamp: log[OurLogKnownFieldKey.TIMESTAMP],
+              attributes: [],
+            },
+          })
+        );
+      }
+      renderWithProviders(
+        <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('logs-table')).toBeInTheDocument();
+      });
+
+      const allTreeRows = await screen.findAllByTestId('log-table-row');
+      expect(allTreeRows).toHaveLength(3);
+      for (const row of allTreeRows) {
+        for (const field of visibleColumnFields) {
+          await userEvent.hover(row, {delay: null});
+          act(() => {
+            jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+          });
+          const cell = await within(row).findByTestId(`log-table-cell-${field}`);
+          const actionsButton = within(cell).queryByRole('button', {
+            name: 'Actions',
+          });
+          expect(actionsButton).toBeInTheDocument();
+        }
+      }
+      for (const mock of traceItemMocks) {
+        expect(mock).toHaveBeenCalled();
+      }
+    });
   });
 
   it('should not be interactable on embedded views', async () => {
