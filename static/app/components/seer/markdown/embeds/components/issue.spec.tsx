@@ -59,6 +59,14 @@ describe('issue embed', () => {
     expect(screen.getByRole('link', {name: '7716642857'})).toBeInTheDocument();
   });
 
+  it('treats an empty-string shortId the same as omitting it', () => {
+    // LLMs sometimes emit shortId: '' instead of omitting the field. The schema
+    // should coerce that to undefined rather than failing validation.
+    renderEmbed({name: 'issue', data: {id: '7716642857', shortId: ''}, level: 'inline'});
+
+    expect(screen.getByRole('link', {name: '7716642857'})).toBeInTheDocument();
+  });
+
   describe('block', () => {
     function mockIssuesRequest() {
       MockApiClient.addMockResponse({
