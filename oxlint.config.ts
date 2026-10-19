@@ -10,7 +10,10 @@ const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}']
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
-  rules: {'@sentry/scraps/prefer-primitives': 'error'},
+  rules: {
+    '@sentry/scraps/prefer-primitives': 'error',
+    '@sentry/scraps/prefer-container-responsive-props': 'error',
+  },
   overrides: [
     {
       files: coreComponentFiles,
@@ -746,7 +749,7 @@ const config = defineConfig({
     'react/globals': 'error',
     'react/hooks': 'error',
     'react/immutability': 'error',
-    'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/incompatible-library': 'error',
     'react/invariant': 'error',
     'react/jsx-boolean-value': ['error', 'never'],
     'react/jsx-fragments': ['error', 'element'],
@@ -787,9 +790,10 @@ const config = defineConfig({
     'react/set-state-in-render': 'error',
     'react/static-components': 'error',
     'react/syntax': 'error',
-    'react/todo': 'off',
+    'react/todo': 'error',
     'react/unsupported-syntax': 'error',
     'react/use-memo': 'error',
+    'react/void-use-memo': 'error',
     'react/no-did-mount-set-state': 'error',
     'react/no-did-update-set-state': 'error',
     'react/no-redundant-should-component-update': 'error',
@@ -1287,6 +1291,7 @@ const config = defineConfig({
     'typescript/no-extra-non-null-assertion': 'error',
     'typescript/no-extraneous-class': 'error',
     'typescript/no-for-in-array': 'error',
+    'typescript/no-generated-empty-object-type': 'error',
     'typescript/no-implied-eval': 'error',
     'typescript/no-meaningless-void-operator': 'error',
     'typescript/no-misused-new': 'error',

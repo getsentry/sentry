@@ -90,7 +90,7 @@ function OrgStatsBanner({organization, subscription, referrer}: Props) {
 
   return (
     <Panel>
-      <SubscriptionBody withPadding>
+      <SubscriptionBody>
         <TextWrapper>
           <Flex>
             <Heading>{headerText}</Heading>

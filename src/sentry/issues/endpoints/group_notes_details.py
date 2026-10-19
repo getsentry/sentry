@@ -20,13 +20,13 @@ from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
     GroupActionActor,
     publish_action,
-    resolve_action_source,
 )
 from sentry.issues.action_log.read_metrics import (
     ActivityReadResult,
     activity_read_endpoint,
     record_activity_read,
 )
+from sentry.issues.action_log.request import resolve_action_source
 from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint

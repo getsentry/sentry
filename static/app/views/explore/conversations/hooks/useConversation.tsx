@@ -7,6 +7,8 @@ import {
 } from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
@@ -32,7 +34,7 @@ export interface UseConversationsOptions {
 /**
  * Raw span data returned from the AI conversation details endpoint
  */
-interface ConversationApiSpan {
+export interface ConversationApiSpan {
   'gen_ai.conversation.id': string;
   parent_span: string;
   'precise.finish_ts': number;
@@ -114,7 +116,7 @@ export interface ConversationStats {
   usageByModel: ConversationModelUsage[];
 }
 
-interface ConversationApiResponse {
+export interface ConversationApiResponse {
   conversationId: string;
   spans: ConversationApiSpan[];
   stats: ConversationStats;
@@ -361,16 +363,12 @@ function orderDepthFirst(
   return ordered;
 }
 
-const MAX_PAGES = 100;
+const ONE_HOUR_MS = 60 * 60 * 1000;
 
-export function useConversation(
-  conversation: UseConversationsOptions
-): UseConversationResult {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  const ONE_HOUR_MS = 60 * 60 * 1000;
-
+function buildConversationQueryParams(
+  conversation: UseConversationsOptions,
+  selection: PageFilters
+) {
   const defaultPeriod = getDefaultPageFilterSelection().datetime.period;
   const hasExplicitDatetime =
     selection.datetime.start !== null ||
@@ -389,10 +387,58 @@ export function useConversation(
   const selectedProjects = conversation.projects ?? selection.projects;
   const project = selectedProjects.length > 0 ? selectedProjects : [ALL_ACCESS_PROJECTS];
 
-  const queryParams = {
-    project,
-    ...datetimeParams,
-  };
+  return {project, ...datetimeParams};
+}
+
+export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
+  nodeTraceMap: Map<string, string>;
+  nodes: AITraceSpanNode[];
+} {
+  if (allSpans.length === 0) {
+    return {nodes: [], nodeTraceMap: new Map<string, string>()};
+  }
+
+  const traceMap = new Map<string, string>();
+  const genAiSpans = allSpans.filter(isGenAiSpan);
+  const nodeMap = new Map<string, AITraceSpanNode>();
+
+  const transformedNodes = genAiSpans.map(apiSpan => {
+    const node = createNodeFromApiSpan(apiSpan, nodeMap);
+    nodeMap.set(node.id, node);
+    traceMap.set(node.id, apiSpan.trace);
+    return node;
+  });
+
+  return {nodes: orderDepthFirst(transformedNodes, nodeMap), nodeTraceMap: traceMap};
+}
+
+const MAX_PAGES = 100;
+
+export function getConversationQueryOptions(
+  organization: Organization,
+  conversation: UseConversationsOptions,
+  selection: PageFilters
+) {
+  return apiOptions.asInfinite<ConversationApiResponse>()(
+    '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
+    {
+      path: conversation.conversationId
+        ? {
+            organizationIdOrSlug: organization.slug,
+            conversationId: conversation.conversationId,
+          }
+        : skipToken,
+      query: buildConversationQueryParams(conversation, selection),
+      staleTime: Infinity,
+    }
+  );
+}
+
+export function useConversation(
+  conversation: UseConversationsOptions
+): UseConversationResult {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   const {
     data,
@@ -403,19 +449,7 @@ export function useConversation(
     isLoading,
     isError,
   } = useInfiniteQuery(
-    apiOptions.asInfinite<ConversationApiResponse>()(
-      '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
-      {
-        path: conversation.conversationId
-          ? {
-              organizationIdOrSlug: organization.slug,
-              conversationId: conversation.conversationId,
-            }
-          : skipToken,
-        query: queryParams,
-        staleTime: Infinity,
-      }
-    )
+    getConversationQueryOptions(organization, conversation, selection)
   );
 
   const currentNumberPages = data?.pages.length ?? 0;
@@ -438,24 +472,10 @@ export function useConversation(
   const title = firstPage?.title ?? null;
   const stats = firstPage?.stats ?? null;
 
-  const {nodes, nodeTraceMap} = useMemo(() => {
-    if (allSpans.length === 0) {
-      return {nodes: [], nodeTraceMap: new Map<string, string>()};
-    }
-
-    const traceMap = new Map<string, string>();
-    const genAiSpans = allSpans.filter(isGenAiSpan);
-    const nodeMap = new Map<string, AITraceSpanNode>();
-
-    const transformedNodes = genAiSpans.map(apiSpan => {
-      const node = createNodeFromApiSpan(apiSpan, nodeMap);
-      nodeMap.set(node.id, node);
-      traceMap.set(node.id, apiSpan.trace);
-      return node;
-    });
-
-    return {nodes: orderDepthFirst(transformedNodes, nodeMap), nodeTraceMap: traceMap};
-  }, [allSpans]);
+  const {nodes, nodeTraceMap} = useMemo(
+    () => buildConversationNodes(allSpans),
+    [allSpans]
+  );
 
   if (!conversation.conversationId) {
     return {
