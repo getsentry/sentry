@@ -463,8 +463,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Disable the deprecated if functions in EAP
     manager.add("organizations:explore-disable-deprecated-if-functions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
-    # Show combined resolved "past issues" section instead of separate key errors / performance issues
-    manager.add("organizations:weekly-report-past-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Show top spans chart in weekly email reports
     manager.add("organizations:weekly-report-spans-chart", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
