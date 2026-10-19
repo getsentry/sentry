@@ -36,7 +36,7 @@ class DetectorState(DefaultFieldsModel):
     state = models.CharField(max_length=200, default=DetectorPriorityLevel.OK)
 
     # A unix epoch timestamp in milliseconds that rotates when the detector leaves OK after
-    # staying OK for its handler's `activation_cooldown`
+    # staying OK for its handler's `new_issue_cooldown`
     # This is used for creating unique fingerprints
     activation_id = BoundedBigIntegerField(null=True)
 

@@ -47,7 +47,7 @@ def detector_opens_new_issue_per_activation(detector: Detector) -> bool:
 
     return (
         issubclass(detector_settings.handler, StatefulDetectorHandler)
-        and detector_settings.handler.activation_creates_new_issue
+        and detector_settings.handler.new_issue_cooldown is not None
     )
 
 
