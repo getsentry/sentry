@@ -27,6 +27,7 @@ from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.logic.monitor_environment import update_monitor_environment
+from sentry.monitors.logic.monitor_status import sync_cron_detector_enabled
 from sentry.monitors.models import (
     MONITOR_CONFIG,
     CheckInStatus,
@@ -511,6 +512,8 @@ class MonitorValidator(CamelSnakeSerializer):
 
         if params:
             instance.update(**params)
+            if "status" in params:
+                sync_cron_detector_enabled(instance)
             create_audit_entry(
                 request=self.context["request"],
                 organization_id=instance.organization_id,
@@ -759,8 +762,9 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
         # Try to assign a seat for the monitor
         seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
         if seat_outcome != Outcome.ACCEPTED:
-            detector.update(enabled=False)
             monitor.update(status=ObjectStatus.DISABLED)
+        if monitor.status != ObjectStatus.ACTIVE:
+            detector.update(enabled=False)
 
         return detector
 
