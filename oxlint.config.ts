@@ -29,16 +29,12 @@ export const incubator = defineConfig({
   ],
 });
 
-const IS_PRECOMMIT =
-  process.env.SENTRY_PRECOMMIT !== undefined &&
-  Boolean(JSON.parse(process.env.SENTRY_PRECOMMIT));
-const IS_CI = process.env.CI !== undefined && Boolean(JSON.parse(process.env.CI));
 const enableTypeAwareLinting = (() => {
   if (process.env.SENTRY_OXLINT_TYPEAWARE !== undefined) {
     return Boolean(JSON.parse(process.env.SENTRY_OXLINT_TYPEAWARE));
   }
 
-  return IS_PRECOMMIT ? IS_CI : true;
+  return true;
 })();
 
 /**
