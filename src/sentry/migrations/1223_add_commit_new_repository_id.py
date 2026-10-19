@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1221_remove_incidentproject_constraint"),
+        ("sentry", "1222_repository_org_status_name_index"),
     ]
 
     operations = [
