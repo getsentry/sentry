@@ -81,7 +81,7 @@ def _merge_frame(new_frame: dict[str, Any], symbolicated: dict[str, Any]) -> Non
         new_frame["in_app"] = False
 
 
-def fixup_frame_in_app(frame: dict[str, Any], release_package: str | None):
+def fixup_frame_in_app(frame: dict[str, Any], release_package: str | None) -> None:
     """Sets a frame's `in_app` field to `True` if it's unset and the frame's
     `module` field matches the `release_package`."""
 
