@@ -48,7 +48,8 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     """An automation's saved configuration.
 
     Repositories are not configured here. Execution uses the resolved projects' existing Seer
-    project-repository associations.
+    project-repository associations. Read and change it through SeerAutomation in
+    sentry.seer.workflows.automation.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -59,6 +60,7 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     schedule = models.CharField(
         max_length=256, choices=SeerWorkflowSchedule.choices, default=SeerWorkflowSchedule.DAILY
     )
+    # Free-form metadata, such as which default seeded this config.
     extras = models.JSONField(db_default={}, default=dict)
     # Incremented on every saved change, so runs can record which configuration they used.
     version = BoundedPositiveIntegerField(default=1, db_default=1)
