@@ -243,34 +243,19 @@ class SlackNotifyActionTest(RuleTestCase):
                 assert form.is_valid()
                 self.assert_form_valid(form, "morty-id", "@morty")
 
-    @responses.activate
     def test_invalid_channel_selected(self) -> None:
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel", "tags": ""}
         )
 
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": False, "error": "channel_not_found"}),
-        )
+        members = [{"name": "other-member", "id": "member-id"}]
 
-        members = {"ok": "true", "members": [{"name": "other-member", "id": "member-id"}]}
+        with self.mock_msg_schedule_response("channel_not_found"):
+            with self.mock_list("users", members, "members"):
+                form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
 
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/users.list",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps(members),
-        )
-
-        form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
-
-        assert not form.is_valid()
-        assert len(form.errors) == 1
+                assert not form.is_valid()
+                assert len(form.errors) == 1
 
     @responses.activate
     @patch("slack_sdk.web.client.WebClient.users_list")

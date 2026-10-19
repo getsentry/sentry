@@ -98,8 +98,7 @@ try {
   };
   await writeFile(join(consumer, 'tsconfig.json'), JSON.stringify(config));
   for (const subpath of Object.keys(packageJson.exports)) {
-    const specifier =
-      subpath === '.' ? '@sentry/scraps' : `@sentry/scraps/${subpath.slice(2)}`;
+    const specifier = `@sentry/scraps/${subpath.slice(2)}`;
     await writeFile(
       join(consumer, 'entry.mts'),
       `import * as entry from '${specifier}';\nvoid entry;\n`
@@ -118,7 +117,8 @@ try {
   await writeFile(
     join(consumer, 'private.mjs'),
     `import {rejects} from 'node:assert/strict';
-for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes', 'code/inlineCode', 'hotkey/kbd']) {
+await rejects(import('@sentry/scraps'), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
+for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes']) {
   await rejects(import('@sentry/scraps/' + subpath), {code: 'ERR_PACKAGE_PATH_NOT_EXPORTED'});
 }
 `
@@ -128,27 +128,30 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
   const {createElement} = await import('react');
   const {renderToStaticMarkup} = await import('react-dom/server');
   const {ThemeProvider} = await import('@emotion/react');
-  const {
-    Container,
-    Flex,
-    Grid,
-    Stack,
-    Surface,
-    Text,
-    Heading,
-    Separator,
-    Quote,
-    InlineCode,
-    Kbd,
-    IndeterminateLoader,
-    Switch,
-    lightTheme,
-    darkTheme,
-  } = await import(join(installed, 'dist/index.js'));
-  const {Stack: stackSubpath} = await import(join(installed, 'dist/layout/index.js'));
-  if (Stack !== stackSubpath) {
-    throw new Error('Public subpaths created separate component instances');
-  }
+  const {Container, Flex, Grid, Stack, Surface} = await import(
+    join(installed, 'dist/layout/index.js')
+  );
+  const {Text, Heading, Prose} = await import(join(installed, 'dist/text/index.js'));
+  const {Separator} = await import(join(installed, 'dist/separator/index.js'));
+  const {Quote} = await import(join(installed, 'dist/quote/index.js'));
+  const {InlineCode} = await import(join(installed, 'dist/code/inlineCode.js'));
+  const {Kbd} = await import(join(installed, 'dist/hotkey/kbd.js'));
+  const {IndeterminateLoader} = await import(join(installed, 'dist/loader/index.js'));
+  const {Switch} = await import(join(installed, 'dist/switch/index.js'));
+  const {Link, ExternalLink} = await import(join(installed, 'dist/link/index.js'));
+  const {Image} = await import(join(installed, 'dist/image/index.js'));
+  const {DescriptionList} = await import(
+    join(installed, 'dist/descriptionList/index.js')
+  );
+  const {default: InteractionStateLayer} = await import(
+    join(installed, 'dist/interactionStateLayer/index.js')
+  );
+  const {Radio} = await import(join(installed, 'dist/radio/index.js'));
+  const {StatusIndicator} = await import(
+    join(installed, 'dist/statusIndicator/index.js')
+  );
+  const {Hotkey} = await import(join(installed, 'dist/hotkey/index.js'));
+  const {lightTheme, darkTheme} = await import(join(installed, 'dist/theme/index.js'));
   for (const theme of [lightTheme, darkTheme]) {
     const html = renderToStaticMarkup(
       createElement(
@@ -168,7 +171,28 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
           createElement(InlineCode, null, 'InlineCode'),
           createElement(Kbd, null, 'Kbd'),
           createElement(IndeterminateLoader),
-          createElement(Switch, {'aria-label': 'Switch'})
+          createElement(Switch, {'aria-label': 'Switch'}),
+          createElement(Image, {
+            src: 'https://example.com/image.png',
+            alt: 'Package image',
+          }),
+          createElement(
+            DescriptionList,
+            null,
+            createElement(DescriptionList.Term, null, 'Term'),
+            createElement(DescriptionList.Details, null, 'Details')
+          ),
+          createElement(Prose, null, createElement('code', null, 'Prose code')),
+          createElement(InteractionStateLayer, null, 'State layer'),
+          createElement(Radio, {'aria-label': 'Package radio'}),
+          createElement(StatusIndicator, {variant: 'success', 'aria-label': 'Online'}),
+          createElement(Hotkey, {value: 'shift+k'}),
+          createElement(
+            Link,
+            {to: {pathname: '/issues/', query: {query: 'error'}, hash: 'details'}},
+            'Package link'
+          ),
+          createElement(ExternalLink, {href: 'https://example.com'}, 'External link')
         )
       )
     );
@@ -184,10 +208,26 @@ for (const subpath of ['layout/stack', 'theme/light', 'tokens/color', 'cssTypes'
       'Kbd',
       'data-icon="checkmark"',
       'data-icon="close"',
+      'Package link',
+      'External link',
+      'Package image',
+      '<dt',
+      '<dd',
+      'Prose code',
+      'State layer',
+      'type="radio"',
+      'aria-label="Online"',
+      'aria-label="⇧"',
     ]) {
       if (!html.includes(label)) {
         throw new Error(`Server render failed for ${label}`);
       }
+    }
+    if (
+      !html.includes('href="/issues/?query=error#details"') ||
+      !html.includes('rel="noreferrer noopener"')
+    ) {
+      throw new Error('Packed links lost their destinations or security attributes');
     }
   }
   console.log('Verified packed server rendering in both themes.');

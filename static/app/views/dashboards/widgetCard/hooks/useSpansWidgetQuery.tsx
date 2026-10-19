@@ -55,7 +55,6 @@ import {
 } from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
 import {
   getConditionalFilterInvalidSeriesMessageForAggregates,
   getValidAggregatesForRequest,
@@ -237,7 +236,6 @@ export function useSpansSeriesQuery(
     return {
       requestData,
       skippedForInvalidConditionalFilter,
-      widgetQuery: widgetForRequest.queries[queryIndex]!,
     };
   });
 
@@ -322,25 +320,6 @@ export function useSpansSeriesQuery(
       });
     }),
     combine,
-  });
-
-  useEventsTimeseriesSpotCheck({
-    config: spansResponseTransforms,
-    enabled,
-    statsQueryResults: queryResults,
-    organization,
-    pageFilters,
-    widget: filteredWidget,
-    timeSeriesQueries: seriesRequests.map(
-      ({requestData, skippedForInvalidConditionalFilter, widgetQuery}) =>
-        skippedForInvalidConditionalFilter
-          ? undefined
-          : {
-              params:
-                convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-              widgetQuery,
-            }
-    ),
   });
 
   const transformedData = (() => {
