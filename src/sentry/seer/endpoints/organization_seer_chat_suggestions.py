@@ -294,8 +294,12 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 and group.seer_explorer_autofix_last_triggered >= cutoff
             )
             # For legacy autofix; no longer set since June 2026.
-            # If set, we automatically trigger explorer autofix, so suggesting it would be redundant.
-            or group.seer_autofix_last_triggered is not None
+            # If set and explorer autofix hasn't run, we automatically trigger it, so suggesting it
+            # would be redundant.
+            or (
+                group.seer_autofix_last_triggered is not None
+                and group.seer_explorer_autofix_last_triggered is None
+            )
             # Check if there are any runs in flight.
             or runs_for_group(group.id, AUTOFIX_FEATURE_ID)
             .filter(run__last_triggered_at__gte=cutoff)

@@ -464,8 +464,10 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
             project=self.project,
             seer_autofix_last_triggered=timezone.now() - timedelta(days=90),
         )
-
         assert self._can_suggest_autofix(mock_run_oneshot, group.id) is False
+
+        group.update(seer_explorer_autofix_last_triggered=timezone.now() - timedelta(days=31))
+        assert self._can_suggest_autofix(mock_run_oneshot, group.id) is True
 
     @with_feature("organizations:seat-based-seer-enabled")
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
