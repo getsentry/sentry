@@ -5,7 +5,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {useStackedLayout} from './layout/useStackedLayout';
 
-export interface DisplayFieldProps {
+interface DisplayFieldProps {
   children: React.ReactNode;
   label: React.ReactNode;
   hintText?: React.ReactNode;
