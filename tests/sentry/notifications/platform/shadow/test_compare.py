@@ -579,17 +579,17 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
                 record_legacy_render(NotificationProviderKey.SLACK, legacy)
         return observation
 
-    def test_group_stats_changed(self) -> None:
+    def test_group_stats_drift_is_group_changed(self) -> None:
         observation = self._shadow_slack(
             _slack_stats("State: *Ongoing*   Events: *12*   Users Affected: *3*"),
             _slack_stats("State: *Ongoing*   Events: *13*   Users Affected: *3*"),
         )
 
-        assert observation.outcome == ShadowOutcome.GROUP_STATS_CHANGED
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
         assert observation.mismatch is None
         assert "diff" not in observation.result_log
 
-    def test_group_stats_changed_with_another_difference_is_a_mismatch(self) -> None:
+    def test_group_stats_drift_with_another_difference_is_a_mismatch(self) -> None:
         platform = _slack_stats("State: *Ongoing*   Events: *13*")
         platform["text"] = "changed"
 
@@ -612,7 +612,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
 
         assert observation.outcome == ShadowOutcome.MISMATCH
 
-    def test_dropped_counts_at_a_single_event_are_group_stats_changed(self) -> None:
+    def test_dropped_counts_at_a_single_event_are_group_changed(self) -> None:
         assert self.issue_group.times_seen == 1
 
         observation = self._shadow_slack(
@@ -620,7 +620,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
             _slack_stats("First Seen: *2 days ago*   Suggested: #team"),
         )
 
-        assert observation.outcome == ShadowOutcome.GROUP_STATS_CHANGED
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
 
     def test_other_stats_differences_at_a_single_event_are_a_mismatch(self) -> None:
         observation = self._shadow_slack(
