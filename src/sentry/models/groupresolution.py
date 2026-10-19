@@ -41,8 +41,9 @@ class GroupResolution(Model):
     # the release in which its suggested this was resolved
     # which allows us to indicate if it still happens in newer versions
     release = FlexibleForeignKey("sentry.Release")
-    # This release field represents the latest release version associated with a group when the
-    # user chooses "resolve in next release", and is set for both semver and date ordered releases
+    # The starting release for "resolve in next release". New project-anchored resolutions
+    # use the project's latest eligible release; older date-based resolutions may use an
+    # issue's last-observed release. Set for both semver and date ordered releases.
     current_release_version = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)
     # This release field represents the future release version associated with a group when the
     # user chooses "resolve in future release"
@@ -83,9 +84,17 @@ class GroupResolution(Model):
             Helper function that compares release versions based on date for
             `GroupResolution.Type.in_next_release`
             """
-            return res_release == release.id or res_release_datetime > release_order_date(
+            incoming_date = release_order_date(
                 release.date_added, release.date_released, use_finalized_order=use_finalized_order
             )
+            if features.has("organizations:release-resolution-project-anchor", group.organization):
+                # Match successor selection's ID tie-breaker. An already-existing
+                # release at the anchor's timestamp must not count as a new release.
+                return res_release == release.id or (res_release_datetime, res_release) >= (
+                    incoming_date,
+                    release.id,
+                )
+            return res_release == release.id or res_release_datetime > incoming_date
 
         try:
             (
