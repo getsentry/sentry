@@ -34,6 +34,7 @@ from sentry.discover.arithmetic import (
     parse_arithmetic,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.explore.endpoints.bases import ExploreSavedFormulaPermission
 from sentry.explore.models import (
     ExploreSavedFormula,
     ExploreSavedQueryDataset,
@@ -97,7 +98,7 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
             },
             {
                 "name": "count_tolerating",
-                "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+                "value": "count_if(`{duration}:>={threshold} and {duration}:<={frustrated}`)",
             },
         ],
         "params": [
@@ -114,7 +115,7 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
                 "value": "",
             },
             {
-                "name": "4threshold",
+                "name": "frustrated",
                 "type": "calculation",
                 "order": 2,
                 "value": "{threshold} * 4",
@@ -131,7 +132,7 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
         "references": [
             {
                 "name": "miserable_users",
-                "value": "count_unique_if(`is_transaction:True and {duration}:>{4threshold}`, user)",
+                "value": "count_unique_if(`is_transaction:True and {duration}:>{frustrated}`, user)",
             },
             {
                 "name": "total_unique_users",
@@ -152,7 +153,7 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
                 "value": "",
             },
             {
-                "name": "4threshold",
+                "name": "frustrated",
                 "type": "calculation",
                 "order": 2,
                 "value": "{threshold} * 4",
@@ -264,9 +265,13 @@ class ReferenceSerializer(RequestSerializer):
     value = CharField(max_length=200, allow_blank=True)
 
     def validate_value(self, value: str) -> str:
+        value = value.lower()
         if len(value) == 0:
             raise ValidationError("References must have a value")
         return value
+
+    def validate_name(self, name: str) -> str:
+        return name.lower()
 
 
 class ParamSerializer(ReferenceSerializer):
@@ -308,6 +313,15 @@ class FormulaSerializer(RequestSerializer):
         required=True,
     )
 
+    def validate_formula(self, formula: str) -> str:
+        return formula.lower()
+
+    def validate_name(self, name: str) -> str:
+        name = name.lower()
+        if not name.startswith("formula."):
+            raise ValidationError("Formula names must begin with `formula`")
+        return name
+
     def validate_dataset(self, dataset: str) -> int:
         dataset_id = ExploreSavedQueryDataset.get_id_for_type_name(dataset)
         if dataset_id is None:
@@ -317,11 +331,6 @@ class FormulaSerializer(RequestSerializer):
                 f"{dataset} is not supported yet, currently only Spans and Logs are supported"
             )
         return dataset_id
-
-    def validate_name(self, name: str) -> str:
-        if not name.startswith("formula."):
-            raise ValidationError("Formula names must begin with `formula`")
-        return name
 
     def validate(self, data: FormulaData) -> FormulaData:
         # Convert the dicts to simplenamespace objects so they; can be used in parse_formula
@@ -369,6 +378,7 @@ class FormulaSerializer(RequestSerializer):
 
 class OrganizationExploreFormulaBase(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
+    permission_classes = (ExploreSavedFormulaPermission,)
 
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(

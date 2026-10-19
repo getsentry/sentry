@@ -12,8 +12,21 @@ const workspaceDirectories = [
   ...appDirectories,
 ];
 
+const v8Aliases = new Map([
+  ['react-router', 'react-router-v8'],
+  ['react-router/dom', 'react-router-v8/dom'],
+  ['react-router-dom', 'react-router-v8'],
+  ['nuqs/adapters/react-router/v6', 'nuqs/adapters/react-router/v8'],
+]);
+
 /** @type {import('jest-resolve').SyncResolver} */
 module.exports = function resolveReactRouter(request, options) {
+  if (process.env.SENTRY_REACT_ROUTER_VERSION === '8') {
+    const alias = v8Aliases.get(request);
+    if (alias) {
+      return options.defaultResolver(alias, {...options, basedir: root});
+    }
+  }
   const workspaceDirectory = workspaceDirectories.find(
     directory =>
       options.basedir === directory ||
@@ -34,8 +47,7 @@ module.exports = function resolveReactRouter(request, options) {
     };
   }
 
-  // Dependencies and the compatibility implementation must resolve V6's own
-  // react-router imports normally, so every consumer shares the same contexts.
+  // V6 dependencies must resolve their own core package to share router contexts.
   const isSource = sourceDirectories.some(
     directory =>
       options.basedir === directory ||

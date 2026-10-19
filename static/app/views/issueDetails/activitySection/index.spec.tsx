@@ -26,6 +26,7 @@ import type {GroupActivity} from 'sentry/types/group';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
 import {RepositoryStatus} from 'sentry/types/integrations';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {buildActivityFeedItems} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
@@ -2175,7 +2176,15 @@ describe('ActivitySection', () => {
 
     render(
       <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
-        <ActivitySection group={seerGroup} variant="standalone" />
+        <ActivitySection
+          group={seerGroup}
+          variant="standalone"
+          items={buildActivityFeedItems({activities: seerGroup.activity}).map(item =>
+            item.activity.id === 'seer-rca-completed'
+              ? {...item, body: 'Completed analysis'}
+              : item
+          )}
+        />
       </GroupDataContextProvider>
     );
 
@@ -2187,6 +2196,7 @@ describe('ActivitySection', () => {
     expect(screen.queryByText('Root cause analysis started')).not.toBeInTheDocument();
     expect(screen.queryByText('Plan started')).not.toBeInTheDocument();
     expect(screen.queryByText('Code changes started')).not.toBeInTheDocument();
+    expect(screen.getByText('Completed analysis')).toBeVisible();
   });
 
   it('does not collapse a Seer pair across another Seer activity', async () => {

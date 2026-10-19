@@ -3,19 +3,26 @@ import {useMemo} from 'react';
 import {TimeSince} from 'sentry/components/timeSince';
 import {GroupActivityType, type Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
 import type {ActivityFeedItem} from './activityFeedItem';
 import {getActivityItem} from './activityItem';
-import {ActivityLineHeadline, ActivityLineRow} from './layout';
+import {ActivityLineHeadline} from './layout';
 import {ActivityLineMarker} from './marker';
 
 interface ActivityLineProps {
   group: Group;
   item: ActivityFeedItem;
+  children?: React.ReactNode;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
-export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProps) {
+export function ActivityLine({
+  item,
+  group,
+  children,
+  timestampUnitStyle,
+}: ActivityLineProps) {
   const organization = useOrganization();
   const {issueCategory, project} = group;
   const {activity} = item;
@@ -40,14 +47,18 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
   }
 
   return (
-    <ActivityLineRow>
-      <ActivityLineMarker item={actorActivity} />
-      <ActivityLineHeadline
-        title={activityItem.title}
-        details={activityItem.details}
-        source={activityItem.source}
-        timestamp={timestamp}
-      />
-    </ActivityLineRow>
+    <Timeline.Item
+      marker={<ActivityLineMarker item={actorActivity} />}
+      headline={
+        <ActivityLineHeadline
+          title={activityItem.title}
+          details={activityItem.details}
+          source={activityItem.source}
+          timestamp={timestamp}
+        />
+      }
+    >
+      {children}
+    </Timeline.Item>
   );
 }

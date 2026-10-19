@@ -44,7 +44,7 @@ export function SaveConversationQueryButton() {
               dataset: 'ai_conversations',
               projects,
               environment: environments,
-              range: datetime.period ?? undefined,
+              statsPeriod: datetime.period ?? undefined,
               start: datetime.start ?? undefined,
               end: datetime.end ?? undefined,
               starred: starred ?? true,

@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 
 from django.db import router, transaction
@@ -7,13 +8,14 @@ from django.http.request import HttpRequest
 from rest_framework.request import Request
 
 from sentry import audit_log
+from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
-from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.middleware import is_frontend_request
+from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.search.eap.occurrences.common_queries import get_group_to_trace_ids_map
 from sentry.search.eap.occurrences.query_utils import build_snuba_params_from_ids
@@ -86,6 +88,15 @@ def signal_monitor_created(project: Project, user, from_upsert: bool, monitor: M
     create_audit_log(**kwargs)
 
 
+def get_monitor_environment_ids(monitor: Monitor, environments: Sequence[Environment]) -> list[int]:
+    monitor_environments = MonitorEnvironment.objects.filter(monitor_id=monitor.id)
+    if environments:
+        monitor_environments = monitor_environments.filter(
+            environment_id__in=[e.id for e in environments]
+        )
+    return list(monitor_environments.values_list("id", flat=True))
+
+
 def get_max_runtime(max_runtime: int | None) -> timedelta:
     """
     Computes a timedelta given a max_runtime. Limits the returned timedelta
@@ -116,7 +127,9 @@ def get_max_timeout_at(checkin: MonitorCheckIn) -> datetime:
 def get_new_timeout_at(
     checkin: MonitorCheckIn, new_status: int, date_updated: datetime
 ) -> datetime | None:
-    timeout_at = get_timeout_at(checkin.monitor.get_validated_config(), new_status, date_updated)
+    timeout_at = get_timeout_at(
+        checkin.monitor_environment.monitor.get_validated_config(), new_status, date_updated
+    )
     if timeout_at is None:
         return None
 
@@ -337,6 +350,7 @@ def ensure_cron_detector(monitor: Monitor) -> Detector | None:
                     name=monitor.name,
                     owner_user_id=monitor.owner_user_id,
                     owner_team_id=monitor.owner_team_id,
+                    enabled=monitor.status == ObjectStatus.ACTIVE,
                     config={},
                 )
                 DataSourceDetector.objects.create(data_source=data_source, detector=detector)
@@ -376,15 +390,3 @@ def ensure_cron_detector_deletion(monitor: Monitor):
         data_source.delete()
         if detector:
             detector.delete()
-
-
-def get_detector_for_monitor(monitor: Monitor) -> Detector | None:
-    try:
-        with in_test_hide_transaction_boundary():
-            return Detector.objects.get(
-                datasource__type=DATA_SOURCE_CRON_MONITOR,
-                datasource__source_id=str(monitor.id),
-                datasource__organization_id=monitor.organization_id,
-            )
-    except Detector.DoesNotExist:
-        return None

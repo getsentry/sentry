@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {NoteBody} from 'sentry/components/activity/note/body';
@@ -12,9 +12,10 @@ import type {NoteType} from 'sentry/types/alerts';
 import {GroupActivityType, type GroupActivity} from 'sentry/types/group';
 import {ActivityInputFrame} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
 import {getActivityNoteAuthor} from './activityItem';
-import {ActivityLineContent, ActivityLineRow, type ActivityLineVariant} from './layout';
+import type {ActivityLineVariant} from './layout';
 import {ActivityLineMarker} from './marker';
 
 type GroupActivityNote = Extract<GroupActivity, {type: GroupActivityType.NOTE}>;
@@ -43,44 +44,45 @@ export function ActivityLineNote({
     <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
   );
   return (
-    <ActivityLineRow>
-      <ActivityLineMarker item={activity} />
-      <ActivityLineNoteHeadline
-        title={t('%s commented', getActivityNoteAuthor(activity))}
-        timestamp={timestamp}
-        variant={inputVariant}
-        actions={
-          !editing && (
-            <CommentActionsDropdown
-              onDelete={onDelete}
-              onEdit={() => setEditing(true)}
-              user={activity.user}
-            />
-          )
-        }
-      />
-      <ActivityLineContent>
-        {editing ? (
-          <ActivityInputFrame>
-            <MentionComposer
-              initialValue={activity.data.text}
-              minHeight={96}
-              mode="edit"
-              onCancel={() => setEditing(false)}
-              onSubmit={async data => {
-                await onUpdate(data);
-                setEditing(false);
-              }}
-              variant={inputVariant}
-            />
-          </ActivityInputFrame>
-        ) : (
-          <ActivityNoteBubble>
-            <NoteBody text={activity.data.text} />
-          </ActivityNoteBubble>
-        )}
-      </ActivityLineContent>
-    </ActivityLineRow>
+    <Timeline.Item
+      marker={<ActivityLineMarker item={activity} />}
+      headline={
+        <ActivityLineNoteHeadline
+          title={t('%s commented', getActivityNoteAuthor(activity))}
+          timestamp={timestamp}
+          variant={inputVariant}
+          actions={
+            !editing && (
+              <CommentActionsDropdown
+                onDelete={onDelete}
+                onEdit={() => setEditing(true)}
+                user={activity.user}
+              />
+            )
+          }
+        />
+      }
+    >
+      {editing ? (
+        <ActivityInputFrame>
+          <MentionComposer
+            initialValue={activity.data.text}
+            minHeight={96}
+            mode="edit"
+            onCancel={() => setEditing(false)}
+            onSubmit={async data => {
+              await onUpdate(data);
+              setEditing(false);
+            }}
+            variant={inputVariant}
+          />
+        </ActivityInputFrame>
+      ) : (
+        <ActivityNoteBubble>
+          <NoteBody text={activity.data.text} />
+        </ActivityNoteBubble>
+      )}
+    </Timeline.Item>
   );
 }
 
@@ -97,8 +99,6 @@ function ActivityLineNoteHeadline({
 }) {
   return (
     <ActivityLineNoteHeadlineLayout
-      column={2}
-      row={1}
       columns={variant === 'compact' ? 'minmax(0, 1fr)' : 'minmax(0, max-content) auto'}
       minWidth={0}
       minHeight="22px"
@@ -115,14 +115,14 @@ function ActivityLineNoteHeadline({
         >
           {title}
         </ActivityLineNoteTitle>{' '}
-        <ActivityLineNoteMeta>
+        <Flex as="span" display="inline-flex" align="center" flexShrink={0} gap="xs">
           <Text as="span" variant="muted" density="comfortable">
             &bull;
           </Text>
           <Text as="span" variant="muted" density="comfortable" wrap="nowrap">
             {timestamp}
           </Text>
-        </ActivityLineNoteMeta>
+        </Flex>
       </ActivityLineNoteSentence>
       {actions ? (
         <ActivityLineNoteActions data-compact={variant === 'compact' ? true : undefined}>
@@ -135,11 +135,11 @@ function ActivityLineNoteHeadline({
 
 const ActivityLineNoteHeadlineLayout = styled(Grid)`
   position: relative;
-  justify-self: start;
+  width: fit-content;
   max-width: 100%;
 
   &[data-compact='true'] {
-    justify-self: stretch;
+    width: 100%;
   }
 `;
 
@@ -159,13 +159,6 @@ const ActivityLineNoteSentence = styled('span')`
 
 const ActivityLineNoteTitle = styled(Text)`
   overflow-wrap: anywhere;
-`;
-
-const ActivityLineNoteMeta = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  flex-shrink: 0;
 `;
 
 const ActivityLineNoteActions = styled('span')`

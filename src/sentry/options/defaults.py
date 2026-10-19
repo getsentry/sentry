@@ -3659,13 +3659,6 @@ register(
 )
 
 # Notification Options - Start
-register(
-    "notifications.issue-alerts.disable-rule-snooze",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Options for migrating to the notification platform
 # Notifications for internal testing
 register(
@@ -4388,23 +4381,6 @@ register(
     default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
-# Cells
-
-# Whether or not provisioning analytics and audits are made in the provision_organization RPC call
-register(
-    "provision_organization.override.mapping",
-    type=Dict,
-    default={},
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "provision_organization.override.rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 

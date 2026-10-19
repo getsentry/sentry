@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from django.db import IntegrityError, models
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -146,8 +147,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                     incident_id=open_incident.id,
                 )
                 old_open_period = incident_group_open_period.group_open_period
-                if old_open_period.date_ended is None:
-                    raise Exception("Outdated open period missing date_ended")
+                stale_incident_end = get_stale_incident_end(old_open_period, open_period)
 
                 if open_incident.subscription_id is not None:
                     subscription = QuerySubscription.objects.select_related("snuba_query").get(
@@ -157,7 +157,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                 else:
                     time_window = 0
                 calculated_date_closed = calculate_event_date_from_update_date(
-                    old_open_period.date_ended, time_window
+                    stale_incident_end, time_window
                 )
                 update_incident_status(
                     open_incident,
@@ -192,7 +192,6 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             alert_rule=alert_rule,
             date_started=calculated_start_date,
             date_detected=open_period.date_started,
-            projects=[group.project],
             subscription=subscription,
         )
         # XXX: if this is the very first open period, or if the priority didn't change from the last priority on the last open period,
@@ -244,11 +243,18 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
             return incident_group_open_period
 
         except IntegrityError:
-            incident_group_open_period = cls.objects.get(
-                group_open_period=open_period,
-                incident_id=incident.id,
-            )
-            return incident_group_open_period
+            existing_relationship = cls.get_relationship(open_period)
+
+            if existing_relationship is None:
+                logger.warning(
+                    "incident_groupopenperiod.incident_linked_to_other_open_period",
+                    extra={
+                        "incident_id": incident.id,
+                        "open_period_id": open_period.id,
+                    },
+                )
+
+            return existing_relationship
 
         except Exception as e:
             logger.exception(
@@ -260,6 +266,26 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
                 },
             )
             return None
+
+
+def get_stale_incident_end(
+    stale_open_period: GroupOpenPeriod, new_open_period: GroupOpenPeriod
+) -> datetime:
+    """
+    Heal missing end dates by setting them to the start of the next open period
+    """
+    if stale_open_period.date_ended is not None:
+        return stale_open_period.date_ended
+
+    logger.warning(
+        "incident_groupopenperiod.stale_open_period_not_ended",
+        extra={
+            "stale_open_period_id": stale_open_period.id,
+            "new_open_period_id": new_open_period.id,
+        },
+    )
+
+    return new_open_period.date_started
 
 
 def update_incident_activity_based_on_group_activity(
@@ -336,8 +362,16 @@ def update_incident_based_on_open_period_status_change(
             except AlertRuleDetector.DoesNotExist:
                 # Detector was not dual written.
                 return
+
+            # Prevent linking to an incident that is already linked to an open period
+            # Otherwise, you get a incident_id constraint violation
+            is_already_linked = Exists(
+                IncidentGroupOpenPeriod.objects.filter(incident_id=OuterRef("id"))
+            )
+
             open_incident = (
                 Incident.objects.filter(alert_rule__id=alert_rule_id, date_closed=None)
+                .filter(~is_already_linked)
                 .order_by("-date_started")
                 .first()
             )

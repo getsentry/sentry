@@ -12,11 +12,11 @@ import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
   isActivityNote,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
 const user = {
   id: '1',
@@ -448,7 +448,7 @@ function ActivityExamples({items}: {items: GroupActivity[]}) {
 
 function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
   return (
-    <ActivityLineList>
+    <Timeline.Container>
       {items.map((item, index) =>
         item.type === 'activity' && isActivityNote(item.activity) ? (
           <ActivityLineNote
@@ -467,7 +467,7 @@ function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
           />
         )
       )}
-    </ActivityLineList>
+    </Timeline.Container>
   );
 }
 
@@ -479,13 +479,13 @@ function CommentExample() {
   }
 
   return (
-    <ActivityLineList>
+    <Timeline.Container>
       <ActivityLineNote
         activity={{...note, user: activeUser}}
         inputVariant="full"
         onDelete={async () => {}}
         onUpdate={async () => {}}
       />
-    </ActivityLineList>
+    </Timeline.Container>
   );
 }

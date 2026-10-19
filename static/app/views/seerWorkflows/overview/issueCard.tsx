@@ -762,7 +762,7 @@ function CardFrame({
             {body}
           </Stack>
         ) : null}
-        <Aside gap="lg" align="end" justify="between">
+        <Aside area="aside" display={{zero: 'contents', sm: 'flex'}}>
           <Stack area="actions" align={{xs: 'start', sm: 'end'}}>
             {actions}
           </Stack>
@@ -775,14 +775,11 @@ function CardFrame({
   );
 }
 
-const Aside = styled(Stack)`
-  grid-area: aside;
-
-  @container (width < ${p => p.theme.container.sm}) {
-    && {
-      display: contents;
-    }
-  }
+const Aside = styled(Container)`
+  flex-direction: column;
+  gap: ${p => p.theme.space.lg};
+  align-items: flex-end;
+  justify-content: space-between;
 `;
 
 export function TextLineSkeleton({

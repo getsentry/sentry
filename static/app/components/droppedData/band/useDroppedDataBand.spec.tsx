@@ -71,7 +71,7 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries).toBeNull();
   });
 
-  it('keeps buckets with any drops and skips those without', () => {
+  it('keeps buckets without drops so they can be hovered', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
@@ -83,13 +83,16 @@ describe('useDroppedDataBand', () => {
           acceptedEvents: [
             DroppedEventFixture({start: 0, count: 100}),
             DroppedEventFixture({start: 60_000, count: 99}),
+            DroppedEventFixture({start: 120_000, count: 50}),
           ],
         },
       })
     );
 
     expect(result.current.droppedDataSeries?.data).toEqual([
+      expect.objectContaining({start: 0, ratio: 0}),
       expect.objectContaining({start: 60_000, ratio: 0.01}),
+      expect.objectContaining({start: 120_000, ratio: 0, accepted: {count: 50}}),
     ]);
   });
 
@@ -100,6 +103,21 @@ describe('useDroppedDataBand', () => {
         droppedData: {
           droppedEvents: [DroppedEventFixture({start: 0, count: 0})],
           acceptedEvents: [DroppedEventFixture({start: 0, count: 100})],
+        },
+      })
+    );
+
+    expect(result.current.droppedDataSeries).toBeNull();
+    expect(result.current.droppedDataBandHeight).toBe(0);
+  });
+
+  it('hides the band when every bucket is below the highlight threshold', () => {
+    const {result} = renderHookWithProviders(() =>
+      useDroppedDataBand({
+        chartRef,
+        droppedData: {
+          droppedEvents: [DroppedEventFixture({start: 0, count: 1})],
+          acceptedEvents: [DroppedEventFixture({start: 0, count: 1999})],
         },
       })
     );
@@ -262,6 +280,18 @@ describe('useDroppedDataBand', () => {
       expect(hover).toMatchObject({style: {fill: 'transparent'}});
       expect(span(hover)).toEqual([150, 210]);
       expect(gradientRect(shapes).rect.silent).toBe(true);
+    });
+
+    it('keeps buckets below the highlight threshold hoverable but out of the gradient', () => {
+      const [first, second] = renderShapes(
+        [bucket(3), bucket(4, 1)],
+        [bucket(3, 90), bucket(4, 1999)]
+      );
+      const color = severityColor(0.1, ThemeFixture());
+      const {colors} = gradientRect(first);
+
+      expect(span(second!.at(-1)!)).toEqual([210, 270]);
+      expect(colors).toEqual([withAlpha(color, 0), color, color, withAlpha(color, 0)]);
     });
 
     it('blends adjacent buckets evenly around their shared edge', () => {
