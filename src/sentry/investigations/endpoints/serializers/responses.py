@@ -23,6 +23,34 @@ class InvestigationExecutionDetailsResponse(InvestigationExecutionResponse):
     error: Any
 
 
+class InvestigationOrchestrationResponse(TypedDict):
+    """Seer-owned workflow projection overlaid with Sentry's authoritative run fields. The nested broadScan, hypotheses, report, pendingInput, and errors objects follow Seer's contract and may carry fields Sentry does not declare."""
+
+    runId: str | None
+    investigationId: str
+    sourceType: str
+    workflowVersion: int
+    generation: int
+    phase: str
+    status: str
+    notebookRevision: int
+    broadScan: dict[str, Any]
+    hypotheses: list[dict[str, Any]]
+    report: dict[str, Any]
+    pendingInput: dict[str, Any] | None
+    errors: list[dict[str, Any]]
+    heartbeatAt: datetime | None
+    updatedAt: datetime
+    serverTime: datetime
+    startedAt: NotRequired[str | None]
+    finishedAt: NotRequired[str | None]
+    activeSince: NotRequired[str | None]
+    activeTimeElapsedSeconds: NotRequired[float | None]
+    investigatorScheduling: NotRequired[dict[str, Any] | None]
+    cancellationIntents: NotRequired[list[dict[str, Any]]]
+    steeringIntents: NotRequired[list[dict[str, Any]]]
+
+
 class InvestigationCommandResponse(TypedDict):
     """Command acceptance, not completion. Projection is the current Seer workflow state; runId may be null before dispatch."""
 
