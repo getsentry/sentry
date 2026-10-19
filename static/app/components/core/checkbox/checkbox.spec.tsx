@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 
@@ -16,6 +17,26 @@ function ControlledCheckbox() {
 }
 
 describe('Checkbox', () => {
+  it.each([
+    [{}, 'block'],
+    [{disabled: true}, 'none'],
+    [{readOnly: true}, 'none'],
+  ])('only shows interaction feedback when editable with %j', (props, display) => {
+    render(<Checkbox {...props} onChange={jest.fn()} />);
+
+    const wrapper = screen.getByRole('checkbox').parentElement!;
+    const rules = getEmotionRules(wrapper).join('');
+    expect(rules).toMatch(new RegExp(`::after\\s*\\{[^}]*display:\\s*${display}`));
+    expect(rules).toMatch(/:hover::after\s*\{[^}]*opacity:\s*0\.06/);
+    expect(rules).toMatch(/:active::after\s*\{[^}]*opacity:\s*0\.09/);
+    expect(rules).toMatch(
+      /:has\(input:checked,\s*input:indeterminate\):hover::after\s*\{[^}]*opacity:\s*0\.085/
+    );
+    expect(rules).toMatch(
+      /:has\(input:checked,\s*input:indeterminate\):active::after\s*\{[^}]*opacity:\s*0\.12/
+    );
+  });
+
   it('default is unchecked', () => {
     render(<Checkbox onChange={jest.fn()} />);
 

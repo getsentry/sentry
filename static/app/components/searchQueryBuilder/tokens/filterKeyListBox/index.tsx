@@ -9,10 +9,10 @@ import type {Key} from '@react-types/shared';
 import {Button} from '@sentry/scraps/button';
 import {ListBox} from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {Overlay} from 'sentry/components/overlay';
 import {AskSeerSetupLoading} from 'sentry/components/searchQueryBuilder/askSeer/askSeerSetupLoading';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
