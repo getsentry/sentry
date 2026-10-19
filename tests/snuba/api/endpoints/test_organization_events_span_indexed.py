@@ -135,6 +135,25 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             assert obj["id"] == obj["span_id"]
         assert meta["dataset"] == "spans"
 
+    def test_high_accuracy_flex_time_order_by_timestamp(self) -> None:
+        older = self.create_span({"description": "older"}, start_ts=self.ten_mins_ago)
+        newer = self.create_span({"description": "newer"}, start_ts=self.nine_mins_ago)
+        self.store_spans([older, newer])
+
+        response = self.do_request(
+            {
+                "field": ["id", "timestamp", "span.description"],
+                "query": "",
+                "orderby": ["-timestamp", "-id"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert [row["span.description"] for row in response.data["data"]] == ["newer", "older"]
+
     def test_sentry_tags_vs_tags(self) -> None:
         self.store_spans(
             [
