@@ -167,7 +167,6 @@ function ReplaysListBody() {
   const showReplayList = hasSessionReplay && hasSentReplays.hasSentOneReplay;
 
   useReplayListLLMContextData({
-    // Until projects load, hasSentOneReplay reads false even when replays exist.
     onboarding: !hasSentReplays.fetching && !showReplayList,
     showDeadRageClickCards: showDeadRageClickWidgets,
     widgetIsOpen,
