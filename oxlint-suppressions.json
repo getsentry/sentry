@@ -263,9 +263,6 @@
     }
   },
   "static/app/components/events/eventDrawer.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 3
     }
@@ -2896,12 +2893,7 @@
   },
   "static/app/views/navigation/topBar.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 4
-    }
-  },
-  "static/app/views/navigation/useTopOffset.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 1
+      "count": 2
     }
   },
   "static/app/views/onboarding/components/firstEventFooter.tsx": {
@@ -3315,11 +3307,6 @@
   "static/app/views/seerExplorer/components/inputSection.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/seerExplorer/components/seerExplorerContent.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 2
     }
   },
   "static/app/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout.spec.tsx": {
