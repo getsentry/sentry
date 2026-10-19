@@ -932,7 +932,7 @@ function IssueListOverviewInner({
   // Visible rows may span a subset of the page-filter selection; keep those
   // separate from the hard selected project filter the agent should scope to.
   const displayedProjectSlugs = [...new Set(groups.map(g => g.project.slug))];
-  // Right after a filter change, groups may still hold the previous filters' issues.
+  // Right after a filter change, `groups` may still hold the previous filters' issues.
   const currentIssuesLoading =
     issuesLoading || !isEqual(requestParams, previousRequestParams);
 
@@ -946,16 +946,17 @@ function IssueListOverviewInner({
       'query is the current search filter (Sentry search syntax). ' +
       'displayedIssues is a pipe-delimited CSV with header row (shortId|title|issueType|level|priority|events|users|firstSeen) of the visible issues on the current page. ' +
       'issueCount is the total matching issues — there may be more than what is displayed. ' +
+      (currentIssuesLoading
+        ? 'The list is still loading, so its issues are unknown. '
+        : '') +
       'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction. ' +
       'displayedProjectSlugs are only the projects represented by currently visible rows. ' +
-      'When issuesLoading is true, the list is still loading and its issues are unknown. ' +
       'You can get issue details for aggregate stats, get event details for a specific error event, ' +
       'and search live telemetry for related spans/errors/logs/metrics.',
     viewName: groupSearchView?.name,
     query,
     sort,
-    issuesLoading: currentIssuesLoading,
     issueCount: currentIssuesLoading ? null : queryCount,
     ...toLLMContextProjectFields(selectedProjects),
     displayedProjectSlugs: currentIssuesLoading ? null : displayedProjectSlugs,
