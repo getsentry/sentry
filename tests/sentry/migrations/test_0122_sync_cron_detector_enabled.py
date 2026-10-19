@@ -56,9 +56,27 @@ class SyncCronDetectorEnabledTest(TestMigrations):
         self.active_enabled = create("active-enabled", ObjectStatus.ACTIVE, True)
         self.pending_deletion = create("pending-deletion", ObjectStatus.PENDING_DELETION, True)
 
+        # Not a cron source, even though source_id matches a disabled monitor
+        disabled_monitor_id = DataSource.objects.get(
+            detectors__id=self.disabled_shown_enabled
+        ).source_id
+        other_source = DataSource.objects.create(
+            organization_id=org.id, source_id=disabled_monitor_id, type="uptime_subscription"
+        )
+        other_detector = Detector.objects.create(
+            project_id=project.id,
+            name="uptime",
+            type="uptime_domain_failure",
+            enabled=True,
+            config={},
+        )
+        DataSourceDetector.objects.create(data_source=other_source, detector=other_detector)
+        self.other_type = other_detector.id
+
     def test(self) -> None:
         Detector = self.apps.get_model("workflow_engine", "Detector")
         assert not Detector.objects.get(id=self.disabled_shown_enabled).enabled
         assert Detector.objects.get(id=self.active_shown_disabled).enabled
         assert Detector.objects.get(id=self.active_enabled).enabled
         assert Detector.objects.get(id=self.pending_deletion).enabled
+        assert Detector.objects.get(id=self.other_type).enabled
