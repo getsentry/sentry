@@ -52,13 +52,11 @@ interface HovercardContentProps extends Pick<
 interface HovercardProviderValue {
   isOpen: boolean;
   reset: () => void;
-  update: () => void;
 }
 
 const HovercardContext = createContext<HovercardProviderValue>({
   isOpen: false,
   reset: () => {},
-  update: () => {},
 });
 
 export function useHovercardContext() {
@@ -119,9 +117,8 @@ function Hovercard({
     () => ({
       isOpen,
       reset: hoverOverlayState.reset,
-      update: hoverOverlayState.update,
     }),
-    [isOpen, hoverOverlayState.reset, hoverOverlayState.update]
+    [isOpen, hoverOverlayState.reset]
   );
   // Nothing to render if no header or body. Be consistent with wrapping the
   // children with the trigger in the case that the body / header is set while
