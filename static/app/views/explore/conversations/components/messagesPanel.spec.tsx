@@ -392,7 +392,7 @@ describe('MessagesPanel', () => {
     expect(screen.getByText('weather')).toBeInTheDocument();
   });
 
-  it('labels Code Mode execution tools', () => {
+  it('preserves Code Mode tool names', () => {
     render(
       <MessagesPanel
         nodes={createNodesWithToolCalls(['sentry_api_execute']) as any}
@@ -401,7 +401,7 @@ describe('MessagesPanel', () => {
       />
     );
 
-    expect(screen.getByText('Code Mode')).toBeInTheDocument();
+    expect(screen.getByText('sentry_api_execute')).toBeInTheDocument();
   });
 
   it('renders a short run of tool calls inline without a summary', () => {

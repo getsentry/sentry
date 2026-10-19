@@ -117,7 +117,6 @@ export function ConversationSpanDetail({
 }: ConversationSpanDetailProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
-  const isCodeMode = node && isCodeModeNode(node);
 
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({top: 0});
@@ -160,8 +159,7 @@ export function ConversationSpanDetail({
 
   // Memory spans share a generic span op in the trace waterfall, so name the
   // heading after the operation to distinguish search, create, update, etc.
-  const operationName = isCodeMode ? t('Code Mode') : memory?.operation;
-  const title = operationName || node.op || node.description || t('Span');
+  const title = memory?.operation || node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
   const comparison = getDurationComparison(
     avgDuration,
@@ -232,7 +230,7 @@ export function ConversationSpanDetail({
       ) : (
         <TabStateProvider<DetailTab> value={activeTab} onChange={onTabChange}>
           <TabList>
-            <TabList.Item key="input">{isCodeMode ? t('Code') : t('Input')}</TabList.Item>
+            <TabList.Item key="input">{t('Input')}</TabList.Item>
             <TabList.Item key="output">{t('Output')}</TabList.Item>
             <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
           </TabList>

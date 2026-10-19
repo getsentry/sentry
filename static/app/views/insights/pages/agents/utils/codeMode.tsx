@@ -1,4 +1,5 @@
-import {isRecord} from 'sentry/utils/object/isRecord';
+import {z} from 'zod';
+
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -10,6 +11,34 @@ const CODE_MODE_TOOLS = new Set([
   'code_mode',
 ]);
 
+const LANGUAGE_ALIASES = new Map([
+  ['js', 'javascript'],
+  ['py', 'python'],
+]);
+
+const codeModeInputSchema = z
+  .union([
+    z.string().transform(code => ({code})),
+    z
+      .object({
+        code: z.unknown().optional(),
+        script: z.unknown().optional(),
+        language: z.unknown().optional(),
+      })
+      .transform(({code, script, language}) => ({code: code ?? script, language})),
+  ])
+  .pipe(
+    z.object({
+      code: z.string().refine(code => code.trim().length > 0),
+      language: z
+        .string()
+        .catch('javascript')
+        .transform(language => LANGUAGE_ALIASES.get(language) ?? language),
+    })
+  );
+
+type CodeModeInput = z.infer<typeof codeModeInputSchema>;
+
 export function isCodeModeNode(
   node: AITraceSpanNode,
   attributes?: TraceItemResponseAttribute[]
@@ -20,34 +49,15 @@ export function isCodeModeNode(
   return typeof name === 'string' && CODE_MODE_TOOLS.has(name);
 }
 
-export function getCodeModeInput(input: unknown): {
-  code: string;
-  language: string;
-} | null {
+export function getCodeModeInput(input: unknown): CodeModeInput | null {
   let parsed: unknown = input;
   if (typeof input === 'string') {
     try {
       parsed = JSON.parse(input);
     } catch {
-      // Preserve raw source, including incomplete code from failed executions.
-      return input.trim() ? {code: input, language: 'javascript'} : null;
+      parsed = input;
     }
   }
-  if (typeof parsed === 'string') {
-    return parsed.trim() ? {code: parsed, language: 'javascript'} : null;
-  }
-  if (!isRecord(parsed)) {
-    return null;
-  }
-  const code = parsed.code ?? parsed.script;
-  if (typeof code !== 'string' || !code.trim()) {
-    return null;
-  }
-  let language = typeof parsed.language === 'string' ? parsed.language : 'javascript';
-  if (language === 'js') {
-    language = 'javascript';
-  } else if (language === 'py') {
-    language = 'python';
-  }
-  return {code, language};
+  const result = codeModeInputSchema.safeParse(parsed);
+  return result.success ? result.data : null;
 }
