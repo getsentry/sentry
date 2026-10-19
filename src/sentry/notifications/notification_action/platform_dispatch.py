@@ -19,6 +19,7 @@ from sentry.notifications.notification_action.utils import (
     issue_notification_data_factory,
     metric_alert_notification_data_factory,
 )
+from sentry.notifications.platform.provider import SendFailure, SendSuccessResult
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.threading import ThreadingOptions, ThreadKey
@@ -30,6 +31,9 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.seer.entrypoints.operator import SeerAutofixOperator
+from sentry.seer.entrypoints.slack.entrypoint import prepare_slack_thread_for_autofix_updates
+from sentry.seer.types import SeerEntrypointKey
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
@@ -138,20 +142,28 @@ def _send(
     threading_options: ThreadingOptions | None,
     action_id: int,
     group_id: int,
-) -> None:
-    errors = NotificationService(data=data).notify_sync(
-        targets=[target], threading_options=threading_options
-    )
-    for failure in errors.get(target.provider_key, []):
+) -> SendSuccessResult | SendFailure:
+    """
+    Send a notification and return the result.
+    
+    Returns:
+        SendResult: The result of the send operation (SendSuccessResult or SendFailure)
+    """
+    service = NotificationService(data=data)
+    result = service.notify_target(target=target, threading_options=threading_options)
+    
+    if isinstance(result, SendFailure):
         logger.warning(
             "notification_action.platform_dispatch.send_failed",
             extra={
                 "action_id": action_id,
                 "group_id": group_id,
                 "provider": target.provider_key,
-                "status": failure.status.value,
+                "status": result.status.value,
             },
         )
+    
+    return result
 
 
 def send_metric_alert(context: IssueNotificationContext, provider: NotificationProviderKey) -> None:
@@ -238,10 +250,27 @@ def send_issue_alert(invocation: ActionInvocation, provider: NotificationProvide
             reply_broadcast=True,
         )
 
-    _send(
+    result = _send(
         issue_notification_data_factory(invocation),
         target,
         threading_options,
         invocation.action.id,
         group.id,
     )
+    
+    # Cache the thread for Seer autofix updates
+    if (
+        isinstance(result, SendSuccessResult)
+        and result.provider_message_id
+        and provider in (NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING)
+        and SeerAutofixOperator.has_access(
+            organization=organization, entrypoint_key=SeerEntrypointKey.SLACK
+        )
+    ):
+        prepare_slack_thread_for_autofix_updates(
+            thread_ts=result.provider_message_id,
+            channel_id=target.resource_id,
+            group=group,
+            organization_id=organization.id,
+            integration_id=target.integration_id,
+        )
