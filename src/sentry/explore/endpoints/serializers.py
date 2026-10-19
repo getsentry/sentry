@@ -204,6 +204,11 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
     range = serializers.CharField(
         required=False,
         allow_null=True,
+        help_text="The saved time range period for this saved query. Prefer `statsPeriod`.",
+    )
+    statsPeriod = serializers.CharField(
+        required=False,
+        allow_null=True,
         help_text="The saved time range period for this saved query.",
     )
     environment = ListField(
@@ -271,6 +276,11 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
             "metric",
             "caseInsensitive",
         ]
+
+        # Persist the relative period as `range`. Accept `statsPeriod` on write
+        # and keep `range` for older clients. `statsPeriod` wins when both are sent.
+        if data.get("statsPeriod") is not None:
+            data["range"] = data["statsPeriod"]
 
         for key in query_keys:
             if data.get(key) is not None:
