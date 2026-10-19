@@ -12,6 +12,9 @@ export enum AgentIntegration {
   // official Sentry blueprint. It runs on both Node and Cloudflare.
   FLUE = 'flue',
   MASTRA = 'mastra',
+  // Pi Durable, Earendil's durable agent harness (`@earendil-works/pi-durable`).
+  // The SDK instruments it automatically on Node, Bun, Deno, and Cloudflare.
+  PI = 'pi',
   PYDANTIC_AI = 'pydantic_ai',
   VERCEL_AI = 'vercel_ai',
   // Node-only: Vercel's filesystem-first framework for durable backend AI
@@ -35,6 +38,7 @@ export const AGENT_INTEGRATION_LABELS: Record<AgentIntegration, string> = {
   [AgentIntegration.LITELLM]: 'LiteLLM',
   [AgentIntegration.FLUE]: 'Flue',
   [AgentIntegration.MASTRA]: 'Mastra',
+  [AgentIntegration.PI]: 'Pi Durable',
   [AgentIntegration.PYDANTIC_AI]: 'Pydantic AI',
   [AgentIntegration.VERCEL_AI]: 'Vercel AI SDK',
   [AgentIntegration.EVE]: 'Eve',
@@ -53,6 +57,7 @@ export const AGENT_INTEGRATION_ICONS: Record<AgentIntegration, string> = {
   [AgentIntegration.LITELLM]: 'litellm',
   [AgentIntegration.FLUE]: 'flue',
   [AgentIntegration.MASTRA]: 'mastra',
+  [AgentIntegration.PI]: 'pi',
   [AgentIntegration.PYDANTIC_AI]: 'pydantic-ai',
   [AgentIntegration.VERCEL_AI]: 'vercel',
   // Eve is a Vercel framework, so it reuses the Vercel icon.
@@ -92,11 +97,13 @@ export const NODE_AGENT_INTEGRATIONS = [
   AgentIntegration.LANGGRAPH,
   AgentIntegration.MASTRA,
   AgentIntegration.OPENAI,
+  AgentIntegration.PI,
   AgentIntegration.MANUAL,
 ];
 
 export const DENO_AGENT_INTEGRATIONS = [
   AgentIntegration.VERCEL_AI,
+  AgentIntegration.PI,
   AgentIntegration.MANUAL,
 ];
 
@@ -128,6 +135,7 @@ const DEFAULT_AGENT_INTEGRATION_BY_PROJECT_PLATFORM: Partial<
   'node-eve': AgentIntegration.EVE,
   'node-flue': AgentIntegration.FLUE,
   'node-mastra': AgentIntegration.MASTRA,
+  'node-pi-durable': AgentIntegration.PI,
 };
 
 export function getDefaultAgentIntegration(
