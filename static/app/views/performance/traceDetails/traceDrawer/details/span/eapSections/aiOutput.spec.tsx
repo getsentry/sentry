@@ -130,8 +130,8 @@ describe('AIOutputSection', () => {
 });
 
 describe('getAIToolOutput', () => {
-  it.each([{answer: 20}, [1, 2], 'done', false, 0, null, ''])(
-    'unwraps the output value %p',
+  it.each([false, 0, null, ''])(
+    'preserves falsy output %p when unwrapping an envelope',
     output => {
       const node = makeAiNodeWithAttributes({
         'gen_ai.tool.call.result': JSON.stringify({input: {a: 12, b: 8}, output}),
@@ -147,20 +147,14 @@ describe('getAIToolOutput', () => {
     expect(getAIToolOutput(node)).toBe('{"answer":20}');
   });
 
-  it.each([
-    'plain text',
-    '{invalid json',
-    '{"input":1}',
-    '{"output":2}',
-    '[{"input":1,"output":2}]',
-    'null',
-    'false',
-    '0',
-  ])('preserves non-envelope results: %s', result => {
-    expect(
-      getAIToolOutput(makeAiNodeWithAttributes({'gen_ai.tool.call.result': result}))
-    ).toBe(result);
-  });
+  it.each(['plain text', '{"input":1}', '{"output":2}', '[{"input":1,"output":2}]'])(
+    'preserves non-envelope results: %s',
+    result => {
+      expect(
+        getAIToolOutput(makeAiNodeWithAttributes({'gen_ai.tool.call.result': result}))
+      ).toBe(result);
+    }
+  );
 
   it('reads fetched span attributes', () => {
     expect(

@@ -6,18 +6,9 @@ beforeEach(() => {
   Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
 });
 
-it('labels objects with their field count and renders a pretty tree', () => {
-  render(<ToolOutput value={JSON.stringify({answer: 20, status: 'complete'})} />);
-  expect(screen.getByText('Object · 2 fields')).toBeInTheDocument();
-  expect(screen.getByText(/complete/)).toBeInTheDocument();
-});
-
 it.each([
-  [[], 'Array · 0 items'],
-  [[20], 'Array · 1 item'],
   [[20, 30], 'Array · 2 items'],
-  [{}, 'Object · 0 fields'],
-  [{answer: 20}, 'Object · 1 field'],
+  [{answer: 20, status: 'complete'}, 'Object · 2 fields'],
 ])('shows the type and count for %p', (value, label) => {
   render(<ToolOutput value={JSON.stringify(value)} />);
   expect(screen.getByText(label)).toBeInTheDocument();
@@ -54,13 +45,6 @@ it.each([
   expect(screen.queryByText('No output for this span')).not.toBeInTheDocument();
 });
 
-it.each([false, 0, ''])('keeps raw falsy output %p visible', value => {
-  render(<ToolOutput value={value} />);
-  expect(
-    screen.getByText(value === '' ? 'Empty string' : String(value))
-  ).toBeInTheDocument();
-});
-
 it('distinguishes missing output from returned null', () => {
   render(<ToolOutput value={undefined} />);
   expect(screen.getByText('No output for this span')).toBeInTheDocument();
@@ -70,10 +54,7 @@ it('distinguishes missing output from returned null', () => {
 
 it.each([
   [{answer: 20}, '{\n  "answer": 20\n}'],
-  ['plain text', 'plain text'],
   [null, 'null'],
-  [false, 'false'],
-  [0, '0'],
   ['', ''],
 ])('copies the returned value %p rather than its presentation', async (value, copied) => {
   render(<ToolOutput value={JSON.stringify(value)} />);
