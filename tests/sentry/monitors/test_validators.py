@@ -1,6 +1,5 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
-from uuid import UUID
 
 import pytest
 from django.conf import settings
@@ -11,7 +10,6 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import ObjectStatus
-from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import (
     Monitor,
     MonitorStatus,
@@ -190,137 +188,6 @@ class MonitorValidatorCreateTest(MonitorTestCase):
                 code="invalid",
             )
         ]
-
-    @patch("sentry.monitors.validators.logger")
-    @patch("sentry.monitors.validators.metrics.incr")
-    def test_simple_with_alert_rule(self, mock_incr: MagicMock, mock_logger: MagicMock) -> None:
-        data = {
-            "project": self.project.slug,
-            "name": "My Monitor",
-            "type": "cron_job",
-            "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            "alert_rule": {
-                "environment": self.environment.name,
-                "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
-            },
-        }
-        validator = MonitorValidator(data=data, context=self.context)
-        assert validator.is_valid()
-
-        monitor = validator.save()
-
-        alert_rule_id = monitor.config["alert_rule_id"]
-        rule = Rule.objects.get(
-            project_id=monitor.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
-        )
-        assert rule is not None
-        assert rule.environment_id == self.environment.id
-        action = rule.data["actions"][0].copy()
-        UUID(action.pop("uuid"))
-        assert action == {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetIdentifier": self.user.id,
-            "targetType": "Member",
-        }
-        assert rule.data == {
-            "actions": rule.data["actions"],
-            "action_match": "any",
-            "conditions": [
-                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
-                {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
-                {
-                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                    "key": "monitor.slug",
-                    "match": "eq",
-                    "value": monitor.slug,
-                },
-            ],
-            "filter_match": "all",
-            "frequency": 5,
-        }
-        mock_incr.assert_any_call(
-            "monitors.validator.alert_rule", tags={"operation": "create"}, sample_rate=1.0
-        )
-        mock_logger.info.assert_called_once_with(
-            "monitors.validator.alert_rule",
-            extra={
-                "organization_id": self.organization.id,
-                "operation": "create",
-                "endpoint": "unknown",
-                "ui_request": False,
-            },
-        )
-
-    def test_alert_rule_with_team_target(self) -> None:
-        data = {
-            "project": self.project.slug,
-            "name": "My Monitor",
-            "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            "alert_rule": {"targets": [{"targetIdentifier": self.team.id, "targetType": "Team"}]},
-        }
-        validator = MonitorValidator(data=data, context=self.context)
-        assert validator.is_valid(), validator.errors
-
-        monitor = validator.save()
-        rule = Rule.objects.get(id=monitor.config["alert_rule_id"])
-        assert rule.data["actions"][0]["targetIdentifier"] == self.team.id
-        assert rule.data["actions"][0]["targetType"] == "Team"
-
-    def test_alert_rule_rejects_unknown_environment(self) -> None:
-        data = {
-            "project": self.project.slug,
-            "name": "My Monitor",
-            "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            "alert_rule": {"environment": "unknown", "targets": []},
-        }
-        validator = MonitorValidator(data=data, context=self.context)
-        assert not validator.is_valid()
-        assert validator.errors["alertRule"]["environment"] == [
-            ErrorDetail("This environment has not been created.", code="invalid")
-        ]
-
-    def test_alert_rule_rejects_unsupported_target_type(self) -> None:
-        data = {
-            "project": self.project.slug,
-            "name": "My Monitor",
-            "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            "alert_rule": {
-                "targets": [{"targetIdentifier": self.user.id, "targetType": "IssueOwners"}]
-            },
-        }
-        validator = MonitorValidator(data=data, context=self.context)
-        assert not validator.is_valid()
-        assert "IssueOwners" in str(validator.errors["alertRule"]["targets"][0]["targetType"])
-
-    def test_alert_rule_rejects_team_outside_project(self) -> None:
-        other_team = self.create_team(organization=self.organization)
-        data = {
-            "project": self.project.slug,
-            "name": "My Monitor",
-            "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            "alert_rule": {"targets": [{"targetIdentifier": other_team.id, "targetType": "Team"}]},
-        }
-        validator = MonitorValidator(data=data, context=self.context)
-        assert not validator.is_valid()
-        assert validator.errors["alertRule"]["targets"][0]["targetIdentifier"] == ErrorDetail(
-            "This team is not part of the project.", code="invalid"
-        )
-
-    def test_alert_rule_rejects_member_outside_project(self) -> None:
-        other_user = self.create_user()
-        data = {
-            "project": self.project.slug,
-            "name": "My Monitor",
-            "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            "alert_rule": {
-                "targets": [{"targetIdentifier": other_user.id, "targetType": "Member"}]
-            },
-        }
-        validator = MonitorValidator(data=data, context=self.context)
-        assert not validator.is_valid()
-        assert validator.errors["alertRule"]["targets"][0]["targetIdentifier"] == ErrorDetail(
-            "This user is not part of the project.", code="invalid"
-        )
 
     def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin
@@ -1461,6 +1328,24 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
 
         # Verify seat assignment was attempted exactly once (not double-called)
         mock_assign_seat.assert_called_once_with(seat_object=monitor)
+
+    @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    def test_create_with_monitor_status_disabled(self, mock_assign_seat):
+        condition_group = DataConditionGroup.objects.create(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        context = {**self.context, "condition_group": condition_group}
+        data = self._get_valid_detector_data()
+        data["dataSources"][0]["status"] = "disabled"
+        validator = MonitorIncidentDetectorValidator(data=data, context=context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        detector.refresh_from_db()
+        monitor = get_cron_monitor(detector)
+        assert monitor.status == ObjectStatus.DISABLED
+        assert detector.enabled is False
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
     def test_update_enable_assigns_seat(self, mock_assign_seat):

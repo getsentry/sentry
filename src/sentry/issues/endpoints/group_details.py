@@ -12,10 +12,10 @@ from rest_framework.response import Response
 
 from sentry import analytics, features, options, tagstore, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
-from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.client import client
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_func, get_environments
 from sentry.api.helpers.group_index import (
@@ -44,10 +44,9 @@ from sentry.integrations.api.serializers.models.external_issue import ExternalIs
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import (
     publish_action,
-    resolve_action_actor,
-    resolve_action_source,
 )
 from sentry.issues.action_log.read_metrics import activity_read_endpoint
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
@@ -451,7 +450,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
         are modified.
         """
         try:
-            discard = request.data.get("discard")
             project = group.project
             search_fn = functools.partial(prep_search, request, project)
             response = update_groups_with_search_fn(
@@ -460,7 +458,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             # if action was discard, there isn't a group to serialize anymore
             # if response isn't 200, return the response update_groups gave us (i.e. helpful error)
             # instead of serializing the updated group
-            if discard or response.status_code != 200:
+            if response.status_code != 200 or request.data.get("discard"):
                 return response
 
             # we need to fetch the object against as the bulk mutation endpoint

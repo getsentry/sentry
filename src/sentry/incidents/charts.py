@@ -5,8 +5,8 @@ from typing import Any
 
 from django.utils import timezone
 
-from sentry.api import client
 from sentry.api.base import logger
+from sentry.api.client import client
 from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType

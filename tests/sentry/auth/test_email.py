@@ -21,6 +21,18 @@ class EmailResolverTest(TestCase):
         result = resolve_email_to_user(self.user1.email)
         assert result == self.user1
 
+    def test_matches_case_insensitively(self) -> None:
+        user = self.create_user(email="admin@example.com")
+        assert resolve_email_to_user("ADMIN@Example.com") == user
+
+    def test_does_not_match_unicode_lookalikes(self) -> None:
+        self.create_user(email="admin@example.com")
+        self.create_user(email="test@example.com")
+        self.create_user(email="kilo@example.com")
+        assert resolve_email_to_user("adm\u0131n@example.com") is None
+        assert resolve_email_to_user("te\u017ft@example.com") is None
+        assert resolve_email_to_user("\u212ailo@example.com") is None
+
     @mock.patch("sentry.auth.email.metrics")
     def test_ambiguous_match(self, mock_metrics: mock.MagicMock) -> None:
         for user in (self.user1, self.user2):

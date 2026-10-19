@@ -10,7 +10,7 @@ from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponseRedirect
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from sentry_sdk.tracing import TransactionSource
+from sentry_sdk.traces import SegmentNameSource
 
 from sentry import analytics, features
 from sentry.analytics.events.integration_pipeline_step import IntegrationPipelineStep
@@ -68,7 +68,7 @@ def initialize_integration_pipeline(
     fail (feature flags disabled or provider cannot be added).
     """
     scope = sentry_sdk.get_current_scope()
-    scope.set_transaction_name(f"integration.{provider_id}", source=TransactionSource.VIEW)
+    scope.set_transaction_name(f"integration.{provider_id}", source=SegmentNameSource.VIEW)
 
     pipeline = IntegrationPipeline(
         request=request, organization=organization, provider_key=provider_id

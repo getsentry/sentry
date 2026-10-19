@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any
 
 from django.db.models import BigIntegerField
@@ -80,6 +81,7 @@ def get_detector_validator(
     detector_type_slug: str,
     instance: Detector | None = None,
     partial: bool = False,
+    data: Mapping[str, Any] | None = None,
 ) -> BaseDetectorTypeValidator:
     type = grouptype.registry.get_by_slug(detector_type_slug)
     if type is None:
@@ -98,7 +100,7 @@ def get_detector_validator(
             "access": request.access,
             "user": request.user,
         },
-        data=request.data,
+        data=request.data if data is None else data,
         partial=partial,
     )
 

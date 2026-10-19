@@ -12,7 +12,7 @@ import {
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/content';
+import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/constants';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
 const TRACE_EXPLORER_DATASET = 'spans';
@@ -40,7 +40,7 @@ export function useSaveMultiQuery() {
       dataset: TRACE_EXPLORER_DATASET, // Only supported for trace explorer for now
       start,
       end,
-      range: period,
+      statsPeriod: period,
       interval,
       projects,
       environment: environments,
