@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -11,7 +12,6 @@ import {
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
-import {AIToolOutput} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiToolOutput';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 
@@ -105,7 +105,7 @@ export function AIOutputSection({
           <TraceDrawerComponents.MultilineJSON value={toolCalls} maxDefaultDepth={2} />
         </Fragment>
       )}
-      {hasToolOutput ? <AIToolOutput value={toolOutput} /> : null}
+      {hasToolOutput ? <ToolOutput value={toolOutput} /> : null}
     </FoldSection>
   );
 }

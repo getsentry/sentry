@@ -10,6 +10,8 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
+import {CodeModeInput} from 'sentry/components/ai/toolDetails/codeModeInput';
+import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -17,7 +19,6 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {CodeModeInput} from 'sentry/views/explore/conversations/components/codeModeInput';
 import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
   EvaluationInputTab,
@@ -59,7 +60,6 @@ import {
   getAIOutputData,
   getAIToolOutput,
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {AIToolOutput} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiToolOutput';
 import {AttributesContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
@@ -488,7 +488,7 @@ function OutputTab({
         </Fragment>
       ) : null}
       {hasToolOutput ? (
-        <AIToolOutput key={`${node.id}:tool-output`} value={toolOutput} />
+        <ToolOutput key={`${node.id}:tool-output`} value={toolOutput} />
       ) : null}
     </Fragment>
   );

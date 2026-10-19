@@ -2,11 +2,11 @@
 title: Code Mode Span Details
 description: Formatted code inputs and structured tool outputs.
 category: patterns
-source: sentry/views/explore/conversations/components/codeModeInput
+source: sentry/components/ai/toolDetails/codeModeInput
 ---
 
 import {CodeModeInput} from './codeModeInput';
-import {AIToolOutput} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiToolOutput';
+import {ToolOutput} from './toolOutput';
 import * as Storybook from 'sentry/stories';
 
 ## Code Execution
@@ -28,7 +28,7 @@ Objects and arrays show their field or item count. Strings render as plain text,
 with separate labels for null, empty strings, and missing output.
 
 <Storybook.Demo>
-  <AIToolOutput
+  <ToolOutput
     value={JSON.stringify({
       total: 2,
       issues: [
@@ -40,7 +40,7 @@ with separate labels for null, empty strings, and missing output.
 </Storybook.Demo>
 
 <Storybook.Demo>
-  <AIToolOutput value="null" />
+  <ToolOutput value="null" />
 </Storybook.Demo>
 
 ## Other Languages
