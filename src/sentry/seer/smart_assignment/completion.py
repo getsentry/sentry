@@ -44,26 +44,20 @@ def process_smart_assignment_completion(group: Group, activity: Activity) -> Non
         # already landed) or later (if ground truth hasn't landed yet).
         record_prediction(run, predicted_assignee_user_ids, top_user_id)
 
-    # A resolution-triggered run exists only to be scored against the resolver. The
-    # issue is already resolved, so assigning it would notify someone after the fact.
-    trigger = (run.extras or {}).get("trigger") if run is not None else None
-    auto_assign = trigger not in {activity_type.name for activity_type in RESOLUTION_ACTIVITIES}
-
-    _apply_prediction(
-        group, top_user_id, used_rank, run_uuid=data.get("run_uuid"), auto_assign=auto_assign
-    )
+    _apply_prediction(group, run, top_user_id, used_rank, run_uuid=data.get("run_uuid"))
 
 
 def _apply_prediction(
     group: Group,
+    run: SeerAgentRun | None,
     top_user_id: int | None,
     used_rank: int | None,
     run_uuid: str | None,
-    auto_assign: bool = True,
 ) -> None:
     """If the feature flag is enabled and we predicted an acutal org user,
-    create a (suggested) GroupOwner for them. Then, if `auto_assign`, promote the
-    suggestion to an assignment iff the project auto-assigns to owners."""
+    create a (suggested) GroupOwner for them. Then promote the suggestion to an
+    assignment iff the project auto-assigns to owners and the run wasn't triggered
+    by a resolution."""
     if not (
         features.has(AUTO_ASSIGN_FEATURE_FLAG, group.organization)
         and (
@@ -104,6 +98,11 @@ def _apply_prediction(
         defaults={"date_added": timezone.now()},
         context_defaults=context,
     )
+
+    # A resolution-triggered run exists only to be scored against the resolver. The
+    # issue is already resolved, so assigning it would notify someone after the fact.
+    trigger = (run.extras or {}).get("trigger") if run is not None else None
+    auto_assign = trigger not in {activity_type.name for activity_type in RESOLUTION_ACTIVITIES}
 
     # Promote the suggestion to an assignment iff the project auto-assigns to owners.
     # The ASSIGNED activity written is tagged with ActivityIntegration.SEER_SUGGESTED so
