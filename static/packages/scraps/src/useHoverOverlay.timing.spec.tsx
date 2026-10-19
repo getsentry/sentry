@@ -63,8 +63,10 @@ function DelayedForceVisibleTrigger({
 }
 
 describe('useHoverOverlay timing', () => {
+  const originalNodeEnv = process.env.NODE_ENV;
+
   beforeEach(() => {
-    jest.replaceProperty(process.env, 'NODE_ENV', 'production');
+    process.env.NODE_ENV = 'production';
     jest.useFakeTimers();
   });
 
@@ -76,6 +78,7 @@ describe('useHoverOverlay timing', () => {
       });
     } finally {
       jest.useRealTimers();
+      process.env.NODE_ENV = originalNodeEnv;
       jest.restoreAllMocks();
     }
   });
