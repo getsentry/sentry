@@ -12,7 +12,7 @@ import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import {Menu} from '@sentry/scraps/menu';
-import {InnerWrap, type MenuListItemProps} from '@sentry/scraps/menuListItem';
+import {InnerWrap, type MenuListItemProps} from '@sentry/scraps/menu/item';
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;

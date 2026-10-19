@@ -14,7 +14,7 @@ import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {Menu} from '@sentry/scraps/menu';
-import {InnerWrap, type MenuListItemProps} from '@sentry/scraps/menuListItem';
+import {InnerWrap, type MenuListItemProps} from '@sentry/scraps/menu/item';
 import type {FormSize} from '@sentry/scraps/theme';
 
 export interface GridListOptionProps<

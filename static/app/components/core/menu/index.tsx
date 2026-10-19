@@ -1,5 +1,4 @@
-import {MenuListItem} from '@sentry/scraps/menuListItem';
-
+import {MenuListItem} from './item';
 import {
   MenuFooterLayout,
   MenuHeaderLayout,

@@ -22,7 +22,7 @@ import {DetailsDemo, StatesDemo, TrailingDemo} from './__stories__/components';
 
 export const documentation = import('!!type-loader!@sentry/scraps/menuListItem');
 
-`<MenuListItem>` is a versatile building block for creating menu items, dropdown options, and selectable list items. It provides consistent styling, interaction states, and support for icons, labels, and supplementary details.
+`<MenuListItem>` is a versatile building block for creating menu items, dropdown options, and selectable list items. It provides consistent styling, interaction states, and support for icons, labels, and supplementary details. The shared implementation is now exported as `Menu.Item`; this import remains available for existing callers.
 
 Use `<MenuListItem>` when building custom menus, dropdown options, or selectable lists. For standard dropdowns, prefer higher-level components like `<CompactSelect>` which use `<MenuListItem>` internally.
 

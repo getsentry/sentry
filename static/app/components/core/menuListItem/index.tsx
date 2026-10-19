@@ -3,4 +3,4 @@ export {
   LeadingItems,
   InnerWrap,
   type MenuListItemProps,
-} from './menuListItem';
+} from '../menu/item';

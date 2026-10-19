@@ -10,7 +10,7 @@ import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Menu} from '@sentry/scraps/menu';
-import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
+import type {MenuListItemProps} from '@sentry/scraps/menu/item';
 
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
