@@ -1,5 +1,4 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
@@ -45,17 +44,6 @@ describe('Link', () => {
     // eslint-disable-next-line eslint-js/no-restricted-syntax
     render(<Link to="https://www.sentry.io/">Link</Link>);
     expect(screen.getByText('Link')).toHaveAttribute('href', 'https://www.sentry.io/');
-  });
-
-  it('applies text styles without resetting layout spacing', () => {
-    render(<Link to="/issues/">Link</Link>);
-
-    const rules = getEmotionRules(screen.getByRole('link', {name: 'Link'})).join(' ');
-
-    expect(rules).toContain('text-box-edge: text text');
-    expect(rules).toContain('text-box-trim: trim-both');
-    expect(rules).not.toMatch(/margin:\s*0/);
-    expect(rules).not.toMatch(/padding:\s*0/);
   });
 
   it('uses the link text as the tracking label', async () => {

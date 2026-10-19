@@ -12,7 +12,6 @@ import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
-import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -42,16 +41,9 @@ import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {getUserTagValue} from 'sentry/views/issueDetails/utils';
 
-type TagSort = 'date' | 'count';
-const DEFAULT_SORT: TagSort = 'count';
+import {TagDetailsTable, type TagSort} from './tagDetailsTable';
 
-const COLUMNS: TableColumnConfig[] = [
-  {key: 'value', width: '1fr'},
-  {key: 'lastSeen', width: 'min-content', visible: {xs: true}},
-  {key: 'count', width: 'min-content'},
-  {key: 'share', width: 'min-content', visible: {sm: true}},
-  {key: 'actions', width: 'min-content'},
-];
+const DEFAULT_SORT: TagSort = 'count';
 
 export function TagDetailsDrawerContent({group}: {group: Group}) {
   const location = useLocation();
@@ -103,31 +95,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   return (
     <Fragment>
       <Container flexShrink={0}>
-        <SimpleTable
-          aria-label={t('Tag values')}
-          columns={COLUMNS}
-          density="compressed"
-          header={
-            <SimpleTable.HeaderRow>
-              <SimpleTable.HeaderCell>{t('Value')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell
-                sort={sort === 'date' ? 'desc' : undefined}
-                to={getSortLocation('date')}
-              >
-                {t('Last Seen')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell
-                align="right"
-                sort={sort === 'count' ? 'desc' : undefined}
-                to={getSortLocation('count')}
-              >
-                {t('Count')}
-              </SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell align="right">{t('Share')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell aria-label={t('Actions')} />
-            </SimpleTable.HeaderRow>
-          }
-        >
+        <TagDetailsTable sort={sort} getSortLocation={getSortLocation}>
           {isPending ? (
             <SimpleTable.Loading />
           ) : isError ? (
@@ -144,7 +112,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
           ) : (
             <SimpleTable.Empty>{t('No tag values found')}</SimpleTable.Empty>
           )}
-        </SimpleTable>
+        </TagDetailsTable>
       </Container>
       {isPending || isError ? null : (
         <Pagination
