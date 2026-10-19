@@ -5,8 +5,6 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Menu} from '@sentry/scraps/menu';
 
-import {MenuItem} from './listItem';
-
 describe('Menu.Item', () => {
   it('attaches the ref to the default li wrapper', () => {
     const ref = createRef<HTMLLIElement>();
@@ -45,10 +43,10 @@ describe('Menu.Item', () => {
       </Fragment>
     );
 
-    expectTypeOf<Parameters<typeof MenuItem<'li'>>[0]['ref']>().toEqualTypeOf<
+    expectTypeOf<Parameters<typeof Menu.Item<'li'>>[0]['ref']>().toEqualTypeOf<
       React.Ref<HTMLLIElement> | undefined
     >();
-    expectTypeOf<Parameters<typeof MenuItem<'div'>>[0]['ref']>().toEqualTypeOf<
+    expectTypeOf<Parameters<typeof Menu.Item<'div'>>[0]['ref']>().toEqualTypeOf<
       React.Ref<HTMLDivElement> | undefined
     >();
   });

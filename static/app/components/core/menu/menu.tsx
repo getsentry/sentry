@@ -5,15 +5,83 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
+import {IconSearch} from '@sentry/icons/search';
 
+import {InputGroup} from '@sentry/scraps/input';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import type {ContainerProps} from '@sentry/scraps/layout/container';
+import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import type {FormSize, Theme} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+
+/** Container for a menu header, with a divider below it. */
+function MenuHeaderLayout(props: FlexProps) {
+  return <Stack borderBottom="muted" gap="0" {...props} />;
+}
+
+/** Text style for the menu's main heading. */
+function MenuHeading({children}: {children: React.ReactNode}) {
+  return (
+    <Text size="sm" density="fixed" bold tabular>
+      {children}
+    </Text>
+  );
+}
+
+/** Text style for a heading within a menu section. */
+function MenuSectionHeading({
+  children,
+  ...props
+}: Omit<React.HTMLAttributes<HTMLSpanElement>, 'color' | 'style'> & {
+  children: React.ReactNode;
+}) {
+  return (
+    <Text as="span" size="sm" density="fixed" bold tabular {...props}>
+      {children}
+    </Text>
+  );
+}
+
+/** Divider between menu sections. */
+function MenuSectionDivider() {
+  return <Separator orientation="horizontal" border="muted" />;
+}
+
+/** List item wrapper for a menu section. */
+function MenuSectionLayout(props: ContainerProps<'li'>) {
+  return <Container as="li" display="block" {...props} />;
+}
+
+/** List wrapper for the items within a menu section. */
+function MenuSectionGroup(props: ContainerProps<'ul'>) {
+  return <Container as="ul" margin="0" padding="0" {...props} />;
+}
+
+/** Container for menu footer actions, with a divider above it. */
+function MenuFooterLayout(props: FlexProps) {
+  return <Flex borderTop="muted" align="center" {...props} />;
+}
+
+type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input>;
+
+/** Shared search field with a leading icon for menu controls. */
+function SearchInput(props: SearchInputProps) {
+  return (
+    <InputGroup>
+      <InputGroup.LeadingItems disablePointerEvents>
+        <Flex paddingLeft="2xs" align="center" justify="center">
+          <IconSearch size="xs" variant="muted" />
+        </Flex>
+      </InputGroup.LeadingItems>
+      <InputGroup.Input size="xs" {...props} />
+    </InputGroup>
+  );
+}
 
 /**
  * Menu item priority. Determines the text and background color.
@@ -345,7 +413,7 @@ function BaseMenuItem<T extends React.ElementType = 'li'>({
   );
 }
 
-export const MenuItem = memo(BaseMenuItem) as typeof BaseMenuItem;
+const MenuItem = memo(BaseMenuItem) as typeof BaseMenuItem;
 
 const POPPER_OPTIONS = {
   placement: 'right-start' as const,
@@ -444,5 +512,15 @@ const TrailingItems = styled('div')<{disabled: boolean}>`
   ${p => p.disabled && 'opacity: 0.5;'}
 `;
 
-export const LeadingItems = StyledLeadingItems;
-export const InnerWrap = StyledInnerWrap;
+/** Shared presentation; consumers own state, keyboard behavior, and ARIA roles. */
+export const Menu = {
+  Header: MenuHeaderLayout,
+  Title: MenuHeading,
+  Search: SearchInput,
+  Section: MenuSectionLayout,
+  SectionTitle: MenuSectionHeading,
+  SectionItems: MenuSectionGroup,
+  Separator: MenuSectionDivider,
+  Footer: MenuFooterLayout,
+  Item: MenuItem,
+};
