@@ -192,7 +192,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         self._store_spans_in_buckets([10, 1, 0, 0, 0, 0, 0, 0], self.start, "foo", 15)
         self._store_spans_in_buckets([0, 0, 0, 8, 4, 0, 0, 0], self.start, "bar", 15)
 
-        for interval, selected_values, other_values, selected_counts, other_counts in [
+        cases: list[tuple[int, list[float | None], list[float | None], list[int], list[int]]] = [
             (
                 15,
                 [None, None, None, 8, 6, None, None, None],
@@ -201,7 +201,8 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                 [10, 1, 0, 0, 0, 0, 0, 0],
             ),
             (60, [8, 6], [15.5, None], [8, 4], [11, 0]),
-        ]:
+        ]
+        for interval, selected_values, other_values, selected_counts, other_counts in cases:
             response = self._do_request(
                 data={
                     "interval": f"{interval}s",

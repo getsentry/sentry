@@ -25,11 +25,11 @@ from sentry.api.helpers.timeseries_transformations import (
         ("transformations[0]=fill(locf)", {0: [FillTransformation(mode="locf")]}),
         ("transformations[0]=smooth(asap)", {0: [AsapSmoothTransformation(mode="asap")]}),
         (
-            "transformations[0]=smooth(asap,7)&transformations[0]=smooth(ema,3)",
+            "transformations[0]=smooth(asap,7)&transformations[0]=fill(zero)",
             {
                 0: [
                     AsapSmoothTransformation(mode="asap", max_window_size=7),
-                    EmaSmoothTransformation(mode="ema", window_size=3),
+                    FillTransformation(mode="zero"),
                 ]
             },
         ),
@@ -177,6 +177,10 @@ def test_decode_transformations_invalid_value(
         ),
         (
             ["smooth(sma,3)", "smooth(ema,3)"],
+            "Only one transformation per function type is allowed per yAxis",
+        ),
+        (
+            ["smooth(asap,7)", "smooth(ema,3)"],
             "Only one transformation per function type is allowed per yAxis",
         ),
         (
