@@ -18,6 +18,7 @@ from django.db.models.signals import class_prepared, post_delete, post_init, pos
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.manager.types import M
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
+from sentry.signals import post_update
 from sentry.silo.base import SiloLimit
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -169,6 +170,7 @@ class BaseManager(_base_manager_base[M]):
 
         post_init.connect(self.__post_init, sender=sender, weak=False)
         post_save.connect(self.__post_save, sender=sender, weak=False)
+        post_update.connect(self.__post_update, sender=sender, weak=False)
         post_delete.connect(self.__post_delete, sender=sender, weak=False)
 
     def __cache_state(self, instance: M) -> None:
@@ -236,6 +238,18 @@ class BaseManager(_base_manager_base[M]):
         self.__cache_state(instance)
 
         self._execute_triggers(ModelManagerTriggerCondition.SAVE)
+
+    def __post_update(self, model_ids: Sequence[Any], **kwargs: Any) -> None:
+        """
+        Since `post_update` only provides the ids of the updated instances,
+        we can't cache the updated instances. Instead, invalidate the cache
+        so that readers of `get_from_cache` do not read stale data
+        """
+        pk_name = self.model._meta.pk.name
+
+        cache_keys = [self.__get_lookup_cache_key(**{pk_name: model_id}) for model_id in model_ids]
+
+        cache.delete_many(cache_keys, version=self.cache_version)
 
     def __post_delete(self, instance: M, **kwargs: Any) -> None:
         """
