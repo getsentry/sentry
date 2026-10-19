@@ -44,17 +44,19 @@ function ToolOutputContent({output}: {output: ToolOutputData}) {
     case 'array':
     case 'object':
       return (
-        <StructuredData
-          value={output.value}
-          config={STRUCTURED_DATA_CONFIG}
-          maxDefaultDepth={MAX_DEFAULT_DEPTH}
-          autoCollapseLimit={AUTO_COLLAPSE_LIMIT}
-          initialExpandedPaths={[
-            '$',
-            ...getDefaultExpanded(MAX_DEFAULT_DEPTH, output.value, AUTO_COLLAPSE_LIMIT),
-          ]}
-          withAnnotatedText
-        />
+        <Text as="div" size="sm" monospace>
+          <StructuredData
+            value={output.value}
+            config={STRUCTURED_DATA_CONFIG}
+            maxDefaultDepth={MAX_DEFAULT_DEPTH}
+            autoCollapseLimit={AUTO_COLLAPSE_LIMIT}
+            initialExpandedPaths={[
+              '$',
+              ...getDefaultExpanded(MAX_DEFAULT_DEPTH, output.value, AUTO_COLLAPSE_LIMIT),
+            ]}
+            withAnnotatedText
+          />
+        </Text>
       );
     case 'null':
       return <Text variant="muted">{t('Returned null')}</Text>;

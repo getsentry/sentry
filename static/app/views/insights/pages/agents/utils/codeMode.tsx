@@ -43,9 +43,11 @@ export function getCodeModeInput(input: unknown): {
   if (typeof code !== 'string' || !code.trim()) {
     return null;
   }
-  const language = typeof args.language === 'string' ? args.language : 'javascript';
-  return {
-    code,
-    language: language === 'js' ? 'javascript' : language === 'py' ? 'python' : language,
-  };
+  let language = typeof args.language === 'string' ? args.language : 'javascript';
+  if (language === 'js') {
+    language = 'javascript';
+  } else if (language === 'py') {
+    language = 'python';
+  }
+  return {code, language};
 }
