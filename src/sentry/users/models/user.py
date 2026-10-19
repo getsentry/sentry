@@ -42,6 +42,7 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.serviceaccount import ServiceAccount
 from sentry.organizations.services.organization import RpcCellUser, organization_service
 from sentry.types.cell import find_all_cell_names, find_cells_for_user
 from sentry.users.models.authenticator import Authenticator
@@ -438,12 +439,17 @@ class User(Model, AbstractBaseUser):
                 transaction.atomic(using=router.db_for_write(OrganizationMemberMapping)),
                 flush=False,
             ):
-                # Update records individually as OrgAuthToken has outboxes
+                # Update records individually as OrgAuthToken and ServiceAccount have outboxes
                 for token in OrgAuthToken.objects.filter(
                     organization_id=organization_id, created_by_id=from_user_id
                 ):
                     token.created_by_id = to_user_id
                     token.save()
+                for service_account in ServiceAccount.objects.filter(
+                    organization_id=organization_id, created_by_id=from_user_id
+                ):
+                    service_account.created_by_id = to_user_id
+                    service_account.save()
 
         # Update any member map records where the the merged user was the inviter
         queryset = OrganizationMemberMapping.objects.filter(inviter_id=from_user_id)

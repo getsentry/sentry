@@ -114,6 +114,7 @@ from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.models.search_common import SearchType
+from sentry.models.serviceaccount import ServiceAccount, ServiceAccountProject
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.seer.models.project_repository import (
@@ -888,6 +889,13 @@ class ExhaustiveFixtures(Fixtures):
             date_last_used=None,
             project_last_used_id=project.id,
         )
+        service_account = ServiceAccount.objects.create(
+            organization_id=org.id,
+            name=f"service account for {org.slug}",
+            scope_list=["org:read", "project:read"],
+            created_by=owner,
+        )
+        ServiceAccountProject.objects.create(service_account=service_account, project_id=project.id)
 
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_exhaustive_organization_integration(self, org: Organization):

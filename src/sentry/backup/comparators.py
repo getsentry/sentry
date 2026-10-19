@@ -918,6 +918,8 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 EmailObfuscatingComparator("creator_label"),
             ],
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
+            "sentry.serviceaccount": [DateUpdatedComparator("date_updated")],
+            "sentry.serviceaccountproject": [DateUpdatedComparator("date_updated", "date_added")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
             "sentry.team": [
                 # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.

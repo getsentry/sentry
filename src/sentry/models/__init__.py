@@ -114,6 +114,7 @@ from .savedsearch import *  # NOQA
 from .search_common import *  # NOQA
 from sentry.seer.models import *  # NOQA
 from .sentryshot import *  # NOQA
+from .serviceaccount import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
 from .statistical_detectors import *  # NOQA
 from .team import *  # NOQA
