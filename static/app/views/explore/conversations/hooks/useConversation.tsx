@@ -375,7 +375,7 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
  * details endpoint. Shared by the display hook and the export fetch so both
  * request exactly the same window.
  */
-export function buildConversationQueryParams(
+function buildConversationQueryParams(
   conversation: UseConversationsOptions,
   selection: PageFilters
 ) {

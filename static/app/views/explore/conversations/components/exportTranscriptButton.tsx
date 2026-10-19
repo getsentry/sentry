@@ -45,6 +45,7 @@ export function ExportTranscriptButton({
           icon={<IconDownload />}
           busy={isExporting}
           disabled={isExporting}
+          aria-label={t('Export transcript')}
           tooltipProps={
             isExporting
               ? {title: t('Loading the full conversation. This can take a while.')}

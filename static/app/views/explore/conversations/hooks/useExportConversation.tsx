@@ -103,6 +103,12 @@ export function useExportConversation({
         | ConversationInfiniteData
         | undefined,
     });
+    // No try/finally here: the React Compiler does not support a finalizer, so
+    // cleanup is called on both the success and error paths explicitly.
+    const cleanup = () => {
+      observer.destroy();
+      queryClient.removeQueries({queryKey: exportQueryKey});
+    };
 
     try {
       let result = observer.getCurrentResult();
@@ -121,10 +127,11 @@ export function useExportConversation({
       const spans = result.data?.pages.flatMap(page => page.json.spans ?? []) ?? [];
       const title = result.data?.pages[0]?.json.title ?? null;
       const nodes = buildConversationNodes(spans).nodes;
+      cleanup();
       return {markdown: messagesToMarkdown(extractMessagesFromNodes(nodes)), title};
-    } finally {
-      observer.destroy();
-      queryClient.removeQueries({queryKey: exportQueryKey});
+    } catch (error) {
+      cleanup();
+      throw error;
     }
   }, [queryClient, organization, conversation, selection]);
 
@@ -134,6 +141,8 @@ export function useExportConversation({
   // handling live here so each sink stays a plain action.
   const exportWith = useCallback(
     async (sink: (conversationExport: ConversationExport) => void | Promise<void>) => {
+      // No finally: the React Compiler rejects a finalizer, so the spinner is
+      // reset on both the success and error paths.
       try {
         if (isFullyLoaded) {
           // Fast path: the whole conversation is already cached, so build the
@@ -147,11 +156,11 @@ export function useExportConversation({
 
         setIsExporting(true);
         await sink(await fetchConversation());
+        setIsExporting(false);
       } catch (error) {
+        setIsExporting(false);
         Sentry.captureException(error);
         addErrorMessage(t('Failed to export transcript'));
-      } finally {
-        setIsExporting(false);
       }
     },
     [isFullyLoaded, loadedNodes, loadedTitle, fetchConversation]
