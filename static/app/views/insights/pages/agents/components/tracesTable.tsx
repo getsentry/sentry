@@ -303,7 +303,7 @@ export function TracesTable({
       <HeadCell align={rightAlignColumns.has(column.key) ? 'right' : 'left'}>
         {column.name}
         {column.key === 'age' && <IconArrow direction="down" size="xs" />}
-        {column.key === 'agents' && <CellExpander />}
+        {column.key === 'agents' && <Container width="100vw" />}
       </HeadCell>
     );
   }, []);
@@ -351,10 +351,10 @@ export function TracesTable({
   }
   return (
     <Container>
-      <GridEditableContainer>
+      <Container position="relative">
         {tableComponent}
         {tracesRequest.isPlaceholderData && <LoadingOverlay />}
-      </GridEditableContainer>
+      </Container>
       <StyledPagination pageLinks={pageLinks} onCursor={setCursor} />
     </Container>
   );
@@ -658,10 +658,6 @@ const FramelessContainer = styled('div')`
   }
 `;
 
-const GridEditableContainer = styled('div')`
-  position: relative;
-`;
-
 const LoadingOverlay = styled('div')`
   position: absolute;
   top: 0;
@@ -677,10 +673,6 @@ const LoadingOverlay = styled('div')`
  * Used to force the cell to expand take as much width as possible in the table layout
  * otherwise grid editable will let the last column grow
  */
-const CellExpander = styled('div')`
-  width: 100vw;
-`;
-
 const HeadCell = styled('div')<{align: 'left' | 'right'}>`
   display: flex;
   flex: 1;

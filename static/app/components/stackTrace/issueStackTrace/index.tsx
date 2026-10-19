@@ -46,6 +46,7 @@ import {IssueStackTraceFrameContext} from './issueStackTraceFrameContext';
 import {
   formatExceptionsAsText,
   getExceptionEntryMeta,
+  getFirstVisibleStacktraceIndex,
   getOrderedExceptions,
   resolveExceptionFields,
 } from './utils';
@@ -189,6 +190,11 @@ function IssueStackTraceContent({
     exc =>
       exc.mechanism?.parent_id === undefined || !hiddenExceptions[exc.mechanism.parent_id]
   );
+  const firstStacktraceIndex = getFirstVisibleStacktraceIndex(
+    exceptions,
+    isMinified,
+    hiddenExceptions
+  );
 
   if (exceptions.length === 0) {
     return null;
@@ -320,7 +326,9 @@ function IssueStackTraceContent({
           return (
             <Disclosure
               key={exceptionId ?? idx}
-              defaultExpanded={idx === firstVisibleExceptionIndex}
+              defaultExpanded={
+                idx === firstVisibleExceptionIndex || idx === firstStacktraceIndex
+              }
               id={defined(exceptionId) ? `exception-${exceptionId}` : undefined}
             >
               <Disclosure.Title
