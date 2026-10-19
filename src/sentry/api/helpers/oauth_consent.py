@@ -1,5 +1,5 @@
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Literal, TypedDict
 
@@ -52,6 +52,8 @@ class OAuthPermissionGroup(TypedDict):
 
     Actions summarize access for display; they do not expand token scopes.
     Descriptions explain capabilities that actions alone cannot convey.
+    Access descriptions define each supported action, including unrequested
+    actions, so clients can explain access levels and identify inapplicable ones.
     """
 
     resource: str
@@ -59,6 +61,7 @@ class OAuthPermissionGroup(TypedDict):
     scopes: list[str]
     actions: list[str]
     description: str | None
+    accessDescriptions: dict[str, str]
 
 
 @dataclass(frozen=True)
@@ -72,45 +75,147 @@ class OAuthPermissionResource:
     resource: str
     label: str
     scopes: tuple[str, ...]
+    # Includes supported but unrequested actions so consent can distinguish
+    # unavailable access levels from access the application did not request.
+    access_descriptions: Mapping[str, str] = field(default_factory=dict)
 
 
 _PERMISSION_RESOURCES = (
     OAuthPermissionResource(
-        "organization", "Organization details", ("org:read", "org:write", "org:admin")
+        "organization",
+        "Organization details",
+        ("org:read", "org:write", "org:admin"),
+        access_descriptions={
+            "read": "View organization details and settings.",
+            "write": "Create and update organization resources and settings. Some organization resources, such as alert rules, can also be deleted.",
+            "admin": "Includes write access and allows deleting the organization and managing API keys, authentication providers, and service accounts.",
+        },
     ),
-    OAuthPermissionResource("ci", "CI workflows", ("org:ci",)),
-    OAuthPermissionResource("integrations", "Organization integrations", ("org:integrations",)),
+    OAuthPermissionResource(
+        "ci",
+        "CI workflows",
+        ("org:ci",),
+    ),
+    OAuthPermissionResource(
+        "integrations",
+        "Organization integrations",
+        ("org:integrations",),
+        access_descriptions={
+            "read": "View organization integrations and repositories.",
+            "write": "Install and update organization integrations and manage repositories.",
+            "admin": "Remove organization integrations and repositories.",
+        },
+    ),
     OAuthPermissionResource(
         "members",
         "Organization members",
         ("member:read", "member:write", "member:admin", "member:invite"),
+        access_descriptions={
+            "read": "View organization members and their membership details.",
+            "write": "Invite members and update their organization membership.",
+            "admin": "Includes write access and allows removing organization members.",
+            "invite": "Invite organization members.",
+        },
     ),
-    OAuthPermissionResource("teams", "Teams", ("team:read", "team:write", "team:admin")),
     OAuthPermissionResource(
-        "projects", "Projects", ("project:read", "project:write", "project:admin")
+        "teams",
+        "Teams",
+        ("team:read", "team:write", "team:admin"),
+        access_descriptions={
+            "read": "View teams and their membership.",
+            "write": "Create and update teams and manage team membership.",
+            "admin": "Includes write access and allows deleting teams.",
+        },
     ),
-    OAuthPermissionResource("releases", "Project releases", ("project:releases",)),
-    OAuthPermissionResource("distribution", "App distribution", ("project:distribution",)),
-    OAuthPermissionResource("events", "Events", ("event:read", "event:write", "event:admin")),
-    OAuthPermissionResource("alerts", "Alerts", ("alerts:read", "alerts:write")),
+    OAuthPermissionResource(
+        "projects",
+        "Projects",
+        ("project:read", "project:write", "project:admin"),
+        access_descriptions={
+            "read": "View projects and their settings.",
+            "write": "Create and update projects. Manage project settings and alert rules, including deleting them.",
+            "admin": "Includes write access and allows deleting projects and removing ownership rules.",
+        },
+    ),
+    OAuthPermissionResource(
+        "releases",
+        "Project releases",
+        ("project:releases",),
+        access_descriptions={
+            "read": "View releases and their files.",
+            "write": "Create and update releases and upload release files.",
+            "admin": "Delete releases and release files.",
+        },
+    ),
+    OAuthPermissionResource(
+        "distribution",
+        "App distribution",
+        ("project:distribution",),
+    ),
+    OAuthPermissionResource(
+        "events",
+        "Events",
+        ("event:read", "event:write", "event:admin"),
+        access_descriptions={
+            "read": "View events, issues, and user feedback.",
+            "write": "Update issues, including their status and assignment.",
+            "admin": "Includes write access and allows deleting issues and events.",
+        },
+    ),
+    OAuthPermissionResource(
+        "alerts",
+        "Alerts",
+        ("alerts:read", "alerts:write"),
+        access_descriptions={
+            "read": "View alert rules.",
+            "write": "Create, update, and delete alert rules.",
+        },
+    ),
     OAuthPermissionResource(
         "dashboards",
         "Dashboards",
         ("dashboard:read", "dashboard:create", "dashboard:write", "dashboard:delete"),
+        access_descriptions={
+            "read": "View dashboards.",
+            "create": "Create dashboards.",
+            "write": "Update dashboards.",
+            "delete": "Delete dashboards.",
+        },
     ),
-    OAuthPermissionResource("seer", "Seer", ("seer:read", "seer:write")),
-    OAuthPermissionResource("openid", "Authentication", ("openid",)),
-    OAuthPermissionResource("profile", "Personal information", ("profile",)),
-    OAuthPermissionResource("email", "Email address", ("email",)),
+    OAuthPermissionResource(
+        "seer",
+        "Seer",
+        ("seer:read", "seer:write"),
+        access_descriptions={
+            "read": "View Seer-generated work, including Autofix analysis.",
+            "write": "Run and update Seer-generated work, including Autofix analysis.",
+        },
+    ),
+    OAuthPermissionResource(
+        "openid",
+        "Authentication",
+        ("openid",),
+    ),
+    OAuthPermissionResource(
+        "profile",
+        "Personal information",
+        ("profile",),
+    ),
+    OAuthPermissionResource(
+        "email",
+        "Email address",
+        ("email",),
+    ),
 )
 # Match the access described by SENTRY_SCOPE_SETS. Full scope keys describe
 # special capabilities; suffix keys describe standard access levels.
 _PERMISSION_ACTIONS = {
     "read": ("read",),
     "write": ("read", "write"),
+    "dashboard:write": ("read", "create", "write"),
     "admin": ("read", "write", "admin"),
     "create": ("read", "create"),
-    "delete": ("read", "write", "delete"),
+    "delete": ("read", "create", "write", "delete"),
     "invite": ("invite",),
     "org:integrations": ("read", "write", "admin"),
     "project:releases": ("read", "write", "admin"),
@@ -141,6 +246,7 @@ def get_permission_groups(scopes: Sequence[str]) -> list[OAuthPermissionGroup]:
                 "label": resource.label,
                 "scopes": matched,
                 "actions": actions,
+                "accessDescriptions": dict(resource.access_descriptions),
                 "description": " ".join(get_permission_descriptions(matched))
                 if not actions or resource.resource == "seer"
                 else None,
