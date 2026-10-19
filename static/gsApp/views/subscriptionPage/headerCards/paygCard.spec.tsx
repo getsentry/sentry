@@ -9,6 +9,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
@@ -107,6 +108,45 @@ describe('PaygCard', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Set limit'}));
     await screen.findByRole('heading', {name: 'Set your on-demand limit'});
     expect(screen.queryByRole('button', {name: /pricing/})).not.toBeInTheDocument();
+  });
+
+  it('renders product and add-on prices when the PAYG pricing modal opens', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_team',
+      onDemandBudgets: {
+        budgetMode: OnDemandBudgetMode.SHARED,
+        sharedMaxBudget: 10_00,
+        enabled: true,
+        onDemandSpendUsed: 0,
+      },
+    });
+    subscription.addOns!.legacySeer!.enabled = true;
+    render(<PaygCard organization={organization} subscription={subscription} />);
+    renderGlobalModal();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Edit limit'}));
+    await userEvent.click(screen.getByRole('button', {name: 'PAYG pricing'}));
+
+    const table = await screen.findByRole('table', {name: 'Product prices'});
+    const replaysRow = within(table).getByRole('row', {name: /^Replays/});
+    const seerRow = within(table).getByRole('row', {name: /^Seer/});
+
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['Product', 'Price']);
+    expect(
+      within(replaysRow)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent)
+    ).toEqual(['Replays(50 included)', '*$0.00375/replay']);
+    expect(
+      within(seerRow)
+        .getAllByRole('cell')
+        .map(cell => cell.textContent)
+    ).toEqual(['Seer ($25 included)', '$1.25/fix, $0.0125/scan']);
   });
 
   it('renders per-category budget total', () => {
