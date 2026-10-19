@@ -171,6 +171,91 @@ class CustomInboundFiltersTest(APITestCase):
         assert response.data["name"] is None
         assert custom_filter.name is None
 
+    def test_post_release_comparison(self) -> None:
+        conditions = [
+            {"type": "release", "operator": "gte", "value": ["1.2.0"]},
+            {"type": "release", "operator": "lt", "value": ["myapp@2.0"]},
+        ]
+
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                name="Old versions",
+                dataType="all",
+                conditions=conditions,
+                status_code=201,
+            )
+
+        custom_filter = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert response.data["conditions"] == conditions
+        assert custom_filter.conditions == conditions
+
+    def test_rejects_unknown_operator(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[{"type": "release", "operator": "matches", "value": ["1.*"]}],
+            )
+
+        assert '"matches" is not a valid choice.' in str(
+            response.data["conditions"][0]["operator"][0]
+        )
+
+    def test_rejects_comparison_on_a_field_that_is_not_a_release(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[
+                    {"type": "release", "operator": "gte", "value": ["1.2.0"]},
+                    {"type": "error_message", "operator": "gt", "value": ["1.2.0"]},
+                ],
+            )
+
+        assert response.data["conditions"][0] == {}
+        assert str(response.data["conditions"][1]["operator"][0]) == (
+            "The error_message condition does not take the gt operator. "
+            "Only release compares as a version."
+        )
+
+    def test_rejects_comparison_with_several_values(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=[{"type": "release", "operator": "lte", "value": ["1.2.0", "2.0.0"]}],
+            )
+
+        assert str(response.data["conditions"][0]["value"][0]) == (
+            "The lte operator takes exactly one value."
+        )
+
+    def test_rejects_comparison_against_a_release_without_a_version(self) -> None:
+        cases = ["2*", "a4b7e0f9c2d1", "1.0/beta", "x" * 300]
+
+        for value in cases:
+            with self.feature(self.features):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    dataType="error",
+                    conditions=[{"type": "release", "operator": "gt", "value": [value]}],
+                )
+
+            assert str(response.data["conditions"][0]["value"][0]) == (
+                f"{value} is not a release with a version such as 1.2.0 or myapp@1.2.0."
+            )
+
     def test_without_inbound_filters_v2_feature(self) -> None:
         with self.feature(["projects:custom-inbound-filters"]):
             self.get_error_response(self.organization.slug, self.project.slug, status_code=404)

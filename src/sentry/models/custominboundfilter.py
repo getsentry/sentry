@@ -18,6 +18,19 @@ class ConditionType(StrEnum):
     GEO_COUNTRY_CODE = "geo_country_code"
 
 
+class ConditionOperator(StrEnum):
+    """
+    How a condition compares the field to its values. The ordered operators compare one
+    value as a release version. A condition without an operator matches the field against
+    its values as glob patterns.
+    """
+
+    GT = "gt"
+    GTE = "gte"
+    LT = "lt"
+    LTE = "lte"
+
+
 class DataType(StrEnum):
     ALL = "all"
     ERROR = "error"
