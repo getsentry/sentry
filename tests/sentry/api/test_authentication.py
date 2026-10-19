@@ -139,7 +139,7 @@ class TestJWTClientSecretAuthentication(TestCase):
     def _create_jwt(self, client_id: str, exp: datetime | None = None) -> str:
         """Helper to create a JWT token"""
         if exp is None:
-            exp = datetime.now() + timedelta(hours=1)
+            exp = datetime.now() + timedelta(minutes=1)
 
         payload = {
             "iss": client_id,  # Issuer
@@ -207,7 +207,7 @@ class TestJWTClientSecretAuthentication(TestCase):
             self.auth.authenticate(request)
 
     def test_expiration_too_far_in_future(self) -> None:
-        token = self._create_jwt(self.api_app.client_id, exp=datetime.now() + timedelta(hours=2))
+        token = self._create_jwt(self.api_app.client_id, exp=datetime.now() + timedelta(minutes=10))
         path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
         request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
@@ -270,13 +270,13 @@ class TestJWTClientSecretAuthentication(TestCase):
         now = datetime.now(UTC)
         path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
         with freeze_time(now):
-            token = self._create_jwt(self.api_app.client_id, exp=now + timedelta(minutes=30))
+            token = self._create_jwt(self.api_app.client_id, exp=now + timedelta(minutes=4))
             request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
             request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
             user, _ = self.auth.authenticate(request)
             assert user.id == self.sentry_app.proxy_user.id
 
-        with freeze_time(now + timedelta(minutes=5)):
+        with freeze_time(now + timedelta(minutes=2)):
             request2 = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
             request2.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
             with pytest.raises(AuthenticationFailed, match="JWT has already been used"):

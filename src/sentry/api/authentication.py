@@ -376,7 +376,7 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
 
 
 # Client-secret JWTs are single-use assertions, so they only need to live long enough to be sent.
-MAX_CLIENT_SECRET_JWT_LIFETIME_SECONDS = 60 * 60
+MAX_CLIENT_SECRET_JWT_LIFETIME_SECONDS = 5 * 60
 
 
 def get_payload_from_client_secret_jwt(
@@ -461,10 +461,9 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
             raise AuthenticationFailed("JWT expiration is too far in the future")
 
         cache_key = self._create_cache_key(installation.uuid, jti)
-        if cache.get(cache_key):
+        # Atomically remember the jti until the JWT expires so it can't be reused while still valid.
+        if not cache.add(cache_key, True, timeout=max(seconds_until_expiry, 1)):
             raise AuthenticationFailed("JWT has already been used")
-        # Remember the jti until the JWT expires so it can't be reused while still valid.
-        cache.set(cache_key, True, timeout=max(seconds_until_expiry, 1))
 
         return self.transform_auth(installation.sentry_app.proxy_user_id, None)
 
