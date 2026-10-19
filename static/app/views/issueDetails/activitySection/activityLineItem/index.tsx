@@ -8,7 +8,7 @@ import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 import type {ActivityFeedItem} from './activityFeedItem';
 import {getActivityItem} from './activityItem';
 import {ActivityLineHeadline} from './layout';
-import {ActivityLineMarker} from './progressMarker';
+import {ActivityLineMarker} from './marker';
 
 interface ActivityLineProps {
   group: Group;
@@ -24,7 +24,6 @@ export function ActivityLine({
   timestampUnitStyle,
 }: ActivityLineProps) {
   const organization = useOrganization();
-  const showProgress = organization.features.includes('issue-activity-progress');
   const {issueCategory, project} = group;
   const {activity} = item;
   const activityItem = useMemo(
@@ -49,13 +48,7 @@ export function ActivityLine({
 
   return (
     <Timeline.Item
-      marker={
-        <ActivityLineMarker
-          item={activity}
-          actorItem={actorActivity}
-          showProgress={showProgress}
-        />
-      }
+      marker={<ActivityLineMarker item={actorActivity} />}
       headline={
         <ActivityLineHeadline
           title={activityItem.title}
