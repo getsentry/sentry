@@ -18,10 +18,14 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
+import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
+  LOGS_ANCHOR_TIMESTAMP_KEY,
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
+  LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -30,6 +34,7 @@ import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParams
 import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 
 function ProviderWrapper({children}: {children?: React.ReactNode}) {
   return (
@@ -1113,6 +1118,150 @@ describe('logsTableRow', () => {
     const copiedUrl = mockWriteText.mock.calls[0]![0];
     expect(copiedUrl).toContain('logsRowId=1');
     expect(copiedUrl).not.toContain('logsQuery=id');
+  });
+
+  it('links to the log among unfiltered logs when the search has filters', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_AUTO_REFRESH_KEY]: 'paused',
+              [LOGS_CURSOR_KEY]: '0:100:0',
+              [LOGS_QUERY_KEY]: 'severity:info',
+              [ID_KEY]: '123',
+              [TITLE_KEY]: 'Saved query',
+              statsPeriod: '1h',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    const link = (await screen.findByText('View in context')).closest('a')!;
+
+    const url = new URL(link.getAttribute('href')!);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(url.pathname).toBe(`/organizations/${organization.slug}/explore/logs/`);
+    expect(Array.from(url.searchParams).sort()).toEqual([
+      [LOGS_ANCHOR_TIMESTAMP_KEY, String(rowData[OurLogKnownFieldKey.TIMESTAMP_PRECISE])],
+      [LOGS_FIELDS_KEY, 'message'],
+      [LOGS_FIELDS_KEY, 'timestamp'],
+      [LOGS_ROW_ID_KEY, '1'],
+      [LOGS_SORT_BYS_KEY, '-timestamp'],
+      ['statsPeriod', '1h'],
+    ]);
+  });
+
+  it('links to the log sorted by timestamp when the table is not sorted by time', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_QUERY_KEY]: 'severity:info',
+              [LOGS_SORT_BYS_KEY]: 'message',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    const link = (await screen.findByText('View in context')).closest('a')!;
+
+    expect(new URL(link.getAttribute('href')!).searchParams.get(LOGS_SORT_BYS_KEY)).toBe(
+      '-timestamp'
+    );
+  });
+
+  it('links to the log with a timestamp column when the table is not sorted by time and hides the timestamp', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              [LOGS_FIELDS_KEY]: ['message', 'severity'],
+              [LOGS_QUERY_KEY]: 'severity:info',
+              [LOGS_SORT_BYS_KEY]: 'message',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    const link = (await screen.findByText('View in context')).closest('a')!;
+
+    const url = new URL(link.getAttribute('href')!);
+    expect(url.searchParams.getAll(LOGS_FIELDS_KEY)).toEqual([
+      'timestamp',
+      'message',
+      'severity',
+    ]);
+    expect(url.searchParams.get(LOGS_SORT_BYS_KEY)).toBe('-timestamp');
+  });
+
+  it('does not offer to view the log in context when the search has no filters', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    await screen.findByText('Copy link');
+
+    expect(screen.queryByText('View in context')).not.toBeInTheDocument();
   });
 
   it('adds a grouping and opens the sidebar when the attributes menu group by is clicked', async () => {

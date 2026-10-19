@@ -33,6 +33,7 @@ import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
+import {encodeSort} from 'sentry/utils/queryString';
 import {getPageUrlWithParams} from 'sentry/utils/url/getPageUrlWithParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -49,14 +50,22 @@ import {
 } from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {
+  LOGS_AUTO_REFRESH_KEY,
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
+  LOGS_ANCHOR_TIMESTAMP_KEY,
+  LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
   LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LOGS_SORT_BYS_KEY,
+  logsTimestampDescendingSortBy,
+} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {
   TraceItemDetailsResponse,
@@ -114,6 +123,7 @@ import {
   getLogRowItem,
   getLogRowTimestampMillis,
   getLogSeverityLevel,
+  getTimeBasedSortBy,
   isPseudoLogResponseItem,
   isRegularLogResponseItem,
   ourlogToJson,
@@ -122,7 +132,10 @@ import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/l
 import {
   useAddSearchFilter,
   useQueryParamsFields,
+  useQueryParamsSearch,
+  useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
+import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
@@ -286,6 +299,8 @@ export const LogRowContent = memo(function LogRowContentImpl({
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const fields = useQueryParamsFields();
+  const search = useQueryParamsSearch();
+  const sortBys = useQueryParamsSortBys();
   const projects = useProjects();
 
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
@@ -535,6 +550,43 @@ export const LogRowContent = memo(function LogRowContentImpl({
       ]
     : [];
 
+  const viewInContextMenuItems: MenuItemProps[] =
+    isFrozen || search.isEmpty()
+      ? []
+      : [
+          {
+            key: 'view-in-context',
+            label: t('View in context'),
+            externalHref: getPageUrlWithParams(location, params => {
+              params.delete(LOGS_QUERY_KEY);
+              params.delete(LOGS_CURSOR_KEY);
+              params.delete(LOGS_AUTO_REFRESH_KEY);
+              params.delete(ID_KEY);
+              params.delete(TITLE_KEY);
+              if (!getTimeBasedSortBy(sortBys)) {
+                params.set(LOGS_SORT_BYS_KEY, encodeSort(logsTimestampDescendingSortBy));
+                if (!fields.includes(OurLogKnownFieldKey.TIMESTAMP)) {
+                  params.delete(LOGS_FIELDS_KEY);
+                  for (const field of [OurLogKnownFieldKey.TIMESTAMP, ...fields]) {
+                    params.append(LOGS_FIELDS_KEY, field);
+                  }
+                }
+              }
+              params.set(LOGS_ROW_ID_KEY, rowId);
+              params.set(
+                LOGS_ANCHOR_TIMESTAMP_KEY,
+                String(dataRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE])
+              );
+            }),
+            onAction: () => {
+              trackAnalytics('logs.table.row_viewed_in_context', {
+                log_id: rowId,
+                organization,
+              });
+            },
+          },
+        ];
+
   const buttonSize = 'xs';
   const chevronIcon = (
     <IconChevron size={buttonSize} direction={expanded ? 'down' : 'right'} />
@@ -767,7 +819,11 @@ export const LogRowContent = memo(function LogRowContentImpl({
                       }
                     }}
                     allowActions={ALLOWED_CELL_ACTIONS}
-                    extraMenuItems={[...(extraMenuItems ?? []), ...viewInTableMenuItems]}
+                    extraMenuItems={[
+                      ...(extraMenuItems ?? []),
+                      ...viewInTableMenuItems,
+                      ...viewInContextMenuItems,
+                    ]}
                     pin={pin}
                   >
                     {renderedField}
