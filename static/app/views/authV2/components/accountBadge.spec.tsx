@@ -2,15 +2,15 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {InvitationAccountBadge} from './invitationAccountBadge';
+import {AccountBadge} from 'sentry/views/authV2/components/accountBadge';
 
-describe('InvitationAccountBadge', () => {
-  it('identifies the account accepting the invitation and offers switching', async () => {
+describe('AccountBadge', () => {
+  it('identifies the account and offers switching', async () => {
     const user = UserFixture({name: 'Jane Doe', email: 'jane@example.com'});
     const onSwitchAccount = jest.fn();
 
     const {rerender} = render(
-      <InvitationAccountBadge user={user} onSwitchAccount={onSwitchAccount} />
+      <AccountBadge user={user} onSwitchAccount={onSwitchAccount} />
     );
 
     expect(screen.getByText('Jane Doe')).toBeVisible();
@@ -19,11 +19,7 @@ describe('InvitationAccountBadge', () => {
 
     expect(onSwitchAccount).toHaveBeenCalledTimes(1);
     rerender(
-      <InvitationAccountBadge
-        user={user}
-        isSwitchingAccount
-        onSwitchAccount={onSwitchAccount}
-      />
+      <AccountBadge user={user} isSwitchingAccount onSwitchAccount={onSwitchAccount} />
     );
 
     expect(screen.getByText(user.email)).toBeVisible();
