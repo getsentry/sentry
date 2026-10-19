@@ -16,7 +16,7 @@ def _block(
     block_id: str, role: str, content: str | None = None, push_key: str | None = None
 ) -> MemoryBlock:
     calls = (
-        [{"name": "write_pull_request", "params": {"idempotency_key": push_key}}]
+        [{"kind": "lib", "name": "write_pull_request", "params": {"idempotency_key": push_key}}]
         if push_key
         else []
     )
@@ -120,3 +120,35 @@ def test_push_log_index_links_each_call_to_its_push() -> None:
     assert [push_log[call.params["idempotency_key"]] for call in second.get_code_mode_calls()] == [
         new
     ]
+
+
+def test_code_mode_calls_keep_only_valid_lib_records() -> None:
+    result = ToolResult(
+        tool_call_id="t",
+        tool_call_function="execute",
+        structuredContent={
+            "calls": [
+                {"id": 1, "kind": "api", "method": "GET", "path": "/issues/", "status": 200},
+                {"id": 2, "kind": "note", "llm_description": "picking the newest issue"},
+                {"id": 3, "kind": "lib", "name": "write_pull_request", "params": {"repo": "a/b"}},
+                {"id": 4, "kind": "lib", "name": "get_issue", "params": None},
+                {"id": 5, "kind": "lib", "name": None},
+                {"id": 6, "kind": "future_kind", "name": "something"},
+                {"id": 7, "name": "no_kind"},
+            ]
+        },
+    )
+
+    assert [(call.name, call.params) for call in result.get_code_mode_calls()] == [
+        ("write_pull_request", {"repo": "a/b"}),
+        ("get_issue", {}),
+    ]
+
+
+@pytest.mark.parametrize("structured_content", [None, {}, {"calls": None}, {"calls": []}])
+def test_code_mode_calls_without_calls(structured_content: dict[str, Any] | None) -> None:
+    result = ToolResult(
+        tool_call_id="t", tool_call_function="execute", structuredContent=structured_content
+    )
+
+    assert result.get_code_mode_calls() == []

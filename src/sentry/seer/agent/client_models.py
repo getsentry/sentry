@@ -6,9 +6,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal, TypeVar
+from typing import Annotated, Any, Literal, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError, parse_obj_as, validator
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -181,14 +181,43 @@ class ToolLink(BaseModel):
         extra = "ignore"
 
 
-class CodeModeCall(BaseModel):
+class LibCallRecord(BaseModel):
     """One library call made inside a code-mode execute, e.g. write_pull_request."""
 
+    kind: Literal["lib"]
     name: str
     params: dict[str, Any] = Field(default_factory=dict)
 
     class Config:
         extra = "ignore"
+
+    @validator("params", pre=True)
+    def _params_or_empty(cls, value: Any) -> Any:
+        # Seer's CallRecord allows `params: null`.
+        return {} if value is None else value
+
+
+class ApiCallRecord(BaseModel):
+    """One HTTP request made inside a code-mode execute."""
+
+    kind: Literal["api"]
+
+    class Config:
+        extra = "ignore"
+
+
+class NoteCallRecord(BaseModel):
+    """A line the agent wrote itself inside a code-mode execute."""
+
+    kind: Literal["note"]
+
+    class Config:
+        extra = "ignore"
+
+
+# One record in a code-mode execute's `structuredContent.calls`, mirroring Seer's CallRecord.
+AnyCallRecord = LibCallRecord | ApiCallRecord | NoteCallRecord
+CallRecord = Annotated[AnyCallRecord, Field(discriminator="kind")]
 
 
 class ToolResult(BaseModel):
@@ -206,10 +235,20 @@ class ToolResult(BaseModel):
     class Config:
         extra = "ignore"
 
-    def get_code_mode_calls(self) -> list[CodeModeCall]:
+    def get_code_mode_calls(self) -> list[LibCallRecord]:
         """The library calls a code-mode execute made, in order."""
-        calls = (self.structuredContent or {}).get("calls", [])
-        return [CodeModeCall.parse_obj(call) for call in calls]
+        lib_calls: list[LibCallRecord] = []
+        for raw in (self.structuredContent or {}).get("calls") or []:
+            try:
+                # pydantic v1 only types parse_obj_as for classes, not unions.
+                record: AnyCallRecord = parse_obj_as(CallRecord, raw)  # type: ignore[arg-type]
+            except ValidationError:
+                # A kind added by a newer Seer, or a record that doesn't fit its kind. Neither
+                # tells us which library call ran, so it shouldn't stop the rest from matching.
+                continue
+            if isinstance(record, LibCallRecord):
+                lib_calls.append(record)
+        return lib_calls
 
 
 class MemoryBlock(BaseModel):
@@ -251,9 +290,9 @@ class AgentTurn:
                 return block
         return None
 
-    def get_code_mode_calls(self) -> list[CodeModeCall]:
+    def get_code_mode_calls(self) -> list[LibCallRecord]:
         """Every library call the agent made in the turn, in order."""
-        calls: list[CodeModeCall] = []
+        calls: list[LibCallRecord] = []
         for block in self.blocks:
             for result in block.tool_results or []:
                 if result:
