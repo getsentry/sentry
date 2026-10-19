@@ -18,6 +18,9 @@ from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.models.notificationmessage import NotificationMessage
+from sentry.notifications.platform.threading import ThreadingService
+from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -250,6 +253,55 @@ class TestNotifyAllThreadsForActivity(TestCase):
         # Verify it was the newer notification
         mock_send_notification.assert_called_once()
         assert mock_get_channel_id.call_args.args[0].id == parent_notification_2_message.id
+
+    @with_feature("organizations:slack-threads-refactor-uptime")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch(
+        "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
+    )
+    def test_platform_threads_filtered_to_current_open_period(
+        self, mock_send_notification, mock_record
+    ) -> None:
+        group = self.create_group(type=UptimeDomainCheckFailure.type_id)
+        activity = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_IGNORED.value,
+            user_id=self.user.id,
+            data={"ignoreUntilEscalating": True},
+        )
+        open_period_start = open_period_start_for_group(group)
+        assert open_period_start is not None
+        for thread_ts, period_start in [
+            ("111.111", (open_period_start - timedelta(days=1)).isoformat()),
+            ("222.222", open_period_start.isoformat()),
+        ]:
+            ThreadingService.store_new_thread(
+                threading_config={
+                    "key_type": NotificationSource.ISSUE,
+                    "key_data": {
+                        "action_id": self.action.id,
+                        "group_id": group.id,
+                        "open_period_start": period_start,
+                    },
+                    "provider_key": NotificationProviderKey.SLACK,
+                    "target_id": "C1234567890",
+                    "thread_identifier": thread_ts,
+                    "provider_data": None,
+                },
+                external_message_id=thread_ts,
+            )
+
+        with mock.patch.object(
+            type(group),
+            "issue_category",
+            new_callable=mock.PropertyMock,
+            return_value=GroupCategory.OUTAGE,
+        ):
+            self.service.notify_all_threads_for_activity(activity=activity)
+
+        mock_send_notification.assert_called_once()
+        assert mock_send_notification.call_args.kwargs["message_identifier"] == "222.222"
 
     @with_feature("organizations:slack-threads-refactor-uptime")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

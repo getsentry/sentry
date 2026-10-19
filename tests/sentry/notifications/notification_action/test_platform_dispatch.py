@@ -6,6 +6,7 @@ from unittest import mock
 
 from slack_sdk.web import SlackResponse
 
+from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -14,11 +15,14 @@ from sentry.notifications.notification_action.issue_alert_registry import (
     SlackIssueAlertHandler,
 )
 from sentry.notifications.notification_action.metric_alert_registry import SlackMetricAlertHandler
+from sentry.notifications.platform.provider import SendSuccessResult
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.types import NotificationProviderKey
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
@@ -44,13 +48,19 @@ def slack_response(client: mock.MagicMock, ts: str) -> SlackResponse:
     )
 
 
-@override_options({"notifications.platform-rollout.internal-testing": {"metric-alert": 1.0}})
-@override_options(
-    {"notifications.platform.alert-providers": {"metric-alert": ["slack", "slack_staging"]}}
-)
 @with_feature("organizations:notification-platform.internal-testing")
 class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
     def setUp(self) -> None:
+        self.enterContext(
+            override_options(
+                {
+                    "notifications.platform-rollout.internal-testing": {"metric-alert": 1.0},
+                    "notifications.platform.alert-providers": {
+                        "metric-alert": ["slack", "slack_staging"]
+                    },
+                }
+            )
+        )
         self.create_models()
         self.integration, _ = self.create_provider_integration_for(
             provider=IntegrationProviderSlug.SLACK,
@@ -140,13 +150,13 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
 
         assert "thread_ts" not in client.chat_postMessage.call_args_list[1].kwargs
 
-    @mock.patch.object(NotificationService, "notify_sync", return_value={})
+    @mock.patch.object(NotificationService, "notify_target", return_value=SendSuccessResult())
     def test_slack_staging_targets_staging_provider(self, mock_notify: mock.MagicMock) -> None:
         action = self.create_slack_action(Action.Type.SLACK_STAGING)
 
         SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(action))
 
-        [target] = mock_notify.call_args.kwargs["targets"]
+        target = mock_notify.call_args.kwargs["target"]
         assert target.provider_key == NotificationProviderKey.SLACK_STAGING
 
     @override_options({"notifications.platform.alert-providers": {"metric-alert": []}})
@@ -179,16 +189,9 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
 
     @mock.patch(f"{PLATFORM_DISPATCH_PATH}.logger")
     def test_logs_when_target_identifier_missing(self, mock_logger: mock.MagicMock) -> None:
-        # Create action without target_identifier
-        action = self.create_action(
-            type=Action.Type.SLACK,
-            integration_id=self.integration.id,
-            config={
-                "target_identifier": None,
-                "target_display": "Channel 123",
-                "target_type": ActionTarget.SPECIFIC,
-            },
-        )
+        # The config schema rejects a missing target_identifier, so drop it after saving
+        action = self.create_slack_action(Action.Type.SLACK)
+        action.config["target_identifier"] = None
 
         SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(action))
 
@@ -201,7 +204,8 @@ class MetricAlertPlatformDispatchTest(MetricAlertHandlerBase):
     @mock.patch(f"{PLATFORM_DISPATCH_PATH}.logger")
     def test_logs_when_integration_inactive(self, mock_logger: mock.MagicMock) -> None:
         # Mark integration as inactive
-        self.integration.update(status=1)  # ObjectStatus.DISABLED
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.update(status=ObjectStatus.DISABLED)
 
         SlackMetricAlertHandler.invoke_legacy_registry(self.invocation(self.action))
 
@@ -221,11 +225,11 @@ ISSUE_PLATFORM_OPTIONS = {
 
 
 @requires_snuba
-@override_options(ISSUE_PLATFORM_OPTIONS)
 @with_feature("organizations:notification-platform.internal-testing")
 class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
     def setUp(self) -> None:
         super().setUp()
+        self.enterContext(override_options(ISSUE_PLATFORM_OPTIONS))
         self.workflow = self.create_workflow(organization=self.organization)
         self.detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
         event = self.store_event(
@@ -297,6 +301,30 @@ class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
         follow_up = client.chat_postMessage.call_args_list[1].kwargs
         assert follow_up["thread_ts"] == "123.456"
         assert follow_up["reply_broadcast"] is True
+
+    @mock.patch(f"{PLATFORM_DISPATCH_PATH}.prepare_slack_thread_for_autofix_updates")
+    @mock.patch(f"{PLATFORM_DISPATCH_PATH}.SeerAutofixOperator.has_access", return_value=True)
+    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
+    def test_slack_follow_up_caches_root_thread_for_seer(
+        self,
+        mock_slack_client: mock.MagicMock,
+        mock_has_access: mock.MagicMock,
+        mock_prepare_thread: mock.MagicMock,
+    ) -> None:
+        action = self.create_channel_action(Action.Type.SLACK, IntegrationProviderSlug.SLACK)
+        client = mock_slack_client.return_value
+        client.chat_postMessage.side_effect = [
+            slack_response(client, "123.456"),
+            slack_response(client, "123.789"),
+        ]
+
+        SlackIssueAlertHandler.invoke_legacy_registry(self.invocation(action))
+        SlackIssueAlertHandler.invoke_legacy_registry(self.invocation(action))
+
+        assert [c.kwargs["thread_ts"] for c in mock_prepare_thread.call_args_list] == [
+            "123.456",
+            "123.456",
+        ]
 
     @mock.patch("sentry.integrations.discord.integration.DiscordClient")
     def test_discord_sends_to_channel(self, mock_discord_client: mock.MagicMock) -> None:

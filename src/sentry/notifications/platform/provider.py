@@ -51,6 +51,9 @@ class SendSuccessResult:
     is_threaded: bool = False
     """Whether the notification was sent with threading."""
 
+    thread_identifier: str | None = None
+    """The existing thread's root identifier when sent as a reply, None for a new message."""
+
 
 @dataclass(frozen=True)
 class SendFailure:
