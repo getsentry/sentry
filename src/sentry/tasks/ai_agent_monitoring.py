@@ -90,8 +90,7 @@ def fetch_ai_model_metadata() -> None:
     try:
         models_dev_models = _fetch_models_dev_models()
         for model_id, model_metadata in models_dev_models.items():
-            if model_id not in models_dict:
-                models_dict[model_id] = model_metadata
+            models_dict.setdefault(model_id, model_metadata)
     except Exception as e:
         logger.warning(
             "Failed to fetch AI model metadata from models.dev API", extra={"error": str(e)}

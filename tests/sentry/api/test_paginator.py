@@ -152,9 +152,41 @@ class OffsetPaginatorTest(TestCase):
         with pytest.raises(BadPaginationError):
             paginator.get_result(cursor=cursor)
 
+        cursor = Cursor(0, -1)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_negative_limit(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
         cursor = Cursor(-10, 1)
         with pytest.raises(BadPaginationError):
             paginator.get_result(cursor=cursor)
+
+        cursor = Cursor(-10, 0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_non_integer_limit(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset)
+        cursor = Cursor(1.5, 0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(cursor=cursor)
+
+    def test_limit_too_large(self) -> None:
+        self.create_user("baz@example.com")
+        queryset = User.objects.all()
+        paginator = OffsetPaginator(queryset, max_limit=10)
+
+        result = paginator.get_result(limit=10, cursor=Cursor(10, 0))
+        assert len(result) == 1
+
+        cursor = Cursor(11, 0)
+        with pytest.raises(BadPaginationError):
+            paginator.get_result(limit=10, cursor=cursor)
 
     def test_count_hits(self) -> None:
         self.create_user("foo@example.com")

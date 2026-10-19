@@ -70,7 +70,6 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import (
     Incident,
-    IncidentProject,
     IncidentType,
 )
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
@@ -226,6 +225,7 @@ from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, create_snuba_query
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
+from sentry.testutils.helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -250,7 +250,6 @@ from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -2093,6 +2092,7 @@ class Factories:
     ):
         if not title:
             title = petname.generate(2, " ", letters=10).title()
+        # Projects configure the default alert rule, not an incident-project relation.
         if alert_rule is None:
             alert_rule = Factories.create_alert_rule(
                 organization, projects, query=query, time_window=1
@@ -2110,9 +2110,6 @@ class Factories:
             type=IncidentType.ALERT_TRIGGERED.value,
             subscription=subscription,
         )
-        for project in projects:
-            IncidentProject.objects.create(incident=incident, project=project)
-
         return incident
 
     @staticmethod
@@ -2629,7 +2626,7 @@ class Factories:
         """Payload used by Explore saved-formula API and resolver tests."""
         return copy.deepcopy(
             {
-                "name": "formula.apdex",
+                "name": "formula.custom_apdex",
                 "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
                 "unit": None,
                 "dataset": "spans",
@@ -2640,7 +2637,7 @@ class Factories:
                     },
                     {
                         "name": "count_tolerating",
-                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={frustrated}`)",
                     },
                 ],
                 "params": [
@@ -2657,7 +2654,7 @@ class Factories:
                         "value": "",
                     },
                     {
-                        "name": "4threshold",
+                        "name": "frustrated",
                         "type": "calculation",
                         "order": 2,
                         "value": "{threshold} * 4",

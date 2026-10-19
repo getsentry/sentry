@@ -108,6 +108,7 @@ class SiloRouter:
         "sentry_projecttemplate": SiloMode.CELL,
         "sentry_projecttemplateoption": SiloMode.CELL,
         "sentry_neglectedrule": SiloMode.CELL,
+        "sentry_ruleactivity": SiloMode.CELL,
         "sentry_rulefirehistory": SiloMode.CELL,
         "sentry_savedsearch": SiloMode.CELL,
         "sentry_teamreplica": SiloMode.CONTROL,
@@ -259,6 +260,7 @@ class TestSiloMultiDatabaseRouter(SiloRouter):
     secondary_db_models = {
         "sentry_monitor",
         "sentry_monitorcheckin",
+        "sentry_monitorcheckinconfig",
         "sentry_monitorenvironment",
         "sentry_monitorincident",
         "sentry_monitorlocation",

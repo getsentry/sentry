@@ -29,6 +29,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {InnerWrap} from '@sentry/scraps/menuListItem';
 import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
 import {Text} from '@sentry/scraps/text';
+import type {Theme} from '@sentry/scraps/theme';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
@@ -48,7 +49,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {fzf} from 'sentry/utils/search/fzf';
-import type {Theme} from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useNavigate} from 'sentry/utils/useNavigate';

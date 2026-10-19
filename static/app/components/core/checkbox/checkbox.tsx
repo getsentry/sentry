@@ -3,10 +3,8 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
+import type {FormSize} from '@sentry/scraps/theme';
 import {Tooltip, useDisabledTooltip, type TooltipProps} from '@sentry/scraps/tooltip';
-
-import type {FormSize} from 'sentry/utils/theme';
 
 type CheckboxConfig = {
   borderRadius: string;
@@ -166,11 +164,6 @@ export function Checkbox({
           </CheckboxIcon>
         )}
       </FakeCheckbox>
-      {!(disabled || props.readOnly) && (
-        <InteractionStateLayer
-          higherOpacity={checked === true || checked === 'indeterminate'}
-        />
-      )}
     </CheckboxWrapper>
   );
 }
@@ -190,6 +183,33 @@ const CheckboxWrapper = styled('div', {
   display: inline-flex;
   justify-content: flex-start;
   border-radius: ${p => checkboxSizeMap[p.size].borderRadius};
+
+  &::after {
+    content: '';
+    display: ${p => (p.disabled || p.readOnly ? 'none' : 'block')};
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-color: currentcolor;
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  &:hover::after {
+    opacity: 0.06;
+  }
+
+  &:has(input:checked, input:indeterminate):hover::after {
+    opacity: 0.085;
+  }
+
+  &:active::after {
+    opacity: 0.09;
+  }
+
+  &:has(input:checked, input:indeterminate):active::after {
+    opacity: 0.12;
+  }
 `;
 
 const FakeCheckbox = styled('div')<{

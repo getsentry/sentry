@@ -697,6 +697,20 @@ def post_process_group(
                 tags=metric_tags,
             )
 
+            nodestore_insert = event.data.get("nodestore_insert")
+            if nodestore_insert is not None:
+                # Measures latency from the Nodestore write to post-processing completion.
+                metrics.timing(
+                    "events.nodestore_to_post_process",
+                    time() - nodestore_insert,
+                    instance=event.data.get("platform") or None,
+                    tags={
+                        **metric_tags,
+                        "reprocessing": "true" if is_reprocessed else "false",
+                        "type": event.data.get("type"),
+                    },
+                )
+
 
 def run_post_process_job(job: PostProcessJob) -> None:
     from sentry.issues.action_log.publish import action_context_scope
@@ -1486,6 +1500,10 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
         user_reports_without_group = UserReport.objects.filter(
             project_id=project.id, event_id=event.event_id, group_id__isnull=True
         )
+        # Almost no events have a user report, so skip the update and environment lookup.
+        # Reports saved after this read are linked later by the update_user_reports task.
+        if not user_reports_without_group:
+            return
         for report in user_reports_without_group:
             if report.environment_id is None:
                 shim_to_feedback(
