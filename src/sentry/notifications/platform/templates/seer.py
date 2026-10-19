@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from pydantic import Field
 
@@ -289,6 +289,12 @@ class SeerInvestigationHypothesis(TypedDict):
     detail: str
 
 
+class SeerInvestigationProgress(TypedDict):
+    title: str
+    status: Literal["in_progress", "complete", "error"]
+    detail: str
+
+
 class SeerInvestigationStatus(NotificationData):
     """Live status of a Seer investigation, edited in place in the alert's Slack thread."""
 
@@ -296,6 +302,7 @@ class SeerInvestigationStatus(NotificationData):
     investigation_url: str
     subtitle: str | None = None
     hypotheses: list[SeerInvestigationHypothesis] = Field(default_factory=list)
+    progress: SeerInvestigationProgress | None = None
     source: NotificationSource = NotificationSource.SEER_INVESTIGATION_STATUS
 
 
@@ -324,6 +331,11 @@ class SeerInvestigationStatusTemplate(NotificationTemplate[SeerInvestigationStat
                 detail="Third-party script timings did not change during the breach window.",
             ),
         ],
+        progress=SeerInvestigationProgress(
+            title="Verifying hypotheses",
+            status="in_progress",
+            detail="Checking the remaining explanations against related telemetry.",
+        ),
     )
     hide_from_debugger = True
 
