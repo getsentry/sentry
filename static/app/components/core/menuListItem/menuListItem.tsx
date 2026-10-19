@@ -1,4 +1,4 @@
-import {memo, useCallback, useId, useRef} from 'react';
+import {memo, useEffect, useId, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
@@ -379,24 +379,16 @@ function DetailsOverlay({
     whileElementsMounted: autoUpdate,
   });
 
-  // Position against the menu item for as long as the overlay is mounted
-  const overlayRef = useCallback(
-    (overlay: HTMLDivElement) => {
-      setReference(itemRef.current);
-      setFloating(overlay);
-
-      return () => {
-        setReference(null);
-        setFloating(null);
-      };
-    },
-    [itemRef, setReference, setFloating]
-  );
+  // The menu item attaches its ref after this overlay's refs and layout effects
+  // run, so read it once the commit is done
+  useEffect(() => {
+    setReference(itemRef.current);
+  }, [itemRef, setReference]);
 
   return createPortal(
     <StyledPositionWrapper
       data-reference-hidden={middlewareData.hide?.referenceHidden}
-      ref={overlayRef}
+      ref={setFloating}
       zIndex={theme.zIndex.tooltip}
       style={floatingStyles}
     >
