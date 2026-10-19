@@ -3,7 +3,7 @@ import {useMenuSection} from '@react-aria/menu';
 import type {Node} from '@react-types/shared';
 
 import {Container} from '@sentry/scraps/layout';
-import {MenuSectionHeading, MenuSectionLayout} from '@sentry/scraps/menu/visual';
+import {MenuSectionHeading, MenuSectionLayout} from '@sentry/scraps/menu/layout';
 
 import type {MenuItemProps} from './item';
 

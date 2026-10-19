@@ -16,7 +16,7 @@ import {
   MenuSectionGroup,
   MenuSectionHeading,
   MenuSectionLayout,
-} from './visual';
+} from './layout';
 
 interface SectionContextValue {
   labelId: string;

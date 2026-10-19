@@ -7,7 +7,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
-import {MenuSectionDivider} from '@sentry/scraps/menu/visual';
+import {MenuSectionDivider} from '@sentry/scraps/menu/layout';
 
 export const ListWrap = styled('ul')`
   margin: 0;

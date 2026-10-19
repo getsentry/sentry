@@ -11,7 +11,7 @@ import {
   MenuSectionGroup,
   MenuSectionHeading,
   MenuSectionLayout,
-} from '@sentry/scraps/menu/visual';
+} from '@sentry/scraps/menu/layout';
 
 import {GridListOption, type GridListOptionProps} from './option';
 

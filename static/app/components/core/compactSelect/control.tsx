@@ -12,12 +12,12 @@ import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {SearchInput} from '@sentry/scraps/menu/searchInput';
 import {
   MenuFooterLayout,
   MenuHeaderLayout,
   MenuHeading,
-} from '@sentry/scraps/menu/visual';
+} from '@sentry/scraps/menu/layout';
+import {SearchInput} from '@sentry/scraps/menu/searchInput';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';

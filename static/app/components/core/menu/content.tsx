@@ -8,8 +8,8 @@ import {SearchInput, type SearchInputProps} from '@sentry/scraps/menu/searchInpu
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 
 import {useMenuContext, type MenuContextValue} from './context';
+import {MenuFooterLayout, MenuHeaderLayout, MenuHeading} from './layout';
 import {getMenuItems} from './list';
-import {MenuFooterLayout, MenuHeaderLayout, MenuHeading} from './visual';
 
 const MenuHeaderContext = createContext<MenuContextValue | null>(null);
 
