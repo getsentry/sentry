@@ -1238,6 +1238,15 @@ class ReplayParams:
         description="""The ID of the replay deletion job you'd like to retrieve.""",
     )
 
+    FIELD = OpenApiParameter(
+        name="field",
+        location="query",
+        required=False,
+        many=True,
+        type=str,
+        description="""A field to include in the response. Repeat to include several fields. Omit to return all fields.""",
+    )
+
 
 class NotificationParams:
     TRIGGER_TYPE = OpenApiParameter(
