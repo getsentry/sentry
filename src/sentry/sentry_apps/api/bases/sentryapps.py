@@ -250,7 +250,16 @@ class SentryAppPermission(SentryPermission):
         owner_app = organization_service.get_organization_by_id(
             id=sentry_app.owner_id, user_id=request.user.id
         )
-        assert owner_app, f"owner organization for {sentry_app.name} was not found"
+        if owner_app is None:
+            logger.error(
+                "sentry_app.permission_org_not_found",
+                extra={
+                    "sentry_app_id": sentry_app.id,
+                    "owner_org_id": sentry_app.owner_id,
+                    "user_id": request.user.id,
+                },
+            )
+            return False
         self.determine_access(request, owner_app)
 
         if superuser_has_permission(request):
@@ -486,7 +495,16 @@ class SentryAppAuthorizationsPermission(SentryPermission):
         installation_org_context = organization_service.get_organization_by_id(
             id=installation.organization_id, user_id=request.user.id
         )
-        assert installation_org_context, "organization for installation was not found"
+        if installation_org_context is None:
+            logger.error(
+                "sentry_app_authorizations.permission_org_not_found",
+                extra={
+                    "installation_id": installation.id,
+                    "organization_id": installation.organization_id,
+                    "user_id": request.user.id,
+                },
+            )
+            return False
         self.determine_access(request, installation_org_context)
 
         if not request.user.is_authenticated or not request.user.is_sentry_app:
@@ -516,8 +534,16 @@ class SentryInternalAppTokenPermission(SentryPermission):
         owner_app = organization_service.get_organization_by_id(
             id=sentry_app.owner_id, user_id=request.user.id
         )
-
-        assert owner_app, "Failed to get organization/owner_app to check in has_object_permission"
+        if owner_app is None:
+            logger.error(
+                "sentry_internal_app_token.permission_org_not_found",
+                extra={
+                    "sentry_app_id": sentry_app.id,
+                    "owner_org_id": sentry_app.owner_id,
+                    "user_id": request.user.id,
+                },
+            )
+            return False
         self.determine_access(request, owner_app)
 
         if superuser_has_permission(request):
