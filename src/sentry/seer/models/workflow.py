@@ -29,8 +29,12 @@ SEER_LEGACY_WORKFLOW_STRATEGIES = frozenset(
 SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset({SeerWorkflowStrategy.AGENTIC_TRIAGE_V2})
 
 
+class SeerWorkflowConfigExtras(BaseModel):
+    seeded_default: SeerWorkflowStrategy | None = None
+
+
 class SeerWorkflowFilters(BaseModel):
-    """Which work an automation picks. Strategies subclass this to add their own filters."""
+    """Which work a workflow picks. Strategies subclass this to add their own filters."""
 
     # False means only the config's SeerWorkflowConfigProject rows, so a config with no rows
     # covers no projects rather than every project.
@@ -45,11 +49,11 @@ class SeerWorkflowSchedule(models.TextChoices):
 
 @cell_silo_model
 class SeerWorkflowConfig(DefaultFieldsModel):
-    """An automation's saved configuration.
+    """A workflow's saved configuration.
 
     Repositories are not configured here. Execution uses the resolved projects' existing Seer
-    project-repository associations. Read and change it through SeerAutomation in
-    sentry.seer.workflows.automation.
+    project-repository associations. Read and change it through SeerWorkflow in
+    sentry.seer.workflows.workflow.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -60,7 +64,7 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     schedule = models.CharField(
         max_length=256, choices=SeerWorkflowSchedule.choices, default=SeerWorkflowSchedule.DAILY
     )
-    # Free-form metadata, such as which default seeded this config.
+    # Metadata in the shape of SeerWorkflowConfigExtras.
     extras = models.JSONField(db_default={}, default=dict)
     # Incremented on every saved change, so runs can record which configuration they used.
     version = BoundedPositiveIntegerField(default=1, db_default=1)
