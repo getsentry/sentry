@@ -534,6 +534,27 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
             id="glob_passes_the_values_through",
         ),
         pytest.param(
+            "log",
+            [{"type": "log_message", "operator": "does_not_contain", "value": ["ok", "[2*"]}],
+            {
+                "op": "not",
+                "inner": {"op": "glob", "name": "log.body", "value": ["*ok*", r"*\[2\**"]},
+            },
+            id="does_not_contain",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "error_type", "operator": "does_not_start_with", "value": ["Http"]}],
+            {"op": "not", "inner": error_type_rule_condition(["Http*"])},
+            id="does_not_start_with_on_error_type",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "release", "operator": "does_not_end_with", "value": ["-rc"]}],
+            {"op": "not", "inner": release_rule_condition(["*-rc"])},
+            id="catch_all_does_not_end_with",
+        ),
+        pytest.param(
             "error",
             [
                 {"type": "error_message", "operator": "contains", "value": ["*[401]*"]},

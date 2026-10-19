@@ -206,15 +206,18 @@ class CustomInboundFiltersTest(APITestCase):
         assert response.data["conditions"] == conditions
         assert custom_filter.conditions == conditions
 
-    def test_post_glob_operator(self) -> None:
-        conditions = [{"type": "release", "operator": "glob", "value": ["1.*", "2.?"]}]
+    def test_post_glob_and_negated_operators(self) -> None:
+        conditions = [
+            {"type": "release", "operator": "glob", "value": ["1.*", "2.?"]},
+            {"type": "error_message", "operator": "does_not_contain", "value": ["timeout"]},
+        ]
 
         with self.feature(self.features), outbox_runner():
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
                 method="post",
-                name="Old releases",
+                name="Old releases without timeouts",
                 dataType="error",
                 conditions=conditions,
                 status_code=201,
@@ -275,7 +278,8 @@ class CustomInboundFiltersTest(APITestCase):
         assert response.data["conditions"][0] == {}
         assert str(response.data["conditions"][1]["operator"][0]) == (
             "The error_message condition does not take the gt operator. "
-            "It accepts glob, equals, starts_with, contains, ends_with."
+            "It accepts glob, equals, starts_with, contains, ends_with, does_not_start_with, "
+            "does_not_contain, does_not_end_with."
         )
 
     def test_rejects_text_operator_on_ip_address(self) -> None:
@@ -865,7 +869,8 @@ class CustomInboundFilterDetailsTest(APITestCase):
 
         assert str(response.data["conditions"][0]["operator"][0]) == (
             "The error_type condition does not take the lt operator. "
-            "It accepts glob, equals, starts_with, contains, ends_with."
+            "It accepts glob, equals, starts_with, contains, ends_with, does_not_start_with, "
+            "does_not_contain, does_not_end_with."
         )
         self.custom_filter.refresh_from_db()
         assert self.custom_filter.conditions == [

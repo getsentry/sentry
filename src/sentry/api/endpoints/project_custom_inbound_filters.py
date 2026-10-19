@@ -145,7 +145,8 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "How the field compares to `value`. `glob` matches the field against each value "
             "as a glob pattern. `equals`, `starts_with`, `contains` and `ends_with` match the "
             "field against each value case-insensitively, with every character read "
-            "literally. `ip_address` only takes `equals`, where a value is an "
+            "literally; `does_not_start_with`, `does_not_contain` and `does_not_end_with` "
+            "match when no value does. `ip_address` only takes `equals`, where a value is an "
             "address or a CIDR range. `gt`, `gte`, `lt` and `lte` compare one value as a "
             "version and only apply to `release`."
         ),
@@ -155,7 +156,8 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         allow_empty=False,
         help_text=(
             "The values the field is compared to. The condition matches when any value "
-            "matches, so multiple values act as OR. A version comparison takes one release "
+            "matches, so multiple values act as OR; a negated operator matches when none "
+            "does. A version comparison takes one release "
             "with a version such as `1.2.0` or `myapp@1.2.0`. A comparison with a package "
             "only applies to releases of that package."
         ),
