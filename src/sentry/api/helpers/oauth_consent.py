@@ -1,6 +1,7 @@
 from collections.abc import Sequence
+from dataclasses import dataclass
 from enum import Enum
-from typing import Literal
+from typing import Literal, TypedDict
 
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
@@ -44,6 +45,113 @@ def get_permission_descriptions(scopes: Sequence[str]) -> list[str]:
         raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
 
     return permissions
+
+
+class OAuthPermissionGroup(TypedDict):
+    """One consent row: a stable resource ID, its label, and requested scopes.
+
+    Actions summarize access for display; they do not expand token scopes.
+    Descriptions explain capabilities that actions alone cannot convey.
+    """
+
+    resource: str
+    label: str
+    scopes: list[str]
+    actions: list[str]
+    description: str | None
+
+
+@dataclass(frozen=True)
+class OAuthPermissionResource:
+    """Define a consent resource and its scopes in stable display order.
+
+    Special capabilities such as releases have their own row even when their
+    scope prefix matches another resource, such as projects.
+    """
+
+    resource: str
+    label: str
+    scopes: tuple[str, ...]
+
+
+_PERMISSION_RESOURCES = (
+    OAuthPermissionResource(
+        "organization", "Organization details", ("org:read", "org:write", "org:admin")
+    ),
+    OAuthPermissionResource("ci", "CI workflows", ("org:ci",)),
+    OAuthPermissionResource("integrations", "Organization integrations", ("org:integrations",)),
+    OAuthPermissionResource(
+        "members",
+        "Organization members",
+        ("member:read", "member:write", "member:admin", "member:invite"),
+    ),
+    OAuthPermissionResource("teams", "Teams", ("team:read", "team:write", "team:admin")),
+    OAuthPermissionResource(
+        "projects", "Projects", ("project:read", "project:write", "project:admin")
+    ),
+    OAuthPermissionResource("releases", "Project releases", ("project:releases",)),
+    OAuthPermissionResource("distribution", "App distribution", ("project:distribution",)),
+    OAuthPermissionResource("events", "Events", ("event:read", "event:write", "event:admin")),
+    OAuthPermissionResource("alerts", "Alerts", ("alerts:read", "alerts:write")),
+    OAuthPermissionResource(
+        "dashboards",
+        "Dashboards",
+        ("dashboard:read", "dashboard:create", "dashboard:write", "dashboard:delete"),
+    ),
+    OAuthPermissionResource("seer", "Seer", ("seer:read", "seer:write")),
+    OAuthPermissionResource("openid", "Authentication", ("openid",)),
+    OAuthPermissionResource("profile", "Personal information", ("profile",)),
+    OAuthPermissionResource("email", "Email address", ("email",)),
+)
+# Match the access described by SENTRY_SCOPE_SETS. Full scope keys describe
+# special capabilities; suffix keys describe standard access levels.
+_PERMISSION_ACTIONS = {
+    "read": ("read",),
+    "write": ("read", "write"),
+    "admin": ("read", "write", "admin"),
+    "create": ("read", "create"),
+    "delete": ("read", "write", "delete"),
+    "invite": ("invite",),
+    "org:integrations": ("read", "write", "admin"),
+    "project:releases": ("read", "write", "admin"),
+}
+
+
+def get_permission_groups(scopes: Sequence[str]) -> list[OAuthPermissionGroup]:
+    """Group consent display metadata without changing the requested token scopes."""
+    pending = set(scopes)
+    groups: list[OAuthPermissionGroup] = []
+    for resource in _PERMISSION_RESOURCES:
+        matched = [scope for scope in resource.scopes if scope in pending]
+        if not matched:
+            continue
+
+        actions = list(
+            dict.fromkeys(
+                action
+                for scope in matched
+                for action in _PERMISSION_ACTIONS.get(
+                    scope, _PERMISSION_ACTIONS.get(scope.partition(":")[2], ())
+                )
+            )
+        )
+        groups.append(
+            {
+                "resource": resource.resource,
+                "label": resource.label,
+                "scopes": matched,
+                "actions": actions,
+                "description": " ".join(get_permission_descriptions(matched))
+                if not actions or resource.resource == "seer"
+                else None,
+            }
+        )
+        pending.difference_update(matched)
+
+    if pending:
+        raise NotImplementedError(f"{pending} scopes did not have permission groups")
+
+    return groups
 
 
 def get_organization_options(
