@@ -1,19 +1,23 @@
 import {useCallback, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {
+  InfiniteQueryObserver,
+  useQueryClient,
+  type InfiniteData,
+} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import type {ApiResult} from 'sentry/types/api';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useApi} from 'sentry/utils/useApi';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   buildConversationNodes,
-  buildConversationQueryParams,
   type ConversationApiResponse,
+  getConversationQueryOptions,
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {
@@ -26,13 +30,15 @@ import {
 } from 'sentry/views/explore/conversations/utils/exportConversation';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
-// The endpoint maxes out at 1,000 rows per page; a larger page means fewer
-// round-trips for this explicit, one-off export than the display's background
-// paging uses.
-const EXPORT_PER_PAGE = 1000;
-
 // Safety ceiling so a pathological conversation cannot paginate indefinitely.
 const MAX_EXPORT_SPANS = 50_000;
+
+// The cached infinite-query data for a conversation: one page per response,
+// keyed by the Link-header cursor the endpoint returns.
+type ConversationInfiniteData = InfiniteData<
+  ApiResponse<ConversationApiResponse>,
+  ParsedHeader | undefined
+>;
 
 interface ConversationExport {
   markdown: string;
@@ -71,41 +77,56 @@ export function useExportConversation({
   title: loadedTitle,
   isFullyLoaded,
 }: UseExportConversationOptions): UseExportConversationResult {
-  // Keep the export request alive if the button unmounts mid-flight (e.g. the
-  // user switches off the transcript tab); otherwise useApi aborts it on unmount
-  // and a large-conversation export dies silently.
-  const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const [isExporting, setIsExporting] = useState(false);
 
   const fetchConversation = useCallback(async (): Promise<ConversationExport> => {
-    const baseQuery = buildConversationQueryParams(conversation, selection);
-    const url = `/organizations/${organization.slug}/agents/conversations/${conversation.conversationId}/`;
+    const options = getConversationQueryOptions(organization, conversation, selection);
 
-    const spans: ConversationApiResponse['spans'] = [];
-    let title: string | null = null;
-    let cursor: string | undefined;
+    // A distinct query key keeps the export's extra pages out of the display
+    // cache, while seeding it from the display's data lets the observer resume
+    // where the display left off and fetch only the missing pages. It runs on
+    // the app-wide query client, so leaving the transcript tab does not abort
+    // it. The cast re-tags the key (same data shape, distinct value).
+    const exportQueryKey = [
+      options.queryKey[0],
+      options.queryKey[1],
+      {...options.queryKey[2], export: true},
+    ] as unknown as typeof options.queryKey;
 
-    do {
-      const [body, , resp]: ApiResult<ConversationApiResponse> = await api.requestPromise(
-        url,
-        {
-          includeAllArgs: true,
-          query: {...baseQuery, per_page: EXPORT_PER_PAGE, cursor},
+    const observer = new InfiniteQueryObserver(queryClient, {
+      ...options,
+      queryKey: exportQueryKey,
+      initialData: queryClient.getQueryData(options.queryKey) as
+        | ConversationInfiniteData
+        | undefined,
+    });
+
+    try {
+      let result = observer.getCurrentResult();
+      while (!result.data || result.hasNextPage) {
+        result = await observer.fetchNextPage({throwOnError: true});
+        const loaded =
+          result.data?.pages.reduce(
+            (total, page) => total + (page.json.spans?.length ?? 0),
+            0
+          ) ?? 0;
+        if (loaded >= MAX_EXPORT_SPANS) {
+          break;
         }
-      );
-      if (title === null) {
-        title = body.title ?? null;
       }
-      spans.push(...(body.spans ?? []));
-      const next = parseLinkHeader(resp?.getResponseHeader('Link') ?? null).next;
-      cursor = next?.results ? next.cursor : undefined;
-    } while (cursor && spans.length < MAX_EXPORT_SPANS);
 
-    const nodes = buildConversationNodes(spans).nodes;
-    return {markdown: messagesToMarkdown(extractMessagesFromNodes(nodes)), title};
-  }, [api, organization.slug, conversation, selection]);
+      const spans = result.data?.pages.flatMap(page => page.json.spans ?? []) ?? [];
+      const title = result.data?.pages[0]?.json.title ?? null;
+      const nodes = buildConversationNodes(spans).nodes;
+      return {markdown: messagesToMarkdown(extractMessagesFromNodes(nodes)), title};
+    } finally {
+      observer.destroy();
+      queryClient.removeQueries({queryKey: exportQueryKey});
+    }
+  }, [queryClient, organization, conversation, selection]);
 
   // Shared export loop: resolves the transcript (reusing the cache when it holds
   // the whole conversation, otherwise fetching every page) and hands it to

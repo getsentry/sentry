@@ -8,6 +8,7 @@ import {
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
@@ -428,13 +429,36 @@ export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
 
 const MAX_PAGES = 100;
 
+/**
+ * Infinite-query options for the conversation details endpoint. Shared by the
+ * display hook and the export, so the export can seed its own observer from the
+ * display's cache and pick up where it left off.
+ */
+export function getConversationQueryOptions(
+  organization: Organization,
+  conversation: UseConversationsOptions,
+  selection: PageFilters
+) {
+  return apiOptions.asInfinite<ConversationApiResponse>()(
+    '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
+    {
+      path: conversation.conversationId
+        ? {
+            organizationIdOrSlug: organization.slug,
+            conversationId: conversation.conversationId,
+          }
+        : skipToken,
+      query: buildConversationQueryParams(conversation, selection),
+      staleTime: Infinity,
+    }
+  );
+}
+
 export function useConversation(
   conversation: UseConversationsOptions
 ): UseConversationResult {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-
-  const queryParams = buildConversationQueryParams(conversation, selection);
 
   const {
     data,
@@ -445,19 +469,7 @@ export function useConversation(
     isLoading,
     isError,
   } = useInfiniteQuery(
-    apiOptions.asInfinite<ConversationApiResponse>()(
-      '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
-      {
-        path: conversation.conversationId
-          ? {
-              organizationIdOrSlug: organization.slug,
-              conversationId: conversation.conversationId,
-            }
-          : skipToken,
-        query: queryParams,
-        staleTime: Infinity,
-      }
-    )
+    getConversationQueryOptions(organization, conversation, selection)
   );
 
   const currentNumberPages = data?.pages.length ?? 0;
