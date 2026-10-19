@@ -5,6 +5,7 @@ import {
   InvestigationFixtureApi,
   investigationExecutionFixtureKey,
 } from 'sentry/views/investigations/__stories__/investigationFixtureApi';
+import {StoryTopBar} from 'sentry/views/investigations/__stories__/storyTopBar';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
   InvestigationBlockExecutionFixture,
@@ -628,7 +629,10 @@ export default Storybook.story('Investigations — Detail', story => {
       details={[archivedInvestigation]}
     >
       <Container minHeight="360px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId={archivedInvestigation.id} />
+        {/* The top bar shows the disabled Comment button. */}
+        <StoryTopBar>
+          <InvestigationBootstrapPage investigationId={archivedInvestigation.id} />
+        </StoryTopBar>
       </Container>
     </InvestigationFixtureApi>
   ));
