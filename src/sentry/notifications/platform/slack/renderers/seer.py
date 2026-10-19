@@ -21,6 +21,7 @@ from slack_sdk.models.blocks import (
     RichTextQuoteElement,
     RichTextSectionElement,
     SectionBlock,
+    TaskCardBlock,
 )
 
 from sentry.notifications.platform.registry import renderer_registry
@@ -306,6 +307,25 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
 
     @classmethod
+    def _render_progress(cls, data: SeerInvestigationStatus) -> list[Block]:
+        if not data.progress:
+            return []
+        return [
+            TaskCardBlock(
+                task_id="investigation-progress",
+                title=data.progress["title"],
+                status=data.progress["status"],
+                details=RichTextBlock(
+                    elements=[
+                        RichTextSectionElement(
+                            elements=[RichTextElementParts.Text(text=data.progress["detail"])]
+                        )
+                    ]
+                ),
+            )
+        ]
+
+    @classmethod
     def _render_investigation_status(
         cls, data: SeerInvestigationStatus, link_decorator: NotificationLinkDecorator
     ) -> SlackRenderable:
@@ -328,6 +348,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
                 ]
             )
             blocks.append(RichTextBlock(elements=[quote]))
+        blocks.extend(cls._render_progress(data))
         blocks.append(DividerBlock())
         blocks.append(
             ActionsBlock(

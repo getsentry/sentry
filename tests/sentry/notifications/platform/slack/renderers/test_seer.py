@@ -604,7 +604,7 @@ class SeerSlackRendererInvestigationTest(TestCase):
         )
 
         assert renderable["text"] == "Investigating FCP on organization login pages"
-        header, *quotes, divider, actions = renderable["blocks"]
+        header, *quotes, task_card, divider, actions = renderable["blocks"]
         assert isinstance(header, SectionBlock)
         assert header.text is not None
         assert header.text.text == (
@@ -630,6 +630,27 @@ class SeerSlackRendererInvestigationTest(TestCase):
                 ],
             }
         ]
+        assert task_card.to_dict() == {
+            "type": "task_card",
+            "task_id": "investigation-progress",
+            "title": "Verifying hypotheses",
+            "status": "in_progress",
+            "details": {
+                "type": "rich_text",
+                "elements": [
+                    {
+                        "type": "rich_text_section",
+                        "elements": [
+                            {
+                                "type": "text",
+                                "text": "Checking the remaining explanations against related "
+                                "telemetry.",
+                            }
+                        ],
+                    }
+                ],
+            },
+        }
         assert isinstance(divider, DividerBlock)
         assert isinstance(actions, ActionsBlock)
         (button,) = actions.elements

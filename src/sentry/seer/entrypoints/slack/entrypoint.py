@@ -825,6 +825,8 @@ class SlackInvestigationEntrypoint(
         data, fingerprint = build_investigation_status(
             investigation=run.investigation,
             projection=run.projection,
+            phase=run.phase,
+            status=run.status,
             updated_at=run.date_updated,
         )
         if fingerprint == cache_payload["last_sent_state"]:
