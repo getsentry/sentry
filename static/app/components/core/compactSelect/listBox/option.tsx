@@ -1,5 +1,4 @@
 import {Fragment, useContext, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 import type {AriaOptionProps} from '@react-aria/listbox';
 import {useOption} from '@react-aria/listbox';
 import {mergeRefs} from '@react-aria/utils';
@@ -103,7 +102,7 @@ export function ListBoxOption({
   }, [size, leadingItems, isDisabled, isFocused, isSelected, hideCheck, multiple]);
 
   return (
-    <StyledMenuItem
+    <Menu.Item
       {...optionProps}
       data-index={dataIndex}
       ref={mergeRefs(ref, refProp)}
@@ -125,9 +124,3 @@ export function ListBoxOption({
     />
   );
 }
-
-const StyledMenuItem = styled(Menu.Item)`
-  > [data-menu-item-content] {
-    padding-left: ${p => p.theme.space.md};
-  }
-`;

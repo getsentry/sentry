@@ -1,5 +1,4 @@
 import {Fragment, useContext, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
 import type {AriaGridListItemOptions} from '@react-aria/gridlist';
 import {useGridListItem, useGridListSelectionCheckbox} from '@react-aria/gridlist';
 import {useFocusWithin, useHover} from '@react-aria/interactions';
@@ -120,7 +119,7 @@ export function GridListOption<T extends ListItemBase>({
   }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
 
   return (
-    <StyledMenuItem
+    <Menu.Item
       {...rowPropsMerged}
       ref={ref}
       size={size}
@@ -141,9 +140,3 @@ export function GridListOption<T extends ListItemBase>({
     />
   );
 }
-
-const StyledMenuItem = styled(Menu.Item)`
-  > [data-menu-item-content] {
-    padding-left: ${p => p.theme.space.md};
-  }
-`;
