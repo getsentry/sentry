@@ -38,6 +38,7 @@ from sentry.seer.entrypoints.cache import (
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
 from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
 from sentry.seer.entrypoints.slack.entrypoint import (
+    MAX_INVESTIGATION_UPDATE_REQUEUES,
     EntrypointSetupError,
     SlackAgentCachePayload,
     SlackAgentEntrypoint,
@@ -1128,6 +1129,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         self,
         hypotheses: list[dict[str, Any]],
         updated_at: datetime = datetime(2024, 8, 27, 11, 0, tzinfo=UTC),
+        attempt: int = 0,
     ) -> None:
         self.orchestration_run.projection = {"hypotheses": hypotheses}
         InvestigationOrchestrationRun.objects.filter(id=self.orchestration_run.id).update(
@@ -1136,7 +1138,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         cache_payload = self._get_cache()
         assert cache_payload is not None
         SlackInvestigationEntrypoint.on_investigation_update(
-            cache_payload=cache_payload, run=self.orchestration_run
+            cache_payload=cache_payload, run=self.orchestration_run, attempt=attempt
         )
 
     def _updated_blocks(self) -> list[Any]:
@@ -1257,8 +1259,23 @@ class SlackInvestigationEntrypointTest(TestCase):
         self.mock_post_message.assert_not_called()
         assert_halt_metric(mock_record, UnableToAcquireLock())
         mock_apply_async.assert_called_once_with(
-            kwargs={"investigation_id": self.investigation.id}, countdown=5
+            kwargs={"investigation_id": self.investigation.id, "attempt": 1}, countdown=5
         )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.process_investigation_updates.apply_async")
+    def test_lock_failure_stops_requeueing_after_max_attempts(
+        self, mock_apply_async: Mock, mock_record: Mock
+    ) -> None:
+        self._set_cache()
+        lock = Mock()
+        lock.blocking_acquire.side_effect = UnableToAcquireLock("locked")
+
+        with patch("sentry.seer.entrypoints.slack.entrypoint.locks.get", return_value=lock):
+            self._update([_hypothesis()], attempt=MAX_INVESTIGATION_UPDATE_REQUEUES)
+
+        assert_halt_metric(mock_record, UnableToAcquireLock())
+        mock_apply_async.assert_not_called()
 
     def test_stale_cache_payload_argument_is_ignored(self) -> None:
         stale_payload = self._set_cache()
@@ -1266,7 +1283,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         self.mock_update.reset_mock()
 
         SlackInvestigationEntrypoint.on_investigation_update(
-            cache_payload=stale_payload, run=self.orchestration_run
+            cache_payload=stale_payload, run=self.orchestration_run, attempt=0
         )
 
         self.mock_update.assert_not_called()
@@ -1281,7 +1298,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         assert cache_payload is not None
 
         SlackInvestigationEntrypoint.on_investigation_update(
-            cache_payload=cache_payload, run=stale_run
+            cache_payload=cache_payload, run=stale_run, attempt=0
         )
 
         (quote,) = self._quotes(self._updated_blocks())

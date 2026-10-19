@@ -904,7 +904,7 @@ def process_autofix_updates(
     processing_deadline_duration=PROCESS_INVESTIGATION_TIMEOUT_SECONDS,
     retry=None,
 )
-def process_investigation_updates(*, investigation_id: int) -> None:
+def process_investigation_updates(*, investigation_id: int, attempt: int = 0) -> None:
     """
     Sends the latest orchestration run to each entrypoint with a cache for it.
     """
@@ -961,7 +961,9 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                 entrypoint_key=str(entrypoint_key),
             ).capture() as ept_lifecycle:
                 try:
-                    entrypoint_cls.on_investigation_update(cache_payload=cache_payload, run=run)
+                    entrypoint_cls.on_investigation_update(
+                        cache_payload=cache_payload, run=run, attempt=attempt
+                    )
                 except Exception as e:
                     ept_lifecycle.record_failure(failure_reason=e)
 

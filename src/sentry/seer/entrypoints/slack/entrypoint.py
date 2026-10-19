@@ -187,6 +187,7 @@ def _send_agent_write_approval(
 
 
 MISSING_SCOPE_FOOTER_CACHE_TIMEOUT = 60 * 60
+MAX_INVESTIGATION_UPDATE_REQUEUES = 3
 
 
 def _get_handoff_target(project: Project) -> CodingAgentProviderType | None:
@@ -781,7 +782,9 @@ class SlackInvestigationEntrypoint(
 
     @staticmethod
     def on_investigation_update(
-        cache_payload: SlackInvestigationCachePayload, run: InvestigationOrchestrationRun
+        cache_payload: SlackInvestigationCachePayload,
+        run: InvestigationOrchestrationRun,
+        attempt: int,
     ) -> None:
         investigation_id = run.investigation_id
         with SlackEntrypointEventLifecycleMetric(
@@ -789,22 +792,25 @@ class SlackInvestigationEntrypoint(
             integration_id=cache_payload["integration_id"],
             organization_id=cache_payload["organization_id"],
         ).capture() as lifecycle:
-            lifecycle.add_extras({"investigation_id": investigation_id})
+            lifecycle.add_extras({"investigation_id": investigation_id, "attempt": attempt})
             lock = locks.get(
                 f"seer:investigation:slack:{investigation_id}",
                 duration=10,
                 name="investigation_entrypoint_slack",
             )
             try:
-                with lock.blocking_acquire(initial_delay=0.1, timeout=3):
+                with lock.blocking_acquire(initial_delay=0.1, timeout=10):
                     SlackInvestigationEntrypoint._update_investigation_status(
                         run_id=run.id, lifecycle=lifecycle
                     )
             except UnableToAcquireLock as e:
                 lifecycle.record_halt(halt_reason=e)
+                if attempt >= MAX_INVESTIGATION_UPDATE_REQUEUES:
+                    return
                 # The holder may have read an older run, so retry once it lets go.
                 process_investigation_updates.apply_async(
-                    kwargs={"investigation_id": investigation_id}, countdown=5
+                    kwargs={"investigation_id": investigation_id, "attempt": attempt + 1},
+                    countdown=5,
                 )
 
     @staticmethod
