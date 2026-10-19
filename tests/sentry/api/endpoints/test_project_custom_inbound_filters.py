@@ -205,7 +205,7 @@ class CustomInboundFiltersTest(APITestCase):
 
     def test_post_release_comparison(self) -> None:
         conditions = [
-            {"type": "release", "operator": "gte", "value": ["1.2.0"]},
+            {"type": "release", "operator": "gte", "value": ["1.2.0", "0.9.0"]},
             {"type": "release", "operator": "lt", "value": ["myapp@2.0"]},
         ]
 
@@ -256,20 +256,6 @@ class CustomInboundFiltersTest(APITestCase):
             "The error_message condition does not take the gt operator. It accepts glob."
         )
 
-    def test_rejects_comparison_with_several_values(self) -> None:
-        with self.feature(self.features):
-            response = self.get_error_response(
-                self.organization.slug,
-                self.project.slug,
-                method="post",
-                dataType="error",
-                conditions=[{"type": "release", "operator": "lte", "value": ["1.2.0", "2.0.0"]}],
-            )
-
-        assert str(response.data["conditions"][0]["value"][0]) == (
-            "The lte operator takes exactly one value."
-        )
-
     def test_rejects_comparison_against_a_release_without_a_version(self) -> None:
         cases = ["2*", "a4b7e0f9c2d1", "1.0/beta", "x" * 300]
 
@@ -280,7 +266,7 @@ class CustomInboundFiltersTest(APITestCase):
                     self.project.slug,
                     method="post",
                     dataType="error",
-                    conditions=[{"type": "release", "operator": "gt", "value": [value]}],
+                    conditions=[{"type": "release", "operator": "gt", "value": ["1.0", value]}],
                 )
 
             assert str(response.data["conditions"][0]["value"][0]) == (
