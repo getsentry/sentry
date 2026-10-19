@@ -1,5 +1,3 @@
-import {useState} from 'react';
-
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
 
@@ -7,8 +5,10 @@ import * as Storybook from 'sentry/stories';
 import InvestigationsView, {InvestigationsPage} from 'sentry/views/investigations';
 import {InvestigationListItemFixture} from 'sentry/views/investigations/fixtures';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
+import {RouteError} from 'sentry/views/routeError';
 
 import {InvestigationFixtureApi} from './__stories__/investigationFixtureApi';
+import {showCrashReportPreview} from './__stories__/showCrashReportPreview';
 
 const realisticInvestigations = [
   InvestigationListItemFixture({
@@ -92,35 +92,14 @@ export default Storybook.story('Investigations — List', story => {
     </InvestigationFixtureApi>
   ));
 
-  story('Error', () => {
-    // The error state renders RouteError, which reports the error and opens the
-    // crash-report dialog on mount, so only render it on demand.
-    const [showError, setShowError] = useState(false);
-
-    return (
-      <Stack gap="md" align="start">
-        <Button onClick={() => setShowError(value => !value)}>
-          {showError ? 'Reset' : 'Trigger error'}
-        </Button>
-        {showError ? (
-          <InvestigationFixtureApi
-            organizationSlug="storybook-investigations-list-error"
-            mode="error"
-          >
-            <Container
-              minHeight="420px"
-              width="100%"
-              border="primary"
-              radius="md"
-              overflow="hidden"
-            >
-              <InvestigationsPage />
-            </Container>
-          </InvestigationFixtureApi>
-        ) : null}
-      </Stack>
-    );
-  });
+  story('Error', () => (
+    <Stack gap="md" align="start">
+      <Button onClick={showCrashReportPreview}>Open the Crash Report Modal</Button>
+      <Container minHeight="420px" width="100%" border="primary" radius="md">
+        <RouteError />
+      </Container>
+    </Stack>
+  ));
 
   story('Feature unavailable', () => (
     <InvestigationFixtureApi
