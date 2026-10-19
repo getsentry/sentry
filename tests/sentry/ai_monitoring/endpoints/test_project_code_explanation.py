@@ -8,13 +8,11 @@ from urllib3.exceptions import TimeoutError
 from sentry.ai_monitoring.code_explanations import MAX_CODE_LENGTH
 from sentry.ai_monitoring.endpoints.project_code_explanation import CodeExplanationRequestSerializer
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 
 CODE = "async () => await codemode.add({a: 12, b: 8})"
 PAYLOAD = {"code": CODE, "language": "javascript"}
 
 
-@with_feature("organizations:gen-ai-code-explanations")
 @override_settings(SENTRY_SELF_HOSTED=False)
 class ProjectCodeExplanationEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-code-explanation"
@@ -79,14 +77,6 @@ class ProjectCodeExplanationEndpointTest(APITestCase):
         self.get_error_response(
             self.organization.slug, self.project.slug, status_code=403, **PAYLOAD
         )
-        self.mock_seer.assert_called_once()
-
-    def test_requires_feature_even_for_cached_summary(self) -> None:
-        self.get_success_response(self.organization.slug, self.project.slug, **PAYLOAD)
-        with self.feature({"organizations:gen-ai-code-explanations": False}):
-            self.get_error_response(
-                self.organization.slug, self.project.slug, status_code=403, **PAYLOAD
-            )
         self.mock_seer.assert_called_once()
 
     @override_settings(SENTRY_SELF_HOSTED=True)
@@ -176,8 +166,10 @@ class TestCodeExplanationRequestSerializer:
         assert not serializer.is_valid()
         assert "code" in serializer.errors
 
-    def test_preserves_code_whitespace_and_defaults_language(self) -> None:
-        code = "  async () => {\n    return 1;\n  }\n"
+    @pytest.mark.parametrize(
+        "code", ["  async () => {\n    return 1;\n  }\n", "x" * MAX_CODE_LENGTH]
+    )
+    def test_preserves_code_and_defaults_language(self, code: str) -> None:
         serializer = CodeExplanationRequestSerializer(data={"code": code})
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data == {"code": code, "language": "javascript"}

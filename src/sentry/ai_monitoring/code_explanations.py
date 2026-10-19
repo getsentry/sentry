@@ -8,7 +8,7 @@ from sentry.seer.oneshot import run_oneshot
 from sentry.utils import metrics
 from sentry.viewer_context import get_viewer_context
 
-MAX_CODE_LENGTH = 16_000
+MAX_CODE_LENGTH = 4_000
 MAX_SUMMARY_LENGTH = 256
 MAX_SUMMARY_WORDS = 12
 CACHE_TTL = 24 * 60 * 60

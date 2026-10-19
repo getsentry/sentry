@@ -6,7 +6,6 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.ai_monitoring.code_explanations import MAX_CODE_LENGTH, get_code_explanation
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -26,8 +25,6 @@ from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-
-FEATURE = "organizations:gen-ai-code-explanations"
 
 
 class CodeExplanationRequestSerializer(serializers.Serializer):
@@ -90,8 +87,6 @@ class ProjectCodeExplanationEndpoint(ProjectEndpoint):
         Generation waits for a single Seer response, with a ten-second timeout.
         """
         organization = project.organization
-        if not features.has(FEATURE, organization, actor=request.user):
-            return Response({"detail": "Code explanations are not enabled."}, status=403)
         has_access, error = has_seer_access_with_detail(organization)
         if not has_access:
             return Response({"detail": error or "AI features are unavailable."}, status=403)
