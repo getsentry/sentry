@@ -10,6 +10,7 @@ from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.projectownership import ProjectOwnership
 from sentry.seer.models.run import SeerAgentRun
+from sentry.seer.smart_assignment.models import RESOLUTION_ACTIVITIES
 from sentry.seer.smart_assignment.scoring import record_prediction
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -43,7 +44,23 @@ def process_smart_assignment_completion(group: Group, activity: Activity) -> Non
         # already landed) or later (if ground truth hasn't landed yet).
         record_prediction(run, predicted_assignee_user_ids, top_user_id)
 
+        if _triggered_by_resolution(run):
+            # A resolution-triggered run exists only to be scored against the resolver.
+            # The issue is already resolved, so acting on the prediction would just
+            # assign (and notify) someone after the fact.
+            metrics.incr(
+                "smart_assignment.apply_prediction",
+                tags={"outcome": "skipped_resolution_trigger"},
+                sample_rate=1.0,
+            )
+            return
+
     _apply_prediction(group, top_user_id, used_rank, run_uuid=data.get("run_uuid"))
+
+
+def _triggered_by_resolution(run: SeerAgentRun) -> bool:
+    trigger = (run.extras or {}).get("trigger")
+    return trigger in {activity_type.name for activity_type in RESOLUTION_ACTIVITIES}
 
 
 def _apply_prediction(
