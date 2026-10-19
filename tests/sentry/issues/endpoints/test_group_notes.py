@@ -29,45 +29,139 @@ pytestmark = [requires_snuba]
 
 @with_feature({"projects:issue-action-log-write-to-db": False})
 class GroupNoteTest(APITestCase):
+    @with_feature({"projects:issue-action-log-activity": False})
     def test_simple(self) -> None:
         group = self.group
-
         activity = self.create_group_activity(
             group=group,
             type=ActivityType.NOTE.value,
             user_id=self.user.id,
             data={"text": "hello world"},
         )
-
         self.login_as(user=self.user)
 
-        for flag_enabled in (False, True):
-            for url in (
-                f"/api/0/issues/{group.id}/comments/",
+        with (
+            patch(
+                "sentry.issues.endpoints.group_notes.should_serve_action_log_activity"
+            ) as read_gate,
+            patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read,
+        ):
+            response = self.client.get(f"/api/0/issues/{group.id}/comments/", format="json")
+
+        read_gate.assert_not_called()
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(activity.id)
+        assert response.data[0]["commentId"] == str(activity.id)
+        assert response.data[0]["data"] == {
+            "text": "hello world",
+            "comment_id": activity.id,
+        }
+        assert response.data[0]["source"] is None
+        assert record_read.call_count == 1
+        assert record_read.call_args.args[1] == ActivityReadResult.ACTIVITY
+
+    @with_feature({"projects:issue-action-log-activity": True})
+    def test_simple_with_action_log_activity(self) -> None:
+        group = self.group
+        activity = self.create_group_activity(
+            group=group,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={"text": "hello world"},
+        )
+        self.login_as(user=self.user)
+
+        with (
+            patch(
+                "sentry.issues.endpoints.group_notes.should_serve_action_log_activity"
+            ) as read_gate,
+            patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read,
+        ):
+            response = self.client.get(f"/api/0/issues/{group.id}/comments/", format="json")
+
+        read_gate.assert_not_called()
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(activity.id)
+        assert response.data[0]["commentId"] == str(activity.id)
+        assert response.data[0]["data"] == {
+            "text": "hello world",
+            "comment_id": activity.id,
+        }
+        assert response.data[0]["source"] is None
+        assert record_read.call_count == 1
+        assert record_read.call_args.args[1] == ActivityReadResult.ACTIVITY
+
+    @with_feature({"projects:issue-action-log-activity": False})
+    def test_organization_scoped(self) -> None:
+        group = self.group
+        activity = self.create_group_activity(
+            group=group,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={"text": "hello world"},
+        )
+        self.login_as(user=self.user)
+
+        with (
+            patch(
+                "sentry.issues.endpoints.group_notes.should_serve_action_log_activity"
+            ) as read_gate,
+            patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read,
+        ):
+            response = self.client.get(
                 f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/comments/",
-            ):
-                with (
-                    self.feature({"projects:issue-action-log-activity": flag_enabled}),
-                    patch(
-                        "sentry.issues.endpoints.group_notes.should_serve_action_log_activity"
-                    ) as read_gate,
-                    patch(
-                        "sentry.issues.endpoints.group_notes.record_activity_read"
-                    ) as record_read,
-                ):
-                    response = self.client.get(url, format="json")
-                read_gate.assert_not_called()
-                assert response.status_code == 200, response.content
-                assert len(response.data) == 1
-                assert response.data[0]["id"] == str(activity.id)
-                assert response.data[0]["commentId"] == str(activity.id)
-                assert response.data[0]["data"] == {
-                    "text": "hello world",
-                    "comment_id": activity.id,
-                }
-                assert response.data[0]["source"] is None
-                assert record_read.call_count == 1
-                assert record_read.call_args.args[1] == ActivityReadResult.ACTIVITY
+                format="json",
+            )
+
+        read_gate.assert_not_called()
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(activity.id)
+        assert response.data[0]["commentId"] == str(activity.id)
+        assert response.data[0]["data"] == {
+            "text": "hello world",
+            "comment_id": activity.id,
+        }
+        assert response.data[0]["source"] is None
+        assert record_read.call_count == 1
+        assert record_read.call_args.args[1] == ActivityReadResult.ACTIVITY
+
+    @with_feature({"projects:issue-action-log-activity": True})
+    def test_organization_scoped_with_action_log_activity(self) -> None:
+        group = self.group
+        activity = self.create_group_activity(
+            group=group,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={"text": "hello world"},
+        )
+        self.login_as(user=self.user)
+
+        with (
+            patch(
+                "sentry.issues.endpoints.group_notes.should_serve_action_log_activity"
+            ) as read_gate,
+            patch("sentry.issues.endpoints.group_notes.record_activity_read") as record_read,
+        ):
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/comments/",
+                format="json",
+            )
+
+        read_gate.assert_not_called()
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(activity.id)
+        assert response.data[0]["commentId"] == str(activity.id)
+        assert response.data[0]["data"] == {
+            "text": "hello world",
+            "comment_id": activity.id,
+        }
+        assert response.data[0]["source"] is None
+        assert record_read.call_count == 1
+        assert record_read.call_args.args[1] == ActivityReadResult.ACTIVITY
 
     def test_note_merge(self) -> None:
         """Test that when 2 (or more) issues with comments are merged, the chronological order of the comments are preserved."""
