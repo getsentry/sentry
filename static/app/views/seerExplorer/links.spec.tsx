@@ -102,12 +102,6 @@ const LINK_RULE_EXAMPLES: Record<string, LinkSubject> = {
     path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/monitors/{monitor_id_or_slug}/',
     params: {project_id_or_slug: 'javascript', monitor_id_or_slug: 'nightly-sync'},
   },
-  get_issue_alert_rule: {
-    kind: 'api',
-    method: 'GET',
-    path: '/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/rules/{rule_id}/',
-    params: {project_id_or_slug: 'javascript', rule_id: '99'},
-  },
   get_member_details: {
     kind: 'api',
     method: 'GET',
