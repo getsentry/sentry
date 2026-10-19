@@ -1048,13 +1048,20 @@ class OrganizationAuthSettingsScimTokenMaskingTest(AuthProviderTestCase):
 
             auth_provider.disable_scim()
             auth_provider.save()
-            ScheduledDeletion.cancel(sentry_app)
-            sentry_app.update(status=SentryAppStatus.INTERNAL)
 
-            # This models a second enable call holding the stale auth provider state
-            # after a concurrent call has already canceled the queued deletion.
-            auth_provider.enable_scim(self.user)
-            auth_provider.save()
+            # Simulate another enable call canceling the queued deletion after this
+            # call has loaded the installation with DELETION_IN_PROGRESS status.
+            def cancel_deletion_concurrently(*_args, **_kwargs):
+                ScheduledDeletion.cancel(sentry_app)
+                sentry_app.update(status=SentryAppStatus.INTERNAL)
+                return None
+
+            with patch.object(ScheduledDeletion.objects, "select_for_update") as select_for_update:
+                query = MagicMock()
+                query.filter.return_value.first.side_effect = cancel_deletion_concurrently
+                select_for_update.return_value = query
+                auth_provider.enable_scim(self.user)
+                auth_provider.save()
 
             auth_provider.refresh_from_db()
             assert auth_provider.flags.scim_enabled.is_set
