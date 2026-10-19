@@ -34,7 +34,7 @@ type CompactSelectFieldProps<TValue extends SelectKey> =
         })
     );
 
-export function CompactSelectField<TValue extends SelectKey>({
+function CompactSelectField<TValue extends SelectKey>({
   disabled,
   field,
   ref,
