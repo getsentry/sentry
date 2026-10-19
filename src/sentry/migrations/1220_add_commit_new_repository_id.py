@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1218_drop_scopes_bitfield_columns"),
+        ("sentry", "1219_retire_ruleactivity"),
     ]
 
     operations = [
