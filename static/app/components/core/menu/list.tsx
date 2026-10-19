@@ -19,7 +19,7 @@ export interface MenuListProps extends React.HTMLAttributes<HTMLUListElement> {
 }
 
 export function MenuList({children, onKeyDown, ...props}: MenuListProps) {
-  const {listRef, searchRef, goBack, isSubmenu} = useMenuContext();
+  const {listRef, searchRef, goBack} = useMenuContext();
   return (
     <Container
       as="ul"
@@ -57,9 +57,9 @@ export function MenuList({children, onKeyDown, ...props}: MenuListProps) {
             next = items.at(-1);
             break;
           case 'ArrowLeft':
-            if (isSubmenu) {
+            if (goBack) {
               event.preventDefault();
-              goBack?.();
+              goBack();
             }
             return;
           default:

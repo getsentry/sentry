@@ -44,8 +44,8 @@ export function MenuSection({children, 'aria-label': ariaLabel}: MenuSectionProp
     () => ({labelId, setItemVisibility}),
     [labelId, setItemVisibility]
   );
-  const isEmpty =
-    Object.values(visibleItems).length > 0 && !Object.values(visibleItems).some(Boolean);
+  const itemVisibility = Object.values(visibleItems);
+  const isEmpty = itemVisibility.length > 0 && !itemVisibility.some(Boolean);
 
   return (
     <SectionContext value={sectionContext}>

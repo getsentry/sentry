@@ -5,7 +5,7 @@ import {MenuRoot, MenuTrigger} from './menu';
 import {MenuSection, MenuSectionLabel, MenuSectionSeparator} from './section';
 import {MenuSubmenu} from './submenu';
 
-export const Menu = Object.assign(MenuRoot, {
+export const Menu = {
   Root: MenuRoot,
   Trigger: MenuTrigger,
   Content: MenuContent,
@@ -19,7 +19,7 @@ export const Menu = Object.assign(MenuRoot, {
   SectionSeparator: MenuSectionSeparator,
   Footer: MenuFooter,
   Submenu: MenuSubmenu,
-});
+};
 
 export type {MenuProps, MenuTriggerProps} from './menu';
 export type {

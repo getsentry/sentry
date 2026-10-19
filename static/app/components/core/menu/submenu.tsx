@@ -95,7 +95,6 @@ export function MenuSubmenu({label, children, disabled, textValue}: MenuSubmenuP
           searchRef,
           search,
           setSearch,
-          isSubmenu: true,
         }}
       >
         <SectionContext value={null}>{children}</SectionContext>

@@ -13,7 +13,6 @@ export interface MenuContextValue {
   setSearch: (search: string) => void;
   triggerProps: ReturnType<typeof useOverlay>['triggerProps'];
   goBack?: () => void;
-  isSubmenu?: boolean;
 }
 
 export const MenuContext = createContext<MenuContextValue | null>(null);

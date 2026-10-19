@@ -15,6 +15,7 @@ import type {LocationDescriptor} from 'history';
 
 import {Container} from '@sentry/scraps/layout';
 import {SearchInput} from '@sentry/scraps/menu/content';
+import {isMenuItemHidden} from '@sentry/scraps/menu/item';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -354,8 +355,7 @@ function filterMenuItems(items: MenuItemProps[], search: string): MenuItemProps[
       return children.length > 0 ? [{...item, children}] : [];
     }
 
-    const label = item.textValue ?? (typeof item.label === 'string' ? item.label : '');
-    return label.toLocaleLowerCase().includes(query) ? [item] : [];
+    return isMenuItemHidden(query, item.label, item.textValue) ? [] : [item];
   });
 }
 
