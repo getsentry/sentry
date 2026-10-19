@@ -1,4 +1,5 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
+import {useMenuItem} from '@react-aria/menu';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Container} from '@sentry/scraps/layout';
@@ -8,6 +9,7 @@ import {
 } from '@sentry/scraps/menuListItem';
 
 import {useMenuContext} from './context';
+import {useMenuListState} from './list';
 import {useSectionItemVisibility} from './section';
 
 export interface MenuListItemProps extends Omit<BaseMenuListItemProps, 'label'> {
@@ -39,6 +41,7 @@ export function isMenuItemHidden(
 
 interface BaseMenuItemProps extends MenuListItemProps {
   checked?: boolean;
+  itemKey?: string;
   role?: 'menuitem' | 'menuitemcheckbox';
 }
 
@@ -50,10 +53,24 @@ function BaseMenuItem({
   closeOnSelect = true,
   disabled,
   checked,
+  itemKey,
   role = 'menuitem',
   ...props
 }: BaseMenuItemProps) {
   const {search, close} = useMenuContext();
+  const state = useMenuListState();
+  const ref = useRef<HTMLDivElement>(null);
+  const {menuItemProps} = useMenuItem(
+    {
+      key: itemKey ?? '',
+      isDisabled: disabled,
+      onAction,
+      onClose: close,
+      closeOnSelect,
+    },
+    state,
+    ref
+  );
   const [isFocused, setFocused] = useState(false);
   const [isHovered, setHovered] = useState(false);
   const hidden = isMenuItemHidden(search, label, textValue);
@@ -74,29 +91,20 @@ function BaseMenuItem({
         isFocused={isFocused || isHovered}
         isSelected={checked}
         innerWrapProps={{
+          ...menuItemProps,
+          ref,
           role,
-          tabIndex: disabled ? undefined : -1,
-          'aria-disabled': disabled || undefined,
           'aria-checked': role === 'menuitemcheckbox' ? checked : undefined,
-          onFocus: () => setFocused(true),
-          onBlur: () => setFocused(false),
+          onFocus: event => {
+            menuItemProps.onFocus?.(event);
+            setFocused(true);
+          },
+          onBlur: event => {
+            menuItemProps.onBlur?.(event);
+            setFocused(false);
+          },
           onMouseEnter: () => !disabled && setHovered(true),
           onMouseLeave: () => setHovered(false),
-          onClick: () => {
-            if (disabled) {
-              return;
-            }
-            onAction?.();
-            if (closeOnSelect) {
-              close();
-            }
-          },
-          onKeyDown: event => {
-            if (event.key === 'Enter' || event.key === ' ') {
-              event.preventDefault();
-              event.currentTarget.click();
-            }
-          },
         }}
       />
     </Container>

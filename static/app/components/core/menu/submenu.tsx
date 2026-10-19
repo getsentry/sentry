@@ -1,4 +1,5 @@
 import {useRef, useState} from 'react';
+import {useMenuItem} from '@react-aria/menu';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {Container} from '@sentry/scraps/layout';
@@ -9,20 +10,34 @@ import {useOverlay} from 'sentry/utils/useOverlay';
 import {MenuContext, useMenuContext} from './context';
 import type {MenuListItemProps} from './item';
 import {isMenuItemHidden} from './item';
+import {useMenuListState} from './list';
 import {SectionContext, useSectionItemVisibility} from './section';
 
 export interface MenuSubmenuProps extends Pick<MenuListItemProps, 'label' | 'disabled'> {
   children: React.ReactNode;
+  itemKey?: string;
   textValue?: string;
 }
 
 /** Opens a nested menu with its own search and keyboard navigation state. */
-export function MenuSubmenu({label, children, disabled, textValue}: MenuSubmenuProps) {
+export function MenuSubmenu({
+  label,
+  children,
+  disabled,
+  itemKey,
+  textValue,
+}: MenuSubmenuProps) {
   const parent = useMenuContext();
+  const state = useMenuListState();
   const [isOpen, setOpen] = useState(false);
   const overlay = useOverlay({
     isOpen,
-    onOpenChange: setOpen,
+    onOpenChange: open => {
+      setOpen(open);
+      if (!open) {
+        requestAnimationFrame(() => overlay.triggerRef.current?.focus());
+      }
+    },
     position: 'right-start',
     offset: -4,
     type: 'menu',
@@ -35,6 +50,16 @@ export function MenuSubmenu({label, children, disabled, textValue}: MenuSubmenuP
   const [isHovered, setHovered] = useState(false);
   const hidden = isMenuItemHidden(parent.search, label, textValue);
   useSectionItemVisibility(!hidden);
+  const {menuItemProps} = useMenuItem(
+    {
+      key: itemKey ?? '',
+      isDisabled: disabled,
+      closeOnSelect: false,
+      onAction: () => setOpen(value => !value),
+    },
+    state,
+    overlay.triggerRef
+  );
 
   return (
     <Container
@@ -50,14 +75,19 @@ export function MenuSubmenu({label, children, disabled, textValue}: MenuSubmenuP
         isFocused={isFocused || isHovered}
         trailingItems={<IconChevron size="xs" direction="right" aria-hidden="true" />}
         innerWrapProps={{
+          ...menuItemProps,
           role: 'menuitem',
-          tabIndex: disabled ? undefined : -1,
           'aria-haspopup': 'menu',
           'aria-expanded': isOpen,
-          'aria-disabled': disabled || undefined,
           ref: overlay.triggerProps.ref,
-          onFocus: () => setFocused(true),
-          onBlur: () => setFocused(false),
+          onFocus: event => {
+            menuItemProps.onFocus?.(event);
+            setFocused(true);
+          },
+          onBlur: event => {
+            menuItemProps.onBlur?.(event);
+            setFocused(false);
+          },
           onMouseEnter: () => {
             if (!disabled) {
               setHovered(true);
@@ -65,7 +95,6 @@ export function MenuSubmenu({label, children, disabled, textValue}: MenuSubmenuP
             }
           },
           onMouseLeave: () => setHovered(false),
-          onClick: () => !disabled && setOpen(value => !value),
           onKeyDown: event => {
             if (
               event.key === 'ArrowRight' ||
@@ -77,7 +106,9 @@ export function MenuSubmenu({label, children, disabled, textValue}: MenuSubmenuP
               if (!disabled) {
                 setOpen(true);
               }
+              return;
             }
+            menuItemProps.onKeyDown?.(event);
           },
         }}
       />

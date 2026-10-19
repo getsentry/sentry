@@ -83,6 +83,35 @@ describe('Menu', () => {
     );
   });
 
+  it('moves between enabled items with arrow and Home/End keys', async () => {
+    render(
+      <Menu.Root>
+        <Menu.Trigger>Navigate actions</Menu.Trigger>
+        <Menu.Content>
+          <Menu.List aria-label="Navigate actions">
+            <Menu.ListItem label="First" />
+            <Menu.ListItem label="Unavailable" disabled />
+            <Menu.ListItem label="Last" />
+          </Menu.List>
+        </Menu.Content>
+      </Menu.Root>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Navigate actions'}));
+    await waitFor(() =>
+      expect(screen.getByRole('menuitem', {name: 'First'})).toHaveFocus()
+    );
+
+    await userEvent.keyboard('{ArrowDown}');
+    expect(screen.getByRole('menuitem', {name: 'Last'})).toHaveFocus();
+    await userEvent.keyboard('{Home}');
+    expect(screen.getByRole('menuitem', {name: 'First'})).toHaveFocus();
+    await userEvent.keyboard('{End}');
+    expect(screen.getByRole('menuitem', {name: 'Last'})).toHaveFocus();
+    await userEvent.keyboard('{ArrowUp}');
+    expect(screen.getByRole('menuitem', {name: 'First'})).toHaveFocus();
+  });
+
   it('composes a header, searchable sections, items, separator, and footer', async () => {
     const onSelect = jest.fn();
 
