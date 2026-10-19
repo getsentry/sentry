@@ -253,7 +253,7 @@ end_value = ~r"[\t\n )]|$"
 MAX_REGEX_PATTERN_LENGTH = 64
 
 # Each regex filter compiles on the web worker before any Snuba query runs, so we
-# bound how long a query with many of them spends parsing
+# bound how many (potentially expensive) filters can take parsing time per query
 MAX_REGEX_FILTERS_PER_QUERY = 16
 
 # Pattern length doesn't bound compile cost: `\p{L}{100}` is 10 characters but expands to over a
