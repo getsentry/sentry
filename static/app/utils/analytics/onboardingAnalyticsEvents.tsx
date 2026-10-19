@@ -19,7 +19,6 @@ export type OnboardingSkipReason =
   | 'delegated'
   | 'no_time'
   | 'docs'
-  | 'marketing'
   | 'just_skip';
 
 export type OnboardingEventParameters = {

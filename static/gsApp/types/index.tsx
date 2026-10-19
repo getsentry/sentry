@@ -6,10 +6,6 @@ import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
 declare global {
   interface Window {
     /**
-     * Used in admin
-     */
-    __sendGridApiKey: string;
-    /**
      * Google analytics
      */
     ga: any;
@@ -47,7 +43,6 @@ declare module 'sentry/types/system' {
   interface Config {
     'getsentry.amplitudeApiKey'?: string;
     'getsentry.googleMapsApiKey'?: string;
-    'getsentry.sendgridApiKey'?: string;
     'getsentry.stripePublishKey'?: string;
   }
 }

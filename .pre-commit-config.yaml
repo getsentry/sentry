@@ -91,11 +91,20 @@ repos:
       # additional_dependencies does not install a flattened dependency tree which is needed by
       # our JavaScript tooling.
 
+      - id: sherif
+        name: sherif
+        language: system
+        files: (^|/)package\.json$|^pnpm-(workspace|lock)\.yaml$
+        entry: pnpm run lint:deps
+        pass_filenames: false
+        require_serial: true
+
       - id: oxlint
         name: oxlint
         language: system
-        files: \.(ts|js|tsx|jsx|mjs)$
-        entry: env SENTRY_PRECOMMIT=true ./node_modules/.bin/oxlint --quiet --fix --no-error-on-unmatched-pattern
+        files: \.(ts|js|tsx|jsx|mjs|cjs|mts|cts)$
+        entry: env SENTRY_PRECOMMIT=true node scripts/custom-oxlint.ts --quiet --fix --no-error-on-unmatched-pattern
+        require_serial: true
 
       - id: stylelint
         name: stylelint
@@ -142,6 +151,7 @@ repos:
       - id: check-merge-conflict
       - id: check-symlinks
       - id: check-yaml
+        args: ['--allow-multiple-documents']
       - id: end-of-file-fixer
         exclude_types: [svg]
         exclude: ^fixtures/

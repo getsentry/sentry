@@ -1,13 +1,15 @@
 import logging
 
+from sentry import features
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
     MetricIssueContext,
     NotificationContext,
     OpenPeriodContext,
 )
-from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.metric_alerts import build_workflow_link, incident_attachment_info
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.registry import (
@@ -140,16 +142,17 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
     event_data = invocation.event_data
 
     handler = issue_alert_handler_registry.get(action.type)
-    rule_instance = handler.create_rule_instance_from_action(
-        action=action,
-        detector=detector,
-        event_data=event_data,
-        workflow_id=invocation.workflow_id,
+    context = handler.create_action_context(
+        action, detector, event_data, workflow_id=invocation.workflow_id
+    )
+    rule_data = handler.build_rule_data_from_action(action, detector, context.origin)
+    rule = SerializableRuleProxy.from_action_context(
+        context,
+        data=dict(rule_data),
     )
     tags = action.data.get("tags", None)
     tag_list = [tag.strip() for tag in tags.split(",")] if tags else None
     notes = action.data.get("notes", None)
-    rule = SerializableRuleProxy.from_rule(rule_instance)
 
     event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
     occurrence_id = (
@@ -195,6 +198,17 @@ def metric_alert_notification_data_factory(
         notification_uuid=notification_uuid,
         referrer=f"metric_alert_{action_type}",
     )
+    show_investigation_button = (
+        action_type == Action.Type.SLACK
+        and metric_issue_context.group is not None
+        and metric_issue_context.new_status != IncidentStatus.CLOSED
+        and features.has("organizations:investigations", organization)
+        and features.has("organizations:investigations-slack", organization)
+    )
+
+    workflow_link = None
+    if notification_context.workflow_id is not None:
+        workflow_link = build_workflow_link(organization, notification_context.workflow_id)
 
     return MetricAlertNotificationData(
         group_id=metric_issue_context.id,
@@ -208,6 +222,9 @@ def metric_alert_notification_data_factory(
         text=attachment_info["text"],
         chart_url=chart_url,
         notes=notification_context.notes,
+        workflow_name=notification_context.workflow_name,
+        workflow_link=workflow_link,
+        show_investigation_button=show_investigation_button,
     )
 
 

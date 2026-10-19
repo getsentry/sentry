@@ -1,12 +1,12 @@
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconClose} from '@sentry/icons/close';
+import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import {Button} from '@sentry/scraps/button';
+import type {TagVariant} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {IconClose} from 'sentry/icons';
-import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
-import type {TagVariant} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
 
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {

@@ -4,14 +4,15 @@ import styled from '@emotion/styled';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import type {
-  GridColumnHeader,
-  GridColumnOrder,
-  GridColumnSortBy,
-} from 'sentry/components/tables/gridEditable';
-import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {
+  DataGrid,
+  type GridColumnHeader,
+  type GridColumnOrder,
+  type GridColumnSortBy,
+} from 'sentry/components/tables/dataGrid';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -142,10 +143,17 @@ export function WebVitalsDetailPanel({
       return <ColumnLabel column={col} />;
     }
     if (col.key === 'webVital') {
-      return <ColumnLabel align="right" column={{name: `${webVital} P75`}} />;
+      return (
+        <ColumnLabel align="right" column={{name: `${webVital?.toUpperCase()} P75`}} />
+      );
     }
     if (col.key === 'score') {
-      return <ColumnLabel align="center" column={{name: `${webVital} ${col.name}`}} />;
+      return (
+        <ColumnLabel
+          align="center"
+          column={{name: `${webVital?.toUpperCase()} ${col.name}`}}
+        />
+      );
     }
     if (col.key === 'opportunity') {
       return (
@@ -281,7 +289,7 @@ export function WebVitalsDetailPanel({
           </ChartContainer>
 
           <TableContainer>
-            <GridEditable
+            <DataGrid
               data={dataByOpportunity}
               isLoading={isPending}
               columnOrder={columnOrder}

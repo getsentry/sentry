@@ -199,6 +199,36 @@ const queryResultInvestigation = InvestigationDetailFixture({
   blocks: queryResultBlocks,
 });
 
+const uncommentedTextBlock = InvestigationBlockFixture({
+  id: 'uncommented-text-cell',
+  title: 'Working theory',
+  content: '',
+  outputStatus: 'completed',
+  output: {
+    schemaVersion: 1,
+    markdown:
+      'The eu-west-1 PDF workers scaled down at 13:38, so exports queue behind the remaining workers until they time out.',
+  },
+  currentExecution: InvestigationBlockExecutionFixture({id: 'uncommented-text-run'}),
+});
+const commentedTextBlock = InvestigationBlockFixture({
+  ...uncommentedTextBlock,
+  id: 'commented-text-cell',
+  position: 1,
+  currentExecution: InvestigationBlockExecutionFixture({id: 'commented-text-run'}),
+});
+const commentedQueryBlock = InvestigationBlockFixture({
+  ...queryResultBlocks[0]!,
+  id: 'commented-query-cell',
+  position: 2,
+  title: 'Slowest checkout spans',
+  currentExecution: InvestigationBlockExecutionFixture({id: 'commented-query-run'}),
+});
+const commentButtonInvestigation = InvestigationDetailFixture({
+  id: 'cell-comment-button',
+  blocks: [uncommentedTextBlock, commentedTextBlock, commentedQueryBlock],
+});
+
 export default Storybook.story('Investigations — Cells', story => {
   story('Pre-run and terminal output states', () => (
     <InvestigationFixtureApi
@@ -441,6 +471,46 @@ export default Storybook.story('Investigations — Cells', story => {
           canRun
           investigation={terminalPanelInvestigation}
         />
+      </Stack>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Comment button', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-cell-comment-button"
+      details={[commentButtonInvestigation]}
+    >
+      <Stack gap="2xl">
+        <Stack gap="sm" padding="lg" border="primary" radius="md">
+          <Heading as="h3" size="md">
+            No comments, shown on hover
+          </Heading>
+          <InvestigationCell
+            block={uncommentedTextBlock}
+            canRun
+            investigation={commentButtonInvestigation}
+            onComment={() => {}}
+          />
+        </Stack>
+        <Stack gap="sm" padding="lg" border="primary" radius="md">
+          <Heading as="h3" size="md">
+            Has comments, always shown
+          </Heading>
+          <InvestigationCell
+            block={commentedTextBlock}
+            canRun
+            commentCount={2}
+            investigation={commentButtonInvestigation}
+            onComment={() => {}}
+          />
+          <InvestigationCell
+            block={commentedQueryBlock}
+            canRun
+            commentCount={3}
+            investigation={commentButtonInvestigation}
+            onComment={() => {}}
+          />
+        </Stack>
       </Stack>
     </InvestigationFixtureApi>
   ));

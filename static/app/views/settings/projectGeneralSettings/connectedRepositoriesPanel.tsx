@@ -1,3 +1,5 @@
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
 import {useInfiniteQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -17,7 +19,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';

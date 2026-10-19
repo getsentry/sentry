@@ -121,13 +121,11 @@ describe('ResultGrid', () => {
   });
 
   it('shows the error state when the fetch itself rejects', async () => {
-    // The API client swallows a fetch-level rejection without running either
-    // callback, so the grid has to observe requestPromise to leave loading.
-    jest.spyOn(Client.prototype, 'request').mockReturnValue({
-      requestPromise: Promise.reject(new Error('Failed to fetch')),
-      alive: true,
-      cancel: () => {},
-    });
+    // A fetch-level failure (blocked request, network error) rejects
+    // requestPromise, which must move the grid out of its loading state.
+    jest
+      .spyOn(Client.prototype, 'requestPromise')
+      .mockRejectedValue(new Error('Failed to fetch'));
 
     render(<ExampleBasicResultGrid />);
     const alert = await screen.findByText('Something bad happened :/');
@@ -638,6 +636,19 @@ describe('ResultGrid allowAllRegions', () => {
     let respond = true;
     const stubApi = {
       clear: jest.fn(),
+      // fetchRegionPages (all-regions) uses requestPromise
+      requestPromise: jest.fn((url: string, _options: any) => {
+        if (respond) {
+          const name = url.startsWith('/_admin/cells/us/') ? 'Acme' : 'Beta';
+          return Promise.resolve([
+            [{id: '1', name, members: 5}],
+            'success',
+            {getResponseHeader: () => null},
+          ]);
+        }
+        return new Promise(() => {}); // never settles
+      }),
+      // single-region fetch still uses api.request with callbacks
       request: jest.fn((url: string, options: any) => {
         if (respond) {
           const name = url.startsWith('/_admin/cells/us/') ? 'Acme' : 'Beta';
@@ -708,18 +719,19 @@ describe('ResultGrid allowAllRegions', () => {
   });
 
   it('marks a region as failed when the fetch itself rejects (e.g. blocked request)', async () => {
-    // The real API client swallows fetch rejections without calling success
-    // or error, so the grid must resolve the region through requestPromise.
     const stubApi = {
       clear: jest.fn(),
-      request: jest.fn((url: string, options: any) => {
+      requestPromise: jest.fn((url: string, _options: any) => {
         if (url.startsWith('/_admin/cells/us/')) {
-          options.success([{id: '1', name: 'Acme', members: 5}], 'success', {
-            getResponseHeader: () => null,
-          });
-          return {requestPromise: Promise.resolve()};
+          return Promise.resolve([
+            [{id: '1', name: 'Acme', members: 5}],
+            'success',
+            {
+              getResponseHeader: () => null,
+            },
+          ]);
         }
-        return {requestPromise: Promise.reject(new Error('Failed to fetch'))};
+        return Promise.reject(new Error('Failed to fetch'));
       }),
     };
 

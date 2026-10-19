@@ -31,8 +31,18 @@ jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => {
 });
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
-  FileDiffViewer: ({defaultExpanded}: {defaultExpanded?: boolean}) => (
-    <div data-expanded={defaultExpanded} data-test-id="file-diff-viewer" />
+  FileDiffViewer: ({
+    defaultExpanded,
+    fileUrl,
+  }: {
+    defaultExpanded?: boolean;
+    fileUrl?: string;
+  }) => (
+    <div
+      data-expanded={defaultExpanded}
+      data-file-url={fileUrl}
+      data-test-id="file-diff-viewer"
+    />
   ),
 }));
 
@@ -611,6 +621,28 @@ describe('ArtifactCard', () => {
       const diffViewers = screen.getAllByTestId('file-diff-viewer');
       expect(diffViewers[0]).toHaveAttribute('data-expanded', 'true');
       expect(diffViewers[1]).toHaveAttribute('data-expanded', 'true');
+    });
+
+    it('passes each patch code_url to its diff viewer', () => {
+      const linkedPatch = makePatch('org/repo', 'src/app.py');
+      linkedPatch.code_url = 'https://github.com/org/repo/blob/abc123/src/app.py';
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection('code_changes', 'completed', [
+            [linkedPatch, makePatch('org/repo', 'src/new_file.py')],
+          ])}
+        />
+      );
+
+      const diffViewers = screen.getAllByTestId('file-diff-viewer');
+      expect(diffViewers[0]).toHaveAttribute(
+        'data-file-url',
+        'https://github.com/org/repo/blob/abc123/src/app.py'
+      );
+      expect(diffViewers[1]).not.toHaveAttribute('data-file-url');
     });
 
     it('collapses large changes by default', () => {

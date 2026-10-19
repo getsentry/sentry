@@ -14,8 +14,8 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {getFunctionLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import type {ChartType} from 'sentry/views/insights/common/components/chart';
 
 interface ParsedAggregateExpression {

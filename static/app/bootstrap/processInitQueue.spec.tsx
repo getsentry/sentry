@@ -7,44 +7,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {processInitQueue} from 'sentry/bootstrap/processInitQueue';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
 
 describe('processInitQueue', () => {
   describe('renderReact', () => {
-    it('renders password strength input', async () => {
-      window.__onSentryInit = [
-        {
-          name: 'passwordStrength',
-          input: '#password',
-          element: '#password-strength',
-        },
-      ];
-
-      render(
-        <div>
-          <input id="password" placeholder="password" />
-          <div id="password-strength" />
-        </div>
-      );
-
-      processInitQueue();
-
-      // Assert that password strength renders and reacts to user input
-      await userEvent.type(screen.getByPlaceholderText('password'), '!');
-      expect(await screen.findByText('Very Weak')).toBeInTheDocument();
-
-      // Type the rest of the password
-      await userEvent.type(
-        screen.getByPlaceholderText('password'),
-        '!!!!!supersecretpassword!!!!!!'
-      );
-      expect(await screen.findByText('Very Strong')).toBeInTheDocument();
-    });
-
-    it('renders setup wizard', async () => {
+    it('renders setup wizards queued before and after initialization', async () => {
       window.__onSentryInit = [
         {
           component: SentryInitRenderReactComponent.SETUP_WIZARD,
@@ -102,8 +72,14 @@ describe('processInitQueue', () => {
         body: [TeamFixture({id: '1', slug: 'team-1', name: 'Team 1'})],
       });
 
-      render(<div id="setup-wizard-container" />);
-      processInitQueue();
+      render(
+        <div>
+          <div id="setup-wizard-container" />
+          <div id="second-setup-wizard-container" />
+        </div>
+      );
+      const init = window.__onSentryInit[0]!;
+      await act(() => processInitQueue());
 
       await waitFor(
         () => {
@@ -111,84 +87,17 @@ describe('processInitQueue', () => {
         },
         {timeout: 5000}
       );
-    });
 
-    it('renders WebAuthn Assert', async () => {
-      window.__onSentryInit = [
-        {
-          component: SentryInitRenderReactComponent.WEB_AUTHN_ASSSERT,
-          container: '#webauthn-container',
-          name: 'renderReact',
-          props: {
-            mode: 'signin',
-          },
-        },
-      ];
-
-      render(<div id="webauthn-container" />);
-      processInitQueue();
-
-      // WebAuthn is not supported in the test environment
-      expect(
-        await screen.findByText(/Your browser does not support WebAuthn/)
-      ).toBeInTheDocument();
-    });
-
-    it('renders superuser staff access form', async () => {
-      window.__onSentryInit = [
-        {
-          component: SentryInitRenderReactComponent.SU_STAFF_ACCESS_FORM,
-          container: '#su-staff-access-form-container',
-          name: 'renderReact',
-        },
-      ];
-
-      const authenticatorsResponse = MockApiClient.addMockResponse({
-        url: '/authenticators/',
-        body: [],
+      await processInitQueue();
+      act(() => {
+        window.__onSentryInit.push({
+          ...init,
+          container: '#second-setup-wizard-container',
+        });
       });
-
-      render(<div id="su-staff-access-form-container" />);
-      processInitQueue();
-
       await waitFor(() => {
-        expect(authenticatorsResponse).toHaveBeenCalled();
+        expect(screen.getAllByText('Select your Sentry project')).toHaveLength(2);
       });
-      expect(await screen.findByText('COPS/CSM')).toBeInTheDocument();
     });
-  });
-
-  it('processes queued up items', () => {
-    const mock = jest.fn();
-    const init = {
-      name: 'onReady',
-      onReady: mock,
-    } as const;
-
-    window.__onSentryInit = [init];
-
-    processInitQueue();
-    expect(mock).toHaveBeenCalledTimes(1);
-
-    processInitQueue();
-    expect(mock).toHaveBeenCalledTimes(1);
-
-    window.__onSentryInit.push(init);
-    expect(mock).toHaveBeenCalledTimes(2);
-  });
-
-  it('is called after `processInitQueue` has already run', () => {
-    processInitQueue();
-    const mock = jest.fn();
-    const init = {
-      name: 'onReady',
-      onReady: mock,
-    } as const;
-
-    window.__onSentryInit.push(init);
-    expect(mock).toHaveBeenCalledTimes(1);
-
-    processInitQueue();
-    expect(mock).toHaveBeenCalledTimes(1);
   });
 });

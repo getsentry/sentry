@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -25,7 +26,6 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -257,6 +257,7 @@ export function SeerAutomationProjectList() {
       addSuccessMessage('Projects updated successfully');
     } catch {
       addErrorMessage('Failed to update some projects');
+      // oxlint-disable-next-line react/todo
     } finally {
       Array.from(selected).forEach(projectId => {
         const project = projects.find(p => p.id === projectId);
@@ -305,6 +306,7 @@ export function SeerAutomationProjectList() {
       addSuccessMessage('Projects updated successfully');
     } catch {
       addErrorMessage('Failed to update some projects');
+      // oxlint-disable-next-line react/todo
     } finally {
       Array.from(selected).forEach(projectId => {
         const project = projects.find(p => p.id === projectId);

@@ -77,6 +77,6 @@ const NeutralLineDot = styled('span')`
   height: 8px;
   border-radius: 100%;
   background: ${p => p.theme.tokens.graphics.neutral.moderate};
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: 0 0 0 4px ${p => p.theme.tokens.background.primary};
 `;

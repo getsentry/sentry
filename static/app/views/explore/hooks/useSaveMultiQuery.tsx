@@ -3,9 +3,8 @@ import {useMutation} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar, encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -13,7 +12,7 @@ import {
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/content';
+import {MAX_QUERIES_ALLOWED} from 'sentry/views/explore/multiQueryMode/constants';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 
 const TRACE_EXPLORER_DATASET = 'spans';

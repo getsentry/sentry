@@ -1,3 +1,4 @@
+import contextlib
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any
@@ -25,6 +26,12 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ai_agent_monitoring_tasks
 from sentry.utils import metrics
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 CONVERSATION_TITLE_ROLLOUT_RATE_OPTION = "ai-monitoring.conversation-title-generation.rollout-rate"
 
@@ -162,11 +169,22 @@ def spawn_conversation_title_generation(
             first_user_message=first_user_message,
         )
 
-    for data in earliest_by_conversation.values():
-        generate_ai_conversation_title.delay(
-            project_id=project.id,
-            conversation_id=data.conversation_id,
-            first_user_message=clamp_user_message(data.first_user_message),
-            source_timestamp=data.source_timestamp.timestamp(),
+    scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+    if get_viewer_context() is None:
+        scope = viewer_context_scope(
+            ViewerContext(
+                organization_id=project.organization_id,
+                project_id=project.id,
+                actor_type=ActorType.SYSTEM,
+            )
         )
-        metrics.incr("ai_monitoring.conversation_title.enqueued")
+
+    with scope:
+        for data in earliest_by_conversation.values():
+            generate_ai_conversation_title.delay(
+                project_id=project.id,
+                conversation_id=data.conversation_id,
+                first_user_message=clamp_user_message(data.first_user_message),
+                source_timestamp=data.source_timestamp.timestamp(),
+            )
+            metrics.incr("ai_monitoring.conversation_title.enqueued")

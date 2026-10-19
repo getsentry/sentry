@@ -1,11 +1,13 @@
 import {Fragment} from 'react';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconOpen} from '@sentry/icons/open';
 import omit from 'lodash/omit';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconCopyId, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';

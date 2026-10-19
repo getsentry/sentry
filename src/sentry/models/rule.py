@@ -102,18 +102,6 @@ class Rule(Model):
         return rules_list
 
     @property
-    def created_by_id(self):
-        try:
-            created_activity = RuleActivity.objects.get(
-                rule=self, type=RuleActivityType.CREATED.value
-            )
-            return created_activity.user_id
-        except RuleActivity.DoesNotExist:
-            pass
-
-        return None
-
-    @property
     def owner(self) -> Actor | None:
         """Part of ActorOwned Protocol"""
         return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
@@ -179,7 +167,7 @@ class RuleActivityType(Enum):
 class RuleActivity(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    rule = FlexibleForeignKey("sentry.Rule")
+    rule = FlexibleForeignKey("sentry.Rule", db_constraint=False)
     user_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
     type = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)

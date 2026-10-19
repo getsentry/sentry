@@ -10,6 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {
   AskSeerPollingResponse,
+  AskSeerReferrer,
   AskSeerStartResponse,
   AskSeerStrategy,
   QueryTokensProps,
@@ -61,6 +62,10 @@ const makeInitialAskSeerData = <
 
 interface UseAskSeerPollingOptions {
   projectIds: number[];
+  /**
+   * Which surface started the run, used to pick the Seer referrer.
+   */
+  referrer: AskSeerReferrer;
   strategy: AskSeerStrategy;
   onError?: (error: Error) => void;
   options?: Record<string, unknown>;
@@ -130,6 +135,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
               natural_language_query: query,
               project_ids: options.projectIds,
               strategy: options.strategy,
+              referrer: options.referrer,
               options: {
                 ...options.options,
                 code_mode: codeModeToggle,
@@ -141,6 +147,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
         const newRunId = response.sentry_run_id ?? response.run_id;
         if (!newRunId) {
           Sentry.captureMessage('Search agent start response missing run ID', 'error');
+          // oxlint-disable-next-line react/todo
           throw new Error('Search agent start response missing run ID');
         }
         setRunId(newRunId);

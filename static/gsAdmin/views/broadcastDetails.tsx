@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -15,7 +16,6 @@ import {useParams} from 'sentry/utils/useParams';
 
 import {BroadcastEditForm} from 'admin/components/broadcastEditForm';
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
 import type {BroadcastDetailsData} from 'admin/types';
@@ -158,7 +158,7 @@ function formatData(
 
 function BroadcastOverview({data}: {data: BroadcastDetailsData}) {
   return (
-    <DetailList>
+    <DescriptionList gap="md">
       <DetailLabel title="Title">{data.title}</DetailLabel>
       <DetailLabel title="Message">{data.message}</DetailLabel>
       <DetailLabel title="Link">
@@ -188,13 +188,13 @@ function BroadcastOverview({data}: {data: BroadcastDetailsData}) {
         {data.dateExpires ? moment(data.dateExpires).fromNow() : '∞'}
       </DetailLabel>
       <DetailLabel title="Status">{data.isActive ? 'Active' : 'Inactive'}</DetailLabel>
-    </DetailList>
+    </DescriptionList>
   );
 }
 
 function BroadcastMetadata({data}: {data: BroadcastDetailsData}) {
   return (
-    <DetailList>
+    <DescriptionList gap="md">
       <DetailLabel title="Seen By">
         {data.userCount?.toLocaleString()} user(s)
       </DetailLabel>
@@ -207,6 +207,6 @@ function BroadcastMetadata({data}: {data: BroadcastDetailsData}) {
           {data.syncLocked ? 'Locked (manual edits)' : 'Auto-synced from changelog'}
         </DetailLabel>
       )}
-    </DetailList>
+    </DescriptionList>
   );
 }

@@ -429,13 +429,106 @@ class TestBuildShimEventData:
         # Invalid request body was dropped, but the rest of the request data made it through
         assert event["request"] == {"url": "/dogpark", "method": "GET"}
 
-    def test_lifts_span_description_to_the_top_level(self) -> None:
-        segment_span = build_segment_span(description="SELECT * FROM dogs")
+    def test_adds_top_level_fields_to_spans(self) -> None:
+        # In the transaction event protocol these lived at the top level of each span rather than
+        # in `attributes`, and the legacy detectors (plus the occurrence evidence built from what
+        # they find) still read them there.
+        segment_span = build_segment_span(
+            span_op="http.server",
+            description="GET /dogpark",
+            attributes={"sentry.exclusive_time_ms": {"value": 100.0, "type": "double"}},
+        )
+        raw_chld_span_description = (
+            'SELECT "dog"."name", "dog"."age" FROM "dog" WHERE "dog"."id" = 1121'
+        )
+        normalized_chld_span_description = (
+            'SELECT "dog"."name", "dog"."age" FROM "dog" WHERE "dog"."id" = %s'
+        )
+        child_span = make_compatible(
+            build_mock_span(
+                project_id=415,
+                span_op="db",
+                description=raw_chld_span_description,
+                hash="adopt_dont_shop",
+                attributes={
+                    "sentry.normalized_description": {
+                        "value": normalized_chld_span_description,
+                        "type": "string",
+                    },
+                    "sentry.exclusive_time_ms": {"value": 7.0, "type": "double"},
+                },
+            )
+        )
 
-        event = build_shim_event_data(segment_span, [segment_span])
-        [event_span] = event["spans"]
+        event = build_shim_event_data(segment_span, [segment_span, child_span])
+        # We make copies of the spans when we put them into the shim event, so these are different
+        # from `segment_span` and `child_span` (tested separately, but that's why we have to pull
+        # them out of the event rather than using the ones we just created).
+        event_segment_span, event_child_span = event["spans"]
 
-        assert event_span["description"] == attribute_value(segment_span, "sentry.description")
+        assert event_segment_span["op"] == "http.server"
+        assert event_segment_span["description"] == "GET /dogpark"
+        assert event_segment_span["hash"] == "dogs_are_great"
+        assert event_segment_span["exclusive_time"] == 100.0
+        assert event_segment_span["timestamp"] == segment_span["end_timestamp"]
+
+        assert event_child_span["op"] == "db"
+        # Even when there's a normalized description, it's the raw one which goes at the top level
+        assert event_child_span["description"] == raw_chld_span_description
+        assert event_child_span["hash"] == "adopt_dont_shop"
+        assert event_child_span["exclusive_time"] == 7.0
+        assert event_child_span["timestamp"] == child_span["end_timestamp"]
+
+    def test_adds_sentry_tags_to_spans(self) -> None:
+        shared_attributes = {
+            "sentry.environment": {"value": "production", "type": "string"},
+            "sentry.release": {"value": "9.0.8", "type": "string"},
+            "sentry.platform": {"value": "python", "type": "string"},
+            "sentry.sdk.name": {"value": "sentry.python.flask", "type": "string"},
+        }
+        normalized_description = 'SELECT "dog"."name", "dog"."age" FROM "dog" WHERE "dog"."id" = %s'
+        segment_span = build_segment_span(
+            span_op="http.server",
+            description="GET /dogpark",
+            attributes=shared_attributes,
+        )
+        child_span = make_compatible(
+            build_mock_span(
+                project_id=415,
+                span_op="db",
+                description='SELECT "dog"."name", "dog"."age" FROM "dog" WHERE "dog"."id" = 1121',
+                attributes={
+                    **shared_attributes,
+                    "sentry.system": {"value": "postgresql", "type": "string"},
+                    "sentry.normalized_description": {
+                        "value": normalized_description,
+                        "type": "string",
+                    },
+                },
+            )
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span, child_span])
+        event_segment_span, event_child_span = event["spans"]
+
+        # Relay only sets a normalized description when it knows how to scrub the span's raw
+        # description, so spans without one (like the segment span) don't get a `description` value
+        # here. (Detectors which look for one will fall back to the top-level description in that
+        # case.)
+        assert event_segment_span["sentry_tags"] == {
+            "environment": "production",
+            "platform": "python",
+            "release": "9.0.8",
+            "sdk.name": "sentry.python.flask",
+        }
+        assert event_child_span["sentry_tags"] == {
+            "description": normalized_description,
+            "environment": "production",
+            "platform": "python",
+            "release": "9.0.8",
+            "sdk.name": "sentry.python.flask",
+            "system": "postgresql",
+        }
 
     def test_copies_attributes_into_span_data(self) -> None:
         segment_span = build_segment_span()

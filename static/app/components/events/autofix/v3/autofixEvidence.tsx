@@ -1,4 +1,11 @@
 import {Fragment, type ReactNode} from 'react';
+import {IconCompass} from '@sentry/icons/compass';
+import {IconFile} from '@sentry/icons/file';
+import {IconIssues} from '@sentry/icons/issues';
+import {IconPlay} from '@sentry/icons/play';
+import {IconProfiling} from '@sentry/icons/profiling';
+import {IconSpan} from '@sentry/icons/span';
+import {IconTerminal} from '@sentry/icons/terminal';
 import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -6,13 +13,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
-import {IconCompass} from 'sentry/icons/iconCompass';
-import {IconFile} from 'sentry/icons/iconFile';
-import {IconIssues} from 'sentry/icons/iconIssues';
-import {IconPlay} from 'sentry/icons/iconPlay';
-import {IconProfiling} from 'sentry/icons/iconProfiling';
-import {IconSpan} from 'sentry/icons/iconSpan';
-import {IconTerminal} from 'sentry/icons/iconTerminal';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

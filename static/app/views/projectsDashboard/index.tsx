@@ -1,5 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import LazyLoad, {forceCheck} from 'react-lazyload';
+import {IconAdd} from '@sentry/icons/add';
+import {IconUser} from '@sentry/icons/user';
 import {withProfiler} from '@sentry/react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import uniqBy from 'lodash/uniqBy';
@@ -16,7 +18,6 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TeamFilter} from 'sentry/components/teamFilter';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import type {Project, TeamWithProjects} from 'sentry/types/project';
@@ -26,6 +27,7 @@ import {
   setGroupedEntityTag,
 } from 'sentry/utils/performanceForSentry';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -36,7 +38,6 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {ProjectCard} from './projectCard';
 import {Resources} from './resources';

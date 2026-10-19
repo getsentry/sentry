@@ -28,11 +28,10 @@ from sentry.integrations.slack.utils.nudge import should_send_nudge_block
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
-from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.platform.shadow.capture import record_legacy_render
 from sentry.notifications.platform.types import NotificationProviderKey
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.types import NotificationOrigin, RuleFuture
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -70,7 +69,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     def _build_notification_blocks(
         self,
         event: GroupEvent,
-        rules: Sequence[Rule],
+        rules: Sequence[NotificationOrigin],
         tags: set,
         integration: RpcIntegration,
         notification_uuid: str | None = None,
@@ -172,7 +171,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         send_nudge: bool = False,
     ) -> None:
         """Common logic for sending Slack notifications."""
-        rules = [f.rule for f in futures]
+        rules = [future.context.origin for future in futures]
         blocks, json_blocks = self._build_notification_blocks(
             event, rules, tags, integration, notification_uuid, send_nudge=send_nudge
         )
@@ -231,11 +230,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         notification_uuid: str | None = None,
     ) -> None:
         """Send a notification action notification to Slack."""
-        rules = [f.rule for f in futures]
-        rule = rules[0] if rules else None
-        rule_to_use = self.rule if self.rule else rule
-        # In the NOA, we will store the action id in the rule id field
-        action_id = rule_to_use.id if rule_to_use else None
+        contexts = [future.context for future in futures]
+        future_context = contexts[0] if contexts else None
+        context = self.context or future_context
+        action_id = context.action_id if context else None
 
         if not action_id:
             # We are logging because this should never happen, all actions should have an uuid
@@ -245,7 +243,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             )
             return
 
-        if str(action_id) == "-1":
+        if context and context.origin.is_test_notification():
             self._send_notification(
                 event=event,
                 futures=futures,
@@ -253,7 +251,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 integration=integration,
                 channel=channel,
             )
-            self.record_notification_sent(event, channel, rule, notification_uuid)
+            self.record_notification_sent(event, channel, future_context, notification_uuid)
             return
 
         try:
@@ -316,7 +314,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 organization=self.project.organization, notification_uuid=notification_uuid
             ),
         )
-        self.record_notification_sent(event, channel, rule, notification_uuid)
+        self.record_notification_sent(event, channel, future_context, notification_uuid)
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None

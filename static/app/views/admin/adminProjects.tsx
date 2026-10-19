@@ -8,7 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -17,6 +17,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 type Row = {
   dateCreated: string;
@@ -72,7 +73,7 @@ export default function AdminProjects() {
 
   return (
     <Stack gap="xl">
-      <Heading as="h3">{t('Projects')}</Heading>
+      <BreadcrumbTitle title={t('Projects')} />
       <Flex align="center" gap="md" wrap="wrap">
         <Container flexGrow={1} minWidth="240px">
           {containerProps => (

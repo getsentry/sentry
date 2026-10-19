@@ -116,14 +116,13 @@ describe('SpansTabContent', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/setup/',
+      url: '/organizations/org-slug/search-agent/start/',
       method: 'POST',
-      body: {},
+      body: {run_id: 1},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
-      method: 'POST',
-      body: {status: 'ok', queries: []},
+      url: '/organizations/org-slug/search-agent/state/1/',
+      body: {status: 'completed', results: []},
     });
     PageFiltersStore.init();
     setProjects([project]);
@@ -176,6 +175,32 @@ describe('SpansTabContent', () => {
       ],
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
+  });
+
+  it('shows the spans table timeout message', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 400,
+      body: {
+        detail:
+          'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.',
+      },
+    });
+
+    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+      organization,
+      additionalWrapper: Wrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        'Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('There was an error loading data.')
+    ).not.toBeInTheDocument();
   });
 
   it('should fire analytics once per change', async () => {

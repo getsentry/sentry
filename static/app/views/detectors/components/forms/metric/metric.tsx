@@ -1,6 +1,7 @@
 import {Fragment, useContext, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconWarning} from '@sentry/icons/warning';
 import toNumber from 'lodash/toNumber';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -16,7 +17,6 @@ import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {FormContext} from 'sentry/components/forms/formContext';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
 import {PriorityLevel} from 'sentry/types/group';
@@ -42,13 +42,15 @@ import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {
-  METRIC_DETECTOR_FORM_FIELDS,
   metricDetectorFormDataToEndpointPayload,
   metricSavedDetectorToFormData,
-  useMetricDetectorFormField,
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {MetricIssuePreview} from 'sentry/views/detectors/components/forms/metric/metricIssuePreview';
 import {MetricDetectorPreviewChart} from 'sentry/views/detectors/components/forms/metric/previewChart';
 import {DetectorQueryFilterBuilder} from 'sentry/views/detectors/components/forms/metric/queryFilterBuilder';

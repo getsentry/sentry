@@ -1,6 +1,13 @@
 import type {ComponentProps, SyntheticEvent} from 'react';
 import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconJson} from '@sentry/icons/json';
+import {IconPin} from '@sentry/icons/pin';
+import {IconSubtract} from '@sentry/icons/subtract';
+import {IconTerminal} from '@sentry/icons/terminal';
+import {IconWarning} from '@sentry/icons/warning';
 import {useMutation, type UseQueryResult} from '@tanstack/react-query';
 import classNames from 'classnames';
 import omit from 'lodash/omit';
@@ -15,15 +22,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
-import {
-  IconAdd,
-  IconJson,
-  IconPin,
-  IconSubtract,
-  IconTerminal,
-  IconWarning,
-} from 'sentry/icons';
-import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -817,7 +815,6 @@ function LogRowDetails({
     project_id: '' + dataRow[OurLogKnownFieldKey.PROJECT_ID],
   });
   const projectSlug = project?.slug ?? '';
-  const fields = useQueryParamsFields();
   const getActions = useLogAttributesTreeActions({embedded});
   const [caseInsensitivity] = useCaseInsensitivity();
   const severityNumber = dataRow[OurLogKnownFieldKey.SEVERITY_NUMBER];
@@ -873,14 +870,13 @@ function LogRowDetails({
     );
   }
 
-  const colSpan = fields.length + 1; // Number of dynamic fields + first cell which is always rendered.
   const message = String(
     attributes[OurLogKnownFieldKey.MESSAGE] ?? dataRow[OurLogKnownFieldKey.MESSAGE] ?? ''
   );
 
   return (
     <DetailsWrapper ref={measureRef}>
-      <LogDetailTableBodyCell colSpan={colSpan}>
+      <LogDetailTableBodyCell>
         {isPending && <LoadingIndicator />}
         {!isPending && data && (
           <Fragment>
@@ -955,11 +951,9 @@ function LogRowDetails({
       </LogDetailTableBodyCell>
       {!isPending && data && (
         <LogDetailTableActionsCell
-          colSpan={colSpan}
           style={{
             alignItems: 'center',
             justifyContent: 'space-between',
-            flexDirection: 'row',
           }}
         >
           <LogRowDetailsActions

@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from sentry.models.organizationmember import OrganizationMember
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
-    from sentry.monitors.models import Monitor
     from sentry.profiles.utils import Profile
     from sentry.quotas.types import SeatObject
 
@@ -599,25 +598,11 @@ class Quota(Service):
         :param volume: The volume of transaction of the given project.
         """
 
-    def check_assign_monitor_seat(self, monitor: Monitor) -> SeatAssignmentResult:
-        """
-        Determines if a monitor can be assigned a seat. If it is not possible
-        to assign a monitor a seat, a reason will be included in the response
-        """
-        return SeatAssignmentResult(assignable=True)
-
     def check_assign_seat(self, seat_object: SeatObject) -> SeatAssignmentResult:
         """
         Determines if an assignable seat object can be assigned a seat.
         If it is not possible to assign a monitor a seat, a reason
         will be included in the response.
-        """
-        return SeatAssignmentResult(assignable=True)
-
-    def check_assign_monitor_seats(self, monitor: list[Monitor]) -> SeatAssignmentResult:
-        """
-        Determines if a list of monitor can be assigned seat. If it is not possible
-        to assign a seat to all given monitors, a reason will be included in the response
         """
         return SeatAssignmentResult(assignable=True)
 
@@ -632,16 +617,6 @@ class Quota(Service):
         """
         return SeatAssignmentResult(assignable=True)
 
-    def assign_monitor_seat(self, monitor: Monitor) -> int:
-        """
-        Assigns a monitor a seat if possible, resulting in a Outcome.ACCEPTED.
-        If the monitor cannot be assigned a seat it will be
-        Outcome.RATE_LIMITED.
-        """
-        from sentry.utils.outcomes import Outcome
-
-        return Outcome.ACCEPTED
-
     def assign_seat(self, seat_object: SeatObject) -> int:
         """
         Assigns a seat to an object if possible, resulting in Outcome.ACCEPTED.
@@ -651,11 +626,6 @@ class Quota(Service):
         from sentry.utils.outcomes import Outcome
 
         return Outcome.ACCEPTED
-
-    def disable_monitor_seat(self, monitor: Monitor) -> None:
-        """
-        Removes a monitor from it's assigned seat.
-        """
 
     def disable_seat(self, seat_object: SeatObject) -> None:
         """
@@ -707,20 +677,13 @@ class Quota(Service):
         """
         pass
 
-    def has_available_reserved_budget(self, org_id: int, data_category: DataCategory) -> bool:
-        """
-        Determines if the organization has enough reserved budget for the given data category operation.
-        """
-        return True
-
     def has_usage_quota(self, org_id: int, data_category: DataCategory) -> bool:
         """
         Check if organization has available quota for a usage-based category.
 
         This is for categories with TallyType.USAGE (not SEAT-based). Unlike
-        has_available_reserved_budget (which is for cost-based Reserved Budgets
-        where reserved=-2), this checks usage-based quotas where reserved=N
-        means N events are allocated.
+        cost-based Reserved Budgets (where reserved=-2), this checks usage-based
+        quotas where reserved=N means N events are allocated.
 
         Use for usage-based categories like SIZE_ANALYSIS, INSTALLABLE_BUILD, and
         similar categories that are not rate-limited in Relay.

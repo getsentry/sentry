@@ -114,6 +114,8 @@ from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
+from sentry.models.apiapplication import ApiApplication
+from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
@@ -224,6 +226,7 @@ from sentry.snuba.models import QuerySubscriptionDataSourceHandler
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, create_snuba_query
 from sentry.tempest.models import MessageType as TempestMessageType
 from sentry.tempest.models import TempestCredentials
+from sentry.testutils.helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -248,7 +251,6 @@ from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
-from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import (
     Action,
     ActionAlertRuleTriggerAction,
@@ -669,6 +671,18 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_api_application(owner: User, **kwargs) -> ApiApplication:
+        kwargs.setdefault("name", "Example App")
+        kwargs.setdefault("redirect_uris", "https://example.com/callback")
+        return ApiApplication.objects.create(owner=owner, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_api_device_code(application: ApiApplication, **kwargs) -> ApiDeviceCode:
+        return ApiDeviceCode.objects.create(application=application, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def create_auth_provider(**kwargs):
         return AuthProvider.objects.create(**kwargs)
 
@@ -1084,6 +1098,7 @@ class Factories:
         fixture_path="artifact_bundle_debug_ids",
         date_uploaded=None,
         date_last_modified=None,
+        indexing_state=None,
     ):
         if date_uploaded is None:
             date_uploaded = timezone.now()
@@ -1100,6 +1115,7 @@ class Factories:
             artifact_count=artifact_count,
             date_uploaded=date_uploaded,
             date_last_modified=date_last_modified,
+            indexing_state=indexing_state,
         )
         return artifact_bundle
 
@@ -2613,7 +2629,7 @@ class Factories:
         """Payload used by Explore saved-formula API and resolver tests."""
         return copy.deepcopy(
             {
-                "name": "formula.apdex",
+                "name": "formula.custom_apdex",
                 "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
                 "unit": None,
                 "dataset": "spans",
@@ -2624,7 +2640,7 @@ class Factories:
                     },
                     {
                         "name": "count_tolerating",
-                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+                        "value": "count_if(`{duration}:>={threshold} and {duration}:<={frustrated}`)",
                     },
                 ],
                 "params": [
@@ -2641,7 +2657,7 @@ class Factories:
                         "value": "",
                     },
                     {
-                        "name": "4threshold",
+                        "name": "frustrated",
                         "type": "calculation",
                         "order": 2,
                         "value": "{threshold} * 4",

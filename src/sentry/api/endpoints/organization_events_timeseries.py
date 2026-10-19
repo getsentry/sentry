@@ -8,18 +8,17 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import analytics, features, quotas
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.client_kind import get_client_kind
 from sentry.api.endpoints.organization_events_stats import SENTRY_BACKEND_REFERRERS
 from sentry.api.endpoints.timeseries import (
     EMPTY_STATS_RESPONSE,
     INGESTION_DELAY,
-    Annotation,
     BucketBoundaries,
     Row,
     SeriesMeta,
@@ -27,20 +26,18 @@ from sentry.api.endpoints.timeseries import (
     StatsResponse,
     TimeSeries,
 )
-from sentry.api.helpers.data_annotations import (
-    get_dropped_data_annotations,
-    record_dropped_events_telemetry,
-)
 from sentry.api.helpers.ingestion_delay import (
     get_ingestion_delay_status,
     serialize_ingestion_status,
 )
+from sentry.api.helpers.timeseries_transformations import get_transformations
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPerformanceExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_TOP_EVENTS
+from sentry.explore.models import ExploreSavedFormula, ExploreSavedQueryDataset
 from sentry.ingestion_delay.status import IngestionDelayStatus
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -72,7 +69,6 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import SnubaTSResult
-from sentry.utils.tracing import set_span_data, start_span
 
 TOP_EVENTS_DATASETS = {
     discover,
@@ -86,6 +82,11 @@ TOP_EVENTS_DATASETS = {
     TraceMetrics,
     errors,
     transactions,
+}
+DATASET_TO_FORMULA_DATASET = {
+    Spans: ExploreSavedQueryDataset.SPANS,
+    OurLogs: ExploreSavedQueryDataset.OURLOGS,
+    TraceMetrics: ExploreSavedQueryDataset.METRICS,
 }
 
 logger = logging.getLogger(__name__)
@@ -202,11 +203,21 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         fields (such as `query=user.id:bc`) will not return accurate results. Use these queries for rough
         estimation only.
         """
-        with start_span(op="discover.endpoint", name="filter_params") as span:
-            set_span_data(span, "organization", organization)
-
+        with traces.start_span(
+            name="filter_params",
+            attributes={
+                "sentry.op": "discover.endpoint",
+                "organization": repr(organization),
+            },
+        ):
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
+            if features.has(
+                "organizations:explore-interpolation-and-smoothing",
+                organization,
+                actor=request.user,
+            ):
+                get_transformations(request)
 
             dataset = self.get_dataset(request, organization)
             # Add more here until top events is supported on all the datasets
@@ -274,13 +285,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         logger.warning("Failed to fetch ingestion delay status", exc_info=True)
             finally:
                 pool.shutdown(wait=False)
-            include_annotations = request.GET.get(
-                "includeAnnotations"
-            ) is not None and features.has(
-                "organizations:explore-data-fidelity-annotations",
-                organization,
-                actor=request.user,
-            )
             return Response(
                 self.serialize_stats_data(
                     events_stats,
@@ -289,9 +293,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     rollup,
                     dataset,
                     organization,
-                    include_annotations,
                     ingestion_delay_status,
-                    request=request,
                 ),
                 status=200,
             )
@@ -312,6 +314,20 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             actor=request.user,
         )
 
+        if dataset in DATASET_TO_FORMULA_DATASET and features.has(
+            "organizations:explore-saved-formulas", organization, actor=request.user
+        ):
+            saved_formulas = {
+                formula.name: formula
+                for formula in ExploreSavedFormula.objects.filter(
+                    organization=organization,
+                    dataset=DATASET_TO_FORMULA_DATASET[dataset],
+                    prebuilt_deleted=False,
+                ).prefetch_related("variables")
+            }
+        else:
+            saved_formulas = None
+
         if dataset == TraceMetrics:
             # tracemetrics uses aggregate conditions
             return TraceMetricsSearchResolverConfig(
@@ -321,6 +337,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
                 disable_array_attributes=disable_array_attributes,
+                saved_formulas=saved_formulas,
             )
         elif dataset == PreprodSize:
             return PreprodSizeSearchResolverConfig(
@@ -337,6 +354,15 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
                 disable_array_attributes=disable_array_attributes,
+                disable_deprecated_functions=(
+                    dataset == Spans
+                    and features.has(
+                        "organizations:explore-disable-deprecated-if-functions",
+                        organization,
+                        actor=request.user,
+                    )
+                ),
+                saved_formulas=saved_formulas if dataset in [Spans, OurLogs] else None,
             )
 
     def get_event_stats(
@@ -474,9 +500,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         rollup: int,
         dataset,
         organization: Organization,
-        include_annotations: bool = False,
         ingestion_delay_status: IngestionDelayStatus | None = None,
-        request: Request | None = None,
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
         now = datetime.now().timestamp()
@@ -497,26 +521,6 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         debug_info[key] = keyed_result.data["meta"]["debug_info"]
             # ignore typing here cause we don't want the openapi docs to include debug_info
             stats_meta["debug_info"] = debug_info  #  type: ignore[typeddict-unknown-key]
-        if include_annotations:
-            dropped_annotations: list[Annotation] = []
-            accepted_annotations: list[Annotation] = []
-            try:
-                dropped_annotations, accepted_annotations = get_dropped_data_annotations(
-                    dataset, snuba_params, rollup
-                )
-            except Exception:
-                sentry_sdk.capture_exception()
-            stats_meta["droppedAnnotations"] = dropped_annotations
-            stats_meta["acceptedAnnotations"] = accepted_annotations
-
-            record_dropped_events_telemetry(
-                endpoint="events-timeseries",
-                client_kind=get_client_kind(request).value if request is not None else "unknown",
-                dataset_label=DATASET_LABELS[dataset],
-                dropped_count=len(dropped_annotations),
-                accepted_count=len(accepted_annotations),
-            )
-
         if ingestion_delay_status is not None:
             stats_meta["ingestion"] = serialize_ingestion_status(ingestion_delay_status)
             if ingestion_delay_status.complete_through is not None:
@@ -602,10 +606,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 processed_timeseries.sampling_rate,
                 processed_timeseries.confidence,
             ):
-                value["sampleCount"] = count[axis]
+                value["sampleCount"] = count.get(axis)
                 # We want to null sample rates that are 0 since that means we received no data during this bucket
-                value["sampleRate"] = null_zero(rate[axis])
-                value["confidence"] = confidence[axis]
+                value["sampleRate"] = null_zero(rate.get(axis))
+                value["confidence"] = confidence.get(axis)
 
         timeseries["values"] = timeseries_values
 

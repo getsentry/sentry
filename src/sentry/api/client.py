@@ -10,7 +10,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 from sentry.auth.superuser import Superuser
 
-__all__ = ("ApiClient",)
+__all__ = ("ApiClient", "ApiError", "client")
 
 
 class ApiError(Exception):
@@ -125,3 +125,6 @@ class ApiClient:
 
     def delete(self, *args, **kwargs):
         return self.request("DELETE", *args, **kwargs)
+
+
+client = ApiClient()

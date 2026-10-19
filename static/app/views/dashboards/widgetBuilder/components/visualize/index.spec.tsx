@@ -30,14 +30,9 @@ const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
 
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
-  let organizationWithConditionalAggregates!: ReturnType<typeof OrganizationFixture>;
-
   beforeEach(() => {
     organization = OrganizationFixture({
       features: ['performance-view'],
-    });
-    organizationWithConditionalAggregates = OrganizationFixture({
-      features: ['performance-view', 'explore-conditional-aggregates'],
     });
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
@@ -888,6 +883,37 @@ describe('Visualize', () => {
 
     expect(await screen.findByText('this aggregate has an error')).toBeInTheDocument();
     expect(screen.queryByText('this field has an error')).not.toBeInTheDocument();
+  });
+
+  it('does not throw when error.queries is a string instead of an array', async () => {
+    // flattenErrors() flattens array-of-string API errors into a plain string,
+    // so error.queries may arrive as a string. The component must not call .find()
+    // on it.
+    render(
+      <WidgetBuilderProvider>
+        <Visualize
+          error={{
+            queries: 'some validation error' as any,
+          }}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    // The component should render without throwing a 'not a function' TypeError.
+    // Verify no query-level error text is rendered from the string value.
+    await waitFor(() => {
+      expect(screen.queryByText('some validation error')).not.toBeInTheDocument();
+    });
   });
 
   it('shows radio buttons for big number widgets when there are multiple aggregates', async () => {
@@ -2034,7 +2060,7 @@ describe('Visualize', () => {
   it('shows a per-series filter search bar for spans aggregates', async () => {
     render(<Visualize />, {
       additionalWrapper: WidgetBuilderProvider,
-      organization: organizationWithConditionalAggregates,
+      organization,
       initialRouterConfig: {
         location: {
           pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -2053,35 +2079,10 @@ describe('Visualize', () => {
     ).toBeInTheDocument();
   });
 
-  it('hides the per-series filter search bar when the feature is disabled', async () => {
-    render(<Visualize />, {
-      additionalWrapper: WidgetBuilderProvider,
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-          query: {
-            dataset: WidgetType.SPANS,
-            displayType: DisplayType.LINE,
-            yAxis: ['avg(span.duration)'],
-          },
-        },
-        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
-      },
-    });
-
-    expect(
-      await screen.findByRole('button', {name: 'Aggregate Selection'})
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
-    ).not.toBeInTheDocument();
-  });
-
   it('loads Explore-style _if aggregates into base dropdowns with a filter', async () => {
     render(<Visualize />, {
       additionalWrapper: WidgetBuilderProvider,
-      organization: organizationWithConditionalAggregates,
+      organization,
       initialRouterConfig: {
         location: {
           pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -2107,7 +2108,7 @@ describe('Visualize', () => {
   it('applies visualize filters as _if aggregates', async () => {
     const {router} = render(<Visualize />, {
       additionalWrapper: WidgetBuilderProvider,
-      organization: organizationWithConditionalAggregates,
+      organization,
       initialRouterConfig: {
         location: {
           pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -2136,7 +2137,7 @@ describe('Visualize', () => {
   it('preserves field aliases when applying a series filter', async () => {
     const {router} = render(<Visualize />, {
       additionalWrapper: WidgetBuilderProvider,
-      organization: organizationWithConditionalAggregates,
+      organization,
       initialRouterConfig: {
         location: {
           pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -2167,7 +2168,7 @@ describe('Visualize', () => {
   it('hides the filter search bar for no-argument spans aggregates', async () => {
     render(<Visualize />, {
       additionalWrapper: WidgetBuilderProvider,
-      organization: organizationWithConditionalAggregates,
+      organization,
       initialRouterConfig: {
         location: {
           pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -2192,33 +2193,6 @@ describe('Visualize', () => {
   it('preserves the series filter when changing the column', async () => {
     const {router} = render(<Visualize />, {
       additionalWrapper: WidgetBuilderProvider,
-      organization: organizationWithConditionalAggregates,
-      initialRouterConfig: {
-        location: {
-          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-          query: {
-            dataset: WidgetType.SPANS,
-            displayType: DisplayType.LINE,
-            yAxis: ['avg_if(`span.op:db`,span.duration)'],
-          },
-        },
-        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
-      },
-    });
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Column Selection'}));
-    await userEvent.click(screen.getByRole('option', {name: 'span.self_time'}));
-
-    await waitFor(() => {
-      expect(router.location.query).toEqual(
-        expect.objectContaining({yAxis: 'avg_if(`span.op:db`,span.self_time)'})
-      );
-    });
-  });
-
-  it('preserves Explore-style _if filters when changing the column with the feature disabled', async () => {
-    const {router} = render(<Visualize />, {
-      additionalWrapper: WidgetBuilderProvider,
       organization,
       initialRouterConfig: {
         location: {
@@ -2233,10 +2207,6 @@ describe('Visualize', () => {
       },
     });
 
-    expect(
-      screen.queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
-    ).not.toBeInTheDocument();
-
     await userEvent.click(await screen.findByRole('button', {name: 'Column Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'span.self_time'}));
 
@@ -2250,7 +2220,7 @@ describe('Visualize', () => {
   it('preserves the series filter when changing the aggregate', async () => {
     const {router} = render(<Visualize />, {
       additionalWrapper: WidgetBuilderProvider,
-      organization: organizationWithConditionalAggregates,
+      organization,
       initialRouterConfig: {
         location: {
           pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,

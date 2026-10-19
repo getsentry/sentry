@@ -1,5 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconOpen} from '@sentry/icons/open';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -10,7 +12,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {CodeOwner, CodeownersFile} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';

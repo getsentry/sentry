@@ -2,6 +2,7 @@ import {useState} from 'react';
 import moment from 'moment-timezone';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
@@ -27,7 +28,6 @@ import {useParams} from 'sentry/utils/useParams';
 
 import {CustomerName} from 'admin/components/customerName';
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import type {ActionItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
@@ -357,7 +357,7 @@ export function RelocationDetails() {
 
   const overview = (
     <DetailsContainer>
-      <DetailList>
+      <DescriptionList gap="md">
         <DetailLabel title="Provenance">
           <code>{relocationData.provenance}</code>
         </DetailLabel>
@@ -385,8 +385,8 @@ export function RelocationDetails() {
             <i>&lt;deleted&gt;</i>
           )}
         </DetailLabel>
-      </DetailList>
-      <DetailList>
+      </DescriptionList>
+      <DescriptionList gap="md">
         <DetailLabel title="Started">
           {moment(relocationData.dateAdded).fromNow()}
         </DetailLabel>
@@ -408,7 +408,7 @@ export function RelocationDetails() {
             ? moment(relocationData.latestUnclaimedEmailsSentAt).fromNow()
             : '--'}
         </DetailLabel>
-      </DetailList>
+      </DescriptionList>
     </DetailsContainer>
   );
 
@@ -442,7 +442,7 @@ export function RelocationDetails() {
     }, steps);
 
   const summary = (
-    <DetailList>
+    <DescriptionList gap="md">
       <DetailLabel title="Progress">{steps}</DetailLabel>
       <DetailLabel title="Requested Slugs">
         {relocationData.wantOrgSlugs.join(', ')}
@@ -455,7 +455,7 @@ export function RelocationDetails() {
       {relocationData.failureReason ? (
         <DetailLabel title="Notes">{relocationData.failureReason}</DetailLabel>
       ) : null}
-    </DetailList>
+    </DescriptionList>
   );
 
   const renderArtifactsSection = () => {

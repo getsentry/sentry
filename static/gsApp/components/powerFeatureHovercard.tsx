@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import {IconLightning} from '@sentry/icons/lightning';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 
 import {Hovercard} from 'sentry/components/hovercard';
-import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';

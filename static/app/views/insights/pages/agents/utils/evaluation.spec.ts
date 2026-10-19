@@ -70,6 +70,30 @@ describe('parseEvaluationInput', () => {
     });
   });
 
+  it('reads boolean choice options as strings', () => {
+    const raw = JSON.stringify([
+      {
+        type: 'evaluation',
+        state: 'Win a free cruise!',
+        questions: {
+          // As recorded by the JavaScript SDK for OpenAI decisions.
+          isSpam: {type: 'choice', criteria: {true: '', false: 'Not spam'}},
+          isAd: {type: 'choice', criteria: [true, false]},
+        },
+      },
+    ]);
+
+    expect(parseEvaluationInput(raw)?.questions).toEqual([
+      {
+        key: 'isSpam',
+        kind: 'question',
+        type: 'choice',
+        criteria: {true: '', false: 'Not spam'},
+      },
+      {key: 'isAd', kind: 'question', type: 'choice', criteria: ['true', 'false']},
+    ]);
+  });
+
   it('keeps malformed questions as raw values', () => {
     const raw = JSON.stringify([
       {
@@ -119,6 +143,7 @@ describe('parseEvaluationOutput', () => {
         type: 'evaluation',
         answers: {
           authIssue: {type: 'boolean', probability: 0.97},
+          isRed: {type: 'predicate', probability: 0.7},
           wantsRefund: {type: 'noul', noul: 0.99},
           urgency: {
             type: 'score',
@@ -133,12 +158,14 @@ describe('parseEvaluationOutput', () => {
             probabilities: {technical: 0.35, billing: 0.59},
             confidence: 0.24,
           },
+          tone: {type: 'refusal'},
         },
       },
     ]);
 
     expect(parseEvaluationOutput(raw)).toEqual([
       {kind: 'boolean', key: 'authIssue', probability: 0.97},
+      {kind: 'boolean', key: 'isRed', probability: 0.7},
       {kind: 'boolean', key: 'wantsRefund', probability: 0.99},
       {
         kind: 'score',
@@ -155,6 +182,36 @@ describe('parseEvaluationOutput', () => {
         probabilities: {technical: 0.35, billing: 0.59},
         confidence: 0.24,
       },
+      {kind: 'refusal', key: 'tone'},
+    ]);
+  });
+
+  it('reads boolean choices as strings', () => {
+    const raw = JSON.stringify([
+      {
+        type: 'evaluation',
+        answers: {
+          // As recorded by the JavaScript SDK for OpenAI decisions.
+          isSpam: {
+            type: 'choice',
+            choice: 'true',
+            probabilities: {true: 0.91, false: 0.09},
+            confidence: 0.91,
+          },
+          isAd: {type: 'choice', choice: false},
+        },
+      },
+    ]);
+
+    expect(parseEvaluationOutput(raw)).toEqual([
+      {
+        kind: 'choice',
+        key: 'isSpam',
+        choice: 'true',
+        probabilities: {true: 0.91, false: 0.09},
+        confidence: 0.91,
+      },
+      {kind: 'choice', key: 'isAd', choice: 'false'},
     ]);
   });
 
@@ -193,6 +250,36 @@ describe('getNodeEvaluation', () => {
     });
   });
 
+  it.each(['decide', 'evaluate'])(
+    'recognizes a span with the %s operation name',
+    operationName => {
+      const evaluation = getNodeEvaluation(
+        makeNode({
+          'gen_ai.operation.name': operationName,
+          'gen_ai.input.messages': RAW_INPUT,
+          'gen_ai.output.messages': RAW_OUTPUT,
+        })
+      );
+
+      expect(evaluation).toEqual({
+        input: {
+          state: 'I cannot log in.',
+          questions: [
+            {
+              key: 'urgency',
+              kind: 'question',
+              type: 'score',
+              criteria: ['low', 'medium', 'high'],
+            },
+          ],
+        },
+        answers: [{kind: 'score', key: 'urgency', score: 1.6}],
+        rawInput: RAW_INPUT,
+        rawOutput: RAW_OUTPUT,
+      });
+    }
+  );
+
   it('returns null for other spans, even with an evaluation message', () => {
     expect(
       getNodeEvaluation(
@@ -219,5 +306,9 @@ describe('getAnswerLabel', () => {
         criteria: ['low', 'medium', 'critical'],
       })
     ).toBe('critical (1.6)');
+  });
+
+  it('labels a refusal', () => {
+    expect(getAnswerLabel({kind: 'refusal', key: 'urgency'})).toBe('Refused');
   });
 });

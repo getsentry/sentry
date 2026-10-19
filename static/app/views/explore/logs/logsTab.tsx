@@ -1,11 +1,15 @@
 import {memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconEdit} from '@sentry/icons/edit';
+import {IconRefresh} from '@sentry/icons/refresh';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -20,7 +24,6 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
-import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -30,6 +33,7 @@ import {HOUR} from 'sentry/utils/formatters';
 import {makeEventsTimeSeriesQueryKeyPrefix} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
 import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
@@ -104,9 +108,6 @@ import {
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
-// eslint-disable-next-line boundaries/dependencies
-import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
-
 type LogsTabProps = {
   datePageFilterProps: DatePageFilterProps;
 };
@@ -174,15 +175,8 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
       validatedSearchQueryData,
     });
 
-  const hasTranslateEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
-
   return (
-    <SearchQueryBuilderProvider
-      enableAISearch={hasTranslateEndpoint}
-      {...searchQueryBuilderProviderProps}
-    >
+    <SearchQueryBuilderProvider enableAISearch {...searchQueryBuilderProviderProps}>
       <ExploreBodySearch>
         <Layout.Main width="full">
           <Grid
@@ -232,20 +226,15 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
                   trigger={triggerProps => (
                     <Container width={{zero: '100%', sm: 'auto'}}>
                       {buttonProps => (
-                        <Button
+                        <OverlayTrigger.Button
+                          showChevron={false}
                           {...buttonProps}
                           {...triggerProps}
                           variant="primary"
                           aria-label={t('Save as')}
-                          onClick={e => {
-                            e.stopPropagation();
-                            e.preventDefault();
-
-                            triggerProps.onClick?.(e);
-                          }}
                         >
                           {t('Save as')}
-                        </Button>
+                        </OverlayTrigger.Button>
                       )}
                     </Container>
                   )}
@@ -529,7 +518,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                 )}
               </Flex>
             </OverChartButtonGroup>
-            <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
+            <ExploreQuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             <LogsDownSamplingAlert
               timeseriesResult={timeseriesResult}
               tableResult={infiniteLogsQueryResult}

@@ -1,18 +1,15 @@
 import {Fragment} from 'react';
-import {mergeProps} from '@react-aria/utils';
-
-import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {
   TreeBranchIcon,
   TreeKey,
   TreeKeyTrunk,
-  TreeRow,
   TreeSearchKey,
   TreeSpacer,
   TreeValue,
   TreeValueTrunk,
 } from 'sentry/components/keyValueTree/styles';
+import {KeyValueRow} from 'sentry/components/tables/keyValueTable';
 
 export interface KeyValueTreeRowProps {
   label: React.ReactNode;
@@ -42,29 +39,25 @@ export function KeyValueTreeRow({
   ...props
 }: KeyValueTreeRowProps) {
   return (
-    <RevealOnHover>
-      {revealOnHoverProps => (
-        <TreeRow hasErrors={hasErrors} {...mergeProps(props, revealOnHoverProps)}>
-          <TreeKeyTrunk spacerCount={spacerCount}>
-            {spacerCount > 0 && (
-              <Fragment>
-                <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
-                <TreeBranchIcon hasErrors={hasErrors} />
-              </Fragment>
-            )}
-            {fullKey && <TreeSearchKey aria-hidden>{fullKey}</TreeSearchKey>}
-            <TreeKey hasErrors={hasErrors} title={showFullKeyTitle ? fullKey : undefined}>
-              {label}
-            </TreeKey>
-          </TreeKeyTrunk>
-          <TreeValueTrunk>
-            {value === undefined ? null : (
-              <TreeValue hasErrors={hasErrors}>{value}</TreeValue>
-            )}
-            {actions}
-          </TreeValueTrunk>
-        </TreeRow>
-      )}
-    </RevealOnHover>
+    <KeyValueRow tone={hasErrors ? 'danger' : undefined} {...props}>
+      <TreeKeyTrunk spacerCount={spacerCount}>
+        {spacerCount > 0 && (
+          <Fragment>
+            <TreeSpacer spacerCount={spacerCount} hasStem={hasStem} />
+            <TreeBranchIcon hasErrors={hasErrors} />
+          </Fragment>
+        )}
+        {fullKey && <TreeSearchKey aria-hidden>{fullKey}</TreeSearchKey>}
+        <TreeKey hasErrors={hasErrors} title={showFullKeyTitle ? fullKey : undefined}>
+          {label}
+        </TreeKey>
+      </TreeKeyTrunk>
+      <TreeValueTrunk>
+        {value === undefined ? null : (
+          <TreeValue hasErrors={hasErrors}>{value}</TreeValue>
+        )}
+        {actions}
+      </TreeValueTrunk>
+    </KeyValueRow>
   );
 }

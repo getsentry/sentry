@@ -22,7 +22,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
+import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
 import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
@@ -69,9 +69,6 @@ export function useLogsSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const hasMeasuredIngestionDelayUi = organization.features.includes(
-    'measured-ingestion-delay-ui'
-  );
   const isEventsTimeseriesEnabled = shouldUseEventsTimeseries(organization);
 
   const filteredWidget = useMemo(
@@ -157,16 +154,14 @@ export function useLogsSeriesQuery(
         pageFilters,
         queue,
         enabled,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData, {
-          includeMeasuredIngestionDelayMetadata: hasMeasuredIngestionDelayUi,
-        }),
+        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
       });
     }),
     combine: combineWidgetQueryResults,
   });
 
   useEventsTimeseriesSpotCheck({
-    config: LogsConfig,
+    config: eventsResponseTransforms,
     enabled,
     statsQueryResults: queryResults,
     organization,
@@ -203,7 +198,7 @@ export function useLogsSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = LogsConfig.transformSeries!(
+      const transformedResult = eventsResponseTransforms.transformSeries!(
         responseData,
         filteredWidget.queries[requestIndex]!,
         organization
@@ -220,11 +215,11 @@ export function useLogsSeriesQuery(
         timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
       });
 
-      const resultTypes = LogsConfig.getSeriesResultType?.(
+      const resultTypes = eventsResponseTransforms.getSeriesResultType?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
-      const resultUnits = LogsConfig.getSeriesResultUnit?.(
+      const resultUnits = eventsResponseTransforms.getSeriesResultUnit?.(
         responseData,
         filteredWidget.queries[requestIndex]!
       );
@@ -350,7 +345,7 @@ export function useLogsTableQuery(
       const responseData = q.data.json;
 
       const transformedDataItem: TableDataWithTitle = {
-        ...LogsConfig.transformTable(
+        ...eventsResponseTransforms.transformTable(
           responseData,
           filteredWidget.queries[i]!,
           organization,

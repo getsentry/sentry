@@ -5,6 +5,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import features, options, tagstore
 from sentry.api.api_owners import ApiOwner
@@ -27,7 +28,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.tagstore.types import TagKeySerializer, TagKeySerializerResponse
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_span_attribute
-from sentry.utils.tracing import start_span
 
 
 @extend_schema(tags=["Discover"])
@@ -103,7 +103,9 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
         else:
             dataset = Dataset.Discover
 
-        with start_span(op="tagstore", name="get_tag_keys_for_projects"):
+        with traces.start_span(
+            name="get_tag_keys_for_projects", attributes={"sentry.op": "tagstore"}
+        ):
             with handle_query_errors():
                 start = filter_params["start"]
                 end = filter_params["end"]

@@ -148,6 +148,10 @@ const AvatarStyle = (p: {theme: Theme}) => css`
   margin-left: -8px;
   cursor: default;
 
+  &:last-child {
+    margin-left: 0;
+  }
+
   &:hover {
     z-index: 1;
   }

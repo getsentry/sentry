@@ -2,25 +2,57 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import Mock, patch
 
+from django.test import override_settings
+from urllib3.response import HTTPResponse
+
 from sentry.models.organization import Organization
-from sentry.seer.oneshot import call_seer_oneshot
+from sentry.seer.oneshot import call_seer_oneshot, run_oneshot
 from sentry.seer.run_questions import QUESTIONS, get_run_questions
 from sentry.testutils.cases import TestCase
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
+    decode_viewer_context,
     get_viewer_context,
     viewer_context_scope,
 )
 
 
 class CallSeerOneShotTest(TestCase):
-    def test_establishes_viewer_context_for_request(self) -> None:
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.signed_seer_api.metrics.incr")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_reports_missing_viewer_context_without_an_ambient_context(
+        self, mock_urlopen: Mock, mock_metrics_incr: Mock
+    ) -> None:
+        mock_urlopen.return_value = HTTPResponse(b'{"result":{"answer":"ok"}}', status=200)
+
+        assert run_oneshot("test", {}, self.organization) == {"answer": "ok"}
+
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.organization.id,
+        )
+        mock_metrics_incr.assert_any_call(
+            "seer.viewer_context_resolution",
+            tags={
+                "outcome": "contextvar_missing",
+                "endpoint": "/v1/automation/oneshot/run",
+            },
+        )
+        assert get_viewer_context() is None
+
+    def test_does_not_establish_ambient_context_from_legacy_metadata(self) -> None:
         observed_contexts: list[ViewerContext | None] = []
+        observed_request_contexts: list[Mapping[str, int]] = []
         response = Mock(status=200, data=b'{"result": {}}')
 
         def make_request(*args: Any, **kwargs: Any) -> Mock:
             observed_contexts.append(get_viewer_context())
+            observed_request_contexts.append(kwargs["viewer_context"])
             return response
 
         call_seer_oneshot(
@@ -31,12 +63,12 @@ class CallSeerOneShotTest(TestCase):
             user_id=self.user.id,
         )
 
-        assert observed_contexts == [
-            ViewerContext(
-                organization_id=self.organization.id,
-                user_id=self.user.id,
-                actor_type=ActorType.USER,
-            )
+        assert observed_contexts == [None]
+        assert observed_request_contexts == [
+            {
+                "organization_id": self.organization.id,
+                "user_id": self.user.id,
+            }
         ]
         assert get_viewer_context() is None
 

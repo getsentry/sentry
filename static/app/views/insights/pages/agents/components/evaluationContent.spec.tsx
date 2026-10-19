@@ -155,6 +155,26 @@ describe('EvaluationAnswers', () => {
     expect(screen.getByText('1.6')).toBeInTheDocument();
   });
 
+  it('renders a refusal with a tooltip explaining it', async () => {
+    render(
+      <EvaluationAnswers
+        answers={[{kind: 'refusal', key: 'urgency'}]}
+        questions={[
+          {
+            key: 'urgency',
+            kind: 'question',
+            type: 'score',
+            instructions: 'How urgent is this ticket?',
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('How urgent is this ticket?')).toBeInTheDocument();
+    await userEvent.hover(screen.getByText('Refused'));
+    expect(await screen.findByText('The model declined to answer.')).toBeInTheDocument();
+  });
+
   it('shows the answer in the header without a distribution', () => {
     render(
       <EvaluationAnswers
@@ -179,6 +199,7 @@ describe('EvaluationResultSummary', () => {
           {kind: 'boolean', key: 'authIssue', probability: 0.97},
           {kind: 'score', key: 'urgency', score: 1.6},
           {kind: 'choice', key: 'department', choice: 'billing'},
+          {kind: 'refusal', key: 'escalate'},
           {kind: 'invalid', key: 'custom', value: {}},
         ]}
         questions={[
@@ -195,6 +216,7 @@ describe('EvaluationResultSummary', () => {
     expect(screen.getByText('authIssue: Yes')).toBeInTheDocument();
     expect(screen.getByText('urgency: high (1.6)')).toBeInTheDocument();
     expect(screen.getByText('department: billing')).toBeInTheDocument();
+    expect(screen.getByText('escalate: Refused')).toBeInTheDocument();
     expect(screen.queryByText(/custom/)).not.toBeInTheDocument();
   });
 });
