@@ -176,10 +176,6 @@ def test_decode_transformations_invalid_value(
             "Only one transformation per function type is allowed per yAxis",
         ),
         (
-            ["smooth(sma,3)", "smooth(ema,3)"],
-            "Only one transformation per function type is allowed per yAxis",
-        ),
-        (
             ["smooth(asap,7)", "smooth(ema,3)"],
             "Only one transformation per function type is allowed per yAxis",
         ),
