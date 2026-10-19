@@ -23,7 +23,7 @@ from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, 
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import create_workflow_notification_origin_for_rule
 from sentry.types.actor import ActorType
 from sentry.workflow_engine.models import Workflow
 
@@ -114,7 +114,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         development = self.create_environment(project=project, name="development")
         production = self.create_environment(project=project, name="production")
         rule = self.create_project_rule(project=project, environment_id=development.id)
-        workflow_id = create_notification_origin(rule).workflow_id
+        workflow_id = create_workflow_notification_origin_for_rule(rule).workflow_id
         assert workflow_id is not None
         workflow = Workflow.objects.get(id=workflow_id)
         workflow.update(name="Renamed workflow", environment_id=production.id)
@@ -130,7 +130,7 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         project = self.create_project(fire_project_created=True)
         environment = self.create_environment(project=project)
         rule = self.create_project_rule(project=project, environment_id=environment.id)
-        workflow_id = create_notification_origin(rule).workflow_id
+        workflow_id = create_workflow_notification_origin_for_rule(rule).workflow_id
         assert workflow_id is not None
         Workflow.objects.filter(id=workflow_id).update(environment_id=None)
 
