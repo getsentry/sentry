@@ -3547,11 +3547,6 @@
       "count": 1
     }
   },
-  "static/app/views/settings/organizationDeveloperSettings/sentryApplicationDetails.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/organizationDeveloperSettings/sentryApplicationRow/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
