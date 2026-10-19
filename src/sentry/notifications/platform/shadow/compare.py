@@ -36,7 +36,6 @@ class ShadowOutcome(StrEnum):
     MISMATCH = "mismatch"
     LEGACY_NOT_CAPTURED = "legacy_not_captured"
     GROUP_CHANGED = "group_changed"
-    GROUP_STATS_CHANGED = "group_stats_changed"
     NO_RENDERER = "no_renderer"
     PLATFORM_ERROR = "platform_error"
     COMPARE_ERROR = "compare_error"
@@ -220,8 +219,9 @@ def _compare_with_platform(
 
     if not entries:
         return ShadowResult(outcome=ShadowOutcome.MATCH)
+    # Stats drift is the same race `_group_changed` catches, in values it doesn't compare.
     if stats_only:
-        return ShadowResult(outcome=ShadowOutcome.GROUP_STATS_CHANGED)
+        return ShadowResult(outcome=ShadowOutcome.GROUP_CHANGED)
     return ShadowResult(outcome=ShadowOutcome.MISMATCH, diff=entries)
 
 

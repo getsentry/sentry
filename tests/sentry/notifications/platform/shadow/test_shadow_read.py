@@ -238,7 +238,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         ):
             observation, _ = self.send(self.invocation(action))
 
-        assert observation.outcome == ShadowOutcome.GROUP_STATS_CHANGED
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
         assert observation.mismatch is None
         legacy, platform = observation.compared[0]
         assert "Events: *5*" in orjson.dumps(legacy).decode()
