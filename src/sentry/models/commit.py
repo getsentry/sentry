@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import models
 from django.db.models.query import QuerySet
@@ -61,6 +61,13 @@ class Commit(Model):
         unique_together = (("repository_id", "key"),)
 
     __repr__ = sane_repr("organization_id", "repository_id", "key")
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        self.new_repository_id = self.repository_id
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "repository_id" in update_fields:
+            kwargs["update_fields"] = {*update_fields, "new_repository_id"}
+        super().save(*args, **kwargs)
 
     @cached_property
     def title(self):
