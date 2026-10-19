@@ -4,7 +4,7 @@ import sentry.options
 from sentry.ingest.inbound_filters import get_global_generic_filters
 from sentry.relay.config.ai_model_costs import AIModelMetadataConfig, ai_model_metadata_config
 from sentry.relay.config.measurements import MeasurementsConfig, get_measurements_config
-from sentry.relay.types import GenericFiltersConfig, RuleCondition
+from sentry.relay.types import GenericFiltersConfig, SerializedRuleCondition
 from sentry.utils import metrics
 
 # List of options to include in the global config.
@@ -27,7 +27,7 @@ RELAY_OPTIONS: list[str] = [
 
 
 class SpanOpDefaultRule(TypedDict):
-    condition: RuleCondition
+    condition: SerializedRuleCondition
     value: str
 
 
