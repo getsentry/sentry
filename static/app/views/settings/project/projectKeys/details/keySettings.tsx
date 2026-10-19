@@ -3,8 +3,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {DescriptionList} from '@sentry/scraps/descriptionList';
-import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {AutoSaveForm, DisplayField, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -147,16 +146,11 @@ export function KeySettings({
                   </field.Layout.Row>
                 )}
               </AutoSaveForm>
-              <DescriptionList columns="50% minmax(0, 1fr)" align="center" gap="xl">
-                <DescriptionList.Term>
-                  <Text>{t('Created')}</Text>
-                </DescriptionList.Term>
-                <DescriptionList.Details>
-                  <Text>
-                    <DateTime date={data.dateCreated} />
-                  </Text>
-                </DescriptionList.Details>
-              </DescriptionList>
+              <DisplayField.Row label={t('Created')}>
+                <Text>
+                  <DateTime date={data.dateCreated} />
+                </Text>
+              </DisplayField.Row>
             </FieldGroup>
 
             <KeyRateLimitsForm

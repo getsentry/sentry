@@ -20,6 +20,8 @@ import * as Storybook from 'sentry/stories';
 
 All field components are accessed via the `field` render prop inside `form.AppField`. They follow a consistent pattern: pass `value` and `onChange` from the field state, and wrap in a layout component. They are built on top of the form primitives [Input](./input.mdx), [Select](./select.mdx), [Slider](./slider.mdx), [Switch](./switch.mdx) etc.
 
+For display-only information such as creation dates, use [DisplayField](./displayField.mdx). It provides matching responsive layouts without registering a form value.
+
 ```jsx
 <form.AppField name="fieldName">
   {field => (
