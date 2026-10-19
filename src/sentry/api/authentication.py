@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import time
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar, NoReturn
 
@@ -374,6 +375,10 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
         return self.transform_auth(user_id, None)
 
 
+# Client-secret JWTs are single-use assertions, so they only need to live long enough to be sent.
+MAX_CLIENT_SECRET_JWT_LIFETIME_SECONDS = 60 * 60
+
+
 def get_payload_from_client_secret_jwt(
     headers: HttpHeaders, installation: SentryAppInstallation
 ) -> dict[str, Any]:
@@ -451,10 +456,15 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
         if not jti:
             raise AuthenticationFailed("JWT is missing a jti claim")
 
+        seconds_until_expiry = int(payload["exp"]) - int(time.time())
+        if seconds_until_expiry > MAX_CLIENT_SECRET_JWT_LIFETIME_SECONDS:
+            raise AuthenticationFailed("JWT expiration is too far in the future")
+
         cache_key = self._create_cache_key(installation.uuid, jti)
         if cache.get(cache_key):
             raise AuthenticationFailed("JWT has already been used")
-        cache.set(cache_key, True, timeout=60)  # 1 minute
+        # Remember the jti until the JWT expires so it can't be reused while still valid.
+        cache.set(cache_key, True, timeout=max(seconds_until_expiry, 1))
 
         return self.transform_auth(installation.sentry_app.proxy_user_id, None)
 
