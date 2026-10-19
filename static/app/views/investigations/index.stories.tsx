@@ -95,9 +95,15 @@ export default Storybook.story('Investigations — List', story => {
   story('Error', () => (
     <Stack gap="md" align="start">
       <Button onClick={showCrashReportPreview}>Open the Crash Report Modal</Button>
-      <Container minHeight="420px" width="100%" border="primary" radius="md">
+      <Stack
+        minHeight="420px"
+        width="100%"
+        padding="2xl 3xl"
+        border="primary"
+        radius="md"
+      >
         <RouteError />
-      </Container>
+      </Stack>
     </Stack>
   ));
 
