@@ -27,6 +27,8 @@ const invalidEntrySchema = z
   .unknown()
   .transform(value => ({kind: 'invalid' as const, value}));
 
+const optionSchema = z.union([z.string(), z.boolean().transform(String)]);
+
 /** Probability per option or score value, e.g. `{"billing": 0.62}`. */
 const probabilitiesSchema = z.record(z.string(), z.number());
 
@@ -54,10 +56,7 @@ const scoreAnswerSchema = z
 const choiceAnswerSchema = z
   .object({
     type: z.literal('choice'),
-    // Choice values can be booleans. SDKs record them as strings, but only when
-    // they reshape the answer, so a raw boolean can still arrive. Treat it like
-    // the string form so it matches the stringified `probabilities` keys.
-    choice: z.union([z.string(), z.boolean().transform(String)]),
+    choice: optionSchema,
     probabilities: probabilitiesSchema.optional(),
     confidence: z.number().optional(),
   })
@@ -82,7 +81,7 @@ const questionSchema = z.union([
        * describe each option (`{"billing": "Charges and refunds"}`).
        */
       criteria: z
-        .union([z.array(z.string()), z.record(z.string(), z.string())])
+        .union([z.array(optionSchema), z.record(z.string(), z.string())])
         .optional(),
     })
     .transform(question => ({...question, kind: 'question' as const})),

@@ -70,6 +70,30 @@ describe('parseEvaluationInput', () => {
     });
   });
 
+  it('reads boolean choice options as strings', () => {
+    const raw = JSON.stringify([
+      {
+        type: 'evaluation',
+        state: 'Win a free cruise!',
+        questions: {
+          // As recorded by the JavaScript SDK for OpenAI decisions.
+          isSpam: {type: 'choice', criteria: {true: '', false: 'Not spam'}},
+          isAd: {type: 'choice', criteria: [true, false]},
+        },
+      },
+    ]);
+
+    expect(parseEvaluationInput(raw)?.questions).toEqual([
+      {
+        key: 'isSpam',
+        kind: 'question',
+        type: 'choice',
+        criteria: {true: '', false: 'Not spam'},
+      },
+      {key: 'isAd', kind: 'question', type: 'choice', criteria: ['true', 'false']},
+    ]);
+  });
+
   it('keeps malformed questions as raw values', () => {
     const raw = JSON.stringify([
       {
