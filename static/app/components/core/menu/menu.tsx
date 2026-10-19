@@ -48,7 +48,7 @@ function MenuSectionLabel({
 }
 
 /** Divider between menu sections. */
-function MenuSectionDivider() {
+function MenuSectionSeparator() {
   return <Separator orientation="horizontal" border="muted" />;
 }
 
@@ -517,7 +517,7 @@ export {
   MenuSectionGroup,
   MenuSectionLabel,
   MenuSectionList,
-  MenuSectionDivider,
+  MenuSectionSeparator,
   MenuFooterLayout,
   MenuListItem,
 };

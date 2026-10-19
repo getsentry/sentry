@@ -180,7 +180,7 @@ function DropdownMenuCollection({
                 {...separatorProps}
                 role="presentation"
               >
-                <Menu.Separator />
+                <Menu.SectionSeparator />
               </Stack>
             )}
           </Fragment>

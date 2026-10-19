@@ -138,7 +138,7 @@ export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
       {...props}
       role="presentation"
     >
-      <Menu.Separator />
+      <Menu.SectionSeparator />
     </SectionSeparatorWrap>
   );
 }

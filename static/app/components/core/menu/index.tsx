@@ -6,7 +6,7 @@ import {
   MenuSectionGroup,
   MenuSectionList,
   MenuListItem,
-  MenuSectionDivider,
+  MenuSectionSeparator,
   SearchInput,
 } from './menu';
 
@@ -18,7 +18,7 @@ export const Menu = {
   SectionGroup: MenuSectionGroup,
   SectionLabel: MenuSectionLabel,
   SectionList: MenuSectionList,
-  Separator: MenuSectionDivider,
+  SectionSeparator: MenuSectionSeparator,
   Footer: MenuFooterLayout,
   ListItem: MenuListItem,
 };
