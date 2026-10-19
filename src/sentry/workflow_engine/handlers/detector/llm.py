@@ -1,9 +1,17 @@
 import abc
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
-from sentry.workflow_engine.handlers.detector.base import BaseDetectorHandler
+import orjson
+
+from sentry.seer.models.seer_api_models import SeerApiError, SeerApiResponseValidationError
+from sentry.seer.signed_seer_api import (
+    LLMDetectorRequest,
+    SeerViewerContext,
+    make_llm_detector_request,
+)
+from sentry.workflow_engine.handlers.detector.base import DetectorHandler
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.types import DetectorGroupKey, DetectorSettings
 
 AnalysisInputType = TypeVar("AnalysisInputType")
 AnalysisResultType = TypeVar("AnalysisResultType")
@@ -25,32 +33,78 @@ class LLMDetectorSettings(DetectorSettings):
 
 
 class LLMDetectorHandler(
-    BaseDetectorHandler[AnalysisResultType, AnalysisResultType],
+    DetectorHandler[AnalysisInputType, AnalysisResultType],
     Generic[AnalysisInputType, AnalysisResultType],
 ):
-    """Analyze supplied input as one independent, asynchronous detector run.
+    """Call Seer inline, then use the standard condition and occurrence pipeline.
 
-    Scheduling and input selection belong to the caller. Each call to ``dispatch``
-    submits one run to Seer using the detector's LLM parameters. Implementations
-    carry detector identity and a stable run identity through submission and
-    completion, and define retry-safe occurrence identities.
+    Callers must run this handler in a background task with a deadline longer
+    than the HTTP timeout. Scheduling, input selection and task retries belong
+    to the caller. Subclasses prepare prompt input, validate/translate the LLM
+    result into grouped evaluation values, and implement ``create_occurrence``.
+    Each evaluation makes one Seer request, regardless of the number of groups.
 
-    The callback reloads the detector, checks its current state and project
-    attribution, and passes the completed result to ``process_detectors``. That
-    constructs a new handler and invokes ``evaluate`` through the shared metrics
-    wrapper. Runs cannot rely on state held by the dispatching handler instance.
-
-    Subclasses implement ``dispatch`` and ``evaluate`` without a condition group.
-    Submission is not a completed evaluation. Detector processing records completed
-    evaluations and publishes their results through ``on_complete``; that hook is
-    not the remote callback endpoint.
+    Draft: the synchronous Seer endpoint is not implemented. No production
+    detector is registered here. HTTP routing deadlines, worker capacity and
+    Seer's execution budget must be agreed before enabling a concrete detector.
     """
 
-    @abc.abstractmethod
-    def dispatch(self, data_packet: DataPacket[AnalysisInputType]) -> None:
-        """Submit one run for supplied input; raise if submission fails.
+    seer_timeout: int = 50
 
-        The caller must load an eligible, enabled detector before dispatching.
-        Only completed result packets may be passed to detector processing.
+    @abc.abstractmethod
+    def get_prompt_input(self, data_packet: DataPacket[AnalysisInputType]) -> dict[str, Any]:
+        """Prepare the input for the code-owned prompt selected by prompt_key."""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def parse_result(self, result: dict[str, Any]) -> dict[DetectorGroupKey, AnalysisResultType]:
+        """Validate the result and return values with distinct, stable group keys.
+
+        Return an empty mapping for a successful analysis with no findings.
+        Raise for an invalid or incomplete analysis, rather than treating it as
+        a successful empty result. Occurrence builders can read each value from
+        the condition evaluation's ``data`` without making another LLM call.
         """
         raise NotImplementedError
+
+    def extract_value(
+        self, data_packet: DataPacket[AnalysisInputType]
+    ) -> dict[DetectorGroupKey, AnalysisResultType]:
+        project = self.detector.project
+        if project is None:
+            raise ValueError("LLM detectors require a project")
+
+        request = LLMDetectorRequest(
+            prompt_key=self.detector.config["prompt_key"],
+            model=self.detector.config["model"],
+            prompt_input=self.get_prompt_input(data_packet),
+        )
+        if "temperature" in self.detector.config:
+            request["temperature"] = self.detector.config["temperature"]
+
+        response = make_llm_detector_request(
+            request,
+            timeout=self.seer_timeout,
+            viewer_context=SeerViewerContext(
+                organization_id=project.organization_id,
+            ),
+        )
+        if response.status != 200:
+            # A legacy 202 is submission, never a completed evaluation.
+            raise SeerApiError("Expected a completed LLM detector evaluation", response.status)
+
+        try:
+            envelope = orjson.loads(response.data)
+        except orjson.JSONDecodeError as error:
+            raise SeerApiResponseValidationError("Expected a JSON LLM detector response") from error
+        if not isinstance(envelope, dict) or not isinstance(envelope.get("result"), dict):
+            raise SeerApiResponseValidationError("Expected an LLM detector result object")
+
+        return self.parse_result(envelope["result"])
+
+    def _extract_value_from_packet(
+        self, data_packet: DataPacket[AnalysisInputType]
+    ) -> dict[DetectorGroupKey, AnalysisResultType]:
+        # This handler always returns groups. In particular, {} means no findings,
+        # whereas the default normalizer treats {} as one ungrouped scalar value.
+        return self.extract_value(data_packet)

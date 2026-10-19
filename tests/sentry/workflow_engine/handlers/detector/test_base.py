@@ -3,15 +3,21 @@ from typing import Any
 from unittest import mock
 from uuid import UUID
 
+import orjson
 import pytest
 from jsonschema import ValidationError
+from pydantic import StrictInt, parse_obj_as
+from pydantic import ValidationError as PydanticValidationError
+from urllib3 import HTTPResponse
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry.deletions.base import ModelRelation
 from sentry.issues.grouptype import GroupCategory, GroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.producer import PayloadType, _prepare_occurrence_message
+from sentry.issues.producer import _prepare_occurrence_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.organization import Organization
+from sentry.seer.models.seer_api_models import SeerApiError, SeerApiResponseValidationError
 from sentry.testutils.abstract import Abstract
 from sentry.types.group import PriorityLevel
 from sentry.utils.registry import AlreadyRegisteredError
@@ -241,21 +247,26 @@ class MockGroupedEventIdDetectorHandler(MockGroupedDetectorHandler):
         return detector_occurrence, event_data
 
 
-class MockLLMDetectorHandler(LLMDetectorHandler[str, list[DetectorEvaluation]]):
-    def __init__(self, detector: Detector):
-        super().__init__(detector)
-        self.submitted_packet: DataPacket[str] | None = None
+class MockLLMDetectorHandler(LLMDetectorHandler[str, int]):
+    def get_prompt_input(self, data_packet: DataPacket[str]) -> dict[str, Any]:
+        return {"trace_id": data_packet.packet}
 
-    def dispatch(self, data_packet: DataPacket[str]) -> None:
-        self.submitted_packet = data_packet
+    def parse_result(self, result: dict[str, Any]) -> dict[DetectorGroupKey, int]:
+        scores = parse_obj_as(dict[str, StrictInt], result["scores"])
+        return {key: score for key, score in scores.items()}
 
-    def evaluate(
-        self, data_packet: DataPacket[list[DetectorEvaluation]]
-    ) -> GroupedDetectorEvaluationResult:
-        return GroupedDetectorEvaluationResult(
-            result={evaluation.data["group_key"]: evaluation for evaluation in data_packet.packet},
-            tainted=False,
+    def create_occurrence(
+        self,
+        evaluation: DataConditionGroupEvaluation,
+        data_packet: DataPacket[str],
+        priority: DetectorPriorityLevel,
+    ) -> tuple[DetectorOccurrence, EventData]:
+        value = evaluation.data["condition_evaluations"][0].data
+        occurrence, event_data = build_mock_occurrence_and_event(
+            self, value, PriorityLevel(priority)
         )
+        event_data["event_id"] = "22222222222222222222222222222222"
+        return occurrence, event_data
 
 
 class TestLLMDetectorHandler(BaseGroupTypeTest):
@@ -276,74 +287,159 @@ class TestLLMDetectorHandler(BaseGroupTypeTest):
             project=self.project,
             type=LLMGroupType.slug,
             config={"prompt_key": "test-prompt-v1", "model": "test-model", "temperature": 0.5},
+            workflow_condition_group=self.create_data_condition_group(),
+        )
+        self.create_data_condition(
+            type=Condition.GREATER,
+            comparison=5,
+            condition_result=DetectorPriorityLevel.HIGH,
+            condition_group=self.detector.workflow_condition_group,
         )
         self.handler = MockLLMDetectorHandler(self.detector)
-
-    def test_dispatch_does_not_evaluate_or_publish(self) -> None:
-        packet = DataPacket(source_id="run-id", packet="trace-id")
-        with (
-            mock.patch.object(self.handler, "evaluate") as evaluate,
-            mock.patch.object(self.handler, "on_complete") as on_complete,
-        ):
-            self.handler.dispatch(packet)
-
-        assert self.handler.submitted_packet == packet
-        evaluate.assert_not_called()
-        on_complete.assert_not_called()
-
-    def test_completed_results_use_detector_processing_without_conditions(self) -> None:
-        occurrence, event_data = build_mock_occurrence_and_event(
-            self.handler, 1, PriorityLevel.HIGH
+        self.packet = DataPacket(source_id="run-id", packet="trace-id")
+        request_patcher = mock.patch(
+            "sentry.workflow_engine.handlers.detector.llm.make_llm_detector_request",
+            return_value=HTTPResponse(
+                status=200,
+                body=orjson.dumps({"result": {"scores": {"one": 10, "two": 20, "quiet": 1}}}),
+            ),
         )
-        issue_occurrence = occurrence.to_issue_occurrence(
-            occurrence_id="11111111111111111111111111111111",
-            event_id="22222222222222222222222222222222",
-            project_id=self.project.id,
-            status=DetectorPriorityLevel.HIGH,
-            additional_evidence_data={},
-            fingerprint=["existing-fingerprint"],
-        )
-        evaluation = DetectorEvaluation(
-            result=issue_occurrence,
-            data={
-                "group_key": "finding-id",
-                "trigger_group_evaluation": build_mock_group_evaluation(),
-                "event_data": event_data,
+        self.seer_request = request_patcher.start()
+        self.addCleanup(request_patcher.stop)
+
+    def test_calls_seer_once_and_publishes_only_triggered_groups(self) -> None:
+        with mock.patch(
+            "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
+        ) as produce:
+            results = process_detectors(self.packet, [self.detector])
+
+        self.seer_request.assert_called_once_with(
+            {
+                "prompt_key": "test-prompt-v1",
+                "model": "test-model",
+                "temperature": 0.5,
+                "prompt_input": {"trace_id": "trace-id"},
             },
-            triggered=True,
-            priority=DetectorPriorityLevel.HIGH,
+            timeout=50,
+            viewer_context={"organization_id": self.organization.id},
         )
-        packet = DataPacket(source_id="run-id", packet=[evaluation])
+        evaluations = results[0][1]
+        assert set(evaluations) == {"one", "two"}
+        assert produce.call_count == 2
+        first = evaluations["one"].result
+        second = evaluations["two"].result
+        assert isinstance(first, IssueOccurrence)
+        assert isinstance(second, IssueOccurrence)
+        assert first.id != second.id
+        assert first.evidence_data["value"] == 10
+        assert second.evidence_data["value"] == 20
+        assert first.project_id == self.project.id
+        assert evaluations["one"].priority == DetectorPriorityLevel.HIGH
 
+    def test_empty_analysis_has_no_groups_and_is_not_tainted(self) -> None:
+        self.seer_request.return_value = HTTPResponse(status=200, body=b'{"result":{"scores":{}}}')
+        with mock.patch.object(self.handler, "evaluate_conditions") as conditions:
+            result = self.handler.evaluate(self.packet)
+
+        assert result.result == {}
+        assert result.tainted is False
+        conditions.assert_not_called()
+
+    def test_rejected_values_do_not_publish(self) -> None:
+        self.seer_request.return_value = HTTPResponse(
+            status=200, body=b'{"result":{"scores":{"quiet":1}}}'
+        )
         with mock.patch(
             "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
         ) as produce:
-            results = process_detectors(packet, [self.detector])
-
-        assert self.detector.workflow_condition_group_id is None
-        assert results == [(self.detector, {"finding-id": evaluation})]
-        produce.assert_called_once_with(
-            payload_type=PayloadType.OCCURRENCE,
-            occurrence=issue_occurrence,
-            status_change=None,
-            event_data=event_data,
-        )
-
-    def test_empty_completed_analysis_does_not_publish(self) -> None:
-        packet: DataPacket[list[DetectorEvaluation]] = DataPacket(source_id="run-id", packet=[])
-        with mock.patch(
-            "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
-        ) as produce:
-            assert process_detectors(packet, [self.detector]) == []
+            assert process_detectors(self.packet, [self.detector]) == []
 
         produce.assert_not_called()
 
-    def test_evaluation_errors_propagate(self) -> None:
+    def assert_response_does_not_publish(self, status: int) -> None:
+        self.seer_request.return_value = HTTPResponse(status=status, body=b"{}")
         with (
-            mock.patch.object(self.handler, "evaluate", side_effect=ValueError("invalid result")),
-            pytest.raises(ValueError, match="invalid result"),
+            mock.patch(
+                "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
+            ) as produce,
+            pytest.raises(SeerApiError) as error,
         ):
-            self.handler._evaluate(DataPacket(source_id="run-id", packet=[]))
+            process_detectors(self.packet, [self.detector])
+
+        assert error.value.status == status
+        produce.assert_not_called()
+
+    def test_accepted_submission_is_not_a_completed_evaluation(self) -> None:
+        self.assert_response_does_not_publish(202)
+
+    def test_missing_response_is_not_a_completed_evaluation(self) -> None:
+        self.assert_response_does_not_publish(204)
+
+    def test_failed_request_does_not_publish(self) -> None:
+        self.assert_response_does_not_publish(400)
+
+    def test_seer_unavailable_does_not_publish(self) -> None:
+        self.assert_response_does_not_publish(503)
+
+    def assert_invalid_envelope(self, body: bytes) -> None:
+        self.seer_request.return_value = HTTPResponse(status=200, body=body)
+        with pytest.raises(SeerApiResponseValidationError):
+            self.handler._evaluate(self.packet)
+
+    def test_invalid_json_raises(self) -> None:
+        self.assert_invalid_envelope(b"not JSON")
+
+    def test_array_response_raises(self) -> None:
+        self.assert_invalid_envelope(b"[]")
+
+    def test_missing_result_raises(self) -> None:
+        self.assert_invalid_envelope(b"{}")
+
+    def test_null_result_raises(self) -> None:
+        self.assert_invalid_envelope(b'{"result":null}')
+
+    def test_array_result_raises(self) -> None:
+        self.assert_invalid_envelope(b'{"result":[]}')
+
+    def test_detector_specific_result_is_validated(self) -> None:
+        self.seer_request.return_value = HTTPResponse(
+            status=200, body=b'{"result":{"scores":{"one":"not a score"}}}'
+        )
+        with pytest.raises(PydanticValidationError):
+            self.handler._evaluate(self.packet)
+
+    def test_transport_timeout_is_an_evaluation_failure(self) -> None:
+        self.seer_request.side_effect = ReadTimeoutError(None, "evaluate", "timed out")
+        with (
+            mock.patch("sentry.workflow_engine.handlers.detector.base.metrics.incr") as incr,
+            pytest.raises(ReadTimeoutError),
+        ):
+            self.handler._evaluate(self.packet)
+
+        incr.assert_called_with(
+            "workflow_engine_detector.evaluation",
+            tags={"detector_type": self.detector.type, "result": "failure"},
+            sample_rate=1.0,
+        )
+
+    def test_omits_unspecified_temperature_from_request(self) -> None:
+        self.detector.config.pop("temperature")
+        self.handler.evaluate(self.packet)
+
+        assert "temperature" not in self.seer_request.call_args.args[0]
+
+    def test_passes_zero_temperature(self) -> None:
+        self.detector.config["temperature"] = 0
+        self.handler.evaluate(self.packet)
+
+        assert self.seer_request.call_args.args[0]["temperature"] == 0
+
+    def test_requires_a_project_before_calling_seer(self) -> None:
+        self.detector.project = None
+        with pytest.raises(ValueError, match="LLM detectors require a project"):
+            self.handler._evaluate(self.packet)
+
+        self.seer_request.assert_not_called()
 
     def assert_invalid_config(self, config: dict[str, Any]) -> None:
         self.detector.config = config
