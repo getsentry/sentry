@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -24,7 +25,7 @@ export function SlackPreview({
   registration: NotificationTemplateRegistration;
 }) {
   const {body, actions, subject, chart, footer} = registration.example;
-  const previewTime = moment(new Date()).format('h:mm A');
+  const [previewTime] = useState(() => moment(new Date()).format('h:mm A'));
   const blocks = registration.previews[NotificationProviderKey.SLACK];
   const previewLink = `${SLACK_PREVIEW_BASE_URL}#${JSON.stringify(blocks)}`;
   return (

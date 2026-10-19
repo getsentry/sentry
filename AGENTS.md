@@ -45,7 +45,7 @@ prek is the single entrypoint for all lint, format, and type-checking tools. Bef
 
 ```bash
 SENTRY_MYPY_PRE_PUSH=1 .venv/bin/prek run -q mypy --files src/sentry/foo/bar.py --stage pre-push
-.venv/bin/prek run -q ruff --files src/sentry/foo/bar.py
+.venv/bin/prek run -q ruff-check --files src/sentry/foo/bar.py
 ```
 
 If a hook fails, fix the issues, stage changes, then re-run until it passes.
@@ -76,9 +76,7 @@ Dev server URLs: full devserver `http://dev.getsentry.net:8000`; frontend-only `
 
 #### Typechecking
 
-Run the `pnpm run typecheck` script. It checks the app, service worker, and referenced workspace packages in dependency order. Package checks emit declarations into ignored `.types` directories; the app check uses those declarations. CI uses this same top-level command. It does not accept file paths. Add new isolated packages to the root tsconfig references. DO NOT use `tsc` directly.
-
-Extend `tsconfig.base.json` for shared compiler checks. Keep app aliases, environment types, and emit settings in each project config.
+Run `pnpm run typecheck` to run the typescript type checker. It does not accept file paths. DO NOT use `tsc` directly.
 
 #### Linting
 
@@ -88,19 +86,12 @@ pnpm run lint:js components/avatar.tsx    # specific file(s)
 pnpm run fix                              # auto-fix
 ```
 
-Incubator rules appear as warnings in editors. The lint wrapper promotes them to errors in the existing oxlint pass in prek, normal lint, and CI so native suppressions and the ratchet remain enforced. The committed `oxlint-suppressions.json` limits existing debt per file and rule. Successful fixes automatically reduce counts for checked files. Fast local prek fixes conservatively retain TypeScript counts until a full type-aware fix or `pnpm run lint:js --prune`. Enrolling rules requires `pnpm run lint:js --enroll --base REF` using trusted source. Inspect live findings with `pnpm run lint:js --backlog`. Put the maintenance flag first. Use `pnpm run lint:js --help` for all options.
-
 #### Testing
 
 ```bash
 pnpm test-ci <file_path>                       # run tests
 pnpm test-ci components/avatar.spec.tsx        # specific file(s)
-pnpm --filter @sentry-internal/app test        # watch Sentry app tests
 ```
-
-`test-ci` runs app tests first, then workspace package tests in parallel. File arguments select app tests; package tests always run. In sharded CI, only shard 0 runs package tests.
-
-`pnpm test` uses one Jest watcher for app, lint, and test-support tests. `pnpm test-all` runs all workspace test scripts once with watch mode disabled. App, lint, and test-support scripts have scoped Jest configs.
 
 ### Context-Aware Loading
 

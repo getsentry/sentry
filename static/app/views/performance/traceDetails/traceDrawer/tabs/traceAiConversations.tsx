@@ -31,6 +31,7 @@ import {
   EXPLORE_AGENTS_SUB_PATH,
   CONVERSATIONS_DETAIL_SUB_PATH,
 } from 'sentry/views/explore/conversations/settings';
+import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import {getStringAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -142,7 +143,7 @@ function TraceAiConversationsContent({
   const isLoading = hasActiveConversation && isConversationLoading;
 
   const conversationOptions = useMemo(
-    () => conversationIds.map(id => ({value: id, label: id.slice(0, 8)})),
+    () => conversationIds.map(id => ({value: id, label: getConversationDisplayId(id)})),
     [conversationIds]
   );
   // A numeric select key represents the scope, not a synthetic conversation ID.
@@ -150,7 +151,7 @@ function TraceAiConversationsContent({
 
   const conversationUrl = isConversationScoped
     ? normalizeUrl(
-        `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${activeConversationId}/?${qs.stringify(
+        `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${encodeURIComponent(activeConversationId)}/?${qs.stringify(
           {
             referrer: 'trace-view',
             ...(selectedSpanId && activeSubTab === 'transcript'

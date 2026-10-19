@@ -412,6 +412,7 @@ export function CreateProject() {
       }
 
       const {FrameworkSuggestionModal, modalCss} =
+        // oxlint-disable-next-line react/todo
         await import('sentry/components/onboarding/frameworkSuggestionModal');
 
       openModal(

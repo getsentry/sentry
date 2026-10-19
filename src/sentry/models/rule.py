@@ -167,7 +167,7 @@ class RuleActivityType(Enum):
 class RuleActivity(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    rule = FlexibleForeignKey("sentry.Rule")
+    rule = FlexibleForeignKey("sentry.Rule", db_constraint=False)
     user_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
     type = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
