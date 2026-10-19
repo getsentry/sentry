@@ -3,11 +3,13 @@ import logging
 from collections.abc import Iterable
 from datetime import datetime
 from enum import Enum
+from functools import partial
 
 import urllib3
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from django.conf import settings
+from django.db import router, transaction
 from django.db.models import F, Window
 from django.db.models.functions import Rank
 from django.db.models.signals import post_delete, post_save
@@ -25,6 +27,7 @@ from sentry.utils.arroyo_producer import (
     get_future_tracking_producer,
 )
 from sentry.utils.kafka_config import get_topic_definition
+from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import _snuba_pool
 
 logger = logging.getLogger(__name__)
@@ -223,6 +226,12 @@ def _bulk_retrieve_snapshot_values(
 )
 def post_save_log_group_attributes_changed(instance, sender, created, *args, **kwargs) -> None:
     try:
+        if set(kwargs.get("update_fields") or ()) == {"num_comments"}:
+            transaction.on_commit(
+                partial(safe_execute, bulk_send_snapshot_values, [instance.id], None),
+                using=router.db_for_write(Group),
+            )
+            return
         if created:
             _log_group_attributes_changed(Operation.CREATED, "group", None)
             send_snapshot_values(None, instance, False)
@@ -237,7 +246,12 @@ def post_save_log_group_attributes_changed(instance, sender, created, *args, **k
 def post_update_group(sender, updated_fields, model_ids, *args, **kwargs) -> None:
     try:
         updated_fields = process_update_fields(updated_fields)
-        if updated_fields:
+        if updated_fields == {"num_comments"}:
+            transaction.on_commit(
+                partial(safe_execute, bulk_send_snapshot_values, list(model_ids), None),
+                using=router.db_for_write(Group),
+            )
+        elif updated_fields:
             bulk_send_snapshot_values(model_ids, None)
     except Exception:
         logger.exception("failed to log group attributes after group_owner updated")

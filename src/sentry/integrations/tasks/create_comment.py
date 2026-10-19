@@ -25,6 +25,9 @@ from sentry.types.activity import ActivityType
     silenced_exceptions=(Integration.DoesNotExist,),
 )
 def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> None:
+    # Local import: the mutation service also dispatches this task.
+    from sentry.issues.comments import save_external_comment_id
+
     try:
         external_issue = ExternalIssue.objects.get(id=external_issue_id)
     except ExternalIssue.DoesNotExist:
@@ -58,8 +61,11 @@ def create_comment(external_issue_id: int, user_id: int, group_note_id: int) -> 
 
         try:
             comment = installation.create_comment(external_issue.key, user_id, note)
-            note.data["external_id"] = installation.get_comment_id(comment)
-            note.save()
+            save_external_comment_id(
+                note_id=note.id,
+                project_id=note.project_id,
+                external_id=installation.get_comment_id(comment),
+            )
             analytics.record(
                 IntegrationIssueCommentsSyncedEvent(
                     provider=installation.model.provider,

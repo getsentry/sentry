@@ -4,15 +4,14 @@ import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from enum import Enum
+from functools import partial
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models import F
-from django.db.models.signals import post_save
 from django.utils import timezone
 
-from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -40,6 +39,7 @@ from sentry.utils.action_log.activity_translator import (
     activity_to_action,
 )
 from sentry.utils.env import in_test_environment
+from sentry.utils.safe import safe_execute
 from sentry.workflow_engine.handlers.registry import invoke_workflow_activity_handlers
 from sentry.workflow_engine.types import DetectorId
 
@@ -145,6 +145,8 @@ class ActivityManager(BaseManager["Activity"]):
         if group_id is not None:
             try:
                 group_action = activity_to_action(activity)
+                if group_action is None and activity.type == ActivityType.NOTE.value:
+                    raise ValueError("Could not translate comment audit event")
                 if group_action is not None:
                     publish_action_from_context(
                         group_action,
@@ -154,7 +156,7 @@ class ActivityManager(BaseManager["Activity"]):
                     )
             except Exception:
                 _default_logger.info("Failed to translate activity %d to GALE", activity.id)
-                if in_test_environment():
+                if activity.type == ActivityType.NOTE.value or in_test_environment():
                     raise
 
         return activity
@@ -258,26 +260,15 @@ class Activity(Model):
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value and self.group is not None:
-            from sentry.models.group import Group
-
+            # Model.update() emits the Group post_save signal itself.
             self.group.update(num_comments=F("num_comments") + 1)
-            if not options.get("groups.enable-post-update-signal"):
-                post_save.send_robust(
-                    sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
-                )
 
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         result = super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
         if self.type == ActivityType.NOTE.value and self.group is not None:
-            from sentry.models.group import Group
-
             self.group.update(num_comments=F("num_comments") - 1)
-            if not options.get("groups.enable-post-update-signal"):
-                post_save.send_robust(
-                    sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
-                )
 
         return result
 
@@ -299,7 +290,13 @@ class Activity(Model):
             ):
                 return
 
-        activity.send_activity_notifications.delay(self.id)
+        if self.type == ActivityType.NOTE.value:
+            transaction.on_commit(
+                partial(safe_execute, activity.send_activity_notifications.delay, self.id),
+                using=router.db_for_write(Activity),
+            )
+        else:
+            activity.send_activity_notifications.delay(self.id)
 
 
 class ActivityIntegration(Enum):
