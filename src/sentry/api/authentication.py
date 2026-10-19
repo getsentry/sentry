@@ -430,7 +430,8 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
     """
 
     def _create_cache_key(self, sentry_app_id: int, jti: str) -> str:
-        return f"jwt_client_secret:{sentry_app_id}:{jti}"
+        jti_digest = hashlib.sha256(jti.encode()).hexdigest()
+        return f"jwt_client_secret:{sentry_app_id}:{jti_digest}"
 
     def authenticate(self, request: Request):
         if not request.data:
