@@ -1,11 +1,12 @@
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Any, Literal, cast
 
 from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
+    COMPARISON_OPERATORS,
     MAX_FILTERS_PER_PROJECT,
     ConditionOperator,
     ConditionType,
@@ -478,7 +479,7 @@ def _ip_denylist_generic_filters(project: Project) -> list[GenericFilter]:
     if not ips:
         return []
 
-    return [_generic_filter(FilterStatKeys.IP_ADDRESS, _client_ip_matcher.match(ips))]
+    return [_generic_filter(FilterStatKeys.IP_ADDRESS, _client_ip_matcher.match(None, ips))]
 
 
 @dataclass(frozen=True)
@@ -586,40 +587,54 @@ ReleaseComparator = Literal["gt", "gte", "lt", "lte"]
 @dataclass(frozen=True)
 class _ConditionMatcher:
     """
-    Builds the Relay conditions for one condition type on one data type.
+    Builds the Relay condition for one field.
 
-    ``match`` matches an item whose field matches any of the glob patterns. ``compare``
-    compares the field as a release version, and is None for a field that is not a
-    release.
+    ``operators`` are the operators the field takes. ``match`` builds the condition that
+    compares the field to the values with one of them, or without one against glob
+    patterns. The values act as OR.
     """
 
-    match: Callable[[list[str]], RuleCondition]
-    compare: Callable[[ReleaseComparator, str], RuleCondition] | None = None
+    operators: frozenset[ConditionOperator]
+    match: Callable[[ConditionOperator | None, list[str]], RuleCondition]
 
 
 # The matcher for each condition type a data type supports.
 _ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
 
 
+def _pattern_matcher(build: Callable[[list[str]], RuleCondition]) -> _ConditionMatcher:
+    """A field that takes no operator: ``build`` matches the values as patterns."""
+    return _ConditionMatcher(frozenset(), lambda operator, values: build(values))
+
+
 def _field_matcher(name: str) -> _ConditionMatcher:
-    def match(values: list[str]) -> RuleCondition:
-        return {"op": "glob", "name": name, "value": values}
-
-    return _ConditionMatcher(match)
-
-
-def _release_matcher(name: str) -> _ConditionMatcher:
-    def compare(comparator: ReleaseComparator, value: str) -> RuleCondition:
-        return {"op": "release", "name": name, "comparator": comparator, "value": value}
-
-    return replace(_field_matcher(name), compare=compare)
+    return _pattern_matcher(lambda values: {"op": "glob", "name": name, "value": values})
 
 
 def _cidr_matcher(name: str) -> _ConditionMatcher:
-    def match(values: list[str]) -> RuleCondition:
-        return {"op": "cidr", "name": name, "value": values}
+    return _pattern_matcher(lambda values: {"op": "cidr", "name": name, "value": values})
 
-    return _ConditionMatcher(match)
+
+def _release_matcher(name: str) -> _ConditionMatcher:
+    patterns = _field_matcher(name)
+
+    def match(operator: ConditionOperator | None, values: list[str]) -> RuleCondition:
+        if operator not in COMPARISON_OPERATORS:
+            return patterns.match(operator, values)
+        return _any_of(
+            [
+                {"op": "release", "name": name, "comparator": operator.value, "value": value}
+                for value in values
+            ]
+        )
+
+    return _ConditionMatcher(COMPARISON_OPERATORS, match)
+
+
+def _any_of(conditions: list[RuleCondition]) -> RuleCondition:
+    if len(conditions) == 1:
+        return conditions[0]
+    return {"op": "or", "inner": conditions}
 
 
 _client_ip_matcher = _cidr_matcher("envelope.client_ip")
@@ -630,10 +645,10 @@ _CONDITION_MATCHERS: Mapping[
     _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
 ] = {
     ConditionType.ERROR_TYPE: {
-        DataType.ERROR: _ConditionMatcher(_custom_error_type_condition),
+        DataType.ERROR: _pattern_matcher(_custom_error_type_condition),
     },
     ConditionType.ERROR_MESSAGE: {
-        DataType.ERROR: _ConditionMatcher(_custom_error_message_condition),
+        DataType.ERROR: _pattern_matcher(_custom_error_message_condition),
     },
     ConditionType.LOG_MESSAGE: {
         DataType.LOG: _field_matcher("log.body"),
@@ -660,19 +675,11 @@ _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
 def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
     # Relay reads a field the item does not carry as no match, so the OR reduces to the
     # item's own field.
-    def match(values: list[str]) -> RuleCondition:
-        return {"op": "or", "inner": [matcher.match(values) for matcher in matchers]}
+    def match(operator: ConditionOperator | None, values: list[str]) -> RuleCondition:
+        return {"op": "or", "inner": [matcher.match(operator, values) for matcher in matchers]}
 
-    def compare(comparator: ReleaseComparator, value: str) -> RuleCondition:
-        return {
-            "op": "or",
-            "inner": [
-                matcher.compare(comparator, value) for matcher in matchers if matcher.compare
-            ],
-        }
-
-    comparable = all(matcher.compare is not None for matcher in matchers)
-    return _ConditionMatcher(match, compare if comparable else None)
+    operators = frozenset.intersection(*(matcher.operators for matcher in matchers))
+    return _ConditionMatcher(operators, match)
 
 
 def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMatcher | None:
@@ -684,21 +691,6 @@ def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMa
     if set(spec) != _SINGLE_DATA_TYPES:
         return None
     return _any_condition_matcher(list(spec.values()))
-
-
-def _operator_condition(
-    matcher: _ConditionMatcher, operator: ConditionOperator | None, values: list[str]
-) -> RuleCondition | None:
-    """
-    The Relay condition for one filter condition. Without an operator the values are glob
-    patterns. None when the field is no release, or the comparison does not take exactly
-    one value.
-    """
-    if operator is None:
-        return matcher.match(values)
-    if matcher.compare is None or len(values) != 1:
-        return None
-    return matcher.compare(operator.value, values[0])
 
 
 _MATCHERS_BY_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {
@@ -721,9 +713,8 @@ def get_supported_operators(condition_type: ConditionType) -> list[ConditionOper
     """The operators a condition type takes, the same on every data type that carries it."""
     spec = _CONDITION_MATCHERS[condition_type]
     matchers = [spec] if isinstance(spec, _ConditionMatcher) else list(spec.values())
-    if all(matcher.compare is not None for matcher in matchers):
-        return list(ConditionOperator)
-    return []
+    operators = frozenset.intersection(*(matcher.operators for matcher in matchers))
+    return [operator for operator in ConditionOperator if operator in operators]
 
 
 def _custom_filter_condition(
@@ -735,8 +726,8 @@ def _custom_filter_condition(
     Conditions are combined with AND. Returns None if the filter cannot be translated
     (a missing data type, a data type, condition type, operator, or value shape unknown
     to this revision, a condition type whose field the filter's data type does not
-    carry, or a comparison on a field that is no release): since every condition narrows
-    the match, dropping only the broken condition would filter more data than configured.
+    carry, or an operator the field does not take): since every condition narrows the
+    match, dropping only the broken condition would filter more data than configured.
 
     A condition without an operator holds glob patterns, see ``ConditionOperator``.
     """
@@ -761,12 +752,9 @@ def _custom_filter_condition(
             return None
 
         matcher = matchers.get(condition_type)
-        if matcher is None:
+        if matcher is None or (operator is not None and operator not in matcher.operators):
             return None
-        rule_condition = _operator_condition(matcher, operator, values)
-        if rule_condition is None:
-            return None
-        rule_conditions.append(rule_condition)
+        rule_conditions.append(matcher.match(operator, values))
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]

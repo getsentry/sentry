@@ -31,6 +31,11 @@ class ConditionOperator(StrEnum):
     LTE = "lte"
 
 
+COMPARISON_OPERATORS = frozenset(
+    {ConditionOperator.GT, ConditionOperator.GTE, ConditionOperator.LT, ConditionOperator.LTE}
+)
+
+
 class DataType(StrEnum):
     ALL = "all"
     ERROR = "error"
