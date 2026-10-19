@@ -59,7 +59,7 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.notifications.platform.service import NotificationService
+from sentry.notifications.platform.rollout import NotificationRolloutService
 from sentry.notifications.platform.types import SLACK_PROVIDERS, NotificationSource
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.silo.base import SiloMode
@@ -253,9 +253,14 @@ class SlackService:
                 )
 
         # Also query platform threads for issue alerts sent via notification platform. Only orgs in
-        # the rollout have them, and the query can't use an index, so skip it for everyone else.
+        # a platform rollout tier have them, and the query can't use an index, so skip it for
+        # everyone else. This checks the tier, not the per-send random rollout rate, so replies
+        # reach every existing thread.
         platform_threads = NotificationThread.objects.none()
-        if NotificationService.has_access(group.organization, NotificationSource.ISSUE):
+        if (
+            NotificationRolloutService(organization=group.organization).has_feature_flag_access()
+            is not None
+        ):
             platform_threads = NotificationThread.objects.filter(
                 key_type=NotificationSource.ISSUE.value,
                 key_data__group_id=group.id,
@@ -337,7 +342,6 @@ class SlackService:
                     {
                         "activity_id": activity.id,
                         "platform_thread_id": platform_thread.id,
-                        "notification_to_send": notification_to_send,
                         "integration_id": client.integration_id,
                         "group_id": group.id,
                         "project_id": activity.project.id,
