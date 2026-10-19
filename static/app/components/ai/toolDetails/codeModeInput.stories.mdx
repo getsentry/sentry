@@ -1,0 +1,57 @@
+---
+title: Code Mode Span Details
+description: Formatted code inputs and structured tool outputs.
+category: patterns
+source: sentry/components/ai/toolDetails/codeModeInput
+---
+
+import {CodeModeInput} from './codeModeInput';
+import {ToolOutput} from './toolOutput';
+import * as Storybook from 'sentry/stories';
+
+## Code Execution
+
+JavaScript and TypeScript inputs are formatted and syntax-highlighted.
+
+<Storybook.Demo>
+  <CodeModeInput
+    language="javascript"
+    code={
+      'const results=await Promise.all([api.search({query:"is:unresolved",limit:5}),api.search({query:"level:error",limit:5})]);const issues=results.flat();return issues.map(issue=>({title:issue.title,count:issue.count}));'
+    }
+  />
+</Storybook.Demo>
+
+## Tool Output
+
+Objects and arrays show their field or item count. Strings render as plain text,
+with separate labels for null, empty strings, and missing output.
+
+<Storybook.Demo>
+  <ToolOutput
+    value={JSON.stringify({
+      total: 2,
+      issues: [
+        {title: 'Example error', count: 12},
+        {title: 'Another error', count: 8},
+      ],
+    })}
+  />
+</Storybook.Demo>
+
+<Storybook.Demo>
+  <ToolOutput value="null" />
+</Storybook.Demo>
+
+## Other Languages
+
+Python keeps its original formatting.
+
+<Storybook.Demo>
+  <CodeModeInput
+    language="python"
+    code={
+      'issues = await api.search(query="is:unresolved", limit=5)\nfor issue in issues:\n    print(issue["title"])'
+    }
+  />
+</Storybook.Demo>

@@ -43,7 +43,7 @@ export function TrialAlert({organization, subscription}: Props) {
       border="primary"
       radius="md"
     >
-      <SubscriptionBody withPadding>
+      <SubscriptionBody>
         <TrialInfo>
           <Flex align="center" gap="md">
             <StyledHeading>{trialName}</StyledHeading>

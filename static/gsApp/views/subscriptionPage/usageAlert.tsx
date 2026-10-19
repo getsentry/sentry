@@ -82,7 +82,7 @@ function ExceededInfo({getActionSentence, primaryCTA, subscription}: ExceededInf
       radius="md"
       data-test-id="usage-exceeded-alert"
     >
-      <SubscriptionBody withPadding>
+      <SubscriptionBody>
         <UsageInfo>
           <IconFire size="md" variant="danger" />
           <div>
@@ -242,7 +242,7 @@ export function UsageAlert({subscription, usage}: Props) {
       radius="md"
       data-test-id="projected-overage-alert"
     >
-      <SubscriptionBody withPadding>
+      <SubscriptionBody>
         <UsageInfo>
           <IconStats size="md" variant="accent" />
           <div>

@@ -8,12 +8,12 @@ import partition from 'lodash/partition';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';

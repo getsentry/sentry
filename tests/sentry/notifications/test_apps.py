@@ -54,4 +54,5 @@ class NotificationsDjangoAppTest(TestCase):
             (NotificationProviderKey.SLACK, NotificationSource.SEER_AUTOFIX_UPDATE),
             (NotificationProviderKey.SLACK, NotificationSource.SEER_INVESTIGATION_ERROR),
             (NotificationProviderKey.SLACK, NotificationSource.SEER_INVESTIGATION_STARTED),
+            (NotificationProviderKey.SLACK, NotificationSource.SEER_INVESTIGATION_STATUS),
         }

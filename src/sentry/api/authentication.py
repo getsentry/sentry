@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import time
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar, NoReturn
 
@@ -14,7 +15,7 @@ from django.http import HttpHeaders
 from django.urls import resolve
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
-from jwt import PyJWTError
+from jwt import MissingRequiredClaimError, PyJWTError
 from rest_framework.authentication import (
     BaseAuthentication,
     BasicAuthentication,
@@ -374,6 +375,10 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
         return self.transform_auth(user_id, None)
 
 
+# Client-secret JWTs are single-use assertions, so they only need to live long enough to be sent.
+MAX_CLIENT_SECRET_JWT_LIFETIME_SECONDS = 5 * 60
+
+
 def get_payload_from_client_secret_jwt(
     headers: HttpHeaders, installation: SentryAppInstallation
 ) -> dict[str, Any]:
@@ -400,6 +405,16 @@ def get_payload_from_client_secret_jwt(
 
     try:
         payload = jwt.decode(encoded_jwt, client_secret, algorithms=["HS256"])
+    except MissingRequiredClaimError as e:
+        logger.warning(
+            "client_secret_jwt_auth.missing_required_claim",
+            extra={
+                "sentry_app_id": installation.sentry_app_id,
+                "installation_id": installation.id,
+                "claim": e.claim,
+            },
+        )
+        raise AuthenticationFailed("Could not validate JWT") from e
     except Exception as e:
         raise AuthenticationFailed("Could not validate JWT") from e
 
@@ -451,10 +466,29 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
         if not jti:
             raise AuthenticationFailed("JWT is missing a jti claim")
 
+        seconds_until_expiry = int(payload["exp"]) - int(time.time())
+        if seconds_until_expiry > MAX_CLIENT_SECRET_JWT_LIFETIME_SECONDS:
+            logger.warning(
+                "client_secret_jwt_auth.exp_too_far_in_future",
+                extra={
+                    "sentry_app_id": installation.sentry_app_id,
+                    "installation_id": installation.id,
+                    "seconds_until_expiry": seconds_until_expiry,
+                },
+            )
+            raise AuthenticationFailed("JWT expiration is too far in the future")
+
         cache_key = self._create_cache_key(installation.uuid, jti)
-        if cache.get(cache_key):
+        # Atomically remember the jti until the JWT expires so it can't be reused while still valid.
+        if not cache.add(cache_key, True, timeout=max(seconds_until_expiry, 1)):
+            logger.warning(
+                "client_secret_jwt_auth.jti_reused",
+                extra={
+                    "sentry_app_id": installation.sentry_app_id,
+                    "installation_id": installation.id,
+                },
+            )
             raise AuthenticationFailed("JWT has already been used")
-        cache.set(cache_key, True, timeout=60)  # 1 minute
 
         return self.transform_auth(installation.sentry_app.proxy_user_id, None)
 
@@ -618,7 +652,7 @@ class AgentTokenAuthentication(StandardAuthentication):
     The agent credential remains the authorization authority. A non-authoritative,
     ephemeral copy of the delegating user is returned only for compatibility with
     callsites that still require ``request.user``; API access is derived from the
-    delegating member and capped by the token in ``access.from_agent_auth``."""
+    delegating member or approved superuser context, capped by the token."""
 
     token_name = b"bearer"
 
@@ -661,7 +695,12 @@ class AgentTokenAuthentication(StandardAuthentication):
             fail("no_user_principal", org_id=auth_token.organization_id)
 
         # The delegating user must still be valid even though they are not the request user.
-        user = user_service.get_user(user_id=user_id)
+        if auth_token.superuser is not None:
+            # Non-members do not necessarily receive this cell's user-cache invalidations.
+            users = user_service.get_many(filter={"user_ids": [user_id]})
+            user = users[0] if users else None
+        else:
+            user = user_service.get_user(user_id=user_id)
         if user is None:
             fail("user_not_found", user_id=user_id)
         if not user.is_active:
@@ -677,7 +716,10 @@ class AgentTokenAuthentication(StandardAuthentication):
         )
         if org_context is None:
             fail("org_context_missing", user_id=user_id, org_id=auth_token.organization_id)
-        if org_context.member is None:
+        if auth_token.superuser is not None:
+            if resolve_superuser_access(auth_token.superuser, user, org_context) is None:
+                fail("superuser_access_invalid", user_id=user_id)
+        elif org_context.member is None:
             fail("org_membership_missing", user_id=user_id, org_id=auth_token.organization_id)
         if not features.has(
             agent_token.FEATURE_FLAG,
