@@ -67,6 +67,7 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             sync_cron_detector_enabled,
             reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["workflow_engine_detector"]},
+            # sentry_monitor is also read but routes to another database in tests.
+            hints={"tables": ["workflow_engine_datasource", "workflow_engine_detector"]},
         ),
     ]
