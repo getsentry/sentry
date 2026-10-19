@@ -88,6 +88,13 @@ function SearchInput(props: SearchInputProps) {
  */
 type Priority = 'primary' | 'danger' | 'default';
 
+// Padding order: top, right, bottom, left.
+const ITEM_PADDING_BY_SIZE = {
+  xs: 'xs md xs lg',
+  sm: 'sm md sm lg',
+  md: 'xs sm xs md',
+} as const;
+
 /** Resolves an item's text color from its priority and disabled state. */
 function getTextColor({
   theme,
@@ -330,9 +337,7 @@ function MenuListItem<T extends React.ElementType = 'li'>({
       >
         <StyledInnerWrap
           data-menu-item-content
-          padding={
-            size === 'xs' ? 'xs md xs lg' : size === 'sm' ? 'sm md sm lg' : 'xs sm xs md'
-          }
+          padding={ITEM_PADDING_BY_SIZE[size ?? 'md']}
           isFocused={isFocused}
           disabled={disabled}
           priority={priority}
