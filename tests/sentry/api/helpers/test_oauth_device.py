@@ -7,11 +7,14 @@ from django.utils import timezone
 from sentry.api.helpers.oauth_device import (
     DeviceRequestErrorCode,
     InvalidDeviceRequest,
+    complete_device_request,
     get_device_request,
     get_prepared_device_request,
     prepare_device_consent,
 )
 from sentry.models.apiapplication import ApiApplicationStatus
+from sentry.models.apiauthorization import ApiAuthorization
+from sentry.models.apidevicecode import DeviceCodeStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -62,3 +65,28 @@ class DeviceRequestTest(TestCase):
             == self.device.id
         )
         assert get_prepared_device_request(session, other.user_code, self.user.id).id == other.id
+
+    def test_decision_is_terminal(self) -> None:
+        assert complete_device_request(self.device.id, self.user.id, "deny") == "denied"
+        with pytest.raises(InvalidDeviceRequest):
+            complete_device_request(self.device.id, self.user.id, "approve")
+        self.device.refresh_from_db()
+        assert self.device.status == DeviceCodeStatus.DENIED
+
+    def test_authorization_failure_rolls_back_decision(self) -> None:
+        with patch(
+            "sentry.api.helpers.oauth_device.persist_authorization", side_effect=RuntimeError
+        ):
+            with pytest.raises(RuntimeError):
+                complete_device_request(self.device.id, self.user.id, "approve")
+        self.device.refresh_from_db()
+        assert self.device.status == DeviceCodeStatus.PENDING
+
+    def test_saves_authorization_with_approval(self) -> None:
+        self.device.update(scope_list=["project:read"])
+        assert complete_device_request(self.device.id, self.user.id, "approve") == "approved"
+        self.device.refresh_from_db()
+        assert self.device.user_id == self.user.id
+        assert ApiAuthorization.objects.get(
+            application=self.application, user=self.user
+        ).scope_list == ["project:read"]
