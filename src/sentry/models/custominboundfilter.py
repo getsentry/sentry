@@ -23,8 +23,8 @@ class ConditionOperator(StrEnum):
     How a condition compares the field to its values. ``glob`` matches the field against
     each value as a glob pattern. The other text operators read every character of a
     value literally and match a field that equals, starts with, contains or ends with
-    any value, case-insensitively. The ordered operators compare one value as a release
-    version.
+    any value, or one that does none of that, case-insensitively. The ordered operators
+    compare one value as a release version.
 
     A stored condition without an operator holds raw glob patterns, as with ``glob``: a
     row written before operators existed, or the row of a legacy list.
@@ -35,6 +35,9 @@ class ConditionOperator(StrEnum):
     STARTS_WITH = "starts_with"
     CONTAINS = "contains"
     ENDS_WITH = "ends_with"
+    DOES_NOT_START_WITH = "does_not_start_with"
+    DOES_NOT_CONTAIN = "does_not_contain"
+    DOES_NOT_END_WITH = "does_not_end_with"
     GT = "gt"
     GTE = "gte"
     LT = "lt"
@@ -48,6 +51,9 @@ TEXT_OPERATORS = frozenset(
         ConditionOperator.STARTS_WITH,
         ConditionOperator.CONTAINS,
         ConditionOperator.ENDS_WITH,
+        ConditionOperator.DOES_NOT_START_WITH,
+        ConditionOperator.DOES_NOT_CONTAIN,
+        ConditionOperator.DOES_NOT_END_WITH,
     }
 )
 

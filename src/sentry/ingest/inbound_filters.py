@@ -699,6 +699,13 @@ def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMa
 _GLOB_SPECIAL_CHARS = re.compile(r"[\\*?\[\]{}]")
 
 
+_NEGATED_OPERATORS: Mapping[ConditionOperator, ConditionOperator] = {
+    ConditionOperator.DOES_NOT_START_WITH: ConditionOperator.STARTS_WITH,
+    ConditionOperator.DOES_NOT_CONTAIN: ConditionOperator.CONTAINS,
+    ConditionOperator.DOES_NOT_END_WITH: ConditionOperator.ENDS_WITH,
+}
+
+
 def _text_glob(operator: ConditionOperator, value: str) -> str:
     """The glob pattern that matches a field the way the literal `operator` compares it to `value`."""
     literal = _GLOB_SPECIAL_CHARS.sub(r"\\\g<0>", value)
@@ -729,6 +736,10 @@ def _operator_condition(
         if matcher.compare is None or len(values) != 1:
             return None
         return matcher.compare(cast(ReleaseComparator, operator.value), values[0])
+    if operator in _NEGATED_OPERATORS:
+        # A field the item does not carry matches no glob, so the negation drops the item.
+        globs = [_text_glob(_NEGATED_OPERATORS[operator], value) for value in values]
+        return {"op": "not", "inner": matcher.match(globs)}
     return matcher.match([_text_glob(operator, value) for value in values])
 
 
