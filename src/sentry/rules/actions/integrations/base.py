@@ -137,6 +137,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
                         group_id=event.group_id,
                         notification_uuid=notification_uuid if notification_uuid else "",
                         alert_id=context.action_id if context else None,
+                        workflow_id=context.origin.workflow_id if context else None,
                         category="issue_alert",
                     )
                 )
@@ -148,6 +149,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
                 AlertSentEvent(
                     provider=self.provider,
                     alert_id=context.action_id if context else "",
+                    workflow_id=context.origin.workflow_id if context else None,
                     alert_type="issue_alert",
                     organization_id=event.organization.id,
                     project_id=event.project_id,
