@@ -54,9 +54,10 @@ class MigratingBackendTestCase(TestCase):
         self.backend.new.add("timeline", self.record("record:2"))
 
         # Another task holds old's timeline lock while it digests old.
-        with self.backend.old.digest("timeline", 0):
-            with self.backend.digest("timeline", 0) as records:
-                assert [record.key for record in records] == ["record:2"]
+        with self.backend.digest("timeline", 0) as old_records:
+            with self.backend.digest("timeline", 0) as new_records:
+                assert [record.key for record in new_records] == ["record:2"]
+            assert [record.key for record in old_records] == ["record:1"]
 
     def add_waiting(self, backend: Backend, key: str) -> None:
         backend.add(key, self.record("record:1"))
