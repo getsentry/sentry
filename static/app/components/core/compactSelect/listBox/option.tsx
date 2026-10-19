@@ -10,12 +10,12 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
-import {Menu, type MenuListItemProps} from '@sentry/scraps/menu';
+import {Menu, type MenuItemPresentationProps} from '@sentry/scraps/menu';
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
   listState: ListState<any>;
-  size: MenuListItemProps['size'];
+  size: MenuItemPresentationProps['size'];
   'data-index'?: number;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
@@ -69,7 +69,7 @@ export function ListBoxOption({
     [labelProps.id, label]
   );
 
-  const leadingItems = (item.props as MenuListItemProps).leadingItems;
+  const leadingItems = (item.props as MenuItemPresentationProps).leadingItems;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
@@ -93,7 +93,7 @@ export function ListBoxOption({
               readOnly
             />
           ) : (
-            isSelected && <IconCheckmark size={checkboxSize} />
+            isSelected && <IconCheckmark size={checkboxSize} variant="accent" />
           )}
         </LeadWrap>
         {leading ? <LeadWrap aria-hidden="true">{leading}</LeadWrap> : null}
@@ -113,7 +113,7 @@ export function ListBoxOption({
       isPressed={isPressed}
       isSelected={isSelected}
       isFocused={listState.selectionManager.isFocused && isFocused}
-      priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
+      priority={priority ? 'primary' : 'default'}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
       trailingItems={trailingItems}

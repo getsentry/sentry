@@ -34,7 +34,7 @@ function MenuHeading({children}: {children: React.ReactNode}) {
 }
 
 /** Text style for a heading within a menu section. */
-function MenuSectionHeading({
+function MenuItemGroupLabel({
   children,
   ...props
 }: Omit<React.HTMLAttributes<HTMLSpanElement>, 'color' | 'style'> & {
@@ -53,12 +53,12 @@ function MenuSectionDivider() {
 }
 
 /** List item wrapper for a menu section. */
-function MenuSectionLayout(props: ContainerProps<'li'>) {
+function MenuItemGroupLayout(props: ContainerProps<'li'>) {
   return <Container as="li" display="block" {...props} />;
 }
 
 /** List wrapper for the items within a menu section. */
-function MenuSectionGroup(props: ContainerProps<'ul'>) {
+function MenuItemGroupList(props: ContainerProps<'ul'>) {
   return <Container as="ul" role="presentation" margin="0" padding="0" {...props} />;
 }
 
@@ -220,7 +220,7 @@ type ExtraContent =
       isSelected: boolean;
     }) => React.ReactNode);
 
-export type MenuListItemProps = {
+export type MenuItemPresentationProps = {
   /**
    * Optional descriptive text. Like 'label', should preferably be a string or
    * have appropriate aria-labels.
@@ -279,7 +279,7 @@ interface OtherProps<T extends React.ElementType> {
 }
 
 interface Props<T extends React.ElementType = 'li'>
-  extends MenuListItemProps, OtherProps<T> {
+  extends MenuItemPresentationProps, OtherProps<T> {
   ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
 }
 
@@ -517,9 +517,9 @@ export const Menu = {
   Header: MenuHeaderLayout,
   Title: MenuHeading,
   Search: SearchInput,
-  Section: MenuSectionLayout,
-  SectionTitle: MenuSectionHeading,
-  SectionItems: MenuSectionGroup,
+  ItemGroup: MenuItemGroupLayout,
+  ItemGroupLabel: MenuItemGroupLabel,
+  ItemGroupList: MenuItemGroupList,
   Separator: MenuSectionDivider,
   Footer: MenuFooterLayout,
   Item: MenuItem,

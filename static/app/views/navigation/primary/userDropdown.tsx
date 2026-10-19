@@ -70,7 +70,7 @@ export function UserDropdown() {
     return (
       <DropdownMenu
         usePortal
-        size={size}
+        size="md"
         portalContainerRef={portalContainerRef}
         zIndex={theme.zIndex.modal}
         renderWrapAs={PassthroughWrapper}
@@ -94,14 +94,14 @@ export function UserDropdown() {
               {
                 key: 'settings',
                 label: t('Settings'),
-                leadingItems: <IconSettings size="sm" />,
+                leadingItems: <IconSettings size="md" />,
                 to: '/settings/account/',
               },
               {
                 key: 'preferences',
                 label: t('Preferences'),
-                leadingItems: <IconSliders size="sm" />,
-                submenu: {title: t('Preferences')},
+                leadingItems: <IconSliders size="md" />,
+                submenu: true,
                 children: [
                   {
                     key: 'theme',

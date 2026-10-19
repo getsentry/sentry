@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {useMenuSection} from '@react-aria/menu';
 import type {Node} from '@react-types/shared';
 
@@ -23,19 +22,13 @@ export function DropdownMenuSection({node, children}: DropdownMenuSectionProps) 
   });
 
   return (
-    <Menu.Section {...itemProps}>
+    <Menu.ItemGroup {...itemProps}>
       {node.rendered && (
-        <Container padding="md lg">
-          <Menu.SectionTitle {...headingProps}>{node.rendered}</Menu.SectionTitle>
+        <Container padding="md xl">
+          <Menu.ItemGroupLabel {...headingProps}>{node.rendered}</Menu.ItemGroupLabel>
         </Container>
       )}
-      <Group {...groupProps}>{children}</Group>
-    </Menu.Section>
+      <Menu.ItemGroupList {...groupProps}>{children}</Menu.ItemGroupList>
+    </Menu.ItemGroup>
   );
 }
-
-const Group = styled('ul')`
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-`;

@@ -42,7 +42,7 @@ export function GridListSection<T extends ListItemBase>({
   return (
     <Fragment>
       <SectionSeparator {...separatorProps} />
-      <Menu.Section
+      <Menu.ItemGroup
         role="rowgroup"
         {...(node['aria-label']
           ? {'aria-label': node['aria-label']}
@@ -51,14 +51,14 @@ export function GridListSection<T extends ListItemBase>({
         {(node.rendered || showToggleAllButton) && (
           <SectionHeader>
             {node.rendered && (
-              <Menu.SectionTitle id={titleId} aria-hidden>
+              <Menu.ItemGroupLabel id={titleId} aria-hidden>
                 {node.rendered}
-              </Menu.SectionTitle>
+              </Menu.ItemGroupLabel>
             )}
             {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
           </SectionHeader>
         )}
-        <Menu.SectionItems>
+        <Menu.ItemGroupList>
           {childNodes.map(child => (
             <GridListOption
               key={child.key}
@@ -67,8 +67,8 @@ export function GridListSection<T extends ListItemBase>({
               size={size}
             />
           ))}
-        </Menu.SectionItems>
-      </Menu.Section>
+        </Menu.ItemGroupList>
+      </Menu.ItemGroup>
     </Fragment>
   );
 }

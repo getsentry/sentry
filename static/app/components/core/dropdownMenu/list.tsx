@@ -13,7 +13,7 @@ import {useTreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Menu} from '@sentry/scraps/menu';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -172,15 +172,16 @@ function DropdownMenuCollection({
               state={state}
             />
             {showSeparator && (
-              <Container
+              <Stack
                 as="li"
-                display="block"
-                padding="xs md xs lg"
+                justify="center"
+                height="8px"
+                padding="0 lg 0 xl"
                 {...separatorProps}
                 role="presentation"
               >
                 <Menu.Separator />
-              </Container>
+              </Stack>
             )}
           </Fragment>
         );

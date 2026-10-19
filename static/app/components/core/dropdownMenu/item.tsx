@@ -9,14 +9,14 @@ import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Menu, type MenuListItemProps} from '@sentry/scraps/menu';
+import {Menu, type MenuItemPresentationProps} from '@sentry/scraps/menu';
 
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './context';
 
-export interface MenuItemProps extends MenuListItemProps {
+export interface MenuItemProps extends MenuItemPresentationProps {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
    */
@@ -51,7 +51,7 @@ export interface MenuItemProps extends MenuListItemProps {
    * Menu item label. Should preferably be a string. If not, provide a `textValue` prop
    * to enable search & keyboard select.
    */
-  label?: MenuListItemProps['label'];
+  label?: MenuItemPresentationProps['label'];
   /**
    * Function to call when user selects/clicks/taps on the menu item. The
    * item's key is passed as an argument.
@@ -307,7 +307,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
         isSubmenu ? (
           <Fragment>
             {trailingItems as React.ReactNode}
-            <IconChevron size="xs" direction="right" aria-hidden="true" />
+            <IconChevron size="md" direction="right" aria-hidden="true" />
           </Fragment>
         ) : (
           trailingItems

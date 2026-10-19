@@ -12,7 +12,7 @@ import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {Menu, type MenuListItemProps} from '@sentry/scraps/menu';
+import {Menu, type MenuItemPresentationProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 
 export interface GridListOptionProps<
@@ -84,7 +84,7 @@ export function GridListOption<T extends ListItemBase>({
     [label]
   );
 
-  const leadingItems = (node.props as MenuListItemProps).leadingItems;
+  const leadingItems = (node.props as MenuItemPresentationProps).leadingItems;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
@@ -109,7 +109,9 @@ export function GridListOption<T extends ListItemBase>({
               readOnly
             />
           ) : (
-            isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
+            isSelected && (
+              <IconCheckmark size={checkboxSize} variant="accent" {...checkboxProps} />
+            )
           )}
         </LeadWrap>
         {leading ? <LeadWrap role="presentation">{leading}</LeadWrap> : null}
@@ -129,7 +131,7 @@ export function GridListOption<T extends ListItemBase>({
       isSelected={isSelected}
       isPressed={isPressed}
       isFocused={isFocusWithin}
-      priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
+      priority={priority ? 'primary' : 'default'}
       innerWrapProps={gridCellProps}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
