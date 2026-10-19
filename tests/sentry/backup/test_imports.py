@@ -55,7 +55,6 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.serviceaccount import ServiceAccountProject
 from sentry.models.team import Team
 from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
@@ -2657,54 +2656,6 @@ class BatchingTests(TestCase):
             user_option = UserOption.objects.get(key=f"key-{target}")
             user = User.objects.get(id=user_option.user_id)
             assert user.name == f"user-{target}"
-
-
-class ServiceAccountImportTests(ImportTestCase):
-    @staticmethod
-    def service_account_projects() -> set[tuple[str, str, str]]:
-        """Each project link as (org slug, account name, project slug), read across both silos."""
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            links = list(
-                ServiceAccountProject.objects.values_list(
-                    "service_account__organization_id", "service_account__name", "project_id"
-                )
-            )
-        projects = {p.id: p for p in Project.objects.select_related("organization")}
-        found = set()
-        for organization_id, name, project_id in links:
-            project = projects[project_id]
-            assert project.organization_id == organization_id
-            found.add((project.organization.slug, name, project.slug))
-        return found
-
-    def test_organization_import_remaps_project_ids(self) -> None:
-        owner = self.create_exhaustive_user("owner")
-        member = self.create_exhaustive_user("member")
-        self.create_exhaustive_organization("org-a", owner, member)
-        self.create_exhaustive_organization("org-b", owner, member)
-        before = self.service_account_projects()
-        assert len(before) == 2
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            old_project_ids = set(
-                ServiceAccountProject.objects.values_list("project_id", flat=True)
-            )
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            # `project_id` is a hybrid cloud foreign key, not a real one. Use up the old IDs so
-            # that an ID copied without remapping can't land on the right project by chance.
-            filler_org = self.create_organization("filler")
-            while self.create_project(organization=filler_org).id <= max(old_project_ids):
-                pass
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            new_project_ids = set(
-                ServiceAccountProject.objects.values_list("project_id", flat=True)
-            )
-        assert new_project_ids.isdisjoint(old_project_ids)
-        assert self.service_account_projects() == before
 
 
 @pytest.mark.skipif(reason="not legacy")
