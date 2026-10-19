@@ -50,8 +50,7 @@ function ConversationDetailPage() {
     [conversationId, startTimestamp, endTimestamp]
   );
 
-  const {stats, nodes, nodeTraceMap, isLoading, title, isFullyLoaded} =
-    useConversation(conversation);
+  const {stats, nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
@@ -109,12 +108,7 @@ function ConversationDetailPage() {
             </TabList>
           </Tabs>
           {queryState.tab === 'transcript' && messages.length > 0 && (
-            <ExportTranscriptButton
-              conversation={conversation}
-              nodes={nodes}
-              title={title}
-              isFullyLoaded={isFullyLoaded}
-            />
+            <ExportTranscriptButton conversation={conversation} />
           )}
         </Flex>
         <ConversationViewContainer>

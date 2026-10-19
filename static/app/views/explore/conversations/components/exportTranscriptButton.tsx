@@ -6,34 +6,14 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {t} from 'sentry/locale';
 import type {UseConversationsOptions} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useExportConversation} from 'sentry/views/explore/conversations/hooks/useExportConversation';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
 interface ExportTranscriptButtonProps {
   conversation: UseConversationsOptions;
-  /** Whether `nodes` already holds the whole conversation (see useConversation). */
-  isFullyLoaded: boolean;
-  /** Nodes already loaded by the display query, reused when complete. */
-  nodes: AITraceSpanNode[];
-  title: string | null;
 }
 
-/**
- * Dropdown that copies or downloads the conversation transcript as Markdown.
- * Reuses the already-loaded nodes when the conversation is fully loaded, and
- * otherwise fetches every page on demand (see useExportConversation).
- */
-export function ExportTranscriptButton({
-  conversation,
-  nodes,
-  title,
-  isFullyLoaded,
-}: ExportTranscriptButtonProps) {
-  const {copyConversation, downloadConversation, isExporting} = useExportConversation({
-    conversation,
-    loadedNodes: nodes,
-    title,
-    isFullyLoaded,
-  });
+export function ExportTranscriptButton({conversation}: ExportTranscriptButtonProps) {
+  const {copyConversation, downloadConversation, isExporting} =
+    useExportConversation(conversation);
 
   return (
     <DropdownMenu

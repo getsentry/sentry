@@ -29,13 +29,9 @@ import {
   buildExportFilename,
   downloadTextFile,
 } from 'sentry/views/explore/conversations/utils/exportConversation';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
-// Safety ceiling so a pathological conversation cannot paginate indefinitely.
 const MAX_EXPORT_SPANS = 50_000;
 
-// The cached infinite-query data for a conversation: one page per response,
-// keyed by the Link-header cursor the endpoint returns.
 type ConversationInfiniteData = InfiniteData<
   ApiResponse<ConversationApiResponse>,
   ParsedHeader | undefined
@@ -46,128 +42,75 @@ interface ConversationExport {
   title: string | null;
 }
 
-interface UseExportConversationOptions {
-  conversation: UseConversationsOptions;
-  /**
-   * Whether `loadedNodes` already holds the entire conversation. When true the
-   * export reuses them directly; otherwise it fetches every page on demand.
-   */
-  isFullyLoaded: boolean;
-  /** Nodes already rendered by the display query. */
-  loadedNodes: AITraceSpanNode[];
-  /** Conversation title already read by the display query, for the filename. */
-  title: string | null;
-}
-
 export interface UseExportConversationResult {
   copyConversation: () => void;
   downloadConversation: () => void;
   isExporting: boolean;
 }
 
-/**
- * Copies or downloads a conversation's transcript as Markdown. When the display
- * query has already loaded the whole conversation this reuses those nodes with
- * no refetch; otherwise it fetches every page on demand -- independently of the
- * display query, so exporting a large conversation does not bloat the
- * transcript/timeline caches.
- */
-export function useExportConversation({
-  conversation,
-  loadedNodes,
-  title: loadedTitle,
-  isFullyLoaded,
-}: UseExportConversationOptions): UseExportConversationResult {
+export function useExportConversation(
+  conversation: UseConversationsOptions
+): UseExportConversationResult {
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const [isExporting, setIsExporting] = useState(false);
 
-  const fetchConversation = useCallback(async (): Promise<ConversationExport> => {
-    const options = getConversationQueryOptions(organization, conversation, selection);
+  const runExport = useCallback(
+    async (deliver: (result: ConversationExport) => void | Promise<void>) => {
+      const options = getConversationQueryOptions(organization, conversation, selection);
+      const exportQueryKey = [
+        options.queryKey[0],
+        options.queryKey[1],
+        {...options.queryKey[2], export: true},
+      ] as unknown as typeof options.queryKey;
 
-    // A distinct query key keeps the export's extra pages out of the display
-    // cache, while seeding it from the display's data lets the observer resume
-    // where the display left off and fetch only the missing pages. It runs on
-    // the app-wide query client, so leaving the transcript tab does not abort
-    // it. The cast re-tags the key (same data shape, distinct value).
-    const exportQueryKey = [
-      options.queryKey[0],
-      options.queryKey[1],
-      {...options.queryKey[2], export: true},
-    ] as unknown as typeof options.queryKey;
+      await queryClient.cancelQueries({queryKey: exportQueryKey});
+      queryClient.removeQueries({queryKey: exportQueryKey});
 
-    // The button can remount with a reset `isExporting` when the user leaves
-    // and returns to the transcript tab, letting a second export start while
-    // the first still runs on this shared key. Cancel and clear the previous
-    // one first so the new export supersedes it rather than the two cancelling
-    // each other; the superseded export rejects with a CancelledError.
-    await queryClient.cancelQueries({queryKey: exportQueryKey});
-    queryClient.removeQueries({queryKey: exportQueryKey});
+      const observer = new InfiniteQueryObserver(queryClient, {
+        ...options,
+        queryKey: exportQueryKey,
+        initialData: queryClient.getQueryData(options.queryKey) as
+          | ConversationInfiniteData
+          | undefined,
+      });
 
-    const observer = new InfiniteQueryObserver(queryClient, {
-      ...options,
-      queryKey: exportQueryKey,
-      initialData: queryClient.getQueryData(options.queryKey) as
-        | ConversationInfiniteData
-        | undefined,
-    });
-    // Only destroy the observer on the way out; the shared query entry is left
-    // for the next export to cancel/clear (and for React Query to gc), so a
-    // superseded export never removes a newer one's in-flight query. No
-    // try/finally: the React Compiler rejects a finalizer.
-    const cleanup = () => observer.destroy();
-
-    try {
       let result = observer.getCurrentResult();
-      while (!result.data || result.hasNextPage) {
-        result = await observer.fetchNextPage({throwOnError: true});
-        const loaded =
-          result.data?.pages.reduce(
-            (total, page) => total + (page.json.spans?.length ?? 0),
-            0
-          ) ?? 0;
-        if (loaded >= MAX_EXPORT_SPANS) {
-          break;
-        }
+      const needsFetch = !result.data || result.hasNextPage;
+      if (needsFetch) {
+        setIsExporting(true);
       }
 
-      const spans = result.data?.pages.flatMap(page => page.json.spans ?? []) ?? [];
-      const title = result.data?.pages[0]?.json.title ?? null;
-      const nodes = buildConversationNodes(spans).nodes;
-      cleanup();
-      return {markdown: messagesToMarkdown(extractMessagesFromNodes(nodes)), title};
-    } catch (error) {
-      cleanup();
-      throw error;
-    }
-  }, [queryClient, organization, conversation, selection]);
-
-  // Shared export loop: resolves the transcript (reusing the cache when it holds
-  // the whole conversation, otherwise fetching every page) and hands it to
-  // `sink`, which performs the copy-vs-download specifics. Spinner and error
-  // handling live here so each sink stays a plain action.
-  const exportWith = useCallback(
-    async (sink: (conversationExport: ConversationExport) => void | Promise<void>) => {
-      // No finally: the React Compiler rejects a finalizer, so the spinner is
-      // reset on both the success and error paths.
       try {
-        if (isFullyLoaded) {
-          // Fast path: the whole conversation is already cached, so build the
-          // transcript with no network call and no spinner.
-          await sink({
-            markdown: messagesToMarkdown(extractMessagesFromNodes(loadedNodes)),
-            title: loadedTitle,
-          });
-          return;
+        while (!result.data || result.hasNextPage) {
+          result = await observer.fetchNextPage({throwOnError: true});
+          const loaded =
+            result.data?.pages.reduce(
+              (total, page) => total + (page.json.spans?.length ?? 0),
+              0
+            ) ?? 0;
+          if (loaded >= MAX_EXPORT_SPANS) {
+            break;
+          }
         }
 
-        setIsExporting(true);
-        await sink(await fetchConversation());
-        setIsExporting(false);
+        const spans = result.data?.pages.flatMap(page => page.json.spans ?? []) ?? [];
+        const title = result.data?.pages[0]?.json.title ?? null;
+        const nodes = buildConversationNodes(spans).nodes;
+        observer.destroy();
+        if (needsFetch) {
+          setIsExporting(false);
+        }
+        await deliver({
+          markdown: messagesToMarkdown(extractMessagesFromNodes(nodes)),
+          title,
+        });
       } catch (error) {
-        setIsExporting(false);
-        // A newer export cancelled this one; let that export report instead.
+        observer.destroy();
+        if (needsFetch) {
+          setIsExporting(false);
+        }
         if (error instanceof CancelledError) {
           return;
         }
@@ -175,26 +118,24 @@ export function useExportConversation({
         addErrorMessage(t('Failed to export transcript'));
       }
     },
-    [isFullyLoaded, loadedNodes, loadedTitle, fetchConversation]
+    [queryClient, organization, conversation, selection]
   );
 
   const copyConversation = useCallback(
     () =>
-      void exportWith(async ({markdown}) => {
+      void runExport(async ({markdown}) => {
         trackAnalytics('conversations.detail.copy-conversation', {organization});
-        // copyToClipboard handles its own success/error toast, replacing the
-        // loading indicator.
         await copyToClipboard(markdown, {
           successMessage: t('Copied transcript to clipboard'),
           errorMessage: t('Failed to copy transcript. Try downloading instead.'),
         });
       }),
-    [exportWith, organization]
+    [runExport, organization]
   );
 
   const downloadConversation = useCallback(
     () =>
-      void exportWith(({markdown, title}) => {
+      void runExport(({markdown, title}) => {
         trackAnalytics('conversations.detail.export-conversation', {organization});
         downloadTextFile(
           buildExportFilename(title, conversation.conversationId, 'md'),
@@ -203,7 +144,7 @@ export function useExportConversation({
         );
         addSuccessMessage(t('Transcript exported'));
       }),
-    [exportWith, organization, conversation.conversationId]
+    [runExport, organization, conversation.conversationId]
   );
 
   return {copyConversation, downloadConversation, isExporting};

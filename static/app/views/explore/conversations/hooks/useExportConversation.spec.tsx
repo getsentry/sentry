@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
 import {useExportConversation} from './useExportConversation';
 
@@ -81,13 +80,7 @@ describe('useExportConversation', () => {
     jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
     const {result} = renderHookWithProviders(
-      () =>
-        useExportConversation({
-          conversation: {conversationId: CONVERSATION_ID},
-          loadedNodes: [] as AITraceSpanNode[],
-          title: null,
-          isFullyLoaded: false,
-        }),
+      () => useExportConversation({conversationId: CONVERSATION_ID}),
       {organization}
     );
 
@@ -98,8 +91,6 @@ describe('useExportConversation', () => {
     await waitFor(() => expect(blobs).toHaveLength(1));
 
     const markdown = await blobs[0]!.text();
-    // Content from both pages is concatenated, proving the fetch followed the
-    // Link cursor to the end.
     expect(markdown).toContain('Page one');
     expect(markdown).toContain('Page two');
   });

@@ -135,11 +135,6 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
 
 interface UseConversationResult {
   error: boolean;
-  /**
-   * Whether the entire conversation is already in the cache (nothing loading
-   * and no further pages), so an export can reuse `nodes` without refetching.
-   */
-  isFullyLoaded: boolean;
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
@@ -370,11 +365,6 @@ function orderDepthFirst(
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
 
-/**
- * Builds the span query params (projects + time window) for the conversation
- * details endpoint. Shared by the display hook and the export fetch so both
- * request exactly the same window.
- */
 function buildConversationQueryParams(
   conversation: UseConversationsOptions,
   selection: PageFilters
@@ -400,11 +390,6 @@ function buildConversationQueryParams(
   return {project, ...datetimeParams};
 }
 
-/**
- * Transforms the flat API spans accumulated across pages into the ordered,
- * node-shaped structure the UI renders. Shared by the hook's render path and
- * the on-demand full-conversation export so both produce identical nodes.
- */
 export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
@@ -429,11 +414,6 @@ export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
 
 const MAX_PAGES = 100;
 
-/**
- * Infinite-query options for the conversation details endpoint. Shared by the
- * display hook and the export, so the export can seed its own observer from the
- * display's cache and pick up where it left off.
- */
 export function getConversationQueryOptions(
   organization: Organization,
   conversation: UseConversationsOptions,
@@ -497,8 +477,6 @@ export function useConversation(
     [allSpans]
   );
 
-  const isLoadingAny = isLoading || isFetchingNextPage || canFetchNextPage;
-
   if (!conversation.conversationId) {
     return {
       stats: null,
@@ -507,7 +485,6 @@ export function useConversation(
       isLoading: false,
       error: false,
       title: null,
-      isFullyLoaded: false,
     };
   }
 
@@ -515,12 +492,8 @@ export function useConversation(
     stats,
     nodes,
     nodeTraceMap,
-    isLoading: isLoadingAny,
+    isLoading: isLoading || isFetchingNextPage || canFetchNextPage,
     error: isError,
     title,
-    // Every page is already in the cache: nothing is loading and the endpoint
-    // reported no further pages. The export can then reuse `nodes` directly
-    // instead of re-fetching.
-    isFullyLoaded: !isLoadingAny && !hasNextPage,
   };
 }
