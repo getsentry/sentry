@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {IconOpen} from '@sentry/icons/open';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
@@ -13,14 +12,10 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
-import {
-  LinkedPullRequests,
-  useLinkedPullRequests,
-} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
+import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
-import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
@@ -321,32 +316,14 @@ function IssuePreviewContent() {
               </ErrorBoundary>
             </Container>
           )}
-          <Stack gap="2xl" borderTop="muted" paddingTop="xl">
-            {linkedPullRequests.data?.pullRequests.length ? (
-              <Container>
-                <Disclosure
-                  as="section"
-                  aria-label={t('Pull Requests')}
-                  size="md"
-                  defaultExpanded
-                >
-                  <Disclosure.Title>
-                    <Heading as="h3" size="md">
-                      {t('Pull Requests')}
-                    </Heading>
-                  </Disclosure.Title>
-                  <Disclosure.Content>
-                    <LinkedPullRequests
-                      collapseBeforeLatestRegression
-                      group={group}
-                      showEmptyState={false}
-                    />
-                  </Disclosure.Content>
-                </Disclosure>
-              </Container>
-            ) : null}
-            <IssuePreviewTimeline key={group.id} group={group} project={project} />
-          </Stack>
+          <Container borderTop="muted" paddingTop="xl">
+            <IssuePreviewTimeline
+              key={group.id}
+              group={group}
+              project={project}
+              pullRequests={linkedPullRequests.data?.pullRequests ?? []}
+            />
+          </Container>
         </Stack>
       )}
     </IssueDetailsContextProvider>
