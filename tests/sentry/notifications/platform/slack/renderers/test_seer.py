@@ -32,6 +32,7 @@ from sentry.notifications.platform.templates.seer import (
     SeerInvestigationConclusionTemplate,
     SeerInvestigationError,
     SeerInvestigationErrorTemplate,
+    SeerInvestigationProgress,
     SeerInvestigationStarted,
     SeerInvestigationStartedTemplate,
     SeerInvestigationStatus,
@@ -661,6 +662,24 @@ class SeerSlackRendererInvestigationTest(TestCase):
         assert button.url == data.investigation_url
         assert button.style == "primary"
         assert button.value == "link_clicked"
+
+    def test_render_investigation_status_complete_has_no_button(self) -> None:
+        template = SeerInvestigationStatusTemplate()
+        data = template.example_data.copy(
+            update={
+                "progress": SeerInvestigationProgress(
+                    title="Investigation complete",
+                    status="complete",
+                    detail="Seer finished checking every hypothesis.",
+                )
+            }
+        )
+
+        renderable, _ = NotificationService.render_template(
+            data=data, template=template, provider=SlackNotificationProvider
+        )
+
+        assert [block.type for block in renderable["blocks"]][-2:] == ["rich_text", "task_card"]
 
     @override_options(
         {
