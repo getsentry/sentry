@@ -161,4 +161,64 @@ describe('OAuthDevice', () => {
     await userEvent.type(input, 'WXYZABCD');
     expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
   });
+
+  it('offers account switching after an organization access error', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      statusCode: 400,
+      body: {detail: 'You must be a member of an organization.'},
+    });
+    MockApiClient.addMockResponse({url: '/auth/', method: 'DELETE', body: {}});
+    MockApiClient.addMockResponse({url: '/auth-v2/csrf/', body: {}});
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {
+        pendingMfa: null,
+        serverHostname: 'sentry.example.com',
+        canRegister: false,
+        hasNewsletter: false,
+      },
+    });
+    render(<OAuthDevice />, {initialRouterConfig: {location}});
+    await waitFor(() =>
+      expect(screen.getByText('You must be a member of an organization.')).toBeVisible()
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Switch account'}));
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', {name: 'Email'})).toBeVisible()
+    );
+  });
+
+  it('keeps the device context visible through pending MFA and prepares again', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      statusCode: 403,
+      body: {detail: 'Authentication credentials were not provided.'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {
+        pendingMfa: {mfaRequired: true, mfaMethods: [{id: 'totp'}]},
+        serverHostname: 'sentry.example.com',
+        canRegister: false,
+        hasNewsletter: false,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/2fa/',
+      method: 'POST',
+      body: {user: UserFixture(), nextUri: '/elsewhere/'},
+    });
+    render(<OAuthDevice />, {initialRouterConfig: {location}});
+    const input = await screen.findByRole('textbox', {name: 'One-time password'});
+    await waitFor(() => expect(screen.getByText('Example Application')).toBeVisible());
+    const prepare = MockApiClient.addMockResponse({
+      url: '/auth/oauth/device/',
+      body: consent,
+    });
+    await userEvent.type(input, '123456');
+    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+  });
 });
