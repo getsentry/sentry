@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1220_remove_rulesnooze_fk_constraints"),
+        ("sentry", "1221_remove_incidentproject_constraint"),
     ]
 
     operations = [
