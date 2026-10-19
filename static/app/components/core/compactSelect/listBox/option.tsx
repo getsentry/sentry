@@ -10,12 +10,12 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
-import {Menu, type MenuItemPresentationProps} from '@sentry/scraps/menu';
+import {Menu, type MenuItemProps} from '@sentry/scraps/menu';
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
   listState: ListState<any>;
-  size: MenuItemPresentationProps['size'];
+  size: MenuItemProps['size'];
   'data-index'?: number;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
@@ -69,7 +69,7 @@ export function ListBoxOption({
     [labelProps.id, label]
   );
 
-  const leadingItems = (item.props as MenuItemPresentationProps).leadingItems;
+  const leadingItems = (item.props as MenuItemProps).leadingItems;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
