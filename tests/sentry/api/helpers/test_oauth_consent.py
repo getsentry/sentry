@@ -3,6 +3,7 @@ from threading import Event
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.conf import settings
 from django.db import close_old_connections, router, transaction
 from django.test import override_settings
 
@@ -11,6 +12,7 @@ from sentry.api.helpers.oauth_consent import (
     OrganizationSelectionError,
     get_organization_options,
     get_permission_descriptions,
+    get_permission_groups,
     has_existing_consent,
     persist_authorization,
     resolve_organization,
@@ -161,3 +163,45 @@ class OAuthConsentConcurrencyTest(TransactionTestCase):
 
         authorization.refresh_from_db()
         assert set(authorization.scope_list) == {"org:read", "project:read", "member:read"}
+
+
+def test_permission_groups() -> None:
+    assert get_permission_groups(
+        ["project:write", "project:read", "project:read", "member:invite"]
+    ) == [
+        {
+            "resource": "members",
+            "label": "Organization members",
+            "scopes": ["member:invite"],
+            "actions": ["invite"],
+            "description": None,
+        },
+        {
+            "resource": "projects",
+            "label": "Projects",
+            "scopes": ["project:read", "project:write"],
+            "actions": ["read", "write"],
+            "description": None,
+        },
+    ]
+
+
+def test_permission_groups_cover_all_scopes() -> None:
+    groups = get_permission_groups(sorted(settings.SENTRY_SCOPES))
+    assert {scope for group in groups for scope in group["scopes"]} == settings.SENTRY_SCOPES
+    assert next(group for group in groups if group["resource"] == "ci")["description"]
+    assert next(group for group in groups if group["resource"] == "dashboards")["actions"] == [
+        "read",
+        "create",
+        "write",
+        "delete",
+    ]
+
+
+def test_empty_permission_groups() -> None:
+    assert get_permission_groups([]) == []
+
+
+def test_unknown_permission_group() -> None:
+    with pytest.raises(NotImplementedError, match="scopes did not have permission groups"):
+        get_permission_groups(["unknown:read"])
