@@ -54,7 +54,10 @@ const scoreAnswerSchema = z
 const choiceAnswerSchema = z
   .object({
     type: z.literal('choice'),
-    choice: z.string(),
+    // Choice values can be booleans. SDKs record them as strings, but only when
+    // they reshape the answer, so a raw boolean can still arrive. Treat it like
+    // the string form so it matches the stringified `probabilities` keys.
+    choice: z.union([z.string(), z.boolean().transform(String)]),
     probabilities: probabilitiesSchema.optional(),
     confidence: z.number().optional(),
   })

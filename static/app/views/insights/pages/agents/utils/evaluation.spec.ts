@@ -160,6 +160,35 @@ describe('parseEvaluationOutput', () => {
     ]);
   });
 
+  it('reads boolean choices as strings', () => {
+    const raw = JSON.stringify([
+      {
+        type: 'evaluation',
+        answers: {
+          // As recorded by the JavaScript SDK for OpenAI decisions.
+          isSpam: {
+            type: 'choice',
+            choice: 'true',
+            probabilities: {true: 0.91, false: 0.09},
+            confidence: 0.91,
+          },
+          isAd: {type: 'choice', choice: false},
+        },
+      },
+    ]);
+
+    expect(parseEvaluationOutput(raw)).toEqual([
+      {
+        kind: 'choice',
+        key: 'isSpam',
+        choice: 'true',
+        probabilities: {true: 0.91, false: 0.09},
+        confidence: 0.91,
+      },
+      {kind: 'choice', key: 'isAd', choice: 'false'},
+    ]);
+  });
+
   it('keeps unknown and malformed answers as raw values', () => {
     const department = {type: 'choice', choice: 'billing', confidence: 'high'};
     const raw = JSON.stringify([
