@@ -59,6 +59,38 @@ export function useExportConversation(
   const runExport = useCallback(
     async (deliver: (result: ConversationExport) => void | Promise<void>) => {
       const options = getConversationQueryOptions(organization, conversation, selection);
+
+      const toExport = (
+        data: InfiniteData<ApiResponse<ConversationApiResponse>>
+      ): ConversationExport => {
+        const spans = data.pages.flatMap(page => page.json.spans ?? []);
+        const nodes = buildConversationNodes(spans).nodes;
+        return {
+          markdown: messagesToMarkdown(extractMessagesFromNodes(nodes)),
+          title: data.pages[0]?.json.title ?? null,
+        };
+      };
+
+      const cached = queryClient.getQueryData(options.queryKey) as
+        | ConversationInfiniteData
+        | undefined;
+      const lastPage = cached?.pages.at(-1);
+      const fullyCached =
+        !!lastPage &&
+        !options.getNextPageParam(
+          lastPage,
+          cached!.pages,
+          cached!.pageParams.at(-1),
+          cached!.pageParams
+        );
+
+      // Fast path: everything is cached, so deliver within the user gesture
+      // (no await first) to keep clipboard/download activation.
+      if (fullyCached) {
+        await deliver(toExport(cached!));
+        return;
+      }
+
       const exportQueryKey = [
         options.queryKey[0],
         options.queryKey[1],
@@ -71,18 +103,12 @@ export function useExportConversation(
       const observer = new InfiniteQueryObserver(queryClient, {
         ...options,
         queryKey: exportQueryKey,
-        initialData: queryClient.getQueryData(options.queryKey) as
-          | ConversationInfiniteData
-          | undefined,
+        initialData: cached,
       });
 
-      let result = observer.getCurrentResult();
-      const needsFetch = !result.data || result.hasNextPage;
-      if (needsFetch) {
-        setIsExporting(true);
-      }
-
+      setIsExporting(true);
       try {
+        let result = observer.getCurrentResult();
         while (!result.data || result.hasNextPage) {
           result = await observer.fetchNextPage({throwOnError: true});
           const loaded =
@@ -95,22 +121,14 @@ export function useExportConversation(
           }
         }
 
-        const spans = result.data?.pages.flatMap(page => page.json.spans ?? []) ?? [];
-        const title = result.data?.pages[0]?.json.title ?? null;
-        const nodes = buildConversationNodes(spans).nodes;
         observer.destroy();
-        if (needsFetch) {
-          setIsExporting(false);
+        setIsExporting(false);
+        if (result.data) {
+          await deliver(toExport(result.data));
         }
-        await deliver({
-          markdown: messagesToMarkdown(extractMessagesFromNodes(nodes)),
-          title,
-        });
       } catch (error) {
         observer.destroy();
-        if (needsFetch) {
-          setIsExporting(false);
-        }
+        setIsExporting(false);
         if (error instanceof CancelledError) {
           return;
         }
