@@ -23,7 +23,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, TraceItemFilter
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
-from sentry import eventstore, eventtypes, options, tagstore
+from sentry import eventstore, eventtypes, tagstore
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import (
     ALLOWED_FUTURE_DELTA,
@@ -527,11 +527,7 @@ class GroupManager(BaseManager["Group"]):
     use_for_related_fields = True
 
     def get_queryset(self):
-        return (
-            super()
-            .get_queryset()
-            .with_post_update_signal(options.get("groups.enable-post-update-signal"))
-        )
+        return super().get_queryset().with_post_update_signal(True)
 
     def by_qualified_short_id(
         self,
