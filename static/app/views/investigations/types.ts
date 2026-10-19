@@ -77,11 +77,6 @@ export type InvestigationComment = {
   id: string;
 };
 
-export type InvestigationBlockExecutionStart = {
-  id: string;
-  status: InvestigationExecutionStatus;
-};
-
 export type InvestigationExecutionStatus =
   | 'notRun'
   | 'available'
