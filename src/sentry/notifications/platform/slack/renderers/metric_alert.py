@@ -74,7 +74,7 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(status, ""))
         title_link = link_decorator.decorate_url(data.title_link)
-        fallback_text = f"<{title_link}|*{escape_slack_text(data.title)}*>"
+        fallback_text = f"<{title_link}|{escape_slack_text(data.title)}>"
         slack_body = BlockSlackMessageBuilder._build_blocks(
             *blocks, fallback_text=fallback_text, color=color
         )

@@ -98,7 +98,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={self.rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={self.rule.data['actions'][0]['workflow_id']}&alert_type=issue|Hello world>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -342,7 +342,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|Hello world>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -381,7 +381,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&workflow_id={workflow_id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&workflow_id={workflow_id}&alert_type=issue|Hello world>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -541,7 +541,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|Hello world>"
         )
         # Verify suggested assignees are in the context block and footer is last
         context_blocks = [b for b in blocks if b.get("type") == "context"]
@@ -785,7 +785,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|Hello world>"
         )
         assert (
             blocks[5]["elements"][0]["text"]
@@ -1017,7 +1017,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={workflow_id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={workflow_id}&alert_type=issue|Hello world>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
