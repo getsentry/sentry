@@ -38,7 +38,7 @@ from sentry.api.helpers.timeseries_transformations import (
             {0: [SmaSmoothTransformation(mode="sma", window_size=5)]},
         ),
         (
-            "transformations[0]=smooth%28sma%2C5%29&transformations[0]=fill(zero)",
+            "transformations[0]=smooth(sma,5)&transformations[0]=fill(zero)",
             {
                 0: [
                     SmaSmoothTransformation(mode="sma", window_size=5),
@@ -47,8 +47,8 @@ from sentry.api.helpers.timeseries_transformations import (
             },
         ),
         (
-            "yAxis=count()&yAxis=count()&transformations%5B1%5D=fill%28locf%29"
-            "&transformations%5B1%5D=smooth%28sma%2C3%29&transformations%5B0%5D=fill%28zero%29",
+            "yAxis=count()&yAxis=count()&transformations[1]=fill(locf)"
+            "&transformations[1]=smooth(sma,3)&transformations[0]=fill(zero)",
             {
                 1: [
                     FillTransformation(mode="locf"),
