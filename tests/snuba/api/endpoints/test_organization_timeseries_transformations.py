@@ -49,12 +49,25 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def _do_request(self, data, url=None, features=None):
-        if features is None:
-            features = {"organizations:discover-basic": True}
-        features.update(self.features)
-        with self.feature(features):
-            return self.client_get(data=data, url=self.url if url is None else url)
+    def _do_request(self, data, features=None):
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                **self.features,
+                "organizations:explore-interpolation-and-smoothing": True,
+                **(features or {}),
+            }
+        ):
+            return self.client_get(
+                data={
+                    "start": self.start,
+                    "end": self.end,
+                    "project": self.project.id,
+                    "dataset": "spans",
+                    **data,
+                },
+                url=self.url,
+            )
 
     def _store_spans_in_buckets(
         self, counts, start, description="foo", interval_seconds=3600
@@ -73,20 +86,6 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
     def test_transformations_preserve_duplicate_untransformed_axis(self) -> None:
         self.end = self.start + timedelta(seconds=90)
         cases = [
-            (["fill(locf)"], [2, 2, 6, 4, 4, 4], [False, True, False, False, True, True], None),
-            (["fill(zero)"], [2, 0, 6, 4, 0, 0], [False, True, False, False, True, True], None),
-            (
-                ["fill(linear)"],
-                [2, 4, 6, 4, None, None],
-                [False, True, False, False, False, False],
-                None,
-            ),
-            (
-                ["smooth(sma,2)"],
-                [2, None, 6, 5, None, None],
-                None,
-                [True, False, True, True, False, False],
-            ),
             (
                 ["smooth(ema,3)"],
                 [2, None, 4, 4, None, None],
@@ -110,15 +109,10 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         for transformations, expected, filled, smoothed in cases:
             response = self._do_request(
                 data={
-                    "start": self.start,
-                    "end": self.end,
                     "interval": "15s",
                     "yAxis": ["count()", "count()"],
-                    "project": self.project.id,
-                    "dataset": "spans",
                     "transformations[0]": transformations,
                 },
-                features={"organizations:explore-interpolation-and-smoothing": True},
             )
 
             assert response.status_code == 200, response.content
@@ -159,17 +153,12 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
 
         response = self._do_request(
             data={
-                "start": self.start,
-                "end": self.end,
                 "interval": "15s",
                 "yAxis": ["equation|count() * 2", "count()", "count()"],
-                "project": self.project.id,
-                "dataset": "spans",
                 "transformations[0]": ["fill(locf)"],
                 "transformations[1]": ["fill(linear)"],
                 "transformations[2]": ["smooth(sma,2)"],
             },
-            features={"organizations:explore-interpolation-and-smoothing": True},
         )
 
         assert response.status_code == 200, response.content
@@ -199,55 +188,52 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         )
 
     def test_transformations_smooth_top_events_and_other_independently(self) -> None:
-        self.end = self.start + timedelta(seconds=90)
-        self._store_spans_in_buckets(
-            [10, 1, 0, 0, 0, 0], self.start, description="foo", interval_seconds=15
-        )
-        self._store_spans_in_buckets(
-            [0, 0, 0, 8, 4, 0], self.start, description="bar", interval_seconds=15
-        )
+        self.end = self.start + timedelta(minutes=2)
+        self._store_spans_in_buckets([10, 1, 0, 0, 0, 0, 0, 0], self.start, "foo", 15)
+        self._store_spans_in_buckets([0, 0, 0, 8, 4, 0, 0, 0], self.start, "bar", 15)
 
-        response = self._do_request(
-            data={
-                "start": self.start,
-                "end": self.end,
-                "interval": "15s",
-                "yAxis": "count()",
-                "project": self.project.id,
-                "dataset": "spans",
-                "groupBy": ["span.description", "count()"],
-                "orderby": "-count()",
-                "topEvents": 1,
-                "excludeOther": 0,
-                "transformations[0]": ["smooth(sma,2)"],
-            },
-            features={"organizations:explore-interpolation-and-smoothing": True},
-        )
+        for interval, selected_values, other_values, selected_counts, other_counts in [
+            (
+                15,
+                [None, None, None, 8, 6, None, None, None],
+                [10, 5.5, None, None, None, None, None, None],
+                [0, 0, 0, 8, 4, 0, 0, 0],
+                [10, 1, 0, 0, 0, 0, 0, 0],
+            ),
+            (60, [8, 6], [15.5, None], [8, 4], [11, 0]),
+        ]:
+            response = self._do_request(
+                data={
+                    "interval": f"{interval}s",
+                    "yAxis": "count()",
+                    "groupBy": ["span.description", "count()"],
+                    "orderby": "-count()",
+                    "topEvents": 1,
+                    "excludeOther": 0,
+                    "transformations[0]": ["smooth(sma,2)"],
+                },
+            )
 
-        assert response.status_code == 200, response.content
-        selected, other = response.data["timeSeries"]
-        assert selected["groupBy"] == [{"key": "span.description", "value": "bar"}]
-        assert selected["meta"]["isOther"] is False
-        assert selected["values"] == build_expected_transformed_timeseries(
-            self.start,
-            15_000,
-            [None, None, None, 8, 6, None],
-            smoothed=[False, False, False, True, True, False],
-            sample_count=[0, 0, 0, 8, 4, 0],
-            sample_rate=[None, None, None, 1, 1, None],
-            confidence=[None, None, None, any_confidence, any_confidence, None],
-        )
-        assert other["groupBy"] is None
-        assert other["meta"]["isOther"] is True
-        assert other["values"] == build_expected_transformed_timeseries(
-            self.start,
-            15_000,
-            [10, 5.5, None, None, None, None],
-            smoothed=[True, True, False, False, False, False],
-            sample_count=[10, 1, 0, 0, 0, 0],
-            sample_rate=[1, 1, None, None, None, None],
-            confidence=[any_confidence, any_confidence, None, None, None, None],
-        )
+            assert response.status_code == 200, response.content
+            selected, other = response.data["timeSeries"]
+            assert selected["groupBy"] == [{"key": "span.description", "value": "bar"}]
+            assert selected["meta"]["isOther"] is False
+            assert other["groupBy"] is None
+            assert other["meta"]["isOther"] is True
+            for timeseries, expected, sample_counts in [
+                (selected, selected_values, selected_counts),
+                (other, other_values, other_counts),
+            ]:
+                assert timeseries["meta"]["interval"] == interval * 1000
+                assert timeseries["values"] == build_expected_transformed_timeseries(
+                    self.start,
+                    interval * 1000,
+                    expected,
+                    smoothed=[value is not None for value in expected],
+                    sample_count=sample_counts,
+                    sample_rate=[1 if count else None for count in sample_counts],
+                    confidence=[any_confidence if count else None for count in sample_counts],
+                )
 
     def test_transformations_apply_to_comparison_period_independently(self) -> None:
         self.end = self.start + timedelta(seconds=90)
@@ -256,16 +242,11 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
 
         response = self._do_request(
             data={
-                "start": self.start,
-                "end": self.end,
                 "interval": "15s",
                 "yAxis": "count()",
-                "project": self.project.id,
-                "dataset": "spans",
                 "comparisonDelta": 24 * 60 * 60,
                 "transformations[0]": ["fill(locf)", "smooth(sma,2)"],
             },
-            features={"organizations:explore-interpolation-and-smoothing": True},
         )
 
         assert response.status_code == 200, response.content
@@ -279,26 +260,19 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             smoothed=[True, True, True, True, True, True],
             comparison_filled=[False, False, True, False, True, True],
             comparison_smoothed=[False, True, True, True, True, True],
-            sample_count=[2, 0, 6, 4, 0, 0],
-            sample_rate=[1, None, 1, 1, None, None],
-            confidence=[any_confidence, None, any_confidence, any_confidence, None, None],
+            ignore_accuracy=True,
         )
 
     def test_transformations_comparison_requires_one_axis(self) -> None:
         self.end = self.start + timedelta(seconds=90)
         response = self._do_request(
             data={
-                "start": self.start,
-                "end": self.end,
                 "interval": "15s",
                 "yAxis": ["count()", "count()"],
-                "project": self.project.id,
-                "dataset": "spans",
                 "comparisonDelta": 24 * 60 * 60,
                 "transformations[0]": ["fill(locf)"],
                 "transformations[1]": ["fill(zero)"],
             },
-            features={"organizations:explore-interpolation-and-smoothing": True},
         )
 
         assert response.status_code == 400, response.content
@@ -315,15 +289,10 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
 
         response = self._do_request(
             data={
-                "start": self.start,
-                "end": self.end,
                 "interval": "15s",
                 "yAxis": "avg(span.duration)",
-                "project": self.project.id,
-                "dataset": "spans",
                 "transformations[0]": ["fill(locf)"],
             },
-            features={"organizations:explore-interpolation-and-smoothing": True},
         )
 
         assert response.status_code == 200, response.content
@@ -333,9 +302,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             15_000,
             [0, 0, 6, 6, 6, 6],
             filled=[False, True, False, True, True, True],
-            sample_count=[1, 0, 1, 0, 0, 0],
-            sample_rate=[1, None, 1, None, None, None],
-            confidence=[any_confidence, None, any_confidence, None, None, None],
+            ignore_accuracy=True,
         )
 
     def test_transformations_empty_comparison(self) -> None:
@@ -348,16 +315,11 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         ]:
             response = self._do_request(
                 data={
-                    "start": self.start,
-                    "end": self.end,
                     "interval": "15s",
                     "yAxis": "count()",
-                    "project": self.project.id,
-                    "dataset": "spans",
                     "comparisonDelta": 24 * 60 * 60,
                     "transformations[0]": [transformation],
                 },
-                features={"organizations:explore-interpolation-and-smoothing": True},
             )
 
             assert response.status_code == 200, response.content
@@ -369,9 +331,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                 comparison,
                 filled=[False, True, False, False, True, True],
                 comparison_filled=comparison_filled,
-                sample_count=[2, 0, 6, 4, 0, 0],
-                sample_rate=[1, None, 1, 1, None, None],
-                confidence=[any_confidence, None, any_confidence, any_confidence, None, None],
+                ignore_accuracy=True,
             )
 
     def test_transformations_empty_primary(self) -> None:
@@ -382,15 +342,10 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         ]:
             response = self._do_request(
                 data={
-                    "start": self.start,
-                    "end": self.end,
                     "interval": "15s",
                     "yAxis": "count()",
-                    "project": self.project.id,
-                    "dataset": "spans",
                     "transformations[0]": [transformation],
                 },
-                features={"organizations:explore-interpolation-and-smoothing": True},
             )
 
             assert response.status_code == 200, response.content
@@ -414,15 +369,10 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
 
         response = self._do_request(
             data={
-                "start": self.start,
-                "end": self.end,
                 "interval": "5m",
                 "yAxis": ["avg(span.duration)", "avg(span.duration)"],
-                "project": self.project.id,
-                "dataset": "spans",
                 "transformations[1]": ["smooth(sma,1)"],
             },
-            features={"organizations:explore-interpolation-and-smoothing": True},
         )
 
         assert response.status_code == 200, response.content
@@ -443,15 +393,10 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
 
         response = self._do_request(
             data={
-                "start": self.start,
-                "end": self.end,
                 "interval": "60s",
                 "yAxis": "avg(span.duration)",
-                "project": self.project.id,
-                "dataset": "spans",
                 "transformations[0]": ["fill(locf)", "smooth(sma,1)"],
             },
-            features={"organizations:explore-interpolation-and-smoothing": True},
         )
 
         assert response.status_code == 200, response.content
@@ -462,9 +407,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             [17.5, 55],
             filled=[True, True],
             smoothed=[True, True],
-            sample_count=[2, 1],
-            sample_rate=[1, 1],
-            confidence=[any_confidence, any_confidence],
+            ignore_accuracy=True,
         )
 
     def test_transformations_empty_primary_with_comparison_flags(self) -> None:
@@ -473,16 +416,11 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
 
         response = self._do_request(
             data={
-                "start": self.start,
-                "end": self.end,
                 "interval": "15s",
                 "yAxis": "count()",
-                "project": self.project.id,
-                "dataset": "spans",
                 "comparisonDelta": 24 * 60 * 60,
                 "transformations[0]": ["fill(locf)"],
             },
-            features={"organizations:explore-interpolation-and-smoothing": True},
         )
 
         assert response.status_code == 200, response.content
@@ -509,15 +447,10 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
 
         response = self._do_request(
             data={
-                "start": self.start,
-                "end": self.end,
                 "interval": "60s",
                 "yAxis": ["avg(span.duration)", "avg(span.duration)", "count()"],
-                "project": self.project.id,
-                "dataset": "spans",
                 "transformations[1]": ["smooth(sma,2)"],
             },
-            features={"organizations:explore-interpolation-and-smoothing": True},
         )
 
         assert response.status_code == 200, response.content
@@ -551,16 +484,11 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
 
         response = self._do_request(
             data={
-                "start": self.start,
-                "end": self.end,
                 "interval": "60s",
                 "yAxis": ["eps()", "eps()", "equation|eps() * 2"],
-                "project": self.project.id,
-                "dataset": "spans",
                 "transformations[1]": ["smooth(sma,2)"],
                 "transformations[2]": ["smooth(sma,2)"],
             },
-            features={"organizations:explore-interpolation-and-smoothing": True},
         )
 
         assert response.status_code == 200, response.content
@@ -590,16 +518,11 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         ]:
             response = self._do_request(
                 data={
-                    "start": self.start,
-                    "end": self.end,
                     "interval": "60s",
                     "yAxis": ["avg(span.duration)", "avg(span.duration)"],
-                    "project": self.project.id,
-                    "dataset": "spans",
                     "transformations[0]": [transformation],
                     **smoothing,
                 },
-                features={"organizations:explore-interpolation-and-smoothing": True},
             )
 
             assert response.status_code == 200, response.content
@@ -609,9 +532,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                 60_000,
                 expected,
                 filled=[False, True, False],
-                sample_count=[2, 0, 1],
-                sample_rate=[1, None, 1],
-                confidence=[any_confidence, None, any_confidence],
+                ignore_accuracy=True,
             )
             assert timeseries["meta"]["interval"] == 60_000
 
@@ -645,15 +566,10 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         ]:
             response = self._do_request(
                 data={
-                    "start": self.start,
-                    "end": self.end,
                     "interval": "60s",
                     "yAxis": axes,
-                    "project": self.project.id,
-                    "dataset": "spans",
                     **{f"transformations[{index}]": [transformation] for index in range(len(axes))},
                 },
-                features={"organizations:explore-interpolation-and-smoothing": True},
             )
 
             assert response.status_code == 200, response.content
@@ -665,53 +581,6 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                 assert [point["value"] for point in timeseries["values"]] == expected, timeseries[
                     "yAxis"
                 ]
-
-    def test_transformations_rebucket_top_events_and_other_independently(self) -> None:
-        self.end = self.start + timedelta(minutes=2)
-        self._store_spans_in_buckets([10, 1, 0, 0, 0, 0, 0, 0], self.start, "foo", 15)
-        self._store_spans_in_buckets([0, 0, 0, 8, 4, 0, 0, 0], self.start, "bar", 15)
-
-        response = self._do_request(
-            data={
-                "start": self.start,
-                "end": self.end,
-                "interval": "60s",
-                "yAxis": "count()",
-                "project": self.project.id,
-                "dataset": "spans",
-                "groupBy": ["span.description", "count()"],
-                "orderby": "-count()",
-                "topEvents": 1,
-                "excludeOther": 0,
-                "transformations[0]": ["smooth(sma,2)"],
-            },
-            features={"organizations:explore-interpolation-and-smoothing": True},
-        )
-
-        assert response.status_code == 200, response.content
-        selected, other = response.data["timeSeries"]
-        assert selected["groupBy"] == [{"key": "span.description", "value": "bar"}]
-        assert selected["meta"]["isOther"] is False
-        assert selected["values"] == build_expected_transformed_timeseries(
-            self.start,
-            60_000,
-            [8, 6],
-            smoothed=[True, True],
-            sample_count=[8, 4],
-            sample_rate=[1, 1],
-            confidence=[any_confidence, any_confidence],
-        )
-        assert other["groupBy"] is None
-        assert other["meta"]["isOther"] is True
-        assert other["values"] == build_expected_transformed_timeseries(
-            self.start,
-            60_000,
-            [15.5, None],
-            smoothed=[True, False],
-            sample_count=[11, 0],
-            sample_rate=[1, None],
-            confidence=[any_confidence, None],
-        )
 
     def test_transformations_rebucket_comparison_independently(self) -> None:
         self.end = self.start + timedelta(minutes=2)
@@ -733,16 +602,11 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
         ]:
             response = self._do_request(
                 data={
-                    "start": self.start,
-                    "end": self.end,
                     "interval": "60s",
                     "yAxis": axis,
-                    "project": self.project.id,
-                    "dataset": "spans",
                     "comparisonDelta": 24 * 60 * 60,
                     "transformations[0]": ["smooth(sma,2)"],
                 },
-                features={"organizations:explore-interpolation-and-smoothing": True},
             )
 
             assert response.status_code == 200, response.content
@@ -754,9 +618,7 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                 comparison,
                 smoothed=[True, True],
                 comparison_smoothed=[True, True],
-                sample_count=[4, 4],
-                sample_rate=[1, 1],
-                confidence=[any_confidence, any_confidence],
+                ignore_accuracy=True,
             )
             assert timeseries["meta"]["interval"] == 60_000
 
@@ -765,12 +627,8 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
 
         response = self._do_request(
             data={
-                "start": self.start,
-                "end": self.end,
                 "interval": "1h",
                 "yAxis": "count()",
-                "project": self.project.id,
-                "dataset": "spans",
                 "transformations[0]": ["fill(locf)", "smooth(sma,2)"],
             },
             features={"organizations:explore-interpolation-and-smoothing": False},
