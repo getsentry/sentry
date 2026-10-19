@@ -25,7 +25,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
-from sentry.relay.types import RuleCondition
+from sentry.relay.types import SerializedRuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.constants import VITAL_THRESHOLDS
@@ -313,7 +313,7 @@ class TagSpec(TypedDict):
     key: str
     field: NotRequired[str]
     value: NotRequired[str]
-    condition: NotRequired[RuleCondition]
+    condition: NotRequired[SerializedRuleCondition]
 
 
 class MetricSpec(TypedDict):
@@ -336,7 +336,7 @@ class MetricSpec(TypedDict):
     category: Literal["transaction"]
     mri: str
     field: NotRequired[str | None]
-    condition: NotRequired[RuleCondition]
+    condition: NotRequired[SerializedRuleCondition]
     tags: NotRequired[Sequence[TagSpec]]
 
 
@@ -1286,7 +1286,7 @@ class OnDemandMetricSpec:
         return str(sorted(self.groupbys))
 
     @cached_property
-    def condition(self) -> RuleCondition | None:
+    def condition(self) -> SerializedRuleCondition | None:
         """Returns a parent condition containing a list of other conditions which determine whether of not the metric
         is extracted."""
         return self._process_query()
@@ -1355,7 +1355,7 @@ class OnDemandMetricSpec:
 
         return op, metric_type, self._parse_arguments(op, metric_type, parsed_field)
 
-    def _process_query(self) -> RuleCondition | None:
+    def _process_query(self) -> SerializedRuleCondition | None:
         # First step is to parse the query string into our internal AST format.
         parsed_query = self._parse_query(self.query)
         # We extend the parsed query with other conditions that we want to inject externally from the query. If it is
@@ -1415,7 +1415,7 @@ class OnDemandMetricSpec:
         return QueryParsingResult(conditions=extended_conditions)
 
     @staticmethod
-    def _aggregate_conditions(parsed_field: FieldParsingResult) -> RuleCondition | None:
+    def _aggregate_conditions(parsed_field: FieldParsingResult) -> SerializedRuleCondition | None:
         # We have to handle the special case for the "count_if" function, however it may be better to build some
         # better abstracted code to handle third-party rule conditions injection.
         if parsed_field.function == "count_if":
@@ -1514,12 +1514,12 @@ def fetch_on_demand_metric_spec(
     )
 
 
-def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
-    """Maps ``count_if`` arguments to a ``RuleCondition``."""
+def _convert_countif_filter(key: str, op: str, value: str) -> SerializedRuleCondition:
+    """Maps ``count_if`` arguments to a ``SerializedRuleCondition``."""
     assert op in _COUNTIF_TO_RELAY_OPERATORS, f"Unsupported `count_if` operator {op}"
 
     condition = cast(
-        RuleCondition,
+        SerializedRuleCondition,
         {
             "op": _COUNTIF_TO_RELAY_OPERATORS[op],
             "name": _map_field_name(key),
@@ -1637,7 +1637,7 @@ class SearchQueryConverter:
         # The field mapper is used to map the field names in the search query to the event protocol path.
         self._field_mapper = field_mapper
 
-    def convert(self) -> RuleCondition:
+    def convert(self) -> SerializedRuleCondition:
         """
         Converts the token stream into a rule condition.
 
@@ -1679,7 +1679,7 @@ class SearchQueryConverter:
         self._position += 1
         return cast(T, token)
 
-    def _expr(self) -> RuleCondition:
+    def _expr(self) -> SerializedRuleCondition:
         terms = [self._term()]
 
         while self._consume("OR") is not None:
@@ -1690,7 +1690,7 @@ class SearchQueryConverter:
         else:
             return {"op": "or", "inner": terms}
 
-    def _term(self) -> RuleCondition:
+    def _term(self) -> SerializedRuleCondition:
         factors = [self._factor()]
 
         while self._peek() not in ("OR", None):
@@ -1702,7 +1702,7 @@ class SearchQueryConverter:
         else:
             return {"op": "and", "inner": factors}
 
-    def _factor(self) -> RuleCondition:
+    def _factor(self) -> SerializedRuleCondition:
         if filt := self._consume(SearchFilter):
             return self._filter(filt)
         elif paren := self._consume(ParenExpression):
@@ -1712,7 +1712,7 @@ class SearchQueryConverter:
         else:
             raise ValueError("Unexpected end of query")
 
-    def _filter(self, token: SearchFilter) -> RuleCondition:
+    def _filter(self, token: SearchFilter) -> SerializedRuleCondition:
         operator = _SEARCH_TO_RELAY_OPERATORS.get(token.operator)
         if not operator:
             raise ValueError(f"Unsupported operator {token.operator}")
@@ -1721,7 +1721,7 @@ class SearchQueryConverter:
         key: str = token.key.name
         value: Any = token.value.raw_value
         if operator == "eq" and token.value.is_wildcard():
-            condition: RuleCondition = {
+            condition: SerializedRuleCondition = {
                 "op": "glob",
                 "name": self._field_mapper(key),
                 "value": [_escape_wildcard(value)],
@@ -1738,7 +1738,7 @@ class SearchQueryConverter:
                 value = event_search.translate_escape_sequences(value)
 
             condition = cast(
-                RuleCondition,
+                SerializedRuleCondition,
                 {
                     "op": operator,
                     "name": self._field_mapper(key),
