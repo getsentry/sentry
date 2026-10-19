@@ -4,6 +4,7 @@ from typing import Any
 
 from sentry.digests.backends.base import Backend, InvalidState, ScheduleEntry, load
 from sentry.digests.types import Record
+from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
 
@@ -39,8 +40,13 @@ class MigratingBackend(Backend):
             # A locked old timeline is already being digested by another task.
             try:
                 records = stack.enter_context(self.old.digest(key, minimum_delay))
+                backend = "old"
             except (InvalidState, UnableToAcquireLock):
                 records = stack.enter_context(self.new.digest(key, minimum_delay))
+                backend = "new"
+            # Old is drained once nothing is digested from it.
+            # Unsampled, so a few digests don't read as zero.
+            metrics.incr("digests.migrating.digest", tags={"backend": backend}, sample_rate=1.0)
             yield records
 
     def schedule(self, deadline: float, timestamp: float | None = None) -> Iterable[ScheduleEntry]:
