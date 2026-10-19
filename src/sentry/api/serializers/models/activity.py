@@ -77,7 +77,7 @@ def serialize_group_notes(
     sources = dict(
         GroupActionLogEntry.objects.filter(
             group_id=group.id,
-            type=GroupActionType.COMMENT.value,
+            type__in=[GroupActionType.COMMENT.value, GroupActionType.COMMENT_CREATED.value],
             idempotency_key__in=[activity_action_idempotency_key(note) for note in notes],
         ).values_list("idempotency_key", "source")
     )

@@ -615,3 +615,28 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         note.delete()
         self._comment_mutation(GroupActionType.COMMENT_DELETE, logged)
         assert [item["type"] for item in self._activity_items()] == ["first_seen"]
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_hidden_comment_events_do_not_cause_fallback_or_appear_in_feed(self) -> None:
+        note = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "current"})
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT_CREATED,
+            data={"comment_id": note.id},
+            idempotency_key=f"activity:{note.id}",
+            source="api",
+        )
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT_EDITED,
+            data={"comment_id": note.id},
+        )
+        items = self._activity_items()
+        assert [item["type"] for item in items] == ["note", "first_seen"]
+        assert items[0]["data"]["text"] == "current"
+        assert items[0]["source"] == "api"
+        note_id = note.id
+        note.delete()
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT_DELETED,
+            data={"comment_id": note_id},
+        )
+        assert [item["type"] for item in self._activity_items()] == ["first_seen"]

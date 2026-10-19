@@ -15,12 +15,14 @@ from sentry.issues.action_log.read_metrics import (
 )
 from sentry.issues.action_log.types import (
     ACTION_TYPES_WITH_COMMIT_DATA,
+    COMMENT_ACTION_TYPES,
     COMMENT_MUTATION_ACTION_TYPES,
     COMMIT_ACTION_TYPES,
     PULL_REQUEST_ACTION_TYPES,
     ActionSource,
     CommentAction,
     FirstSeenAction,
+    GroupAction,
     GroupActionType,
     GroupActorType,
 )
@@ -142,9 +144,12 @@ def get_serialized_activity_items(
         return None
 
     action_log = GroupActionLogEntry.objects.user_visible().filter(group_id=group.id)
-    # Inspect the whole visible log, not just non-comment entries: a comment-only
-    # log is valid. This also identifies the original first-seen after merges.
-    oldest_entry = action_log.order_by("date_added", "id").first()
+    oldest_entry = (
+        GroupActionLogEntry.objects.filter(group_id=group.id)
+        .filter(type__in=[*GroupAction.get_user_visible_types(), *COMMENT_ACTION_TYPES])
+        .order_by("date_added", "id")
+        .first()
+    )
     if oldest_entry is None:
         record_activity_read(
             endpoint, ActivityReadResult.FELL_BACK, ActivityReadFallbackReason.EMPTY_LOG
