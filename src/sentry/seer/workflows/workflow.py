@@ -40,17 +40,20 @@ class SeerWorkflow:
             # Prevent duplicate seeds without a uniqueness constraint on configurable strategies.
             list(Organization.objects.select_for_update().filter(id=organization_id))
             existing = set(configs.values_list("strategy", flat=True))
-            for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES:
-                if strategy.value in existing:
-                    continue
-                SeerWorkflowConfig.objects.create(
-                    organization_id=organization_id,
-                    strategy=strategy.value,
-                    filters={"all_projects": True},
-                    extras=SeerWorkflowConfigExtras(seeded_default=strategy).dict(
-                        exclude_none=True
-                    ),
-                )
+            SeerWorkflowConfig.objects.bulk_create(
+                [
+                    SeerWorkflowConfig(
+                        organization_id=organization_id,
+                        strategy=strategy.value,
+                        filters=SeerWorkflowFilters(all_projects=True).dict(),
+                        extras=SeerWorkflowConfigExtras(seeded_default=strategy).dict(
+                            exclude_none=True
+                        ),
+                    )
+                    for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES
+                    if strategy.value not in existing
+                ]
+            )
 
     @cached_property
     def extras(self) -> SeerWorkflowConfigExtras:
