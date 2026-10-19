@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1217_grouprelease_add_new_release_id"),
+        ("sentry", "1218_drop_scopes_bitfield_columns"),
     ]
 
     operations = [
