@@ -1,3 +1,5 @@
+import {isRecord} from 'sentry/utils/object/isRecord';
+
 export type ToolOutputData =
   | {kind: 'missing'; value: undefined}
   | {kind: 'null'; value: null}
@@ -23,9 +25,10 @@ export function parseToolOutput(value: unknown): ToolOutputData {
   if (Array.isArray(output)) {
     return {kind: 'array', value: output};
   }
+  if (isRecord(output)) {
+    return {kind: 'object', value: output};
+  }
   switch (typeof output) {
-    case 'object':
-      return {kind: 'object', value: output as Record<string, unknown>};
     case 'string':
       return {kind: 'text', value: output};
     case 'number':

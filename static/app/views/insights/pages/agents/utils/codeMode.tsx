@@ -1,3 +1,4 @@
+import {isRecord} from 'sentry/utils/object/isRecord';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -35,15 +36,14 @@ export function getCodeModeInput(input: unknown): {
   if (typeof parsed === 'string') {
     return parsed.trim() ? {code: parsed, language: 'javascript'} : null;
   }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+  if (!isRecord(parsed)) {
     return null;
   }
-  const args = parsed as Record<string, unknown>;
-  const code = args.code ?? args.script;
+  const code = parsed.code ?? parsed.script;
   if (typeof code !== 'string' || !code.trim()) {
     return null;
   }
-  let language = typeof args.language === 'string' ? args.language : 'javascript';
+  let language = typeof parsed.language === 'string' ? parsed.language : 'javascript';
   if (language === 'js') {
     language = 'javascript';
   } else if (language === 'py') {
