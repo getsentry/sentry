@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Iterator
+from collections.abc import Callable, Collection, Generator, Iterator
 from typing import TYPE_CHECKING, Any, NamedTuple, TypeGuard, overload
 from urllib.parse import quote, urljoin, urlparse
 
-from asgiref.sync import sync_to_async
 from django.conf import settings
 from django.http import HttpRequest
 from rest_framework.request import Request
@@ -15,6 +14,13 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
 
 from ipaddress import ip_address, ip_interface, ip_network
+
+# TODO(granian): Remove this and related code paths when we fully switch from uwsgi to granian
+uwsgi: Any = None
+try:
+    import uwsgi
+except ImportError:
+    pass
 
 # User-agent prefix set by the official Sentry MCP server (source of truth:
 # getsentry/sentry-mcp). Used to attribute requests originating from the MCP.
@@ -290,32 +296,6 @@ def is_valid_ip(maybe_ip_str: str) -> bool:
     return False
 
 
-class BodyAsyncWrapper:
-    def __init__(self, body: Any):
-        self._bool = bool(body)
-        self.body = [body] if isinstance(body, bytes) else body
-
-    def __bool__(self) -> bool:
-        return self._bool
-
-    def __aiter__(self):
-        return BodyAsyncIter(self)
-
-
-class BodyAsyncIter:
-    def __init__(self, parent: BodyAsyncWrapper):
-        self.biter = iter(parent.body)
-
-    def _anext(self):
-        try:
-            return self.biter.__next__()
-        except StopIteration:
-            raise StopAsyncIteration
-
-    async def __anext__(self) -> bytes:
-        return await sync_to_async(self._anext)()
-
-
 class BodyWithLength:
     """Wraps an HttpRequest with a __len__ so that the requests library does not assume length=0 in all cases"""
 
@@ -325,9 +305,6 @@ class BodyWithLength:
     def __iter__(self) -> Iterator[bytes]:
         return iter(self.request)
 
-    def __aiter__(self) -> BodyWithLengthAiter:
-        return BodyWithLengthAiter(self)
-
     def __len__(self) -> int:
         return int(self.request.headers.get("Content-Length", "0"))
 
@@ -335,15 +312,107 @@ class BodyWithLength:
         return self.request.read(size)
 
 
-class BodyWithLengthAiter:
-    def __init__(self, parent: BodyWithLength):
-        self.biter = iter(parent.request)
+def request_body_stream(
+    request: HttpRequest,
+) -> bytes | Generator[bytes] | ChunkedEncodingDecoder | BodyWithLength | None:
+    """
+    Returns the request body in a form the requests library can send upstream.
 
-    def _anext(self):
-        try:
-            return self.biter.__next__()
-        except StopIteration:
-            raise StopAsyncIteration
+    A body sent with a `Content-Length` comes back as `request.body`. Django reads a chunked body
+    as empty, so that one is read from `wsgi.input` in whatever way the server needs.
+    """
+    if request.body:
+        return request.body
 
-    async def __anext__(self) -> bytes:
-        return await sync_to_async(self._anext)()
+    wsgi_input = request.META.get("wsgi.input")
+    if "granian" in request.META.get("SERVER_SOFTWARE", "").lower():
+        return wsgi_input
+
+    # uwsgi and wsgiref will respectively raise an exception and hang when attempting to read wsgi.input while there's no body.
+    # For now, support bodies only on PUT and POST requests when not using Granian.
+    if request.method not in ("PUT", "POST"):
+        return None
+
+    if uwsgi:
+        if request.headers.get("Transfer-Encoding", "").lower() == "chunked":
+
+            def stream_generator():
+                while True:
+                    chunk = uwsgi.chunked_read()
+                    if not chunk:
+                        break
+                    yield chunk
+
+            return stream_generator()
+
+        return wsgi_input
+
+    # wsgiref (dev/test server)
+    if (
+        hasattr(wsgi_input, "_read")
+        and request.headers.get("Transfer-Encoding", "").lower() == "chunked"
+    ):
+        return ChunkedEncodingDecoder(wsgi_input._read)  # type: ignore[union-attr]
+
+    # wsgiref and the request has been already proxied through control silo
+    return BodyWithLength(request)
+
+
+class ChunkedEncodingDecoder:
+    """
+    Wrapper around a read function that returns chunked transfer encoded data.
+    Provides a file-like interface to the decoded data stream.
+    This should only be needed in dev/test mode, when we need to manually decode wsgi.input.
+    """
+
+    def __init__(self, read: Callable[[int], bytes]):
+        self._read = read
+        self._done = False
+        self._current_chunk_remaining = 0
+
+    def read(self, size: int = -1) -> bytes:
+        if self._done:
+            return b""
+
+        read = 0
+        buffer: list[bytes] = []
+        while size == -1 or read < size:
+            if self._current_chunk_remaining == 0:
+                # Read next chunk size line
+                size_line = b""
+                while not size_line.endswith(b"\r\n"):
+                    byte = self._read(1)
+                    if not byte:
+                        self._done = True
+                        return b"".join(buffer)
+                    size_line += byte
+
+                chunk_size = int(size_line.strip(), 16)
+                if chunk_size == 0:
+                    trail = self._read(2)
+                    if trail != b"\r\n":
+                        raise ValueError("Malformed chunk encoded stream")
+                    self._done = True
+                    return b"".join(buffer)
+
+                self._current_chunk_remaining = chunk_size
+            else:
+                # Read (part of) next chunk
+                to_read = (
+                    min(self._current_chunk_remaining, size - read)
+                    if size != -1
+                    else self._current_chunk_remaining
+                )
+                chunk = self._read(to_read)
+                if not chunk:
+                    raise ValueError("Unexpected end of stream")
+                buffer.append(chunk)
+                read += len(chunk)
+                self._current_chunk_remaining -= len(chunk)
+
+                if self._current_chunk_remaining == 0:
+                    trail = self._read(2)
+                    if trail != b"\r\n":
+                        raise ValueError("Malformed chunk encoded stream")
+
+        return b"".join(buffer)
