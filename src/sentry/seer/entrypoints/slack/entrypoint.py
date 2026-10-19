@@ -46,7 +46,6 @@ from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
 )
-from sentry.seer.entrypoints.operator import process_investigation_updates
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
     autofix_entrypoint_registry,
@@ -796,16 +795,14 @@ class SlackInvestigationEntrypoint(
                 name="investigation_entrypoint_slack",
             )
             try:
-                with lock.blocking_acquire(initial_delay=0.1, timeout=3):
+                with lock.blocking_acquire(initial_delay=0.1, timeout=10):
                     SlackInvestigationEntrypoint._update_investigation_status(
                         run_id=run.id, lifecycle=lifecycle
                     )
             except UnableToAcquireLock as e:
                 lifecycle.record_halt(halt_reason=e)
                 # The holder may have read an older run, so retry once it lets go.
-                process_investigation_updates.apply_async(
-                    kwargs={"investigation_id": investigation_id}, countdown=5
-                )
+                raise
 
     @staticmethod
     def _update_investigation_status(*, run_id: int, lifecycle: EventLifecycle) -> None:

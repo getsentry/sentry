@@ -7,7 +7,7 @@ import pytest
 from django.test import override_settings
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -1500,6 +1500,19 @@ class TestProcessInvestigationUpdates(TestCase):
 
         entrypoint_cls.on_investigation_update.assert_not_called()
         assert_failure_metric(mock_record, "organization_not_found")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_busy_lock_raises_for_task_retry(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        entrypoint_cls.on_investigation_update.side_effect = UnableToAcquireLock("locked")
+        self._set_cache("slack", self.cache_payload)
+
+        with pytest.raises(UnableToAcquireLock):
+            self._process({"slack": entrypoint_cls})
+
+        outcomes = [call.args[0] for call in mock_record.mock_calls]
+        assert outcomes.count(EventLifecycleOutcome.HALTED) == 2
+        assert EventLifecycleOutcome.FAILURE not in outcomes
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_entrypoint_failure_does_not_stop_others(self, mock_record: Mock) -> None:

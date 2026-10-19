@@ -1244,21 +1244,20 @@ class SlackInvestigationEntrypointTest(TestCase):
         mock_record_sent.assert_not_called()
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @patch("sentry.seer.entrypoints.slack.entrypoint.process_investigation_updates.apply_async")
-    def test_lock_failure_requeues_update(self, mock_apply_async: Mock, mock_record: Mock) -> None:
+    def test_lock_failure_raises_for_task_retry(self, mock_record: Mock) -> None:
         self._set_cache()
         lock = Mock()
         lock.blocking_acquire.side_effect = UnableToAcquireLock("locked")
 
-        with patch("sentry.seer.entrypoints.slack.entrypoint.locks.get", return_value=lock):
+        with (
+            patch("sentry.seer.entrypoints.slack.entrypoint.locks.get", return_value=lock),
+            pytest.raises(UnableToAcquireLock),
+        ):
             self._update([_hypothesis()])
 
         self.mock_update.assert_not_called()
         self.mock_post_message.assert_not_called()
         assert_halt_metric(mock_record, UnableToAcquireLock())
-        mock_apply_async.assert_called_once_with(
-            kwargs={"investigation_id": self.investigation.id}, countdown=5
-        )
 
     def test_stale_cache_payload_argument_is_ignored(self) -> None:
         stale_payload = self._set_cache()

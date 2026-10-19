@@ -902,7 +902,7 @@ def process_autofix_updates(
     name="sentry.seer.entrypoints.operator.process_investigation_updates",
     namespace=seer_tasks,
     processing_deadline_duration=PROCESS_INVESTIGATION_TIMEOUT_SECONDS,
-    retry=None,
+    retry=Retry(times=4, delay=5, on=(UnableToAcquireLock,)),
 )
 def process_investigation_updates(*, investigation_id: int) -> None:
     """
@@ -962,6 +962,10 @@ def process_investigation_updates(*, investigation_id: int) -> None:
             ).capture() as ept_lifecycle:
                 try:
                     entrypoint_cls.on_investigation_update(cache_payload=cache_payload, run=run)
+                except UnableToAcquireLock as e:
+                    ept_lifecycle.record_halt(halt_reason=e)
+                    lifecycle.record_halt(halt_reason=e)
+                    raise
                 except Exception as e:
                     ept_lifecycle.record_failure(failure_reason=e)
 
