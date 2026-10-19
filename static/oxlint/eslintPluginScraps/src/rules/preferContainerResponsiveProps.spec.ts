@@ -25,6 +25,14 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
     },
     {
       filename,
+      code: "import {useMedia} from 'sentry/utils/useMedia'; function check(useMedia) { useMedia('(max-width: 800px)'); }",
+    },
+    {
+      filename,
+      code: "import {css} from '@emotion/react'; function makeStyles(css) { return css`@media (max-width: 800px) { width: 100%; }`; }",
+    },
+    {
+      filename,
       code: "import styled from '@emotion/styled'; const Box = styled.div`@media (prefers-reduced-motion: reduce) { animation: none; } @media (prefers-color-scheme: dark) { color: white; }`;",
     },
     {

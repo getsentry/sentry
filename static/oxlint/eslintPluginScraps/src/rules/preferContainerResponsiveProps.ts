@@ -1,5 +1,7 @@
 import {defineRule, type ESTree} from '@oxlint/plugins';
 
+import {createImportTracker} from '../ast/tracker/imports.ts';
+
 const STYLE_QUERY = /@(?:media|container)\b/g;
 const WIDTH_QUERY = /(?:min-|max-)?width\s*[:<>=]/;
 const LAYOUT_MEDIA_FEATURE = /\b(?:width|height|aspect-ratio|orientation)\b/;
@@ -106,49 +108,19 @@ export const preferContainerResponsiveProps = defineRule({
     },
   },
   create(context) {
-    const mediaHooks = new Set<string>();
-    const emotionTags = new Set<string>();
+    const importTracker = createImportTracker(context);
 
     return {
-      ImportDeclaration(node) {
-        for (const specifier of node.specifiers) {
-          if (
-            specifier.type === 'ImportSpecifier' &&
-            specifier.local.type === 'Identifier'
-          ) {
-            if (
-              node.source.value === 'sentry/utils/useMedia' &&
-              specifier.imported.type === 'Identifier' &&
-              specifier.imported.name === 'useMedia'
-            ) {
-              mediaHooks.add(specifier.local.name);
-            }
-            if (
-              node.source.value === '@emotion/react' &&
-              specifier.imported.type === 'Identifier' &&
-              specifier.imported.name === 'css'
-            ) {
-              emotionTags.add(specifier.local.name);
-            }
-          }
-          if (
-            node.source.value === '@emotion/styled' &&
-            specifier.type === 'ImportDefaultSpecifier'
-          ) {
-            emotionTags.add(specifier.local.name);
-          }
-        }
-      },
+      ...importTracker.visitors,
       TaggedTemplateExpression(node) {
         const tag = node.tag;
+        const isEmotionIdentifier = (candidate: ESTree.Node) =>
+          importTracker.is(candidate, '@emotion/react', 'css') ||
+          importTracker.is(candidate, '@emotion/styled', 'default');
         const isEmotionTag =
-          (tag.type === 'Identifier' && emotionTags.has(tag.name)) ||
-          (tag.type === 'MemberExpression' &&
-            tag.object.type === 'Identifier' &&
-            emotionTags.has(tag.object.name)) ||
-          (tag.type === 'CallExpression' &&
-            tag.callee.type === 'Identifier' &&
-            emotionTags.has(tag.callee.name));
+          isEmotionIdentifier(tag) ||
+          (tag.type === 'MemberExpression' && isEmotionIdentifier(tag.object)) ||
+          (tag.type === 'CallExpression' && isEmotionIdentifier(tag.callee));
         if (!isEmotionTag) {
           return;
         }
@@ -166,7 +138,7 @@ export const preferContainerResponsiveProps = defineRule({
         }
       },
       CallExpression(node) {
-        if (node.callee.type !== 'Identifier' || !mediaHooks.has(node.callee.name)) {
+        if (!importTracker.is(node.callee, 'sentry/utils/useMedia', 'useMedia')) {
           return;
         }
         const query = node.arguments[0];
