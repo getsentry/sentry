@@ -763,18 +763,23 @@ class StatefulDetectorHandler(
             and new_priority != DetectorPriorityLevel.OK
         )
 
-        if is_leaving_ok_state and self._has_been_ok_for(state_data, activation_cooldown):
+        if is_leaving_ok_state and self._has_been_in_current_state_for_cooldown_period(
+            state_data, activation_cooldown
+        ):
             return _get_unix_epoch_time_in_milliseconds()
 
         return state_data.activation_id
 
-    def _has_been_ok_for(self, state_data: DetectorStateData, duration: timedelta) -> bool:
+    def _has_been_in_current_state_for_cooldown_period(
+        self, state_data: DetectorStateData, cooldown_period: timedelta
+    ) -> bool:
         if state_data.date_updated is None:
             return True
 
-        time_in_ok_state = timezone.now() - state_data.date_updated
+        # The date_updated field only changes when the state changes
+        time_in_current_state = timezone.now() - state_data.date_updated
 
-        return time_in_ok_state >= duration
+        return time_in_current_state >= cooldown_period
 
     def _get_detector_organization(self) -> Organization:
         """
