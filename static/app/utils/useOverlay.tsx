@@ -2,6 +2,7 @@ import {useMemo, useRef, useState} from 'react';
 import type {
   Boundary,
   DetectOverflowOptions,
+  Dimensions,
   FlipOptions,
   Middleware,
   Padding,
@@ -24,10 +25,13 @@ import type {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-state
 import {useOverlayTriggerState} from '@react-stately/overlays';
 
 import type {
+  OverlayAnchor,
   OverlayPlacement,
   ShiftOverlayOptions,
 } from 'sentry/utils/overlayPositioning';
 import {
+  anchoredStyles,
+  anchorOverlay,
   arrowOverlay,
   placementMiddleware,
   shiftOverlay,
@@ -203,6 +207,7 @@ export function useOverlay({
         }),
         maxSize(overflowOptions),
         ...(shouldApplyMinWidth ? [referenceWidth] : []),
+        anchorOverlay,
       ],
     };
   }, [
@@ -232,9 +237,12 @@ export function useOverlay({
   });
 
   const overlayStyle = useMemo<React.CSSProperties>(() => {
-    const {maxSize: maxSizeData, referenceWidth: referenceWidthData} = middlewareData;
+    const anchor: OverlayAnchor | undefined = middlewareData.anchor;
+    const maxSizeData: Dimensions | undefined = middlewareData.maxSize;
+    const referenceWidthData: Pick<Dimensions, 'width'> | undefined =
+      middlewareData.referenceWidth;
     return {
-      ...floatingStyles,
+      ...anchoredStyles(floatingStyles, anchor),
       ...(referenceWidthData && {minWidth: `${referenceWidthData.width}px`}),
       ...(maxSizeData && {maxHeight: maxSizeData.height, maxWidth: maxSizeData.width}),
     };

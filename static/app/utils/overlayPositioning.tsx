@@ -1,12 +1,14 @@
 import type {
   Alignment,
   Coords,
+  Dimensions,
   FlipOptions,
   Middleware,
   MiddlewareState,
   Padding,
   Placement,
   ShiftOptions,
+  Strategy,
 } from '@floating-ui/react-dom';
 import {arrow, autoPlacement, flip, limitShift, shift} from '@floating-ui/react-dom';
 
@@ -57,6 +59,86 @@ export function placementMiddleware(
  */
 export function flipOverlay(options: FlipOptions = {}): Middleware {
   return flip({fallbackStrategy: 'initialPlacement', ...options});
+}
+
+export interface OverlayAnchor {
+  bottom?: number;
+  right?: number;
+}
+
+/**
+ * Anchors the overlay by the edges nearest its trigger, the way Popper's
+ * adaptive styles did. An overlay whose content changes size, such as a
+ * hovercard that finishes loading, then grows away from its trigger instead of
+ * over it until it is repositioned. Apply the result with `anchoredStyles()`.
+ *
+ * Must be the last middleware, so it sees the final position.
+ */
+export const anchorOverlay: Middleware = {
+  name: 'anchor',
+  async fn({x, y, placement, rects, elements, platform, strategy}) {
+    const [side, alignment] = placement.split('-');
+    const isVertical = side === 'top' || side === 'bottom';
+    const anchorBottom = side === 'top' || (!isVertical && alignment === 'end');
+    const anchorRight = side === 'left' || (isVertical && alignment === 'end');
+
+    if (!anchorBottom && !anchorRight) {
+      return {};
+    }
+
+    const {floating} = elements;
+    const offsetParent = await platform.getOffsetParent?.(floating);
+    const container: Dimensions =
+      offsetParent && (await platform.isElement?.(offsetParent))
+        ? {
+            width: (offsetParent as Element).clientWidth,
+            height: (offsetParent as Element).clientHeight,
+          }
+        : getRootContainingBlock(floating, strategy);
+
+    // Round to the device's pixels, as Floating UI does for `top` and `left`
+    const dpr = floating.ownerDocument.defaultView?.devicePixelRatio || 1;
+    const round = (value: number) => Math.round(value * dpr) / dpr;
+
+    const anchor: OverlayAnchor = {};
+    if (anchorBottom) {
+      anchor.bottom = round(container.height - y - rects.floating.height);
+    }
+    if (anchorRight) {
+      anchor.right = round(container.width - x - rects.floating.width);
+    }
+    return {data: anchor};
+  },
+};
+
+/**
+ * Without a positioned ancestor, the overlay is placed in the viewport, or in
+ * the document when the root element is positioned.
+ */
+function getRootContainingBlock(floating: HTMLElement, strategy: Strategy): Dimensions {
+  const root = floating.ownerDocument.documentElement;
+  const isDocument =
+    strategy === 'absolute' &&
+    floating.ownerDocument.defaultView?.getComputedStyle(root).position !== 'static';
+
+  return isDocument
+    ? {width: root.scrollWidth, height: root.scrollHeight}
+    : {width: root.clientWidth, height: root.clientHeight};
+}
+
+/**
+ * Floating UI's `floatingStyles`, positioned by the edges `anchorOverlay()`
+ * chose.
+ */
+export function anchoredStyles(
+  floatingStyles: React.CSSProperties,
+  anchor: OverlayAnchor | undefined
+): React.CSSProperties {
+  return {
+    ...floatingStyles,
+    ...(anchor?.bottom === undefined ? {} : {top: 'auto', bottom: anchor.bottom}),
+    ...(anchor?.right === undefined ? {} : {left: 'auto', right: anchor.right}),
+  };
 }
 
 /**

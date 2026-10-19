@@ -23,8 +23,10 @@ import type {CSS} from '@sentry/scraps/cssTypes';
 import type {Theme} from '@sentry/scraps/theme';
 
 import {NODE_ENV} from 'sentry/constants/env';
-import type {OverlayPlacement} from 'sentry/utils/overlayPositioning';
+import type {OverlayAnchor, OverlayPlacement} from 'sentry/utils/overlayPositioning';
 import {
+  anchoredStyles,
+  anchorOverlay,
   arrowOverlay,
   placementMiddleware,
   shiftOverlay,
@@ -44,6 +46,7 @@ function makeDefaultMiddleware(offset: number, position: OverlayPlacement) {
       // Set padding to avoid the arrow reaching the side of the tooltip
       // and overflowing out of the rounded border
       arrowOverlay({padding: 4}),
+      anchorOverlay,
     ],
   };
 }
@@ -639,11 +642,12 @@ function useHoverOverlay({
     }
   }, [showOnlyOnOverflow, isOverflowing, reset]);
 
+  const anchor: OverlayAnchor | undefined = middlewareData.anchor;
   const overlayProps = useMemo(() => {
     return {
       id: describeById,
       ref: setOverlayElement,
-      style: floatingStyles,
+      style: anchoredStyles(floatingStyles, anchor),
       onMouseEnter: handleMouseEnter,
       onMouseLeave: handleMouseLeave,
     };
@@ -651,6 +655,7 @@ function useHoverOverlay({
     describeById,
     setOverlayElement,
     floatingStyles,
+    anchor,
     handleMouseEnter,
     handleMouseLeave,
   ]);
