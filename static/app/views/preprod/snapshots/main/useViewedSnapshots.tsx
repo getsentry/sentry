@@ -12,23 +12,62 @@ const VIEWED_MAX_ENTRIES = 4000;
 
 type ViewedEntries = Record<string, number>;
 
+const hashedKeys = new WeakMap<SnapshotImage | SnapshotDiffPair, string>();
+
+function cyrb53(value: string): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < value.length; i++) {
+    const ch = value.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+  h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}
+
+function hashOnce(item: SnapshotImage | SnapshotDiffPair, value: string): string {
+  let key = hashedKeys.get(item);
+  if (key === undefined) {
+    key = cyrb53(value);
+    hashedKeys.set(item, key);
+  }
+  return key;
+}
+
 export function viewedKeyForImage(image: SnapshotImage): string {
-  return `${image.image_file_name}:${image.key}`;
+  return hashOnce(image, `${image.image_file_name}:${image.key}`);
 }
 
 export function viewedKeyForPair(pair: SnapshotDiffPair): string {
-  return `${pair.head_image.image_file_name}:${pair.base_image.key}:${pair.head_image.key}`;
+  return hashOnce(
+    pair,
+    `${pair.head_image.image_file_name}:${pair.base_image.key}:${pair.head_image.key}`
+  );
 }
 
-export function pruneViewed(entries: ViewedEntries, now: number): ViewedEntries {
-  const fresh = Object.entries(entries).filter(
-    ([, viewedAt]) => now - viewedAt <= VIEWED_MAX_AGE_MS
-  );
-  if (fresh.length > VIEWED_MAX_ENTRIES) {
-    fresh.sort(([, a], [, b]) => b - a);
-    fresh.length = VIEWED_MAX_ENTRIES;
+function isFresh(viewedAt: number, now: number): boolean {
+  return now - viewedAt <= VIEWED_MAX_AGE_MS;
+}
+
+export function pruneViewed(
+  entries: ViewedEntries,
+  now: number,
+  keep: ReadonlySet<string> = new Set()
+): ViewedEntries {
+  const fresh = Object.entries(entries).filter(([, viewedAt]) => isFresh(viewedAt, now));
+  if (fresh.length <= VIEWED_MAX_ENTRIES) {
+    return Object.fromEntries(fresh);
   }
-  return Object.fromEntries(fresh);
+  const kept = fresh.filter(([key]) => keep.has(key));
+  const others = fresh
+    .filter(([key]) => !keep.has(key))
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, Math.max(0, VIEWED_MAX_ENTRIES - kept.length));
+  return Object.fromEntries([...kept, ...others]);
 }
 
 function readViewed(): ViewedEntries {
@@ -41,13 +80,12 @@ function readViewed(): ViewedEntries {
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
       return {};
     }
-    return pruneViewed(
-      Object.fromEntries(
-        Object.entries(parsed).filter(
-          (entry): entry is [string, number] => typeof entry[1] === 'number'
-        )
-      ),
-      Date.now()
+    const now = Date.now();
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, number] =>
+          typeof entry[1] === 'number' && isFresh(entry[1], now)
+      )
     );
   } catch {
     return {};
@@ -70,7 +108,7 @@ export function useViewedSnapshots(): {
         delete next[key];
       }
     }
-    const pruned = pruneViewed(next, now);
+    const pruned = pruneViewed(next, now, isViewed ? new Set(keys) : undefined);
     setViewedState(pruned);
     try {
       localStorageWrapper.setItem(VIEWED_SNAPSHOTS_STORAGE_KEY, JSON.stringify(pruned));

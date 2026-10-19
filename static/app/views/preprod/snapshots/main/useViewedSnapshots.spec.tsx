@@ -29,6 +29,17 @@ describe('pruneViewed', () => {
     expect(pruned).toHaveProperty('k3999');
     expect(pruned).not.toHaveProperty('k4000');
   });
+
+  it('keeps every key from the current change even past the limit', () => {
+    const marked = Array.from({length: 4001}, (_, i) => `new${i}`);
+    const entries = {
+      old: now - DAY_MS,
+      ...Object.fromEntries(marked.map(key => [key, now])),
+    };
+    const pruned = pruneViewed(entries, now, new Set(marked));
+    expect(Object.keys(pruned)).toHaveLength(4001);
+    expect(pruned).not.toHaveProperty('old');
+  });
 });
 
 describe('useViewedSnapshots', () => {
