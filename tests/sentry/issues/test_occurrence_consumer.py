@@ -160,6 +160,39 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
                 tags={"occurrence_type": 300},
             )
 
+    def test_occurrence_for_deleted_project_is_dropped(self) -> None:
+        project_id = self.project.id
+        self.project.delete()
+        message = get_test_message(project_id)
+        with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:
+            with self.feature("organizations:profile-file-io-main-thread-ingest"):
+                assert _process_message(message) is None
+            metrics.incr.assert_any_call(
+                "occurrence_ingest.dropped_project_not_found",
+                sample_rate=1.0,
+                tags={"payload_type": "occurrence"},
+            )
+
+    def test_status_change_for_deleted_project_is_dropped(self) -> None:
+        project_id = self.project.id
+        self.project.delete()
+        message = _prepare_status_change_message(
+            StatusChangeMessage(
+                fingerprint=["group-1"],
+                project_id=project_id,
+                new_status=GroupStatus.RESOLVED,
+                new_substatus=None,
+            )
+        )
+        assert message is not None
+        with mock.patch("sentry.issues.occurrence_consumer.metrics") as metrics:
+            assert _process_message(message) is None
+            metrics.incr.assert_any_call(
+                "occurrence_ingest.dropped_project_not_found",
+                sample_rate=1.0,
+                tags={"payload_type": "status_change"},
+            )
+
     def test_mismatch_event_ids(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
         message["event_id"] = "id1"

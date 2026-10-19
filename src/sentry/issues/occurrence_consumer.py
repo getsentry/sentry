@@ -381,9 +381,9 @@ def _process_message(
         attributes={"sentry.op": "_process_message"},
         parent_span=None,
     ) as span:
+        # Messages without payload_type default to an OCCURRENCE payload
+        payload_type = message.get("payload_type", PayloadType.OCCURRENCE.value)
         try:
-            # Messages without payload_type default to an OCCURRENCE payload
-            payload_type = message.get("payload_type", PayloadType.OCCURRENCE.value)
             if payload_type == PayloadType.STATUS_CHANGE.value:
                 group = process_status_change_message(message, span)
                 if not group:
@@ -402,6 +402,15 @@ def _process_message(
             metrics.incr(
                 "occurrence_ingest.invalid_group_type", tags={"occurrence_type": e.group_type_id}
             )
+        except Project.DoesNotExist:
+            # Producers can keep emitting for a project after it's deleted (e.g. an orphaned
+            # monitor). Nothing can be ingested for it, so drop instead of reporting an error.
+            metrics.incr(
+                "occurrence_ingest.dropped_project_not_found",
+                sample_rate=1.0,
+                tags={"payload_type": payload_type},
+            )
+            span.set_attribute("result", "dropped_project_not_found")
         except (ValueError, KeyError) as e:
             span.set_attribute("result", "error")
             raise InvalidEventPayloadError(e)
