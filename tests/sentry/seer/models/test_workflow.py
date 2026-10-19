@@ -6,7 +6,6 @@ from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
     SEER_LEGACY_WORKFLOW_STRATEGIES,
     SeerWorkflowConfig,
-    SeerWorkflowConfigExtras,
     SeerWorkflowFilters,
     SeerWorkflowStrategy,
 )
@@ -59,25 +58,6 @@ class SeerWorkflowConfigTest(TestCase):
             )
             == legacy
         )
-
-
-def test_extras_default_to_no_seeded_default() -> None:
-    extras = SeerWorkflowConfigExtras.parse_obj({})
-
-    assert extras.seeded_default is None
-    assert extras.dict(exclude_none=True) == {}
-
-
-def test_extras_read_saved_seeded_default() -> None:
-    extras = SeerWorkflowConfigExtras.parse_obj({"seeded_default": "agentic_triage_v2"})
-
-    assert extras.seeded_default == SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
-
-
-@pytest.mark.parametrize("seeded_default", ["unknown_strategy", 123, {}])
-def test_extras_reject_invalid_seeded_default(seeded_default: object) -> None:
-    with pytest.raises(ValidationError):
-        SeerWorkflowConfigExtras.parse_obj({"seeded_default": seeded_default})
 
 
 def test_filters_default_to_selected_projects_in_all_environments() -> None:

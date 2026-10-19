@@ -1,48 +1,48 @@
+from unittest.mock import patch
+
+import pytest
+
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
-from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
+    SeerWorkflowFilters,
+    SeerWorkflowStrategy,
+)
+from sentry.seer.workflows.workflow import AllProjects, SeerWorkflow, SelectedProjects
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 
 
 class SeerWorkflowEnsureDefaultsTest(TestCase):
-    def v2_configs(self, organization: Organization | None = None) -> list[SeerWorkflowConfig]:
-        return list(
-            SeerWorkflowConfig.objects.filter(
-                organization=organization or self.organization,
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
-            ).order_by("id")
+    def test_seeds_defaults_once_per_organization(self) -> None:
+        other = self.create_organization()
+        Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
         )
-
-    def test_seeds_one_default_covering_all_projects(self) -> None:
         first = self.create_project()
-        SeerWorkflow.ensure_defaults(self.organization.id)
-        later = self.create_project()
 
+        SeerWorkflow.ensure_defaults(self.organization.id)
         (config,) = self.v2_configs()
-        assert SeerWorkflow(config).filters.all_projects is True
-        assert SeerWorkflow(config).filters.environments == []
-        assert config.extras == {"seeded_default": "agentic_triage_v2"}
-        assert SeerWorkflow(config).extras.seeded_default == SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
-        assert SeerWorkflow(config).get_project_ids() == [first.id, later.id]
-
-    def test_seeding_twice_creates_nothing_new(self) -> None:
-        SeerWorkflow.ensure_defaults(self.organization.id)
-        (seeded,) = self.v2_configs()
-
+        later = self.create_project()
         SeerWorkflow.ensure_defaults(self.organization.id)
 
-        assert self.v2_configs() == [seeded]
+        workflow = SeerWorkflow(config)
+        assert self.v2_configs() == [config]
+        assert self.v2_configs(other) == []
+        assert workflow.filters.all_projects is True
+        assert workflow.filters.environments == []
+        assert workflow.extras.seeded_default == SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+        assert workflow.get_project_ids() == [first.id, later.id]
 
-    def test_existing_config_prevents_seeding_and_is_left_unchanged(self) -> None:
+    def test_existing_disabled_config_is_not_reseeded_or_changed(self) -> None:
         selected = self.create_project()
-        self.create_project()
         existing = Factories.create_seer_workflow_config(
             self.organization,
             strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
-            enabled=True,
+            enabled=False,
             filters={"environments": ["production"]},
             version=3,
         )
@@ -52,54 +52,122 @@ class SeerWorkflowEnsureDefaultsTest(TestCase):
 
         (config,) = self.v2_configs()
         assert config.id == existing.id
-        assert config.enabled is True
-        assert SeerWorkflow(config).filters.all_projects is False
-        assert SeerWorkflow(config).filters.environments == ["production"]
+        assert config.enabled is False
+        assert config.filters == {"environments": ["production"]}
         assert config.version == 3
-        assert config.extras == {}
         assert SeerWorkflow(config).extras.seeded_default is None
         assert SeerWorkflow(config).get_project_ids() == [selected.id]
 
-    def test_disabled_config_prevents_seeding(self) -> None:
-        disabled = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, enabled=False
+    def v2_configs(self, organization: Organization | None = None) -> list[SeerWorkflowConfig]:
+        return list(
+            SeerWorkflowConfig.objects.filter(
+                organization=organization or self.organization,
+                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            ).order_by("id")
         )
 
-        SeerWorkflow.ensure_defaults(self.organization.id)
 
-        assert self.v2_configs() == [disabled]
+class SeerWorkflowProjectSelectionTest(TestCase):
+    def test_selected_projects_exclude_inactive_and_deleted_projects(self) -> None:
+        first, second = self.create_project(), self.create_project()
+        self.create_project()
+        workflow = SeerWorkflow(self.create_config(first, second))
+        assert workflow.get_project_ids() == [first.id, second.id]
 
-    def test_legacy_configs_do_not_count_as_defaults(self) -> None:
-        legacy = SeerWorkflowConfig.get_or_create_for_strategy(
-            self.organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
+        first.update(status=ObjectStatus.PENDING_DELETION)
+        assert workflow.get_project_ids() == [second.id]
+
+        second.delete()
+        assert workflow.get_project_ids() == []
+        assert workflow.filters.all_projects is False
+
+    def test_replaces_selection_preserving_latest_filters_and_version(self) -> None:
+        previous, selected = self.create_project(), self.create_project()
+        config = self.create_config(previous)
+        other_config = self.create_config(previous)
+        workflow = SeerWorkflow(config)
+        SeerWorkflowConfig.objects.filter(id=config.id, organization=self.organization).update(
+            filters=SeerWorkflowFilters(environments=["production"]).dict()
+            | {"min_event_count": 10},
+            version=3,
         )
 
-        SeerWorkflow.ensure_defaults(self.organization.id)
+        workflow.set_project_selection(SelectedProjects(project_ids=(selected.id, selected.id)))
 
-        assert len(self.v2_configs()) == 1
-        assert (
-            SeerWorkflowConfig.objects.get(
-                organization=self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
-            )
-            == legacy
-        )
-        assert legacy.extras == {}
+        config.refresh_from_db()
+        assert config.filters == {
+            "all_projects": False,
+            "environments": ["production"],
+            "min_event_count": 10,
+        }
+        assert config.version == workflow.config.version == 4
+        assert workflow.get_project_ids() == [selected.id]
+        assert SeerWorkflow(other_config).get_project_ids() == [previous.id]
 
-    def test_seeding_one_organization_does_not_affect_another(self) -> None:
-        other = self.create_organization()
+    def test_switching_to_all_projects_clears_links_and_scopes_active_projects(self) -> None:
+        selected = self.create_project()
+        self.create_project(organization=self.create_organization())
+        self.create_project(status=ObjectStatus.PENDING_DELETION)
+        config = self.create_config(selected)
+        workflow = SeerWorkflow(config)
+        initial_filters = workflow.filters
+        assert initial_filters.all_projects is False
 
-        SeerWorkflow.ensure_defaults(self.organization.id)
+        workflow.set_project_selection(AllProjects())
+        later = self.create_project()
 
-        assert len(self.v2_configs()) == 1
-        assert self.v2_configs(other) == []
+        config.refresh_from_db()
+        assert SeerWorkflow(config).filters.all_projects is True
+        assert workflow.filters.all_projects is True
+        assert workflow.get_project_ids() == [selected.id, later.id]
+        assert not SeerWorkflowConfigProject.objects.filter(config=config).exists()
+        assert config.version == 2
 
-        SeerWorkflow.ensure_defaults(other.id)
+    def test_empty_selection_switches_from_all_to_no_projects(self) -> None:
+        self.create_project()
+        config = self.create_config(all_projects=True)
+        workflow = SeerWorkflow(config)
 
-        assert len(self.v2_configs()) == 1
-        assert len(self.v2_configs(other)) == 1
+        workflow.set_project_selection(SelectedProjects(project_ids=()))
 
+        config.refresh_from_db()
+        assert SeerWorkflow(config).filters.all_projects is False
+        assert workflow.get_project_ids() == []
+        assert not SeerWorkflowConfigProject.objects.filter(config=config).exists()
+        assert config.version == 2
 
-class SeerWorkflowProjectIdsTest(TestCase):
+    def test_rejects_cross_organization_projects_without_changing_selection(self) -> None:
+        previous, valid = self.create_project(), self.create_project()
+        foreign = self.create_project(organization=self.create_organization())
+        config = self.create_config(previous)
+        workflow = SeerWorkflow(config)
+
+        with pytest.raises(ValueError, match="Selected projects must exist"):
+            workflow.set_project_selection(SelectedProjects(project_ids=(valid.id, foreign.id)))
+
+        config.refresh_from_db()
+        assert workflow.get_project_ids() == [previous.id]
+        assert config.filters == {"all_projects": False}
+        assert config.version == 1
+
+    def test_failed_insert_restores_previous_selection(self) -> None:
+        previous, selected = self.create_project(), self.create_project()
+        config = self.create_config(previous)
+        workflow = SeerWorkflow(config)
+
+        with (
+            patch.object(
+                SeerWorkflowConfigProject.objects, "bulk_create", side_effect=RuntimeError("failed")
+            ),
+            pytest.raises(RuntimeError, match="failed"),
+        ):
+            workflow.set_project_selection(SelectedProjects(project_ids=(selected.id,)))
+
+        config.refresh_from_db()
+        assert workflow.get_project_ids() == [previous.id]
+        assert config.filters == {"all_projects": False}
+        assert config.version == 1
+
     def create_config(self, *selected: Project, all_projects: bool = False) -> SeerWorkflowConfig:
         config = Factories.create_seer_workflow_config(
             self.organization,
@@ -109,72 +177,3 @@ class SeerWorkflowProjectIdsTest(TestCase):
         for project in selected:
             Factories.create_seer_workflow_config_project(config, project)
         return config
-
-    def test_all_projects_covers_projects_created_later(self) -> None:
-        first = self.create_project()
-        config = self.create_config(all_projects=True)
-        later = self.create_project()
-        other_organization_project = self.create_project(organization=self.create_organization())
-
-        assert SeerWorkflow(config).get_project_ids() == [first.id, later.id]
-        assert other_organization_project.id not in SeerWorkflow(config).get_project_ids()
-
-    def test_all_projects_skips_inactive_projects(self) -> None:
-        active = self.create_project()
-        pending_deletion = self.create_project()
-        pending_deletion.update(status=ObjectStatus.PENDING_DELETION)
-
-        config = self.create_config(all_projects=True)
-
-        assert SeerWorkflow(config).get_project_ids() == [active.id]
-
-    def test_all_projects_in_organization_without_active_projects_is_empty(self) -> None:
-        config = self.create_config(all_projects=True)
-
-        assert SeerWorkflow(config).get_project_ids() == []
-        assert SeerWorkflow(config).filters.all_projects is True
-
-    def test_selected_projects_cover_only_those_still_active(self) -> None:
-        a, b, c = self.create_project(), self.create_project(), self.create_project()
-        self.create_project()
-        config = self.create_config(a, b, c)
-
-        assert SeerWorkflow(config).get_project_ids() == [a.id, b.id, c.id]
-
-        a.update(status=ObjectStatus.PENDING_DELETION)
-        assert SeerWorkflow(config).get_project_ids() == [b.id, c.id]
-
-        b.delete()
-        assert SeerWorkflow(config).get_project_ids() == [c.id]
-
-    def test_pending_deletion_of_every_selected_project_does_not_widen_to_all(self) -> None:
-        selected = [self.create_project(), self.create_project()]
-        self.create_project()
-        config = self.create_config(*selected)
-
-        for project in selected:
-            project.update(status=ObjectStatus.PENDING_DELETION)
-
-        assert SeerWorkflow(config).get_project_ids() == []
-        config.refresh_from_db()
-        assert SeerWorkflow(config).filters.all_projects is False
-
-    def test_deleting_every_selected_project_does_not_widen_to_all(self) -> None:
-        selected = [self.create_project(), self.create_project()]
-        self.create_project()
-        config = self.create_config(*selected)
-
-        for project in selected:
-            project.delete()
-
-        assert SeerWorkflow(config).get_project_ids() == []
-        config.refresh_from_db()
-        assert SeerWorkflow(config).filters.all_projects is False
-
-    def test_config_without_all_projects_key_covers_no_projects(self) -> None:
-        self.create_project()
-        config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, filters={}
-        )
-
-        assert SeerWorkflow(config).get_project_ids() == []

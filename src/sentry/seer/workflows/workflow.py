@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from functools import cached_property
+from typing import assert_never
 
 from django.db import router, transaction
 
@@ -17,6 +17,19 @@ from sentry.seer.models.workflow import (
 )
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
+
+
+@dataclass(frozen=True)
+class AllProjects:
+    pass
+
+
+@dataclass(frozen=True)
+class SelectedProjects:
+    project_ids: tuple[int, ...]
+
+
+type ProjectSelection = AllProjects | SelectedProjects
 
 
 @dataclass
@@ -55,11 +68,11 @@ class SeerWorkflow:
                 ]
             )
 
-    @cached_property
+    @property
     def extras(self) -> SeerWorkflowConfigExtras:
         return SeerWorkflowConfigExtras.parse_obj(self.config.extras)
 
-    @cached_property
+    @property
     def filters(self) -> SeerWorkflowFilters:
         return SeerWorkflowFilters.parse_obj(self.config.filters)
 
@@ -75,3 +88,41 @@ class SeerWorkflow:
                 )
             )
         return list(projects.order_by("id").values_list("id", flat=True))
+
+    def set_project_selection(self, selection: ProjectSelection) -> None:
+        match selection:
+            case AllProjects():
+                all_projects = True
+                project_ids: set[int] = set()
+            case SelectedProjects(project_ids=selected):
+                all_projects = False
+                project_ids = set(selected)
+            case _:
+                assert_never(selection)
+
+        with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
+            config = SeerWorkflowConfig.objects.select_for_update().get(
+                id=self.config.id, organization_id=self.config.organization_id
+            )
+            valid_project_ids = set(
+                Project.objects.filter(
+                    organization_id=config.organization_id, id__in=project_ids
+                ).values_list("id", flat=True)
+            )
+            if project_ids != valid_project_ids:
+                raise ValueError("Selected projects must exist in the workflow's organization")
+
+            SeerWorkflowConfigProject.objects.filter(config=config).delete()
+            SeerWorkflowConfigProject.objects.bulk_create(
+                [
+                    SeerWorkflowConfigProject(config=config, project_id=project_id)
+                    for project_id in sorted(project_ids)
+                ]
+            )
+            filters = SeerWorkflowFilters.parse_obj(config.filters)
+            filters.all_projects = all_projects
+            config.filters = config.filters | filters.dict()
+            config.version += 1
+            config.save(update_fields=["filters", "version", "date_updated"])
+
+        self.config = config
