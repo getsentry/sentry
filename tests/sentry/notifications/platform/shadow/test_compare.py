@@ -595,7 +595,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
 
         assert observation.outcome == ShadowOutcome.MISMATCH
 
-    def test_dropped_counts_at_a_single_event_are_group_stats_changed(self) -> None:
+    def test_dropped_counts_at_a_single_event_are_group_changed(self) -> None:
         assert self.issue_group.times_seen == 1
 
         observation = self._shadow_slack(
@@ -603,7 +603,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
             _slack_stats("First Seen: *2 days ago*   Suggested: #team"),
         )
 
-        assert observation.outcome == ShadowOutcome.GROUP_STATS_CHANGED
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
 
     def test_other_stats_differences_at_a_single_event_are_a_mismatch(self) -> None:
         observation = self._shadow_slack(
