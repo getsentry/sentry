@@ -20,19 +20,6 @@ from sentry.utils.retries import TimedRetryPolicy
 logger = logging.getLogger(__name__)
 
 
-@cell_silo_model
-class IncidentProject(Model):
-    __relocation_scope__ = RelocationScope.Excluded
-
-    project = FlexibleForeignKey("sentry.Project", db_index=False, db_constraint=False)
-    incident = FlexibleForeignKey("sentry.Incident", db_constraint=False)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_incidentproject"
-        unique_together = (("project", "incident"),)
-
-
 class IncidentManager(BaseManager["Incident"]):
     @TimedRetryPolicy.wrap(timeout=5, exceptions=(IntegrityError,))
     def create(self, organization: Organization, **kwargs: Any) -> Incident:
@@ -97,9 +84,6 @@ class Incident(Model):
     objects: ClassVar[IncidentManager] = IncidentManager()
 
     organization = FlexibleForeignKey("sentry.Organization")
-    projects = models.ManyToManyField(
-        "sentry.Project", related_name="incidents", through=IncidentProject
-    )
     alert_rule = FlexibleForeignKey("sentry.AlertRule", on_delete=models.PROTECT)
     # Incrementing id that is specific to the org.
     identifier = models.IntegerField()
