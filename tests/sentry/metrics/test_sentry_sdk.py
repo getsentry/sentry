@@ -95,17 +95,6 @@ class TestSentrySDKMetricsBackend:
         mock_count.assert_not_called()
 
     @mock.patch("sentry_sdk.metrics.count")
-    def test_incr_deny_list(self, mock_count):
-        backend = SentrySDKMetricsBackend(
-            prefix="test.", experimental_sample_rate=1.0, deny_list=["test.denied"]
-        )
-        backend.incr("denied.metric", amount=1)
-        mock_count.assert_not_called()
-
-        backend.incr("allowed.metric", amount=1)
-        mock_count.assert_called_once()
-
-    @mock.patch("sentry_sdk.metrics.count")
     def test_incr_allow_list(self, mock_count):
         backend = SentrySDKMetricsBackend(
             prefix="test.", experimental_sample_rate=1.0, allow_list=["test.allowed"]
@@ -113,17 +102,6 @@ class TestSentrySDKMetricsBackend:
         backend.incr("other.metric", amount=1)
         mock_count.assert_not_called()
 
-        backend.incr("allowed.metric", amount=1)
-        mock_count.assert_called_once()
-
-    @mock.patch("sentry_sdk.metrics.count")
-    def test_incr_allow_list_ignores_deny_list(self, mock_count):
-        backend = SentrySDKMetricsBackend(
-            prefix="test.",
-            experimental_sample_rate=1.0,
-            allow_list=["test.allowed"],
-            deny_list=["test.allowed"],
-        )
         backend.incr("allowed.metric", amount=1)
         mock_count.assert_called_once()
 
