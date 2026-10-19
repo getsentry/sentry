@@ -1,4 +1,3 @@
-import {MenuItem} from './item';
 import {
   MenuFooterLayout,
   MenuHeaderLayout,
@@ -8,6 +7,7 @@ import {
   MenuSectionHeading,
   MenuSectionLayout,
 } from './layout';
+import {MenuItem} from './listItem';
 import {SearchInput} from './searchInput';
 
 /** Shared presentation; consumers own state, keyboard behavior, and ARIA roles. */
@@ -23,4 +23,4 @@ export const Menu = {
   Item: MenuItem,
 };
 
-export type {MenuItemProps} from './item';
+export type {MenuItemProps} from './listItem';

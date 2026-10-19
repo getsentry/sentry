@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Menu} from '@sentry/scraps/menu';
 
-import {MenuItem} from './item';
+import {MenuItem} from './listItem';
 
 describe('Menu.Item', () => {
   it('attaches the ref to the default li wrapper', () => {
