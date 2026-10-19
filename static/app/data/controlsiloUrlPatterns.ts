@@ -90,6 +90,8 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^api/0/organizations/[^/]+/api-keys/$'),
   new RegExp('^api/0/organizations/[^/]+/api-keys/[^/]+/$'),
   new RegExp('^api/0/organizations/[^/]+/audit-logs/$'),
+  new RegExp('^api/0/organizations/[^/]+/service-accounts/$'),
+  new RegExp('^api/0/organizations/[^/]+/service-accounts/[^/]+/$'),
   new RegExp('^api/0/organizations/[^/]+/monitoring-providers/$'),
   new RegExp('^api/0/organizations/[^/]+/monitoring-providers/[^/]+/$'),
   new RegExp('^api/0/organizations/[^/]+/integrations/$'),

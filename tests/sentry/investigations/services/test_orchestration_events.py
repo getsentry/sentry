@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from uuid import UUID, uuid4
 
 import pytest
+from django.db import router, transaction
+from django.db.transaction import Atomic
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -890,6 +892,186 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.generation == 2
         assert self.orchestration_run.phase == "planning"
         assert self.orchestration_run.last_event_sequence == 0
+
+    def outer_transaction(self) -> Atomic:
+        return transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun))
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_workflow_update_schedules_investigation_updates_on_commit(
+        self, mock_delay: Mock
+    ) -> None:
+        with self.outer_transaction():
+            self.deliver(
+                self.event(
+                    1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
+                )
+            )
+            mock_delay.assert_not_called()
+
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_rolled_back_workflow_update_does_not_schedule_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        with pytest.raises(RuntimeError), self.outer_transaction():
+            self.deliver(
+                self.event(
+                    1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
+                )
+            )
+            raise RuntimeError
+
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_contiguous_events_schedule_investigation_updates_once(self, mock_delay: Mock) -> None:
+        with self.outer_transaction():
+            self.deliver(
+                self.event(
+                    2, "workflow_updated", {"projection": self.projection(workflow_version=3)}
+                )
+            )
+            self.deliver(
+                self.event(
+                    1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
+                )
+            )
+            mock_delay.assert_not_called()
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.last_event_sequence == 2
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_terminal_snapshot_fast_forward_schedules_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        with self.outer_transaction():
+            receipt = self.deliver(
+                self.event(
+                    3,
+                    "state_snapshot",
+                    {
+                        "terminal": True,
+                        "full": True,
+                        "projection": self.projection(
+                            workflow_version=2, phase="completed", status="completed"
+                        ),
+                        "blocks": [],
+                    },
+                )
+            )
+            mock_delay.assert_not_called()
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_workflow_failure_with_projection_schedules_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        with self.outer_transaction():
+            self.deliver(
+                self.event(
+                    1,
+                    "workflow_failed",
+                    {
+                        "projection": self.projection(workflow_version=2, status="failed"),
+                        "error": {"code": "seer_failed", "message": "Seer gave up."},
+                    },
+                )
+            )
+            mock_delay.assert_not_called()
+
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_workflow_failure_without_projection_does_not_schedule_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        receipt = self.deliver(
+            self.event(
+                1,
+                "workflow_failed",
+                {"error": {"code": "seer_failed", "message": "Seer gave up."}},
+            )
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_stale_event_does_not_schedule_investigation_updates(self, mock_delay: Mock) -> None:
+        self.orchestration_run.update(
+            generation=2,
+            workflow_version=2,
+            projection=self.projection(workflow_version=2, generation=2),
+        )
+
+        receipt = self.deliver(
+            self.event(1, "workflow_updated", {"projection": self.projection()}, generation=1)
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_notebook_event_does_not_schedule_investigation_updates(self, mock_delay: Mock) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(
+            self.event(
+                2,
+                "report_block_started",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "summary",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Summary",
+                    "collapsed": False,
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        receipt = self.deliver(
+            self.event(
+                3,
+                "report_text_delta",
+                {"reportRevision": 1, "stableAgentKey": "summary", "delta": "text"},
+            )
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        mock_delay.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_synchronize_projection_schedules_investigation_updates(self, mock_delay: Mock) -> None:
+        with self.outer_transaction():
+            synchronize_orchestration_projection(
+                orchestration_run_id=self.orchestration_run.id,
+                seer_run_id=self.seer_run_id,
+                projection=self.projection(workflow_version=2, phase="planning"),
+            )
+            mock_delay.assert_not_called()
+
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
+    @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
+    def test_synchronize_stale_projection_does_not_schedule_investigation_updates(
+        self, mock_delay: Mock
+    ) -> None:
+        self.orchestration_run.update(generation=2, workflow_version=3)
+
+        synchronize_orchestration_projection(
+            orchestration_run_id=self.orchestration_run.id,
+            seer_run_id=self.seer_run_id,
+            projection=self.projection(workflow_version=2, generation=2),
+        )
+
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 3
+        mock_delay.assert_not_called()
 
     def test_synchronize_projection_rejects_invalid_seer_run_ids(self) -> None:
         for seer_run_id in (True, 0, I64_MAX + 1):

@@ -72,10 +72,8 @@ describe('reasonDescription', () => {
     );
   });
 
-  it('drops the data type for an unknown category', () => {
-    expect(reasonDescription('too_large:event', 'unknown')).toBe(
-      'The event exceeded maximum payload size.'
-    );
+  it('returns undefined when a dynamic reason has no resolvable data type', () => {
+    expect(reasonDescription('too_large:event', 'unknown')).toBeUndefined();
   });
 
   it('returns undefined for an unknown reason', () => {
@@ -86,6 +84,13 @@ describe('reasonDescription', () => {
     expect(reasonTitle('cors')).toBe('Disallowed origin');
     expect(reasonDescription('cors', 'span')).toBe(
       "Origin not in project's Allowed Domains."
+    );
+  });
+
+  it('maps dynamic-sampling reasons that carry a rule-id suffix', () => {
+    expect(reasonTitle('Sampled:3000')).toBe('Dynamic sampling');
+    expect(reasonDescription('Sampled:0', 'span')).toBe(
+      'Dropped by a dynamic sampling rule.'
     );
   });
 });

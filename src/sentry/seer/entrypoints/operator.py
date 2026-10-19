@@ -3,7 +3,7 @@ from typing import Any, NotRequired, TypedDict
 
 from sentry import features, options
 from sentry.constants import DataCategory
-from sentry.investigations.models import Investigation
+from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.telemetry import record_investigation_started
@@ -88,6 +88,7 @@ logger = logging.getLogger(__name__)
 # entrypoint's ability to receive updates from those triggers. So 12 is plenty, even accounting for
 # incidents, since a run should not take nearly that long to complete.
 PROCESS_AUTOFIX_TIMEOUT_SECONDS = 60 * 5  # 5 minutes
+PROCESS_INVESTIGATION_TIMEOUT_SECONDS = 60
 
 
 def has_seer_autofix_entrypoint_access(
@@ -881,6 +882,74 @@ def process_autofix_updates(
                         event_payload=event_payload,
                         cache_payload=cache_result["payload"],
                     )
+                except Exception as e:
+                    ept_lifecycle.record_failure(failure_reason=e)
+
+
+@instrumented_task(
+    name="sentry.seer.entrypoints.operator.process_investigation_updates",
+    namespace=seer_tasks,
+    processing_deadline_duration=PROCESS_INVESTIGATION_TIMEOUT_SECONDS,
+    retry=None,
+)
+def process_investigation_updates(*, investigation_id: int) -> None:
+    """
+    Sends the latest orchestration run to each entrypoint with a cache for it.
+    """
+    with SeerOperatorEventLifecycleMetric(
+        interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_INVESTIGATION_UPDATE
+    ).capture() as lifecycle:
+        try:
+            run = InvestigationOrchestrationRun.objects.select_related("investigation").get(
+                investigation_id=investigation_id
+            )
+        except InvestigationOrchestrationRun.DoesNotExist:
+            lifecycle.add_extra("investigation_id", investigation_id)
+            lifecycle.record_failure(failure_reason="run_not_found")
+            return
+
+        try:
+            organization = Organization.objects.get_from_cache(id=run.investigation.organization_id)
+        except Organization.DoesNotExist:
+            lifecycle.add_extra("investigation_id", investigation_id)
+            lifecycle.record_failure(failure_reason="organization_not_found")
+            return
+
+        lifecycle.add_extras(
+            {"investigation_id": investigation_id, "organization_id": organization.id}
+        )
+
+        if not features.has("organizations:investigations", organization):
+            lifecycle.record_halt(halt_reason="no_operator_access")
+            return
+
+        for (
+            entrypoint_key,
+            entrypoint_cls,
+        ) in investigation_entrypoint_registry.registrations.items():
+            if not entrypoint_cls.has_access(organization):
+                continue
+
+            # TODO: Use a provider-agnostic payload type once there are more investigation entrypoints.
+            from sentry.seer.entrypoints.slack.entrypoint import SlackInvestigationCachePayload
+
+            cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+                entrypoint_key=str(entrypoint_key),
+                investigation_id=investigation_id,
+            )
+            if not cache_payload:
+                continue
+
+            if cache_payload["organization_id"] != organization.id:
+                lifecycle.record_failure(failure_reason="org_mismatch")
+                return
+
+            with SeerOperatorEventLifecycleMetric(
+                interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_INVESTIGATION_UPDATE,
+                entrypoint_key=str(entrypoint_key),
+            ).capture() as ept_lifecycle:
+                try:
+                    entrypoint_cls.on_investigation_update(cache_payload=cache_payload, run=run)
                 except Exception as e:
                     ept_lifecycle.record_failure(failure_reason=e)
 
