@@ -542,6 +542,50 @@ class IssueParams:
         required=False,
         many=True,
     )
+    STATS_CATEGORY = OpenApiParameter(
+        name="category",
+        description="The category of issues to count. `issue` counts every issue except user feedback, `feedback` counts only user feedback.",
+        default="issue",
+        enum=["issue", "feedback"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+    METRICS_INTERVAL = OpenApiParameter(
+        name="interval",
+        description="The size of each time bucket in milliseconds. Must be at least `1000`, and the queried period may contain at most 200 buckets. Defaults to one hour.",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.INT,
+        required=False,
+    )
+    TIMESERIES_INTERVAL = OpenApiParameter(
+        name="interval",
+        description="The size of each time bucket, given in the same format as `statsPeriod` (for example, `1h`). The queried period may contain at most 10,000 buckets. Defaults to `1h`.",
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+    )
+    TIMESERIES_GROUP_BY = OpenApiParameter(
+        name="groupBy",
+        description="Split each series by this field. Only `release` (the issue's first release) is supported. When set, every axis is bucketed by the issue's first seen time.",
+        enum=["release"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
+    TIMESERIES_Y_AXIS = OpenApiParameter(
+        name="yAxis",
+        description="""The series to return. Defaults to `count(new_issues)`.
+- `count(new_issues)` - Number of issues first seen in each bucket.
+- `count(resolved_issues)` - Number of currently resolved issues, by the time they were resolved.
+""",
+        enum=["count(new_issues)", "count(resolved_issues)"],
+        location=OpenApiParameter.QUERY,
+        type=OpenApiTypes.STR,
+        required=False,
+        many=True,
+    )
 
 
 class DetectorParams:

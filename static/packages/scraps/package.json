@@ -11,9 +11,13 @@
   ],
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "./code/inlineCode": {
+      "types": "./dist/code/inlineCode.d.ts",
+      "import": "./dist/code/inlineCode.js"
+    },
+    "./hotkey/kbd": {
+      "types": "./dist/hotkey/kbd.d.ts",
+      "import": "./dist/hotkey/kbd.js"
     },
     "./theme": {
       "types": "./dist/theme/index.d.ts",
@@ -90,6 +94,14 @@
     "./useScrollLock": {
       "types": "./dist/useScrollLock.d.ts",
       "import": "./dist/useScrollLock.js"
+    },
+    "./link": {
+      "types": "./dist/link/index.d.ts",
+      "import": "./dist/link/index.js"
+    },
+    "./trackingContext": {
+      "types": "./dist/trackingContext.d.ts",
+      "import": "./dist/trackingContext.js"
     }
   },
   "publishConfig": {
@@ -113,7 +125,8 @@
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
     "@types/react": "19.3.0",
-    "framer-motion": "12.38.0"
+    "framer-motion": "12.38.0",
+    "query-string": "7.0.1"
   },
   "devDependencies": {
     "@jest/environment": "30.5.1",

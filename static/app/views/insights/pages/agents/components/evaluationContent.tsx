@@ -6,6 +6,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import type {TagVariant} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct} from 'sentry/locale';
@@ -13,7 +14,6 @@ import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
   findQuestion,
   getAnswerLabel,
-  getAnswerLabels,
   getScoreName,
   type EvaluationAnswer,
   type EvaluationQuestion,
@@ -110,9 +110,20 @@ export function EvaluationResultSummary({
 }) {
   return (
     <Flex wrap="wrap" gap="xs">
-      {getAnswerLabels(answers, questions).map(([key, label]) => (
-        <TruncatedTag key={key}>{`${key}: ${label}`}</TruncatedTag>
-      ))}
+      {answers.map(answer => {
+        const label = getAnswerLabel(answer, findQuestion(questions, answer.key));
+        if (label === null) {
+          return null;
+        }
+        return (
+          <TruncatedTag
+            key={answer.key}
+            variant={answer.kind === 'refusal' ? 'warning' : 'muted'}
+          >
+            {`${answer.key}: ${label}`}
+          </TruncatedTag>
+        );
+      })}
     </Flex>
   );
 }
@@ -125,10 +136,16 @@ function UnrecognizedTag() {
   return <Tag variant="muted">{t('Unrecognized')}</Tag>;
 }
 
-function TruncatedTag({children}: {children: string}) {
+function TruncatedTag({
+  children,
+  variant = 'muted',
+}: {
+  children: string;
+  variant?: TagVariant;
+}) {
   return (
     <Tooltip title={children} showOnlyOnOverflow skipWrapper>
-      <Tag variant="muted">{children}</Tag>
+      <Tag variant={variant}>{children}</Tag>
     </Tooltip>
   );
 }
@@ -258,6 +275,12 @@ function AnswerSummary({
         <InfoText title={answer.choice} mode="overflowOnly" bold>
           {answer.choice}
         </InfoText>
+      );
+    case 'refusal':
+      return (
+        <Tooltip title={t('The model declined to answer.')}>
+          <Tag variant="warning">{t('Refused')}</Tag>
+        </Tooltip>
       );
     case 'invalid':
       return <UnrecognizedTag />;
