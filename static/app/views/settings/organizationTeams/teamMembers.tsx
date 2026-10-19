@@ -46,7 +46,7 @@ import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermi
 import {getButtonHelpText} from './utils';
 
 const COLUMNS: TableColumnConfig[] = [
-  {key: 'member', width: 'minmax(150px, 1fr)'},
+  {key: 'member', width: {zero: 'minmax(200px, 1fr)', sm: 'minmax(150px, 1fr)'}},
   {key: 'teamRole', width: {zero: 160, md: 200}},
   {key: 'actions', width: 'max-content'},
 ];
