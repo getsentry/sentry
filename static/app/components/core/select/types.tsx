@@ -1,9 +1,9 @@
-import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
+import type {MenuItemProps} from '@sentry/scraps/menu';
 
 /**
  * The option format used by react-select based components
  */
-export interface SelectValue<T> extends MenuListItemProps {
+export interface SelectValue<T> extends MenuItemProps {
   value: T;
   /**
    * In scenarios where you're using a react element as the label react-select

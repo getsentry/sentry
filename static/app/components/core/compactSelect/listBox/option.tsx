@@ -11,13 +11,12 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
-import {Menu} from '@sentry/scraps/menu';
-import {InnerWrap, type MenuListItemProps} from '@sentry/scraps/menu/item';
+import {Menu, type MenuItemProps} from '@sentry/scraps/menu';
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
   listState: ListState<any>;
-  size: MenuListItemProps['size'];
+  size: MenuItemProps['size'];
   'data-index'?: number;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
@@ -71,7 +70,7 @@ export function ListBoxOption({
     [labelProps.id, label]
   );
 
-  const leadingItems = (item.props as MenuListItemProps).leadingItems;
+  const leadingItems = (item.props as MenuItemProps).leadingItems;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
@@ -104,7 +103,7 @@ export function ListBoxOption({
   }, [size, leadingItems, isDisabled, isFocused, isSelected, hideCheck, multiple]);
 
   return (
-    <StyledMenuListItem
+    <StyledMenuItem
       {...optionProps}
       data-index={dataIndex}
       ref={mergeRefs(ref, refProp)}
@@ -127,8 +126,8 @@ export function ListBoxOption({
   );
 }
 
-const StyledMenuListItem = styled(Menu.Item)`
-  > ${InnerWrap} {
+const StyledMenuItem = styled(Menu.Item)`
+  > [data-menu-item-content] {
     padding-left: ${p => p.theme.space.md};
   }
 `;

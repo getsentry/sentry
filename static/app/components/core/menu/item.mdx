@@ -1,11 +1,11 @@
 ---
-title: MenuListItem
+title: Menu.Item
 description: A building block component for creating menu items and list options with support for states, icons, and details.
 category: controls
-source: '@sentry/scraps/menuListItem'
+source: '@sentry/scraps/menu'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/menuListItem/index.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/menu/item.tsx
   a11y:
     WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
     WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
@@ -14,52 +14,52 @@ resources:
 
 import styled from '@emotion/styled';
 
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {Menu} from '@sentry/scraps/menu';
 
 import * as Storybook from 'sentry/stories';
 
-import {DetailsDemo, StatesDemo, TrailingDemo} from './__stories__/components';
+import {DetailsDemo, StatesDemo, TrailingDemo} from './__stories__/itemComponents';
 
-export const documentation = import('!!type-loader!@sentry/scraps/menuListItem');
+export const documentation = import('!!type-loader!@sentry/scraps/menu');
 
-`<MenuListItem>` is a versatile building block for creating menu items, dropdown options, and selectable list items. It provides consistent styling, interaction states, and support for icons, labels, and supplementary details. The shared implementation is now exported as `Menu.Item`; this import remains available for existing callers.
+`<Menu.Item>` is a versatile building block for creating menu items, dropdown options, and selectable list items. It provides consistent styling, interaction states, and support for icons, labels, and supplementary details. It is the shared item presentation used by `DropdownMenu` and `CompactSelect`.
 
-Use `<MenuListItem>` when building custom menus, dropdown options, or selectable lists. For standard dropdowns, prefer higher-level components like `<CompactSelect>` which use `<MenuListItem>` internally.
+Use `<Menu.Item>` when building custom menus, dropdown options, or selectable lists. For standard dropdowns, prefer higher-level components like `<CompactSelect>` which use `<Menu.Item>` internally.
 
 ```jsx
-<MenuListItem label="Menu Item" leadingItems={state => (state.isSelected ? '✓' : null)} />
+<Menu.Item label="Menu Item" leadingItems={state => (state.isSelected ? '✓' : null)} />
 ```
 
 ## Sizes
 
-`<MenuListItem>` comes in three sizes: `md` (default), `sm`, and `xs`.
+`<Menu.Item>` comes in three sizes: `md` (default), `sm`, and `xs`.
 
 <Storybook.Demo>
   <Storybook.Grid>
     <Container>
-      <MenuListItem size="md" label="Medium item" />
-      <MenuListItem size="md" label="Another item" />
+      <Menu.Item size="md" label="Medium item" />
+      <Menu.Item size="md" label="Another item" />
     </Container>
     <Container>
-      <MenuListItem size="sm" label="Small item" />
-      <MenuListItem size="sm" label="Another item" />
+      <Menu.Item size="sm" label="Small item" />
+      <Menu.Item size="sm" label="Another item" />
     </Container>
     <Container>
-      <MenuListItem size="xs" label="Extra small item" />
-      <MenuListItem size="xs" label="Another item" />
+      <Menu.Item size="xs" label="Extra small item" />
+      <Menu.Item size="xs" label="Another item" />
     </Container>
   </Storybook.Grid>
 </Storybook.Demo>
 
 ```jsx
-<MenuListItem size="md" label="Medium" />
-<MenuListItem size="sm" label="Small" />
-<MenuListItem size="xs" label="Extra Small" />
+<Menu.Item size="md" label="Medium" />
+<Menu.Item size="sm" label="Small" />
+<Menu.Item size="xs" label="Extra Small" />
 ```
 
 ## States
 
-`<MenuListItem>` supports several visual states:
+`<Menu.Item>` supports several visual states:
 
 - **isFocused**: Highlights the item when keyboard focused
 - **isSelected**: Indicates the item is currently selected
@@ -70,9 +70,9 @@ Use `<MenuListItem>` when building custom menus, dropdown options, or selectable
 </Storybook.Demo>
 
 ```jsx
-<MenuListItem label="Item" isFocused />
-<MenuListItem label="Item" isSelected priority="primary" />
-<MenuListItem label="Item" disabled />
+<Menu.Item label="Item" isFocused />
+<Menu.Item label="Item" isSelected priority="primary" />
+<Menu.Item label="Item" disabled />
 ```
 
 ## Leading Items
@@ -80,13 +80,13 @@ Use `<MenuListItem>` when building custom menus, dropdown options, or selectable
 Use `leadingItems` to add icons, checkmarks, or other elements before the label. The prop accepts a function that receives the item's state:
 
 ```jsx
-<MenuListItem
+<Menu.Item
   label="Selected Item"
   leadingItems={state => (state.isSelected ? <IconCheckmark /> : null)}
   isSelected
 />
 
-<MenuListItem
+<Menu.Item
   label="Item with Icon"
   leadingItems={() => <IconDocument />}
 />
@@ -101,8 +101,8 @@ Add supplementary elements after the label using the `trailingItems` prop:
 </Storybook.Demo>
 
 ```jsx
-<MenuListItem label="Item" trailingItems={<Badge>New</Badge>} />
-<MenuListItem label="Item" trailingItems="Ctrl+K" />
+<Menu.Item label="Item" trailingItems={<Badge>New</Badge>} />
+<Menu.Item label="Item" trailingItems="Ctrl+K" />
 ```
 
 ## Details
@@ -114,10 +114,7 @@ Add supplementary text below the label using the `details` prop:
 </Storybook.Demo>
 
 ```jsx
-<MenuListItem
-  label="Advanced Settings"
-  details="Configure advanced options and features"
-/>
+<Menu.Item label="Advanced Settings" details="Configure advanced options and features" />
 ```
 
 ## Usage Patterns
@@ -131,7 +128,7 @@ const CustomMenu = () => {
   return (
     <div role="menu">
       {options.map(option => (
-        <MenuListItem
+        <Menu.Item
           key={option.value}
           label={option.label}
           isSelected={selected === option.value}
@@ -150,7 +147,7 @@ const CustomMenu = () => {
 ```jsx
 {
   items.map((item, index) => (
-    <MenuListItem
+    <Menu.Item
       key={item.id}
       label={item.name}
       details={item.description}
@@ -165,7 +162,7 @@ const CustomMenu = () => {
 
 ## Accessibility
 
-`<MenuListItem>` is designed as a building block and adapts to different accessibility patterns:
+`<Menu.Item>` is designed as a building block and adapts to different accessibility patterns:
 
 - [2.1.1 Keyboard](https://www.w3.org/TR/WCAG22/#keyboard): Keyboard accessible when used in proper context
 - [2.4.7 Focus Visible](https://www.w3.org/TR/WCAG22/#focus-visible): Visual feedback for focused state

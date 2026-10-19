@@ -13,8 +13,7 @@ import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {Menu} from '@sentry/scraps/menu';
-import {InnerWrap, type MenuListItemProps} from '@sentry/scraps/menu/item';
+import {Menu, type MenuItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 
 export interface GridListOptionProps<
@@ -86,7 +85,7 @@ export function GridListOption<T extends ListItemBase>({
     [label]
   );
 
-  const leadingItems = (node.props as MenuListItemProps).leadingItems;
+  const leadingItems = (node.props as MenuItemProps).leadingItems;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
@@ -121,7 +120,7 @@ export function GridListOption<T extends ListItemBase>({
   }, [multiple, isSelected, isDisabled, isFocused, size, leadingItems, hideCheck]);
 
   return (
-    <StyledMenuListItem
+    <StyledMenuItem
       {...rowPropsMerged}
       ref={ref}
       size={size}
@@ -143,8 +142,8 @@ export function GridListOption<T extends ListItemBase>({
   );
 }
 
-const StyledMenuListItem = styled(Menu.Item)`
-  > ${InnerWrap} {
+const StyledMenuItem = styled(Menu.Item)`
+  > [data-menu-item-content] {
     padding-left: ${p => p.theme.space.md};
   }
 `;

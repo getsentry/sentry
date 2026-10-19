@@ -2,7 +2,7 @@ import {IconCircle} from '@sentry/icons/circle';
 import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
 
 import {Container} from '@sentry/scraps/layout';
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {Menu} from '@sentry/scraps/menu';
 
 import * as Storybook from 'sentry/stories';
 
@@ -17,30 +17,30 @@ export function StatesDemo() {
       <div>
         Focused:
         <Container>
-          <MenuListItem label="hello" leadingItems={leadingItems} />
-          <MenuListItem label="sentry" leadingItems={leadingItems} isFocused />
-          <MenuListItem label="world" leadingItems={leadingItems} />
+          <Menu.Item label="hello" leadingItems={leadingItems} />
+          <Menu.Item label="sentry" leadingItems={leadingItems} isFocused />
+          <Menu.Item label="world" leadingItems={leadingItems} />
         </Container>
       </div>
       <div>
         Selected:
         <Container>
-          <MenuListItem label="hello" leadingItems={leadingItems} />
-          <MenuListItem
+          <Menu.Item label="hello" leadingItems={leadingItems} />
+          <Menu.Item
             label="sentry"
             leadingItems={leadingItems}
             isSelected
             priority="primary"
           />
-          <MenuListItem label="world" leadingItems={leadingItems} />
+          <Menu.Item label="world" leadingItems={leadingItems} />
         </Container>
       </div>
       <div>
         Disabled:
         <Container>
-          <MenuListItem label="hello" leadingItems={leadingItems} />
-          <MenuListItem label="sentry" leadingItems={leadingItems} disabled />
-          <MenuListItem label="world" leadingItems={leadingItems} />
+          <Menu.Item label="hello" leadingItems={leadingItems} />
+          <Menu.Item label="sentry" leadingItems={leadingItems} disabled />
+          <Menu.Item label="world" leadingItems={leadingItems} />
         </Container>
       </div>
     </Storybook.Grid>
@@ -50,12 +50,8 @@ export function StatesDemo() {
 export function TrailingDemo() {
   return (
     <Container>
-      <MenuListItem
-        label="Item with badge"
-        leadingItems={leadingItems}
-        trailingItems="🚀"
-      />
-      <MenuListItem label="Another item" leadingItems={leadingItems} trailingItems="⭐" />
+      <Menu.Item label="Item with badge" leadingItems={leadingItems} trailingItems="🚀" />
+      <Menu.Item label="Another item" leadingItems={leadingItems} trailingItems="⭐" />
     </Container>
   );
 }
@@ -63,12 +59,12 @@ export function TrailingDemo() {
 export function DetailsDemo() {
   return (
     <Container>
-      <MenuListItem
+      <Menu.Item
         label="Option with details"
         details="This is additional information about the option"
         leadingItems={leadingItems}
       />
-      <MenuListItem
+      <Menu.Item
         label="Another option"
         details="More helpful context here"
         leadingItems={leadingItems}

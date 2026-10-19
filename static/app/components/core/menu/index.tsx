@@ -1,4 +1,4 @@
-import {MenuListItem} from './item';
+import {MenuItem} from './item';
 import {
   MenuFooterLayout,
   MenuHeaderLayout,
@@ -20,5 +20,7 @@ export const Menu = {
   SectionItems: MenuSectionGroup,
   Separator: MenuSectionDivider,
   Footer: MenuFooterLayout,
-  Item: MenuListItem,
+  Item: MenuItem,
 };
+
+export type {MenuItemProps} from './item';
