@@ -22,6 +22,7 @@ export interface MenuCheckboxItemProps extends Omit<
   onChange: (checked: boolean) => void;
 }
 
+/** Checks whether an item matches the current menu search. */
 export function isMenuItemHidden(
   search: string,
   label: React.ReactNode,
@@ -38,6 +39,7 @@ interface BaseMenuItemProps extends MenuListItemProps {
   role?: 'menuitem' | 'menuitemcheckbox';
 }
 
+/** Provides focus, action, and search behavior shared by menu item variants. */
 function BaseMenuItem({
   label,
   textValue,
@@ -98,10 +100,12 @@ function BaseMenuItem({
   );
 }
 
+/** Renders an action item in the composable menu. */
 export function MenuItem(props: MenuListItemProps) {
   return <BaseMenuItem {...props} />;
 }
 
+/** Renders a persistent checkbox item with a selection checkmark. */
 export function MenuCheckboxItem({
   checked,
   onChange,

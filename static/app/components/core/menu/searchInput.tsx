@@ -5,6 +5,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 export type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input>;
 
+/** Shared search field with a leading icon for menu controls. */
 export function SearchInput(props: SearchInputProps) {
   return (
     <InputGroup>

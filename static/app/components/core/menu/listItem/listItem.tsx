@@ -20,6 +20,7 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
  */
 type Priority = 'primary' | 'danger' | 'default';
 
+/** Resolves an item's text color from its priority and disabled state. */
 function getTextColor({
   theme,
   priority,
@@ -212,6 +213,7 @@ interface Props<T extends React.ElementType = 'li'>
   ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
 }
 
+/** Renders the shared visual shell for menu and select items. */
 function BaseMenuListItem<T extends React.ElementType = 'li'>({
   label,
   details,
@@ -351,6 +353,7 @@ const POPPER_OPTIONS = {
   ],
 };
 
+/** Shows item details beside the focused item when overlay details are enabled. */
 function DetailsOverlay({
   children,
   size,

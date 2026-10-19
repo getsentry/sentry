@@ -2,6 +2,7 @@ import {Container} from '@sentry/scraps/layout';
 
 import {useMenuContext} from './context';
 
+/** Finds visible, enabled items belonging to this menu level. */
 export function getMenuItems(list: HTMLUListElement | null): HTMLElement[] {
   if (!list) {
     return [];
@@ -18,6 +19,7 @@ export interface MenuListProps extends React.HTMLAttributes<HTMLUListElement> {
   children: React.ReactNode;
 }
 
+/** Renders menu items and handles keyboard movement between them. */
 export function MenuList({children, onKeyDown, ...props}: MenuListProps) {
   const {listRef, searchRef, goBack} = useMenuContext();
   return (

@@ -17,6 +17,7 @@ export interface MenuContextValue {
 
 export const MenuContext = createContext<MenuContextValue | null>(null);
 
+/** Reads the owning menu's state for its compound components. */
 export function useMenuContext() {
   const context = useContext(MenuContext);
   if (!context) {

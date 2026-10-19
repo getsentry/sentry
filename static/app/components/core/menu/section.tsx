@@ -30,6 +30,7 @@ export interface MenuSectionProps {
   'aria-label'?: string;
 }
 
+/** Groups related items and hides the group when search hides every item. */
 export function MenuSection({children, 'aria-label': ariaLabel}: MenuSectionProps) {
   const labelId = useId();
   const [visibleItems, setVisibleItems] = useState<Record<string, boolean>>({});
@@ -73,6 +74,7 @@ export interface MenuSectionLabelProps {
   children: React.ReactNode;
 }
 
+/** Labels a group of related menu items. */
 export function MenuSectionLabel({children}: MenuSectionLabelProps) {
   const section = useContext(SectionContext);
   return (
@@ -88,6 +90,7 @@ export function MenuSectionLabel({children}: MenuSectionLabelProps) {
   );
 }
 
+/** Separates menu sections when search is inactive. */
 export function MenuSectionSeparator() {
   const {search} = useMenuContext();
   return (
@@ -102,6 +105,7 @@ export function MenuSectionSeparator() {
   );
 }
 
+/** Reports an item's search visibility to its containing section. */
 export function useSectionItemVisibility(visible: boolean) {
   const section = useContext(SectionContext);
   const id = useId();

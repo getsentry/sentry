@@ -16,6 +16,7 @@ export interface MenuSubmenuProps extends Pick<MenuListItemProps, 'label' | 'dis
   textValue?: string;
 }
 
+/** Opens a nested menu with its own search and keyboard navigation state. */
 export function MenuSubmenu({label, children, disabled, textValue}: MenuSubmenuProps) {
   const parent = useMenuContext();
   const [isOpen, setOpen] = useState(false);

@@ -18,6 +18,7 @@ export interface MenuProps extends Pick<
   children: React.ReactNode;
 }
 
+/** Owns the menu overlay, search state, and context for compound menu parts. */
 export function MenuRoot({
   children,
   isOpen,
@@ -63,6 +64,7 @@ export type MenuTriggerProps = Omit<DropdownButtonProps, 'isOpen'> & {
   children: React.ReactNode;
 };
 
+/** Opens the menu and forwards trigger behavior to the dropdown button. */
 export function MenuTrigger(props: MenuTriggerProps) {
   const {isOpen, open, triggerProps} = useMenuContext();
   const mergedProps = mergeProps(triggerProps, props);

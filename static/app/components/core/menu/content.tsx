@@ -17,6 +17,7 @@ export interface MenuContentProps {
   children: React.ReactNode;
 }
 
+/** Positions the open menu and moves focus into its search field or first item. */
 export function MenuContent({children}: MenuContentProps) {
   const {isOpen, overlayProps, listRef, searchRef} = useMenuContext();
   const theme = useTheme();
@@ -50,6 +51,7 @@ export interface MenuHeaderProps extends Omit<FlexProps, 'title'> {
   title?: React.ReactNode;
 }
 
+/** Groups the menu title and optional header controls. */
 export function MenuHeader({title, children, ...props}: MenuHeaderProps) {
   const menu = useMenuContext();
   return (
@@ -68,6 +70,7 @@ export function MenuHeader({title, children, ...props}: MenuHeaderProps) {
 
 export type MenuSearchProps = Omit<SearchInputProps, 'value' | 'onChange'>;
 
+/** Filters menu items from a search field inside the header. */
 export function MenuSearch(props: MenuSearchProps) {
   const headerMenu = useContext(MenuHeaderContext);
   const menu = useMenuContext();
@@ -100,6 +103,7 @@ export function MenuSearch(props: MenuSearchProps) {
 
 export type MenuFooterProps = FlexProps;
 
+/** Places actions below the menu list. */
 export function MenuFooter(props: MenuFooterProps) {
   return <MenuFooterLayout padding="md lg" {...props} />;
 }
