@@ -1,0 +1,77 @@
+---
+title: Menu
+description: Shared presentation parts for dropdowns and selects, including Menu.Item.
+category: controls
+source: '@sentry/scraps/menu'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/menu/menu.tsx
+---
+
+import {Container} from '@sentry/scraps/layout';
+import {Menu} from '@sentry/scraps/menu';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/menu');
+
+`Menu` contains the visual parts shared by `DropdownMenu` and `CompactSelect`. It has no menu context or collection state. Those controls supply the overlay, selection, keyboard behavior, and accessibility roles. Use them for application interactions.
+
+## Composition
+
+This preview shows how the parts fit together. It does not implement menu or select behavior.
+
+<Storybook.Demo align="start" minHeight="96px" padding="lg xl">
+  <Container width="240px" aria-hidden="true">
+    <Menu.Header padding="sm lg">
+      <Menu.Title>Projects</Menu.Title>
+    </Menu.Header>
+    <Container padding="xs">
+      <Menu.Search disabled placeholder="Search projects" />
+    </Container>
+    <Container as="ul" margin="0" padding="xs 0">
+      <Menu.Section>
+        <Container padding="md lg">
+          <Menu.SectionTitle>Favorites</Menu.SectionTitle>
+        </Container>
+        <Menu.SectionItems>
+          <Menu.Item label="Alpha" />
+          <Menu.Item label="Beta" />
+        </Menu.SectionItems>
+      </Menu.Section>
+    </Container>
+    <Menu.Footer padding="md lg">Choose a project</Menu.Footer>
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<Container width="240px" aria-hidden="true">
+  <Menu.Header padding="sm lg">
+    <Menu.Title>Projects</Menu.Title>
+  </Menu.Header>
+  <Container padding="xs">
+    <Menu.Search disabled placeholder="Search projects" />
+  </Container>
+  <Container as="ul" margin="0" padding="xs 0">
+    <Menu.Section>
+      <Container padding="md lg">
+        <Menu.SectionTitle>Favorites</Menu.SectionTitle>
+      </Container>
+      <Menu.SectionItems>
+        <Menu.Item label="Alpha" />
+        <Menu.Item label="Beta" />
+      </Menu.SectionItems>
+    </Menu.Section>
+  </Container>
+  <Menu.Footer padding="md lg">Choose a project</Menu.Footer>
+</Container>
+```
+
+## Accessibility
+
+`Menu` provides presentation only. A control that composes these parts must supply its own roles, labels, focus management, and keyboard behavior.
+
+## See also
+
+- [DropdownMenu](/stories/core/dropdownmenu/) — use for actions and links.
+- [CompactSelect](/stories/core/compactselect/) — use for choosing a value.
+- [Menu.Item](/stories/core/item/) — shared item appearance and states.
