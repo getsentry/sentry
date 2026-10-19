@@ -204,15 +204,7 @@ class ProjectDebugFile(Model):
     __repr__ = sane_repr("object_name", "cpu_name", "debug_id")
 
     def uses_objectstore_for_read(self) -> bool:
-        if self.storage_path is None:
-            return False
-        if self.file is None:
-            return True
-
-        from sentry.models.project import Project
-
-        organization = Project.objects.get_from_cache(id=self.project_id).organization
-        return features.has("organizations:objectstore-debugfiles-read", organization)
+        return self.storage_path is not None
 
     def get_checksum(self) -> str:
         if self.uses_objectstore_for_read():

@@ -534,7 +534,7 @@ class CreateDebugFileTest(APITestCase):
         assert session.get(storage_path) is None
 
     @requires_objectstore
-    def test_read_gate_prefers_legacy_file_when_disabled(self) -> None:
+    def test_read_prefers_objectstore_when_available(self) -> None:
         legacy_content = b"legacy-content"
         objectstore_content = b"objectstore-content"
         with self.feature("organizations:objectstore-debugfiles-write"):
@@ -549,21 +549,16 @@ class CreateDebugFileTest(APITestCase):
         dif.storage_path = replacement_storage_path
         dif.save(update_fields=["storage_path"])
 
-        assert dif.get_file().read() == legacy_content
-
-        with self.feature("organizations:objectstore-debugfiles-read"):
-            assert dif.get_file().read() == objectstore_content
+        assert dif.file.getfile().read() == legacy_content
+        assert dif.get_file().read() == objectstore_content
 
     @requires_objectstore
-    def test_read_gate_does_not_fall_back_when_objectstore_read_fails(self) -> None:
+    def test_read_does_not_fall_back_when_objectstore_read_fails(self) -> None:
         with self.feature("organizations:objectstore-debugfiles-write"):
             dif, created = self.create_dif_from_content(b"legacy-content")
 
         assert created
-        with (
-            self.feature("organizations:objectstore-debugfiles-read"),
-            patch.object(dif, "get_objectstore_session") as get_session,
-        ):
+        with patch.object(dif, "get_objectstore_session") as get_session:
             get_session.return_value.get.side_effect = RuntimeError("Objectstore unavailable")
             with pytest.raises(RuntimeError):
                 dif.get_file()
