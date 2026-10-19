@@ -1,6 +1,7 @@
 import time
 import uuid
 from functools import cached_property
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -58,6 +59,23 @@ class MigratingBackendTestCase(TestCase):
             with self.backend.digest("timeline", 0) as new_records:
                 assert [record.key for record in new_records] == ["record:2"]
             assert [record.key for record in old_records] == ["record:1"]
+
+    @patch("sentry.digests.backends.migrating.metrics")
+    def test_digest_counts_the_backend_that_served_it(self, mock_metrics: MagicMock) -> None:
+        self.backend.old.add("old-timeline", self.record("record:1"))
+        self.backend.new.add("new-timeline", self.record("record:2"))
+
+        # A failed delivery still counts, so a timeline that keeps failing on old is visible.
+        with pytest.raises(Exception, match="delivery failed"):
+            with self.backend.digest("old-timeline", 0):
+                raise Exception("delivery failed")
+        with self.backend.digest("new-timeline", 0):
+            pass
+
+        assert mock_metrics.incr.call_args_list == [
+            call("digests.migrating.digest", tags={"backend": "old"}, sample_rate=1.0),
+            call("digests.migrating.digest", tags={"backend": "new"}, sample_rate=1.0),
+        ]
 
     def add_waiting(self, backend: Backend, key: str) -> None:
         backend.add(key, self.record("record:1"))
