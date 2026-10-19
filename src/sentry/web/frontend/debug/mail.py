@@ -480,8 +480,8 @@ def alert(request: HttpRequest) -> HttpResponse:
     origin = NotificationOrigin(
         label="An example rule",
         environment_id=None,
-        workflow_id=None,
-        legacy_rule_id=1,
+        workflow_id=1,
+        legacy_rule_id=None,
     )
     notification_reason = (
         random.randint(0, 1) > 0
@@ -523,8 +523,8 @@ def digest(request: HttpRequest) -> HttpResponse:
         i: NotificationOrigin(
             label=f"Rule #{i}",
             environment_id=None,
-            workflow_id=None,
-            legacy_rule_id=i,
+            workflow_id=i,
+            legacy_rule_id=None,
         )
         for i in range(1, random.randint(2, 4))
     }
