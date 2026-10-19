@@ -98,6 +98,7 @@ export function MenuSubmenu({label, children, disabled, textValue}: MenuSubmenuP
           setSearch,
         }}
       >
+        {/* Nested items must not affect the parent section's search visibility. */}
         <SectionContext value={null}>{children}</SectionContext>
       </MenuContext>
     </Container>
