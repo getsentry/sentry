@@ -18,6 +18,7 @@ import {
   getTimelineColorByOpType,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {isCodeModeNode} from 'sentry/views/insights/pages/agents/utils/codeMode';
 import {isEvaluationNode} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {isMemoryNode} from 'sentry/views/insights/pages/agents/utils/memory';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
@@ -60,12 +61,13 @@ interface AiSpanStatusIconProps {
  */
 export function AiSpanStatusIcon({node}: AiSpanStatusIconProps) {
   const theme = useTheme();
+  const isCodeMode = isCodeModeNode(node);
   const hasErrors = hasError(node);
   const iconColor = getSpanColor(node, getTimelineColorByOpType(theme));
 
   return (
     <Flex align="center" position="relative" style={{color: iconColor}} flexShrink={0}>
-      {operationTypeIcon(node)}
+      {isCodeMode ? <IconCode size="md" /> : operationTypeIcon(node)}
       {hasErrors && (
         <Tooltip title={t('This span encountered an error')} skipWrapper>
           <Container

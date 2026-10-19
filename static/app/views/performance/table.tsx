@@ -21,7 +21,7 @@ import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery'
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {MEPConsumer} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -146,6 +146,7 @@ export function Table({
 
   function sendUnparameterizedAnalytic(project: Project | undefined) {
     const statsPeriod = eventView.statsPeriod ?? 'other';
+    // oxlint-disable-next-line react/todo
     const projectMetadata = getProjectWithinMetadata(project);
 
     trackAnalytics('performance_views.landing.table.unparameterized', {

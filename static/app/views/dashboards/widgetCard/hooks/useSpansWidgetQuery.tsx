@@ -34,11 +34,11 @@ import {encodeSort} from 'sentry/utils/queryString';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {
   getSeriesRequestData,
   convertEventStatsRequestDataToEventTimeseriesQueryParams,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {spansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
@@ -55,7 +55,6 @@ import {
 } from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
 import {
   getConditionalFilterInvalidSeriesMessageForAggregates,
   getValidAggregatesForRequest,
@@ -237,7 +236,6 @@ export function useSpansSeriesQuery(
     return {
       requestData,
       skippedForInvalidConditionalFilter,
-      widgetQuery: widgetForRequest.queries[queryIndex]!,
     };
   });
 
@@ -324,25 +322,6 @@ export function useSpansSeriesQuery(
     combine,
   });
 
-  useEventsTimeseriesSpotCheck({
-    config: SpansConfig,
-    enabled,
-    statsQueryResults: queryResults,
-    organization,
-    pageFilters,
-    widget: filteredWidget,
-    timeSeriesQueries: seriesRequests.map(
-      ({requestData, skippedForInvalidConditionalFilter, widgetQuery}) =>
-        skippedForInvalidConditionalFilter
-          ? undefined
-          : {
-              params:
-                convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-              widgetQuery,
-            }
-    ),
-  });
-
   const transformedData = (() => {
     if (allQueriesSkippedForConditionalFilter) {
       return {
@@ -393,7 +372,7 @@ export function useSpansSeriesQuery(
         requestIndex
       ).queries[requestIndex]!;
 
-      const transformedResult = SpansConfig.transformSeries!(
+      const transformedResult = spansResponseTransforms.transformSeries!(
         responseData,
         queryForTransform,
         organization
@@ -408,11 +387,11 @@ export function useSpansSeriesQuery(
       });
 
       // Get result types and units from config
-      const resultTypes = SpansConfig.getSeriesResultType?.(
+      const resultTypes = spansResponseTransforms.getSeriesResultType?.(
         responseData,
         queryForTransform
       );
-      const resultUnits = SpansConfig.getSeriesResultUnit?.(
+      const resultUnits = spansResponseTransforms.getSeriesResultUnit?.(
         responseData,
         queryForTransform
       );
@@ -637,7 +616,7 @@ export function useSpansTableQuery(
       ]!;
 
       const transformedDataItem: TableDataWithTitle = {
-        ...SpansConfig.transformTable(
+        ...spansResponseTransforms.transformTable(
           responseData,
           queryForTransform,
           organization,
@@ -649,7 +628,9 @@ export function useSpansTableQuery(
       const meta = transformedDataItem.meta;
       const fieldMeta = queryForTransform.fieldMeta;
       if (fieldMeta && meta) {
+        // oxlint-disable-next-line react/todo
         const units = (meta.units ??= {});
+        // oxlint-disable-next-line react/todo
         const fields = (meta.fields ??= {});
         fieldMeta.forEach((m, index) => {
           const field = queryForTransform.fields?.[index];

@@ -1,6 +1,9 @@
 import {t, tn} from 'sentry/locale';
 import type {SeerStatusBlockVariant} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
-import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
+import type {
+  InvestigationOrchestration,
+  InvestigationToolActivity,
+} from 'sentry/views/investigations/types';
 
 type SeerStatusBlockContent = {
   statusLabel: string;
@@ -8,7 +11,69 @@ type SeerStatusBlockContent = {
   variant: SeerStatusBlockVariant;
   description?: string;
   meta?: string;
+  toolActivity?: InvestigationToolActivity[];
 };
+
+/**
+ * The tool calls behind the phase the run is in, latest last.
+ *
+ * Each phase keeps its own list on the projection — the broad scan, each
+ * hypothesis under investigation, the report block being written — so the
+ * phase picks which one is current. Only hypotheses still being investigated
+ * contribute: a settled one's calls are history, not activity.
+ */
+function getToolActivity(
+  projection: InvestigationOrchestration
+): InvestigationToolActivity[] | undefined {
+  let activity: InvestigationToolActivity[] = [];
+  switch (projection.phase) {
+    case 'intake':
+    case 'broad_scan':
+      activity = projection.broadScan.toolActivity ?? [];
+      break;
+    case 'investigating':
+    case 'judging':
+      activity = projection.hypotheses
+        .filter(hypothesis => hypothesis.effectiveStatus === 'investigating')
+        .flatMap(hypothesis => hypothesis.toolActivity ?? []);
+      break;
+    case 'reporting':
+    case 'metadata':
+      activity = projection.report.currentBlockToolActivity ?? [];
+      break;
+    default:
+      break;
+  }
+  return activity.length ? inFlightLast(activity) : undefined;
+}
+
+/**
+ * Where a call sorts relative to the others: settled, then queued, then running.
+ * Statuses this code does not know yet are treated as settled.
+ */
+const IN_FLIGHT_RANK: Partial<Record<InvestigationToolActivity['status'], number>> = {
+  queued: 1,
+  running: 2,
+};
+
+/**
+ * Moves calls still in flight to the end, keeping the order within each group.
+ *
+ * Each list on the projection is latest-last on its own, but hypotheses are
+ * investigated in parallel and their calls carry no timestamp, so joining
+ * their lists end to end does not give a timeline: one hypothesis's finished
+ * call can land after another's running one. The block shows the last call as
+ * what the agent is doing now, and a running call is the best evidence of that,
+ * so it wins.
+ */
+function inFlightLast(
+  activity: InvestigationToolActivity[]
+): InvestigationToolActivity[] {
+  return activity
+    .map((call, index) => ({call, index, rank: IN_FLIGHT_RANK[call.status] ?? 0}))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map(({call}) => call);
+}
 
 /**
  * How many checks have produced something across every hypothesis.
@@ -67,6 +132,11 @@ function getFailureMessage(projection: InvestigationOrchestration): string | und
 function getRunningContent(
   projection: InvestigationOrchestration
 ): SeerStatusBlockContent {
+  return {...getRunningCopy(projection), toolActivity: getToolActivity(projection)};
+}
+
+/** The words for a running run; the tool calls are added by the caller. */
+function getRunningCopy(projection: InvestigationOrchestration): SeerStatusBlockContent {
   const causeCount = projection.hypotheses.length;
 
   switch (projection.phase) {

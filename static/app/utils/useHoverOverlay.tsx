@@ -20,6 +20,7 @@ import {
 import {mergeProps} from '@react-aria/utils';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
+import type {Theme} from '@sentry/scraps/theme';
 
 import {NODE_ENV} from 'sentry/constants/env';
 import type {OverlayPlacement} from 'sentry/utils/overlayPositioning';
@@ -28,7 +29,6 @@ import {
   placementMiddleware,
   shiftOverlay,
 } from 'sentry/utils/overlayPositioning';
-import type {Theme} from 'sentry/utils/theme';
 
 import {useStableMergeRef} from './useStableMergeRef';
 

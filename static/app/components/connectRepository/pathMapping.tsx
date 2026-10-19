@@ -20,6 +20,7 @@ interface PathMappingProps {
   enableDelete?: boolean;
   projectSlug?: string;
   providerKey?: string;
+  repositoryId?: string;
   warning?: PathMappingWarning;
 }
 
@@ -35,6 +36,7 @@ export function PathMapping({
   defaultBranch,
   projectSlug,
   providerKey,
+  repositoryId,
   warning,
 }: PathMappingProps) {
   const showSummary = !(editing && isNew);
@@ -62,6 +64,7 @@ export function PathMapping({
           providerKey={providerKey}
           defaultBranch={defaultBranch}
           projectSlug={projectSlug}
+          repositoryId={repositoryId}
           hasCodeOwner={value.hasCodeOwner}
           warning={warning}
           onDelete={editorOnDelete}

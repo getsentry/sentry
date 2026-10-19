@@ -106,7 +106,9 @@ class TestParseFormula(TestCase):
         self.resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
 
     def test_parse_formula_wrong_args(self) -> None:
-        with pytest.raises(InvalidSearchQuery, match="formula.apdex expected 2 arguments got 5"):
+        with pytest.raises(
+            InvalidSearchQuery, match=f"{self.formula.name} expected 2 arguments got 5"
+        ):
             resolve_and_parse_formula(
                 self.formula, ["300", "300", "300", "300", "300"], self.resolver
             )

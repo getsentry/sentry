@@ -63,7 +63,7 @@ import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/trace
 import {BreadCrumbs} from 'sentry/views/performance/traceDetails/traceDrawer/details/transaction/sections/breadCrumbs';
 import {ReplayPreview} from 'sentry/views/performance/traceDetails/traceDrawer/details/transaction/sections/replayPreview';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 
 import {LogDetails} from './components/logDetails';

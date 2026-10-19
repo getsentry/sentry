@@ -161,12 +161,7 @@ class RenderTemplateLinkTrackingTest(TestCase):
             group_id=group.id,
             event_id=event.event_id,
             notification_uuid="test-uuid",
-            rule=SerializableRuleProxy(
-                id=1,
-                label="Test workflow",
-                data={"actions": [{"workflow_id": 1}]},
-                project_id=self.project.id,
-            ),
+            rule=SerializableRuleProxy(label="Test workflow", workflow_id=1),
         )
 
         for provider_key in (

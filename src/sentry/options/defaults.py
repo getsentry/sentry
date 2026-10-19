@@ -729,6 +729,15 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Reject Bitbucket Server webhooks without a valid signature. While off, signatures are still
+# checked and reported in the `bitbucket_server.webhook.signature` metric, but never rejected.
+register(
+    "bitbucket_server.webhook.signature-enforcement.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1598,6 +1607,13 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Stops logging FIRST_SEEN when ingest creates a group.
+register(
+    "issues.action_log.first_seen_on_create.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "issues.backfill_group_action_log.killswitch",
     type=Bool,
@@ -1789,7 +1805,7 @@ register(
 )
 # Suppresses working-cache keys only for events entering in the inline cohort.
 # Keyless events remain inline after rollout changes; keyed events keep writing.
-# Unprocessed backups and cleanup remain in Redis.
+# Unprocessed backups are also passed inline instead of being written to Redis.
 register(
     "store.disable-processing-store",
     type=Bool,
@@ -3643,13 +3659,6 @@ register(
 )
 
 # Notification Options - Start
-register(
-    "notifications.issue-alerts.disable-rule-snooze",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Options for migrating to the notification platform
 # Notifications for internal testing
 register(
@@ -3678,6 +3687,14 @@ register(
 # Notifications for general access organizations
 register(
     "notifications.platform-rollout.general-access",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Providers allowed to send each alert source through the notification platform
+register(
+    "notifications.platform.alert-providers",
     type=Dict,
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,

@@ -15,6 +15,57 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
+class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-events-timeseries"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.org = self.create_organization(owner=self.user)
+
+    def test_invalid_transformations_with_no_projects(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
+            }
+        ):
+            response = self.get_error_response(
+                self.org.slug, **{"transformations[-1]": ["fill(locf)"]}, status_code=400
+            )
+
+        assert response.data == {"detail": "Invalid transformations index"}
+
+    def test_invalid_transformation_function_with_no_projects(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
+            }
+        ):
+            response = self.get_error_response(
+                self.org.slug, **{"transformations[0]": ["smooth(linear,3)"]}, status_code=400
+            )
+
+        assert response.data == {
+            "detail": "smooth(linear,3): mode argument invalid: expected one of sma, ema, asap"
+        }
+
+    def test_transformations_ignored_when_feature_disabled(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": False,
+            }
+        ):
+            response = self.get_success_response(
+                self.org.slug,
+                **{"transformations[-1]": ["fill(locf)"], "transformations[0]": ["fill(sma)"]},
+            )
+
+        assert response.data == {"timeSeries": []}
+
+
 class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-timeseries"
 
@@ -107,6 +158,11 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "end": self.end,
                 "interval": "1h",
                 "project": [self.project.id, self.project2.id],
+                "transformations[0]": ["fill(locf)", "smooth(sma,3)"],
+            },
+            features={
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
             },
         )
         assert response.status_code == 200, response.content
