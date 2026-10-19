@@ -1200,7 +1200,7 @@ class ReplayParams:
         required=False,
         many=True,
         type=str,
-        description="""Specifies a field that should be marshaled in the output. Omit to return all fields.""",
+        description="""A field to include in the response. Repeat to include several fields. Omit to return all fields.""",
     )
 
 

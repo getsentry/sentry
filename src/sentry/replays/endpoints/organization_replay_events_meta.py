@@ -57,7 +57,7 @@ REPLAY_EVENTS_META_DATASET = OpenApiParameter(
     location="query",
     required=False,
     type=str,
-    description="""Which dataset to query. Defaults to `discover`. Use `errors` for error events or `issuePlatform` for issue platform occurrences (e.g. rage clicks).""",
+    description="""The dataset to query. Defaults to `discover`. Use `errors` for errors only, or `issuePlatform` for other issue types, such as rage clicks.""",
 )
 
 
