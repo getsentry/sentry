@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -12,16 +13,18 @@ from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIn
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
+from sentry.notifications.types import NotificationActionContext
 from sentry.rules import rules
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.integrations import get_installation_of_type
-from sentry.testutils.helpers.notifications import create_notification_action_context
+from sentry.testutils.helpers.notifications import create_action_context_for_workflow
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
+from sentry.workflow_engine.models import Action
 
 pytestmark = [requires_snuba]
 
@@ -75,10 +78,13 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
         with patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
-    def trigger(self, event, rule_object):
-        action = rule_object.data.get("actions", ())[0]
-        context = create_notification_action_context(rule_object)
-        action_inst = self.get_rule(data=action, context=context)
+    def trigger(
+        self,
+        event: GroupEvent,
+        action_data: dict[str, Any],
+        context: NotificationActionContext,
+    ) -> object:
+        action_inst = self.get_rule(data=action_data, context=context)
         results = list(action_inst.after(event=event))
         assert len(results) == 1
 
@@ -127,28 +133,32 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
             status=200,
         )
 
-        # Create a new Rule
-        rule_object = self.create_project_rule(
-            project=self.project,
-            name="hello world",
-            action_match="any",
-            frequency=5,
-            action_data=[
-                {
-                    "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-                    "integration": self.integration.id,
-                    "dynamic_form_fields": [{"random": "garbage"}],
+        action_data = {
+            "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
+            "integration": self.integration.id,
+            "dynamic_form_fields": [{"random": "garbage"}],
+            "repo": self.repo,
+            "assignee": self.assignee,
+            "labels": self.labels,
+        }
+        workflow = self.create_workflow(name="hello world")
+        action = self.create_action(
+            type=Action.Type.GITHUB_ENTERPRISE,
+            integration_id=self.integration.id,
+            data={
+                "additional_fields": {
                     "repo": self.repo,
                     "assignee": self.assignee,
                     "labels": self.labels,
                 }
-            ],
+            },
         )
+        context = create_action_context_for_workflow(workflow, action, self.project)
 
         event = self.get_group_event()
 
         # Trigger its `after`
-        self.trigger(event, rule_object)
+        self.trigger(event, action_data, context)
 
         # assert ticket created in DB
         key = self.get_key(event)
@@ -176,7 +186,7 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
         assert sample_description in data["description"]
 
         # Trigger its `after` _again_
-        self.trigger(event, rule_object)
+        self.trigger(event, action_data, context)
 
         # assert new ticket NOT created in DB
         assert ExternalIssue.objects.count() == external_issue_count

@@ -1,16 +1,19 @@
+from typing import Any
+
 import responses
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.integrations.jira_server import JiraServerCreateTicketAction, JiraServerIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationActionContext
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers.notifications import create_notification_action_context
+from sentry.testutils.helpers.notifications import create_action_context_for_workflow
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
+from sentry.workflow_engine.models import Action
 from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
 
 pytestmark = [requires_snuba]
@@ -46,10 +49,13 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         self.installation = self.integration.get_installation(self.organization.id)
         self.login_as(user=self.user)
 
-    def trigger(self, event: GroupEvent, rule_object: Rule) -> object:
-        action = rule_object.data.get("actions", ())[0]
-        context = create_notification_action_context(rule_object)
-        action_inst = self.get_rule(data=action, context=context)
+    def trigger(
+        self,
+        event: GroupEvent,
+        action_data: dict[str, Any],
+        context: NotificationActionContext,
+    ) -> object:
+        action_inst = self.get_rule(data=action_data, context=context)
         results = list(action_inst.after(event=event))
         assert len(results) == 1
 
@@ -153,28 +159,24 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             status=200,
         )
 
-        # Create a new Rule
-        rule_object = self.create_project_rule(
-            project=self.project,
-            name="hello world",
-            action_match="any",
-            frequency=5,
-            action_data=[
-                {
-                    "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
-                    "integration": self.integration.id,
-                    "dynamic_form_fields": [{"name": "project"}],
-                    "issuetype": "1",
-                    "name": "Create a Jira ticket in the Jira Cloud account",
-                    "project": "10000",
-                }
-            ],
+        action_data = {
+            "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+            "integration": self.integration.id,
+            "dynamic_form_fields": [{"name": "project"}],
+            "issuetype": "1",
+            "name": "Create a Jira ticket in the Jira Cloud account",
+            "project": "10000",
+        }
+        workflow = self.create_workflow(name="hello world")
+        action = self.create_action(
+            type=Action.Type.JIRA_SERVER, integration_id=self.integration.id
         )
+        context = create_action_context_for_workflow(workflow, action, self.project)
 
         event = self.get_group_event()
 
         # Trigger its `after`
-        self.trigger(event, rule_object)
+        self.trigger(event, action_data, context)
 
         # assert ticket created in DB
         key = self.get_key(event)
@@ -187,7 +189,7 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         assert sample_description in data["description"]
 
         # Trigger its `after` _again_
-        self.trigger(event, rule_object)
+        self.trigger(event, action_data, context)
 
         # assert new ticket NOT created in DB
         assert ExternalIssue.objects.count() == external_issue_count

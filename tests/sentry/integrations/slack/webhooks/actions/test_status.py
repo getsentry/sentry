@@ -923,14 +923,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     def test_response_differs_on_bot_message(self, _mock_view_updates_open: MagicMock) -> None:
         status_action = self.get_archive_status_action()
         original_message = self.get_original_message(self.group.id)
-        workflow_id = create_workflow_notification_origin_for_rule(self.rule).workflow_id
-        assert workflow_id is not None
-        callback_id = orjson.dumps({"issue": self.group.id, "workflow": workflow_id}).decode()
+        workflow_id = self.workflow.id
 
         resp = self.post_webhook_block_kit(
             action_data=[status_action],
             original_message=original_message,
-            callback_id=callback_id,
         )
         assert resp.status_code == 200, resp.content
 
@@ -1237,11 +1234,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_rule_from_same_organization_resolves_workflow(self, mock_tags: MagicMock) -> None:
-        workflow_id = create_workflow_notification_origin_for_rule(self.rule).workflow_id
+        rule = self.create_project_rule(project=self.project)
+        workflow_id = create_workflow_notification_origin_for_rule(rule).workflow_id
         assert workflow_id is not None
         status_action = self.get_mark_ongoing_action()
         original_message = self.get_original_message(self.group.id)
-        callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
+        callback_id = orjson.dumps({"issue": self.group.id, "rule": rule.id}).decode()
 
         resp = self.post_webhook_block_kit(
             action_data=[status_action],
@@ -1277,8 +1275,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @patch("sentry.utils.metrics.backend.inner.incr")
     def test_rule_lookup_metric_with_rule(self, metrics_incr: MagicMock) -> None:
-        create_workflow_notification_origin_for_rule(self.rule)
-        callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
+        rule = self.create_project_rule(project=self.project)
+        create_workflow_notification_origin_for_rule(rule)
+        callback_id = orjson.dumps({"issue": self.group.id, "rule": rule.id}).decode()
 
         response = self.post_webhook_block_kit(
             action_data=[self.get_mark_ongoing_action()],
