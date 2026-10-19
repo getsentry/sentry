@@ -1,6 +1,7 @@
 from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, call, patch
+from urllib.parse import quote
 from uuid import uuid4
 
 from django.urls import reverse
@@ -451,6 +452,27 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             f"{conversation_id}/"
         )
         assert response.data["spans"] == []
+
+    def test_conversation_id_with_slash(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id = "user/123"
+        self._store_conversation_span(conversation_id, now)
+
+        # The frontend sends %2F, which the server decodes to / before URL routing.
+        response = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/agents/conversations/"
+            f"{quote(conversation_id, safe='')}/",
+            {
+                "project": [self.project.id],
+                "start": (now - timedelta(hours=1)).isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data["conversationId"] == conversation_id
+        assert len(response.data["spans"]) == 1
 
     def test_memory_span_attributes(self) -> None:
         now = before_now(days=20).replace(microsecond=0)

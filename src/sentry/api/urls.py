@@ -1852,12 +1852,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-agent-conversations",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/(?P<conversation_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/ai-conversations/(?P<conversation_id>.+)/$",
         OrganizationAIConversationDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-ai-conversation-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/agents/conversations/(?P<conversation_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/agents/conversations/(?P<conversation_id>.+)/$",
         OrganizationAIConversationDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-agent-conversation-details",
     ),
