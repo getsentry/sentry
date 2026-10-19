@@ -292,6 +292,25 @@ class TestJWTClientSecretAuthentication(TestCase):
         mock_logger.warning.assert_called_once()
         assert mock_logger.warning.call_args.args[0] == "client_secret_jwt_auth.jti_reused"
 
+    def test_jwt_cannot_be_used_for_another_installation(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        other_installation = self.create_sentry_app_installation(
+            organization=other_org, slug=self.sentry_app.slug, user=self.user
+        )
+        token = self._create_jwt(self.api_app.client_id)
+
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        user, _ = self.auth.authenticate(request)
+        assert user.id == self.sentry_app.proxy_user.id
+
+        other_path = f"/api/0/sentry-app-installations/{other_installation.uuid}/authorizations/"
+        request2 = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=other_path)
+        request2.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        with pytest.raises(AuthenticationFailed, match="JWT has already been used"):
+            self.auth.authenticate(request2)
+
     def test_jwt_cannot_be_used_twice_before_expiration(self) -> None:
         now = datetime.now(UTC)
         path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
