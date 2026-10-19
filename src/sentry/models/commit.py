@@ -39,6 +39,7 @@ class Commit(Model):
 
     organization_id = BoundedBigIntegerField(db_index=True)
     repository_id = BoundedPositiveIntegerField()
+    new_repository_id = BoundedBigIntegerField(null=True)
     key = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
     # all commit metadata must be optional, as it may not be available
