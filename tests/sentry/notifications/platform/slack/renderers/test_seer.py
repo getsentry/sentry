@@ -42,9 +42,11 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationRenderedTemplate,
 )
+from sentry.seer.agent.client_models import PushLogEntry, PushOutcome, PushRequest
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
 def link_decorator(data: NotificationData) -> NotificationLinkDecorator:
@@ -639,3 +641,56 @@ class SeerSlackRendererInvestigationTest(TestCase):
         assert button.url == data.investigation_url
         assert button.style == "primary"
         assert button.value == "link_clicked"
+
+
+PR_7_URL = "https://gh/acme/web/pull/7"
+
+
+def _push(
+    outcome: PushOutcome | None, action: str = "create", target_pr_number: int | None = None
+) -> PushLogEntry:
+    return PushLogEntry(
+        request=PushRequest(
+            repo_name="acme/web",
+            action=action,
+            idempotency_key="codemode:1",
+            target_pr_number=target_pr_number,
+            target_pr_url=PR_7_URL if target_pr_number else None,
+        ),
+        outcome=outcome,
+    )
+
+
+@django_db_all
+def test_render_agent_response_lists_pushes_under_the_summary() -> None:
+    completed = PushOutcome(status="completed", pr_number=7, pr_url=PR_7_URL)
+    data = SeerAgentResponse(
+        run_id=MOCK_RUN_ID,
+        organization_id=1,
+        summary="Opened it",
+        pushes=[
+            _push(None),
+            _push(None, action="update", target_pr_number=7),
+            _push(completed),
+            _push(completed, action="update", target_pr_number=7),
+            # No PR on the outcome, so the link comes from the update's target PR.
+            _push(PushOutcome(status="no_changes"), action="update", target_pr_number=7),
+            _push(PushOutcome(status="error", error="boom")),
+        ],
+    )
+
+    renderable = SeerSlackRenderer._render_agent_response(data, link_decorator(data))
+
+    _summary, footer = renderable["blocks"]
+    assert isinstance(footer, ContextBlock)
+    (text,) = footer.elements
+    assert isinstance(text, MarkdownTextObject)
+    pr_link = "<https://gh/acme/web/pull/7|acme/web#7>"
+    assert text.text.splitlines() == [
+        "Creating a PR in `acme/web`...",
+        f"Updating {pr_link}...",
+        f"Created {pr_link}",
+        f"Updated {pr_link}",
+        f"No new changes to push to {pr_link}",
+        "Couldn't push to `acme/web`",
+    ]

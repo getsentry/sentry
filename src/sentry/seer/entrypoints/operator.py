@@ -1106,6 +1106,7 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
 class SeerOperatorCompletionHook(AgentOnCompletionHook):
     """Completion hook that queues a refresh of every entrypoint for a Seer Agent run.
 
+    Seer calls it when an invocation yields and when a PR push the agent queued finishes.
     It only queues the work, so Seer gets a quick success; the task does the refresh and retries.
     """
 

@@ -17,6 +17,7 @@ from sentry.notifications.platform.types import (
     PlainTextBlock,
 )
 from sentry.organizations.services.organization.service import organization_service
+from sentry.seer.agent.client_models import PushLogEntry
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 
@@ -195,6 +196,8 @@ class SeerAgentResponse(NotificationData):
     run_id: int
     summary: str
     missing_scope_settings_url: str | None = None
+    # The PR pushes the agent queued this turn.
+    pushes: list[PushLogEntry] = Field(default_factory=list)
     source: NotificationSource = NotificationSource.SEER_AGENT_RESPONSE
 
 

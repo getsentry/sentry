@@ -24,7 +24,11 @@ from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
     PendingUserInput,
+    PushLogEntry,
+    PushOutcome,
+    PushRequest,
     SeerRunState,
+    ToolResult,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
@@ -675,6 +679,13 @@ class SlackAutofixEntrypointTest(TestCase):
         mock_update_message.assert_not_called()
 
 
+def _creating_push() -> PushLogEntry:
+    """A new-PR push Seer has queued but not finished."""
+    return PushLogEntry(
+        request=PushRequest(repo_name="acme/web", action="create", idempotency_key="codemode:1")
+    )
+
+
 class SlackAgentEntrypointTest(TestCase):
     def setUp(self) -> None:
         self.slack_user_id = "UXXXXXXXXX2"
@@ -793,11 +804,25 @@ class SlackAgentEntrypointTest(TestCase):
             "input_id": "approval-1",
         }
 
-    def _block(self, block_id: str, role: str, content: str | None = None) -> MemoryBlock:
+    def _block(
+        self, block_id: str, role: str, content: str | None = None, push_key: str | None = None
+    ) -> MemoryBlock:
+        calls = (
+            [{"name": "write_pull_request", "params": {"idempotency_key": push_key}}]
+            if push_key
+            else []
+        )
         return MemoryBlock(
             id=block_id,
             message=Message(role=role, content=content),
             timestamp="2024-01-01T00:00:00Z",
+            tool_results=[
+                ToolResult(
+                    tool_call_id="call-1",
+                    tool_call_function="execute",
+                    structuredContent={"calls": calls},
+                )
+            ],
         )
 
     def _state(
@@ -805,16 +830,18 @@ class SlackAgentEntrypointTest(TestCase):
         summary: str | None = "Test summary",
         *,
         status: str = "completed",
+        push_log: list[PushLogEntry] | None = None,
         pending_user_input: PendingUserInput | None = None,
     ) -> SeerRunState:
         blocks = [self._block("b1", "user", "hi")]
         if summary:
-            blocks.append(self._block("b2", "assistant", summary))
+            blocks.append(self._block("b2", "assistant", summary, push_key="codemode:1"))
         return SeerRunState(
             run_id=12345,
             blocks=blocks,
             status=status,
             updated_at="2024-01-01T00:00:00Z",
+            pr_push_log=push_log or [],
             pending_user_input=pending_user_input,
         )
 
@@ -845,7 +872,7 @@ class SlackAgentEntrypointTest(TestCase):
         assert isinstance(call_data, SeerAgentResponse)
         assert call_data.summary == "Test summary"
         assert call_data.missing_scope_settings_url is None
-        assert SlackSeerAgentReplyCache.get(run_id=12345) == {"b2": {"message_ts": "1.1"}}
+        assert SlackSeerAgentReplyCache.get(run_id=12345)["b2"]["message_ts"] == "1.1"
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
     def test_on_agent_update_with_no_summary(self, mock_send):
@@ -1044,3 +1071,76 @@ class SlackAgentEntrypointTest(TestCase):
         self._update(self._state())
 
         assert SlackSeerAgentReplyCache.get(run_id=12345) == {}
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=True,
+    )
+    def test_on_agent_update_lists_the_turns_pushes(self, _mock_scope, mock_send):
+        push = _creating_push()
+
+        self._update(self._state(push_log=[push]))
+
+        call_data = mock_send.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerAgentResponse)
+        assert call_data.pushes == [push]
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=False,
+    )
+    def test_on_agent_update_edits_an_answer_whose_push_finished(
+        self, _mock_scope, mock_send, mock_update
+    ):
+        creating = _creating_push()
+        self._update(self._state(push_log=[creating]))
+        done = creating.copy(
+            update={
+                "outcome": PushOutcome(
+                    status="completed", pr_number=7, pr_url="https://gh/acme/web/pull/7"
+                )
+            }
+        )
+
+        self._update(self._state(status="processing", push_log=[done]))
+
+        mock_send.assert_called_once()
+        mock_update.assert_called_once()
+        assert mock_update.call_args.kwargs["message_ts"] == "1.1"
+        blocks = str(mock_update.call_args.kwargs["renderable"]["blocks"])
+        assert "Test summary" in blocks
+        assert "Created <https://gh/acme/web/pull/7|acme/web#7>" in blocks
+        # The scope link is only looked up once per thread, so the edit reuses the posted one.
+        assert "/integrations/slack/" in blocks
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=True,
+    )
+    def test_on_agent_update_does_not_edit_when_pushes_are_unchanged(
+        self, _mock_scope, _mock_send, mock_update
+    ):
+        state = self._state(push_log=[_creating_push()])
+
+        self._update(state)
+        self._update(state)
+
+        mock_update.assert_not_called()
+
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update")
+    def test_on_agent_update_does_not_edit_a_reply_saved_without_pushes(
+        self, mock_send, mock_update
+    ):
+        # Replies saved before PR links existed have no pushes hash.
+        self._posted()
+
+        self._update(self._state(push_log=[_creating_push()]))
+
+        mock_send.assert_not_called()
+        mock_update.assert_not_called()

@@ -43,6 +43,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
 )
+from sentry.seer.agent.client_models import PushLogEntry
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 
 if TYPE_CHECKING:
@@ -352,6 +353,10 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
         from sentry.seer.endpoints.utils import get_seer_run
 
         blocks: list[Block] = [MarkdownBlock(text=data.summary)]
+        if data.pushes:
+            # Plain text links, not buttons: Slack sends button clicks back to us, and nothing handles them.
+            pushes_text = MarkdownTextObject(text=cls._render_agent_pushes(data))
+            blocks.append(ContextBlock(elements=[pushes_text]))
         try:
             organization = Organization.objects.get_from_cache(id=data.organization_id)
         except Organization.DoesNotExist:
@@ -382,6 +387,45 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
 
         return SlackRenderable(blocks=blocks, text="Seer Agent has finished")
+
+    @classmethod
+    def _render_agent_pushes(cls, data: SeerAgentResponse) -> str:
+        """One line per PR push, e.g. "Created acme/web#7"."""
+        lines = [cls._render_agent_push(push) for push in data.pushes]
+        return "\n".join(lines)
+
+    @staticmethod
+    def _render_agent_push(push: PushLogEntry) -> str:
+        request, outcome = push.request, push.outcome
+        repo_name = request.repo_name
+        # inline code for the repo name
+        repo_text = f"`{repo_name}`"
+
+        # An update knows its PR when queued; a new PR only has one once the push completes.
+        pr_url = (outcome and outcome.pr_url) or request.target_pr_url
+        pr_number = (outcome and outcome.pr_number) or request.target_pr_number
+        # Link to the PR once it exists, otherwise just name the repo.
+        if pr_url:
+            pr_text = f"<{pr_url}|{repo_name}#{pr_number}>"
+        else:
+            pr_text = repo_text
+
+        is_new_pr = request.action == "create"
+
+        match outcome.status if outcome else None:
+            case "completed":
+                if is_new_pr:
+                    return f"Created {pr_text}"
+                return f"Updated {pr_text}"
+            case "no_changes":
+                return f"No new changes to push to {pr_text}"
+            case "error":
+                return f"Couldn't push to {pr_text}"
+            case _:
+                # Still running. A new PR has no link yet, so name the repo.
+                if is_new_pr:
+                    return f"Creating a PR in {repo_text}..."
+                return f"Updating {pr_text}..."
 
     @classmethod
     def _render_link_button(
