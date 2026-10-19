@@ -336,6 +336,29 @@ describe('SnapshotListView', () => {
       });
     }
 
+    it('shrinks measured off-screen cards when their group is marked viewed', async () => {
+      render(
+        <ExampleSnapshotListView
+          items={[siblingGroup('Before'), changedGroup(45), siblingGroup('After')]}
+        />
+      );
+      const spacer = document.querySelector<HTMLElement>('[data-index]')!.parentElement!;
+      const scroller = spacer.parentElement!;
+      for (let top = 0; top < 19000; top += 2000) {
+        await scrollList(scroller, top);
+      }
+      await scrollList(scroller, 44 + 3 * 400 + 16);
+
+      await userEvent.click(
+        screen.getAllByRole('checkbox', {name: 'All in Screens viewed'})[0]!
+      );
+      await settleLayout();
+
+      expect(parseFloat(spacer.style.height)).toBeLessThan(
+        3 * 44 + 51 * 80 + 3 * 16 + 6 * 400
+      );
+    });
+
     it('keeps the same card visible through repeated group toggles from the middle', async () => {
       render(
         <ExampleSnapshotListView
