@@ -5,6 +5,8 @@ import sumBy from 'lodash/sumBy';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
@@ -84,7 +86,17 @@ export function MetricDetectorRecentIssues({
 
   return (
     <DetailSection
-      title={t('Recent Issues')}
+      title={
+        <Flex as="span" align="center" gap="sm">
+          {t('Recent Issues')}
+          <InfoTip
+            size="sm"
+            title={t(
+              'Sentry will open a new issue if your monitor has not breached in the past 24 hours'
+            )}
+          />
+        </Flex>
+      }
       trailingItems={
         <ViewAllIssuesButton
           detectorId={detector.id}

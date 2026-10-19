@@ -186,6 +186,23 @@ describe('MetricDetectorRecentIssues', () => {
     expect(viewAllQuery.get('sort')).toBe('date');
   });
 
+  it('explains when the monitor opens a new issue', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [],
+    });
+
+    render(<MetricDetectorRecentIssues detector={detector} />);
+
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
+
+    expect(
+      await screen.findByText(
+        'Sentry will open a new issue if your monitor has not breached in the past 24 hours'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('shows an empty state when the detector has no issues in range', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/open-periods/',
