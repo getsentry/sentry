@@ -3,6 +3,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -42,7 +43,6 @@ type Props = {
 const keySettingsSchema = z.object({
   name: z.string(),
   isActive: z.boolean(),
-  dateCreated: z.string(),
 });
 
 export function KeySettings({
@@ -147,20 +147,16 @@ export function KeySettings({
                   </field.Layout.Row>
                 )}
               </AutoSaveForm>
-              <AutoSaveForm
-                name="dateCreated"
-                schema={keySettingsSchema}
-                initialValue={data.dateCreated}
-                mutationOptions={mutationOptions}
-              >
-                {field => (
-                  <field.Layout.Row label={t('Created')}>
-                    <Text>
-                      <DateTime date={field.state.value} />
-                    </Text>
-                  </field.Layout.Row>
-                )}
-              </AutoSaveForm>
+              <DescriptionList columns="50% minmax(0, 1fr)" align="center" gap="xl">
+                <DescriptionList.Term>
+                  <Text>{t('Created')}</Text>
+                </DescriptionList.Term>
+                <DescriptionList.Details>
+                  <Text>
+                    <DateTime date={data.dateCreated} />
+                  </Text>
+                </DescriptionList.Details>
+              </DescriptionList>
             </FieldGroup>
 
             <KeyRateLimitsForm
