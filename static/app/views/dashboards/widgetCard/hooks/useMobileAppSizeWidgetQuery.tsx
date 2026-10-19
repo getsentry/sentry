@@ -27,7 +27,6 @@ import {
 import {combineWidgetQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type MobileAppSizeSeriesResponse =
@@ -145,19 +144,6 @@ export function useMobileAppSizeSeriesQuery(
       });
     }),
     combine: combineWidgetQueryResults,
-  });
-
-  useEventsTimeseriesSpotCheck({
-    config: mobileAppSizeResponseTransforms,
-    enabled,
-    statsQueryResults: queryResults,
-    organization,
-    pageFilters,
-    widget: filteredWidget,
-    timeSeriesQueries: seriesRequestData.map((requestData, queryIndex) => ({
-      params: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-      widgetQuery: filteredWidget.queries[queryIndex]!,
-    })),
   });
 
   const transformedData = (() => {
