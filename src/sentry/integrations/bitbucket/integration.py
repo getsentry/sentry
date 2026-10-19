@@ -252,6 +252,7 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     metadata = metadata
     scopes = scopes
     integration_cls = BitbucketIntegration
+    reject_pending_deletion_reinstall = True
     features = frozenset(
         [
             IntegrationFeatures.ISSUE_BASIC,

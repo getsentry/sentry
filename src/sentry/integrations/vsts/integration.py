@@ -557,6 +557,7 @@ class VstsIntegrationProvider(IntegrationProvider):
     api_version = "4.1"
     oauth_redirect_url = "/extensions/vsts/setup/"
     needs_default_identity = True
+    reject_pending_deletion_reinstall = True
     integration_cls = VstsIntegration
     CURRENT_MIGRATION_VERSION = 1
     NEW_SCOPES = ("offline_access", "499b84ac-1321-427f-aa17-267ca6975798/.default")
