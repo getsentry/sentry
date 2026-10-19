@@ -103,7 +103,7 @@ const MessagePartsStack = styled(Stack)`
 function ImagePlaceholder() {
   return (
     <Flex align="center" gap="sm" background="secondary" radius="md" padding="md">
-      <IconImage size="sm" color="subText" />
+      <IconImage size="sm" variant="muted" />
       <Text size="sm" variant="muted">
         {t('Image')}
       </Text>
