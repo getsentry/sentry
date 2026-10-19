@@ -30,6 +30,7 @@ SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset({SeerWorkflowStrategy.AGENTIC_
 
 
 class SeerWorkflowConfigExtras(BaseModel):
+    # The default strategy that seeded this config; unset for user-created configs.
     seeded_default: SeerWorkflowStrategy | None = None
 
 
