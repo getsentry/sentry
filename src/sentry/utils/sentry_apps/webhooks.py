@@ -245,12 +245,14 @@ def _webhook_timeout(
         return
 
     with sentry_sdk.traces.start_span(name="sentry-app.webhook.overridden_timeout") as span:
-        span.set_attributes({
-            "app_slug": installation.sentry_app.slug,
-            "organization_id": installation.organization_id,
-            "timeout_seconds": timeout_override,
-            "hard_timeout_seconds": hard_timeout_override,
-        })
+        span.set_attributes(
+            {
+                "app_slug": installation.sentry_app.slug,
+                "organization_id": installation.organization_id,
+                "timeout_seconds": timeout_override,
+                "hard_timeout_seconds": hard_timeout_override,
+            }
+        )
 
         with timeout_alarm(hard_timeout_override, _handle_webhook_timeout):
             yield timeout_override
