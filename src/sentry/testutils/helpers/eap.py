@@ -4,10 +4,10 @@ from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from django.http import QueryDict
-from rest_framework.test import APIClient
 
 from sentry.search.eap.constants import EAP_FULL_FIDELITY_QUERY_DAYS, FULL_RETENTION_ITEM_TYPES
 from sentry.snuba.utils import DATASET_OPTIONS, RPC_DATASETS
+from sentry.testutils.client import SentryAPIClient
 
 __all__ = [
     "EAP_DEFAULT_STATS_PERIOD",
@@ -111,7 +111,7 @@ def apply_eap_default_stats_period(query: Any, *, path: str | None = None) -> An
     return query
 
 
-class EAPClient(APIClient):
+class EAPClient(SentryAPIClient):
     """API client that defaults EAP queries to the full-fidelity window."""
 
     def generic(self, method: str, path: Any, data: Any = "", *args: Any, **extra: Any) -> Any:
