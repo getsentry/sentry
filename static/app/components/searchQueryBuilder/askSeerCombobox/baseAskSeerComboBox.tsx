@@ -11,7 +11,7 @@ import type {Primitive} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Container} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -323,7 +323,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
       <PositionedSearchIconContainer>
         <SearchIcon size="sm" />
       </PositionedSearchIconContainer>
-      <InputWrapper>
+      <Container width="100%" height="100%" position="relative">
         <InvisibleInput
           {...inputProps}
           autoComplete="off"
@@ -332,7 +332,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
           placeholder={t('Ask Seer with Natural Language')}
           ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}
         />
-      </InputWrapper>
+      </Container>
       <ButtonsWrapper>
         {hasQueryStatus ? (
           <AskSeerQueryStatusIndicator
@@ -493,12 +493,6 @@ const PositionedSearchIconContainer = styled('div')`
 const SearchIcon = styled(IconSearch)`
   color: ${p => p.theme.tokens.content.secondary};
   height: 22px;
-`;
-
-const InputWrapper = styled('div')`
-  position: relative;
-  width: 100%;
-  height: 100%;
 `;
 
 const InvisibleInput = styled('input')<{hasQueryStatus: boolean}>`

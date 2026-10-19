@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import {IconUser} from '@sentry/icons/user';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -82,12 +82,9 @@ export const BarContainer = styled('div')`
   margin-left: auto;
 `;
 
-export const FlexContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 100%;
-`;
+export function FlexContainer(props: FlexProps) {
+  return <Flex justify="end" align="center" width="100%" {...props} />;
+}
 
 export const UserIcon = styled(IconUser)`
   margin-left: ${p => p.theme.space.md};

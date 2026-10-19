@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {NoteBody} from 'sentry/components/activity/note/body';
@@ -118,14 +118,14 @@ function ActivityLineNoteHeadline({
         >
           {title}
         </ActivityLineNoteTitle>{' '}
-        <ActivityLineNoteMeta>
+        <Flex as="span" display="inline-flex" align="center" flexShrink={0} gap="xs">
           <Text as="span" variant="muted" density="comfortable">
             &bull;
           </Text>
           <Text as="span" variant="muted" density="comfortable" wrap="nowrap">
             {timestamp}
           </Text>
-        </ActivityLineNoteMeta>
+        </Flex>
       </ActivityLineNoteSentence>
       {actions ? (
         <ActivityLineNoteActions data-compact={variant === 'compact' ? true : undefined}>
@@ -162,13 +162,6 @@ const ActivityLineNoteSentence = styled('span')`
 
 const ActivityLineNoteTitle = styled(Text)`
   overflow-wrap: anywhere;
-`;
-
-const ActivityLineNoteMeta = styled('span')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  flex-shrink: 0;
 `;
 
 const ActivityLineNoteActions = styled('span')`

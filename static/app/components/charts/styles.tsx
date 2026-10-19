@@ -1,6 +1,13 @@
 import styled from '@emotion/styled';
 
-import {Flex, Grid, type FlexProps, type GridProps} from '@sentry/scraps/layout';
+import {
+  Flex,
+  Grid,
+  type FlexProps,
+  type GridProps,
+  Container,
+  type ContainerProps,
+} from '@sentry/scraps/layout';
 
 export const SectionHeading = styled('h4')`
   display: inline-grid;
@@ -81,6 +88,6 @@ export const HeaderValue = styled('div')`
   font-size: ${p => p.theme.font.size.xl};
 `;
 
-export const ChartContainer = styled('div')`
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space['2xl']};
-`;
+export function ChartContainer(props: ContainerProps) {
+  return <Container padding="xl 2xl" {...props} />;
+}
