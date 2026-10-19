@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {z} from 'zod';
 
 import {
@@ -9,6 +10,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Grid} from '@sentry/scraps/layout';
 
@@ -81,6 +83,16 @@ function AutoSaveTestForm({
       )}
     </AutoSaveForm>
   );
+}
+
+function blurDisabledCheckbox(checkbox: HTMLElement) {
+  // JSDOM does not emit blur or move focus when a focused input is disabled.
+  act(() => {
+    checkbox.dispatchEvent(new FocusEvent('blur'));
+    document.body.tabIndex = -1;
+    document.body.focus();
+    document.body.removeAttribute('tabindex');
+  });
 }
 
 describe('Checkbox.Group', () => {
@@ -169,6 +181,55 @@ describe('Checkbox.Group', () => {
     for (const checkbox of screen.getAllByRole('checkbox')) {
       expect(checkbox).toBeDisabled();
     }
+  });
+
+  it.each(['succeeds', 'fails'])(
+    'restores the focused checkbox after auto-save %s',
+    async outcome => {
+      const pendingSave = Promise.withResolvers<{scopes: string[]}>();
+      render(<AutoSaveTestForm mutationFn={() => pendingSave.promise} />);
+
+      const checkbox = screen.getByRole('checkbox', {name: 'Write'});
+      await userEvent.tab();
+      await userEvent.tab();
+      expect(checkbox).toHaveFocus();
+      await userEvent.keyboard(' ');
+      await waitFor(() => expect(checkbox).toBeDisabled());
+
+      blurDisabledCheckbox(checkbox);
+      expect(document.body).toHaveFocus();
+
+      if (outcome === 'succeeds') {
+        pendingSave.resolve({scopes: ['read', 'write']});
+      } else {
+        pendingSave.reject(new Error('Could not save'));
+      }
+
+      await waitFor(() => expect(checkbox).toBeEnabled());
+      expect(checkbox).toHaveFocus();
+    }
+  );
+
+  it('keeps focus on another control when auto-save completes', async () => {
+    const pendingSave = Promise.withResolvers<{scopes: string[]}>();
+    render(
+      <Fragment>
+        <AutoSaveTestForm mutationFn={() => pendingSave.promise} />
+        <Button>Other action</Button>
+      </Fragment>
+    );
+
+    const checkbox = screen.getByRole('checkbox', {name: 'Write'});
+    await userEvent.click(checkbox);
+    await waitFor(() => expect(checkbox).toBeDisabled());
+    blurDisabledCheckbox(checkbox);
+    const otherAction = screen.getByRole('button', {name: 'Other action'});
+    await userEvent.click(otherAction);
+
+    pendingSave.resolve({scopes: ['read', 'write']});
+
+    await waitFor(() => expect(checkbox).toBeEnabled());
+    expect(otherAction).toHaveFocus();
   });
 
   it('restores the saved selection when auto-save fails', async () => {

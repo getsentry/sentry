@@ -62,39 +62,39 @@ function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | n
 
 function useFocusRestore(ref: React.RefObject<HTMLElement | null>) {
   const autoSaveContext = useAutoSaveContext();
-  const hadFocusRef = useRef(false);
+  const focusRestoreTargetRef = useRef<HTMLElement | null>(null);
   const isDisabledByAutoSave = autoSaveContext?.status === 'pending';
 
-  // When the element loses focus because it was disabled during an auto-save,
-  // record that so we can restore focus when the mutation completes.
-  // The native blur listener fires synchronously during DOM commit (when React
-  // sets the disabled attribute), so we can check el.disabled at that point.
+  // Capture also observes blur from controls inside a group.
+  // Native blur fires during DOM commit, after React sets the disabled attribute.
   useEffect(() => {
     const el = ref.current;
     if (!el) {
       return;
     }
 
-    function onBlur() {
-      if (el?.hasAttribute('disabled')) {
-        hadFocusRef.current = true;
+    function onBlur(event: FocusEvent) {
+      const target = event.target;
+      if (target instanceof HTMLElement && target.hasAttribute('disabled')) {
+        focusRestoreTargetRef.current = target;
       }
     }
 
-    el.addEventListener('blur', onBlur);
-    return () => el.removeEventListener('blur', onBlur);
+    el.addEventListener('blur', onBlur, true);
+    return () => el.removeEventListener('blur', onBlur, true);
   }, [ref]);
 
   useEffect(() => {
-    if (!isDisabledByAutoSave && hadFocusRef.current) {
-      hadFocusRef.current = false;
+    if (!isDisabledByAutoSave && focusRestoreTargetRef.current) {
+      const target = focusRestoreTargetRef.current;
+      focusRestoreTargetRef.current = null;
       // Only restore focus if it's still on the body (i.e. the user hasn't
       // moved focus elsewhere while the mutation was in-flight).
-      if (document.activeElement === document.body) {
-        ref.current?.focus();
+      if (target.isConnected && document.activeElement === document.body) {
+        target.focus();
       }
     }
-  }, [isDisabledByAutoSave, ref]);
+  }, [isDisabledByAutoSave]);
 }
 
 type FieldState = {indicator: React.ReactNode};
