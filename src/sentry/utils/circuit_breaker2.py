@@ -411,8 +411,6 @@ class CircuitBreaker:
         self.limiter = RedisSlidingWindowRateLimiter(
             cluster=settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER
         )
-        self.redis_pipeline = self.limiter.client.pipeline()
-
         self.trip_strategy = trip_strategy
 
         # Initialize each strategy (validation and Redis quota setup happen here)
