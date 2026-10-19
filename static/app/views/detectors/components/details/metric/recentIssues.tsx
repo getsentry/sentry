@@ -25,6 +25,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useZoomToOpenPeriodRange} from 'sentry/views/detectors/components/details/common/useZoomToOpenPeriodRange';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getOpenPeriodDurationSeconds} from 'sentry/views/detectors/utils/getOpenPeriodDurationSeconds';
 import {
   groupOpenPeriodsByIssue,
   type IssueOpenPeriods,
@@ -44,16 +45,6 @@ const RECENT_ISSUE_COLUMNS: TableColumnConfig[] = [
   {key: 'openPeriods', width: 'min-content'},
   {key: 'zoom', width: 'min-content'},
 ];
-
-function getOpenPeriodDurationSeconds(openPeriod: GroupOpenPeriod, now: Date): number {
-  const openPeriodEnd = openPeriod.end ? new Date(openPeriod.end) : now;
-
-  const openPeriodEndMilliseconds = openPeriodEnd.getTime();
-
-  const openPeriodStartMilliseconds = new Date(openPeriod.start).getTime();
-
-  return (openPeriodEndMilliseconds - openPeriodStartMilliseconds) / 1000;
-}
 
 interface DateParams {
   end: string | undefined;
