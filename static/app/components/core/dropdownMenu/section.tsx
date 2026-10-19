@@ -28,7 +28,7 @@ export function DropdownMenuSection({node, children}: DropdownMenuSectionProps) 
           <Menu.ItemGroupLabel {...headingProps}>{node.rendered}</Menu.ItemGroupLabel>
         </Container>
       )}
-      <Menu.SectionGroupList {...groupProps}>{children}</Menu.SectionGroupList>
+      <Menu.SectionList {...groupProps}>{children}</Menu.SectionList>
     </Menu.SectionGroup>
   );
 }

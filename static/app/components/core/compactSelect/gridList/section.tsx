@@ -58,7 +58,7 @@ export function GridListSection<T extends ListItemBase>({
             {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
           </SectionHeader>
         )}
-        <Menu.SectionGroupList>
+        <Menu.SectionList>
           {childNodes.map(child => (
             <GridListOption
               key={child.key}
@@ -67,7 +67,7 @@ export function GridListSection<T extends ListItemBase>({
               size={size}
             />
           ))}
-        </Menu.SectionGroupList>
+        </Menu.SectionList>
       </Menu.SectionGroup>
     </Fragment>
   );

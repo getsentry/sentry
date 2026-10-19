@@ -64,7 +64,7 @@ export function ListBoxSection<T extends ListItemBase>({
             {showToggleAllButton && <SectionToggle item={item} listState={listState} />}
           </SectionHeader>
         )}
-        <Menu.SectionGroupList {...groupProps}>
+        <Menu.SectionList {...groupProps}>
           {childItems.map(child => (
             <ListBoxOption
               key={child.key}
@@ -74,7 +74,7 @@ export function ListBoxSection<T extends ListItemBase>({
               showDetails={showDetails}
             />
           ))}
-        </Menu.SectionGroupList>
+        </Menu.SectionList>
       </Menu.SectionGroup>
     </Fragment>
   );

@@ -58,7 +58,7 @@ function MenuSectionGroup(props: ContainerProps<'li'>) {
 }
 
 /** List wrapper for the items within a menu section. */
-function MenuSectionGroupList(props: ContainerProps<'ul'>) {
+function MenuSectionList(props: ContainerProps<'ul'>) {
   return <Container as="ul" role="presentation" margin="0" padding="0" {...props} />;
 }
 
@@ -516,7 +516,7 @@ export {
   SearchInput,
   MenuSectionGroup,
   MenuItemGroupLabel,
-  MenuSectionGroupList,
+  MenuSectionList,
   MenuSectionDivider,
   MenuFooterLayout,
   MenuListItem,
