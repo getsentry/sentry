@@ -55,7 +55,7 @@ export function ListBoxSection<T extends ListItemBase>({
   return (
     <Fragment>
       {showSectionHeaders && <SectionSeparator {...separatorProps} />}
-      <Menu.ItemGroup {...itemProps} data-index={dataIndex} ref={ref}>
+      <Menu.SectionGroup {...itemProps} data-index={dataIndex} ref={ref}>
         {(item.rendered || showToggleAllButton) && showSectionHeaders && (
           <SectionHeader>
             {item.rendered && (
@@ -64,7 +64,7 @@ export function ListBoxSection<T extends ListItemBase>({
             {showToggleAllButton && <SectionToggle item={item} listState={listState} />}
           </SectionHeader>
         )}
-        <Menu.ItemGroupList {...groupProps}>
+        <Menu.SectionGroupList {...groupProps}>
           {childItems.map(child => (
             <ListBoxOption
               key={child.key}
@@ -74,8 +74,8 @@ export function ListBoxSection<T extends ListItemBase>({
               showDetails={showDetails}
             />
           ))}
-        </Menu.ItemGroupList>
-      </Menu.ItemGroup>
+        </Menu.SectionGroupList>
+      </Menu.SectionGroup>
     </Fragment>
   );
 }

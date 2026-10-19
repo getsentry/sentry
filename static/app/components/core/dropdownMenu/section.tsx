@@ -22,13 +22,13 @@ export function DropdownMenuSection({node, children}: DropdownMenuSectionProps) 
   });
 
   return (
-    <Menu.ItemGroup {...itemProps}>
+    <Menu.SectionGroup {...itemProps}>
       {node.rendered && (
         <Container padding="md xl">
           <Menu.ItemGroupLabel {...headingProps}>{node.rendered}</Menu.ItemGroupLabel>
         </Container>
       )}
-      <Menu.ItemGroupList {...groupProps}>{children}</Menu.ItemGroupList>
-    </Menu.ItemGroup>
+      <Menu.SectionGroupList {...groupProps}>{children}</Menu.SectionGroupList>
+    </Menu.SectionGroup>
   );
 }

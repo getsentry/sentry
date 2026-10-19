@@ -53,12 +53,12 @@ function MenuSectionDivider() {
 }
 
 /** List item wrapper for a menu section. */
-function MenuItemGroupLayout(props: ContainerProps<'li'>) {
+function MenuSectionGroup(props: ContainerProps<'li'>) {
   return <Container as="li" display="block" {...props} />;
 }
 
 /** List wrapper for the items within a menu section. */
-function MenuItemGroupList(props: ContainerProps<'ul'>) {
+function MenuSectionGroupList(props: ContainerProps<'ul'>) {
   return <Container as="ul" role="presentation" margin="0" padding="0" {...props} />;
 }
 
@@ -514,9 +514,9 @@ export {
   MenuHeaderLayout,
   MenuHeading,
   SearchInput,
-  MenuItemGroupLayout,
+  MenuSectionGroup,
   MenuItemGroupLabel,
-  MenuItemGroupList,
+  MenuSectionGroupList,
   MenuSectionDivider,
   MenuFooterLayout,
   MenuListItem,
