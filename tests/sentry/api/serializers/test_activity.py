@@ -35,6 +35,7 @@ class GroupActivityTestCase(TestCase):
         )
 
         result = serialize([activity], user)[0]["data"]
+        assert result["pullRequestId"] == str(pr.id)
         pull_request = result["pullRequest"]
         assert pull_request["repository"]["name"] == "organization-bar"
         assert pull_request["message"] == "kartoffel"

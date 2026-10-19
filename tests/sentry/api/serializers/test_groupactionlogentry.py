@@ -77,9 +77,19 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         )
 
         result = serialize([entry], user)[0]["data"]
+        assert result["pullRequestId"] == str(pr.id)
         pull_request = result["pullRequest"]
         assert pull_request["repository"]["name"] == "organization-bar"
         assert pull_request["message"] == "kartoffel"
+
+    def test_pull_request_entry_without_reference(self) -> None:
+        entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+            data={},
+        )
+
+        assert serialize(entry, self.user)["data"] == {"pullRequest": None}
 
     def test_pull_request_closed_entry(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")

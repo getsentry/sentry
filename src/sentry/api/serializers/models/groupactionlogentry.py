@@ -327,6 +327,8 @@ class GroupActionLogEntrySerializer(Serializer):
             data = {"commit": attrs["commit"]}
         elif obj.type in PULL_REQUEST_ACTION_TYPES:
             data = {"pullRequest": attrs["pull_request"]}
+            if pull_request_id := obj.data.get("pull_request"):
+                data["pullRequestId"] = str(pull_request_id)
         elif obj.type == GroupActionType.MERGE_FROM_OTHER.value:
             # Activity stores merged issues as a list of objects; GALE stores only ids.
             counterpart_group_ids = (obj.data or {}).get("counterpart_group_ids", [])

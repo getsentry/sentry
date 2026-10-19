@@ -271,6 +271,8 @@ class ActivitySerializer(Serializer):
             data = {"commit": attrs["commit"]}
         elif obj.type in PULL_REQUEST_ACTIVITY_TYPES:
             data = {"pullRequest": attrs["pull_request"]}
+            if pull_request_id := obj.data.get("pull_request"):
+                data["pullRequestId"] = str(pull_request_id)
         elif obj.type == ActivityType.UNMERGE_DESTINATION.value:
             data = {"fingerprints": obj.data["fingerprints"], "source": attrs["source"]}
         elif obj.type == ActivityType.UNMERGE_SOURCE.value:
