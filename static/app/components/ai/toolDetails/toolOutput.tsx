@@ -19,11 +19,11 @@ const STRUCTURED_DATA_CONFIG = {
 function getOutputLabel(output: ToolOutputData): string {
   switch (output.kind) {
     case 'array':
-      return tn('Array · %s item', 'Array · %s items', output.value.length);
+      return tn('Array (%s item)', 'Array (%s items)', output.value.length);
     case 'object':
       return tn(
-        'Object · %s field',
-        'Object · %s fields',
+        'Object (%s field)',
+        'Object (%s fields)',
         Object.keys(output.value).length
       );
     case 'null':

@@ -7,8 +7,8 @@ beforeEach(() => {
 });
 
 it.each([
-  [[20, 30], 'Array · 2 items'],
-  [{answer: 20, status: 'complete'}, 'Object · 2 fields'],
+  [[20, 30], 'Array (2 items)'],
+  [{answer: 20, status: 'complete'}, 'Object (2 fields)'],
 ])('shows the type and count for %p', (value, label) => {
   render(<ToolOutput value={JSON.stringify(value)} />);
   expect(screen.getByText(label)).toBeInTheDocument();
