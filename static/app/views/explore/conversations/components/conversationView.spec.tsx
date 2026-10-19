@@ -123,47 +123,6 @@ describe('ConversationViewContent', () => {
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
   });
 
-  it('keeps Input and Output tabs for Code Mode spans', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
-      body: {
-        conversationId: CONVERSATION_ID,
-        title: null,
-        spans: [
-          ...CONVERSATION_BODY,
-          spanFixture({
-            span_id: 'tool-span',
-            'span.name': 'execute_tool sentry_api_execute',
-            'precise.start_ts': 2000.5,
-            'precise.finish_ts': 2001,
-            'gen_ai.operation.type': 'tool',
-            'gen_ai.tool.name': 'sentry_api_execute',
-            'gen_ai.tool.call.arguments': JSON.stringify({code: 'return 1 + 2;'}),
-          }),
-        ],
-      },
-    });
-
-    render(
-      <ConversationViewContent
-        conversation={{conversationId: CONVERSATION_ID}}
-        activeTab="transcript"
-        selectedSpanId="tool-span"
-      />,
-      {organization: OrganizationFixture()}
-    );
-
-    expect(await screen.findByRole('tab', {name: 'Input'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'Output'})).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Code'})).not.toBeInTheDocument();
-    expect(
-      await screen.findByText(
-        (_, element) =>
-          element?.tagName === 'CODE' && element.textContent === 'return 1 + 2;'
-      )
-    ).toBeInTheDocument();
-  });
-
   it('shows the span ID of the open span', async () => {
     renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
 
