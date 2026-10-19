@@ -6,7 +6,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {Menu} from '@sentry/scraps/menu';
 
 export const ListWrap = styled('ul')`
@@ -120,9 +120,8 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   }
 `;
 
-const SectionSeparatorWrap = styled('li')`
+const SectionSeparatorWrap = styled(Stack)`
   list-style-type: none;
-  margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
 
   &:first-of-type {
     display: none;
@@ -131,7 +130,14 @@ const SectionSeparatorWrap = styled('li')`
 
 export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
   return (
-    <SectionSeparatorWrap {...props} role="presentation">
+    <SectionSeparatorWrap
+      as="li"
+      justify="center"
+      height="8px"
+      padding="0 lg 0 xl"
+      {...props}
+      role="presentation"
+    >
       <Menu.Separator />
     </SectionSeparatorWrap>
   );
