@@ -297,6 +297,200 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
             "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
             "sentry.utils.sentry_apps.webhooks.send_and_save_webhook_request",
         ),
+        # INFRENG-805: slug locks in Project, Team, Organization and Monitor save
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.utils.retries.TimedRetryPolicy.__call__",
+            "sentry.models.organization.Organization.save",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.utils.retries.TimedRetryPolicy.__call__",
+            "sentry.models.project.Project.save",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.utils.retries.TimedRetryPolicy.__call__",
+            "sentry.models.team.Team.save",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.utils.retries.TimedRetryPolicy.__call__",
+            "sentry.monitors.models.Monitor.save",
+            "sentry.utils.mockdata.core.create_monitor",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "sentry.models.organization.Organization.save",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "sentry.models.team.Team.save",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "sentry.monitors.models.Monitor.save",
+            "sentry.utils.mockdata.core.create_monitor",
+        ),
+        # INFRENG-805, INFRENG-806: this entry also matches the detector lock release in the
+        # Project post_save receiver (both fixes need to be done before removal)
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "sentry.models.project.Project.save",
+        ),
+        # INFRENG-806: detector lock for the default detectors of a new project
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.utils.locking.lock.Lock.blocking_acquire",
+            "sentry.workflow_engine.defaults.detectors._ensure_detector",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "sentry.workflow_engine.defaults.detectors._ensure_detector",
+        ),
+        # INFRENG-807: grant lock in GrantExchanger.run
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.sentry_apps.token_exchange.grant_exchanger.GrantExchanger.run",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "sentry.sentry_apps.token_exchange.grant_exchanger.GrantExchanger.run",
+        ),
+        # INFRENG-808: invite request team assignments
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.utils.retries.TimedRetryPolicy.__call__",
+            "sentry.core.endpoints.organization_member_utils.save_team_assignments",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "sentry.core.endpoints.organization_member_utils.save_team_assignments",
+        ),
+        # INFRENG-809: test-only, ApiToken.from_grant inside a transaction in ControlOutboxDrainTest
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.models.apitoken.ApiToken.from_grant",
+            "tests.sentry.hybridcloud.models.test_outbox.ControlOutboxDrainTest.test_reconnects_after_successful_token_replication",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "sentry.models.apitoken.ApiToken.from_grant",
+            "tests.sentry.hybridcloud.models.test_outbox.ControlOutboxDrainTest.test_reconnects_after_successful_token_replication",
+        ),
+        # --------------------------------
+        # Getsentry stacks. Getsentry tests use the same default lock backend and the same check.
+        # --------------------------------
+        #
+        # INFRENG-810: history_cls_lock, from Subscription.create_for_organization and apply_subscription_change
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.utils.retries.TimedRetryPolicy.__call__",
+            "getsentry.models.billinghistory.history_cls_lock.<locals>.wrapper",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "getsentry.models.billinghistory.history_cls_lock.<locals>.wrapper",
+        ),
+        # INFRENG-810: customer model_lock in Subscription.create_sentry_customer
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
+            "getsentry.models.subscription.Subscription.create_sentry_customer",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
+            "getsentry.models.subscription.Subscription.create_sentry_customer",
+        ),
+        # INFRENG-811: reserved_budget_subscription_lock in tally_usage
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.utils.retries.TimedRetryPolicy.__call__",
+            "getsentry.billing.reserved_budgets.reserved_budget_subscription_lock.<locals>.get_decorator.<locals>.lock_wrapper",
+            "getsentry.billing.reserved_budgets.recompute_all_reserved_budget_spends",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "getsentry.billing.reserved_budgets.reserved_budget_subscription_lock.<locals>.get_decorator.<locals>.lock_wrapper",
+            "getsentry.billing.reserved_budgets.recompute_all_reserved_budget_spends",
+        ),
+        # INFRENG-812: subscription_lock around start_trial in provision_new_org_for_billing
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.utils.retries.TimedRetryPolicy.__call__",
+            "getsentry.models.subscription.subscription_lock.<locals>.wrapper",
+            "getsentry.billing.trial.start_trial",
+            "getsentry.billing.provision_new_org_for_billing._finalize_channel_subscription",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "getsentry.models.subscription.subscription_lock.<locals>.wrapper",
+            "getsentry.billing.trial.start_trial",
+            "getsentry.billing.provision_new_org_for_billing._finalize_channel_subscription",
+        ),
+        # INFRENG-813: platform trial lock in TrialService._create_product_trial
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_product_trial",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_product_trial",
+        ),
+        # INFRENG-814: customer model_lock in MissingCustomerRelation.repair
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
+            "getsentry.accounts.repair.missing_data.MissingCustomerRelation.repair",
+        ),
+        (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
+            "getsentry.accounts.repair.missing_data.MissingCustomerRelation.repair",
+        ),
     }
 )
 
@@ -347,6 +541,7 @@ def _assert_redis_transaction_allowed(message: str) -> None:
             return
         if _matches_redis_transaction_ratchet(callers):
             return
+
         raise AssertionError(f"{message} (Redis caller: {caller or 'unknown'})") from None
 
 
