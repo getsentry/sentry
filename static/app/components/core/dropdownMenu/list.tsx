@@ -14,8 +14,8 @@ import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
 
 import {Container} from '@sentry/scraps/layout';
-import {SearchInput} from '@sentry/scraps/menu/content';
 import {isMenuItemHidden} from '@sentry/scraps/menu/item';
+import {SearchInput} from '@sentry/scraps/searchInput';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

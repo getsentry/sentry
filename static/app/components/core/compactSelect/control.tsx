@@ -12,8 +12,8 @@ import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {SearchInput} from '@sentry/scraps/menu/content';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import {SearchInput} from '@sentry/scraps/searchInput';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 

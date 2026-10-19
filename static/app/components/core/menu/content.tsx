@@ -1,10 +1,9 @@
 import {createContext, useContext, useEffect} from 'react';
 import {css, useTheme} from '@emotion/react';
 import {FocusScope} from '@react-aria/focus';
-import {IconSearch} from '@sentry/icons/search';
 
-import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {SearchInput, type SearchInputProps} from '@sentry/scraps/searchInput';
 import {Text} from '@sentry/scraps/text';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -74,28 +73,6 @@ export function MenuHeader({title, children, ...props}: MenuHeaderProps) {
         {children}
       </Stack>
     </MenuHeaderContext>
-  );
-}
-
-type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input>;
-
-export function SearchInput({
-  containerPadding = 'xs',
-  ...props
-}: SearchInputProps & {
-  containerPadding?: React.ComponentProps<typeof Container>['padding'];
-}) {
-  return (
-    <Container padding={containerPadding}>
-      <InputGroup>
-        <InputGroup.LeadingItems disablePointerEvents>
-          <Flex paddingLeft="2xs" align="center" justify="center">
-            <IconSearch size="xs" variant="muted" />
-          </Flex>
-        </InputGroup.LeadingItems>
-        <InputGroup.Input size="xs" {...props} />
-      </InputGroup>
-    </Container>
   );
 }
 
