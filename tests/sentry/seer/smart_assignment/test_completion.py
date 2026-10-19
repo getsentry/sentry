@@ -158,7 +158,7 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
         assert len(self._suggested_owners()) == 1
         assert GroupAssignee.objects.get(group=self.group).user_id == existing.id
 
-    def test_no_writes_when_triggered_by_resolution(self) -> None:
+    def test_suggests_without_assigning_when_triggered_by_resolution(self) -> None:
         alice = self._member()
         self._set_project_auto_assignment(True)
         for activity_type in RESOLUTION_ACTIVITIES:
@@ -170,8 +170,10 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
 
                 # The prediction is still recorded so it can be scored against the resolver...
                 assert self._extras()["predicted_assignee_user_ids"] == [alice.id]
-                # ...but the already-resolved issue gets no suggested owner or assignee.
-                assert self._suggested_owners() == []
+                # ...and suggested as an owner, but the already-resolved issue isn't assigned.
+                owners = self._suggested_owners()
+                assert len(owners) == 1
+                assert owners[0].user_id == alice.id
                 assert not GroupAssignee.objects.filter(group=self.group).exists()
 
     def test_suggests_resolvable_alternate_when_top_pick_unlinked(self) -> None:
