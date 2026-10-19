@@ -5,7 +5,7 @@ import pytest
 from django.test import override_settings
 from urllib3.exceptions import TimeoutError
 
-from sentry.ai_monitoring.code_explanations import MAX_CODE_LENGTH, SYSTEM_PROMPT
+from sentry.ai_monitoring.code_explanations import MAX_CODE_LENGTH
 from sentry.ai_monitoring.endpoints.project_code_explanation import CodeExplanationRequestSerializer
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -25,23 +25,20 @@ class ProjectCodeExplanationEndpointTest(APITestCase):
         self.login_as(self.user)
         self.mock_seer: MagicMock = self.enterContext(
             patch(
-                "sentry.ai_monitoring.code_explanations.make_llm_generate_request",
+                "sentry.seer.oneshot.make_oneshot_request",
                 return_value=MagicMock(
-                    status=200, data=orjson.dumps({"content": "Add two numbers"})
+                    status=200, data=orjson.dumps({"result": {"summary": "Add two numbers"}})
                 ),
             )
         )
 
-    def test_generates_summary_with_a_single_tool_free_request(self) -> None:
+    def test_generates_summary_with_a_single_oneshot_request(self) -> None:
         response = self.get_success_response(self.organization.slug, self.project.slug, **PAYLOAD)
 
         assert response.data == {"summary": "Add two numbers"}
         self.mock_seer.assert_called_once()
         body = self.mock_seer.call_args.args[0]
-        assert orjson.loads(body["prompt"]) == PAYLOAD
-        assert body["system_prompt"] == SYSTEM_PROMPT
-        assert body["model"] == "flash"
-        assert body["max_tokens"] == 64
+        assert body == {"oneshot_id": "code_explanation", "payload": PAYLOAD}
         assert self.mock_seer.call_args.kwargs == {
             "timeout": 10,
             "viewer_context": {
@@ -142,28 +139,31 @@ class ProjectCodeExplanationEndpointTest(APITestCase):
         assert self.mock_seer.call_count == 2
 
     def test_invalid_summary_is_not_cached(self) -> None:
-        self.mock_seer.return_value.data = orjson.dumps({"content": 123})
-        self.get_error_response(
-            self.organization.slug, self.project.slug, status_code=502, **PAYLOAD
-        )
-        self.mock_seer.return_value.data = orjson.dumps({"content": "Add two numbers"})
+        for result in ({}, {"summary": 123}, {"summary": ""}):
+            self.mock_seer.return_value.data = orjson.dumps({"result": result})
+            self.get_error_response(
+                self.organization.slug, self.project.slug, status_code=502, **PAYLOAD
+            )
+        self.mock_seer.return_value.data = orjson.dumps({"result": {"summary": "Add two numbers"}})
         response = self.get_success_response(self.organization.slug, self.project.slug, **PAYLOAD)
         assert response.data == {"summary": "Add two numbers"}
-        assert self.mock_seer.call_count == 2
+        assert self.mock_seer.call_count == 4
 
     def test_normalizes_summary_whitespace(self) -> None:
-        self.mock_seer.return_value.data = orjson.dumps({"content": "  Add\n two   numbers  "})
+        self.mock_seer.return_value.data = orjson.dumps(
+            {"result": {"summary": "  Add\n two   numbers  "}}
+        )
         response = self.get_success_response(self.organization.slug, self.project.slug, **PAYLOAD)
         assert response.data == {"summary": "Add two numbers"}
 
     def test_rejects_long_summary(self) -> None:
-        self.mock_seer.return_value.data = orjson.dumps({"content": "x" * 257})
+        self.mock_seer.return_value.data = orjson.dumps({"result": {"summary": "x" * 257}})
         self.get_error_response(
             self.organization.slug, self.project.slug, status_code=502, **PAYLOAD
         )
 
     def test_rejects_verbose_summary(self) -> None:
-        self.mock_seer.return_value.data = orjson.dumps({"content": "word " * 13})
+        self.mock_seer.return_value.data = orjson.dumps({"result": {"summary": "word " * 13}})
         self.get_error_response(
             self.organization.slug, self.project.slug, status_code=502, **PAYLOAD
         )
