@@ -40,9 +40,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         may_schedule_task_to_delete_hashes_from_seer(self.project.id, expected_hashes)
 
         # Verify that the task was called with the correct parameters
-        mock_apply_async.assert_called_once_with(
-            args=[self.project.id, expected_hashes, 0, self.organization.id]
-        )
+        mock_apply_async.assert_called_once_with(args=[self.project.id, expected_hashes, 0])
 
     def test_chunked(self) -> None:
         """
@@ -70,7 +68,6 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             assert first_call_args[0] == self.project.id
             assert first_call_args[1] == expected_hashes[0:batch_size]
             assert first_call_args[2] == 0
-            assert first_call_args[3] == self.organization.id
 
             # Verify the second chunk has 5 hashes (remainder)
             second_call_args = mock_apply_async.call_args_list[1][1]["args"]
@@ -78,7 +75,6 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             assert second_call_args[0] == self.project.id
             assert second_call_args[1] == expected_hashes[batch_size:]
             assert second_call_args[2] == 0
-            assert second_call_args[3] == self.organization.id
 
     @patch(
         "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
@@ -124,30 +120,6 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         mock_seer_call.assert_not_called()
         assert get_viewer_context() is None
 
-    @patch("sentry.tasks.seer.delete_seer_grouping_records.call_seer_to_delete_these_hashes")
-    def test_supplied_organization_allows_cleanup_without_project(
-        self, mock_seer_call: MagicMock
-    ) -> None:
-        missing_project_id = self.project.id + 1_000_000_000
-
-        def assert_viewer_context(_project_id: int, _hashes: list[str]) -> None:
-            viewer_context = get_viewer_context()
-            assert viewer_context is not None
-            assert viewer_context.organization_id == self.organization.id
-            assert viewer_context.project_id == missing_project_id
-            assert viewer_context.actor_type == ActorType.SYSTEM
-
-        mock_seer_call.side_effect = assert_viewer_context
-
-        delete_seer_grouping_records_by_hash(
-            missing_project_id,
-            ["hash"],
-            organization_id=self.organization.id,
-        )
-
-        mock_seer_call.assert_called_once_with(missing_project_id, ["hash"])
-        assert get_viewer_context() is None
-
     @patch(
         "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
@@ -177,7 +149,6 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             first_chunk = expected_hashes[0:batch_size]
             assert first_call_args[1] == first_chunk
             assert first_call_args[2] == 0
-            assert first_call_args[3] == self.organization.id
 
             # Verify the second chunk has batch_size hashes
             second_call_args = mock_apply_async.call_args_list[1][1]["args"]
@@ -186,7 +157,6 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             second_chunk = expected_hashes[batch_size : (batch_size * 2)]
             assert second_call_args[1] == second_chunk
             assert second_call_args[2] == 0
-            assert second_call_args[3] == self.organization.id
 
             # Verify the third chunk has 1 hash (remainder)
             third_call_args = mock_apply_async.call_args_list[2][1]["args"]
@@ -195,7 +165,6 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             third_chunk = expected_hashes[(batch_size * 2) :]
             assert third_call_args[1] == third_chunk
             assert third_call_args[2] == 0
-            assert third_call_args[3] == self.organization.id
 
             # Make sure the hashes add up to the expected hashes
             assert first_chunk + second_chunk + third_chunk == expected_hashes

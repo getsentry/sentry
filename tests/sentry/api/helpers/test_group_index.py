@@ -1974,7 +1974,7 @@ class DeleteGroupsTest(TestCase):
         )
         assert send_robust.called
         mock_delete_seer_grouping_records_by_hash.assert_called_with(
-            args=[self.project.id, hashes, 0, self.organization.id]
+            args=[self.project.id, hashes, 0]
         )
 
 

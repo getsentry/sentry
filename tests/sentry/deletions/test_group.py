@@ -239,7 +239,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
         assert nodestore.backend.get(self._get_node_id(keep_event))
 
         assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
-            "args": [event.project.id, hashes, 0, event.project.organization_id]
+            "args": [event.project.id, hashes, 0]
         }
 
     @mock.patch(
@@ -287,7 +287,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         if error_group_hashes:
             assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
-                "args": [self.project.id, error_group_hashes, 0, self.organization.id]
+                "args": [self.project.id, error_group_hashes, 0]
             }
 
     def test_delete_grouphashes_and_metadata(self) -> None:

@@ -28,7 +28,6 @@ def delete_seer_grouping_records_by_hash(
     project_id: int,
     hashes: Sequence[str],
     last_deleted_index: int = 0,
-    organization_id: int | None = None,
     *args: Any,
     **kwargs: Any,
 ) -> None:
@@ -41,10 +40,9 @@ def delete_seer_grouping_records_by_hash(
     ):
         return
 
-    if organization_id is None:
-        organization_id = (
-            Project.objects.filter(id=project_id).values_list("organization_id", flat=True).first()
-        )
+    organization_id = (
+        Project.objects.filter(id=project_id).values_list("organization_id", flat=True).first()
+    )
     if organization_id is None:
         return
 
@@ -74,7 +72,7 @@ def delete_seer_grouping_records_by_hash(
                 # Slice operations are safe and will not raise IndexError
                 chunked_hashes = hashes[i : i + batch_size]
                 delete_seer_grouping_records_by_hash.apply_async(
-                    args=[project_id, chunked_hashes, 0, organization_id]
+                    args=[project_id, chunked_hashes, 0]
                 )
 
 
@@ -100,9 +98,7 @@ def may_schedule_task_to_delete_hashes_from_seer(project_id: int, hashes: Sequen
 
     for i in range(0, len(hashes), seer_batch_size):
         hash_chunk = hashes[i : i + seer_batch_size]
-        delete_seer_grouping_records_by_hash.apply_async(
-            args=[project_id, hash_chunk, 0, project.organization_id]
-        )
+        delete_seer_grouping_records_by_hash.apply_async(args=[project_id, hash_chunk, 0])
 
 
 @instrumented_task(
