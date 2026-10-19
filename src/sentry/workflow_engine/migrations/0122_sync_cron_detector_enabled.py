@@ -14,35 +14,37 @@ DISABLED = 1
 BATCH_SIZE = 1000
 
 
-def _sync_batch(apps: StateApps, data_source_ids: list[int], monitor_ids: list[int]) -> None:
+def sync_cron_detector_enabled(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
+    DataSource = apps.get_model("workflow_engine", "DataSource")
     Detector = apps.get_model("workflow_engine", "Detector")
     Monitor = apps.get_model("monitors", "Monitor")
 
-    monitor_status = dict(
-        Monitor.objects.filter(id__in=monitor_ids, status__in=[ACTIVE, DISABLED]).values_list(
-            "id", "status"
+    to_enable: list[int] = []
+    to_disable: list[int] = []
+
+    def flush(detector_ids: list[int], enabled: bool) -> None:
+        Detector.objects.filter(id__in=detector_ids).update(enabled=enabled)
+        detector_ids.clear()
+
+    def check(data_source_ids: list[int], monitor_ids: list[int]) -> None:
+        monitor_status = dict(
+            Monitor.objects.filter(id__in=monitor_ids, status__in=[ACTIVE, DISABLED]).values_list(
+                "id", "status"
+            )
         )
-    )
+        for detector_id, enabled, source_id in Detector.objects.filter(
+            datasource__in=data_source_ids
+        ).values_list("id", "enabled", "datasource__source_id"):
+            status = monitor_status.get(int(source_id))
+            if status == ACTIVE and not enabled:
+                to_enable.append(detector_id)
+            elif status == DISABLED and enabled:
+                to_disable.append(detector_id)
 
-    to_enable = []
-    to_disable = []
-    for detector_id, enabled, source_id in Detector.objects.filter(
-        datasource__in=data_source_ids
-    ).values_list("id", "enabled", "datasource__source_id"):
-        status = monitor_status.get(int(source_id))
-        if status == ACTIVE and not enabled:
-            to_enable.append(detector_id)
-        elif status == DISABLED and enabled:
-            to_disable.append(detector_id)
-
-    if to_enable:
-        Detector.objects.filter(id__in=to_enable).update(enabled=True)
-    if to_disable:
-        Detector.objects.filter(id__in=to_disable).update(enabled=False)
-
-
-def sync_cron_detector_enabled(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
-    DataSource = apps.get_model("workflow_engine", "DataSource")
+        if len(to_enable) >= BATCH_SIZE:
+            flush(to_enable, True)
+        if len(to_disable) >= BATCH_SIZE:
+            flush(to_disable, False)
 
     # No index on (type, id), so scan by id and filter in memory
     data_source_ids: list[int] = []
@@ -55,12 +57,16 @@ def sync_cron_detector_enabled(apps: StateApps, schema_editor: BaseDatabaseSchem
         data_source_ids.append(data_source.id)
         monitor_ids.append(int(data_source.source_id))
         if len(data_source_ids) >= BATCH_SIZE:
-            _sync_batch(apps, data_source_ids, monitor_ids)
+            check(data_source_ids, monitor_ids)
             data_source_ids = []
             monitor_ids = []
 
     if data_source_ids:
-        _sync_batch(apps, data_source_ids, monitor_ids)
+        check(data_source_ids, monitor_ids)
+    if to_enable:
+        flush(to_enable, True)
+    if to_disable:
+        flush(to_disable, False)
 
 
 class Migration(CheckedMigration):
