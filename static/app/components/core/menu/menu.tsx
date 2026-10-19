@@ -59,7 +59,7 @@ function MenuSectionLayout(props: ContainerProps<'li'>) {
 
 /** List wrapper for the items within a menu section. */
 function MenuSectionGroup(props: ContainerProps<'ul'>) {
-  return <Container as="ul" margin="0" padding="0" {...props} />;
+  return <Container as="ul" role="presentation" margin="0" padding="0" {...props} />;
 }
 
 /** Container for menu footer actions, with a divider above it. */

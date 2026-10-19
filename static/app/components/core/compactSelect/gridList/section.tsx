@@ -58,7 +58,7 @@ export function GridListSection<T extends ListItemBase>({
             {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
           </SectionHeader>
         )}
-        <Menu.SectionItems role="presentation">
+        <Menu.SectionItems>
           {childNodes.map(child => (
             <GridListOption
               key={child.key}
