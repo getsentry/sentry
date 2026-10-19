@@ -133,6 +133,10 @@ class Repository(Model):
         app_label = "sentry"
         db_table = "sentry_repository"
         unique_together = (("organization_id", "provider", "external_id"),)
+        indexes = (
+            # Serves the org repositories endpoint, which lists active repos by name.
+            models.Index(fields=("organization_id", "status", "name")),
+        )
 
     __repr__ = sane_repr("organization_id", "name", "provider")
 
