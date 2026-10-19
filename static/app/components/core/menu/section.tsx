@@ -11,7 +11,12 @@ import {
 import {Container} from '@sentry/scraps/layout';
 
 import {useMenuContext} from './context';
-import {MenuSectionDivider, MenuSectionHeading, MenuSectionLayout} from './visual';
+import {
+  MenuSectionDivider,
+  MenuSectionGroup,
+  MenuSectionHeading,
+  MenuSectionLayout,
+} from './visual';
 
 interface SectionContextValue {
   labelId: string;
@@ -52,16 +57,13 @@ export function MenuSection({children, 'aria-label': ariaLabel}: MenuSectionProp
         role="presentation"
         hidden={isEmpty}
       >
-        <Container
-          as="ul"
-          margin="0"
-          padding="0"
+        <MenuSectionGroup
           role="group"
           aria-label={ariaLabel}
           aria-labelledby={ariaLabel ? undefined : labelId}
         >
           {children}
-        </Container>
+        </MenuSectionGroup>
       </MenuSectionLayout>
     </SectionContext>
   );

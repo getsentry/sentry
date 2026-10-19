@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import {FocusScope} from '@react-aria/focus';
 
 import {Container, Stack, type FlexProps} from '@sentry/scraps/layout';
-import {SearchInput, type SearchInputProps} from '@sentry/scraps/searchInput';
+import {SearchInput, type SearchInputProps} from '@sentry/scraps/menu/searchInput';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 

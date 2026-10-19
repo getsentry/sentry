@@ -2,7 +2,7 @@ import {IconCircle} from '@sentry/icons/circle';
 import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
 
 import {Container} from '@sentry/scraps/layout';
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {MenuListItem} from '@sentry/scraps/menu/listItem';
 
 import * as Storybook from 'sentry/stories';
 

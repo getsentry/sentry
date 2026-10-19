@@ -36,6 +36,10 @@ export function MenuSectionLayout(props: ContainerProps<'li'>) {
   return <Container as="li" display="block" {...props} />;
 }
 
+export function MenuSectionGroup(props: ContainerProps<'ul'>) {
+  return <Container as="ul" margin="0" padding="0" {...props} />;
+}
+
 export function MenuFooterLayout(props: FlexProps) {
   return <Flex borderTop="muted" align="center" {...props} />;
 }

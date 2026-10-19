@@ -7,11 +7,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
-import {
-  MenuSectionDivider,
-  MenuSectionHeading,
-  MenuSectionLayout,
-} from '@sentry/scraps/menu/visual';
+import {MenuSectionDivider} from '@sentry/scraps/menu/visual';
 
 export const ListWrap = styled('ul')`
   margin: 0;
@@ -75,8 +71,6 @@ export const ListSeparator = styled('div')`
   }
 `;
 
-export const SectionWrap = MenuSectionLayout;
-
 export const SectionHeader = styled('div')`
   display: flex;
   justify-content: space-between;
@@ -94,8 +88,6 @@ export const SectionHeader = styled('div')`
     padding-top: 0;
   }
 `;
-
-export const SectionTitle = MenuSectionHeading;
 
 export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   padding: 0 ${p => p.theme.space.xs};
@@ -144,11 +136,6 @@ export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
     </SectionSeparatorWrap>
   );
 }
-
-export const SectionGroup = styled('ul')`
-  margin: 0;
-  padding: 0;
-`;
 
 export function LeadWrap(props: FlexProps) {
   return (

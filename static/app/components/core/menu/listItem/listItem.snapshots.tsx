@@ -1,6 +1,6 @@
 import {IconCircle} from '@sentry/icons/circle';
 
-import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menuListItem';
+import {MenuListItem, type MenuListItemProps} from '@sentry/scraps/menu/listItem';
 
 const sizes: Array<NonNullable<MenuListItemProps['size']>> = ['xs', 'sm', 'md'];
 const variants = ['plain', 'leading', 'details', 'leading-details'] as const;

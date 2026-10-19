@@ -12,13 +12,13 @@ import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {SearchInput} from '@sentry/scraps/menu/searchInput';
 import {
   MenuFooterLayout,
   MenuHeaderLayout,
   MenuHeading,
 } from '@sentry/scraps/menu/visual';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
-import {SearchInput} from '@sentry/scraps/searchInput';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
@@ -217,11 +217,6 @@ export function Control<Value extends SelectKey>({
 
   const normalizedSearch = getSearchConfig(searchConfig);
   const searchEnabled = normalizedSearch !== undefined;
-  const headerPadding = {
-    xs: searchEnabled ? '2xs lg 0 lg' : '2xs lg',
-    sm: searchEnabled ? 'xs lg 0 lg' : 'xs lg',
-    md: searchEnabled ? 'sm lg 0 lg' : 'sm lg',
-  } as const;
   const searchFilter =
     typeof normalizedSearch?.filter === 'function' ? normalizedSearch.filter : undefined;
   const highlightSearch = normalizedSearch?.highlight ?? false;
@@ -570,10 +565,10 @@ export function Control<Value extends SelectKey>({
                       align="center"
                       justify="between"
                       gap="xl"
-                      padding={headerPadding[size]}
+                      padding={searchEnabled ? 'xs lg 0 lg' : 'xs lg'}
                     >
                       {menuTitle && <MenuHeading>{menuTitle}</MenuHeading>}
-                      <MenuHeaderTrailingItems>
+                      <Flex align="center" gap="xs" marginLeft="auto">
                         {loading && <StyledLoadingIndicator size={12} />}
                         {typeof menuHeaderTrailingItems === 'function'
                           ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
@@ -587,7 +582,7 @@ export function Control<Value extends SelectKey>({
                             {t('Clear')}
                           </ClearButton>
                         )}
-                      </MenuHeaderTrailingItems>
+                      </Flex>
                     </Flex>
                   </MenuHeaderLayout>
                 )}
@@ -643,12 +638,6 @@ const StyledBadge = styled(Badge)`
   top: auto;
 `;
 
-const MenuHeaderTrailingItems = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.xs};
-`;
-
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   display: flex;
   align-items: center;
@@ -662,7 +651,7 @@ export const ClearButton = styled(Button)`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   color: ${p => p.theme.tokens.content.secondary};
   padding: 0 ${p => p.theme.space.xs};
-  margin: -${p => p.theme.space['2xs']} -${p => p.theme.space.xs};
+  margin: 0 -${p => p.theme.space.xs};
 `;
 
 const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);

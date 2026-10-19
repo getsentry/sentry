@@ -4,15 +4,14 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterContext';
-import {
-  SectionGroup,
-  SectionHeader,
-  SectionSeparator,
-  SectionTitle,
-  SectionWrap,
-} from '@sentry/scraps/compactSelect/styles';
+import {SectionHeader, SectionSeparator} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
+import {
+  MenuSectionGroup,
+  MenuSectionHeading,
+  MenuSectionLayout,
+} from '@sentry/scraps/menu/visual';
 
 import {GridListOption, type GridListOptionProps} from './option';
 
@@ -47,7 +46,7 @@ export function GridListSection<T extends ListItemBase>({
   return (
     <Fragment>
       <SectionSeparator {...separatorProps} />
-      <SectionWrap
+      <MenuSectionLayout
         role="rowgroup"
         {...(node['aria-label']
           ? {'aria-label': node['aria-label']}
@@ -56,14 +55,14 @@ export function GridListSection<T extends ListItemBase>({
         {(node.rendered || showToggleAllButton) && (
           <SectionHeader>
             {node.rendered && (
-              <SectionTitle id={titleId} aria-hidden>
+              <MenuSectionHeading id={titleId} aria-hidden>
                 {node.rendered}
-              </SectionTitle>
+              </MenuSectionHeading>
             )}
             {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
           </SectionHeader>
         )}
-        <SectionGroup role="presentation">
+        <MenuSectionGroup role="presentation">
           {childNodes.map(child => (
             <GridListOption
               key={child.key}
@@ -72,8 +71,8 @@ export function GridListSection<T extends ListItemBase>({
               size={size}
             />
           ))}
-        </SectionGroup>
-      </SectionWrap>
+        </MenuSectionGroup>
+      </MenuSectionLayout>
     </Fragment>
   );
 }

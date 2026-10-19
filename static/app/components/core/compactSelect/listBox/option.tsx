@@ -15,7 +15,7 @@ import {
   InnerWrap,
   MenuListItem,
   type MenuListItemProps,
-} from '@sentry/scraps/menuListItem';
+} from '@sentry/scraps/menu/listItem';
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;

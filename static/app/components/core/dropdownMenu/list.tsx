@@ -15,12 +15,12 @@ import type {LocationDescriptor} from 'history';
 
 import {Container} from '@sentry/scraps/layout';
 import {isMenuItemHidden} from '@sentry/scraps/menu/item';
+import {SearchInput} from '@sentry/scraps/menu/searchInput';
 import {
   MenuHeaderLayout,
   MenuHeading,
   MenuSectionDivider,
 } from '@sentry/scraps/menu/visual';
-import {SearchInput} from '@sentry/scraps/searchInput';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

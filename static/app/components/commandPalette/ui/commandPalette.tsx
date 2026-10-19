@@ -26,8 +26,8 @@ import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {InnerWrap} from '@sentry/scraps/menuListItem';
-import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
+import {InnerWrap} from '@sentry/scraps/menu/listItem';
+import type {MenuListItemProps} from '@sentry/scraps/menu/listItem';
 import {Text} from '@sentry/scraps/text';
 import type {Theme} from '@sentry/scraps/theme';
 

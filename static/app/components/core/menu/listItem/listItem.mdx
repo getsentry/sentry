@@ -2,10 +2,10 @@
 title: MenuListItem
 description: A building block component for creating menu items and list options with support for states, icons, and details.
 category: controls
-source: '@sentry/scraps/menuListItem'
+source: '@sentry/scraps/menu/listItem'
 resources:
   figma: https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/ChonkUI--App-Components--WIP-?node-id=384-2119&t=DdXZ7WIgTdURJlRv-4
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/menuListItem/index.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/menu/listItem/listItem.tsx
   a11y:
     WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
     WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
@@ -14,13 +14,13 @@ resources:
 
 import styled from '@emotion/styled';
 
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {MenuListItem} from '@sentry/scraps/menu/listItem';
 
 import * as Storybook from 'sentry/stories';
 
 import {DetailsDemo, StatesDemo, TrailingDemo} from './__stories__/components';
 
-export const documentation = import('!!type-loader!@sentry/scraps/menuListItem');
+export const documentation = import('!!type-loader!@sentry/scraps/menu/listItem');
 
 `<MenuListItem>` is a versatile building block for creating menu items, dropdown options, and selectable list items. It provides consistent styling, interaction states, and support for icons, labels, and supplementary details.
 
