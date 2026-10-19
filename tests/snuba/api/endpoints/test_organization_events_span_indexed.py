@@ -5325,6 +5325,29 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert meta["dataset"] == "spans"
         assert meta["fields"]["sum(ai.total_tokens.used)"] == "integer"
 
+    def test_field_equation(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo"},
+                    duration=2000,
+                    start_ts=self.ten_mins_ago,
+                ),
+            ],
+        )
+        equation = "equation|span.duration / 1000"
+        response = self.do_request(
+            {
+                "field": ["description", equation],
+                "query": "",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spans",
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0][equation] == 2.0
+
     def test_equation_simple(self) -> None:
         self.store_spans(
             [

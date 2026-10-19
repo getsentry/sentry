@@ -30,6 +30,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixError,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
+    SeerInvestigationError,
+    SeerInvestigationStarted,
 )
 from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
@@ -98,6 +100,8 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
         NotificationSource.SEER_AUTOFIX_UPDATE,
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
+        NotificationSource.SEER_INVESTIGATION_STARTED,
+        NotificationSource.SEER_INVESTIGATION_ERROR,
     ],
 )
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
@@ -123,6 +127,10 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             return cls._render_agent_error(data)
         elif isinstance(data, SeerAgentResponse):
             return cls._render_agent_response(data, link_decorator)
+        elif isinstance(data, SeerInvestigationStarted):
+            return cls._render_investigation_started(data)
+        elif isinstance(data, SeerInvestigationError):
+            return cls._render_investigation_error(data)
         else:
             raise ValueError(f"SeerSlackRenderer does not support {data.__class__.__name__}")
 
@@ -270,6 +278,26 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             ],
             text=f"Seer stumbled: {data.error_title}",
         )
+
+    @classmethod
+    def _render_investigation_started(cls, data: SeerInvestigationStarted) -> SlackRenderable:
+        text = f"<@{data.slack_user_id}> started a Seer investigation for this alert."
+        return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
+
+    @classmethod
+    def render_investigation_link_button(
+        cls, data: SeerInvestigationStarted, link_decorator: NotificationLinkDecorator
+    ) -> ButtonElement:
+        return ButtonElement(
+            text="Open investigation",
+            url=link_decorator.decorate_url(data.investigation_url),
+            value="link_clicked",
+        )
+
+    @classmethod
+    def _render_investigation_error(cls, data: SeerInvestigationError) -> SlackRenderable:
+        text = f"Seer couldn't start an investigation: {data.error_message}"
+        return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
 
     @classmethod
     def _render_agent_response(

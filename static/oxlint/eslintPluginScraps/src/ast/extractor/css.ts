@@ -8,7 +8,9 @@ import {normalizePropertyName} from '../utils/normalizePropertyName.ts';
 type CssNode = {
   type: string;
   important?: boolean;
+  name?: string;
   nodes?: CssNode[];
+  params?: string;
   prop?: string;
   raws?: {between?: string};
   source?: {
@@ -41,6 +43,11 @@ export interface ParsedCssDeclaration {
   valueRange: [number, number] | null;
 }
 
+export interface ParsedCssAtRule {
+  name: string;
+  params: string;
+}
+
 const styledSyntax: CssParser = createRequire(import.meta.url)('postcss-styled-syntax');
 const PREFIX = 'styled.div';
 
@@ -71,7 +78,8 @@ function parseCss(source: string): CssDocument | null {
 /** Parse a complete styled template and map each interpolation to its CSS value declaration. */
 export function parseCssTemplate(
   template: ESTree.TemplateLiteral,
-  source: string
+  source: string,
+  atRules?: ParsedCssAtRule[]
 ): ParsedCssDeclaration[] | null {
   const parsedSource = `${PREFIX}${source}`;
   const root = parseCss(parsedSource)?.nodes[0];
@@ -83,6 +91,9 @@ export function parseCssTemplate(
   const directives: CssDirective[] = [];
   const walk = (nodes: CssNode[], isRoot: boolean) => {
     for (const node of nodes) {
+      if (node.type === 'atrule' && node.name && node.params !== undefined) {
+        atRules?.push({name: node.name, params: node.params});
+      }
       if (node.type === 'comment' && node.source?.start?.offset !== undefined) {
         const match = node.text
           ?.split(/\s--(?:\s|$)/)[0]

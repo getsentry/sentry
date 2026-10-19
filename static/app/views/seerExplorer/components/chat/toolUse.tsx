@@ -592,6 +592,7 @@ export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallList
                     url: toolUrl,
                     failure: failureTooltip,
                     // Only the first classic row shows the block status; call rows carry their own.
+                    // oxlint-disable-next-line react/todo
                     status: ++rendered === 1 ? blockStatus : undefined,
                   }}
                   onLinkClick={handleLinkClick}

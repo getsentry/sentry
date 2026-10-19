@@ -55,6 +55,7 @@ class ExploreSavedQueryAIConversationsTest(APITestCase):
         assert response.data["dataset"] == "ai_conversations"
         assert response.data["name"] == "My conversations query"
         assert response.data["range"] == "24h"
+        assert response.data["statsPeriod"] == "24h"
         assert response.data["environment"] == ["production"]
         assert response.data["query"] == [
             {

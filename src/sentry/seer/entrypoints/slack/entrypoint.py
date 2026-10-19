@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
@@ -15,7 +16,10 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixError,
     SeerAutofixUpdate,
+    SeerInvestigationError,
+    SeerInvestigationStarted,
 )
+from sentry.notifications.platform.types import NotificationData
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import PendingUserInput
@@ -34,6 +38,7 @@ from sentry.seer.entrypoints.slack.messaging import (
     schedule_all_thread_updates,
     send_thread_update,
     update_existing_message,
+    update_investigation_alert_message,
 )
 from sentry.seer.entrypoints.types import (
     SeerAgentEntrypoint,
@@ -42,6 +47,7 @@ from sentry.seer.entrypoints.types import (
     SeerInvestigationEntrypoint,
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
@@ -690,28 +696,63 @@ class SlackInvestigationEntrypoint(
         message_ts: str,
         slack_user_id: str,
     ):
+        from sentry.integrations.slack.integration import SlackIntegration
+
         self.slack_request = slack_request
         self.organization = organization
         self.channel_id = channel_id
         self.message_ts = message_ts
+        self.thread_ts: str = slack_request.data.get("message", {}).get("thread_ts") or message_ts
         self.slack_user_id = slack_user_id
+        self.install = SlackIntegration(
+            model=slack_request.integration, organization_id=organization.id
+        )
 
     @staticmethod
     def has_access(organization: Organization) -> bool:
-        return False
+        return features.has("organizations:investigations-slack", organization)
+
+    def _send_thread_update(
+        self, data: NotificationData, ephemeral_user_id: str | None = None
+    ) -> None:
+        try:
+            send_thread_update(
+                install=self.install,
+                thread=SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id),
+                data=data,
+                ephemeral_user_id=ephemeral_user_id,
+            )
+        except IntegrationError:
+            # Already recorded by send_thread_update; it re-raises for task retries, which don't apply here.
+            pass
 
     def on_trigger_investigation_error(self, *, error: str) -> None:
-        pass
+        self._send_thread_update(
+            SeerInvestigationError(organization_id=self.organization.id, error_message=error),
+            ephemeral_user_id=self.slack_user_id,
+        )
 
     def on_trigger_investigation_success(self, *, investigation: Investigation) -> None:
-        pass
+        data = SeerInvestigationStarted(
+            organization_id=self.organization.id,
+            slack_user_id=self.slack_user_id,
+            investigation_url=investigation.get_absolute_url(),
+        )
+        update_investigation_alert_message(
+            request=self.slack_request,
+            install=self.install,
+            channel_id=self.channel_id,
+            message_ts=self.message_ts,
+            data=data,
+        )
+        self._send_thread_update(data)
 
     def create_investigation_cache_payload(self) -> SlackInvestigationCachePayload:
         return SlackInvestigationCachePayload(
             organization_id=self.organization.id,
-            integration_id=self.slack_request.integration.id,
+            integration_id=self.install.model.id,
             channel_id=self.channel_id,
-            thread_ts=self.message_ts,
+            thread_ts=self.thread_ts,
             alert_message_ts=self.message_ts,
             status_message_ts=None,
             slack_user_id=self.slack_user_id,

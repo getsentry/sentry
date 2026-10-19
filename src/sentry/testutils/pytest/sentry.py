@@ -159,6 +159,13 @@ def pytest_configure(config: pytest.Config) -> None:
         category=UnsupportedBackend,
     )
 
+    # pytest-xdist 3.5+ sorts --dist=loadfile/loadscope work units by test count
+    # by default. Keep collection order so worker assignment and run order stay
+    # as they were (and SENTRY_SHUFFLE_TESTS ordering isn't overridden), since
+    # some unresolved flakes depend on it.
+    if hasattr(config.option, "loadscopereorder"):
+        config.option.loadscopereorder = False
+
     config.addinivalue_line("markers", "migrations: requires --migrations")
     config.addinivalue_line("markers", "symbolicator: test requires access to symbolicator")
 
