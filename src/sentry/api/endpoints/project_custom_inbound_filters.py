@@ -155,9 +155,9 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         allow_empty=False,
         help_text=(
             "The values the field is compared to. The condition matches when any value "
-            "matches, so multiple values act as OR. A version comparison takes one release "
-            "with a version such as `1.2.0` or `myapp@1.2.0`. A comparison with a package "
-            "only applies to releases of that package."
+            "matches, so multiple values act as OR. A version comparison takes releases "
+            "with a version such as `1.2.0` or `myapp@1.2.0`. A value with a package only "
+            "applies to releases of that package."
         ),
     )
 
@@ -190,17 +190,14 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         return attrs
 
     def _validate_comparison(self, attrs: CustomInboundFilterCondition) -> None:
-        if len(attrs["value"]) != 1:
-            raise serializers.ValidationError(
-                {"value": f"The {attrs['operator']} operator takes exactly one value."}
-            )
         # Relay never matches a comparison against a release without a version, so the
         # condition would silently match nothing.
-        if not _is_release_version(attrs["value"][0]):
+        invalid = [value for value in attrs["value"] if not _is_release_version(value)]
+        if invalid:
             raise serializers.ValidationError(
                 {
                     "value": (
-                        f"{attrs['value'][0]} is not a release with a version such as 1.2.0 "
+                        f"{', '.join(invalid)} is not a release with a version such as 1.2.0 "
                         "or myapp@1.2.0."
                     )
                 }

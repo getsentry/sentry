@@ -493,6 +493,18 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
             id="release_version_comparison_on_errors",
         ),
         pytest.param(
+            "error",
+            [{"type": "release", "operator": "gt", "value": ["1.0", "2.0"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "release", "name": "event.release", "comparator": "gt", "value": "1.0"},
+                    {"op": "release", "name": "event.release", "comparator": "gt", "value": "2.0"},
+                ],
+            },
+            id="release_version_comparison_values_act_as_or",
+        ),
+        pytest.param(
             "span",
             [{"type": "release", "operator": "lt", "value": ["3.0.0"]}],
             {
@@ -781,8 +793,7 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
         default_project,
         conditions=[{"type": "release", "operator": "matches", "value": ["1.*"]}],
     )
-    # An IP address is no text, and only a release compares as a version, against exactly
-    # one value.
+    # An IP address is no text, and only a release compares as a version.
     factories.create_project_custom_inbound_filter(
         default_project,
         conditions=[{"type": "ip_address", "operator": "starts_with", "value": ["10."]}],
@@ -794,10 +805,6 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
     factories.create_project_custom_inbound_filter(
         default_project,
         conditions=[{"type": "error_type", "operator": "gt", "value": ["1.0"]}],
-    )
-    factories.create_project_custom_inbound_filter(
-        default_project,
-        conditions=[{"type": "release", "operator": "gt", "value": ["1.0", "2.0"]}],
     )
     factories.create_project_custom_inbound_filter(default_project, conditions=[])
     valid_filter = factories.create_project_custom_inbound_filter(
