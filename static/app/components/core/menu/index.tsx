@@ -23,4 +23,4 @@ export const Menu = {
   Item: MenuItem,
 };
 
-export type {MenuItemProps} from './listItem';
+export type {MenuListItemProps} from './listItem';

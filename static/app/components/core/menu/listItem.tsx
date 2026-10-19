@@ -152,7 +152,7 @@ type ExtraContent =
       isSelected: boolean;
     }) => React.ReactNode);
 
-export type MenuItemProps = {
+export type MenuListItemProps = {
   /**
    * Optional descriptive text. Like 'label', should preferably be a string or
    * have appropriate aria-labels.
@@ -210,7 +210,8 @@ interface OtherProps<T extends React.ElementType> {
   labelProps?: {as?: 'div' | 'p'; id?: string};
 }
 
-interface Props<T extends React.ElementType = 'li'> extends MenuItemProps, OtherProps<T> {
+interface Props<T extends React.ElementType = 'li'>
+  extends MenuListItemProps, OtherProps<T> {
   ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
 }
 

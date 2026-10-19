@@ -6,7 +6,7 @@ import type {Node} from '@react-types/shared';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {LeadWrap} from '@sentry/scraps/compactSelect';
-import {Menu, type MenuItemProps} from '@sentry/scraps/menu';
+import {Menu, type MenuListItemProps} from '@sentry/scraps/menu';
 
 import {
   isMetricSelectorOption,
@@ -17,7 +17,7 @@ interface MetricListBoxOptionProps {
   dataIndex: number;
   item: Node<MetricSelectorItem>;
   listState: ComboBoxState<MetricSelectorItem>;
-  size: MenuItemProps['size'];
+  size: MenuListItemProps['size'];
   measureRef?: React.Ref<HTMLLIElement>;
   updateSidePanelAnchorOffset?: (activeOptionElement?: HTMLElement | null) => void;
 }
