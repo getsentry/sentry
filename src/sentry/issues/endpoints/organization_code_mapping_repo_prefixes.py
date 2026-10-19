@@ -117,7 +117,7 @@ def _get_repo_prefixes(
 @extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingRepoPrefixesEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {"GET": ApiPublishStatus.PUBLIC}
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 

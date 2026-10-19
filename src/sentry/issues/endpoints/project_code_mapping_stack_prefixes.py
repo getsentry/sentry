@@ -52,7 +52,7 @@ def _ensure_trailing_sep(root: str) -> str:
 @extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class ProjectCodeMappingStackPrefixesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {"GET": ApiPublishStatus.PUBLIC}
 
     @extend_schema(

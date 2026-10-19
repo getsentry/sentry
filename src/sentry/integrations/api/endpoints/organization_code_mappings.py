@@ -204,7 +204,7 @@ class OrganizationIntegrationMixin:
 @extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,

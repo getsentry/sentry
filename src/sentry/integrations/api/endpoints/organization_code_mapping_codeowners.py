@@ -51,7 +51,7 @@ def get_codeowner_contents(config):
 @extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }

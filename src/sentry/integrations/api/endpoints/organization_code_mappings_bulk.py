@@ -124,7 +124,7 @@ class BulkCodeMappingsResponse(TypedDict):
 @extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }

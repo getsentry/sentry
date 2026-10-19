@@ -66,7 +66,7 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
     This endpoint is used to get the possible code mappings for it.
     """
 
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,

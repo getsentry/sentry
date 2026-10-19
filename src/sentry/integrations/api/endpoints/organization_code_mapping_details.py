@@ -44,7 +44,7 @@ from .organization_code_mappings import (
 @extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,

@@ -169,7 +169,7 @@ class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.CODING_WORKFLOWS
     permission_classes = (ProjectRepoPathParsingEndpointLoosePermission,)
 
     @extend_schema(
