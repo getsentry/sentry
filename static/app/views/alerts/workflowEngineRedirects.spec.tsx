@@ -22,9 +22,6 @@ import {
   makeMonitorEditPathname,
 } from 'sentry/views/detectors/pathnames';
 
-const DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE =
-  'workflow-engine-disable-legacy-alert-rule-redirects';
-
 function TestComponent() {
   return <div>Wrapped content</div>;
 }
@@ -64,7 +61,7 @@ describe('workflowEngineRedirects', () => {
     it('redirects to the automations list without looking up the workflow when redirects are disabled', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: [DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE],
+        features: ['workflow-engine-disable-legacy-alert-rule-redirects'],
       });
       const workflowRequest = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/alert-rule-workflow/`,
@@ -138,7 +135,7 @@ describe('workflowEngineRedirects', () => {
     it('redirects to the monitors list without looking up the detector when redirects are disabled', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: [DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE],
+        features: ['workflow-engine-disable-legacy-alert-rule-redirects'],
       });
       const detectorRequest = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/alert-rule-detector/`,
@@ -229,7 +226,7 @@ describe('workflowEngineRedirects', () => {
     it('redirects to the monitors list when legacy redirects are disabled', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
-        features: [DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE],
+        features: ['workflow-engine-disable-legacy-alert-rule-redirects'],
       });
 
       const Wrapped = withDetectorDetailsRedirect(TestComponent);
