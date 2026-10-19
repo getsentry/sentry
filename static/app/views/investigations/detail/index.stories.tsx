@@ -1,12 +1,11 @@
-import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
+import {CrashReportPreviewButton} from 'sentry/views/investigations/__stories__/crashReportPreviewButton';
 import {
   InvestigationFixtureApi,
   investigationExecutionFixtureKey,
 } from 'sentry/views/investigations/__stories__/investigationFixtureApi';
-import {showCrashReportPreview} from 'sentry/views/investigations/__stories__/showCrashReportPreview';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
   InvestigationBlockExecutionFixture,
@@ -649,7 +648,7 @@ export default Storybook.story('Investigations — Detail', story => {
 
   story('Error', () => (
     <Stack gap="md" align="start">
-      <Button onClick={showCrashReportPreview}>Open the Crash Report Modal</Button>
+      <CrashReportPreviewButton />
       <Stack
         minHeight="420px"
         width="100%"

@@ -1,4 +1,3 @@
-import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
@@ -7,8 +6,8 @@ import {InvestigationListItemFixture} from 'sentry/views/investigations/fixtures
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 import {RouteError} from 'sentry/views/routeError';
 
+import {CrashReportPreviewButton} from './__stories__/crashReportPreviewButton';
 import {InvestigationFixtureApi} from './__stories__/investigationFixtureApi';
-import {showCrashReportPreview} from './__stories__/showCrashReportPreview';
 
 const realisticInvestigations = [
   InvestigationListItemFixture({
@@ -94,7 +93,7 @@ export default Storybook.story('Investigations — List', story => {
 
   story('Error', () => (
     <Stack gap="md" align="start">
-      <Button onClick={showCrashReportPreview}>Open the Crash Report Modal</Button>
+      <CrashReportPreviewButton />
       <Stack
         minHeight="420px"
         width="100%"
