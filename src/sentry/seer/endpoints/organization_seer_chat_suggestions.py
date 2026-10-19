@@ -253,19 +253,21 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
         organization: Organization,
         route_params: dict[str, str],
     ) -> bool:
-        """Whether the issue on the page can likely run Autofix and hasn't yet.
+        """Whether Seer can suggest Autofix for the issue on the page: it can likely run Autofix
+        and hasn't recently.
 
         Only decides whether to suggest Autofix; the Autofix endpoint enforces access when run.
 
         Checks:
+        - the org is on a seat-based Seer plan and the project has linked repos
         - the issue belongs to this org, and the user can access its project with event:write or
           event:admin scope
         - its issue category is eligible
-        - no Autofix run in the last 30 days (Group column and run mirror, not Seer run state)
-        - the org is on a seat-based Seer plan and the project has linked repos
+        - no Autofix run in the last 30 days, including in-flight and errored runs
+        - the issue's only Autofix run isn't a legacy one (the issue page auto-triggers
+          explorer Autofix in that case)
 
         Does not check:
-        - legacy (seer-added) plans
         - the SCM integration (a cross-silo RPC; check linked repos instead)
         - the frontend's per-issue-type Autofix config, or sample events
         """
@@ -307,7 +309,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
         ):
             return False
 
-        # Skip checking the SCM integration since it is cross-silo and slow--just check the connected projects.
+        # Skip checking the SCM integration since it is cross-silo and slow--just check the connected repos.
         return has_project_connected_repos(organization, group.project)
 
 
