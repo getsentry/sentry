@@ -38,6 +38,7 @@ from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.base import SiloMode
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
@@ -138,7 +139,7 @@ class TestJWTClientSecretAuthentication(TestCase):
     def _create_jwt(self, client_id: str, exp: datetime | None = None) -> str:
         """Helper to create a JWT token"""
         if exp is None:
-            exp = datetime.now() + timedelta(hours=1)
+            exp = datetime.now() + timedelta(minutes=1)
 
         payload = {
             "iss": client_id,  # Issuer
@@ -186,6 +187,53 @@ class TestJWTClientSecretAuthentication(TestCase):
 
         with pytest.raises(AuthenticationFailed, match="Could not validate JWT"):
             self.auth.authenticate(request)
+
+    def test_missing_expiration(self) -> None:
+        token = jwt.encode(
+            {
+                "iss": self.api_app.client_id,
+                "sub": self.api_app.client_id,
+                "iat": int(datetime.now(UTC).timestamp()),
+                "jti": str(uuid.uuid4()),
+            },
+            self.api_app.client_secret,
+            algorithm="HS256",
+        )
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        with (
+            mock.patch("sentry.api.authentication.logger") as mock_logger,
+            pytest.raises(AuthenticationFailed, match="Could not validate JWT"),
+        ):
+            self.auth.authenticate(request)
+
+        mock_logger.warning.assert_called_once()
+        assert (
+            mock_logger.warning.call_args.args[0] == "client_secret_jwt_auth.missing_required_claim"
+        )
+        assert mock_logger.warning.call_args.kwargs["extra"]["claim"] == "exp"
+
+    def test_expiration_too_far_in_future(self) -> None:
+        token = self._create_jwt(self.api_app.client_id, exp=datetime.now() + timedelta(minutes=10))
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        with (
+            mock.patch("sentry.api.authentication.logger") as mock_logger,
+            pytest.raises(AuthenticationFailed, match="JWT expiration is too far in the future"),
+        ):
+            self.auth.authenticate(request)
+
+        mock_logger.warning.assert_called_once()
+        assert (
+            mock_logger.warning.call_args.args[0] == "client_secret_jwt_auth.exp_too_far_in_future"
+        )
+        assert (
+            mock_logger.warning.call_args.kwargs["extra"]["installation_id"] == self.installation.id
+        )
 
     def test_missing_authorization_header(self) -> None:
         path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
@@ -235,8 +283,30 @@ class TestJWTClientSecretAuthentication(TestCase):
         request2 = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
         request2.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
 
-        with pytest.raises(AuthenticationFailed, match="JWT has already been used"):
+        with (
+            mock.patch("sentry.api.authentication.logger") as mock_logger,
+            pytest.raises(AuthenticationFailed, match="JWT has already been used"),
+        ):
             self.auth.authenticate(request2)
+
+        mock_logger.warning.assert_called_once()
+        assert mock_logger.warning.call_args.args[0] == "client_secret_jwt_auth.jti_reused"
+
+    def test_jwt_cannot_be_used_twice_before_expiration(self) -> None:
+        now = datetime.now(UTC)
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        with freeze_time(now):
+            token = self._create_jwt(self.api_app.client_id, exp=now + timedelta(minutes=4))
+            request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+            request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+            user, _ = self.auth.authenticate(request)
+            assert user.id == self.sentry_app.proxy_user.id
+
+        with freeze_time(now + timedelta(minutes=2)):
+            request2 = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+            request2.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+            with pytest.raises(AuthenticationFailed, match="JWT has already been used"):
+                self.auth.authenticate(request2)
 
 
 class TestDSNAuthentication(TestCase):

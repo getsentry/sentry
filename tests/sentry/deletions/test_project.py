@@ -21,7 +21,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
-from sentry.models.rule import Rule, RuleActivity, RuleActivityType
+from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.monitors.models import (
     CheckInStatus,
@@ -59,9 +59,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
     def test_simple(self) -> None:
         project = self.create_project(name="test")
         rule = self.create_project_rule(project=project)
-        RuleActivity.objects.create(
-            rule=rule, user_id=self.user.id, type=RuleActivityType.CREATED.value
-        )
         event = self.store_event(data={}, project_id=project.id)
         assert event.group is not None
         group = event.group
@@ -161,6 +158,9 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             subscription=query_sub,
         )
 
+        # Existing join rows still need deletion until IncidentProject is retired.
+        incident.projects.add(project)
+
         rule_snooze = self.snooze_rule(user_id=self.user.id, alert_rule=metric_alert_rule)
 
         self.ScheduledDeletion.schedule(instance=project, days=0)
@@ -169,7 +169,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
 
         assert not Project.objects.filter(id=project.id).exists()
         assert not Rule.objects.filter(id=rule.id).exists()
-        assert not RuleActivity.objects.filter(rule_id=rule.id).exists()
         assert not EnvironmentProject.objects.filter(
             project_id=project.id, environment_id=env.id
         ).exists()
