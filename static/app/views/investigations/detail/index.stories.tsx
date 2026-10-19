@@ -1,6 +1,7 @@
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
+import {CrashReportPreviewButton} from 'sentry/views/investigations/__stories__/crashReportPreviewButton';
 import {
   InvestigationFixtureApi,
   investigationExecutionFixtureKey,
@@ -21,6 +22,7 @@ import {
   InvestigationTitleGenerationFixture,
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
+import {RouteError} from 'sentry/views/routeError';
 
 const completedInvestigation = InvestigationBreachedMetricDetailFixture({
   id: 'completed-checkout-regression',
@@ -649,13 +651,17 @@ export default Storybook.story('Investigations — Detail', story => {
   ));
 
   story('Error', () => (
-    <InvestigationFixtureApi
-      organizationSlug="storybook-investigation-detail-error"
-      mode="error"
-    >
-      <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId="error-investigation" />
-      </Container>
-    </InvestigationFixtureApi>
+    <Stack gap="md" align="start">
+      <CrashReportPreviewButton />
+      <Stack
+        minHeight="420px"
+        width="100%"
+        padding="2xl 3xl"
+        border="primary"
+        radius="md"
+      >
+        <RouteError />
+      </Stack>
+    </Stack>
   ));
 });
