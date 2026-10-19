@@ -8,6 +8,7 @@ from sentry.tasks.seer.delete_seer_grouping_records import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.viewer_context import ActorType, get_viewer_context
 
 
 @django_db_all
@@ -93,6 +94,24 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         """
         may_schedule_task_to_delete_hashes_from_seer(self.project.id, [])
         mock_apply_async.assert_not_called()
+
+    @patch("sentry.tasks.seer.delete_seer_grouping_records.call_seer_to_delete_these_hashes")
+    def test_seer_call_has_system_viewer_context(self, mock_seer_call: MagicMock) -> None:
+        hashes = self._setup_groups_and_hashes(number_of_groups=1)
+
+        def assert_viewer_context(_project_id: int, _hashes: list[str]) -> None:
+            viewer_context = get_viewer_context()
+            assert viewer_context is not None
+            assert viewer_context.organization_id == self.organization.id
+            assert viewer_context.project_id == self.project.id
+            assert viewer_context.actor_type == ActorType.SYSTEM
+
+        mock_seer_call.side_effect = assert_viewer_context
+
+        delete_seer_grouping_records_by_hash(self.project.id, hashes)
+
+        mock_seer_call.assert_called_once_with(self.project.id, hashes)
+        assert get_viewer_context() is None
 
     @patch(
         "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"

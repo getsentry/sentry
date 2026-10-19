@@ -13,6 +13,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,18 @@ def delete_seer_grouping_records_by_hash(
     batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
     len_hashes = len(hashes)
     if len_hashes <= batch_size:  # Base case
-        call_seer_to_delete_these_hashes(project_id, hashes)
+        organization_id = Project.objects.values_list("organization_id", flat=True).get(
+            id=project_id
+        )
+        # This task performs asynchronous data cleanup rather than acting for a user.
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=organization_id,
+                project_id=project_id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ):
+            call_seer_to_delete_these_hashes(project_id, hashes)
     else:
         if last_deleted_index != 0:
             # This tracks which tasks are still being scheduled with the whole list of hashes
