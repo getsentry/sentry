@@ -12,7 +12,7 @@ import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {Menu, type ListItemProps} from '@sentry/scraps/menu';
+import {Menu} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 
 export interface GridListOptionProps<
@@ -84,7 +84,7 @@ export function GridListOption<T extends ListItemBase>({
     [label]
   );
 
-  const leadingItems = (node.props as ListItemProps).leadingItems;
+  const leadingItems = node.props.leadingItems;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 

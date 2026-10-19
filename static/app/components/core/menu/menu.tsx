@@ -1,4 +1,4 @@
-import {memo, useId, useRef, useState} from 'react';
+import {useId, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
@@ -278,12 +278,13 @@ interface OtherProps<T extends React.ElementType> {
   labelProps?: {as?: 'div' | 'p'; id?: string};
 }
 
-interface Props<T extends React.ElementType = 'li'> extends ListItemProps, OtherProps<T> {
+interface MenuListItemProps<T extends React.ElementType = 'li'>
+  extends ListItemProps, OtherProps<T> {
   ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
 }
 
 /** Renders the shared visual shell for menu and select items. */
-function BaseMenuItem<T extends React.ElementType = 'li'>({
+function MenuListItem<T extends React.ElementType = 'li'>({
   label,
   details,
   as,
@@ -303,7 +304,7 @@ function BaseMenuItem<T extends React.ElementType = 'li'>({
   tooltipOptions,
   ref,
   ...props
-}: Props<T>) {
+}: MenuListItemProps<T>) {
   const itemRef = useRef<HTMLElement>(null);
   const labelId = useId();
   const detailId = useId();
@@ -412,8 +413,6 @@ function BaseMenuItem<T extends React.ElementType = 'li'>({
   );
 }
 
-const MenuListItem = memo(BaseMenuItem) as typeof BaseMenuItem;
-
 const POPPER_OPTIONS = {
   placement: 'right-start' as const,
   strategy: 'fixed' as const,
@@ -437,7 +436,7 @@ function DetailsOverlay({
   children: React.ReactNode;
   id: string;
   itemRef: React.RefObject<HTMLElement | null>;
-  size: Props['size'];
+  size: MenuListItemProps['size'];
 }) {
   const theme = useTheme();
   const [overlayElement, setOverlayElement] = useState<HTMLDivElement | null>(null);

@@ -69,7 +69,7 @@ export function ListBoxOption({
     [labelProps.id, label]
   );
 
-  const leadingItems = (item.props as ListItemProps).leadingItems;
+  const leadingItems = item.props.leadingItems;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
