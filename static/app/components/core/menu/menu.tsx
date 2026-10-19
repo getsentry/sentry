@@ -40,6 +40,7 @@ export function MenuSectionLabel({
 }: Omit<React.HTMLAttributes<HTMLSpanElement>, 'color' | 'style'> & {
   children: React.ReactNode;
 }) {
+  // TODO: Use the transparent menu heading color when Text exposes a variant for it.
   return (
     <Text as="span" size="sm" density="fixed" bold tabular {...props}>
       {children}
@@ -362,7 +363,6 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           )}
           <StyledContentWrap isFocused={isFocused} size={size}>
             <Stack padding="xs 0" align="start" gap="2xs" flex="1 0 0" minWidth="0">
-              {/* TODO: Use a heading color variant when Text supports one. */}
               <Text
                 as="div"
                 size={size ?? 'md'}
