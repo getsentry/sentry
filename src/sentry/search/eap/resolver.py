@@ -1215,6 +1215,7 @@ class SearchResolver:
                 internal_type=internal_match.internal_type,
                 validator=internal_match.validator,
                 normalizer=internal_match.normalizer,
+                canonical_case=internal_match.canonical_case,
                 processor=internal_match.processor,
             )
         else:

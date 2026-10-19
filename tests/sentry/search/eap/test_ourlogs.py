@@ -457,6 +457,21 @@ class SearchResolverQueryTest(TestCase):
             )
         )
 
+    def test_internal_trace_id_query_does_not_ignore_case_when_requested(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(case_insensitive=True),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+        where, _, _ = resolver.resolve_query("sentry.trace_id:F13343D4-6625-40D0-946F-F5B4D564C642")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="f13343d4662540d0946ff5b4d564c642"),
+            )
+        )
+
     def test_negated_trace_query_does_not_ignore_case_when_requested(self) -> None:
         resolver = SearchResolver(
             params=SnubaParams(case_insensitive=True),
