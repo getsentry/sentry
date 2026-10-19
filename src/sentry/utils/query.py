@@ -333,10 +333,13 @@ def bulk_delete_objects(
     logger: logging.Logger | None = None,
     **filters: Any,
 ) -> bool:
-    qs = model.objects.filter(**filters).values_list("id")[:limit]
+    # Sort IDs first to ensure consistent lock ordering across concurrent workers, preventing deadlocks.
+    ids = sorted(model.objects.filter(**filters).values_list("id", flat=True)[:limit])
+    if not ids:
+        return False
 
     delete_query = DeleteQuery(model)
-    delete_query.add_q(Q(id__in=qs))
+    delete_query.add_q(Q(id__in=ids))
     n = delete_query.get_compiler(router.db_for_write(model)).execute_sql(ROW_COUNT)
 
     # `n` will be `None` if `qs` is an empty queryset
