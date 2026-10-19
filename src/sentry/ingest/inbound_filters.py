@@ -1,6 +1,6 @@
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
 from django.conf import settings
 from rest_framework import serializers
@@ -13,7 +13,15 @@ from sentry.models.custominboundfilter import (
 )
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.relay.types import GenericFilter, GenericFiltersConfig, RuleCondition
+from sentry.relay.types import GenericFilter, GenericFiltersConfig
+from sentry.relay.types.rule_condition import (
+    AndCondition,
+    AnyCondition,
+    CidrCondition,
+    GlobCondition,
+    OrCondition,
+    RuleCondition,
+)
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
 from sentry.tsdb.base import TSDBModel
@@ -318,55 +326,32 @@ def _error_message_condition(
     the event's ``logentry.formatted`` message, so events captured via ``capture_message``
     (which carry no exception interface) are covered in addition to exceptions.
     """
-    conditions = []
+    conditions: list[RuleCondition] = []
     message_conditions: list[RuleCondition] = []
 
     for ty, value in values:
         ty_and_value: list[RuleCondition] = []
 
         if ty is not None:
-            ty_and_value.append({"op": "glob", "name": "ty", "value": [ty]})
+            ty_and_value.append(GlobCondition("ty", [ty]))
         if value is not None:
-            ty_and_value.append({"op": "glob", "name": "value", "value": [value]})
+            ty_and_value.append(GlobCondition("value", [value]))
 
         if len(ty_and_value) == 1:
             conditions.append(ty_and_value[0])
         elif len(ty_and_value) == 2:
-            conditions.append(
-                {
-                    "op": "and",
-                    "inner": ty_and_value,
-                }
-            )
+            conditions.append(AndCondition(ty_and_value))
 
         # A logentry message has no exception type, so only type-less patterns can match
         # it. Glob the formatted message string directly.
         if match_logentry and ty is None and value is not None:
-            message_conditions.append(
-                {"op": "glob", "name": "event.logentry.formatted", "value": [value]}
-            )
-    exception_condition = cast(
-        RuleCondition,
-        {
-            "op": "any",
-            "name": "event.exception.values",
-            "inner": {
-                "op": "or",
-                "inner": conditions,
-            },
-        },
-    )
+            message_conditions.append(GlobCondition("event.logentry.formatted", [value]))
+    exception_condition = AnyCondition("event.exception.values", OrCondition(conditions))
 
     if not message_conditions:
         return exception_condition
 
-    return cast(
-        RuleCondition,
-        {
-            "op": "or",
-            "inner": [exception_condition, *message_conditions],
-        },
-    )
+    return OrCondition([exception_condition, *message_conditions])
 
 
 def _chunk_load_error_filter() -> RuleCondition:
@@ -441,13 +426,15 @@ def get_global_generic_filters() -> GenericFiltersConfig:
     for filter_id, filter_fn in ACTIVE_GENERIC_FILTERS:
         condition = filter_fn()
         if condition is not None:
-            filters.append({"id": filter_id, "isEnabled": False, "condition": condition})
+            filters.append(
+                {"id": filter_id, "isEnabled": False, "condition": condition.serialize()}
+            )
 
     return {"version": GENERIC_FILTERS_VERSION, "filters": filters}
 
 
 def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:
-    return {"id": filter_id, "isEnabled": True, "condition": condition}
+    return {"id": filter_id, "isEnabled": True, "condition": condition.serialize()}
 
 
 def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
@@ -455,8 +442,7 @@ def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
     if not globs:
         return []
 
-    condition: RuleCondition = {"op": "glob", "name": "log.body", "value": globs}
-    return [_generic_filter("log-message", condition)]
+    return [_generic_filter("log-message", GlobCondition("log.body", globs))]
 
 
 def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]:
@@ -464,8 +450,7 @@ def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]
     if not globs:
         return []
 
-    condition: RuleCondition = {"op": "glob", "name": "trace_metric.name", "value": globs}
-    return [_generic_filter("trace-metric-name", condition)]
+    return [_generic_filter("trace-metric-name", GlobCondition("trace_metric.name", globs))]
 
 
 def _ip_denylist_generic_filters(project: Project) -> list[GenericFilter]:
@@ -569,14 +554,7 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
     filter to a type without also matching events that merely mention it in their
     message.
     """
-    return cast(
-        RuleCondition,
-        {
-            "op": "any",
-            "name": "event.exception.values",
-            "inner": {"op": "glob", "name": "ty", "value": values},
-        },
-    )
+    return AnyCondition("event.exception.values", GlobCondition("ty", values))
 
 
 # Builds the Relay condition that matches one filter condition's glob values.
@@ -588,14 +566,14 @@ _ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
 
 def _field_matcher(name: str) -> _ConditionMatcher:
     def match(values: list[str]) -> RuleCondition:
-        return {"op": "glob", "name": name, "value": values}
+        return GlobCondition(name, values)
 
     return match
 
 
 def _cidr_matcher(name: str) -> _ConditionMatcher:
     def match(values: list[str]) -> RuleCondition:
-        return {"op": "cidr", "name": name, "value": values}
+        return CidrCondition(name, values)
 
     return match
 
@@ -639,7 +617,7 @@ def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionM
     # Relay reads a field the item does not carry as no match, so the OR reduces to the
     # item's own field.
     def match(values: list[str]) -> RuleCondition:
-        return {"op": "or", "inner": [matcher(values) for matcher in matchers]}
+        return OrCondition([matcher(values) for matcher in matchers])
 
     return match
 
@@ -710,7 +688,7 @@ def _custom_filter_condition(
     if len(rule_conditions) == 1:
         return rule_conditions[0]
 
-    return {"op": "and", "inner": rule_conditions}
+    return AndCondition(rule_conditions)
 
 
 def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
