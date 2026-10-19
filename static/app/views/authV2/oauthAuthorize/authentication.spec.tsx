@@ -252,4 +252,168 @@ describe('OAuth account authentication', () => {
       expect(screen.getByRole('textbox', {name: 'Email'})).toBeVisible()
     );
   });
+
+  it('refreshes account-bound consent after logout and login', async () => {
+    const context = OAuthContextFixture();
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/context/',
+      body: {
+        ...context,
+        application: {...context.application, requiresOrgLevelAccess: true},
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      body: OAuthConsentFixture({
+        organizationOptions: [
+          {id: '1', name: 'Old Org', slug: 'old-org'},
+          {id: '2', name: 'Other Org', slug: 'other-org'},
+        ],
+      }),
+    });
+    MockApiClient.addMockResponse({url: '/auth/', method: 'DELETE', body: {}});
+    MockApiClient.addMockResponse({url: '/auth-v2/csrf/', body: {}});
+    MockApiClient.addMockResponse({url: '/auth/config/', body: loginConfig});
+    MockApiClient.addMockResponse({
+      url: '/auth/login/',
+      method: 'POST',
+      body: {user: UserFixture({id: '2', name: 'New Account'}), nextUri: '/elsewhere/'},
+    });
+    const approve = MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      method: 'POST',
+      body: {stage: 'redirect', redirectUrl: 'https://example.com/callback'},
+    });
+    render(<OAuthAuthorize />, {initialRouterConfig: {location}});
+    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Change'}));
+    await userEvent.click(await screen.findByText('Old Org (old-org)'));
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      statusCode: 403,
+      body: {detail: 'Authentication credentials were not provided.'},
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Switch account'}));
+    await userEvent.type(
+      await screen.findByRole('textbox', {name: 'Email'}),
+      'new@example.com'
+    );
+    expect(screen.queryByText('Original Account')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Example Application')).toBeVisible());
+    await userEvent.type(screen.getByLabelText('Password'), 'password');
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      body: OAuthConsentFixture({
+        transactionId: 'new-account-transaction',
+        organizationOptions: [
+          {id: '3', name: 'New Org', slug: 'new-org'},
+          {id: '4', name: 'Another Org', slug: 'another-org'},
+        ],
+      }),
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Log in to Sentry'}));
+    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    await waitFor(() => expect(screen.getByText('New Account')).toBeVisible());
+    await userEvent.click(screen.getByRole('button', {name: 'Change'}));
+    await userEvent.click(await screen.findByText('New Org (new-org)'));
+    await userEvent.click(screen.getByRole('button', {name: 'Authorize'}));
+    await waitFor(() =>
+      expect(approve).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            op: 'approve',
+            transactionId: 'new-account-transaction',
+            selectedOrganizationId: '3',
+          },
+        })
+      )
+    );
+  });
+
+  it('keeps the current consent available when logout fails', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/',
+      method: 'DELETE',
+      statusCode: 500,
+      body: {detail: 'Unable to sign out.'},
+    });
+    render(<OAuthAuthorize />, {initialRouterConfig: {location}});
+    await userEvent.click(await screen.findByRole('button', {name: 'Switch account'}));
+    await waitFor(() => expect(screen.getByText('Unable to sign out.')).toBeVisible());
+    await waitFor(() => expect(screen.getByText('Original Account')).toBeVisible());
+    expect(screen.getByRole('button', {name: 'Authorize'})).toBeEnabled();
+  });
+
+  it('prevents logout while an approval is in flight', async () => {
+    const delay = Promise.withResolvers<void>();
+    const approve = MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      method: 'POST',
+      asyncDelay: delay.promise,
+      body: {stage: 'redirect', redirectUrl: 'https://example.com/callback'},
+    });
+    render(<OAuthAuthorize />, {initialRouterConfig: {location}});
+    await userEvent.click(await screen.findByRole('button', {name: 'Authorize'}));
+    await waitFor(() => expect(approve).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('button', {name: 'Switch account'})).toBeDisabled();
+    act(() => delay.resolve());
+  });
+
+  it('keeps the request visible through MFA and prepares fresh consent', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      statusCode: 403,
+      body: {detail: 'Authentication credentials were not provided.'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {...loginConfig, pendingMfa: {mfaRequired: true, mfaMethods: [{id: 'totp'}]}},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/2fa/',
+      method: 'POST',
+      body: {user: UserFixture(), nextUri: '/elsewhere/'},
+    });
+    render(<OAuthAuthorize />, {initialRouterConfig: {location}});
+    const input = await screen.findByRole('textbox', {name: 'One-time password'});
+    await waitFor(() => expect(screen.getByText('Example Application')).toBeVisible());
+    const prepare = MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      body: OAuthConsentFixture({transactionId: 'after-mfa'}),
+    });
+    await userEvent.type(input, '123456');
+    expect(await screen.findByRole('button', {name: 'Authorize'})).toBeEnabled();
+    expect(prepare).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves the OAuth destination in the organization SSO form', async () => {
+    MockApiClient.addMockResponse({
+      url: '/auth/oauth/authorize/',
+      statusCode: 403,
+      body: {detail: 'Authentication credentials were not provided.'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {...loginConfig, singleOrganizationSlug: 'org-slug'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/org-slug/config/',
+      body: {
+        organization: {name: 'Example Org', slug: 'org-slug', avatarUrl: null},
+        provider: {key: 'saml2', name: 'SAML'},
+        loginMethod: 'sso',
+        ssoRequired: true,
+      },
+    });
+    render(<OAuthAuthorize />, {initialRouterConfig: {location}});
+    const sso = await screen.findByRole('button', {name: 'SSO'});
+    const form = sso.closest('form');
+    expect(form).toHaveAttribute('method', 'POST');
+    const action = new URL(form!.getAttribute('action')!, 'https://sentry.example.com');
+    expect(action.pathname).toBe('/auth/login/org-slug/');
+    const next = new URL(action.searchParams.get('next')!, 'https://sentry.example.com');
+    expect(next.pathname).toBe('/oauth/authorize/');
+    expect(next.searchParams.get('client_id')).toBe('example-client');
+  });
 });
