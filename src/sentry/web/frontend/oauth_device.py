@@ -2,17 +2,22 @@ from __future__ import annotations
 
 import logging
 
-from django.conf import settings
 from django.contrib.auth.views import redirect_to_login
-from django.db import IntegrityError, router, transaction
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 
+from sentry.api.helpers.oauth_consent import (
+    InvalidOrganizationSelection,
+    OrganizationSelectionError,
+    get_organization_options,
+    get_permission_descriptions,
+    persist_authorization,
+    resolve_organization,
+)
 from sentry.models.apiapplication import ApiApplicationStatus
-from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apidevicecode import (
     USER_CODE_GROUP_LENGTH,
     USER_CODE_LENGTH,
@@ -22,7 +27,6 @@ from sentry.models.apidevicecode import (
 from sentry.ratelimits import backend as ratelimiter
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.services.user.service import user_service
 from sentry.utils import auth, metrics
 from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, control_silo_view
@@ -201,32 +205,11 @@ class OAuthDeviceView(BaseView):
         application = device_code.application
         scopes = device_code.get_scopes()
 
-        # Build permissions list (same logic as oauth_authorize)
-        permissions = []
-        if scopes:
-            pending_scopes = set(scopes)
-            matched_sets = set()
-            for scope_set in settings.SENTRY_SCOPE_SETS:
-                for scope, description in scope_set:
-                    if scope_set in matched_sets and scope in pending_scopes:
-                        pending_scopes.remove(scope)
-                    elif scope in pending_scopes:
-                        permissions.append(description)
-                        matched_sets.add(scope_set)
-                        pending_scopes.remove(scope)
-
-            if pending_scopes:
-                raise NotImplementedError(f"{pending_scopes} scopes did not have descriptions")
-
-        # Get organization options if needed
-        if application.requires_org_level_access:
-            organization_options = user_service.get_organizations(
-                user_id=request.user.id, only_visible=True
-            )
-            if not organization_options:
-                return self._error_response(request, ERR_NO_ORG_ACCESS)
-        else:
-            organization_options = []
+        assert isinstance(request.user.id, int)
+        permissions = get_permission_descriptions(scopes)
+        organization_options = get_organization_options(application, request.user.id)
+        if application.requires_org_level_access and not organization_options:
+            return self._error_response(request, ERR_NO_ORG_ACCESS)
 
         # Store device code ID in session keyed by user_code
         # This allows multiple authorization flows in parallel (different user codes)
@@ -284,25 +267,17 @@ class OAuthDeviceView(BaseView):
 
         application = device_code.application
 
-        # Handle organization selection for org-level access apps
-        selected_org_id_int: int | None = None
-
-        if application.requires_org_level_access:
-            selected_organization_id = request.POST.get("selected_organization_id")
-            if not selected_organization_id:
-                return self._error_response(request, ERR_SELECT_ORG)
-
-            # Validate user has access to the selected organization
-            user_orgs = user_service.get_organizations(user_id=request.user.id, only_visible=True)
-            org_ids = {org.id for org in user_orgs}
-
-            try:
-                selected_org_id_int = int(selected_organization_id)
-            except (ValueError, TypeError):
-                return self._error_response(request, ERR_INVALID_ORG)
-
-            if selected_org_id_int not in org_ids:
-                return self._error_response(request, ERR_NO_ORG_PERMISSION)
+        try:
+            selected_org_id_int = resolve_organization(
+                application, user_id, request.POST.get("selected_organization_id")
+            )
+        except InvalidOrganizationSelection as exc:
+            errors = {
+                OrganizationSelectionError.REQUIRED: ERR_SELECT_ORG,
+                OrganizationSelectionError.INVALID: ERR_INVALID_ORG,
+                OrganizationSelectionError.NOT_ACCESSIBLE: ERR_NO_ORG_PERMISSION,
+            }
+            return self._error_response(request, errors[exc.reason])
 
         scopes = device_code.get_scopes()
 
@@ -320,27 +295,7 @@ class OAuthDeviceView(BaseView):
             # Another request already processed this device code
             return self._error_response(request, ERR_INVALID_CODE)
 
-        # Create or update ApiAuthorization record (same pattern as oauth_authorize)
-        # The try/except must be OUTSIDE the atomic block because PostgreSQL aborts
-        # the transaction on IntegrityError, preventing subsequent DB operations.
-        try:
-            with transaction.atomic(router.db_for_write(ApiAuthorization)):
-                ApiAuthorization.objects.create(
-                    application=application,
-                    user_id=user_id,
-                    scope_list=scopes,
-                    organization_id=selected_org_id_int,
-                )
-        except IntegrityError:
-            # Authorization already exists, merge in any new scopes
-            if scopes:
-                auth = ApiAuthorization.objects.get(
-                    application=application,
-                    user_id=user_id,
-                    organization_id=selected_org_id_int,
-                )
-                auth.scope_list = list(set(auth.scope_list) | set(scopes))
-                auth.save(update_fields=["scope_list"])
+        persist_authorization(application, user_id, scopes, selected_org_id_int)
 
         metrics.incr(
             "oauth_device.approve",
