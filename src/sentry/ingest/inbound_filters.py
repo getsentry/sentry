@@ -18,6 +18,7 @@ from sentry.models.custominboundfilter import (
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.relay.types import GenericFilter, GenericFiltersConfig, RuleCondition
+from sentry.relay.types.rule_condition import NotCondition
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
 from sentry.tsdb.base import TSDBModel
@@ -801,13 +802,13 @@ def _custom_filter_condition(
         matcher = matchers.get(condition_type)
         if matcher is None or (operator is not None and operator not in matcher.operators):
             return None
-        if operator in _NEGATED_OPERATORS:
-            # A field the item does not carry matches no glob, so the negation drops the item.
-            rule_conditions.append(
-                {"op": "not", "inner": matcher.match(_NEGATED_OPERATORS[operator], values)}
-            )
-        else:
+        negated = _NEGATED_OPERATORS.get(operator) if operator is not None else None
+        if negated is None:
             rule_conditions.append(matcher.match(operator, values))
+        else:
+            # A field the item does not carry matches no glob, so the negation drops the item.
+            negation: NotCondition = {"op": "not", "inner": matcher.match(negated, values)}
+            rule_conditions.append(negation)
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]
