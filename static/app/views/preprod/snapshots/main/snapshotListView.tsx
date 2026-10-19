@@ -755,10 +755,10 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       } else {
         nextPos = Math.max(0, Math.min(lastPos, currentPos + (isDown ? 1 : -1)));
       }
+      e.preventDefault();
       if (nextPos === currentPos) {
         return;
       }
-      e.preventDefault();
       const nextKey = idx.order[nextPos]!;
       onSelect(nextKey);
       revealCard(nextKey, 'nearest');
