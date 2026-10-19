@@ -54,15 +54,11 @@ class Commit(Model):
         app_label = "sentry"
         db_table = "sentry_commit"
         indexes = (
-            models.Index(fields=("new_repository_id", "date_added")),
             models.Index(fields=("repository_id", "date_added")),
             models.Index(fields=("author", "date_added")),
             models.Index(fields=("organization_id", "date_added")),
         )
-        unique_together = (
-            ("repository_id", "key"),
-            ("new_repository_id", "key"),
-        )
+        unique_together = (("repository_id", "key"),)
 
     __repr__ = sane_repr("organization_id", "repository_id", "key")
 
