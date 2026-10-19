@@ -1,7 +1,9 @@
 import logging
 from functools import partial
+from typing import Any, TypedDict
 
 import sentry_sdk
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,8 +12,23 @@ from snuba_sdk import Column
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.endpoints.organization_events import EventsApiResponse
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_TOO_MANY_REQUESTS,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issue_detection.detectors.utils import escape_transaction
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -46,6 +63,13 @@ DEFAULT_CONCURRENT_RATE_LIMIT = 15
 ORGANIZATION_RATE_LIMIT = 30
 
 
+class EventsTrendsStatsV2Response(TypedDict):
+    events: EventsApiResponse
+    # Time series per transaction, keyed by `"<project_id>,<transaction>"`.
+    stats: dict[str, dict[str, Any]]
+
+
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
@@ -68,7 +92,80 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsEndpointBase):
         }
     )
 
+    @extend_schema(
+        operation_id="getOrganizationEventsTrendsStatsV2",
+        summary="Retrieve Transaction Trends Detected by Seer",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            VisibilityParams.QUERY,
+            VisibilityParams.INTERVAL,
+            OpenApiParameter(
+                name="trendFunction",
+                location="query",
+                required=False,
+                type=str,
+                description="The aggregate to detect trends in, for example `p95(transaction.duration)`. Defaults to `p50()`.",
+            ),
+            OpenApiParameter(
+                name="trendType",
+                location="query",
+                required=False,
+                type=str,
+                enum=TREND_TYPES,
+                description="Whether to return transactions that got slower (`regression`), faster (`improved`), or `any`. Defaults to `regression`.",
+            ),
+            OpenApiParameter(
+                name="sort",
+                location="query",
+                required=False,
+                type=str,
+                description="How to order the trends: `trend_percentage()` or `-trend_percentage()`. Defaults to `trend_percentage()`. Any other value, or a `trendType` of `any`, orders by the absolute percentage change.",
+            ),
+            OpenApiParameter(
+                name="topEvents",
+                location="query",
+                required=False,
+                type=int,
+                description=f"The number of highest-volume transactions to analyze. Defaults to {DEFAULT_TOP_EVENTS_LIMIT}, maximum is {MAX_TOP_EVENTS_LIMIT}.",
+            ),
+            OpenApiParameter(
+                name="withTimeseries",
+                location="query",
+                required=False,
+                type=bool,
+                description="Return the time series of every analyzed transaction instead of only the trending ones.",
+            ),
+            OpenApiParameter(
+                name="per_page",
+                location="query",
+                required=False,
+                type=int,
+                description="The number of trending transactions to return. Defaults to and cannot exceed 5.",
+            ),
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsTrendsStatsV2Response", EventsTrendsStatsV2Response
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+            429: RESPONSE_TOO_MANY_REQUESTS,
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Return the highest-volume transactions whose `trendFunction` changed significantly
+        over the period, as detected by Seer, along with each transaction's time series
+        keyed by `"<project_id>,<transaction>"`.
+        """
         viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
 
         try:

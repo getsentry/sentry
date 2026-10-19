@@ -1,6 +1,9 @@
 from datetime import timedelta
+from typing import TypedDict
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Direction, Function, Op, Or, OrderBy
 
@@ -10,6 +13,16 @@ from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_spans_performance import EventID, get_span_description
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.organization import Organization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.search.utils import InvalidQuery, parse_datetime_string
@@ -22,16 +35,17 @@ MAX_LIMIT = 100
 BUFFER = timedelta(hours=6)
 BASE_REFERRER = "api.organization-events-root-cause-analysis"
 SPAN_ANALYSIS_SCORE_THRESHOLD = 0
-RESPONSE_KEYS = [
-    "span_op",
-    "span_group",
-    "span_description",
-    "spm_before",
-    "spm_after",
-    "p95_before",
-    "p95_after",
-    "score",
-]
+
+
+class RootCauseAnalysisSpanResponse(TypedDict):
+    span_op: str
+    span_group: str
+    span_description: str | None
+    spm_before: float
+    spm_after: float
+    p95_before: float
+    p95_after: float
+    score: float
 
 
 class RootCauseAnalysisQuerySerializer(serializers.Serializer):
@@ -178,7 +192,7 @@ def query_spans(transaction, regression_breakpoint, snuba_params, limit, span_sc
 
 def fetch_span_analysis_results(
     transaction_name, regression_breakpoint, snuba_params, project_id, limit, span_score_threshold
-):
+) -> list[RootCauseAnalysisSpanResponse]:
     span_data = query_spans(
         transaction=transaction_name,
         regression_breakpoint=regression_breakpoint,
@@ -194,22 +208,101 @@ def fetch_span_analysis_results(
             result["span_group"],
         )
 
-    return [{key: row[key] for key in RESPONSE_KEYS} for row in span_data]
+    return [
+        {
+            "span_op": row["span_op"],
+            "span_group": row["span_group"],
+            "span_description": row["span_description"],
+            "spm_before": row["spm_before"],
+            "spm_after": row["spm_after"],
+            "p95_before": row["p95_before"],
+            "p95_after": row["p95_after"],
+            "score": row["score"],
+        }
+        for row in span_data
+    ]
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsRootCauseAnalysisEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request, organization):
+    @extend_schema(
+        operation_id="listOrganizationEventsRootCauseAnalysis",
+        summary="List Spans Contributing to a Transaction Regression",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OpenApiParameter(
+                name="project",
+                location="query",
+                required=True,
+                type=str,
+                description="The ID or slug of the project the transaction belongs to.",
+            ),
+            OpenApiParameter(
+                name="transaction",
+                location="query",
+                required=True,
+                type=str,
+                description="The name of the regressed transaction.",
+            ),
+            OpenApiParameter(
+                name="breakpoint",
+                location="query",
+                required=True,
+                type=str,
+                description="When the regression started, as an ISO 8601 datetime or a Unix timestamp.",
+            ),
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            OpenApiParameter(
+                name="per_page",
+                location="query",
+                required=False,
+                type=int,
+                description=f"The number of spans to return. Defaults to {DEFAULT_LIMIT}, maximum is {MAX_LIMIT}.",
+            ),
+            OpenApiParameter(
+                name="span_score_threshold",
+                location="query",
+                required=False,
+                type=int,
+                description=f"Only return spans with at least this score. Defaults to {SPAN_ANALYSIS_SCORE_THRESHOLD}.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsRootCauseAnalysisResponse",
+                list[RootCauseAnalysisSpanResponse],
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[list[RootCauseAnalysisSpanResponse]]
+        | Response[ValidationErrorResponse]
+        | Response[str]
+    ):
+        """
+        Return the spans in a transaction that contributed most to a performance
+        regression, comparing their throughput (`spm`) and p95 self time before and after
+        the breakpoint. Spans are ordered by `score`, the increase in total time spent.
+        """
         serializer = RootCauseAnalysisQuerySerializer(
             data=request.GET,
             context={"access": request.access, "organization": organization},
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         validated = serializer.validated_data
         transaction_name = validated["transaction"]

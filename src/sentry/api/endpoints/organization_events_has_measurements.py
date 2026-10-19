@@ -1,7 +1,9 @@
 from datetime import timedelta
+from typing import TypedDict
 
 from django.core.cache import cache
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +13,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.snuba import discover
 from sentry.utils.hashlib import md5_text
@@ -36,6 +47,10 @@ MEASUREMENT_TYPES = {
 }
 
 
+class EventsHasMeasurementsResponse(TypedDict):
+    measurements: bool
+
+
 class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
     transaction = serializers.CharField(max_length=200)
     type = serializers.ChoiceField(choices=list(MEASUREMENT_TYPES.keys()))
@@ -49,13 +64,55 @@ class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
         return data
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="getOrganizationEventsHasMeasurements",
+        summary="Check if a Transaction Has Measurements",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            OpenApiParameter(
+                name="transaction",
+                location="query",
+                required=True,
+                type=str,
+                description="The name of the transaction.",
+            ),
+            OpenApiParameter(
+                name="type",
+                location="query",
+                required=True,
+                type=str,
+                enum=list(MEASUREMENT_TYPES.keys()),
+                description="The kind of measurements to look for: `web` vitals or `mobile` vitals.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsHasMeasurementsResponse", EventsHasMeasurementsResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[EventsHasMeasurementsResponse] | Response[ValidationErrorResponse] | Response[None]
+    ):
+        """
+        Check whether a transaction in a single project has any events with web or mobile
+        measurements in the last 7 days. The time range parameters are ignored.
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -84,7 +141,7 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsEndpointBase):
                 data=data, context={"project_ids": snuba_params.project_ids}
             )
             if not serializer.is_valid():
-                return Response(serializer.errors, status=400)
+                return Response(as_validation_errors(serializer), status=400)
 
         org_id = organization.id
         project_id = snuba_params.project_ids[0]

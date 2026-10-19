@@ -2,6 +2,8 @@ from datetime import timedelta
 from re import Match
 from typing import TypedDict
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,9 +16,24 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases.organization_events import EventsResultsWithFieldMetaResponse
 from sentry.api.event_search import AggregateFilter
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.serializers.snuba import StatsTimeSeriesResult
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
@@ -53,6 +70,72 @@ CORRESPONDENCE_MAP = {
 IMPROVED = "improved"
 REGRESSION = "regression"
 TREND_TYPES = [IMPROVED, REGRESSION]
+
+TRENDS_PARAMETERS = [
+    GlobalParams.ORG_ID_OR_SLUG,
+    OrganizationParams.PROJECT,
+    GlobalParams.ENVIRONMENT,
+    GlobalParams.STATS_PERIOD,
+    GlobalParams.START,
+    GlobalParams.END,
+    VisibilityParams.QUERY,
+    OpenApiParameter(
+        name="field",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="The fields to group transactions by and return, for example `transaction` and `project`.",
+    ),
+    OpenApiParameter(
+        name="trendFunction",
+        location="query",
+        required=False,
+        type=str,
+        description="The function to compare before and after the middle of the period. One of `p50()`, `p75()`, `p95()`, `p99()`, or `avg()`, optionally with a column such as `p95(transaction.duration)`. Defaults to `p50()`.",
+    ),
+    OpenApiParameter(
+        name="trendType",
+        location="query",
+        required=False,
+        type=str,
+        enum=TREND_TYPES,
+        description="Whether to return transactions that got slower (`regression`) or faster (`improved`). Defaults to `regression`.",
+    ),
+    OpenApiParameter(
+        name="middle",
+        location="query",
+        required=False,
+        type=OpenApiTypes.DATETIME,
+        description="The date splitting the period into the two halves being compared. Defaults to the middle of the period.",
+    ),
+    OpenApiParameter(
+        name="sort",
+        location="query",
+        required=False,
+        type=str,
+        description="The column to order results by, prefixed with `-` for descending order. For example, `-trend_percentage()`.",
+    ),
+    OpenApiParameter(
+        name="per_page",
+        location="query",
+        required=False,
+        type=int,
+        description="The number of transactions to return. Defaults to and cannot exceed 5.",
+    ),
+    CursorQueryParam,
+]
+TRENDS_RESPONSES = {
+    400: RESPONSE_BAD_REQUEST,
+    401: RESPONSE_UNAUTHORIZED,
+    403: RESPONSE_FORBIDDEN,
+    404: RESPONSE_NOT_FOUND,
+}
+
+
+class EventsTrendsStatsResponse(TypedDict):
+    events: EventsResultsWithFieldMetaResponse
+    stats: dict[str, StatsTimeSeriesResult]
 
 
 # TODO: move this to the builder file and introduce a top-events version instead
@@ -412,11 +495,31 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsEndpointBase):
         raise NotImplementedError
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+
+    @extend_schema(
+        operation_id="getOrganizationEventsTrendsStats",
+        summary="Retrieve Transaction Trends with Time Series",
+        parameters=[*TRENDS_PARAMETERS, VisibilityParams.INTERVAL],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsTrendsStatsResponse", EventsTrendsStatsResponse
+            ),
+            **TRENDS_RESPONSES,
+        },
+    )
+    def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Return the transactions whose performance changed the most between the two halves
+        of the period, along with a time series of `trendFunction` for each, keyed by
+        transaction.
+        """
+        return super().get(request, organization)
 
     def build_result_handler(
         self,
@@ -470,8 +573,29 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         return on_results
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsTrendsEndpoint(OrganizationEventsTrendsEndpointBase):
+    @extend_schema(
+        operation_id="listOrganizationEventsTrends",
+        summary="List Transaction Trends",
+        parameters=TRENDS_PARAMETERS,
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsTrendsResponse", EventsResultsWithFieldMetaResponse
+            ),
+            **TRENDS_RESPONSES,
+        },
+    )
+    def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Return the transactions whose performance changed the most between the two halves
+        of the period. Each row includes the trend function's value before and after the
+        middle of the period, the percentage and absolute change, the change in count, and
+        a t-test score.
+        """
+        return super().get(request, organization)
+
     def build_result_handler(
         self,
         request,

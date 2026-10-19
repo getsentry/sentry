@@ -4,7 +4,7 @@ import itertools
 import logging
 from collections.abc import Callable, Iterable, Sequence
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -107,6 +107,15 @@ def resolve_axis_column(
         return column
 
     return get_function_alias(column)
+
+
+class EventsResultsWithFieldMetaResponse(TypedDict):
+    """Query results. `data` holds one row per result, keyed by column. `meta` maps each
+    column to its type, along with the `isMetricsData` and `isMetricsExtractedData` flags.
+    """
+
+    data: list[dict[str, Any]]
+    meta: dict[str, Any]
 
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):

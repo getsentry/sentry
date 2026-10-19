@@ -6,10 +6,12 @@ from collections import defaultdict, deque
 from collections.abc import Mapping, Sequence
 from concurrent.futures import as_completed
 from datetime import datetime, timedelta
-from typing import Any, Optional, TypedDict, cast
+from typing import Any, NotRequired, Optional, TypedDict, cast
 
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -23,6 +25,14 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.serializers.models.event import EventTag, get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams, TraceParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -158,28 +168,28 @@ LightResponse = TypedDict(
 FullResponse = TypedDict(
     "FullResponse",
     {
-        "_meta": dict[str, Any],
+        "_meta": NotRequired[dict[str, Any]],
         "children": list["FullResponse"],
         "errors": list[TraceError],
         "event_id": str,
         "generation": Optional[int],
-        "measurements": dict[str, int],
+        "measurements": NotRequired[dict[str, Any]],
         "parent_event_id": Optional[str],
         "parent_span_id": Optional[str],
         "performance_issues": list[TracePerformanceIssue],
-        "profile_id": Optional[str],
-        "profiler_id": Optional[str],
+        "profile_id": NotRequired[Optional[str]],
+        "profiler_id": NotRequired[Optional[str]],
         "project_id": int,
         "project_slug": str,
-        "sdk_name": Optional[str],
+        "sdk_name": NotRequired[Optional[str]],
         "span_id": str,
-        "start_timestamp": str | int,
-        "tags": list[EventTag],
-        "timestamp": str | int,
+        "start_timestamp": NotRequired[float],
+        "tags": NotRequired[list[EventTag]],
+        "timestamp": float,
         "transaction": str,
         "transaction.duration": int,
         "transaction.op": str,
-        "transaction.status": str,
+        "transaction.status": NotRequired[str],
     },
 )
 
@@ -187,6 +197,25 @@ FullResponse = TypedDict(
 class SerializedTrace(TypedDict):
     orphan_errors: list[TraceError]
     transactions: list[FullResponse]
+
+
+class TraceMetaResponse(TypedDict):
+    projects: int
+    transactions: int
+    errors: int
+    performance_issues: int
+    span_count: int
+    transaction_child_count_map: list[Any]
+    span_count_map: dict[str, int]
+
+
+TRACE_TIMESTAMP_PARAM = OpenApiParameter(
+    name="timestamp",
+    location="query",
+    required=False,
+    type=OpenApiTypes.DATETIME,
+    description="The timestamp of an event in the trace. When passed, only data within a few days of it is queried, which is faster.",
+)
 
 
 class TraceEvent:
@@ -484,8 +513,10 @@ class TraceEvent:
             if "measurements" in self.event:
                 result["measurements"] = self.event["measurements"]
         if self.nodestore_event:
-            result["timestamp"] = cast(str, self.nodestore_event.data.get("timestamp"))
-            result["start_timestamp"] = cast(str, self.nodestore_event.data.get("start_timestamp"))
+            result["timestamp"] = cast(float, self.nodestore_event.data.get("timestamp"))
+            result["start_timestamp"] = cast(
+                float, self.nodestore_event.data.get("start_timestamp")
+            )
             result["sdk_name"] = self.event["sdk.name"]
 
             contexts = self.nodestore_event.data.get("contexts", {})
@@ -1083,8 +1114,64 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointBase):
         raise NotImplementedError
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
+    """
+    Legacy: replaced by `OrganizationTraceEndpoint` (`trace/{trace_id}/`), which is built on
+    spans instead of transactions. Kept private for the remaining callers.
+    """
+
+    @extend_schema(
+        operation_id="getOrganizationEventsTrace",
+        summary="Retrieve a Trace's Transactions",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            TraceParams.TRACE_ID,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            TRACE_TIMESTAMP_PARAM,
+            OpenApiParameter(
+                name="limit",
+                location="query",
+                required=False,
+                type=int,
+                description=f"The maximum number of transactions to return. Defaults to {MAX_TRACE_SIZE}, maximum is 10,000.",
+            ),
+            OpenApiParameter(
+                name="targetId",
+                location="query",
+                required=False,
+                type=str,
+                description="The ID of an event or span in the trace. `event_id` and `eventId` are accepted as aliases.",
+            ),
+            OpenApiParameter(
+                name="detailed",
+                location="query",
+                required=False,
+                type=str,
+                enum=["0", "1"],
+                description="Deprecated. Set to `1` to include tags, measurements, and the transaction status.",
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsTraceResponse", SerializedTrace
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
+        """
+        Return the transactions in a trace as a tree, rooted at the trace's root
+        transactions, along with errors that couldn't be attached to a transaction.
+        """
+        return super().get(request, organization, trace_id)
+
     @staticmethod
     def update_children(event: TraceEvent, limit: int) -> None:
         """Updates the children of subtraces
@@ -1423,8 +1510,14 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             }
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsTraceMetaEndpoint(OrganizationEventsEndpointBase):
+    """
+    Legacy: replaced by `OrganizationTraceMetaEndpoint` (`trace-meta/{trace_id}/`). Kept
+    private for the remaining callers.
+    """
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -1451,7 +1544,35 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsEndpointBase):
             include_all_accessible=True,
         )
 
-    def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
+    @extend_schema(
+        operation_id="getOrganizationEventsTraceMeta",
+        summary="Retrieve a Trace's Event Counts",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            TraceParams.TRACE_ID,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            TRACE_TIMESTAMP_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsTraceMetaResponse", TraceMetaResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization, trace_id: str
+    ) -> Response[TraceMetaResponse] | Response[None]:
+        """
+        Return the number of projects, transactions, errors, and performance issues in a
+        trace. `span_count`, `transaction_child_count_map`, and `span_count_map` are no
+        longer computed and are always empty.
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -1497,7 +1618,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsEndpointBase):
     def serialize(
         self,
         results: Mapping[str, int],
-    ) -> Mapping[str, int | dict[str, int] | list[Any]]:
+    ) -> TraceMetaResponse:
         return {
             # Values can be null if there's no result
             "projects": results.get("projects") or 0,

@@ -6,6 +6,7 @@ from datetime import timedelta
 from itertools import chain
 from typing import Any, Never, TypedDict
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -19,7 +20,16 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.serializers.snuba import StatsTimeSeriesResult
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models.organization import Organization
 from sentry.search.events.builder.base import BaseQueryBuilder
@@ -83,6 +93,89 @@ SPAN_PERFORMANCE_COLUMNS: dict[str, SpanPerformanceColumn] = {
         ["percentileArray(spans_exclusive_time, 0.99)"],
         ["max"],
     ),
+}
+
+
+class ExampleSpanResponse(TypedDict):
+    id: str
+    startTimestamp: float
+    finishTimestamp: float
+    exclusiveTime: float
+    trace: str
+
+
+class ExampleTransactionResponse(TypedDict):
+    id: str
+    description: str | None
+    startTimestamp: float
+    finishTimestamp: float
+    nonOverlappingExclusiveTime: float
+    spans: list[ExampleSpanResponse]
+
+
+class SuspectSpanResponse(TypedDict):
+    op: str
+    group: str
+    description: str | None
+    frequency: int | None
+    count: int | None
+    avgOccurrences: float | None
+    sumExclusiveTime: float | None
+    p50ExclusiveTime: float | None
+    p75ExclusiveTime: float | None
+    p95ExclusiveTime: float | None
+    p99ExclusiveTime: float | None
+
+
+SPANS_PERFORMANCE_PARAMETERS = [
+    GlobalParams.ORG_ID_OR_SLUG,
+    OpenApiParameter(
+        name="project",
+        location="query",
+        required=True,
+        type=str,
+        description="The ID of the project to query. Exactly one project is required.",
+    ),
+    GlobalParams.ENVIRONMENT,
+    GlobalParams.STATS_PERIOD,
+    GlobalParams.START,
+    GlobalParams.END,
+    VisibilityParams.QUERY,
+    OpenApiParameter(
+        name="min_exclusive_time",
+        location="query",
+        required=False,
+        type=float,
+        description="Only include spans with an exclusive time, in milliseconds, greater than this value.",
+    ),
+    OpenApiParameter(
+        name="max_exclusive_time",
+        location="query",
+        required=False,
+        type=float,
+        description="Only include spans with an exclusive time, in milliseconds, less than this value.",
+    ),
+]
+SPANS_PERFORMANCE_SORT_PARAM = OpenApiParameter(
+    name="sort",
+    location="query",
+    required=False,
+    type=str,
+    enum=[prefix + column for column in SPAN_PERFORMANCE_COLUMNS for prefix in ("", "-")],
+    description="The column to order results by, prefixed with `-` for descending order. Defaults to `-sumExclusiveTime`.",
+)
+SPAN_PARAM = OpenApiParameter(
+    name="span",
+    location="query",
+    required=True,
+    type=str,
+    description="The span to query, as its operation and 16-character hex group delimited by a colon. For example, `db:0123456789abcdef`.",
+)
+SPANS_PERFORMANCE_RESPONSES = {
+    400: RESPONSE_BAD_REQUEST,
+    401: RESPONSE_UNAUTHORIZED,
+    403: RESPONSE_FORBIDDEN,
+    404: RESPONSE_NOT_FOUND,
 }
 
 
@@ -156,13 +249,72 @@ class SpansPerformanceSerializer(serializers.Serializer[Never]):
         return span_groups
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @extend_schema(
+        operation_id="listOrganizationEventsSpansPerformance",
+        summary="List Suspect Spans",
+        parameters=[
+            *SPANS_PERFORMANCE_PARAMETERS,
+            OpenApiParameter(
+                name="field",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                description="Additional fields or functions to select in the underlying query.",
+            ),
+            OpenApiParameter(
+                name="spanOp",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                description="Only include spans with these operations. Up to 5 can be passed.",
+            ),
+            OpenApiParameter(
+                name="excludeSpanOp",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                description="Exclude spans with these operations. Up to 5 can be passed.",
+            ),
+            OpenApiParameter(
+                name="spanGroup",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                description="Only include spans in these 16-character hex span groups. Up to 4 can be passed.",
+            ),
+            SPANS_PERFORMANCE_SORT_PARAM,
+            OpenApiParameter(
+                name="per_page",
+                location="query",
+                required=False,
+                type=int,
+                description="The number of spans to return. Defaults to 10, maximum is 100.",
+            ),
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsSpansPerformanceResponse", list[SuspectSpanResponse]
+            ),
+            **SPANS_PERFORMANCE_RESPONSES,
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Return the span operation and group pairs in a project's transactions that
+        contribute the most to the selected sort, such as total exclusive time.
+        """
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -183,7 +335,7 @@ class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpoint
 
         direction, orderby_column = self.get_orderby_column(request)
 
-        def data_fn(offset: int, limit: int) -> Any:
+        def data_fn(offset: int, limit: int) -> list[SuspectSpanResponse]:
             suspects = query_suspect_span_groups(
                 snuba_params,
                 fields,
@@ -234,19 +386,47 @@ class SpanSerializer(serializers.Serializer[Never]):
             raise serializers.ValidationError(str(e))
 
 
-class _Example(TypedDict):
+class SpanExamplesResponse(TypedDict):
     op: str
     group: str
-    examples: list[ExampleTransaction]
+    examples: list[ExampleTransactionResponse]
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @extend_schema(
+        operation_id="listOrganizationEventsSpanExamples",
+        summary="List Example Transactions for a Span",
+        parameters=[
+            *SPANS_PERFORMANCE_PARAMETERS,
+            SPAN_PARAM,
+            SPANS_PERFORMANCE_SORT_PARAM,
+            OpenApiParameter(
+                name="per_page",
+                location="query",
+                required=False,
+                type=int,
+                description="The number of example transactions to return. Defaults to 3, maximum is 10.",
+            ),
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsSpanExamplesResponse", list[SpanExamplesResponse]
+            ),
+            **SPANS_PERFORMANCE_RESPONSES,
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Return example transactions containing a span, with the matching spans in each
+        transaction and their timings.
+        """
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -264,7 +444,7 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
 
         direction, orderby_column = self.get_orderby_column(request)
 
-        def data_fn(offset: int, limit: int) -> list[_Example]:
+        def data_fn(offset: int, limit: int) -> list[SpanExamplesResponse]:
             example_transactions = query_example_transactions(
                 snuba_params,
                 query,
@@ -304,10 +484,12 @@ class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBas
 
 
 class SpanExamplesPaginator:
-    def __init__(self, data_fn: Callable[[int, int], list[_Example]]):
+    def __init__(self, data_fn: Callable[[int, int], list[SpanExamplesResponse]]):
         self.data_fn = data_fn
 
-    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[_Example]:
+    def get_result(
+        self, limit: int, cursor: Cursor | None = None
+    ) -> CursorResult[SpanExamplesResponse]:
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
         # Request 1 more than limit so we can tell if there is another page
@@ -324,13 +506,41 @@ class SpanExamplesPaginator:
         )
 
 
+@extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
+    @extend_schema(
+        operation_id="getOrganizationEventsSpansStats",
+        summary="Retrieve Time Series for a Span",
+        parameters=[
+            *SPANS_PERFORMANCE_PARAMETERS,
+            SPAN_PARAM,
+            OpenApiParameter(
+                name="yAxis",
+                location="query",
+                required=False,
+                type=str,
+                many=True,
+                description="The aggregates to plot, such as `percentileArray(spans_exclusive_time, 0.75)`. Defaults to `sumArray(spans_exclusive_time)`. When more than one is passed, the response is keyed by aggregate.",
+            ),
+            VisibilityParams.INTERVAL,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsSpansStatsResponse",
+                StatsTimeSeriesResult | dict[str, StatsTimeSeriesResult],
+            ),
+            **SPANS_PERFORMANCE_RESPONSES,
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Return a time series of a span's exclusive time across a project's transactions.
+        """
         serializer = SpanSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -419,7 +629,7 @@ class ExampleSpan:
     exclusive_time: float
     trace_id: str
 
-    def serialize(self) -> Any:
+    def serialize(self) -> ExampleSpanResponse:
         return {
             "id": self.id,
             "startTimestamp": self.start_timestamp,
@@ -438,7 +648,7 @@ class ExampleTransaction:
     non_overlapping_exclusive_time: float
     spans: list[ExampleSpan]
 
-    def serialize(self) -> Any:
+    def serialize(self) -> ExampleTransactionResponse:
         return {
             "id": self.id,
             "description": self.description,
@@ -463,7 +673,7 @@ class SuspectSpan:
     p95_exclusive_time: float | None
     p99_exclusive_time: float | None
 
-    def serialize(self) -> Any:
+    def serialize(self) -> SuspectSpanResponse:
         return {
             "op": self.op,
             "group": self.group.rjust(16, "0"),
