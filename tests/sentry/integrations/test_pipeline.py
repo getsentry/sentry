@@ -5,9 +5,13 @@ from unittest.mock import patch
 import pytest
 from django.http.response import HttpResponse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
-from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration import (
+    Integration,
+    OrganizationIntegrationDeletionInProgress,
+)
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import EventLifecycleOutcome
@@ -128,6 +132,44 @@ class FinishPipelineTestCase(IntegrationTestCase):
         assert OrganizationIntegration.objects.filter(
             organization_id=self.organization.id, integration_id=integration.id
         ).exists()
+
+    def test_existing_active_integration_without_default_identity(self, *args) -> None:
+        integration = self.create_provider_integration(
+            provider=self.provider.key, external_id=self.external_id, name="Tester"
+        )
+        organization_integration = self.create_organization_integration(
+            organization_id=self.organization.id,
+            integration=integration,
+            default_auth_id=123,
+        )
+
+        result = integration.add_organization(
+            self.organization,
+            reject_pending_deletion=True,
+        )
+
+        assert result == organization_integration
+        organization_integration.refresh_from_db()
+        assert organization_integration.default_auth_id == 123
+
+    def test_rejects_pending_deletion_without_default_identity(self, *args) -> None:
+        integration = self.create_provider_integration(
+            provider=self.provider.key, external_id=self.external_id, name="Tester"
+        )
+        organization_integration = self.create_organization_integration(
+            organization_id=self.organization.id,
+            integration=integration,
+            status=ObjectStatus.PENDING_DELETION,
+        )
+
+        with pytest.raises(OrganizationIntegrationDeletionInProgress):
+            integration.add_organization(
+                self.organization,
+                reject_pending_deletion=True,
+            )
+
+        organization_integration.refresh_from_db()
+        assert organization_integration.status == ObjectStatus.PENDING_DELETION
 
     def test_expect_exists_does_not_update(self, *args) -> None:
         old_integration = self.create_provider_integration(
