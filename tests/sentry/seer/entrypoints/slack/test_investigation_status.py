@@ -193,15 +193,6 @@ class BuildInvestigationStatusTest(TestCase):
 
         assert len(data.hypotheses) == 10
 
-    def test_title_falls_back_to_group_title_then_this_alert(self) -> None:
-        self._snapshot()["monitor"].pop("name")
-
-        assert self._build([])[0].title == "Login page FCP spike"
-
-        self._snapshot().pop("groupTitle")
-
-        assert self._build([])[0].title == "this alert"
-
     def test_subtitle_without_query_spans_days(self) -> None:
         self._snapshot()["monitor"]["query"] = ""
         self._snapshot()["analysisWindow"]["breachStart"] = "2024-08-27T23:00:00+00:00"

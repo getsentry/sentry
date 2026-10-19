@@ -69,18 +69,6 @@ def _as_dict(value: Any) -> Mapping[str, Any]:
     return value if isinstance(value, Mapping) else {}
 
 
-def _parse_time(value: Any) -> datetime | None:
-    if not isinstance(value, str):
-        return None
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=UTC)
-    return parsed.astimezone(UTC)
-
-
 def _format_window(start: datetime, end: datetime) -> str:
     start_text = f"{start:%b} {start.day}, {start:%H:%M}"
     if start.date() == end.date():
@@ -89,12 +77,7 @@ def _format_window(start: datetime, end: datetime) -> str:
 
 
 def get_status_title(source: Mapping[str, Any]) -> str:
-    snapshot = _as_dict(source.get("snapshot"))
-    monitor = _as_dict(snapshot.get("monitor"))
-    for title in (monitor.get("name"), snapshot.get("groupTitle")):
-        if isinstance(title, str) and title:
-            return title
-    return "this alert"
+    return source["snapshot"]["monitor"]["name"]
 
 
 def _get_endpoint(query: str) -> str | None:
@@ -115,22 +98,19 @@ def _get_endpoint(query: str) -> str | None:
     return endpoints[0] if len(endpoints) == 1 else None
 
 
-def get_status_subtitle(
-    source: Mapping[str, Any], updated_at: datetime | None = None
-) -> str | None:
-    snapshot = _as_dict(source.get("snapshot"))
+def get_status_subtitle(source: Mapping[str, Any], updated_at: datetime | None = None) -> str:
+    snapshot = source["snapshot"]
     parts = []
-    query = _as_dict(snapshot.get("monitor")).get("query")
-    endpoint = _get_endpoint(query) if isinstance(query, str) and query else None
+    query = snapshot["monitor"]["query"]
+    endpoint = _get_endpoint(query) if query else None
     if endpoint:
         # A backtick in the endpoint ends the code span too early.
         parts.append(f"`{_truncate(endpoint.replace('`', "'"))}`")
-    window = _as_dict(snapshot.get("analysisWindow"))
-    start = _parse_time(window.get("breachStart"))
-    end = updated_at.astimezone(UTC) if updated_at else _parse_time(window.get("end"))
-    if start and end:
-        parts.append(_format_window(start, end))
-    return " · ".join(parts) or None
+    window = snapshot["analysisWindow"]
+    start = datetime.fromisoformat(window["breachStart"]).astimezone(UTC)
+    end = (updated_at or datetime.fromisoformat(window["end"])).astimezone(UTC)
+    parts.append(_format_window(start, end))
+    return " · ".join(parts)
 
 
 def _get_detail(hypothesis: Mapping[str, Any]) -> str:
@@ -158,7 +138,7 @@ def build_investigation_status(
     updated_at: datetime | None = None,
 ) -> tuple[SeerInvestigationStatus, str]:
     """Builds the status message data and a fingerprint of what it shows."""
-    source = _as_dict(investigation.source)
+    source = investigation.source
     raw_hypotheses = [
         hypothesis
         for hypothesis in _as_dict(projection).get("hypotheses") or []
