@@ -34,6 +34,7 @@ export default function AdminRelays() {
       });
     } catch {
       addErrorMessage(t('Unable to delete relay'));
+      // oxlint-disable-next-line react/todo
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.testutils.asserts import assert_halt_metric
 
@@ -22,6 +24,13 @@ class AppMentionEventTest(BaseEventTest):
         super().setUp()
         # Tests default to having the mention come from a linked user.
         self.link_identity(user=self.user, slack_user_id=APP_MENTION_EVENT["user"])
+
+    @pytest.fixture(autouse=True)
+    def mock_set_thread_status(self):
+        with patch(
+            "sentry.integrations.slack.integration.SlackIntegration.set_thread_status",
+        ) as self.mock_status:
+            yield
 
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_app_mention_dispatches_task(self, mock_apply_async):
@@ -137,9 +146,10 @@ class AppMentionEventTest(BaseEventTest):
         assert_halt_metric(mock_record, SeerSlackHaltReason.EMPTY_PROMPT)
         mock_send.assert_called_once()
 
+    @patch("sentry.integrations.slack.workspace.send_threaded_ephemeral_message")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
-    def test_app_mention_only_mentions_halts(self, mock_apply_async, mock_record):
+    def test_app_mention_only_mentions_halts(self, mock_apply_async, mock_record, mock_send):
         """Mentioning us alongside other users, with no question, is still empty."""
         with self.feature(SEER_EXPLORER_FEATURES):
             resp = self.post_webhook(

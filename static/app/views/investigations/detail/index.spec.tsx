@@ -121,6 +121,7 @@ async function chooseCellAction(cellTitle: string, action: 'Delete' | 'Refine') 
 
 describe('Investigation detail', () => {
   beforeEach(() => {
+    MockApiClient.addMockResponse({url: `${detailUrl}comment-counts/`, body: {}});
     jest.spyOn(indicators, 'addSuccessMessage').mockImplementation();
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
     createFeedbackForm.mockClear();
@@ -2133,6 +2134,10 @@ describe('Investigation detail', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/investigation-2/comments/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/investigation-2/comment-counts/',
+      body: {},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/investigation-2/',

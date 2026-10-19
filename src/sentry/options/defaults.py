@@ -3659,13 +3659,6 @@ register(
 )
 
 # Notification Options - Start
-register(
-    "notifications.issue-alerts.disable-rule-snooze",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Options for migrating to the notification platform
 # Notifications for internal testing
 register(

@@ -4,7 +4,7 @@ from typing import Literal
 import pytest
 from pydantic import ValidationError
 
-from sentry.api.helpers.timeseries_processing import (
+from sentry.api.helpers.timeseries_transformations import (
     FILL_MODE_LINEAR,
     FILL_MODE_LOCF,
     FILL_MODE_ZERO,

@@ -1,3 +1,4 @@
+import re
 import uuid
 import zoneinfo
 from collections import Counter
@@ -7,6 +8,7 @@ from functools import cached_property
 from unittest import mock
 from unittest.mock import MagicMock
 
+import responses
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
@@ -74,6 +76,10 @@ from sentry.utils.email import MessageBuilder, get_email_addresses
 from tests.sentry.mail import make_event_data, mock_notify
 
 pytestmark = requires_snuba
+
+# Test addresses have no Gravatar, so the real lookup returns 404 and the email
+# falls back to a letter avatar.
+GRAVATAR_AVATAR_URL = re.compile(r"https://gravatar\.com/avatar/")
 
 
 def as_group_event(event: Event | GroupEvent) -> GroupEvent:
@@ -732,7 +738,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
         assert recipient_context["clock_24_hours"] is False
 
+    @responses.activate
     def test_notify_with_suspect_commits(self) -> None:
+        responses.add(responses.GET, GRAVATAR_AVATAR_URL, status=404)
         repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id
         )
@@ -1112,7 +1120,9 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             [],
         )
 
+    @responses.activate
     def test_notify_with_user_tag(self) -> None:
+        responses.add(responses.GET, GRAVATAR_AVATAR_URL, status=404)
         owner = self.create_user(email="theboss@example.com", is_active=True)
         organization = self.create_organization(owner=owner)
         team = self.create_team(organization=organization, name="sentry")
@@ -1731,7 +1741,9 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             email="homer.simpson@example.com",
         )
 
+    @responses.activate
     def test_user_feedback(self) -> None:
+        responses.add(responses.GET, GRAVATAR_AVATAR_URL, status=404)
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.create(
                 user_id=self.user.id,
