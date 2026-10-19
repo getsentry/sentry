@@ -375,6 +375,26 @@ class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
             "123.456",
         ]
 
+    @mock.patch(f"{PLATFORM_DISPATCH_PATH}.prepare_slack_thread_for_autofix_updates")
+    @mock.patch(f"{PLATFORM_DISPATCH_PATH}.SeerAutofixOperator.has_access", return_value=True)
+    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
+    def test_slack_thread_flag_off_caches_message_for_seer(
+        self,
+        mock_slack_client: mock.MagicMock,
+        mock_has_access: mock.MagicMock,
+        mock_prepare_thread: mock.MagicMock,
+    ) -> None:
+        self.organization.update_option("sentry:issue_alerts_thread_flag", False)
+        action = self.create_channel_action(Action.Type.SLACK, IntegrationProviderSlug.SLACK)
+        client = mock_slack_client.return_value
+        client.chat_postMessage.return_value = slack_response(client, "123.456")
+
+        SlackIssueAlertHandler.invoke_legacy_registry(self.invocation(action))
+
+        assert "thread_ts" not in client.chat_postMessage.call_args.kwargs
+        mock_prepare_thread.assert_called_once()
+        assert mock_prepare_thread.call_args.kwargs["thread_ts"] == "123.456"
+
     @mock.patch("sentry.integrations.discord.integration.DiscordClient")
     def test_discord_sends_to_channel(self, mock_discord_client: mock.MagicMock) -> None:
         action = self.create_channel_action(Action.Type.DISCORD, IntegrationProviderSlug.DISCORD)
