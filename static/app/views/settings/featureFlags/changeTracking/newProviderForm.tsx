@@ -148,6 +148,12 @@ export function NewProviderForm({
                 value={field.state.value}
                 onChange={value => {
                   field.handleChange(value);
+                  form.setFieldValue(
+                    'webhookUrl',
+                    value
+                      ? `${window.location.origin}/api/0/organizations/${organization.slug}/flags/hooks/provider/${value.toLowerCase()}/`
+                      : ''
+                  );
                   setSelectedProvider(value);
                 }}
                 placeholder={t('Select a provider')}
@@ -160,32 +166,26 @@ export function NewProviderForm({
           )}
         </form.AppField>
         <form.Subscribe selector={state => state.values.provider}>
-          {provider => {
-            const webhookUrl = provider
-              ? `${window.location.origin}/api/0/organizations/${organization.slug}/flags/hooks/provider/${provider.toLowerCase()}/`
-              : '';
-
-            return (
-              <form.AppField name="webhookUrl">
-                {field => (
-                  <field.Layout.Row
-                    padding="xl"
-                    label={t('Webhook URL')}
-                    hintText={getWebhookUrlHint(provider ?? '')}
-                  >
-                    <field.Input
-                      readOnly
-                      dir="ltr"
-                      value={webhookUrl}
-                      disabled={!provider}
-                      onClick={event => selectText(event.currentTarget)}
-                      trailingItems={<InputCopyButton text={webhookUrl} />}
-                    />
-                  </field.Layout.Row>
-                )}
-              </form.AppField>
-            );
-          }}
+          {provider => (
+            <form.AppField name="webhookUrl">
+              {field => (
+                <field.Layout.Row
+                  padding="xl"
+                  label={t('Webhook URL')}
+                  hintText={getWebhookUrlHint(provider ?? '')}
+                >
+                  <field.Input
+                    readOnly
+                    dir="ltr"
+                    value={field.state.value}
+                    disabled={!provider}
+                    onClick={event => selectText(event.currentTarget)}
+                    trailingItems={<InputCopyButton text={field.state.value} />}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+          )}
         </form.Subscribe>
         <form.AppField name="secret">
           {field => (
