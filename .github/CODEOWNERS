@@ -667,6 +667,19 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/insights/mcp-resources/                                              @getsentry/agent-tracing
 /static/app/views/insights/mcp-tools/                                                  @getsentry/agent-tracing
 /static/app/views/dashboards/utils/prebuiltConfigs/ai/                                 @getsentry/agent-tracing
+/static/app/views/dashboards/widgets/agentsTracesTableWidget/                          @getsentry/agent-tracing
+/static/app/views/insights/common/components/agentSelector.tsx                         @getsentry/agent-tracing
+/static/app/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails.tsx  @getsentry/data-browsing @getsentry/agent-tracing
+/tests/sentry/explore/endpoints/test_explore_saved_query_ai_conversations.py           @getsentry/agent-tracing
+/src/sentry/demo_mode/                                                                 @getsentry/agent-tracing
+/tests/sentry/demo_mode/                                                               @getsentry/agent-tracing
+/src/sentry/middleware/demo_mode_guard.py                                              @getsentry/agent-tracing
+/tests/sentry/middleware/test_demo_mode_guard.py                                       @getsentry/agent-tracing
+/static/app/utils/demoMode/                                                            @getsentry/agent-tracing
+/static/app/components/demo/                                                           @getsentry/agent-tracing
+/static/app/components/demoSandboxButton.tsx                                           @getsentry/agent-tracing
+/static/app/components/acl/demoModeDisabled*                                           @getsentry/agent-tracing
+/static/app/types/sandbox.tsx                                                          @getsentry/agent-tracing
 ## End of Agent Tracing
 
 ## Value Discovery
@@ -674,6 +687,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/data/platformPickerCategories.tsx                                    @getsentry/value-discovery
 /static/app/data/platforms.tsx                                                   @getsentry/value-discovery
 /static/app/gettingStartedDocs/                                                  @getsentry/value-discovery
+/static/app/gettingStartedDocs/**/agentMonitoring*                               @getsentry/value-discovery @getsentry/agent-tracing
+/static/app/gettingStartedDocs/**/mcp*                                           @getsentry/value-discovery @getsentry/agent-tracing
+/static/app/gettingStartedDocs/agentFrameworks*                                  @getsentry/value-discovery @getsentry/agent-tracing
 /static/app/types/project.tsx                                                    @getsentry/value-discovery
 /static/app/views/onboarding/                                                    @getsentry/value-discovery
 /tests/acceptance/test_onboarding.py                                             @getsentry/value-discovery
