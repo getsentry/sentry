@@ -64,7 +64,7 @@ function MenuItemGroupList(props: ContainerProps<'ul'>) {
 
 /** Container for menu footer actions, with a divider above it. */
 function MenuFooterLayout(props: FlexProps) {
-  return <Flex borderTop="muted" align="center" {...props} />;
+  return <Flex borderTop="muted" align="center" padding="md lg" {...props} />;
 }
 
 type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input>;

@@ -600,7 +600,7 @@ export function Control<Value extends SelectKey>({
                   : menuBody}
                 {!hideOptions && <Stack minHeight="0">{children}</Stack>}
                 {menuFooter && (
-                  <Menu.Footer padding="md lg">
+                  <Menu.Footer>
                     {typeof menuFooter === 'function'
                       ? menuFooter({
                           closeOverlay: overlayState.close,
