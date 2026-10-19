@@ -8,9 +8,12 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.grouping.utils import hash_from_values
+from sentry.issues.producer import PayloadType
+from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.monitors.grouptype import BrokenMonitorConfigurationType, MonitorIncidentType
+from sentry.monitors.logic.broken_monitor_issue import resolve_broken_monitor_issue
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -29,9 +32,12 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.actor import Actor
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.useremail import UserEmail
-from sentry.workflow_engine.models import DataSourceDetector
+from sentry.workflow_engine.models import DataSourceDetector, Detector, DetectorGroup
+
+BROKEN_MONITOR_ISSUE_FLAG = "organizations:issue-broken-cron-monitor-configuration-ingest"
 
 
 class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
@@ -719,3 +725,131 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         detect_broken_monitor_envs()
 
         builder.return_value.send_async.assert_called_with(["enabled_owner@example.com"])
+
+    @with_feature(BROKEN_MONITOR_ISSUE_FLAG)
+    @patch("sentry.monitors.logic.broken_monitor_issue.produce_occurrence_to_kafka")
+    @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
+    @patch("django.utils.timezone.now")
+    def test_creates_issue_instead_of_email(
+        self, mock_now: MagicMock, builder: MagicMock, mock_produce: MagicMock
+    ) -> None:
+        now = before_now()
+        mock_now.return_value = now
+        monitor, monitor_environment = self.create_monitor_and_env()
+        owner = self.create_user("owner@example.com")
+        self.create_member(user=owner, organization=self.organization)
+        monitor.update(owner_user_id=owner.id)
+        incident = self.create_incident_for_monitor_env(monitor, monitor_environment)
+
+        detect_broken_monitor_envs()
+
+        assert builder.call_count == 0
+        assert mock_produce.call_count == 1
+        kwargs = mock_produce.call_args.kwargs
+        assert kwargs["payload_type"] == PayloadType.OCCURRENCE
+        occurrence = kwargs["occurrence"]
+        assert occurrence.type == BrokenMonitorConfigurationType
+        assert occurrence.fingerprint == [f"crons-broken:{monitor_environment.id}"]
+        assert occurrence.issue_title == f"Broken cron monitor: {monitor.name}"
+        assert occurrence.assignee == Actor.from_id(user_id=owner.id)
+        assert occurrence.evidence_data["muted"] is False
+        assert occurrence.evidence_data["monitor_incident_id"] == incident.id
+        assert kwargs["event_data"]["environment"] == self.environment.name
+
+        # The issue is owned by the configuration detector, not the cron
+        # monitor's detector, so cron monitor alerts don't fire for it
+        config_detector = Detector.objects.get(
+            project=self.project, type=BrokenMonitorConfigurationType.slug
+        )
+        assert occurrence.evidence_data["detector_id"] == config_detector.id
+        assert config_detector.id != self.detector_ids[monitor.slug]
+
+        broken_detection = MonitorEnvBrokenDetection.objects.get(monitor_incident=incident)
+        assert broken_detection.user_notified_timestamp == now
+
+        # Running again doesn't produce another occurrence or a new detector
+        detect_broken_monitor_envs()
+        assert mock_produce.call_count == 1
+        assert (
+            Detector.objects.filter(
+                project=self.project, type=BrokenMonitorConfigurationType.slug
+            ).count()
+            == 1
+        )
+
+    @with_feature(BROKEN_MONITOR_ISSUE_FLAG)
+    @patch("sentry.monitors.logic.broken_monitor_issue.produce_occurrence_to_kafka")
+    @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
+    @patch("django.utils.timezone.now")
+    def test_mutes_and_updates_issue_instead_of_email(
+        self, mock_now: MagicMock, builder: MagicMock, mock_produce: MagicMock
+    ) -> None:
+        now = before_now()
+        mock_now.return_value = now
+        monitor, monitor_environment = self.create_monitor_and_env()
+        incident = self.create_incident_for_monitor_env(monitor, monitor_environment)
+        broken_detection = MonitorEnvBrokenDetection.objects.create(
+            monitor_incident=incident,
+            detection_timestamp=now - timedelta(days=14),
+            user_notified_timestamp=now - timedelta(days=14),
+        )
+
+        detect_broken_monitor_envs()
+
+        monitor_environment.refresh_from_db()
+        broken_detection.refresh_from_db()
+        assert monitor_environment.is_muted
+        assert broken_detection.env_muted_timestamp == now
+
+        assert builder.call_count == 0
+        assert mock_produce.call_count == 1
+        occurrence = mock_produce.call_args.kwargs["occurrence"]
+        assert occurrence.fingerprint == [f"crons-broken:{monitor_environment.id}"]
+        assert occurrence.evidence_data["muted"] is True
+        assert any(e.name == "Muted at" for e in occurrence.evidence_display)
+
+    @patch("sentry.monitors.logic.broken_monitor_issue.produce_occurrence_to_kafka")
+    @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
+    def test_sends_email_without_feature(self, builder: MagicMock, mock_produce: MagicMock) -> None:
+        monitor, monitor_environment = self.create_monitor_and_env()
+        self.create_incident_for_monitor_env(monitor, monitor_environment)
+
+        detect_broken_monitor_envs()
+
+        assert builder.call_count == 1
+        assert mock_produce.call_count == 0
+
+    @with_feature(BROKEN_MONITOR_ISSUE_FLAG)
+    @patch("sentry.monitors.tasks.detect_broken_monitor_envs.MessageBuilder")
+    def test_issue_lifecycle(self, builder: MagicMock) -> None:
+        monitor, monitor_environment = self.create_monitor_and_env()
+        incident = self.create_incident_for_monitor_env(monitor, monitor_environment)
+
+        detect_broken_monitor_envs()
+
+        group = Group.objects.get(project=self.project, type=BrokenMonitorConfigurationType.type_id)
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.title == f"Broken cron monitor: {monitor.name}"
+        config_detector = Detector.objects.get(
+            project=self.project, type=BrokenMonitorConfigurationType.slug
+        )
+        assert DetectorGroup.objects.filter(group=group, detector=config_detector).exists()
+
+        # Auto-muting updates the same issue
+        MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident).update(
+            user_notified_timestamp=timezone.now() - timedelta(days=14)
+        )
+        detect_broken_monitor_envs()
+        monitor_environment.refresh_from_db()
+        assert monitor_environment.is_muted
+        assert (
+            Group.objects.filter(
+                project=self.project, type=BrokenMonitorConfigurationType.type_id
+            ).count()
+            == 1
+        )
+
+        resolve_broken_monitor_issue(monitor_environment, timezone.now())
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        assert builder.call_count == 0

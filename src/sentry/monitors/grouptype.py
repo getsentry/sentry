@@ -26,3 +26,30 @@ class MonitorIncidentType(GroupType):
 @detector_settings_registry.register(MonitorIncidentType.slug)
 class MonitorIncidentDetectorSettings(DetectorSettings):
     validator = MonitorIncidentDetectorValidator
+
+
+@dataclass(frozen=True)
+class BrokenMonitorConfigurationType(GroupType):
+    """
+    A cron monitor environment that has been failing long enough that it is
+    most likely misconfigured or abandoned, rather than experiencing a
+    transient outage.
+
+    While this type is unreleased, its ingest feature flag also controls
+    whether the broken and muted monitor emails are replaced by this issue.
+    """
+
+    type_id = 13003
+    slug = "broken_cron_monitor_configuration"
+    description = "Broken Cron Monitor"
+    category = GroupCategory.CONFIGURATION.value
+    released = False
+    default_priority = PriorityLevel.LOW
+    enable_auto_resolve = False
+    enable_escalation_detection = False
+    creation_quota = Quota(3600, 60, 1000)
+    notification_config = NotificationConfig(context=[])
+    enable_user_status_and_priority_changes = False
+    enable_status_change_workflow_notifications = False
+    enable_workflow_notifications = False
+    in_default_search = False

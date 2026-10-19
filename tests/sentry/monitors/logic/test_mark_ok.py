@@ -229,8 +229,11 @@ class MarkOkTestCase(TestCase):
             },
         ) == dict(status_change)
 
+    @patch("sentry.monitors.logic.broken_monitor_issue.produce_occurrence_to_kafka")
     @mock.patch("sentry.analytics.record")
-    def test_mark_ok_broken_recovery(self, mock_record: MagicMock) -> None:
+    def test_mark_ok_broken_recovery(
+        self, mock_record: MagicMock, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         now = timezone.now().replace(second=0, microsecond=0)
 
         monitor = Monitor.objects.create(
@@ -283,6 +286,19 @@ class MarkOkTestCase(TestCase):
         assert monitor_environment.next_checkin == now + timedelta(minutes=1)
         assert monitor_environment.next_checkin_latest == now + timedelta(minutes=2)
         assert monitor_environment.last_checkin == now
+
+        # The broken monitor configuration issue is resolved
+        assert mock_produce_occurrence_to_kafka.call_count == 1
+        kwargs = mock_produce_occurrence_to_kafka.call_args.kwargs
+        assert kwargs["payload_type"] == PayloadType.STATUS_CHANGE
+        assert dict(kwargs["status_change"].to_dict()) == {
+            **kwargs["status_change"].to_dict(),
+            "fingerprint": [f"crons-broken:{monitor_environment.id}"],
+            "project_id": monitor.project_id,
+            "new_status": GroupStatus.RESOLVED,
+            "new_substatus": None,
+            "update_date": now,
+        }
 
         # We recorded an analytics event
         assert_last_analytics_event(

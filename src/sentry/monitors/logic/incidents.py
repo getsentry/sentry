@@ -10,6 +10,7 @@ from sentry import analytics
 from sentry.analytics.events.cron_monitor_broken_status_recovery import (
     CronMonitorBrokenStatusRecovery,
 )
+from sentry.monitors.logic.broken_monitor_issue import resolve_broken_monitor_issue
 from sentry.monitors.logic.incident_occurrence import (
     dispatch_incident_occurrence,
     resolve_incident_group,
@@ -193,6 +194,7 @@ def try_incident_resolution(ok_checkin: MonitorCheckIn) -> bool:
             <= timezone.now() - timedelta(days=NUM_DAYS_BROKEN_PERIOD)
         ):
             if incident.monitorenvbrokendetection_set.exists():
+                resolve_broken_monitor_issue(monitor_env, ok_checkin.date_added)
                 analytics.record(
                     CronMonitorBrokenStatusRecovery(
                         organization_id=monitor_env.monitor.organization_id,

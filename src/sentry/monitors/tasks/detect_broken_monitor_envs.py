@@ -15,7 +15,8 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.monitors.grouptype import BrokenMonitorConfigurationType, MonitorIncidentType
+from sentry.monitors.logic.broken_monitor_issue import send_broken_monitor_occurrence
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -184,6 +185,10 @@ def detect_broken_monitor_envs_for_org(org_id: int):
     except Organization.DoesNotExist:
         return
 
+    # Broken monitors are surfaced as configuration issues instead of emails
+    # when the issue type is enabled for the organization.
+    use_issues = BrokenMonitorConfigurationType.allow_ingest(organization)
+
     # Map user email to a dictionary of monitors and their earliest incident start date amongst its broken environments
     user_broken_envs: dict[str, dict[int, Any]] = defaultdict(
         lambda: defaultdict(
@@ -235,6 +240,10 @@ def detect_broken_monitor_envs_for_org(org_id: int):
             environment_name = open_incident.monitor_environment.get_environment().name
             project = Project.objects.get_from_cache(id=open_incident.monitor.project_id)
 
+            if use_issues:
+                send_broken_monitor_occurrence(open_incident, project)
+                continue
+
             for email in get_user_emails_from_monitor(open_incident.monitor, project):
                 if not email:
                     continue
@@ -255,9 +264,14 @@ def detect_broken_monitor_envs_for_org(org_id: int):
             environment_name = open_incident.monitor_environment.get_environment().name
             project = Project.objects.get_from_cache(id=open_incident.monitor.project_id)
 
+            muted_timestamp = django_timezone.now()
             with transaction.atomic(router.db_for_write(MonitorEnvBrokenDetection)):
                 open_incident.monitor_environment.update(is_muted=True)
-                detection.update(env_muted_timestamp=django_timezone.now())
+                detection.update(env_muted_timestamp=muted_timestamp)
+
+            if use_issues:
+                send_broken_monitor_occurrence(open_incident, project, muted_timestamp)
+                continue
 
             for email in get_user_emails_from_monitor(open_incident.monitor, project):
                 if not email:
@@ -307,7 +321,7 @@ def detect_broken_monitor_envs_for_org(org_id: int):
         )
         message.send_async([user_email])
 
-    # mark all open detections for this org as having had their email sent
+    # mark all open detections for this org as having been notified, by email or issue
     MonitorEnvBrokenDetection.objects.filter(
         monitor_incident__in=orgs_open_incidents, user_notified_timestamp=None
     ).update(user_notified_timestamp=django_timezone.now())
