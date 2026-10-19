@@ -15,7 +15,7 @@ from django.http import HttpHeaders
 from django.urls import resolve
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
-from jwt import PyJWTError
+from jwt import MissingRequiredClaimError, PyJWTError
 from rest_framework.authentication import (
     BaseAuthentication,
     BasicAuthentication,
@@ -405,6 +405,16 @@ def get_payload_from_client_secret_jwt(
 
     try:
         payload = jwt.decode(encoded_jwt, client_secret, algorithms=["HS256"])
+    except MissingRequiredClaimError as e:
+        logger.warning(
+            "client_secret_jwt_auth.missing_required_claim",
+            extra={
+                "sentry_app_id": installation.sentry_app_id,
+                "installation_id": installation.id,
+                "claim": e.claim,
+            },
+        )
+        raise AuthenticationFailed("Could not validate JWT") from e
     except Exception as e:
         raise AuthenticationFailed("Could not validate JWT") from e
 
@@ -458,11 +468,26 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
 
         seconds_until_expiry = int(payload["exp"]) - int(time.time())
         if seconds_until_expiry > MAX_CLIENT_SECRET_JWT_LIFETIME_SECONDS:
+            logger.warning(
+                "client_secret_jwt_auth.exp_too_far_in_future",
+                extra={
+                    "sentry_app_id": installation.sentry_app_id,
+                    "installation_id": installation.id,
+                    "seconds_until_expiry": seconds_until_expiry,
+                },
+            )
             raise AuthenticationFailed("JWT expiration is too far in the future")
 
         cache_key = self._create_cache_key(installation.uuid, jti)
         # Atomically remember the jti until the JWT expires so it can't be reused while still valid.
         if not cache.add(cache_key, True, timeout=max(seconds_until_expiry, 1)):
+            logger.warning(
+                "client_secret_jwt_auth.jti_reused",
+                extra={
+                    "sentry_app_id": installation.sentry_app_id,
+                    "installation_id": installation.id,
+                },
+            )
             raise AuthenticationFailed("JWT has already been used")
 
         return self.transform_auth(installation.sentry_app.proxy_user_id, None)
