@@ -254,7 +254,7 @@ MAX_REGEX_PATTERN_LENGTH = 64
 
 # Each regex filter compiles on the web worker before any Snuba query runs, so we
 # bound how long a query with many of them spends parsing
-MAX_REGEX_FILTERS_PER_QUERY = 10
+MAX_REGEX_FILTERS_PER_QUERY = 16
 
 # Pattern length doesn't bound compile cost: `\p{L}{100}` is 10 characters but expands to over a
 # hundred thousand instructions. RE2 stops compiling once a program outgrows its budget, which
