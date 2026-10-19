@@ -8,7 +8,6 @@ from django.core.cache import cache
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 
-from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.notifications.platform.tracking import (
     NotificationEngagementMechanism,
     NotificationTrackingContext,
@@ -17,6 +16,7 @@ from sentry.notifications.platform.tracking import (
     parse_referrer,
     record_engagement,
 )
+from sentry.organizations.services.organization import organization_service
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_using_customer_domain
@@ -98,7 +98,8 @@ def _record_page_load(request: HttpRequest, response: HttpResponseBase) -> None:
     if not cache.add(dedupe_key, True, PAGE_LOAD_DEDUPE_SECONDS):
         return
 
-    organization = organization_mapping_service.get_by_slug(slug=organization_slug)
+    # Some pages with an organization slug, such as join requests, load for non-members.
+    organization = organization_service.get_org_by_slug(slug=organization_slug, user_id=user.id)
     if organization is None:
         return
 

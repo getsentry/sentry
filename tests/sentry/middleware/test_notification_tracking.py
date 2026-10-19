@@ -130,6 +130,18 @@ class NotificationTrackingMiddlewareTest(TestCase):
         [event] = _engagements(mock_record)
         assert event.organization_id == self.organization.id
 
+    def test_non_member(self, mock_record: mock.MagicMock) -> None:
+        self.login_as(self.create_user())
+        query = urlencode({"referrer": "issue-slack", "notification_uuid": self.notification_uuid})
+
+        with self.feature("system:multi-region"):
+            response = self.client.get(
+                f"/join-request/?{query}", HTTP_HOST=f"{self.organization.slug}.testserver"
+            )
+
+        assert response.status_code == 200
+        assert _engagements(mock_record) == []
+
     def test_source_not_enabled(self, mock_record: mock.MagicMock) -> None:
         self.login_as(self.user)
 
@@ -173,6 +185,7 @@ class NotificationTrackingApiGatewayTest(ApiGatewayTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.enterContext(override_options(ENABLED_OPTIONS))
+        self.create_member(user=self.user, organization=self.organization)
 
     def path(self, endpoint: str) -> str:
         query = urlencode({"referrer": "slack", "notification_uuid": str(uuid4())})
