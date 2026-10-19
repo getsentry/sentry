@@ -58,7 +58,11 @@ def process_event(
 
     This task is queued at most once per hour per project.
     """
-    project = Project.objects.get(id=project_id)
+    try:
+        project = Project.objects.get(id=project_id)
+    except Project.DoesNotExist:
+        logger.warning("Project %s not found, skipping auto_source_code_config.", project_id)
+        return [], []
     org = Organization.objects.get(id=project.organization_id)
     set_tag("organization.slug", org.slug)
     sentry_sdk.set_attribute("organization.slug", org.slug)
