@@ -188,22 +188,7 @@ All fields are accessed via the `field` render prop and follow consistent patter
 
 ### Checkbox Group (Multiple Selections)
 
-Use `field.Checkbox.Group` for a string array with several selectable options. Put the layout inside the group so the layout label names the group. Each item provides its own checkbox label:
-
-```tsx
-<form.AppField name="scopes">
-  {field => (
-    <field.Checkbox.Group value={field.state.value} onChange={field.handleChange}>
-      <field.Layout.Stack label={t('Scopes')} required>
-        <field.Checkbox.Item value="read">{t('Read')}</field.Checkbox.Item>
-        <field.Checkbox.Item value="write">{t('Write')}</field.Checkbox.Item>
-      </field.Layout.Stack>
-    </field.Checkbox.Group>
-  )}
-</form.AppField>
-```
-
-Validate the array in the schema, for example with `z.array(z.string()).min(1)`. The group provides validation status, error focus, and auto-save. Use layout primitives to arrange the items. The group accepts `disabled` as a boolean or reason string; each item also accepts a boolean `disabled` prop. Keep a single array field rather than creating a boolean field for every option, so values without a rendered item are preserved.
+Use `field.Checkbox.Group` and `field.Checkbox.Item` for multiple selections stored as one string array. Read the [checkbox group docs](../../../static/app/components/core/form/fields.mdx#checkbox-group) for the example, layout, validation, disabled state, and auto-save behavior.
 
 ### TextArea Field
 

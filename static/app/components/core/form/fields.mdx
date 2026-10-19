@@ -272,6 +272,10 @@ The group handles validation status, focus, and auto-save. Pass `disabled` to th
 to disable every item, or to an item to disable one option. A string passed to the group's
 `disabled` prop provides a tooltip with the reason.
 
+Validate the array in the schema, for example with `z.array(z.string()).min(1)`.
+Keep a single array field rather than a boolean field for every option, so selections
+without a rendered item are preserved.
+
 ## Switch
 
 Boolean toggle for on/off values. Uses `checked` instead of `value`.
