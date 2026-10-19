@@ -110,6 +110,7 @@ class SiloRouter:
         "sentry_neglectedrule": SiloMode.CELL,
         "sentry_ruleactivity": SiloMode.CELL,
         "sentry_rulefirehistory": SiloMode.CELL,
+        "sentry_rulesnooze": SiloMode.CELL,
         "sentry_savedsearch": SiloMode.CELL,
         "sentry_teamreplica": SiloMode.CONTROL,
         "sentry_organizationmember_teamsreplica": SiloMode.CONTROL,
