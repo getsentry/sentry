@@ -142,7 +142,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             event.group,
             "issue_alert-slack",
             alert_type=FineTuningAPIKey.ALERTS,
-            issue_link_extra_params=f"&workflow_id={self.rule.data['actions'][0]['workflow_id']}&alert_type=issue",
+            issue_link_extra_params=f"&environment=production&workflow_id={self.rule.data['actions'][0]['workflow_id']}&alert_type=issue",
         )
 
     @mock.patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
