@@ -23,8 +23,12 @@ from sentry.notifications.platform.templates.seer import (
 
 MAX_STATUS_HYPOTHESES = 10
 MAX_STATUS_TEXT_LENGTH = 300
+
 VERIFYING_LABEL = "● Verifying"
+SUPPORTED_LABEL = "● Supported"
+REFUTED_LABEL = "● Refuted"
 NOT_COMPLETED_LABEL = "● Not completed"
+
 NOT_COMPLETED_DETAIL = "Verification stopped before this explanation could be assessed."
 STEP_DETAIL_PREFIXES = {
     "running": "",
@@ -39,10 +43,10 @@ ENDPOINT_SEARCH_CONFIG = SearchConfig.create_from(issue_search_config, allow_boo
 HYPOTHESIS_LABELS = {
     "pending": VERIFYING_LABEL,
     "investigating": VERIFYING_LABEL,
-    "supported": "● Supported",
-    "accepted": "● Supported",
-    "refuted": "● Refuted",
-    "rejected": "● Refuted",
+    "supported": SUPPORTED_LABEL,
+    "accepted": SUPPORTED_LABEL,
+    "refuted": REFUTED_LABEL,
+    "rejected": REFUTED_LABEL,
     "inconclusive": "● Inconclusive",
     "failed": NOT_COMPLETED_LABEL,
     "cancelled": NOT_COMPLETED_LABEL,
