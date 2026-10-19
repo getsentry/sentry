@@ -172,6 +172,12 @@ def test_permission_groups() -> None:
         {
             "resource": "members",
             "label": "Organization members",
+            "accessDescriptions": {
+                "read": "View organization members and their membership details.",
+                "write": "Invite members and update their organization membership.",
+                "admin": "Includes write access and allows removing organization members.",
+                "invite": "Invite organization members.",
+            },
             "scopes": ["member:invite"],
             "actions": ["invite"],
             "description": None,
@@ -179,6 +185,11 @@ def test_permission_groups() -> None:
         {
             "resource": "projects",
             "label": "Projects",
+            "accessDescriptions": {
+                "read": "View projects and their settings.",
+                "write": "Create and update projects. Manage project settings and alert rules, including deleting them.",
+                "admin": "Includes write access and allows deleting projects and removing ownership rules.",
+            },
             "scopes": ["project:read", "project:write"],
             "actions": ["read", "write"],
             "description": None,
@@ -205,3 +216,29 @@ def test_empty_permission_groups() -> None:
 def test_unknown_permission_group() -> None:
     with pytest.raises(NotImplementedError, match="scopes did not have permission groups"):
         get_permission_groups(["unknown:read"])
+
+
+@pytest.mark.parametrize(
+    "scope, expected",
+    [
+        ("dashboard:write", ["read", "create", "write"]),
+        ("dashboard:delete", ["read", "create", "write", "delete"]),
+    ],
+)
+def test_dashboard_access_descriptions(scope: str, expected: list[str]) -> None:
+    (group,) = get_permission_groups([scope])
+    assert group["actions"] == expected
+    assert group["accessDescriptions"]["delete"] == "Delete dashboards."
+
+
+def test_resource_access_descriptions() -> None:
+    groups = get_permission_groups(sorted(settings.SENTRY_SCOPES))
+    for group in groups:
+        assert set(group["actions"]) <= group["accessDescriptions"].keys()
+
+    (projects,) = get_permission_groups(["project:read"])
+    assert projects["actions"] == ["read"]
+    assert "deleting projects" in projects["accessDescriptions"]["admin"]
+    (ci,) = get_permission_groups(["org:ci"])
+    assert ci["accessDescriptions"] == {}
+    assert ci["description"]
