@@ -27,6 +27,8 @@ const invalidEntrySchema = z
   .unknown()
   .transform(value => ({kind: 'invalid' as const, value}));
 
+const optionSchema = z.union([z.string(), z.boolean().transform(String)]);
+
 /** Probability per option or score value, e.g. `{"billing": 0.62}`. */
 const probabilitiesSchema = z.record(z.string(), z.number());
 
@@ -54,17 +56,24 @@ const scoreAnswerSchema = z
 const choiceAnswerSchema = z
   .object({
     type: z.literal('choice'),
-    choice: z.string(),
+    choice: optionSchema,
     probabilities: probabilitiesSchema.optional(),
     confidence: z.number().optional(),
   })
   .transform(({type: _type, ...answer}) => ({...answer, kind: 'choice' as const}));
+
+// The model declined to answer the question. It carries no probability or
+// reason, so there's nothing to render beyond the refusal itself.
+const refusalAnswerSchema = z
+  .object({type: z.literal('refusal')})
+  .transform(() => ({kind: 'refusal' as const}));
 
 const answerSchema = z.union([
   booleanAnswerSchema,
   noulAnswerSchema,
   scoreAnswerSchema,
   choiceAnswerSchema,
+  refusalAnswerSchema,
   invalidEntrySchema,
 ]);
 
@@ -79,7 +88,7 @@ const questionSchema = z.union([
        * describe each option (`{"billing": "Charges and refunds"}`).
        */
       criteria: z
-        .union([z.array(z.string()), z.record(z.string(), z.string())])
+        .union([z.array(optionSchema), z.record(z.string(), z.string())])
         .optional(),
     })
     .transform(question => ({...question, kind: 'question' as const})),
@@ -324,6 +333,8 @@ export function getAnswerLabel(
     }
     case 'choice':
       return answer.choice;
+    case 'refusal':
+      return t('Refused');
     default:
       return null;
   }

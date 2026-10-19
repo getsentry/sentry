@@ -48,7 +48,7 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             )
 
         assert response.data == {
-            "detail": "smooth(linear,3): mode argument invalid: expected one of sma, ema"
+            "detail": "smooth(linear,3): mode argument invalid: expected one of sma, ema, asap"
         }
 
     def test_transformations_ignored_when_feature_disabled(self) -> None:

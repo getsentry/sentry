@@ -64,7 +64,7 @@ def send_thread_update(
     thread: SlackThreadDetails,
     data: NotificationData,
     ephemeral_user_id: str | None = None,
-) -> None:
+) -> bool:
     """Actually sends the update, but requires a SlackIntegration, so we can't schedule it as a task."""
     with SlackEntrypointEventLifecycleMetric(
         interaction_type=SlackEntrypointInteractionType.SEND_THREAD_UPDATE,
@@ -129,8 +129,10 @@ def send_thread_update(
                     message_ts=message_ts,
                     payload=cache_payload,
                 )
+            return response is not None
         except IntegrationConfigurationError as e:
             lifecycle.record_halt(halt_reason=e)
+            return False
         except TimeoutError as e:
             lifecycle.record_failure(failure_reason=e)
             raise IntegrationError("Slack request timed out") from e

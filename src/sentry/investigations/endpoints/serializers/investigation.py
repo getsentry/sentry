@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict, override
+from typing import Any, TypedDict, override
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, Q
@@ -39,11 +39,14 @@ class InvestigationTemplateSerializerResponse(TypedDict):
     version: int | None
 
 
-class InvestigationSourceSerializerResponse(TypedDict):
+class InvestigationSourceSerializerResponseOptional(TypedDict, total=False):
+    snapshot: dict[str, Any]
+
+
+class InvestigationSourceSerializerResponse(InvestigationSourceSerializerResponseOptional):
     type: str
     ref: dict[str, Any]
     revision: int | None
-    snapshot: NotRequired[dict[str, Any]]
 
 
 class InvestigationTitleGenerationSerializerResponse(TypedDict):
@@ -82,6 +85,12 @@ def orchestration_summaries_by_investigation(
 
 
 class InvestigationSerializerResponse(TypedDict):
+    """
+    Investigation summary. version is the notebook concurrency token;
+    orchestration.notebookRevision tracks agent report updates independently. IDs are strings
+    and dates are ISO-8601 timestamps.
+    """
+
     id: str
     title: str
     summary: str | None
@@ -99,6 +108,11 @@ class InvestigationSerializerResponse(TypedDict):
 
 
 class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
+    """
+    Full notebook with ordered active blocks, parameter definitions and saved values, project
+    IDs, and source context. source.snapshot is present only for source-backed investigations.
+    """
+
     template: InvestigationTemplateSerializerResponse | None
     source: InvestigationSourceSerializerResponse
     filters: dict[str, Any]

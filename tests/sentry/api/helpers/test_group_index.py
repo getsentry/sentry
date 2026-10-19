@@ -868,6 +868,10 @@ class UpdateGroupsTest(TestCase):
     def test_resolve_in_next_release_activity_from_action_log(self) -> None:
         self.create_release(project=self.project, version="test@1.0.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
+        with self.feature({"projects:issue-action-log-write-to-db": False}):
+            note = self.create_group_activity(
+                group=group, type=ActivityType.NOTE.value, data={"text": "no GAL event"}
+            )
         GroupActionLogEntry.objects.create(
             group_id=group.id,
             project_id=group.project_id,
@@ -891,6 +895,10 @@ class UpdateGroupsTest(TestCase):
         # the action log was served rather than Activity
         assert "set_resolved" in [entry["type"] for entry in activity]
         assert activity[-1]["id"] == "0"
+        notes = [item for item in activity if item["type"] == "note"]
+        assert len(notes) == 1
+        assert notes[0]["id"] == notes[0]["commentId"] == str(note.id)
+        assert notes[0]["data"]["text"] == "no GAL event"
 
     def test_resolve_in_next_release_falls_back_when_action_log_is_empty(self) -> None:
         # A gated project can still read an empty log: the GALE write for this
@@ -906,7 +914,11 @@ class UpdateGroupsTest(TestCase):
         group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
         with (
             action_log_activity_enabled(),
-            patch.object(GroupActionLogEntry.objects, "get_actions_for_group", return_value=[]),
+            patch.object(
+                GroupActionLogEntry.objects,
+                "user_visible",
+                return_value=GroupActionLogEntry.objects.none(),
+            ),
             self.assertLogs(
                 "sentry.api.serializers.models.groupactionlogentry", level="INFO"
             ) as logs,

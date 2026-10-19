@@ -97,7 +97,8 @@ Use core primitives from `@sentry/scraps` instead of hand-rolling styled compone
 - **Layout**: use `Flex`, `Grid`, `Stack`, `Container` — never styled `display: flex/grid`.
 - **Typography**: use `Text` and `Heading` — never raw `<p>`, `<span>`, `<div>`, or `<h1>`–`<h6>`.
 - Prefer component props over the `style` attribute; use `gap`/padding over `margin`.
-- Use responsive props (e.g. `{xs: 'column', md: 'row'}`) instead of styled media queries.
+- Use container responsive props (e.g. `{xs: 'column', md: 'row'}`) instead of styled media queries. Do not add viewport `screen:` keys; preserve existing viewport behavior with a lint suppression when a container query would change it.
+- Do not add layout `@media` or `@container` queries to Emotion styles, including tests. Use responsive primitive props. `@media` is allowed for modal sizing in `modalCss`, viewport sizing or placement in the core drawer shell, and non-layout features such as reduced motion, hover, pointer, and color scheme.
 - Split layout from typography — compose `Flex`/`Grid` with `Text`/`Heading`; don't couple them in one styled component.
 - Prefer `InfoTip`/`InfoText` over a raw `Tooltip`.
 - Add `*.stories.mdx` stories for new components.

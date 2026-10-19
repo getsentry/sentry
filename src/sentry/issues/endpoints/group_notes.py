@@ -13,7 +13,11 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.activity import ActivitySerializerResponse
+from sentry.api.serializers.models.activity import (
+    ActivitySerializerResponse,
+    GroupNoteSerializerResponse,
+    serialize_group_notes,
+)
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
@@ -25,12 +29,7 @@ from sentry.issues.action_log.read_metrics import (
     record_activity_read,
 )
 from sentry.issues.action_log.request import resolve_action_source
-from sentry.issues.action_log.types import (
-    CommentDeleteAction,
-    CommentEditAction,
-    GroupActionActor,
-    GroupActionType,
-)
+from sentry.issues.action_log.types import GroupActionActor
 from sentry.issues.derived.gate import should_serve_action_log_activity
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -55,7 +54,7 @@ class GroupNotesEndpoint(GroupEndpoint):
     @extend_schema(
         responses={
             200: inline_sentry_response_serializer(
-                "ListGroupNotes", list[ActivitySerializerResponse]
+                "ListGroupNotes", list[GroupNoteSerializerResponse]
             )
         },
     )
@@ -65,66 +64,17 @@ class GroupNotesEndpoint(GroupEndpoint):
         url_names=["sentry-api-0-group-notes"],
     )
     def get(self, request: Request, group: Group) -> Response:
-        endpoint = activity_read_endpoint(request)
-        if should_serve_action_log_activity(group.project, request.user, endpoint=endpoint):
-            # No empty-log fallback on this path: once the gate is open the log is
-            # authoritative for comments, including when the group has none.
-            record_activity_read(endpoint, ActivityReadResult.GAL)
-            edit_entries = GroupActionLogEntry.objects.filter(
-                group_id=group.id, type=GroupActionType.COMMENT_EDIT.value
-            ).order_by("-date_added", "-id")
-
-            # A COMMENT_EDIT points at the GALE id of the original COMMENT it
-            # supersedes; entries are newest-first, so keep the latest edit's
-            # text per comment.
-            latest_edit_text_by_comment: dict[int, str | None] = {}
-            for edit in edit_entries:
-                action = edit.action
-                if isinstance(action, CommentEditAction):
-                    latest_edit_text_by_comment.setdefault(action.comment_id, action.text)
-
-            # A COMMENT_DELETE points at the GALE id of the COMMENT it removes;
-            # GALE is append-only, so exclude those so deleted notes drop out.
-            deleted_comment_ids = {
-                action.comment_id
-                for entry in GroupActionLogEntry.objects.filter(
-                    group_id=group.id, type=GroupActionType.COMMENT_DELETE.value
-                )
-                if isinstance(action := entry.action, CommentDeleteAction)
-            }
-
-            entries = GroupActionLogEntry.objects.filter(
-                group_id=group.id, type=GroupActionType.COMMENT.value
-            ).exclude(id__in=deleted_comment_ids)
-
-            def serialize_with_edits(comment_entries: list[GroupActionLogEntry]) -> list[object]:
-                # An edit doesn't mutate the original COMMENT entry, so re-derive
-                # the current text from the latest COMMENT_EDIT before serializing.
-                for entry in comment_entries:
-                    if entry.id in latest_edit_text_by_comment:
-                        entry.data = {
-                            **(entry.data or {}),
-                            "text": latest_edit_text_by_comment[entry.id],
-                        }
-                return serialize(comment_entries, request.user)
-
-            return self.paginate(
-                request=request,
-                queryset=entries,
-                paginator_cls=DateTimePaginator,
-                order_by="-date_added",
-                on_results=serialize_with_edits,
-            )
-
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 
-        return self.paginate(
+        response = self.paginate(
             request=request,
             queryset=notes,
             paginator_cls=DateTimePaginator,
             order_by="-datetime",
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda page: serialize_group_notes(group, page, request.user),
         )
+        record_activity_read(activity_read_endpoint(request), ActivityReadResult.ACTIVITY)
+        return response
 
     @extend_schema(
         request=NoteSerializer,

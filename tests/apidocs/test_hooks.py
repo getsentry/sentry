@@ -3,6 +3,7 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import pytest
+from drf_spectacular.settings import patched_settings
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -10,11 +11,32 @@ from sentry.apidocs.hooks import (
     _ENDPOINT_SERVERS,
     _EXPERIMENTAL_OPERATIONS,
     EXPERIMENTAL_NOTICE,
+    CustomEndpointEnumerator,
     _fix_nullable_enums,
     custom_postprocessing_hook,
     custom_preprocessing_hook,
 )
 from sentry.apidocs.utils import SentryApiBuildError
+from sentry.investigations.apidocs import investigation_endpoints
+
+
+@pytest.mark.django_db
+def test_investigation_schema_selects_only_private_frontend_routes() -> None:
+    with patched_settings({"PREPROCESSING_HOOKS": []}):
+        endpoints = CustomEndpointEnumerator().get_api_endpoints()
+    selected = investigation_endpoints(endpoints)
+    assert selected
+    assert all(
+        path.startswith("/api/0/organizations/{organization_id_or_slug}/investigations/")
+        for path, _regex, _method, _callback in selected
+    )
+    assert all(
+        callback.view_class.publish_status[method] is ApiPublishStatus.PRIVATE
+        for _path, _regex, method, callback in selected
+    )
+    with patch("sentry.apidocs.hooks.__write_ownership_data"):
+        published = custom_preprocessing_hook(endpoints)
+    assert not {entry[0] for entry in selected}.intersection(entry[0] for entry in published)
 
 
 class EndpointServersTest(TestCase):
