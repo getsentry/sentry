@@ -117,10 +117,26 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         assert get_viewer_context() is None
 
     @patch("sentry.tasks.seer.delete_seer_grouping_records.call_seer_to_delete_these_hashes")
-    def test_missing_project_does_not_call_seer(self, mock_seer_call: MagicMock) -> None:
-        delete_seer_grouping_records_by_hash(self.project.id + 1_000_000_000, ["hash"])
+    def test_missing_project_still_calls_seer_with_propagated_context(
+        self, mock_seer_call: MagicMock
+    ) -> None:
+        missing_project_id = self.project.id + 1_000_000_000
+        expected_context = ViewerContext(
+            organization_id=self.organization.id,
+            project_id=missing_project_id,
+            user_id=self.user.id,
+            actor_type=ActorType.USER,
+        )
 
-        mock_seer_call.assert_not_called()
+        def assert_viewer_context(_project_id: int, _hashes: list[str]) -> None:
+            assert get_viewer_context() == expected_context
+
+        mock_seer_call.side_effect = assert_viewer_context
+
+        with viewer_context_scope(expected_context):
+            delete_seer_grouping_records_by_hash(missing_project_id, ["hash"])
+
+        mock_seer_call.assert_called_once_with(missing_project_id, ["hash"])
         assert get_viewer_context() is None
 
     @patch(

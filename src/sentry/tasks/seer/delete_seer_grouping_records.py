@@ -39,9 +39,6 @@ def delete_seer_grouping_records_by_hash(
     ):
         return
 
-    if not Project.objects.filter(id=project_id).exists():
-        return
-
     batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
     len_hashes = len(hashes)
     if len_hashes <= batch_size:  # Base case
