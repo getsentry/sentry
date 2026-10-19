@@ -13,7 +13,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -40,40 +39,28 @@ def delete_seer_grouping_records_by_hash(
     ):
         return
 
-    organization_id = (
-        Project.objects.filter(id=project_id).values_list("organization_id", flat=True).first()
-    )
-    if organization_id is None:
+    if not Project.objects.filter(id=project_id).exists():
         return
 
-    with viewer_context_scope(
-        ViewerContext(
-            organization_id=organization_id,
-            project_id=project_id,
-            actor_type=ActorType.SYSTEM,
-        )
-    ):
-        batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
-        len_hashes = len(hashes)
-        if len_hashes <= batch_size:  # Base case
-            call_seer_to_delete_these_hashes(project_id, hashes)
-        else:
-            if last_deleted_index != 0:
-                # This tracks which tasks are still being scheduled with the whole list of hashes
-                metrics.incr(
-                    "grouping.similarity.delete_seer_grouping_records_by_hash.batch_size_exceeded",
-                    sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-                )
+    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
+    len_hashes = len(hashes)
+    if len_hashes <= batch_size:  # Base case
+        call_seer_to_delete_these_hashes(project_id, hashes)
+    else:
+        if last_deleted_index != 0:
+            # This tracks which tasks are still being scheduled with the whole list of hashes
+            metrics.incr(
+                "grouping.similarity.delete_seer_grouping_records_by_hash.batch_size_exceeded",
+                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+            )
 
-            # Iterate through hashes in chunks and schedule a task for each chunk
-            # There are tasks passing last_deleted_index, thus, we need to start from that index
-            # Eventually all tasks will pass 0
-            for i in range(last_deleted_index, len_hashes, batch_size):
-                # Slice operations are safe and will not raise IndexError
-                chunked_hashes = hashes[i : i + batch_size]
-                delete_seer_grouping_records_by_hash.apply_async(
-                    args=[project_id, chunked_hashes, 0]
-                )
+        # Iterate through hashes in chunks and schedule a task for each chunk
+        # There are tasks passing last_deleted_index, thus, we need to start from that index
+        # Eventually all tasks will pass 0
+        for i in range(last_deleted_index, len_hashes, batch_size):
+            # Slice operations are safe and will not raise IndexError
+            chunked_hashes = hashes[i : i + batch_size]
+            delete_seer_grouping_records_by_hash.apply_async(args=[project_id, chunked_hashes, 0])
 
 
 def may_schedule_task_to_delete_hashes_from_seer(project_id: int, hashes: Sequence[str]) -> None:

@@ -8,7 +8,7 @@ from sentry.tasks.seer.delete_seer_grouping_records import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
 
 
 @django_db_all
@@ -96,19 +96,22 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         mock_apply_async.assert_not_called()
 
     @patch("sentry.tasks.seer.delete_seer_grouping_records.call_seer_to_delete_these_hashes")
-    def test_seer_call_has_system_viewer_context(self, mock_seer_call: MagicMock) -> None:
+    def test_seer_call_preserves_viewer_context(self, mock_seer_call: MagicMock) -> None:
         hashes = self._setup_groups_and_hashes(number_of_groups=1)
+        expected_context = ViewerContext(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            user_id=self.user.id,
+            actor_type=ActorType.USER,
+        )
 
         def assert_viewer_context(_project_id: int, _hashes: list[str]) -> None:
-            viewer_context = get_viewer_context()
-            assert viewer_context is not None
-            assert viewer_context.organization_id == self.organization.id
-            assert viewer_context.project_id == self.project.id
-            assert viewer_context.actor_type == ActorType.SYSTEM
+            assert get_viewer_context() == expected_context
 
         mock_seer_call.side_effect = assert_viewer_context
 
-        delete_seer_grouping_records_by_hash(self.project.id, hashes)
+        with viewer_context_scope(expected_context):
+            delete_seer_grouping_records_by_hash(self.project.id, hashes)
 
         mock_seer_call.assert_called_once_with(self.project.id, hashes)
         assert get_viewer_context() is None
@@ -126,17 +129,22 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
     def test_called_task_with_too_many_hashes(self, mock_apply_async: MagicMock) -> None:
         """This tests the built-in logic of spreading hashes across multiple tasks."""
         batch_size = 5
+        expected_context = ViewerContext(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            user_id=self.user.id,
+            actor_type=ActorType.USER,
+        )
 
         def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
-            viewer_context = get_viewer_context()
-            assert viewer_context is not None
-            assert viewer_context.organization_id == self.organization.id
-            assert viewer_context.project_id == self.project.id
-            assert viewer_context.actor_type == ActorType.SYSTEM
+            assert get_viewer_context() == expected_context
 
         mock_apply_async.side_effect = assert_viewer_context
 
-        with self.options({"embeddings-grouping.seer.delete-record-batch-size": batch_size}):
+        with (
+            self.options({"embeddings-grouping.seer.delete-record-batch-size": batch_size}),
+            viewer_context_scope(expected_context),
+        ):
             # Create 11 group hashes to test chunking (5 + 5 + 1 with batch size of 5)
             expected_hashes = self._setup_groups_and_hashes(batch_size + batch_size + 1)
             # Call function directly rather than scheduling a task
