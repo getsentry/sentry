@@ -40,9 +40,9 @@ const RECENT_ISSUE_COLUMNS: TableColumnConfig[] = [
   {key: 'expand', width: 'min-content'},
   {key: 'issue', width: '1fr'},
   {key: 'status', width: 'min-content'},
-  {key: 'lastOpened', width: '1fr'},
-  {key: 'duration', width: 'min-content'},
-  {key: 'openPeriods', width: 'min-content'},
+  {key: 'lastOpened', visible: {lg: true}, width: '1fr'},
+  {key: 'duration', visible: {sm: true}, width: 'min-content'},
+  {key: 'openPeriods', visible: {xl: true}, width: 'min-content'},
   {key: 'zoom', width: 'min-content'},
 ];
 
@@ -361,7 +361,7 @@ function RecentIssuesTableSkeleton() {
       {[0, 1, 2].map(index => (
         <SimpleTable.Row key={index}>
           <SimpleTable.RowCell paddingRight="0">
-            <Placeholder height="24px" width="24px" />
+            <Placeholder height="28px" width="28px" />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell>
             <Placeholder height="20px" width="80px" />
@@ -379,7 +379,7 @@ function RecentIssuesTableSkeleton() {
             <Placeholder height="20px" width="24px" />
           </SimpleTable.RowCell>
           <SimpleTable.RowCell justify="end">
-            <Placeholder height="24px" width="48px" />
+            <Placeholder height="28px" width="48px" />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
       ))}
