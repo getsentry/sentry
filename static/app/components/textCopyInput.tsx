@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {InputGroup} from '@sentry/scraps/input';
 import type {InputProps} from '@sentry/scraps/input';
-import type {FormSize} from '@sentry/scraps/theme';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {t} from 'sentry/locale';
