@@ -16,7 +16,6 @@ import type {
   InvestigationActionRequestApplyResponse,
   InvestigationCandidate,
   InvestigationBlock,
-  InvestigationBlockExecutionStart,
   InvestigationComment,
   InvestigationDetail,
   InvestigationExecutionDetail,
@@ -408,17 +407,6 @@ type FavoriteVariables = {
   shouldFavorite: boolean;
 };
 
-type RunBlockVariables = {
-  block: InvestigationBlock;
-  investigationVersion: number;
-};
-
-type UpdateBlockPromptVariables = {
-  block: InvestigationBlock;
-  investigationVersion: number;
-  prompt: string;
-};
-
 type DeleteBlockVariables = {
   block: InvestigationBlock;
   investigationVersion: number;
@@ -611,69 +599,6 @@ export function useDeleteInvestigationBlockMutation(
   });
 }
 
-export function useRunInvestigationBlockMutation(
-  organizationSlug: string,
-  investigationId: string
-) {
-  const queryClient = useQueryClient();
-  const detailOptions = getInvestigationDetailQueryOptions(
-    organizationSlug,
-    investigationId
-  );
-
-  return useMutation({
-    mutationFn: ({block, investigationVersion}: RunBlockVariables) =>
-      fetchMutation<InvestigationBlockExecutionStart>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-              blockId: block.id,
-            },
-          }
-        ),
-        method: 'POST',
-        data: {
-          investigationVersion,
-          version: block.version,
-        },
-      }),
-    onSuccess: async (execution, variables) => {
-      queryClient.setQueryData(detailOptions.queryKey, current =>
-        current
-          ? {
-              ...current,
-              json: {
-                ...current.json,
-                blocks: current.json.blocks?.map(block =>
-                  block.id === variables.block.id
-                    ? {
-                        ...block,
-                        outputStatus: execution.status,
-                        currentExecution: {
-                          id: execution.id,
-                          status: execution.status,
-                          startedAt: null,
-                          completedAt: null,
-                          error: null,
-                        },
-                      }
-                    : block
-                ),
-              },
-            }
-          : current
-      );
-      await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-    },
-    onError: async () => {
-      await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-    },
-  });
-}
-
 const cannotApplyReasonSchema = z.enum([
   'investigation_archived',
   'not_suggested',
@@ -836,60 +761,6 @@ export function useApplyInvestigationActionRequestMutation(
         queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey}),
       ]);
       await options?.onError?.(error, variables, onMutateResult, context);
-    },
-  });
-}
-
-export function useUpdateInvestigationBlockPromptMutation(
-  organizationSlug: string,
-  investigationId: string
-) {
-  const queryClient = useQueryClient();
-  const detailOptions = getInvestigationDetailQueryOptions(
-    organizationSlug,
-    investigationId
-  );
-
-  return useMutation<InvestigationBlock, Error, UpdateBlockPromptVariables>({
-    mutationFn: ({block, investigationVersion, prompt}) =>
-      fetchMutation<InvestigationBlock>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-              blockId: block.id,
-            },
-          }
-        ),
-        method: 'PUT',
-        data: {
-          investigationVersion,
-          version: block.version,
-          generationPrompt: prompt,
-        },
-      }),
-    onSuccess: (updatedBlock, variables) => {
-      queryClient.setQueryData(detailOptions.queryKey, current =>
-        current
-          ? {
-              ...current,
-              json: {
-                ...current.json,
-                blocks: current.json.blocks?.map(block =>
-                  block.id === updatedBlock.id ? updatedBlock : block
-                ),
-                version:
-                  current.json.version +
-                  (updatedBlock.version === variables.block.version ? 0 : 1),
-              },
-            }
-          : current
-      );
-    },
-    onError: async () => {
-      await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
     },
   });
 }

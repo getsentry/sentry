@@ -48,6 +48,11 @@ import {
   useDuplicateInvestigationMutation,
   useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
+import {
+  getHypothesisChatPrompt,
+  getInvestigationChatPrompt,
+  useInvestigationAskSeer,
+} from 'sentry/views/investigations/askSeer';
 import {useBlockCommentsDrawer} from 'sentry/views/investigations/comments/useBlockCommentsDrawer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
 import {
@@ -404,6 +409,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const showDetailsHeading =
     hasDetails && Boolean(investigation.summary && investigation.summaryDescription);
   const showActivity = isInvestigationRunDone(investigation);
+  const askSeer = useInvestigationAskSeer();
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -416,6 +422,22 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             trailingActions: {
               type: 'menu',
               items: [
+                ...(askSeer
+                  ? [
+                      {
+                        key: 'ask-seer',
+                        label: t('Ask Seer'),
+                        onAction: () =>
+                          askSeer(
+                            getInvestigationChatPrompt({
+                              investigation,
+                              orchestration,
+                              blocks: visibleBlocks,
+                            })
+                          ),
+                      },
+                    ]
+                  : []),
                 {
                   key: 'copy-link',
                   label: t('Copy link'),
@@ -603,6 +625,19 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                         investigationId={investigation.id}
                         phase={investigation.orchestration.phase}
                         status={investigation.orchestration.status}
+                        onAskSeer={
+                          askSeer
+                            ? hypothesis =>
+                                askSeer(
+                                  getHypothesisChatPrompt({
+                                    hypothesis,
+                                    investigation,
+                                    primaryHypothesisId:
+                                      orchestration?.report.primaryHypothesisId ?? null,
+                                  })
+                                )
+                            : undefined
+                        }
                       />
                     ) : null}
                     {visibleBlocks.length > 0 || awaitingReportBlock ? (

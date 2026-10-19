@@ -29,8 +29,8 @@ type HypothesisCardProps = {
   hypothesis: InvestigationHypothesis;
   /**
    * Menu items for the card's overflow menu. The card does not own commands —
-   * the surface rendering it decides which of accept, reject, steer, and retry
-   * apply, and supplies them here. No menu renders when this is empty.
+   * the surface rendering it decides which of accept, reject, retry, and Ask
+   * Seer apply, and supplies them here. No menu renders when this is empty.
    */
   actions?: MenuItemProps[];
   /**
