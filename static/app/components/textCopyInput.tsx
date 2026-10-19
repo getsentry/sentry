@@ -53,7 +53,11 @@ export function TextCopyInput({
         {...inputProps}
       />
       <InputGroup.TrailingItems>
-        <InputCopyButton size={size} onCopy={onCopy} text={children} />
+        <InputCopyButton
+          size={size === 'xs' ? 'xs' : 'sm'}
+          onCopy={onCopy}
+          text={children}
+        />
       </InputGroup.TrailingItems>
     </InputGroup>
   );
@@ -70,13 +74,13 @@ export function InputCopyButton({
 }: {
   text: string;
   onCopy?: (value: string) => void;
-  size?: FormSize;
+  size?: 'xs' | 'sm';
 }) {
   return (
     <StyledCopyButton
       aria-label={t('Copy to clipboard')}
       variant="transparent"
-      size={size === 'xs' ? 'xs' : 'sm'}
+      size={size}
       onCopy={onCopy}
       text={text}
     />
