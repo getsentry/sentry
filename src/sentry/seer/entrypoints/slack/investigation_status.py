@@ -115,8 +115,8 @@ def get_status_subtitle(source: Mapping[str, Any], updated_at: datetime | None =
 
 def _get_detail(hypothesis: Mapping[str, Any]) -> str:
     verdict = _as_dict(hypothesis.get("agentVerdict"))
-    if verdict:
-        return _truncate(str(verdict.get("rationale") or ""))
+    if verdict.get("rationale"):
+        return _truncate(str(verdict["rationale"]))
 
     steps = [
         step for step in hypothesis.get("verificationSteps") or [] if isinstance(step, Mapping)

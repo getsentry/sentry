@@ -96,15 +96,27 @@ class BuildInvestigationStatusTest(TestCase):
         data, _fingerprint = self._build(
             [
                 _hypothesis(
+                    id="h1",
+                    order=0,
                     effectiveStatus="supported",
                     agentVerdict={"verdict": "supported", "rationale": "x" * 400},
-                )
+                ),
+                _hypothesis(
+                    id="h2",
+                    order=1,
+                    effectiveStatus="supported",
+                    agentVerdict={"verdict": "supported", "rationale": ""},
+                    verificationSteps=[
+                        {"id": "s1", "order": 0, "title": "Query traces", "status": "blocked"}
+                    ],
+                ),
             ]
         )
 
-        (hypothesis,) = data.hypotheses
-        assert hypothesis["label"] == "● Supported"
-        assert hypothesis["detail"] == "x" * 299 + "…"
+        assert [(hypothesis["label"], hypothesis["detail"]) for hypothesis in data.hypotheses] == [
+            ("● Supported", "x" * 299 + "…"),
+            ("● Supported", "Blocked: Query traces"),
+        ]
 
     def test_user_disposition_and_terminal_statuses_map_to_labels(self) -> None:
         data, _fingerprint = self._build(
