@@ -367,6 +367,20 @@ class MergeReleasesTest(TestCase):
         assert not Release.objects.filter(id=release2.id).exists()
         assert not Release.objects.filter(id=release3.id).exists()
 
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_merging_first_release_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        release = self.create_release()
+
+        merged_release = self.create_release()
+
+        self.create_group(first_release=merged_release)
+
+        produce_snapshot.reset_mock()
+
+        Release.merge(release, [merged_release])
+
+        assert produce_snapshot.called
+
 
 class SetCommitsTestCase(TestCase):
     @receivers_raise_on_send()
