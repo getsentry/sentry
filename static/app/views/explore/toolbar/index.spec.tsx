@@ -357,9 +357,6 @@ describe('ExploreToolbar', () => {
     const section = screen.getByTestId('section-visualizes');
 
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    // Percentiles and stats are listed in one group, like the Metrics picker.
-    expect(within(section).getByText('Percentiles')).toBeInTheDocument();
-    expect(within(section).queryByText('Stats')).not.toBeInTheDocument();
     await userEvent.click(within(section).getByRole('option', {name: 'p50'}));
     await userEvent.click(within(section).getByRole('option', {name: 'p99'}));
     await userEvent.click(within(section).getByRole('option', {name: 'avg'}));

@@ -1,23 +1,38 @@
+import {t} from 'sentry/locale';
 import {AggregationKey} from 'sentry/utils/fields';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 /**
- * Aggregates that can be selected together and plotted on one chart. They are
- * listed in one group, like the Metrics aggregate picker does for
- * distributions, and all take the same numeric argument, so together they
- * share a unit and a Y axis.
+ * Aggregates that can be selected together and plotted on one chart, grouped
+ * the same way as the Metrics aggregate picker. They all take the same numeric
+ * argument, so together they share a unit and a Y axis.
  */
-export const SHARED_CHART_AGGREGATES: readonly string[] = [
-  AggregationKey.P50,
-  AggregationKey.P75,
-  AggregationKey.P90,
-  AggregationKey.P95,
-  AggregationKey.P99,
-  AggregationKey.P100,
-  AggregationKey.AVG,
-  AggregationKey.MIN,
-  AggregationKey.MAX,
+export const SHARED_CHART_AGGREGATE_REGIONS: ReadonlyArray<{
+  aggregates: readonly string[];
+  key: string;
+  label: string;
+}> = [
+  {
+    key: 'percentiles',
+    label: t('Percentiles'),
+    aggregates: [
+      AggregationKey.P50,
+      AggregationKey.P75,
+      AggregationKey.P90,
+      AggregationKey.P95,
+      AggregationKey.P99,
+      AggregationKey.P100,
+    ],
+  },
+  {
+    key: 'stats',
+    label: t('Stats'),
+    aggregates: [AggregationKey.AVG, AggregationKey.MIN, AggregationKey.MAX],
+  },
 ];
+
+export const SHARED_CHART_AGGREGATES: readonly string[] =
+  SHARED_CHART_AGGREGATE_REGIONS.flatMap(region => region.aggregates);
 
 /**
  * Whether the y axes can be plotted on one chart. This only holds for what the
