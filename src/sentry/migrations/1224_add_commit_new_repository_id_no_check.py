@@ -23,7 +23,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1222_repository_org_status_name_index"),
+        ("sentry", "1223_drop_ruleactivity"),
     ]
 
     operations = [
