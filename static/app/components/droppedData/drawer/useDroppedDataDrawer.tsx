@@ -5,7 +5,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 
 import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
 import type {ReasonRow} from 'sentry/components/droppedData/drawer/outcomeSections';
-import {buildInvestigatePrompt} from 'sentry/components/droppedData/outcomes';
+import {buildTroubleshootPrompt} from 'sentry/components/droppedData/outcomes';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -43,10 +43,10 @@ export function useDroppedDataDrawer(
   useEffect(() => {
     openSeerExplorerRef.current = openSeerExplorer;
   });
-  const handleInvestigate = useCallback(
+  const handleTroubleshoot = useCallback(
     (row: ReasonRow) => {
       openSeerExplorerRef.current({
-        initialQuery: buildInvestigatePrompt({
+        initialQuery: buildTroubleshootPrompt({
           dataset,
           outcome: row.outcome,
           reason: row.reason,
@@ -56,8 +56,8 @@ export function useDroppedDataDrawer(
     },
     [dataset]
   );
-  const onInvestigate = isSeerExplorerEnabled(organization)
-    ? handleInvestigate
+  const onTroubleshoot = isSeerExplorerEnabled(organization)
+    ? handleTroubleshoot
     : undefined;
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export function useDroppedDataDrawer(
         <DroppedDataDrawer
           dataset={dataset}
           interval={interval}
-          onInvestigate={onInvestigate}
+          onTroubleshoot={onTroubleshoot}
         />
       ),
       {
@@ -95,7 +95,7 @@ export function useDroppedDataDrawer(
     openDrawer,
     dataset,
     interval,
-    onInvestigate,
+    onTroubleshoot,
     pathname,
     setIsDrawerInUrl,
   ]);

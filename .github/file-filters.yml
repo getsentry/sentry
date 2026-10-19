@@ -18,6 +18,8 @@ testable_modified: &testable_modified
 testable_rules_changed: &testable_rules_changed
   - *sentry_frontend_workflow_file
   - added|modified: '.github/file-filters.yml'
+  - added|deleted|modified: 'build-utils/react-router{,.test}.ts'
+  - added|deleted|modified: '.github/workflows/scripts/jest-test-config.sh'
   - added|deleted|modified: 'tests/js/jest.config.mjs'
   - added|deleted|modified: 'tests/js/jest.config.ci.mjs'
   - added|deleted|modified: 'tests/js/createJestConfig.ts'

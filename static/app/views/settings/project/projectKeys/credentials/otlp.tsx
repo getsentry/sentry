@@ -3,10 +3,13 @@ import {z} from 'zod';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
-import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {InputCopyButton} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
+import {selectText} from 'sentry/utils/selectText';
 import {FieldList} from 'sentry/views/settings/project/projectKeys/fieldList';
 
 interface OtlpTabProps {
@@ -22,7 +25,6 @@ const otlpSchema = z.object({
   logsHeaders: z.string(),
   tracesEndpoint: z.string(),
   tracesHeaders: z.string(),
-  collectorConfig: z.string(),
 });
 
 export function OtlpTab({
@@ -53,7 +55,6 @@ export function OtlpTab({
       logsHeaders: headers,
       tracesEndpoint,
       tracesHeaders: headers,
-      collectorConfig,
     },
     validators: {onChange: otlpSchema},
   });
@@ -67,9 +68,13 @@ export function OtlpTab({
               label={t('OTLP Endpoint')}
               hintText={t('The base OTLP endpoint for your project.')}
             >
-              <TextCopyInput aria-label={t('OTLP Endpoint')}>
-                {field.state.value}
-              </TextCopyInput>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.state.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.state.value} />}
+              />
             </field.Layout.Stack>
           )}
         </form.AppField>
@@ -87,9 +92,13 @@ export function OtlpTab({
                 }
               )}
             >
-              <TextCopyInput aria-label={t('OTLP Logs Endpoint')}>
-                {field.state.value}
-              </TextCopyInput>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.state.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.state.value} />}
+              />
             </field.Layout.Stack>
           )}
         </form.AppField>
@@ -102,9 +111,13 @@ export function OtlpTab({
                 'Set these security headers when configuring your OTLP exporter.'
               )}
             >
-              <TextCopyInput aria-label={t('OTLP Logs Endpoint Headers')}>
-                {field.state.value}
-              </TextCopyInput>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.state.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.state.value} />}
+              />
             </field.Layout.Stack>
           )}
         </form.AppField>
@@ -122,9 +135,13 @@ export function OtlpTab({
                 }
               )}
             >
-              <TextCopyInput aria-label={t('OTLP Traces Endpoint')}>
-                {field.state.value}
-              </TextCopyInput>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.state.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.state.value} />}
+              />
             </field.Layout.Stack>
           )}
         </form.AppField>
@@ -137,27 +154,32 @@ export function OtlpTab({
                 'Set these security headers when configuring your OTLP exporter.'
               )}
             >
-              <TextCopyInput aria-label={t('OTLP Traces Endpoint Headers')}>
-                {field.state.value}
-              </TextCopyInput>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.state.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.state.value} />}
+              />
             </field.Layout.Stack>
           )}
         </form.AppField>
 
-        <form.AppField name="collectorConfig">
-          {field => (
-            <field.Layout.Stack
-              label={t('OpenTelemetry Collector Exporter Configuration')}
-              hintText={t(
-                'Use this example configuration in your OpenTelemetry Collector config file to export OTLP data to Sentry.'
-              )}
-            >
-              <UnsetHeightCodeBlock language="yaml" filename="config.yaml" isRounded>
-                {field.state.value}
-              </UnsetHeightCodeBlock>
-            </field.Layout.Stack>
-          )}
-        </form.AppField>
+        <Stack
+          gap="md"
+          role="group"
+          aria-label={t('OpenTelemetry Collector Exporter Configuration')}
+        >
+          <Text>{t('OpenTelemetry Collector Exporter Configuration')}</Text>
+          <UnsetHeightCodeBlock language="yaml" filename="config.yaml" isRounded>
+            {collectorConfig}
+          </UnsetHeightCodeBlock>
+          <Text size="sm" variant="muted">
+            {t(
+              'Use this example configuration in your OpenTelemetry Collector config file to export OTLP data to Sentry.'
+            )}
+          </Text>
+        </Stack>
       </FieldList>
     </form.AppForm>
   );

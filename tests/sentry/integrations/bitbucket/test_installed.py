@@ -18,6 +18,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils import jwt
+from tests.sentry.utils.test_jwt import FUTURE_EXPIRATION
 
 
 @control_silo_test
@@ -115,6 +116,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             {
                 "iss": self.client_key,
                 "qsh": get_query_hash(self.path, method="POST", query_params={}),
+                "exp": FUTURE_EXPIRATION,
             },
             self.shared_secret,
         )
@@ -160,6 +162,7 @@ class BitbucketInstalledEndpointTest(APITestCase):
             {
                 "iss": self.client_key,
                 "qsh": get_query_hash(self.path, method="POST", query_params={}),
+                "exp": FUTURE_EXPIRATION,
             },
             wrong_secret,
         )
@@ -279,11 +282,18 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.install(self.team_data_from_bitbucket)
 
         integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
+        integration.add_organization(self.organization)
 
         responses.add(
             responses.GET,
             f"https://api.bitbucket.org/2.0/repositories/{accessible_repo.name}/hooks",
             json={"values": [{"description": "sentry-bitbucket-repo-hook"}]},
+        )
+        responses.add(
+            responses.POST,
+            f"https://api.bitbucket.org/2.0/repositories/{accessible_repo.name}/hooks",
+            json={"uuid": "{hook-uuid}"},
+            status=201,
         )
 
         with self.tasks():
@@ -301,6 +311,11 @@ class BitbucketInstalledEndpointTest(APITestCase):
                 assert (
                     Repository.objects.get(id=accessible_repo.id).provider
                     == "integrations:bitbucket"
+                )
+
+                assert (
+                    Repository.objects.get(id=accessible_repo.id).config["webhook_id"]
+                    == "{hook-uuid}"
                 )
 
                 assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None

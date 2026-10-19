@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NoteBody} from 'sentry/components/activity/note/body';
@@ -12,6 +13,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {ProgressState} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {CommentActions} from 'sentry/views/investigations/comments/commentActions';
 import {
@@ -19,6 +21,7 @@ import {
   EditCommentForm,
 } from 'sentry/views/investigations/comments/commentComposer';
 import {useInvestigationComments} from 'sentry/views/investigations/comments/useInvestigationComments';
+import {isCommentEdited} from 'sentry/views/investigations/comments/utils';
 import {getBlockDisplayTitle} from 'sentry/views/investigations/detail/cell';
 import type {
   InvestigationComment,
@@ -119,11 +122,11 @@ function CommentRow({
 }) {
   const actionsRef = useRef<HTMLButtonElement>(null);
   const user = useUser();
+  const location = useLocation();
   const [editing, setEditing] = useState(false);
 
   const isAuthor = comment.author?.id === user.id;
-  const edited =
-    new Date(comment.dateUpdated).getTime() > new Date(comment.dateCreated).getTime();
+  const edited = isCommentEdited(comment);
 
   return (
     <ActivityLineRow as="li">
@@ -152,7 +155,27 @@ function CommentRow({
         </Text>
         {comment.blockId ? (
           <Text variant="muted" density="comfortable">
-            {tct('on [block]', {block: blockTitle ?? t('a deleted block')})}
+            {blockTitle
+              ? tct('on [block]', {
+                  block: (
+                    <Link
+                      data-block-comments-trigger
+                      to={{
+                        query: {
+                          ...location.query,
+                          comments: 'open',
+                          commentsBlock: comment.blockId,
+                          comment: comment.id,
+                        },
+                      }}
+                    >
+                      <Text variant="muted" underline>
+                        {blockTitle}
+                      </Text>
+                    </Link>
+                  ),
+                })
+              : t('on a deleted block')}
           </Text>
         ) : null}
         <Text variant="muted" density="comfortable">
