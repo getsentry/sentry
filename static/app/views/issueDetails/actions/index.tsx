@@ -319,6 +319,7 @@ export function GroupActions({
       onUpdateSuccess?.();
     } catch {
       // GroupStore already shows the error
+      // oxlint-disable-next-line react/todo
     } finally {
       queryClient.invalidateQueries({
         queryKey: groupQueryKey({

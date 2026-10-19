@@ -43,11 +43,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {
-  MultipleCheckboxOptions,
-  useCreateNotificationAction,
-  type IntegrationChannel,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {useCreateNotificationAction} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import type {
   AlertRuleOptions,
   RequestDataFragment,
@@ -57,6 +53,10 @@ import {
   IssueAlertOptions,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {
+  MultipleCheckboxOptions,
+  type IntegrationChannel,
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
 import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -412,6 +412,7 @@ export function CreateProject() {
       }
 
       const {FrameworkSuggestionModal, modalCss} =
+        // oxlint-disable-next-line react/todo
         await import('sentry/components/onboarding/frameworkSuggestionModal');
 
       openModal(

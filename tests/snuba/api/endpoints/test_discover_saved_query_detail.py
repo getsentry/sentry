@@ -172,6 +172,8 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
             {"yAxes": ["count(span.duration)"], "chartType": 2}
         ]
         assert set(response.data["exploreQuery"]["projects"]) == set(self.project_ids)
+        assert response.data["exploreQuery"]["range"] == "24h"
+        assert response.data["exploreQuery"]["statsPeriod"] == "24h"
 
     def test_get_org_without_access(self) -> None:
         with self.feature(self.feature_name):

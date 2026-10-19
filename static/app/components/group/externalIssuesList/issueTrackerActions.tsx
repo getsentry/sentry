@@ -5,6 +5,7 @@ import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import type {Theme} from '@sentry/scraps/theme';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {
@@ -13,7 +14,6 @@ import type {
 } from 'sentry/components/group/externalIssuesList/hooks/types';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {Theme} from 'sentry/utils/theme';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const ISSUE_TRACKER_MENU_MAX_HEIGHT = 300;

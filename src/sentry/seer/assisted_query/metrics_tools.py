@@ -5,6 +5,7 @@ from sentry.api.client import ApiClient, ApiError
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.seer.public_caller import scope_projects
 from sentry.seer.sentry_data_models import (
     MetricMetadataErrorResponse,
     MetricMetadataRow,
@@ -106,6 +107,11 @@ def get_metric_metadata(
         return MetricMetadataErrorResponse(
             candidates=[], has_more=False, error="organization_not_found"
         )
+
+    scoped = scope_projects(organization.id, project_ids)
+    if scoped.blocked:
+        return MetricMetadataSuccessResponse(candidates=[], has_more=False)
+    project_ids = scoped.project_ids or []
 
     params: dict[str, Any] = {
         "statsPeriod": stats_period,

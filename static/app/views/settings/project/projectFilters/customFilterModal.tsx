@@ -649,116 +649,122 @@ function CustomFilterModal({
 
           <form.Subscribe selector={state => state.values.dataType}>
             {dataType => (
-              <form.AppField name="conditions">
-                {conditionsField => {
-                  const conditions = conditionsField.state.value;
-                  return (
-                    <Stack gap="lg">
-                      {dataType === 'all' && (
-                        <Text variant="muted" size="sm">
-                          {t(
-                            'This filter applies to every data type Sentry ingests, including ones added later. Only conditions that every data type carries are available.'
-                          )}
-                        </Text>
-                      )}
-                      {/* The value textarea grows with its lines, so the row aligns
+              <form.AppField name="conditions" mode="array">
+                {conditionsField => (
+                  <form.Subscribe selector={state => state.values.conditions}>
+                    {conditions => (
+                      <Stack gap="lg">
+                        {dataType === 'all' && (
+                          <Text variant="muted" size="sm">
+                            {t(
+                              'This filter applies to every data type Sentry ingests, including ones added later. Only conditions that every data type carries are available.'
+                            )}
+                          </Text>
+                        )}
+                        {/* The value textarea grows with its lines, so the row aligns
                           to the top and the single-line cells center on the control
                           height to line up with the first line. On a narrow screen
                           the row folds into property, "matches", and value lines. */}
-                      <Stack gap="sm">
-                        {conditions.map((condition, index) => (
-                          <Grid
-                            key={index}
-                            areas={{
-                              zero: '"property remove" "matches matches" "value value"',
-                              md: '"property matches value remove"',
-                            }}
-                            columns={{
-                              zero: '1fr max-content',
-                              md: '160px max-content 1fr max-content',
-                            }}
-                            gap={{zero: 'xs md', md: 'md'}}
-                            align="start"
-                          >
-                            <Container area="property">
-                              <form.AppField name={`conditions[${index}].property`}>
-                                {propertyField => (
-                                  <propertyField.Select
-                                    aria-label={t('Condition property')}
-                                    clearable={false}
-                                    options={getPropertyOptions(dataType)}
-                                    value={propertyField.state.value}
-                                    onChange={value => propertyField.handleChange(value)}
-                                  />
-                                )}
-                              </form.AppField>
-                            </Container>
-                            <Flex
-                              area="matches"
-                              align="center"
-                              height={{zero: 'auto', md: theme.form.md.height}}
+                        <Stack gap="sm">
+                          {conditions.map((condition, index) => (
+                            <Grid
+                              key={index}
+                              areas={{
+                                zero: '"property remove" "matches matches" "value value"',
+                                md: '"property matches value remove"',
+                              }}
+                              columns={{
+                                zero: '1fr max-content',
+                                md: '160px max-content 1fr max-content',
+                              }}
+                              gap={{zero: 'xs md', md: 'md'}}
+                              align="start"
                             >
-                              <InfoText
-                                variant="muted"
-                                title={getMatchDescription(condition.property, dataType)}
+                              <Container area="property">
+                                <form.AppField name={`conditions[${index}].property`}>
+                                  {propertyField => (
+                                    <propertyField.Select
+                                      aria-label={t('Condition property')}
+                                      clearable={false}
+                                      options={getPropertyOptions(dataType)}
+                                      value={propertyField.state.value}
+                                      onChange={value =>
+                                        propertyField.handleChange(value)
+                                      }
+                                    />
+                                  )}
+                                </form.AppField>
+                              </Container>
+                              <Flex
+                                area="matches"
+                                align="center"
+                                height={{zero: 'auto', md: theme.form.md.height}}
                               >
-                                {t('matches')}
-                              </InfoText>
-                            </Flex>
-                            <Container area="value">
-                              <form.AppField name={`conditions[${index}].value`}>
-                                {valueField => (
-                                  <valueField.TextArea
-                                    aria-label={t('Condition value')}
-                                    placeholder={
-                                      getCondition(condition.property).placeholder
-                                    }
-                                    value={valueField.state.value}
-                                    onChange={valueField.handleChange}
-                                    monospace
-                                    autosize
-                                    rows={1}
-                                    maxRows={10}
-                                  />
-                                )}
-                              </form.AppField>
-                            </Container>
-                            <Flex
-                              area="remove"
-                              align="center"
-                              height={theme.form.md.height}
-                            >
-                              <Button
-                                size="sm"
-                                variant="transparent"
-                                icon={<IconDelete />}
-                                aria-label={t('Remove condition')}
-                                disabled={conditions.length === 1}
-                                onClick={() => conditionsField.removeValue(index)}
-                              />
-                            </Flex>
-                          </Grid>
-                        ))}
+                                <InfoText
+                                  variant="muted"
+                                  title={getMatchDescription(
+                                    condition.property,
+                                    dataType
+                                  )}
+                                >
+                                  {t('matches')}
+                                </InfoText>
+                              </Flex>
+                              <Container area="value">
+                                <form.AppField name={`conditions[${index}].value`}>
+                                  {valueField => (
+                                    <valueField.TextArea
+                                      aria-label={t('Condition value')}
+                                      placeholder={
+                                        getCondition(condition.property).placeholder
+                                      }
+                                      value={valueField.state.value}
+                                      onChange={valueField.handleChange}
+                                      monospace
+                                      autosize
+                                      rows={1}
+                                      maxRows={10}
+                                    />
+                                  )}
+                                </form.AppField>
+                              </Container>
+                              <Flex
+                                area="remove"
+                                align="center"
+                                height={theme.form.md.height}
+                              >
+                                <Button
+                                  size="sm"
+                                  variant="transparent"
+                                  icon={<IconDelete />}
+                                  aria-label={t('Remove condition')}
+                                  disabled={conditions.length === 1}
+                                  onClick={() => conditionsField.removeValue(index)}
+                                />
+                              </Flex>
+                            </Grid>
+                          ))}
+                        </Stack>
+                        <Flex>
+                          <Button
+                            size="sm"
+                            icon={<IconAdd />}
+                            onClick={() =>
+                              conditionsField.pushValue(
+                                emptyCondition(getDefaultProperty(dataType))
+                              )
+                            }
+                          >
+                            {t('Add Condition')}
+                          </Button>
+                        </Flex>
+                        {conditions.some(condition =>
+                          RAW_ERROR_PROPERTIES.has(condition.property)
+                        ) && <ObfuscatedErrorWarning project={project} />}
                       </Stack>
-                      <Flex>
-                        <Button
-                          size="sm"
-                          icon={<IconAdd />}
-                          onClick={() =>
-                            conditionsField.pushValue(
-                              emptyCondition(getDefaultProperty(dataType))
-                            )
-                          }
-                        >
-                          {t('Add Condition')}
-                        </Button>
-                      </Flex>
-                      {conditions.some(condition =>
-                        RAW_ERROR_PROPERTIES.has(condition.property)
-                      ) && <ObfuscatedErrorWarning project={project} />}
-                    </Stack>
-                  );
-                }}
+                    )}
+                  </form.Subscribe>
+                )}
               </form.AppField>
             )}
           </form.Subscribe>

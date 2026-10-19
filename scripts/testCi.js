@@ -6,42 +6,64 @@ import {run} from 'sentry-test/runner';
  * @param {string} command
  * @param {string[]} args
  */
-function runTests(command, args) {
-  const result = spawnSync(command, args, {stdio: 'inherit'});
+function runTests(command, args, env = process.env) {
+  const result = spawnSync(command, args, {stdio: 'inherit', env});
   if (result.error) {
     throw result.error;
   }
   return result.status ?? 1;
 }
 
-const appStatus = await run([
-  '--ci',
-  '--maxWorkers=75%',
-  '--colors',
-  ...process.argv.slice(2),
-]);
-
-let packageStatus = 0;
-// Only one CI shard runs package tests. Local runs always include them.
-if (
-  !process.env.CI ||
-  !process.env.CI_NODE_TOTAL ||
-  !process.env.CI_NODE_INDEX ||
-  process.env.CI_NODE_INDEX === '0'
-) {
-  packageStatus = runTests('pnpm', [
-    '--recursive',
-    '--parallel',
-    '--no-bail',
-    '--filter',
-    './static/packages/*',
-    '--if-present',
-    'run',
-    'test',
-    '--ci',
-    '--maxWorkers=2',
-    '--watchman=false',
-  ]);
+// A child process lets the package tests run even when Jest uses --forceExit.
+// Once production and previews use V8, remove the version selection and run app tests once.
+const selectedVersion = process.env.SENTRY_REACT_ROUTER_VERSION;
+if (selectedVersion !== undefined && !['6', '8'].includes(selectedVersion)) {
+  throw new Error(`Unsupported SENTRY_REACT_ROUTER_VERSION: ${selectedVersion}`);
+}
+const versions = selectedVersion === undefined ? ['6', '8'] : [selectedVersion];
+let appStatus = 0;
+for (const version of versions) {
+  console.log(`Testing with React Router v${version}`);
+  const status = await run(
+    ['--ci', '--maxWorkers=75%', '--colors', ...process.argv.slice(2)],
+    {...process.env, SENTRY_REACT_ROUTER_VERSION: version}
+  );
+  appStatus ||= status;
 }
 
-process.exitCode = appStatus || packageStatus;
+let packageStatus = 0;
+let routerBuildStatus = 0;
+// Only one CI shard runs package tests. Local runs always include them.
+// After removing the router matrix, drop the V6 condition but keep the shard-0 guard.
+if (
+  (!process.env.CI || versions.includes('6')) &&
+  (!process.env.CI ||
+    !process.env.CI_NODE_TOTAL ||
+    !process.env.CI_NODE_INDEX ||
+    process.env.CI_NODE_INDEX === '0')
+) {
+  routerBuildStatus = runTests(process.execPath, [
+    '--test',
+    'build-utils/react-router.test.ts',
+  ]);
+  packageStatus = runTests(
+    'pnpm',
+    [
+      '--recursive',
+      '--parallel',
+      '--no-bail',
+      '--filter',
+      './static/packages/*',
+      '--if-present',
+      'run',
+      'test',
+      '--ci',
+      '--maxWorkers=2',
+      '--watchman=false',
+    ],
+    // Once V6 support is removed, drop this package-test router override.
+    {...process.env, SENTRY_REACT_ROUTER_VERSION: '6'}
+  );
+}
+
+process.exitCode = appStatus || routerBuildStatus || packageStatus;

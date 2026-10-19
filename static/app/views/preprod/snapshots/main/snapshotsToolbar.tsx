@@ -13,7 +13,7 @@ import {IconStack} from '@sentry/icons/stack';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -370,13 +370,13 @@ export const ProgressCounter = styled(Text)`
   font-family: ${p => p.theme.font.family.mono};
 `;
 
-export const ToolbarProgressBar = styled(ProgressBar)`
-  width: 50px;
-
-  @container (max-width: ${p => p.theme.container.xl}) {
-    display: none;
-  }
-`;
+export function ToolbarProgressBar({value}: {value: number}) {
+  return (
+    <Container width="50px" display={{zero: 'none', xl: 'block'}}>
+      <ProgressBar value={value} />
+    </Container>
+  );
+}
 
 const OpacitySwatch = styled('button')<{$selected: boolean}>`
   position: relative;

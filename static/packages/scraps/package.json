@@ -42,6 +42,54 @@
     "./loader": {
       "types": "./dist/loader/index.d.ts",
       "import": "./dist/loader/index.js"
+    },
+    "./backdrop": {
+      "types": "./dist/backdrop/index.d.ts",
+      "import": "./dist/backdrop/index.js"
+    },
+    "./emptyState": {
+      "types": "./dist/emptyState/index.d.ts",
+      "import": "./dist/emptyState/index.js"
+    },
+    "./revealOnHover": {
+      "types": "./dist/revealOnHover/index.d.ts",
+      "import": "./dist/revealOnHover/index.js"
+    },
+    "./slider": {
+      "types": "./dist/slider/index.d.ts",
+      "import": "./dist/slider/index.js"
+    },
+    "./slot": {
+      "types": "./dist/slot/index.d.ts",
+      "import": "./dist/slot/index.js"
+    },
+    "./switch": {
+      "types": "./dist/switch/index.d.ts",
+      "import": "./dist/switch/index.js"
+    },
+    "./translation": {
+      "types": "./dist/translation/index.d.ts",
+      "import": "./dist/translation/index.js"
+    },
+    "./boundaryContext": {
+      "types": "./dist/boundaryContext.d.ts",
+      "import": "./dist/boundaryContext.js"
+    },
+    "./datetime": {
+      "types": "./dist/datetime.d.ts",
+      "import": "./dist/datetime.js"
+    },
+    "./sizeContext": {
+      "types": "./dist/sizeContext.d.ts",
+      "import": "./dist/sizeContext.js"
+    },
+    "./renderToString": {
+      "types": "./dist/renderToString.d.ts",
+      "import": "./dist/renderToString.js"
+    },
+    "./useScrollLock": {
+      "types": "./dist/useScrollLock.d.ts",
+      "import": "./dist/useScrollLock.js"
     }
   },
   "publishConfig": {
@@ -57,8 +105,15 @@
   "dependencies": {
     "@emotion/is-prop-valid": "^1.4.0",
     "@emotion/styled": "^11.14.0",
+    "@react-aria/i18n": "3.13.1",
+    "@react-aria/slider": "3.9.1",
     "@react-aria/utils": "3.34.1",
-    "@types/react": "19.3.0"
+    "@react-aria/visually-hidden": "3.9.1",
+    "@react-stately/slider": "3.8.1",
+    "@sentry/icons": "workspace:*",
+    "@sentry/react": "11.7.0",
+    "@types/react": "19.3.0",
+    "framer-motion": "12.38.0"
   },
   "devDependencies": {
     "@jest/environment": "30.5.1",
@@ -70,8 +125,10 @@
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.7",
     "@types/jest": "30.0.0",
     "@types/node": "26.6.4",
+    "@types/react-dom": "19.3.0",
     "expect-type": "1.4.0",
     "jest": "30.5.1",
     "jsdom": "30.1.1",

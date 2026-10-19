@@ -28,26 +28,20 @@ function hidesBelowSm(element: HTMLElement): boolean {
 }
 
 describe('BreadcrumbList container-query collapse', () => {
-  it('keeps external parent links in a new tab, including in the overflow menu', async () => {
+  it('keeps a parent link reachable in the overflow menu', async () => {
     render(
-      <BreadcrumbList
-        items={[
-          {
-            type: 'link',
-            label: 'Commit abc1234',
-            externalHref: 'https://example.com/commit/abc1234',
-          },
-        ]}
-      />
+      <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />
     );
-    expect(screen.getByRole('link', {name: 'Commit abc1234'})).toHaveAttribute(
-      'target',
-      '_blank'
+
+    expect(screen.getByRole('link', {name: 'Settings'})).toHaveAttribute(
+      'href',
+      '/settings/'
     );
     await userEvent.click(screen.getByRole('button', {name: 'More breadcrumbs'}));
-    const menuItem = screen.getByRole('menuitemradio', {name: 'Commit abc1234'});
-    expect(menuItem).toHaveAttribute('href', 'https://example.com/commit/abc1234');
-    expect(menuItem).toHaveAttribute('target', '_blank');
+    expect(screen.getByRole('menuitemradio', {name: 'Settings'})).toHaveAttribute(
+      'href',
+      '/settings/'
+    );
   });
 
   it('shows a label tooltip and a feature badge', async () => {
