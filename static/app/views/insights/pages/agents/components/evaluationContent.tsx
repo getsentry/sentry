@@ -43,8 +43,9 @@ export function EvaluatedContent({
   state: EvaluatedMessage[];
   clip?: boolean;
 }) {
-  if (state.length === 1) {
-    return <MessageParts parts={state[0]!.parts} clip={clip} />;
+  const [firstMessage] = state;
+  if (firstMessage && state.length === 1) {
+    return <MessageParts parts={firstMessage.parts} clip={clip} />;
   }
   return (
     <Stack gap="md">
