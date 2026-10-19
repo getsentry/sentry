@@ -629,19 +629,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/utils/platform_categories.py                                         @getsentry/telemetry-experience
 /src/sentry/sentry_metrics/querying/                                             @getsentry/telemetry-experience
 /tests/sentry/sentry_metrics/querying/                                           @getsentry/telemetry-experience
-/src/sentry/relay/config/ai_model_costs.py                                       @getsentry/telemetry-experience
-/src/sentry/tasks/ai_agent_monitoring.py                                         @getsentry/telemetry-experience
-/tests/sentry/tasks/test_ai_agent_monitoring.py                                  @getsentry/telemetry-experience
-/src/sentry/ai_monitoring/                                                       @getsentry/telemetry-experience
-/tests/sentry/ai_monitoring/                                                     @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
-/static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
-/static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
-/static/app/views/explore/conversations/                                  @getsentry/telemetry-experience
-/static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/ai*    @getsentry/data-browsing @getsentry/telemetry-experience
-/static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcp*   @getsentry/data-browsing @getsentry/telemetry-experience
-/static/app/views/performance/traceDetails/traceDrawer/tabs/traceAi*                   @getsentry/data-browsing @getsentry/telemetry-experience
 /src/sentry/ingest/inbound_filters.py                                            @getsentry/ingest @getsentry/telemetry-experience
 /tests/sentry/ingest/test_inbound_filters.py                                     @getsentry/ingest @getsentry/telemetry-experience
 /src/sentry/api/endpoints/project_filters.py                                     @getsentry/ingest @getsentry/telemetry-experience
@@ -653,6 +642,32 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/api/endpoints/test_project_filter_details.py                       @getsentry/ingest @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_project_custom_inbound_filters.py               @getsentry/ingest @getsentry/telemetry-experience
 ## End of Telemetry Experience
+
+## Agent Tracing
+/src/sentry/relay/config/ai_model_costs.py                                             @getsentry/agent-tracing
+/src/sentry/tasks/ai_agent_monitoring.py                                               @getsentry/agent-tracing
+/tests/sentry/tasks/test_ai_agent_monitoring.py                                        @getsentry/agent-tracing
+/src/sentry/ai_monitoring/                                                             @getsentry/agent-tracing
+/tests/sentry/ai_monitoring/                                                           @getsentry/agent-tracing
+/tests/sentry/api/endpoints/test_organization_ai_conversation*.py                      @getsentry/agent-tracing
+/src/sentry/apidocs/examples/ai_conversation_examples.py                               @getsentry/agent-tracing
+/src/sentry/analytics/events/agent_monitoring_events.py                                @getsentry/agent-tracing
+/static/app/views/insights/pages/agents/                                               @getsentry/agent-tracing
+/static/app/views/insights/pages/mcp/                                                  @getsentry/agent-tracing
+/static/app/views/insights/agentModels/                                                @getsentry/agent-tracing
+/static/app/views/insights/agentTools/                                                 @getsentry/agent-tracing
+/static/app/utils/analytics/agentMonitoringAnalyticsEvents.tsx                         @getsentry/agent-tracing
+/static/app/utils/analytics/conversationsAnalyticsEvents.tsx                           @getsentry/agent-tracing
+/static/app/utils/analytics/mcpMonitoringAnalyticsEvents.tsx                           @getsentry/agent-tracing
+/static/app/views/explore/conversations/                                               @getsentry/agent-tracing
+/static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/ai*    @getsentry/data-browsing @getsentry/agent-tracing
+/static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcp*   @getsentry/data-browsing @getsentry/agent-tracing
+/static/app/views/performance/traceDetails/traceDrawer/tabs/traceAi*                   @getsentry/data-browsing @getsentry/agent-tracing
+/static/app/views/insights/mcp-prompts/                                                @getsentry/agent-tracing
+/static/app/views/insights/mcp-resources/                                              @getsentry/agent-tracing
+/static/app/views/insights/mcp-tools/                                                  @getsentry/agent-tracing
+/static/app/views/dashboards/utils/prebuiltConfigs/ai/                                 @getsentry/agent-tracing
+## End of Agent Tracing
 
 ## Value Discovery
 /static/app/data/platformCategories.tsx                                          @getsentry/value-discovery
@@ -789,10 +804,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/endpoints/organization_onboarding_continuation_email.py          @getsentry/value-discovery
 /src/sentry/api/endpoints/project_create_sample.py                               @getsentry/value-discovery
 ## End of Onboarding
-
-## AI Conversations (Telemetry Experience)
-/tests/sentry/api/endpoints/test_organization_ai_conversation*.py                @getsentry/telemetry-experience
-## End of AI Conversations
 
 ## Billing
 /tests/js/getsentry-test/                               @getsentry/revenue

@@ -10,6 +10,8 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
+import {CodeModeInput} from 'sentry/components/ai/toolDetails/codeModeInput';
+import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -32,6 +34,10 @@ import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/a
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getCodeModeInput,
+  isCodeModeNode,
+} from 'sentry/views/insights/pages/agents/utils/codeMode';
 import {
   getNodeEvaluation,
   type Evaluation,
@@ -343,6 +349,11 @@ function InputTab({
 }) {
   const {messages} = getAIInputMessages(node, attributes);
   const toolArgs = getAIToolInput(node, attributes);
+  const codeInput = isCodeModeNode(node, attributes) ? getCodeModeInput(toolArgs) : null;
+
+  if (codeInput) {
+    return <CodeModeInput key={node.id} {...codeInput} />;
+  }
   const embeddingsInput = getTraceNodeAttribute(
     'gen_ai.embeddings.input',
     node,
@@ -399,14 +410,21 @@ function OutputTab({
     attributes
   );
   const toolOutput = getAIToolOutput(node, attributes);
+  const hasToolOutput = toolOutput !== undefined;
 
   // Reasoning is supplementary to the actual output, so clip it when there is
   // other content; when it is the only output, show it in full.
   const clipReasoning = Boolean(
-    responseText || responseObject || toolCalls || toolOutput
+    responseText || responseObject || toolCalls || hasToolOutput
   );
 
-  if (!reasoningText && !responseText && !responseObject && !toolCalls && !toolOutput) {
+  if (
+    !reasoningText &&
+    !responseText &&
+    !responseObject &&
+    !toolCalls &&
+    !hasToolOutput
+  ) {
     return <EmptyTab message={t('No output for this span')} />;
   }
 
@@ -467,13 +485,8 @@ function OutputTab({
           />
         </Fragment>
       ) : null}
-      {toolOutput ? (
-        <TraceDrawerComponents.MultilineJSON
-          key={`${node.id}:tool-output`}
-          value={toolOutput}
-          maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-          autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
-        />
+      {hasToolOutput ? (
+        <ToolOutput key={`${node.id}:tool-output`} value={toolOutput} />
       ) : null}
     </Fragment>
   );

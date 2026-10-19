@@ -80,7 +80,7 @@ function StageSymbol({status}: {status: AgenticProgressStageStatus | null}) {
   }
 
   if (status === 'active') {
-    return <ActiveLoadingIndicator mini />;
+    return <ActiveLoadingIndicator mini size={16} />;
   }
 
   return <IconCircleDashed size="md" variant="muted" />;
@@ -94,9 +94,7 @@ const ActiveLoadingIndicator = styled(LoadingIndicator)`
   }
 
   && .loading-indicator {
-    width: 16px;
-    height: 16px;
-    border-width: 2px;
+    border-width: 2px !important;
   }
 `;
 
