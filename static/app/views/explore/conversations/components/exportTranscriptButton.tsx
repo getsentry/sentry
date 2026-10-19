@@ -1,7 +1,7 @@
 import {IconDownload} from '@sentry/icons/download';
 
-import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
 import type {UseConversationsOptions} from 'sentry/views/explore/conversations/hooks/useConversation';
@@ -39,13 +39,13 @@ export function ExportTranscriptButton({
     <DropdownMenu
       size="xs"
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.Button
+          showChevron={false}
           {...triggerProps}
           size="xs"
           icon={<IconDownload />}
           busy={isExporting}
           disabled={isExporting}
-          aria-label={t('Export transcript')}
           tooltipProps={
             isExporting
               ? {title: t('Loading the full conversation. This can take a while.')}
@@ -53,7 +53,7 @@ export function ExportTranscriptButton({
           }
         >
           {t('Export transcript')}
-        </Button>
+        </OverlayTrigger.Button>
       )}
       items={[
         {
