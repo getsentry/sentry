@@ -291,7 +291,7 @@ class SeerInvestigationHypothesis(TypedDict):
 
 class SeerInvestigationProgress(TypedDict):
     title: str
-    status: Literal["pending", "in_progress", "complete", "error"]
+    status: Literal["in_progress", "complete", "error"]
     detail: str
 
 

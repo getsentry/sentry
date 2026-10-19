@@ -1320,7 +1320,7 @@ class SlackInvestigationEntrypointTest(TestCase):
 
         assert self._task_card(self._updated_blocks()) == {
             "title": "Waiting for input",
-            "status": "pending",
+            "status": "error",
             "detail": "Seer is paused until someone responds. Open the investigation to continue.",
         }
 

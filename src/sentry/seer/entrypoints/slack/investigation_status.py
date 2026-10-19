@@ -152,7 +152,7 @@ def _get_progress(
     if status == InvestigationOrchestrationStatus.AWAITING_INPUT:
         return SeerInvestigationProgress(
             title="Waiting for input",
-            status="pending",
+            status="error",
             detail="Seer is paused until someone responds. Open the investigation to continue.",
         )
     match phase:
