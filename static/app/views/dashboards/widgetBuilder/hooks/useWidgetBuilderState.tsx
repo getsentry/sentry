@@ -23,7 +23,6 @@ import {
   WidgetType,
   type LegendType,
   type LinkedDashboard,
-  type Widget,
 } from 'sentry/views/dashboards/types';
 import {
   doesDisplayTypeSupportThresholds,
@@ -31,6 +30,12 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
+import {
+  MAX_NUM_Y_AXES,
+  WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP,
+  type WidgetBuilderStateLocalParams,
+  BuilderStateAction,
+} from 'sentry/views/dashboards/widgetBuilder/constants';
 import {useSeededQueryState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSeededQueryState';
 import {
   DISABLED_SORT,
@@ -41,10 +46,23 @@ import {
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {
+  serializeFields,
+  serializeLinkedDashboards,
+  serializeSorts,
+  normalizeSortField,
+  serializeThresholds,
+} from 'sentry/views/dashboards/widgetBuilder/utils/serialization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
 import {SpanFields} from 'sentry/views/insights/types';
+
+export {
+  MAX_NUM_Y_AXES,
+  WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP,
+  BuilderStateAction,
+} from 'sentry/views/dashboards/widgetBuilder/constants';
 
 // For issues dataset, events and users are sorted descending and do not use '-'
 // All other issues fields are sorted ascending
@@ -57,19 +75,6 @@ const DETAIL_WIDGET_FIELDS: DefaultDetailWidgetFields[] = [
   SpanFields.SPAN_DESCRIPTION,
   SpanFields.SPAN_CATEGORY,
 ] as const;
-
-export const MAX_NUM_Y_AXES = 3;
-
-export const WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP: Record<
-  keyof WidgetBuilderStateLocalParams,
-  {key: string; storeCondition: (widget: Widget) => boolean; widgetField: keyof Widget}
-> = {
-  textContent: {
-    key: 'dashboard:widget-builder:text-content',
-    widgetField: 'description',
-    storeCondition: (widget: Widget) => widget.displayType === DisplayType.TEXT,
-  },
-};
 
 export type WidgetBuilderStateQueryParams = {
   axisRange?: AxisRange;
@@ -89,10 +94,6 @@ export type WidgetBuilderStateQueryParams = {
   yAxis?: string[];
 };
 
-type WidgetBuilderStateLocalParams = {
-  textContent?: string;
-};
-
 /**
  * Extends the URL query params shape with `textContent` for text widgets.
  * Used as the payload type for SET_STATE actions, where text widget content
@@ -100,30 +101,6 @@ type WidgetBuilderStateLocalParams = {
  */
 export type WidgetBuilderStateParams = WidgetBuilderStateQueryParams &
   WidgetBuilderStateLocalParams;
-
-export const BuilderStateAction = {
-  SET_TITLE: 'SET_TITLE',
-  SET_DESCRIPTION: 'SET_DESCRIPTION',
-  SET_DISPLAY_TYPE: 'SET_DISPLAY_TYPE',
-  SET_DATASET: 'SET_DATASET',
-  SET_FIELDS: 'SET_FIELDS',
-  SET_Y_AXIS: 'SET_Y_AXIS',
-  SET_QUERY: 'SET_QUERY',
-  SET_SORT: 'SET_SORT',
-  SET_LINKED_DASHBOARDS: 'SET_LINKED_DASHBOARDS',
-  SET_LIMIT: 'SET_LIMIT',
-  SET_LEGEND_ALIAS: 'SET_LEGEND_ALIAS',
-  SET_LEGEND_TYPE: 'SET_LEGEND_TYPE',
-  SET_SELECTED_AGGREGATE: 'SET_SELECTED_AGGREGATE',
-  SET_STATE: 'SET_STATE',
-  SET_TEXT_CONTENT: 'SET_TEXT_CONTENT',
-  SET_THRESHOLDS: 'SET_THRESHOLDS',
-  // Categorical bar chart specific actions
-  SET_CATEGORICAL_X_AXIS: 'SET_CATEGORICAL_X_AXIS',
-  SET_CATEGORICAL_AGGREGATE: 'SET_CATEGORICAL_AGGREGATE',
-  DELETE_AGGREGATE: 'DELETE_AGGREGATE',
-  SET_AXIS_RANGE: 'SET_AXIS_RANGE',
-} as const;
 
 type WidgetAction =
   | {payload: string; type: typeof BuilderStateAction.SET_TITLE}
@@ -1369,33 +1346,6 @@ function deserializeFields(fields: string[]): Column[] {
   });
 }
 
-/**
- * Takes fields in the field and function format and coverts
- * them into a list of strings compatible with query params
- */
-export function serializeFields(fields: Column[]): string[] {
-  return fields.map(field => {
-    if (field.alias) {
-      return JSON.stringify({
-        field: generateFieldAsString(field),
-        alias: field.alias,
-      });
-    }
-    return generateFieldAsString(field);
-  });
-}
-
-export function serializeLinkedDashboards(
-  linkedDashboards: LinkedDashboard[] = []
-): string[] {
-  return linkedDashboards.map(linkedDashboard => {
-    return JSON.stringify({
-      dashboardId: linkedDashboard.dashboardId,
-      field: linkedDashboard.field,
-    } satisfies LinkedDashboard);
-  });
-}
-
 function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboard[] {
   return linkedDashboards
     .map(linkedDashboard => {
@@ -1409,25 +1359,6 @@ function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboar
       return;
     })
     .filter(defined);
-}
-
-export function serializeSorts(dataset?: WidgetType) {
-  return function (sorts: Sort[]): string[] {
-    return sorts.map(sort => {
-      const field = normalizeSortField(sort.field);
-      // All issue fields do not use '-' regardless of order
-      if (dataset === WidgetType.ISSUE) {
-        return field;
-      }
-      const direction = sort.kind === 'desc' ? '-' : '';
-      return `${direction}${field}`;
-    });
-  };
-}
-
-function normalizeSortField(field: string): string {
-  const parsedField = explodeField({field});
-  return parsedField.kind === 'function' ? generateFieldAsString(parsedField) : field;
 }
 
 function deserializeSorts(dataset?: WidgetType) {
@@ -1485,10 +1416,6 @@ function deserializeThresholds(value: string): ThresholdsConfig | undefined {
   }
 
   return JSON.parse(value);
-}
-
-export function serializeThresholds(thresholds: ThresholdsConfig | null): string {
-  return JSON.stringify(thresholds);
 }
 
 /**

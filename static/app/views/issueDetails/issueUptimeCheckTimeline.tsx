@@ -25,6 +25,7 @@ import {
 } from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
+import {useDispatchIssueEventCount} from 'sentry/views/issueDetails/hooks/useDispatchIssueEventCount';
 import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/useIssueTimeWindowConfig';
 import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 
@@ -71,6 +72,8 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
   const {width: containerWidth} = useDimensions({elementRef});
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
   const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
+
+  useDispatchIssueEventCount(group);
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
     detectorIds: detectorId ? [detectorId] : [],

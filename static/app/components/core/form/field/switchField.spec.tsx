@@ -528,14 +528,8 @@ describe('SwitchField with confirm', () => {
     // Click cancel button
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
-    // Wait a bit to ensure mutation is not called
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Mutation should not be called
-    expect(mutationFn).not.toHaveBeenCalled();
-
-    // Checkbox should still be unchecked
     expect(checkbox).not.toBeChecked();
+    expect(mutationFn).not.toHaveBeenCalled();
   });
 
   it('always focuses cancel button for safety', async () => {

@@ -185,16 +185,11 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
       isPending || aiConfig.isAutofixSetupLoading ? undefined : needProjSetup,
   });
 
-  if (
-    // waiting on the onboarding checks to load
-    isPending ||
-    // autofix results are loading
-    autofix.isLoading ||
-    // waiting for the ai configs to load
-    aiConfig.isAutofixSetupLoading ||
-    // we're polling and no blocks have been added yet
-    (autofix.isPolling && !autofix.runState?.blocks?.length)
-  ) {
+  const isLoadingRun =
+    autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
+  const showRunPlaceholder = isLoadingRun && !autofix.isWaitingForRun;
+
+  if (isPending || aiConfig.isAutofixSetupLoading || showRunPlaceholder) {
     return <Placeholder height="160px" />;
   }
 

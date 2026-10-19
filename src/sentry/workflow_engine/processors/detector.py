@@ -452,8 +452,13 @@ def ensure_association_with_detector(group: Group, detector_id: DetectorId | Non
     """
     Ensure a Group has a DetectorGroup association, creating it if missing.
     Backdates date_added to group.first_seen for gradual backfill of existing groups.
+    Returns False without a lookup when no association can be created.
     """
     if not options.get("workflow_engine.ensure_detector_association"):
+        return False
+
+    # Only error Groups can resolve a Detector without a detector_id
+    if detector_id is None and group.type != ErrorGroupType.type_id:
         return False
 
     # Common case: it exists, we verify and move on.
@@ -466,20 +471,17 @@ def ensure_association_with_detector(group: Group, detector_id: DetectorId | Non
     # Association is missing, determine the detector_id if not provided
     if detector_id is None:
         # For error Groups, we know there is a Detector and we can find it by project.
-        if group.type == ErrorGroupType.type_id:
-            try:
-                detector_id = Detector.get_error_detector_for_project(group.project.id).id
-            except Detector.DoesNotExist:
-                logger.warning(
-                    "ensure_association_with_detector_detector_not_found",
-                    extra={
-                        "group_id": group.id,
-                        "group_type": group.type,
-                        "project_id": group.project.id,
-                    },
-                )
-                return False
-        else:
+        try:
+            detector_id = Detector.get_error_detector_for_project(group.project.id).id
+        except Detector.DoesNotExist:
+            logger.warning(
+                "ensure_association_with_detector_detector_not_found",
+                extra={
+                    "group_id": group.id,
+                    "group_type": group.type,
+                    "project_id": group.project.id,
+                },
+            )
             return False
     else:
         # Check if the explicitly provided detector exists. If not, create DetectorGroup

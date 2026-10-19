@@ -1,7 +1,7 @@
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStats} from 'sentry/types/organization';
-import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldUnits';
 
 export function transformEventsStatsToSeries(
   stats: EventsStats,

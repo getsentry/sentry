@@ -34,6 +34,7 @@ from sentry.investigations.services import (
 from sentry.investigations.services.orchestration_events import (
     InvestigationOrchestrationEventConflict,
     reconcile_orchestration_projection,
+    schedule_investigation_updates,
     synchronize_orchestration_projection,
 )
 from sentry.investigations.telemetry import record_execution_failed
@@ -93,6 +94,7 @@ def _mark_create_dispatch_failed(run_id: int) -> None:
         if isinstance(errors, list):
             errors.append(detail)
         run.save(update_fields=["phase", "status", "error", "projection", "date_updated"])
+        schedule_investigation_updates(run.investigation_id, database)
 
 
 def _mark_command_dispatch_failed(command_id: int) -> None:

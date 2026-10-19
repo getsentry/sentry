@@ -1,6 +1,6 @@
 import {explodeField, type Column} from 'sentry/utils/discover/fields';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
+import {getSelectedAggregateIndex} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregateIndex';
 
 /**
  * Returns the widget's selected "Visualize" aggregate — the one picked by the

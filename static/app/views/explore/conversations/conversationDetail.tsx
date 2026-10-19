@@ -1,15 +1,12 @@
 import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
-import {IconCopy} from '@sentry/icons/copy';
 import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseAsUtcDateTime} from 'sentry/utils/url/parseAsUtcDateTime';
-import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -20,11 +17,9 @@ import {
   CONVERSATION_VIEW_TABS,
   ConversationViewContent,
 } from 'sentry/views/explore/conversations/components/conversationView';
+import {ExportTranscriptButton} from 'sentry/views/explore/conversations/components/exportTranscriptButton';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
-import {
-  extractMessagesFromNodes,
-  messagesToMarkdown,
-} from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {extractMessagesFromNodes} from 'sentry/views/explore/conversations/utils/conversationMessages';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -112,19 +107,8 @@ function ConversationDetailPage() {
               <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
             </TabList>
           </Tabs>
-          {queryState.tab === 'transcript' && !isLoading && messages.length > 0 && (
-            <Button
-              size="xs"
-              icon={<IconCopy />}
-              onClick={() => {
-                trackAnalytics('conversations.detail.copy-conversation', {
-                  organization,
-                });
-                copyToClipboard(messagesToMarkdown(messages));
-              }}
-            >
-              {t('Copy Transcript')}
-            </Button>
+          {queryState.tab === 'transcript' && messages.length > 0 && (
+            <ExportTranscriptButton conversation={conversation} />
           )}
         </Flex>
         <ConversationViewContainer>

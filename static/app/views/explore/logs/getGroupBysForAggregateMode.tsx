@@ -3,7 +3,7 @@ import {
   isVisualizeFunction,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 interface GetGroupBysForAggregateModeOptions {
   fields: readonly string[];

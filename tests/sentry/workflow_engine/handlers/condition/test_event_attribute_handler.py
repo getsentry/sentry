@@ -1,12 +1,10 @@
-from typing import Any, Mapping
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 from jsonschema import ValidationError
 
 from sentry.eventstream.base import GroupState
-from sentry.rules.conditions.event_attribute import EventAttributeCondition
-from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.handlers.condition.utils.event_attribute import attribute_registry
 from sentry.workflow_engine.handlers.condition.utils.match import MatchType
@@ -17,12 +15,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestEventAttributeCondition(ConditionTestCase):
     condition = Condition.EVENT_ATTRIBUTE
-    payload: Mapping[str, Any] = {
-        "id": EventAttributeCondition.id,
-        "match": MatchType.EQUAL,
-        "value": "php",
-        "attribute": "platform",
-    }
 
     def get_event(self, **kwargs: Any) -> Any:
         data = {
@@ -131,50 +123,6 @@ class TestEventAttributeCondition(ConditionTestCase):
             comparison={"match": MatchType.EQUAL, "attribute": "platform", "value": "php"},
             condition_result=True,
         )
-
-    def test_dual_write(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "match": MatchType.EQUAL,
-            "value": "php",
-            "attribute": "platform",
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
-
-        payload = {
-            "id": EventAttributeCondition.id,
-            "match": MatchType.IS_SET,
-            "attribute": "platform",
-        }
-        dc = self.translate_to_data_condition(payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "match": MatchType.IS_SET,
-            "attribute": "platform",
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
-
-    def test_dual_write_filter(self) -> None:
-        payload_copy = dict(self.payload)
-        payload_copy["id"] = EventAttributeFilter.id
-
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(payload_copy, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "match": MatchType.EQUAL,
-            "value": "php",
-            "attribute": "platform",
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_json_schema(self) -> None:
         self.dc.comparison.update(
