@@ -16,9 +16,8 @@ from sentry.issues.action_log import (
     get_action_context,
     publish_action,
     publish_actions_from_context_bulk,
-    resolve_action_actor,
-    resolve_action_source,
 )
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.tasks import enqueue_group_action_log_outbox_jobs
 from sentry.issues.action_log.types import (
     ActionSource,

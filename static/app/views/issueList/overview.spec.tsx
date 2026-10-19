@@ -8,7 +8,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -191,6 +198,16 @@ describe('IssueList', () => {
       });
 
       expect(issuesRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders a header for each cell of an issue row', async () => {
+      render(<IssueListOverview />, {organization, initialRouterConfig});
+
+      const row = await screen.findByTestId('group');
+
+      expect(screen.getAllByRole('columnheader')).toHaveLength(
+        within(row).getAllByRole('cell').length
+      );
     });
 
     it('loads with a query in URL', async () => {

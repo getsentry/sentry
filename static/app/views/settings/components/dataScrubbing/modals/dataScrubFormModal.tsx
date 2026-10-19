@@ -1,25 +1,23 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 import sortBy from 'lodash/sortBy';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {
-  defaultFormValidators,
-  ScrapsForm,
   useScrapsForm,
   useSelector,
+  defaultFormValidators,
+  ScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -119,6 +117,7 @@ export function DataScrubFormModal({
     sourceGroupData.sourceSuggestions
   );
   const [eventIdError, setEventIdError] = useState<string | undefined>(undefined);
+
   const [attributeError, setAttributeError] = useState<string | undefined>(undefined);
 
   const form = useScrapsForm({
@@ -234,7 +233,7 @@ export function DataScrubFormModal({
         <h5>{title}</h5>
       </Header>
       <Body>
-        <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>
+        <Stack gap={{sm: 'md', xl: 'xl'}}>
           {traceItemDatasetsEnabled && (
             <form.Field name="dataset">
               {field => (
@@ -268,11 +267,9 @@ export function DataScrubFormModal({
             {method => (
               <Grid
                 columns={
-                  method === MethodType.REPLACE
-                    ? {'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}
-                    : '1fr'
+                  method === MethodType.REPLACE ? {sm: '1fr', xl: '1fr 1fr'} : '1fr'
                 }
-                gap={{'screen:sm': 'md'}}
+                gap={{xl: 'md'}}
               >
                 <form.Field
                   name="method"
@@ -326,12 +323,8 @@ export function DataScrubFormModal({
           </form.Subscribe>
 
           <Grid
-            columns={
-              type === RuleType.PATTERN
-                ? {'screen:xs': '1fr', 'screen:sm': '1fr 1fr'}
-                : '1fr'
-            }
-            gap={{'screen:sm': 'md'}}
+            columns={type === RuleType.PATTERN ? {sm: '1fr', xl: '1fr 1fr'} : '1fr'}
+            gap={{xl: 'md'}}
           >
             <form.Field
               name="type"
@@ -405,10 +398,15 @@ export function DataScrubFormModal({
                     </RegularExpressionWrapper>
                     <form.Field name="replaceCaptured">
                       {replaceCapturedField => (
-                        <ReplaceCapturedCheckbox
-                          pattern={patternField.value}
+                        <replaceCapturedField.Checkbox
+                          label={t('Only replace first capture match')}
+                          disabled={
+                            hasCaptureGroups(patternField.value)
+                              ? undefined
+                              : t('This rule does not contain capture groups')
+                          }
                           checked={replaceCapturedField.value}
-                          onChange={val => replaceCapturedField.handleChange(val)}
+                          onChange={replaceCapturedField.handleChange}
                         />
                       )}
                     </form.Field>
@@ -490,15 +488,14 @@ export function DataScrubFormModal({
                             <AttributeField
                               fieldProps={fieldProps}
                               dataset={dataset}
-                              onChange={value => {
+                              onChange={value =>
                                 sourceField.handleChange(
                                   TraceItemFieldSelector.fromField(
                                     dataset,
                                     value
                                   )?.getSelector() ?? ''
-                                );
-                                setAttributeError(undefined);
-                              }}
+                                )
+                              }
                               value={sourceValue}
                               onBlur={(value, _event) => {
                                 handleValidateAttributeField(value);
@@ -567,37 +564,6 @@ export function DataScrubFormModal({
   );
 }
 
-function ReplaceCapturedCheckbox({
-  pattern,
-  checked,
-  onChange,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  pattern: string;
-}) {
-  const disabled = !hasCaptureGroups(pattern);
-  return (
-    <Tooltip
-      title={disabled ? t('This rule does not contain capture groups') : undefined}
-      disabled={!disabled}
-    >
-      <Flex gap="xs" align="center">
-        <Checkbox
-          id="replace-captured"
-          name="replaceCaptured"
-          checked={checked}
-          disabled={disabled}
-          onChange={e => onChange(e.target.checked)}
-        />
-        <ReplaceCapturedLabel htmlFor="replace-captured" disabled={disabled}>
-          {t('Only replace first capture match')}
-        </ReplaceCapturedLabel>
-      </Flex>
-    </Tooltip>
-  );
-}
-
 const SourceGroupContainer = styled('div')<{isExpanded?: boolean}>`
   transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1) 0ms;
   transition-property: height;
@@ -617,7 +583,7 @@ function SourceGroup({
 }: React.PropsWithChildren<{isExpanded?: boolean}>) {
   return (
     <SourceGroupContainer isExpanded={isExpanded}>
-      <Stack gap={{'screen:xs': 'md', 'screen:sm': 'xl'}}>{children}</Stack>
+      <Stack gap={{sm: 'md', xl: 'xl'}}>{children}</Stack>
     </SourceGroupContainer>
   );
 }
@@ -642,15 +608,4 @@ const Toggle = styled(Button)`
     grid-template-columns: repeat(2, max-content);
     align-items: center;
   }
-`;
-
-const ReplaceCapturedLabel = styled('label')<{disabled: boolean}>`
-  font-weight: normal;
-  margin-bottom: 0;
-  line-height: 1rem;
-  ${p =>
-    p.disabled &&
-    css`
-      color: ${p.theme.tokens.content.disabled};
-    `}
 `;

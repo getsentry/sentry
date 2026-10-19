@@ -200,6 +200,35 @@ export function ConditionalDemo() {
 
 // fields.mdx demos
 
+export function CompactSelectFieldDemo() {
+  const {t} = useTranslation();
+  const form = useScrapsForm({
+    defaultValues: {country: null as string | null},
+    validators: defaultFormValidators(z.object({country: z.string().nullable()})),
+  });
+
+  return (
+    <ScrapsForm form={form}>
+      <form.Field name="country">
+        {field => (
+          <field.Layout.Row label={t('Country')}>
+            <field.CompactSelect
+              clearable
+              search
+              value={field.value}
+              onChange={field.handleChange}
+              options={[
+                {value: 'us', label: t('United States')},
+                {value: 'uk', label: t('United Kingdom')},
+              ]}
+            />
+          </field.Layout.Row>
+        )}
+      </form.Field>
+    </ScrapsForm>
+  );
+}
+
 export function NumberFieldDemo() {
   const {t} = useTranslation();
   const defaultValues: {amount: number | null} = {amount: 0};

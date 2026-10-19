@@ -6,10 +6,12 @@ from taskbroker_client.retry import Retry
 
 from sentry.auth import access
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import notifications_control_tasks, notifications_tasks
+from sentry.types.activity import ActivityType
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import send_messages
@@ -31,9 +33,6 @@ def _get_user_from_email(group: Group, email: str) -> RpcUser | None:
 
 
 def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
-    from sentry.models.group import Group
-    from sentry.web.forms import NewNoteForm
-
     try:
         group = Group.objects.select_related("project").get(pk=group_id)
     except Group.DoesNotExist:
@@ -45,10 +44,23 @@ def process_inbound_email(mailfrom: str, group_id: int, payload: str) -> None:
         logger.warning("Inbound email from unknown address: %s", mailfrom)
         return
 
-    form = NewNoteForm({"text": payload})
-    if form.is_valid():
-        with action_context_scope(ActionSource.EMAIL, GroupActionActor.user(user.id)):
-            form.save(group, user)
+    text = payload.strip()
+    if not text or "\x00" in text:
+        return
+
+    data = {"text": text}
+    # Outbox delivery can retry, so identical comments must be idempotent.
+    if Activity.objects.filter(
+        group=group,
+        project_id=group.project_id,
+        user_id=user.id,
+        type=ActivityType.NOTE.value,
+        data=data,
+    ).exists():
+        return
+
+    with action_context_scope(ActionSource.EMAIL, GroupActionActor.user(user.id)):
+        Activity.objects.create_group_activity(group, ActivityType.NOTE, user=user, data=data)
 
 
 class TemporaryEmailError(Exception):

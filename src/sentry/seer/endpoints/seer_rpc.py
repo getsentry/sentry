@@ -25,6 +25,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import TraceItemDetailsRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -116,6 +117,7 @@ from sentry.seer.fetch_issues import by_error_type, by_function_name, by_text_qu
 from sentry.seer.fetch_issues.utils import NoProjectsForRepoError, get_repo_and_projects
 from sentry.seer.issue_detection import create_issue_occurrence
 from sentry.seer.models.seer_api_models import SeerProjectPreference
+from sentry.seer.public_caller import restrict_projects
 from sentry.seer.pull_requests import notify_seer_pr_created
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
@@ -150,7 +152,6 @@ from sentry.utils import metrics, snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.groupreference import find_fix_statements
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.utils.tracing import start_span, trace
 from sentry.viewer_context import (
     get_viewer_context,
     observe_viewer_context_propagation,
@@ -272,7 +273,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     permission_classes = ()
     enforce_rate_limit = False
 
-    @trace
+    @traces.trace
     def _is_authorized(self, request: Request) -> bool:
         return bool(request.auth) and isinstance(
             request.successful_authenticator,
@@ -332,7 +333,7 @@ class SeerRpcServiceEndpoint(Endpoint):
         if viewer is None or viewer.organization_id != organization_id:
             raise PermissionDenied("Viewer context organization does not match request")
 
-    @trace
+    @traces.trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
             raise RpcResolutionException(f"Unknown method {method_name}")
@@ -344,7 +345,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             return result.dict()
         return result
 
-    @trace
+    @traces.trace
     def post(self, request: Request, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
         sentry_sdk.set_attribute("rpc.method", method_name)
@@ -455,7 +456,9 @@ def get_organization_projects(*, org_id: int) -> OrganizationProjectsResponse:
             slug=project.slug,
             instrumentation=get_instrumentation_types(project),
         )
-        for project in Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+        for project in restrict_projects(
+            Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
+        )
     ]
 
     return OrganizationProjectsResponse(projects=projects)
@@ -482,7 +485,7 @@ def get_organization_features(
 
     feature_set: set[str] = set()
 
-    with start_span(op="features.check", name="check batch features"):
+    with traces.start_span(name="check batch features", attributes={"sentry.op": "features.check"}):
         batch = features.batch_has(
             list(features_to_check),
             actor=actor,
@@ -496,7 +499,9 @@ def get_organization_features(
                     feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
                 features_to_check.discard(name)
 
-    with start_span(op="features.check", name="check individual features"):
+    with traces.start_span(
+        name="check individual features", attributes={"sentry.op": "features.check"}
+    ):
         for name in features_to_check:
             if features.has(name, organization, actor=actor, skip_entity=True):
                 feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])

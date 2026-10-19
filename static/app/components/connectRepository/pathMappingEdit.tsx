@@ -1,11 +1,16 @@
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconBranch} from '@sentry/icons/branch';
+import {IconSentry} from '@sentry/icons/sentry';
+import {useQuery} from '@tanstack/react-query';
+
 import {Tag} from '@sentry/scraps/badge';
 import {defineAppFieldGroup, useSelector} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconArrow, IconBranch, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {SOURCE_ROOT_PLACEHOLDER, STACK_ROOT_PLACEHOLDER} from './constants';
 import {
@@ -17,7 +22,12 @@ import {
 import {PathMappingDeleteButton} from './pathMappingDeleteButton';
 import {PathMappingPreview} from './pathMappingPreview';
 import {PathMappingWarningAlert} from './pathMappingWarningAlert';
+import {PathPrefixCombobox} from './pathPrefixCombobox';
+import {repoCodeMappingPrefixesOptions, stackCodeMappingPrefixesOptions} from './queries';
 import type {PathMappingWarning} from './warnings';
+
+const PREFIX_MENU_WIDTH = '100cqi';
+const PREFIX_MENU_MAX_HEIGHT = 250;
 
 const pathMappingFieldGroup = defineAppFieldGroup(({strict}) => ({
   stackRoot: strict<string>(),
@@ -32,6 +42,7 @@ type Props = {
   onDelete?: () => void;
   projectSlug?: string;
   providerKey?: string;
+  repositoryId?: string;
   warning?: PathMappingWarning;
 };
 
@@ -42,9 +53,17 @@ function PathMappingEditImpl({
   onDelete,
   projectSlug,
   providerKey,
+  repositoryId,
   warning,
 }: Props) {
   const {stackRoot, sourceRoot} = useSelector(fields.atom, values => values);
+  const organization = useOrganization();
+  const stackPrefixes = useQuery(
+    stackCodeMappingPrefixesOptions({orgSlug: organization.slug, projectSlug})
+  );
+  const repoPrefixes = useQuery(
+    repoCodeMappingPrefixesOptions({orgSlug: organization.slug, repositoryId})
+  );
   const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
 
   return (
@@ -84,15 +103,7 @@ function PathMappingEditImpl({
         </fields.Field>
 
         <Grid columns={{zero: '1fr', '2xs': '1fr auto 1fr'}} gap="xl">
-          <fields.Field
-            name="stackRoot"
-            listeners={[
-              {
-                run: ({value, fieldApi}) => fieldApi.handleChange(normalizeRoot(value)),
-                triggers: ['blur'],
-              },
-            ]}
-          >
+          <fields.Field name="stackRoot">
             {field => (
               <field.Layout.Stack
                 label={
@@ -104,12 +115,23 @@ function PathMappingEditImpl({
                 }
                 hintText={t('The start of the paths in your stack traces.')}
               >
-                <field.Input
-                  value={field.value}
-                  onChange={field.handleChange}
-                  placeholder={STACK_ROOT_PLACEHOLDER}
-                  disabled={hasCodeOwner}
-                />
+                <field.Base<HTMLInputElement> disabled={hasCodeOwner}>
+                  {({ref: _ref, ...baseProps}) => (
+                    <Container flex={1} minWidth={0}>
+                      <PathPrefixCombobox
+                        {...baseProps}
+                        aria-label={t('Stack trace prefix')}
+                        value={field.value}
+                        onChange={field.handleChange}
+                        options={stackPrefixes.data?.prefixes ?? []}
+                        isLoading={stackPrefixes.isLoading}
+                        placeholder={STACK_ROOT_PLACEHOLDER}
+                        menuWidth={PREFIX_MENU_WIDTH}
+                        maxMenuHeight={PREFIX_MENU_MAX_HEIGHT}
+                      />
+                    </Container>
+                  )}
+                </field.Base>
               </field.Layout.Stack>
             )}
           </fields.Field>
@@ -122,15 +144,7 @@ function PathMappingEditImpl({
             <IconArrow direction="right" size="sm" />
           </Flex>
 
-          <fields.Field
-            name="sourceRoot"
-            listeners={[
-              {
-                run: ({value, fieldApi}) => fieldApi.handleChange(normalizeRoot(value)),
-                triggers: ['blur'],
-              },
-            ]}
-          >
+          <fields.Field name="sourceRoot">
             {field => (
               <field.Layout.Stack
                 label={
@@ -142,12 +156,24 @@ function PathMappingEditImpl({
                 }
                 hintText={t('What to replace it with, so the path points to your repo.')}
               >
-                <field.Input
-                  value={field.value}
-                  onChange={field.handleChange}
-                  placeholder={SOURCE_ROOT_PLACEHOLDER}
-                  disabled={hasCodeOwner}
-                />
+                <field.Base<HTMLInputElement> disabled={hasCodeOwner}>
+                  {({ref: _ref, ...baseProps}) => (
+                    <Container flex={1} minWidth={0}>
+                      <PathPrefixCombobox
+                        {...baseProps}
+                        aria-label={t('Repository prefix')}
+                        value={field.value}
+                        onChange={field.handleChange}
+                        options={repoPrefixes.data?.prefixes ?? []}
+                        isLoading={repoPrefixes.isLoading}
+                        placeholder={SOURCE_ROOT_PLACEHOLDER}
+                        menuAlign="end"
+                        menuWidth={PREFIX_MENU_WIDTH}
+                        maxMenuHeight={PREFIX_MENU_MAX_HEIGHT}
+                      />
+                    </Container>
+                  )}
+                </field.Base>
               </field.Layout.Stack>
             )}
           </fields.Field>

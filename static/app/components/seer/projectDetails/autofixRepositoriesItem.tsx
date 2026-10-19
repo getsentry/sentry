@@ -1,15 +1,18 @@
 import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconDelete} from '@sentry/icons/delete';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {
-  defaultFormValidators,
-  ScrapsForm,
   AutoSaveContextProvider,
   AutoSaveForm,
   useScrapsForm,
+  defaultFormValidators,
+  ScrapsForm,
 } from '@sentry/scraps/form';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -20,9 +23,6 @@ import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon'
 import {overrideHasAllValues} from 'sentry/components/seer/projectDetails/overrideHasAllValues';
 import {overrideHasAnyValue} from 'sentry/components/seer/projectDetails/overrideHasAnyValue';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {t, tct, tn} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {getIntegrationDisplayName} from 'sentry/utils/integrationUtil';
@@ -101,11 +101,9 @@ export function AutofixRepositoriesItem({
     validators: defaultFormValidators(repoSchema),
     listeners: [
       {
-        triggerDebounceMs: 1000,
-        run: ({formApi}) => {
-          void formApi.handleSubmit();
-        },
+        run: ({formApi}) => formApi.handleSubmit(),
         triggers: ['change'],
+        triggerDebounceMs: 1000,
       },
     ],
     onSubmit: ({value}) => handleUpdateRepo(repoSchema.parse(value)),
@@ -226,97 +224,101 @@ export function AutofixRepositoriesItem({
             <ScrapsForm form={form}>
               <form.ArrayField name="branchOverrides">
                 {fieldApi => (
-                  <Stack gap="lg">
-                    {fieldApi.value.map((override, i) => (
-                      <AutoSaveContextProvider
-                        key={`branchOverrides[${i}]`}
-                        value={{
-                          status: overrideHasAllValues(override)
-                            ? mutationStatus
-                            : overrideHasAnyValue(override)
-                              ? 'error'
-                              : 'idle',
-                          resetOnErrorRef,
-                        }}
-                      >
-                        <Flex align="center" gap="sm">
-                          <form.Field name={`branchOverrides[${i}].tagName`}>
-                            {subField => (
-                              <Fragment>
-                                <Text wrap="nowrap">{t('When')}</Text>
-                                <subField.Input
-                                  disabled={!canWrite}
-                                  onChange={subField.handleChange}
-                                  placeholder={t('Tag name (e.g. environment)')}
-                                  size="sm"
-                                  value={subField.value}
-                                  width="170px"
-                                />
-                              </Fragment>
-                            )}
-                          </form.Field>
-                          <form.Field name={`branchOverrides[${i}].tagValue`}>
-                            {subField => (
-                              <Fragment>
-                                <Text wrap="nowrap">{t('is')}</Text>
-                                <subField.Input
-                                  disabled={!canWrite}
-                                  onChange={subField.handleChange}
-                                  placeholder={t('Tag value (e.g. staging)')}
-                                  size="sm"
-                                  value={subField.value}
-                                  width="170px"
-                                />
-                              </Fragment>
-                            )}
-                          </form.Field>
-                          <form.Field name={`branchOverrides[${i}].branchName`}>
-                            {subField => (
-                              <Fragment>
-                                <Text wrap="nowrap">{t('look at')}</Text>
-                                <subField.Input
-                                  disabled={!canWrite}
-                                  onChange={subField.handleChange}
-                                  placeholder={t('Branch name (e.g. dev)')}
-                                  size="sm"
-                                  value={subField.value}
-                                  width="170px"
-                                />
-                              </Fragment>
-                            )}
-                          </form.Field>
+                  <form.Subscribe selector={state => state.values.branchOverrides}>
+                    {branchOverrides => (
+                      <Stack gap="lg">
+                        {branchOverrides.map((override, i) => (
+                          <AutoSaveContextProvider
+                            key={`branchOverrides[${i}]`}
+                            value={{
+                              status: overrideHasAllValues(override)
+                                ? mutationStatus
+                                : overrideHasAnyValue(override)
+                                  ? 'error'
+                                  : 'idle',
+                              resetOnErrorRef,
+                            }}
+                          >
+                            <Flex align="center" gap="sm">
+                              <form.Field name={`branchOverrides[${i}].tagName`}>
+                                {subField => (
+                                  <Fragment>
+                                    <Text wrap="nowrap">{t('When')}</Text>
+                                    <subField.Input
+                                      disabled={!canWrite}
+                                      onChange={subField.handleChange}
+                                      placeholder={t('Tag name (e.g. environment)')}
+                                      size="sm"
+                                      value={subField.value}
+                                      width="170px"
+                                    />
+                                  </Fragment>
+                                )}
+                              </form.Field>
+                              <form.Field name={`branchOverrides[${i}].tagValue`}>
+                                {subField => (
+                                  <Fragment>
+                                    <Text wrap="nowrap">{t('is')}</Text>
+                                    <subField.Input
+                                      disabled={!canWrite}
+                                      onChange={subField.handleChange}
+                                      placeholder={t('Tag value (e.g. staging)')}
+                                      size="sm"
+                                      value={subField.value}
+                                      width="170px"
+                                    />
+                                  </Fragment>
+                                )}
+                              </form.Field>
+                              <form.Field name={`branchOverrides[${i}].branchName`}>
+                                {subField => (
+                                  <Fragment>
+                                    <Text wrap="nowrap">{t('look at')}</Text>
+                                    <subField.Input
+                                      disabled={!canWrite}
+                                      onChange={subField.handleChange}
+                                      placeholder={t('Branch name (e.g. dev)')}
+                                      size="sm"
+                                      value={subField.value}
+                                      width="170px"
+                                    />
+                                  </Fragment>
+                                )}
+                              </form.Field>
+                              <Button
+                                aria-label={t('Remove override')}
+                                disabled={!canWrite}
+                                icon={<IconDelete size="sm" />}
+                                onClick={() => fieldApi.removeValue(i)}
+                                variant="transparent"
+                                size="xs"
+                              />
+                            </Flex>
+                          </AutoSaveContextProvider>
+                        ))}
+                        <Flex align="center">
                           <Button
-                            aria-label={t('Remove override')}
-                            disabled={!canWrite}
-                            icon={<IconDelete size="sm" />}
-                            onClick={() => fieldApi.removeValue(i)}
-                            variant="transparent"
+                            disabled
                             size="xs"
-                          />
+                            icon={<IconAdd size="sm" />}
+                            tooltipProps={{
+                              title: t('Branch overrides are no longer supported'),
+                            }}
+                            onClick={() =>
+                              fieldApi.pushValue({
+                                id: '',
+                                tagName: '',
+                                tagValue: '',
+                                branchName: '',
+                              })
+                            }
+                          >
+                            {t('Add Override')}
+                          </Button>
                         </Flex>
-                      </AutoSaveContextProvider>
-                    ))}
-                    <Flex align="center">
-                      <Button
-                        disabled
-                        size="xs"
-                        icon={<IconAdd size="sm" />}
-                        tooltipProps={{
-                          title: t('Branch overrides are no longer supported'),
-                        }}
-                        onClick={() =>
-                          fieldApi.pushValue({
-                            id: '',
-                            tagName: '',
-                            tagValue: '',
-                            branchName: '',
-                          })
-                        }
-                      >
-                        {t('Add Override')}
-                      </Button>
-                    </Flex>
-                  </Stack>
+                      </Stack>
+                    )}
+                  </form.Subscribe>
                 )}
               </form.ArrayField>
             </ScrapsForm>

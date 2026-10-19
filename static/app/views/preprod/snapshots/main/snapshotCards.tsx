@@ -1,6 +1,12 @@
 import {memo, useCallback, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconFile} from '@sentry/icons/file';
+import {IconInfo} from '@sentry/icons/info';
+import {IconLink} from '@sentry/icons/link';
+import {IconMoon} from '@sentry/icons/moon';
+import {IconSun} from '@sentry/icons/sun';
+import {IconWarning} from '@sentry/icons/warning';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
@@ -9,13 +15,12 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import type {ContentVariant} from '@sentry/scraps/theme';
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconFile, IconInfo, IconLink, IconMoon, IconSun, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import type {
   SnapshotDiffPair,
@@ -460,7 +465,12 @@ const StatusBadge = memo(function StatusBadgeImpl({
       label =
         diffPercent === null || diffPercent === undefined
           ? t('Changed')
-          : t('Changed - %s', formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 3));
+          : t(
+              'Changed - %s',
+              formatPercentage(diffPercent, diffPercent >= 0.01 ? 1 : 3, {
+                minimumValue: 0.00001,
+              })
+            );
       break;
     case DiffStatus.ADDED:
       label = t('Added');

@@ -1,5 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {Query} from 'history';
 import pick from 'lodash/pick';
@@ -22,7 +23,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -312,14 +312,15 @@ function ManageDashboards() {
                 },
               ]}
               trigger={triggerProps => (
-                <Button
+                <OverlayTrigger.Button
+                  showChevron={false}
                   {...triggerProps}
                   data-test-id="dashboard-create"
                   variant="primary"
                   icon={<IconAdd />}
                 >
                   {t('Create Dashboard')}
-                </Button>
+                </OverlayTrigger.Button>
               )}
             />
           )}

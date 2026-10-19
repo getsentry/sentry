@@ -42,12 +42,18 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     OrFilter,
     TraceItemFilter,
 )
+from sentry_sdk import traces
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
-from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute, ResolvedColumn
+from sentry.search.eap.columns import (
+    ColumnDefinitions,
+    ResolvedAttribute,
+    ResolvedColumn,
+    ResolvedLiteral,
+)
 from sentry.search.eap.constants import (
     DOUBLE,
     MAX_ROLLUP_POINTS,
@@ -69,7 +75,6 @@ from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, Sn
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
 from sentry.utils import json, metrics, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -126,6 +131,14 @@ def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]) -> bool:
             if row[axis] and row[axis] != 0:
                 return True
     return False
+
+
+def apply_resolved_literals(timeseries: SnubaData, resolved_fields: list[ResolvedColumn]) -> None:
+    """Copy constant equations onto each bucket. They are not sent to Snuba."""
+    for resolved_field in resolved_fields:
+        if isinstance(resolved_field, ResolvedLiteral):
+            for row in timeseries:
+                row[resolved_field.public_alias] = resolved_field.value
 
 
 class RPCBase:
@@ -447,7 +460,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def _run_table_query(
         cls,
         query: TableQuery,
@@ -496,7 +509,7 @@ class RPCBase:
         raise NotImplementedError()
 
     @classmethod
-    @trace
+    @traces.trace
     def run_bulk_table_queries(
         cls, queries: list[TableQuery], debug: str | bool = False
     ) -> dict[str, EAPResponse]:
@@ -864,7 +877,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def run_timeseries_query(
         cls,
         *,
@@ -919,6 +932,7 @@ class RPCBase:
                 params.timeseries_granularity_secs,
                 ["time"],
             )
+        apply_resolved_literals(result.timeseries, aggregates)
 
         if comparison_delta is not None:
             if len(rpc_request.expressions) != 1:
@@ -960,7 +974,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def build_top_event_conditions(
         cls, resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
     ) -> Any:
@@ -1007,7 +1021,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def run_top_events_timeseries_query(
         cls,
         *,
@@ -1164,6 +1178,7 @@ class RPCBase:
             result_key = create_result_key(row, groupby_columns, {})
             result_groupby = create_groupby_dict(row, groupby_columns, {}, stringify_none=False)
             result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key], config)
+            apply_resolved_literals(result.timeseries, aggregates)
             final_result[result_key] = SnubaTSResult(
                 {
                     "data": result.timeseries,
@@ -1181,6 +1196,7 @@ class RPCBase:
             result = cls.process_timeseries_list(
                 [timeseries for timeseries in other_response.result_timeseries], config
             )
+            apply_resolved_literals(result.timeseries, aggregates)
             if check_timeseries_has_data(result.timeseries, y_axes):
                 final_result[OTHER_KEY] = SnubaTSResult(
                     {

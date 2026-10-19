@@ -539,14 +539,7 @@ describe('CustomerOverview', () => {
       />
     );
 
-    const productTrialsHeading = screen.getByRole('heading', {
-      name: 'Product Trials',
-    });
-    const productTrialsList = productTrialsHeading.nextElementSibling;
-    expect(productTrialsList).toBeInTheDocument();
-    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
-      throw new Error('Product trials list not found or not an HTMLElement');
-    }
+    const productTrialsList = screen.getByRole('group', {name: 'Product Trials'});
 
     const getTrialButtons = (label: string) => {
       const termElement = within(productTrialsList).getByText(label);
@@ -614,14 +607,7 @@ describe('CustomerOverview', () => {
       />
     );
 
-    const productTrialsHeading = screen.getByRole('heading', {
-      name: 'Product Trials',
-    });
-    const productTrialsList = productTrialsHeading.nextElementSibling;
-    expect(productTrialsList).toBeInTheDocument();
-    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
-      throw new Error('Product trials list not found or not an HTMLElement');
-    }
+    const productTrialsList = screen.getByRole('group', {name: 'Product Trials'});
 
     const spansTerm = within(productTrialsList).getByText('Spans');
     const spansDefinition = spansTerm.nextElementSibling;
@@ -728,16 +714,7 @@ describe('CustomerOverview', () => {
 
     expect(screen.getByText('Product Trials')).toBeInTheDocument();
 
-    // Find the DescriptionList containing product trials by finding the heading and its next sibling
-    const productTrialsHeading = screen.getByRole('heading', {
-      name: 'Product Trials',
-    });
-    const productTrialsList = productTrialsHeading.nextElementSibling;
-    expect(productTrialsList).toBeInTheDocument();
-    // Check if productTrialsList is an HTMLElement before using within
-    if (!productTrialsList || !(productTrialsList instanceof HTMLElement)) {
-      throw new Error('Product trials list not found or not an HTMLElement');
-    }
+    const productTrialsList = screen.getByRole('group', {name: 'Product Trials'});
     expect(productTrialsList.tagName).toBe('DL'); // Verify it's the correct element type
 
     const possibleTrialCategories = [

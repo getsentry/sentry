@@ -1,10 +1,12 @@
 import {useCallback, useContext, useRef} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {defineAppFieldGroup} from '@sentry/scraps/form';
+import {defineAppFieldGroup, useSelector} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -12,7 +14,6 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
-import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -41,17 +42,17 @@ function AutomateSectionImpl({
   project: Project;
   step?: number;
 }) {
+  const workflowIds = useSelector(fields.atom, values => values.workflowIds);
+
   return (
-    <fields.Field name="workflowIds">
-      {field => (
-        <AutomateSectionInner
-          step={step}
-          project={project}
-          workflowIds={field.value}
-          setWorkflowIds={field.handleChange}
-        />
-      )}
-    </fields.Field>
+    <AutomateSectionInner
+      step={step}
+      project={project}
+      workflowIds={workflowIds}
+      setWorkflowIds={nextWorkflowIds =>
+        fields.setFieldValue('workflowIds', nextWorkflowIds)
+      }
+    />
   );
 }
 

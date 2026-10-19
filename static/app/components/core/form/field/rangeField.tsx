@@ -6,7 +6,8 @@ import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import {Flex} from '@sentry/scraps/layout';
 import {Slider, type SliderProps} from '@sentry/scraps/slider';
 
-import {BaseFieldImpl, getLabelId, type BaseFieldProps} from './baseField';
+import {BaseFieldImpl, type BaseFieldProps} from './baseField';
+import {getLabelId} from './fieldIds';
 
 export function RangeField({
   field,

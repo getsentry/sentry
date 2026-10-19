@@ -33,9 +33,7 @@ export function CronRulesEdit({onChangeTitle, project, organization}: Props) {
   const {selection} = usePageFilters();
   const queryClient = useQueryClient();
 
-  const queryKey = makeMonitorDetailsQueryKey(organization, project.slug, monitorSlug, {
-    expand: ['alertRule'],
-  });
+  const queryKey = makeMonitorDetailsQueryKey(organization, project.slug, monitorSlug);
 
   const {
     isPending,

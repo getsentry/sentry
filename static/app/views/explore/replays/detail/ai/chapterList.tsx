@@ -1,5 +1,8 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconFire} from '@sentry/icons/fire';
+import {IconMegaphone} from '@sentry/icons/megaphone';
 import classNames from 'classnames';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -8,7 +11,6 @@ import {Link} from '@sentry/scraps/link';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {IconChevron, IconFire, IconMegaphone} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
@@ -264,7 +266,7 @@ const ChapterWrapper = styled('details')`
     width: 1px;
     top: 1px;
     bottom: -9px;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.secondary};
   }
 

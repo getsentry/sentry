@@ -38,8 +38,9 @@ const schema = z.object({
   projects: z.array(z.number()),
   environments: z.array(z.string()),
   timeFilters: z.object({
-    start: z.string().nullable(),
-    end: z.string().nullable(),
+    // Page filters store absolute ranges as Date objects
+    start: z.union([z.string(), z.date()]).nullable(),
+    end: z.union([z.string(), z.date()]).nullable(),
     period: z.string().nullable(),
     utc: z.boolean().nullable(),
   }),

@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import {IconArrow} from '@sentry/icons/arrow';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
@@ -9,7 +10,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';

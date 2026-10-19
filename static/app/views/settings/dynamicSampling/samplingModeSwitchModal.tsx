@@ -15,9 +15,9 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganizationMutationOptions} from 'sentry/utils/organization/useOrganizationMutationOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {targetSampleRateSchema} from 'sentry/views/settings/dynamicSampling/organizationSampling';
 import {formatPercent} from 'sentry/views/settings/dynamicSampling/utils/formatPercent';
 import {parsePercent} from 'sentry/views/settings/dynamicSampling/utils/parsePercent';
+import {targetSampleRateSchema} from 'sentry/views/settings/dynamicSampling/utils/schemas';
 
 interface Props {
   /**

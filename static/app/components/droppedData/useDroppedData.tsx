@@ -1,13 +1,11 @@
 import {useQuery} from '@tanstack/react-query';
 
 import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
-import {useDroppedDataEnabled} from 'sentry/components/droppedData/useDroppedDataEnabled';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getRetryDelay,
@@ -35,20 +33,29 @@ export function makeDroppedDataQueryKeyPrefix(organizationSlug: string) {
   ] as const;
 }
 
-interface UseDroppedDataOptions {
+interface UseDroppedDataParams {
   dataset: DiscoverDatasets;
+  interval: string;
+}
+
+interface UseDroppedDataQueryOptions {
+  enabled?: boolean;
 }
 
 /**
- * Dropped and accepted events for the current page filters and chart interval.
+ * Dropped and accepted events for the current page filters.
  */
-export function useDroppedData({dataset}: UseDroppedDataOptions) {
-  const droppedDataEnabled = useDroppedDataEnabled();
-  const [interval] = useChartInterval();
+export function useDroppedData(
+  {dataset, interval}: UseDroppedDataParams,
+  {enabled = true}: UseDroppedDataQueryOptions = {}
+) {
   const organization = useOrganization();
+  const droppedDataEnabled = organization.features.includes(
+    'explore-data-fidelity-annotations'
+  );
   const {isReady: arePageFiltersReady, selection} = usePageFilters();
 
-  const {data, isPending} = useQuery({
+  const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<DroppedEventsResponse>()(
       '/organizations/$organizationIdOrSlug/events-dropped/',
       {
@@ -67,12 +74,14 @@ export function useDroppedData({dataset}: UseDroppedDataOptions) {
     retry: shouldRetryHandler,
     retryDelay: getRetryDelay,
     refetchOnWindowFocus: false,
-    enabled: droppedDataEnabled && arePageFiltersReady,
+    enabled: enabled && droppedDataEnabled && arePageFiltersReady,
   });
 
   return {
     droppedEvents: data?.droppedEvents,
     acceptedEvents: data?.acceptedEvents,
     isPending,
+    isError,
+    refetch,
   };
 }

@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconCursorArrow} from '@sentry/icons/cursorArrow';
 
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useDeadRageSelectors} from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import {useOrganization} from 'sentry/utils/useOrganization';

@@ -104,6 +104,7 @@ class OAuthConsentTest(AcceptanceTestCase):
         assert device_code.user_id == user.id
 
     def sign_in(self, user: User) -> None:
+        self.browser.wait_until_clickable('[aria-label="Email"]')
         self.browser.element('[aria-label="Email"]').send_keys(user.email)
         self.browser.element('[aria-label="Password"]').send_keys(PASSWORD)
         self.browser.click_when_visible(xpath="//button[normalize-space(.)='Log in to Sentry']")

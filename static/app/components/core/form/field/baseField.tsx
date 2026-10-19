@@ -8,6 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {useLocation} from 'sentry/utils/useLocation';
 
+import {getFieldId, getHintTextId} from './fieldIds';
 import {FieldMeta} from './meta';
 
 /* oxlint-disable react/refs -- This component must merge the DOM ref during render. */
@@ -41,22 +42,6 @@ export const useAutoSaveIndicator = (field: AnyFieldApi) => {
   }
 
   return null;
-};
-
-export const getFieldId = (field: AnyFieldApi) => {
-  return field.form.formId + field.name;
-};
-
-export const getHintTextId = (field: AnyFieldApi) => {
-  const fieldId = getFieldId(field);
-
-  return `${fieldId}-hint`;
-};
-
-export const getLabelId = (field: AnyFieldApi) => {
-  const fieldId = getFieldId(field);
-
-  return `${fieldId}-label`;
 };
 
 function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | null>) {

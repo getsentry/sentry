@@ -15,6 +15,7 @@ import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import {FieldLayout} from '@sentry/scraps/form/layout';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 
+import {CompactSelectLooseField} from './field/compactSelectField';
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
 import {PasswordField} from './field/passwordField';
@@ -88,6 +89,7 @@ function Form({children}: {children: React.ReactNode}) {
 const fieldComponents = {
   Base: BaseField,
   Checkbox: fieldComponent.loose(CheckboxField, 'field'),
+  CompactSelect: CompactSelectLooseField,
   Input: fieldComponent.loose(InputField, 'field'),
   Number: fieldComponent.loose(NumberField, 'field'),
   Password: fieldComponent.loose(PasswordField, 'field'),

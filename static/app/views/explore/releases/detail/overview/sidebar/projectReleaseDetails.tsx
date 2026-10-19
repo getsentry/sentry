@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
 import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
@@ -13,7 +14,6 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
-import {IconInfo} from 'sentry/icons/iconInfo';
 import {t, tct, tn} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ReleaseMeta, ReleaseWithHealth} from 'sentry/types/release';

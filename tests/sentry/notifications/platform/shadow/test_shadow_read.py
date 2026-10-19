@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Generator
+from contextlib import AbstractContextManager, contextmanager, nullcontext
 from dataclasses import asdict, replace
 from datetime import timedelta
+from functools import partial
 from typing import Any
 from unittest import mock
 
@@ -12,8 +14,11 @@ import pytest
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.types import ExternalProviders
+from sentry.issues.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.projectownership import ProjectOwnership
 from sentry.notifications.additional_attachment_manager import manager as attachment_manager
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import (
@@ -23,16 +28,23 @@ from sentry.notifications.notification_action.utils import (
     issue_notification_data_factory,
     metric_alert_notification_data_factory,
 )
-from sentry.notifications.platform.shadow.capture import SHADOW_PROVIDERS, _variant
+from sentry.notifications.platform.shadow.capture import _variant
 from sentry.notifications.platform.shadow.compare import ShadowOutcome
-from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
+from sentry.notifications.platform.types import (
+    SHADOW_PROVIDERS,
+    NotificationProviderKey,
+    NotificationSource,
+)
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.models import Action, Detector
 from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -58,7 +70,7 @@ DISCORD_METRIC_CLIENT = "sentry.integrations.discord.actions.metric_alert.Discor
 MSTEAMS_METRIC_SEND = (
     "sentry.integrations.msteams.utils.integration_service.send_msteams_incident_alert_notification"
 )
-SLACK_METRIC_HANDLER = "sentry.notifications.notification_action.metric_alert_registry.handlers.slack_metric_alert_handler"
+PLATFORM_DISPATCH = "sentry.notifications.notification_action.platform_dispatch"
 
 CLIENTS = {
     "issue": {
@@ -324,6 +336,135 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
 
         self.assert_match(observation)
 
+    def matrix_invocation(
+        self, action: Action, occurrence: bool, toggles: frozenset[str]
+    ) -> ActionInvocation:
+        """
+        Builds an invocation on a fresh project, so project-wide toggles like releases and
+        ownership don't leak into other cases.
+        """
+        project = self.create_project(organization=self.organization)
+        if "releases" in toggles:
+            project.flags.has_releases = True
+            project.save()
+        if "suggested" in toggles:
+            ProjectOwnership.objects.create(
+                project_id=project.id,
+                schema=dump_schema(
+                    [Rule(Matcher("tags.foo", "bar"), [Owner("user", self.user.email)])]
+                ),
+                fallthrough=False,
+            )
+        detector = self.create_detector(project=project, type=ErrorGroupType.slug)
+
+        if occurrence:
+            _, group_info = self.process_occurrence(
+                project_id=project.id,
+                event_id=uuid.uuid4().hex,
+                event_data={"timestamp": before_now(minutes=1).isoformat()},
+            )
+            assert group_info is not None
+            group = group_info.group
+            event = group.get_latest_event()
+            assert isinstance(event, GroupEvent) and event.occurrence is not None
+        else:
+            stored = self.store_event(
+                data={"message": "oh no", "level": "error", "tags": {"foo": "bar"}},
+                project_id=project.id,
+            )
+            assert stored.group is not None
+            group = stored.group
+            event = stored.for_group(group)
+
+        if "resolved" in toggles:
+            group.update(status=GroupStatus.RESOLVED, substatus=None)
+        elif "ignored" in toggles:
+            group.update(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
+        elif "not_new" in toggles:
+            group.update(substatus=GroupSubStatus.ONGOING)
+        if "assigned" in toggles:
+            GroupAssignee.objects.assign(group, self.team)
+
+        # The legacy Slack path reads the environment off the Workflow, while the platform
+        # path reads it from workflow_env, so keep them in sync like production does.
+        workflow = self.create_workflow(
+            organization=self.organization,
+            environment=self.environment if "env" in toggles else None,
+        )
+        if "legacy_rule" in toggles:
+            self.create_alert_rule_workflow(
+                rule_id=self.create_project_rule(project=project).id, workflow=workflow
+            )
+
+        return ActionInvocation(
+            event_data=WorkflowEventData(
+                event=event,
+                group=Group.objects.get_from_cache(id=group.id),
+                workflow_env=workflow.environment,
+            ),
+            action=action,
+            detector=detector,
+            notification_uuid=NOTIFICATION_UUID,
+            workflow_id=workflow.id,
+        )
+
+    def test_variant_matrix_matches(self) -> None:
+        """
+        Every provider renders the same as legacy with each branch the legacy renderers take
+        toggled on alone, and with all of them on together.
+        """
+        toggles = (
+            "config",
+            "resolved",
+            "ignored",
+            "not_new",
+            "env",
+            "legacy_rule",
+            "assigned",
+            "releases",
+            "suggested",
+        )
+        cases = [
+            frozenset(),
+            *(frozenset({toggle}) for toggle in toggles),
+            frozenset(toggles) - {"ignored", "not_new"},
+        ]
+        configs = {
+            "slack": {"tags": "level,foo", "notes": "@on-call"},
+            "discord": {"tags": "level,foo"},
+            "msteams": {},
+        }
+        failures = []
+        logs = []
+
+        for provider, config in configs.items():
+            configured = self.create_shadow_action(provider, config)
+            plain = self.create_action(
+                type=provider, integration_id=configured.integration_id, config=configured.config
+            )
+            for occurrence in (False, True):
+                for case in cases:
+                    action = configured if "config" in case else plain
+                    observation, _ = self.send(self.matrix_invocation(action, occurrence, case))
+                    logs.append(observation.result_log)
+                    if observation.outcome != ShadowOutcome.MATCH:
+                        failures.append(
+                            (
+                                provider,
+                                occurrence,
+                                sorted(case),
+                                observation.outcome,
+                                observation.mismatch,
+                            )
+                        )
+
+        assert failures == []
+        variants = {log["variant"] for log in logs}
+        for part in (":resolved:", ":ignored:", ":not_new:", ":env:", ":rule:", ":assigned"):
+            assert any(part in variant for variant in variants), part
+        for trait in ("has_releases", "has_suggested_assignees"):
+            assert any(log.get(trait) for log in logs), trait
+
     def test_platform_data_carries_occurrence_id(self) -> None:
         invocation = self.occurrence_invocation(self.create_shadow_action("slack"))
         event = invocation.event_data.event
@@ -442,7 +583,10 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         without_notes = self.create_shadow_action("discord")
 
         cases = [
-            (self.invocation(with_notes), "metric-alert:slack:critical:occurrence:notes:static"),
+            (
+                self.invocation(with_notes),
+                "metric-alert:slack:critical:occurrence:notes:static",
+            ),
             (
                 self.resolution_invocation(with_notes),
                 "metric-alert:slack:resolved:activity:notes:static",
@@ -468,6 +612,112 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         )
         assert variant == "metric-alert:slack:warning:occurrence:no_notes:percent"
 
+    @contextmanager
+    def occurrence_changed(self, **changes: Any) -> Generator[None]:
+        event = self.event_data.event
+        assert isinstance(event, GroupEvent) and event.occurrence is not None
+        original = event.occurrence
+        event.occurrence = replace(original, **changes)
+        try:
+            yield
+        finally:
+            event.occurrence = original
+
+    @contextmanager
+    def detector_config(self, **config: Any) -> Generator[None]:
+        original = self.detector.config
+        self.detector.config = {**original, **config}
+        try:
+            yield
+        finally:
+            self.detector.config = original
+
+    @contextmanager
+    def snuba_query_as(
+        self, dataset: Dataset, query_type: SnubaQuery.Type, aggregate: str
+    ) -> Generator[None]:
+        original = (self.snuba_query.dataset, self.snuba_query.type, self.snuba_query.aggregate)
+        self.snuba_query.update(dataset=dataset.value, type=query_type.value, aggregate=aggregate)
+        try:
+            yield
+        finally:
+            self.snuba_query.update(dataset=original[0], type=original[1], aggregate=original[2])
+
+    @contextmanager
+    def dynamic_detection(self) -> Generator[None]:
+        with (
+            self.detector_config(detection_type="dynamic"),
+            self.occurrence_changed(evidence_data=asdict(self.anomaly_detection_evidence_data)),
+        ):
+            yield
+
+    def test_variant_matrix_matches(self) -> None:
+        """
+        Every provider renders the same as legacy for each trigger status, detection type, and
+        dataset, with and without notes.
+        """
+        datasets = {
+            Dataset.Transactions: (SnubaQuery.Type.PERFORMANCE, "p95(transaction.duration)"),
+            Dataset.PerformanceMetrics: (SnubaQuery.Type.PERFORMANCE, "p95(transaction.duration)"),
+            Dataset.Metrics: (
+                SnubaQuery.Type.CRASH_RATE,
+                "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+            ),
+            Dataset.EventsAnalyticsPlatform: (SnubaQuery.Type.PERFORMANCE, "count(span.duration)"),
+        }
+        cases: dict[str, Callable[[], AbstractContextManager[object]]] = {
+            "critical": nullcontext,
+            "warning": partial(self.occurrence_changed, priority=DetectorPriorityLevel.MEDIUM),
+            "percent": partial(
+                self.detector_config, detection_type="percent", comparison_delta=3600
+            ),
+            "dynamic": self.dynamic_detection,
+            **{
+                dataset.value: partial(self.snuba_query_as, dataset, query_type, aggregate)
+                for dataset, (query_type, aggregate) in datasets.items()
+            },
+        }
+        failures = []
+        variants = set()
+
+        actions = [self.create_shadow_action("discord"), self.create_shadow_action("msteams")]
+        with_notes = self.create_shadow_action("slack", {"notes": "Check the runbook"})
+        actions += [
+            with_notes,
+            self.create_action(
+                type="slack", integration_id=with_notes.integration_id, config=with_notes.config
+            ),
+        ]
+
+        for action in actions:
+            for name, case in cases.items():
+                with case():
+                    observation, _ = self.send(self.invocation(action))
+                variants.add(observation.result_log["variant"])
+                if observation.outcome != ShadowOutcome.MATCH:
+                    failures.append((action.type, name, observation.outcome, observation.mismatch))
+
+            observation, _ = self.send(
+                self.resolution_invocation(action), execute_via_metric_alert_handler
+            )
+            variants.add(observation.result_log["variant"])
+            if observation.outcome != ShadowOutcome.MATCH:
+                failures.append(
+                    (action.type, "resolved", observation.outcome, observation.mismatch)
+                )
+
+        assert failures == []
+        parts = {part for variant in variants for part in variant.split(":")}
+        assert {
+            "critical",
+            "warning",
+            "resolved",
+            "activity",
+            "notes",
+            "percent",
+            "dynamic",
+        } <= parts
+
     def test_slack_matches(self) -> None:
         action = self.create_shadow_action("slack", {"notes": "Check the runbook"})
         client = self.assert_match(self.invocation(action))
@@ -476,6 +726,21 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
     def test_slack_resolution_matches(self) -> None:
         action = self.create_shadow_action("slack", {"notes": "Check the runbook"})
         self.assert_match(self.resolution_invocation(action), execute_via_metric_alert_handler)
+
+    def test_slack_workflow_footer_matches(self) -> None:
+        self.workflow.update(name="Page | the on-call")
+        action = self.create_shadow_action("slack")
+
+        client = self.assert_match(self.invocation(action))
+
+        attachments = orjson.loads(
+            client.return_value.chat_postMessage.call_args.kwargs["attachments"]
+        )
+        footer = attachments[0]["blocks"][-1]
+        assert footer["type"] == "context"
+        assert footer["elements"][0]["text"].endswith(
+            f"/monitors/alerts/{self.workflow.id}/|Page \u2223 the on-call>"
+        )
 
     @with_feature("organizations:metric-alert-chartcuterie")
     @mock.patch(
@@ -501,8 +766,9 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
 
         self.assert_match(self.invocation(action))
 
-    @mock.patch(f"{SLACK_METRIC_HANDLER}._send_via_notification_platform")
-    @mock.patch(f"{SLACK_METRIC_HANDLER}.NotificationService.has_access", return_value=True)
+    @override_options({"notifications.platform.alert-providers": {"metric-alert": ["slack"]}})
+    @mock.patch(f"{PLATFORM_DISPATCH}.send_metric_alert")
+    @mock.patch(f"{PLATFORM_DISPATCH}.NotificationService.has_access", return_value=True)
     @mock.patch(f"{COMPARE_PATH}.NotificationService.render_template")
     def test_slack_sent_by_platform_is_not_compared(
         self,
@@ -521,7 +787,7 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         mock_legacy_build.assert_not_called()
         client.return_value.chat_postMessage.assert_not_called()
         mock_render.assert_not_called()
-        assert observation.outcome == ShadowOutcome.LEGACY_NOT_CAPTURED
+        assert observation.results == []
 
     def test_discord_matches(self) -> None:
         action = self.create_shadow_action("discord")

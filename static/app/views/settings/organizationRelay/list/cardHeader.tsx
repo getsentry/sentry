@@ -1,4 +1,7 @@
 import styled from '@emotion/styled';
+import {IconCopyId} from '@sentry/icons/copyId';
+import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
 
 import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
@@ -6,7 +9,6 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DateTime} from 'sentry/components/dateTime';
-import {IconCopyId, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Relay} from 'sentry/types/relay';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';

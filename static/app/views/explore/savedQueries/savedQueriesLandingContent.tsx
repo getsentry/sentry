@@ -1,14 +1,14 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSort} from '@sentry/icons/sort';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {SearchBar} from 'sentry/components/searchBar';
-import {IconSort} from 'sentry/icons';
-import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -90,21 +90,16 @@ export function SavedQueriesLandingContent() {
               },
             ]}
             trigger={triggerProps => (
-              <Button
+              <OverlayTrigger.Button
+                showChevron={false}
                 {...triggerProps}
                 variant="primary"
                 icon={<IconAdd />}
                 size="md"
                 aria-label={t('Create Query')}
-                onClick={e => {
-                  e.stopPropagation();
-                  e.preventDefault();
-
-                  triggerProps.onClick?.(e);
-                }}
               >
                 {t('Create Query')}
-              </Button>
+              </OverlayTrigger.Button>
             )}
           />
         ) : (

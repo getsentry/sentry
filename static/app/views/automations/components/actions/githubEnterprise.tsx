@@ -27,7 +27,9 @@ export function GithubEnterpriseNode() {
     {
       logo: ActionMetadata[ActionType.GITHUB_ENTERPRISE]?.icon,
       integration: <IntegrationField />,
-      settings: <TicketActionSettingsButton />,
+      settings: (
+        <TicketActionSettingsButton ticketType={t('a GitHub Enterprise issue')} />
+      ),
     }
   );
 }

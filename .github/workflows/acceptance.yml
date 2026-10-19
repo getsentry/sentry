@@ -80,6 +80,11 @@ jobs:
       - name: Create chartcuterie config directory
         run: mkdir -p "$CHARTCUTERIE_CONFIG_PATH"
 
+      # Must run before "Setup sentry env" starts in the background: it parses
+      # $GITHUB_EVENT_PATH, which the runner truncates whenever a step starts,
+      # including the background step's inner steps (getsentry/sentry#127566).
+      - uses: ./.github/actions/setup-node-toolchain
+
       # The python env and devservices don't depend on the frontend build, so
       # bring them up in the background while webpack runs.
       - name: Setup sentry env
@@ -102,6 +107,8 @@ jobs:
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('rsbuild.config.ts', 'pnpm-lock.yaml', 'package.json') }}
 
       - uses: ./.github/actions/setup-node-pnpm
+        with:
+          setup-toolchain: 'false'
 
       - name: webpack
         env:

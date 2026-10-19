@@ -1,3 +1,6 @@
+import re
+import textwrap
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -7,10 +10,17 @@ from rest_framework.serializers import ValidationError
 from sentry.auth.access import SystemAccess
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     TriggerSerializerResponse,
     WorkflowSerializer,
     WorkflowSerializerResponse,
+)
+from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
+    DATA_SOURCES_HELP_TEXT,
+    DETECTOR_CONFIG_HELP_TEXT,
+    WORKFLOW_CONFIG_HELP_TEXT,
+    WORKFLOW_TRIGGERS_HELP_TEXT,
 )
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import (
@@ -25,6 +35,26 @@ from sentry.workflow_engine.models import (
 from tests.sentry.workflow_engine.test_base import MockActionHandler, MockActionValidatorTranslator
 
 
+def _parse_json_examples(help_text: str) -> list[dict[str, Any] | list[Any]]:
+    examples = re.findall(r"```json\s*(.*?)\s*```", help_text, re.DOTALL)
+    return [json.loads(textwrap.dedent(example)) for example in examples]
+
+
+@pytest.mark.parametrize(
+    "help_text",
+    [
+        WORKFLOW_CONFIG_HELP_TEXT,
+        WORKFLOW_TRIGGERS_HELP_TEXT,
+        DATA_SOURCES_HELP_TEXT,
+        DETECTOR_CONFIG_HELP_TEXT,
+    ],
+)
+def test_documented_request_examples_are_valid_json(help_text: str) -> None:
+    examples = _parse_json_examples(help_text)
+
+    assert examples
+
+
 class TestWorkflowValidator(TestCase):
     def setUp(self) -> None:
         self.context = {
@@ -37,7 +67,7 @@ class TestWorkflowValidator(TestCase):
             "enabled": True,
             "actionFilters": [],
             "config": {
-                "frequency": 30,
+                "frequency": 60,
             },
             "triggers": {
                 "logicType": "any",
@@ -48,6 +78,19 @@ class TestWorkflowValidator(TestCase):
     def test_valid_data(self) -> None:
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
+
+    def test_documented_workflow_request_is_valid(self) -> None:
+        config = _parse_json_examples(WORKFLOW_CONFIG_HELP_TEXT)[0]
+        triggers = _parse_json_examples(WORKFLOW_TRIGGERS_HELP_TEXT)[0]
+        assert isinstance(config, dict)
+        assert isinstance(triggers, dict)
+
+        validator = WorkflowValidator(
+            data={"name": "Documented workflow", "config": config, **triggers},
+            context=self.context,
+        )
+
+        assert validator.is_valid(), validator.errors
 
     @mock.patch(
         "sentry.workflow_engine.registry.action_handler_registry.get",

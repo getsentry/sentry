@@ -126,6 +126,8 @@ export function ConnectRepositoryForm({
       <PathMappingList
         key={selectedOption.value}
         form={form}
+        projectSlug={project.slug}
+        repositoryId={selectedOption.repositoryId}
         providerKey={selectedOption.providerKey}
         defaultBranch={selectedOption.defaultBranch ?? undefined}
         existingMappings={existingMappings}

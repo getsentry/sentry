@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, Literal, NamedTuple, NotRequired, TypedDict, overload
@@ -12,6 +13,7 @@ from rest_framework.exceptions import ParseError, PermissionDenied, ValidationEr
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
+from sentry_sdk import traces
 
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist, SuperuserRequired
@@ -46,7 +48,8 @@ from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context, set_span_attribute
-from sentry.utils.tracing import set_span_data, start_span
+
+logger = logging.getLogger(__name__)
 
 
 class NoProjects(Exception):
@@ -337,9 +340,9 @@ class ControlSiloOrganizationEndpoint(Endpoint):
         if organization_context is None:
             raise ResourceDoesNotExist
 
-        with start_span(
-            op="check_object_permissions_on_organization",
+        with traces.start_span(
             name="check_object_permissions_on_organization",
+            attributes={"sentry.op": "check_object_permissions_on_organization"},
         ):
             self.check_object_permissions(request, organization_context)
 
@@ -453,11 +456,12 @@ class OrganizationEndpoint(Endpoint):
             qs = qs.filter(id__in=ids)
         # No project ids or slugs === `all projects I am a member of`
 
-        with start_span(
-            op="fetch_organization_projects", name="fetch_organization_projects"
+        with traces.start_span(
+            name="fetch_organization_projects",
+            attributes={"sentry.op": "fetch_organization_projects"},
         ) as span:
             projects = list(qs)
-            set_span_data(span, "Project Count", len(projects))
+            span.set_attribute("Project Count", len(projects))
 
         filter_by_membership = not bool(ids) and not bool(slugs)
         filtered_projects = self._filter_projects_by_permissions(
@@ -659,7 +663,11 @@ class OrganizationEndpoint(Endpoint):
             )
             # For some reason we use range in saved queries
             if "range" in data and "statsPeriod" not in data:
-                data["statsPeriod"] = data["range"]
+                if not isinstance(data, QueryDict):
+                    logger.warning("deprecated range parameter used")
+                    data["statsPeriod"] = data["range"]
+                else:
+                    raise ParseError(detail="range is not a supported parameter")
             start, end = get_date_range_from_params(data, optional=date_filter_optional)
             if start and end:
                 total_seconds = (end - start).total_seconds()
@@ -757,9 +765,9 @@ class OrganizationEndpoint(Endpoint):
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
-        with start_span(
-            op="check_object_permissions_on_organization",
+        with traces.start_span(
             name="check_object_permissions_on_organization",
+            attributes={"sentry.op": "check_object_permissions_on_organization"},
         ):
             self.check_object_permissions(request, organization)
 

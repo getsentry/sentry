@@ -259,6 +259,7 @@ export function AutoSaveForm<
   return (
     <form.AppForm>
       <AutoSaveContextProvider value={{status: mutation.status, resetOnErrorRef}}>
+        {/* eslint-disable-next-line @sentry/scraps/require-field-component -- Forward the field API to the caller's render function. */}
         <form.Field name={name}>{field => children(field)}</form.Field>
       </AutoSaveContextProvider>
     </form.AppForm>

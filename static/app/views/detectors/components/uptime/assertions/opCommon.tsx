@@ -1,21 +1,17 @@
 import {useEffect, useRef} from 'react';
 import {useDraggable} from '@dnd-kit/core';
+import {IconDelete} from '@sentry/icons/delete';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
-import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {AssertionFormError} from 'sentry/views/detectors/components/uptime/formErrors';
-import {
-  UptimeComparisonType,
-  type UptimeOp,
-} from 'sentry/views/detectors/components/uptime/types';
+import type {UptimeOp} from 'sentry/views/detectors/components/uptime/types';
 
 interface AnimatedOpProps
   extends MotionProps, Omit<React.HTMLAttributes<HTMLDivElement>, keyof MotionProps> {
@@ -112,51 +108,3 @@ export function OpContainer({
     </Stack>
   );
 }
-
-export const COMPARISON_OPTIONS: Array<
-  SelectOption<UptimeComparisonType> & {symbol: string}
-> = [
-  {
-    value: UptimeComparisonType.EQUALS,
-    label: t('equal'),
-    symbol: '=',
-    trailingItems: <Text monospace>=</Text>,
-  },
-  {
-    value: UptimeComparisonType.NOT_EQUAL,
-    label: t('not equal'),
-    symbol: '\u2260',
-    trailingItems: <Text monospace>{'\u2260'}</Text>,
-  },
-  {
-    value: UptimeComparisonType.LESS_THAN,
-    label: t('less than'),
-    symbol: '<',
-    trailingItems: <Text monospace>{'<'}</Text>,
-  },
-  {
-    value: UptimeComparisonType.GREATER_THAN,
-    label: t('greater than'),
-    symbol: '>',
-    trailingItems: <Text monospace>{'>'}</Text>,
-  },
-  {
-    value: UptimeComparisonType.ALWAYS,
-    label: t('present'),
-    symbol: '\u22A4',
-    trailingItems: <Text monospace>{'\u22A4'}</Text>,
-  },
-  {
-    value: UptimeComparisonType.NEVER,
-    label: t('not present'),
-    symbol: '\u2205',
-    trailingItems: <Text monospace>{'\u2205'}</Text>,
-  },
-];
-
-export const STRING_OPERAND_OPTIONS: Array<
-  SelectOption<'literal' | 'glob'> & {symbol: string}
-> = [
-  {value: 'literal', label: t('Literal'), symbol: '""'},
-  {value: 'glob', label: t('Glob Pattern'), symbol: '\u2217'},
-];

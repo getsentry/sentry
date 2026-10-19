@@ -95,14 +95,8 @@ describe('PathMapping', () => {
   it('shows placeholders on the prefix inputs', () => {
     render(<TestMapping {...{editing: true, isNew: true}} />);
 
-    expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveAttribute(
-      'placeholder',
-      'e.g src/'
-    );
-    expect(screen.getByRole('textbox', {name: /repository prefix/i})).toHaveAttribute(
-      'placeholder',
-      'e.g src/app/'
-    );
+    expect(screen.getByText('e.g src/')).toBeInTheDocument();
+    expect(screen.getByText('e.g src/app/')).toBeInTheDocument();
   });
 
   it('renders preview using placeholder example and updates on input', () => {
@@ -122,8 +116,10 @@ describe('PathMapping', () => {
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
       'lib/'
     );
+    // Blur commits the typed value; the preview and selected label then show it.
+    await userEvent.tab();
 
-    expect(screen.getByText('lib/')).toBeInTheDocument();
+    expect(screen.getAllByText('lib/')).not.toHaveLength(0);
   });
 
   it('explains the disabled delete with a link to Code Owners', async () => {

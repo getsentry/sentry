@@ -1,17 +1,16 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
-import {mergeProps} from '@react-aria/utils';
+import {IconAdd} from '@sentry/icons/add';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
-import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {
-  defaultFormValidators,
-  ScrapsForm,
   useScrapsForm,
   useSelector,
+  defaultFormValidators,
+  ScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -22,7 +21,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import {createablePlatforms} from 'sentry/data/platformPickerCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
@@ -281,54 +279,53 @@ export function WizardProjectSelection({
   const platformField = (
     <form.Field
       name="newProjectPlatform"
-      validators={defaultFormValidators(
-        z
-          .string()
-          .nullable()
-          .refine(value => value !== null, t('Select a platform'))
-      )}
+      validators={[
+        {
+          run: z
+            .string()
+            .nullable()
+            .refine(value => value !== null, t('Select a platform')),
+          triggers: ['change'],
+        },
+      ]}
     >
-      {field => (
-        <field.Layout.Stack label={t('Platform')} required>
-          <field.Base<HTMLButtonElement>>
-            {baseProps => {
-              const selectedPlatform = field.value;
-              return (
-                <StyledCompactSelect
-                  value={field.value ?? undefined}
-                  search
-                  options={platformOptions}
-                  trigger={triggerProps => (
-                    <OverlayTrigger.Button
-                      {...mergeProps(triggerProps, baseProps)}
-                      icon={
-                        selectedPlatform ? (
-                          <PlatformIcon platform={selectedPlatform} size={16} alt="" />
-                        ) : null
-                      }
-                    >
-                      {selectedPlatform
-                        ? (platforms.find(p => p.id === selectedPlatform)?.name ??
-                          selectedPlatform)
-                        : t('Select a platform')}
-                    </OverlayTrigger.Button>
-                  )}
-                  onChange={({value}) => {
-                    field.handleChange(value as string);
-                  }}
-                />
-              );
-            }}
-          </field.Base>
-        </field.Layout.Stack>
-      )}
+      {field => {
+        const selectedPlatform = field.value;
+        return (
+          <field.Layout.Stack label={t('Platform')} required>
+            <field.CompactSelect
+              value={field.value}
+              search
+              options={platformOptions}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={
+                    selectedPlatform ? (
+                      <PlatformIcon platform={selectedPlatform} size={16} alt="" />
+                    ) : null
+                  }
+                >
+                  {selectedPlatform
+                    ? (platforms.find(p => p.id === selectedPlatform)?.name ??
+                      selectedPlatform)
+                    : t('Select a platform')}
+                </OverlayTrigger.Button>
+              )}
+              onChange={field.handleChange}
+            />
+          </field.Layout.Stack>
+        );
+      }}
     </form.Field>
   );
 
   const projectNameField = (
     <form.Field
       name="newProjectName"
-      validators={defaultFormValidators(z.string().min(1, t('Enter a project slug')))}
+      validators={[
+        {run: z.string().min(1, t('Enter a project slug')), triggers: ['change']},
+      ]}
     >
       {field => (
         <field.Layout.Stack label={t('Project Slug')} required>
@@ -351,42 +348,37 @@ export function WizardProjectSelection({
         <form.Field name="organizationId">
           {field => (
             <field.Layout.Stack label={t('Organization')} required>
-              <field.Base<HTMLButtonElement>>
-                {baseProps => (
-                  <StyledCompactSelect
-                    autoFocus
-                    value={field.value ?? undefined}
-                    search
-                    options={orgOptions}
-                    trigger={triggerProps => (
-                      <OverlayTrigger.Button
-                        {...mergeProps(triggerProps, baseProps)}
-                        icon={
-                          selectedOrg ? (
-                            <OrganizationAvatar size={16} organization={selectedOrg} />
-                          ) : null
-                        }
-                      >
-                        {selectedOrg ? (
-                          getOrgDisplayName(selectedOrg)
-                        ) : (
-                          <Text ellipsis variant="muted" bold={false} align="left">
-                            {t('Select an organization')}
-                          </Text>
-                        )}
-                      </OverlayTrigger.Button>
+              <field.CompactSelect
+                autoFocus
+                value={field.value}
+                search
+                options={orgOptions}
+                trigger={triggerProps => (
+                  <OverlayTrigger.Button
+                    {...triggerProps}
+                    icon={
+                      selectedOrg ? (
+                        <OrganizationAvatar size={16} organization={selectedOrg} />
+                      ) : null
+                    }
+                  >
+                    {selectedOrg ? (
+                      getOrgDisplayName(selectedOrg)
+                    ) : (
+                      <Text ellipsis variant="muted" bold={false} align="left">
+                        {t('Select an organization')}
+                      </Text>
                     )}
-                    onChange={({value}) => {
-                      if (value !== selectedOrgId) {
-                        const organizationId = value as string;
-                        field.handleChange(organizationId);
-                        form.setFieldValue('projectId', null);
-                        clearProjectOptions();
-                      }
-                    }}
-                  />
+                  </OverlayTrigger.Button>
                 )}
-              </field.Base>
+                onChange={value => {
+                  if (value !== selectedOrgId) {
+                    field.handleChange(value);
+                    form.setFieldValue('projectId', null);
+                    clearProjectOptions();
+                  }
+                }}
+              />
             </field.Layout.Stack>
           )}
         </form.Field>
@@ -399,62 +391,56 @@ export function WizardProjectSelection({
                   onRetry={orgProjectsRequest.refetch}
                 />
               ) : (
-                <field.Base<HTMLButtonElement>>
-                  {baseProps => (
-                    <StyledCompactSelect
-                      // Remount the component when the org changes to reset the component state
-                      key={selectedOrgId}
-                      search={{onChange: setSearch}}
-                      onClose={() => setSearch('')}
-                      disabled={!selectedOrgId}
-                      value={selectedProjectId!}
-                      options={sortedProjectOptions}
-                      trigger={triggerProps => (
-                        <OverlayTrigger.Button
-                          {...mergeProps(triggerProps, baseProps)}
-                          icon={
-                            isCreateProjectSelected ? (
-                              <IconAdd />
-                            ) : selectedProject ? (
-                              <ProjectBadge
-                                avatarSize={16}
-                                project={selectedProject}
-                                hideName
-                              />
-                            ) : null
-                          }
-                        >
-                          {isCreateProjectSelected
-                            ? t('Create Project')
-                            : selectedProject?.slug || (
-                                <Text ellipsis variant="muted" bold={false} align="left">
-                                  {t('Select a project')}
-                                </Text>
-                              )}
-                        </OverlayTrigger.Button>
-                      )}
-                      onChange={({value}) => {
-                        field.handleChange(value as string);
-                      }}
-                      emptyMessage={emptyMessage}
-                      menuFooter={
-                        isCreationEnabled
-                          ? ({closeOverlay}) => (
-                              <MenuComponents.CTAButton
-                                onClick={() => {
-                                  field.handleChange(CREATE_PROJECT_VALUE);
-                                  closeOverlay();
-                                }}
-                                icon={<IconAdd />}
-                              >
-                                {t('Create Project')}
-                              </MenuComponents.CTAButton>
-                            )
-                          : undefined
+                <field.CompactSelect
+                  // Remount the component when the org changes to reset the component state
+                  key={selectedOrgId}
+                  search={{onChange: setSearch}}
+                  onClose={() => setSearch('')}
+                  disabled={!selectedOrgId}
+                  value={field.value}
+                  options={sortedProjectOptions}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      icon={
+                        isCreateProjectSelected ? (
+                          <IconAdd />
+                        ) : selectedProject ? (
+                          <ProjectBadge
+                            avatarSize={16}
+                            project={selectedProject}
+                            hideName
+                          />
+                        ) : null
                       }
-                    />
+                    >
+                      {isCreateProjectSelected
+                        ? t('Create Project')
+                        : selectedProject?.slug || (
+                            <Text ellipsis variant="muted" bold={false} align="left">
+                              {t('Select a project')}
+                            </Text>
+                          )}
+                    </OverlayTrigger.Button>
                   )}
-                </field.Base>
+                  onChange={field.handleChange}
+                  emptyMessage={emptyMessage}
+                  menuFooter={
+                    isCreationEnabled
+                      ? ({closeOverlay}) => (
+                          <MenuComponents.CTAButton
+                            onClick={() => {
+                              field.handleChange(CREATE_PROJECT_VALUE);
+                              closeOverlay();
+                            }}
+                            icon={<IconAdd />}
+                          >
+                            {t('Create Project')}
+                          </MenuComponents.CTAButton>
+                        )
+                      : undefined
+                  }
+                />
               )}
             </field.Layout.Stack>
           )}
@@ -472,58 +458,51 @@ export function WizardProjectSelection({
                 {projectNameField}
                 <form.Field
                   name="newProjectTeam"
-                  validators={defaultFormValidators(
-                    z
-                      .string()
-                      .nullable()
-                      .refine(value => value !== null, t('Select a team'))
-                  )}
+                  validators={[
+                    {
+                      run: z
+                        .string()
+                        .nullable()
+                        .refine(value => value !== null, t('Select a team')),
+                      triggers: ['change'],
+                    },
+                  ]}
                 >
-                  {field => (
-                    <field.Layout.Stack label={t('Team')} required>
-                      <field.Base<HTMLButtonElement>>
-                        {baseProps => {
-                          const selectedTeam = selectableTeams?.find(
-                            team => team.slug === field.value
-                          );
-                          return (
-                            <StyledCompactSelect
-                              value={field.value ?? undefined}
-                              options={
-                                selectableTeams?.map(team => ({
-                                  value: team.slug,
-                                  label: `#${team.slug}`,
-                                  leadingItems: <IdBadge team={team} hideName />,
-                                  searchKey: team.slug,
-                                })) || []
+                  {field => {
+                    const selectedTeam = selectableTeams?.find(
+                      team => team.slug === field.value
+                    );
+                    return (
+                      <field.Layout.Stack label={t('Team')} required>
+                        <field.CompactSelect
+                          value={field.value}
+                          options={
+                            selectableTeams?.map(team => ({
+                              value: team.slug,
+                              label: `#${team.slug}`,
+                              leadingItems: <IdBadge team={team} hideName />,
+                              searchKey: team.slug,
+                            })) || []
+                          }
+                          trigger={triggerProps => (
+                            <OverlayTrigger.Button
+                              {...triggerProps}
+                              icon={
+                                selectedTeam ? (
+                                  <IdBadge avatarSize={16} team={selectedTeam} hideName />
+                                ) : null
                               }
-                              trigger={triggerProps => (
-                                <OverlayTrigger.Button
-                                  {...mergeProps(triggerProps, baseProps)}
-                                  icon={
-                                    selectedTeam ? (
-                                      <IdBadge
-                                        avatarSize={16}
-                                        team={selectedTeam}
-                                        hideName
-                                      />
-                                    ) : null
-                                  }
-                                >
-                                  {selectedTeam
-                                    ? `#${selectedTeam.slug}`
-                                    : t('Select a team')}
-                                </OverlayTrigger.Button>
-                              )}
-                              onChange={({value}) => {
-                                field.handleChange(value as string);
-                              }}
-                            />
-                          );
-                        }}
-                      </field.Base>
-                    </field.Layout.Stack>
-                  )}
+                            >
+                              {selectedTeam
+                                ? `#${selectedTeam.slug}`
+                                : t('Select a team')}
+                            </OverlayTrigger.Button>
+                          )}
+                          onChange={field.handleChange}
+                        />
+                      </field.Layout.Stack>
+                    );
+                  }}
                 </form.Field>
               </Grid>
             </Fragment>
@@ -535,11 +514,3 @@ export function WizardProjectSelection({
     </ScrapsForm>
   );
 }
-
-const StyledCompactSelect = styled(CompactSelect)`
-  width: 100%;
-
-  & > button {
-    width: 100%;
-  }
-`;

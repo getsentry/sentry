@@ -1,9 +1,10 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
+import {IconFire} from '@sentry/icons/fire';
+import {IconStats} from '@sentry/icons/stats';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 
-import {IconFire, IconStats} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
@@ -81,7 +82,7 @@ function ExceededInfo({getActionSentence, primaryCTA, subscription}: ExceededInf
       radius="md"
       data-test-id="usage-exceeded-alert"
     >
-      <SubscriptionBody withPadding>
+      <SubscriptionBody>
         <UsageInfo>
           <IconFire size="md" variant="danger" />
           <div>
@@ -241,7 +242,7 @@ export function UsageAlert({subscription, usage}: Props) {
       radius="md"
       data-test-id="projected-overage-alert"
     >
-      <SubscriptionBody withPadding>
+      <SubscriptionBody>
         <UsageInfo>
           <IconStats size="md" variant="accent" />
           <div>

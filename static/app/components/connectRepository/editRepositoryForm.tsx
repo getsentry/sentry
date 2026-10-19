@@ -171,6 +171,7 @@ function EditRepositoryFormBody({
                     existingMappings={existingMappings}
                     seededById={seededById}
                     projectSlug={project.slug}
+                    repositoryId={repositoryId}
                   />
                 </Container>
               }

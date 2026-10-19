@@ -1,10 +1,10 @@
 import {Fragment, useRef, useState} from 'react';
+import {IconAdd} from '@sentry/icons/add';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
@@ -51,6 +51,7 @@ interface Props {
   existingMappings?: RepositoryProjectPathConfig[];
   projectSlug?: string;
   providerKey?: string;
+  repositoryId?: string;
   seededById?: Map<string, RepositoryProjectPathConfig>;
 }
 
@@ -60,6 +61,7 @@ export function PathMappingList({
   defaultBranch,
   existingMappings,
   projectSlug,
+  repositoryId,
   seededById,
 }: Props) {
   const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
@@ -150,6 +152,7 @@ export function PathMappingList({
                             warning={warnings[i]}
                             providerKey={providerKey}
                             projectSlug={projectSlug}
+                            repositoryId={repositoryId}
                             defaultBranch={defaultBranch}
                             onDelete={() => handleDelete(i)}
                             onExpandToggle={() => toggle(meta.id)}

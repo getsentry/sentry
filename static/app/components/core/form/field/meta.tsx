@@ -8,7 +8,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {getFieldId, getHintTextId, getLabelId} from './baseField';
+import {getFieldId, getHintTextId, getLabelId} from './fieldIds';
 
 function HintText(props: {children: React.ReactNode; field: AnyFieldApi}) {
   const id = getHintTextId(props.field);

@@ -25,6 +25,10 @@ interface RowLayoutProps extends LayoutProps {
   padding?: FlexProps['padding'];
 }
 
+interface StackLayoutProps extends LayoutProps {
+  align?: FlexProps['align'];
+}
+
 function RowLayout(props: RowLayoutProps) {
   const isStackAtBreakpoint = useResponsivePropValue({zero: true, md: false});
   const isStackLayout = useHasContainerQuery() && isStackAtBreakpoint;
@@ -63,11 +67,17 @@ function RowLayoutContent(props: RowLayoutProps) {
   );
 }
 
-function StackLayout(props: LayoutProps) {
+function StackLayout(props: StackLayoutProps) {
   const isCompact = props.variant === 'compact';
 
   return (
-    <HighlightableFlex id={props.field.name} direction="column" gap="md" flexGrow={1}>
+    <HighlightableFlex
+      id={props.field.name}
+      direction="column"
+      gap="md"
+      flexGrow={1}
+      align={props.align}
+    >
       <Flex gap="xs" align="center">
         <FieldMeta.Label
           required={props.required}

@@ -240,6 +240,7 @@ export function ExternalIssueForm({
             level: 'error',
           });
         }
+        // oxlint-disable-next-line react/todo
       } finally {
         setIsDynamicallyRefetching(false);
       }

@@ -10,6 +10,7 @@ from typing import Any, Literal, overload
 import sentry_sdk
 from django.utils import timezone
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
+from sentry_sdk import traces
 from snuba_sdk import (
     Column,
     Condition,
@@ -40,7 +41,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import snuba
 from sentry.utils.dates import deprecated_utcnow, outside_retention_with_modified_start
 from sentry.utils.snuba import DATASETS, _prepare_start_end, bulk_snuba_queries, raw_snql_query
-from sentry.utils.tracing import start_span
 from sentry.utils.validators import normalize_event_id
 
 EVENT_ID = Columns.EVENT_ID.value.alias
@@ -245,7 +245,10 @@ class SnubaEventStorage(EventStorage):
         """
         Get events from Snuba, with node data loaded.
         """
-        with start_span(op="eventstore.snuba.get_events", name="eventstore.snuba.get_events"):
+        with traces.start_span(
+            name="eventstore.snuba.get_events",
+            attributes={"sentry.op": "eventstore.snuba.get_events"},
+        ):
             return self.__get_events(
                 filter,
                 eap_conditions=eap_conditions,
@@ -983,9 +986,12 @@ class SnubaEventStorage(EventStorage):
                 ],
                 referrer="eventstore.get_next_or_prev_event_id",
             )
-        except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
-            # This can happen when the date conditions for paging
-            # and the current event generate impossible conditions.
+        except (
+            snuba.QueryOutsideRetentionError,
+            snuba.QueryOutsideGroupActivityError,
+            snuba.EmptyGroupIdIntersectionError,
+        ):
+            # Date or group filters can make it impossible for any event to match.
             return [None for _ in filters]
 
         return [self.__get_event_id_from_result(result) for result in results]

@@ -1,15 +1,13 @@
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {
-  defaultFormValidators,
-  ScrapsForm,
   useScrapsForm,
   useSelector,
+  defaultFormValidators,
+  ScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -153,7 +151,7 @@ export function ExploreExportModal({
                   }
                   disabled={columnsValue === ModalColumnValue.ALL}
                 >
-                  <field.Layout.Stack label={t('Format')}>
+                  <field.Layout.Stack label={t('Format')} align="start">
                     <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
                     <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
                   </field.Layout.Stack>
@@ -182,18 +180,12 @@ export function ExploreExportModal({
           )}
           <form.Field name="limit">
             {field => (
-              <field.Layout.Stack label={t('Number of rows')}>
-                <CompactSelect
+              <field.Layout.Stack label={t('Number of rows')} align="start">
+                <field.CompactSelect
                   disabled={rowCountOptions.length === 1}
                   options={rowCountOptions}
                   value={field.value}
-                  onChange={option => field.handleChange(option.value)}
-                  trigger={triggerProps => (
-                    <OverlayTrigger.Button
-                      {...triggerProps}
-                      aria-label={t('Number of rows')}
-                    />
-                  )}
+                  onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}

@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
+import {IconJson} from '@sentry/icons/json';
 import {useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
@@ -18,7 +19,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
-import {IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';

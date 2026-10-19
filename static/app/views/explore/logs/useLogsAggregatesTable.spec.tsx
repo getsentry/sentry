@@ -4,8 +4,13 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
+import {
+  LOGS_AGGREGATES_TIMESTAMP_FIELD,
+  LOGS_AGGREGATES_TRACE_FIELD,
+  useLogsAggregatesTable,
+} from 'sentry/views/explore/logs/useLogsAggregatesTable';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -21,6 +26,41 @@ function Wrapper({children}: {children: ReactNode}) {
 describe('useLogsAggregatesTable', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('skips the request and surfaces an error when every series filter is invalid', () => {
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [], meta: {fields: {}}},
+      method: 'GET',
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useLogsAggregatesTable({
+          enabled: true,
+          limit: 100,
+        }),
+      {
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/explore/logs/',
+            query: {
+              [LOGS_AGGREGATE_FIELD_KEY]: [
+                JSON.stringify({groupBy: ''}),
+                JSON.stringify({yAxes: ['count_if(``,message)']}),
+              ],
+            },
+          },
+        },
+      }
+    );
+
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(result.current.isError).toBe(true);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.error?.message).toEqual(expect.any(String));
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
@@ -73,6 +113,11 @@ describe('useLogsAggregatesTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'ourlogs',
+          field: expect.arrayContaining([
+            LOGS_AGGREGATES_TRACE_FIELD,
+            LOGS_AGGREGATES_TIMESTAMP_FIELD,
+            'count(message)',
+          ]),
           sampling: SAMPLING_MODE.NORMAL,
         }),
       })

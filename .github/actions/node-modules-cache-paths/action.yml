@@ -1,0 +1,25 @@
+name: 'Node modules cache paths'
+description: 'List dependency folders from the pnpm workspace configuration'
+outputs:
+  paths:
+    description: 'Newline-separated relative node_modules paths for the root and workspace packages'
+    value: ${{ steps.paths.outputs.paths }}
+runs:
+  using: 'composite'
+  steps:
+    - id: paths
+      shell: bash
+      # List workspace roots without traversing pnpm dependency symlinks.
+      run: |
+        {
+          echo 'paths<<EOF'
+          pnpm list --recursive --depth -1 --parseable | while IFS= read -r workspace; do
+            workspace_root="$(pwd -P)"
+            case "$workspace" in
+              "$workspace_root") echo 'node_modules' ;;
+              "$workspace_root"/*) echo "${workspace#"$workspace_root"/}/node_modules" ;;
+              *) continue ;;
+            esac
+          done | LC_ALL=C sort
+          echo 'EOF'
+        } >> "$GITHUB_OUTPUT"

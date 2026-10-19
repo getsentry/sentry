@@ -609,7 +609,9 @@ const form = useScrapsForm({
 
 ### Conditional Validation
 
-Use `.refine()` for cross-field validation:
+Use `.refine()` when the validity of one value depends on another value, such as
+matching passwords. Do not use a form-level `.superRefine()` to require a field
+only while it is displayed; put that validator on the conditional field instead.
 
 ```tsx
 const schema = z
@@ -650,13 +652,23 @@ For validation that only applies to one field, pass a `validators` array to `for
 
 ### Conditional Fields
 
-Use `form.Subscribe` to show/hide fields based on other field values:
+Use `form.Subscribe` to show/hide fields based on other field values. Keep
+conditionally required values permissive in the form schema, then validate
+them on the rendered `Field` so hidden fields do not block submission:
 
 ```tsx
+const schema = z.object({
+  plan: z.enum(['standard', 'enterprise']),
+  billingEmail: z.string(),
+});
+
 <form.Subscribe selector={state => state.values.plan === 'enterprise'}>
   {showBilling =>
     showBilling ? (
-      <form.Field name="billingEmail">
+      <form.Field
+        name="billingEmail"
+        validators={[{run: z.email('Enter a valid billing email'), triggers: ['change']}]}
+      >
         {field => (
           <field.Layout.Stack label={t('Billing Email')} required>
             <field.Input value={field.value} onChange={field.handleChange} />
@@ -665,7 +677,7 @@ Use `form.Subscribe` to show/hide fields based on other field values:
       </form.Field>
     ) : null
   }
-</form.Subscribe>
+</form.Subscribe>;
 ```
 
 Outside JSX — when you need a form value in plain component code — use `useSelector` with the form atom:
@@ -708,6 +720,11 @@ Field-level listeners use the same shape on `form.Field`:
 ```
 
 Form listener triggers are `change`, `blur`, `submit`, `mount`, `reset`; fields add `unmount`. The form listener context exposes `triggerFieldApi`, which is **optional** — it is absent for mount, reset, and submit, so guard it before reading `triggerFieldApi.meta`.
+
+For a nullable number field, keep `z.number().nullable()` in the form schema
+and use a field validator such as
+`z.number().positive('Amount must be greater than zero').nullable().refine(value => value !== null, 'Amount is required')`.
+The `refine` rejects the `null` emitted when the number input is empty.
 
 ---
 
