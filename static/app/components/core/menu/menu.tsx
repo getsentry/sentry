@@ -368,7 +368,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
                 size={size ?? 'md'}
                 density="fixed"
                 variant={
-                  disabled ? 'secondary' : priority === 'default' ? 'primary' : priority
+                  disabled ? 'muted' : priority === 'default' ? undefined : priority
                 }
                 bold={false}
                 tabular
