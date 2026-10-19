@@ -1,69 +1,44 @@
 from __future__ import annotations
 
 import logging
-import secrets
-import time
-from typing import Any, Literal
+from typing import Any
 from urllib.parse import urlparse
 
 from django.contrib.auth.views import redirect_to_login
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.urls import reverse
-from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.safestring import mark_safe
 from django.views.decorators.cache import never_cache
 
 from sentry import analytics
 from sentry.analytics.events.oauth_consent import OAuthConsentEvent
+from sentry.api.helpers.oauth_authorize.approval import approve_authorization
 from sentry.api.helpers.oauth_authorize.request import build_authorization_request
 from sentry.api.helpers.oauth_authorize.response import (
     InvalidAuthorizationRequest,
     OAuthRedirectError,
     build_redirect_url,
 )
+from sentry.api.helpers.oauth_authorize.transactions import (
+    consume_authorization_transaction,
+    prune_authorization_transactions,
+    save_authorization_transaction,
+)
 from sentry.api.helpers.oauth_consent import (
-    InvalidOrganizationSelection,
-    OrganizationSelectionError,
     get_organization_options,
     get_permission_descriptions,
-    persist_authorization,
-    resolve_organization,
+    has_existing_consent,
 )
 from sentry.api.serializers.rest_framework.oauth_authorize import OAuthAuthorizeQuerySerializer
-from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
-from sentry.models.apiauthorization import ApiAuthorization
-from sentry.models.apigrant import ApiGrant
-from sentry.models.apitoken import ApiToken
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.models.user import User
-from sentry.utils import auth, metrics
+from sentry.utils import auth
 from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, control_silo_view
 
 logger = logging.getLogger("sentry.oauth")
-
-# How long an unused oa2:{tx_id} session entry is kept before pruning on the
-# next GET. Abandoned tabs would otherwise accumulate until session expiry.
-OAUTH_AUTHORIZE_SESSION_TTL = 10 * 60
-
-
-def _expired_authorize_keys(session, now: float) -> list[str]:
-    expired = []
-    for key in list(session.keys()):
-        if not key.startswith("oa2:"):
-            continue
-        entry = session.get(key)
-        # The oa2: prefix is also used by oauth_device.py with a different
-        # payload shape. Only touch entries carrying our "tx" marker.
-        if not isinstance(entry, dict) or "tx" not in entry:
-            continue
-        ts = entry.get("ts")
-        if not isinstance(ts, (int, float)) or now - ts > OAUTH_AUTHORIZE_SESSION_TTL:
-            expired.append(key)
-    return expired
 
 
 @control_silo_view
@@ -159,74 +134,17 @@ class OAuthAuthorizeView(BaseView):
         except OAuthRedirectError as exc:
             return self.redirect_to_callback(exc.redirect_url)
 
-        application = authorization.application
-        client_id = application.client_id
-        response_type = authorization.response_type
-        redirect_uri = authorization.redirect_uri
-        scopes = authorization.scopes
-        state = authorization.state
-        code_challenge = authorization.code_challenge
-        code_challenge_method = authorization.code_challenge_method
-        force_prompt = request.GET.get("force_prompt")
-
         if super().is_auth_required(request, **kwargs):
             return self.handle_auth_required(request, **kwargs)
 
         assert request.user.is_authenticated
+        application = authorization.application
+        prune_authorization_transactions(request.session)
+        if not request.GET.get("force_prompt") and has_existing_consent(
+            application, request.user.id, authorization.scopes
+        ):
+            return self.redirect_to_callback(approve_authorization(authorization, request.user.id))
 
-        # Generate a unique transaction ID per authorization request to prevent
-        # session overwrite attacks. Without this, an attacker could open a malicious
-        # OAuth flow in a popup/redirect, overwriting the legitimate app's session data.
-        tx_id = secrets.token_urlsafe(32)
-        now = time.time()
-        # Prune stale authorize payloads from abandoned prior flows. The oa2:
-        # prefix is shared with oauth_device.py, so only touch entries that
-        # carry our "tx" marker.
-        for stale_key in _expired_authorize_keys(request.session, now):
-            request.session.pop(stale_key, None)
-            request.session.modified = True
-        payload = {
-            "rt": response_type,
-            "cid": client_id,
-            "ru": redirect_uri,
-            "sc": scopes,
-            "st": state,
-            "uid": request.user.id,
-            "cc": code_challenge,
-            "ccm": code_challenge_method if code_challenge else None,
-            "tx": tx_id,
-            "ts": now,
-        }
-        session_key = f"oa2:{tx_id}"
-
-        # If the application expects org level access, we need to prompt the user to choose which
-        # organization they want to give access to every time. We should not presume the user intention
-        if not (force_prompt or application.requires_org_level_access):
-            try:
-                existing_auth = ApiAuthorization.objects.get(
-                    user_id=request.user.id, application=application
-                )
-            except ApiAuthorization.DoesNotExist:
-                pass
-            else:
-                # if we've already approved all of the required scopes
-                # we can skip prompting the user
-                if all(existing_auth.has_scope(s) for s in scopes):
-                    # Auto-approve returns a redirect immediately; no POST will
-                    # follow, so don't persist the session entry.
-                    return self.approve(
-                        request=request,
-                        user=request.user,
-                        application=application,
-                        scopes=scopes,
-                        response_type=response_type,
-                        redirect_uri=redirect_uri,
-                        state=state,
-                        code_challenge=payload.get("cc"),
-                        code_challenge_method=payload.get("ccm"),
-                    )
-
-        permissions = get_permission_descriptions(scopes)
         organization_options = get_organization_options(application, request.user.id)
         if application.requires_org_level_access and not organization_options:
             return self.respond(
@@ -237,231 +155,71 @@ class OAuthAuthorizeView(BaseView):
                 status=400,
             )
 
-        context = {
-            "user": request.user,
-            "application": application,
-            "scopes": scopes,
-            "permissions": permissions,
-            "organization_options": organization_options,
-            "tx_id": tx_id,
-        }
-
-        # Persist the payload only once we're rendering the authorize form —
-        # the auto-approve and missing-org-options paths above return without
-        # ever POSTing back, so writing the entry there would just leak it.
-        request.session[session_key] = payload
+        transaction_id = save_authorization_transaction(
+            request.session, authorization, request.user.id
+        )
         analytics.record(
             OAuthConsentEvent(
                 user_id=request.user.id,
                 application_id=application.id,
-                response_type=response_type,
+                response_type=authorization.response_type,
                 outcome="viewed",
             )
         )
-        return self.respond("sentry/oauth-authorize.html", context)
+        return self.respond(
+            "sentry/oauth-authorize.html",
+            {
+                "user": request.user,
+                "application": application,
+                "scopes": authorization.scopes,
+                "permissions": get_permission_descriptions(authorization.scopes),
+                "organization_options": organization_options,
+                "tx_id": transaction_id,
+            },
+        )
 
     def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
         assert request.user.is_authenticated
 
-        # Retrieve transaction ID from POST data and use it to get the correct session payload
-        tx_id = request.POST.get("tx_id")
-        if not tx_id:
-            return self.respond(
-                "sentry/oauth-error.html",
-                {
-                    "error": "We were unable to complete your request. Please re-initiate the authorization flow."
-                },
-            )
-
-        session_key = f"oa2:{tx_id}"
         try:
-            payload = request.session[session_key]
-        except KeyError:
-            return self.respond(
-                "sentry/oauth-error.html",
-                {
-                    "error": "We were unable to complete your request. Please re-initiate the authorization flow."
-                },
+            authorization = consume_authorization_transaction(
+                request.session, request.POST.get("tx_id", ""), request.user.id
             )
-
-        # Verify the transaction ID in the payload matches the one in the request
-        if payload.get("tx") != tx_id:
-            return self.respond(
-                "sentry/oauth-error.html",
-                {
-                    "error": "We were unable to complete your request. Please re-initiate the authorization flow."
-                },
+        except InvalidAuthorizationRequest as exc:
+            error = (
+                mark_safe(f"Missing or invalid <em>{exc.parameter}</em> parameter.")
+                if exc.parameter
+                else exc.public_message
             )
-
-        try:
-            application = ApiApplication.objects.get(
-                client_id=payload["cid"], status=ApiApplicationStatus.active
-            )
-        except ApiApplication.DoesNotExist:
-            # The app is gone; this payload can never succeed, so clear it to
-            # avoid leaking a session entry on every replay of this error.
-            request.session.pop(session_key, None)
-            request.session.modified = True
-            return self.respond(
-                "sentry/oauth-error.html",
-                {"error": mark_safe("Missing or invalid <em>client_id</em> parameter.")},
-            )
-
-        # Clean up the session key after verifying the user to prevent replay attacks
-        del request.session[session_key]
-        request.session.modified = True
-
-        if payload["uid"] != request.user.id:
-            return self.respond(
-                "sentry/oauth-error.html",
-                {
-                    "error": "We were unable to complete your request. Please re-initiate the authorization flow."
-                },
-            )
-
-        response_type = payload["rt"]
-        redirect_uri = payload["ru"]
-        scopes = payload["sc"]
-        code_challenge = payload.get("cc")
-        code_challenge_method = payload.get("ccm")
+            return self.respond("sentry/oauth-error.html", {"error": error})
 
         op = request.POST.get("op")
-        if op == "approve":
-            analytics.record(
-                OAuthConsentEvent(
-                    user_id=request.user.id,
-                    application_id=application.id,
-                    response_type=response_type,
-                    outcome="approved",
-                )
-            )
-            return self.approve(
-                request=request,
-                user=request.user,
-                application=application,
-                scopes=scopes,
-                response_type=response_type,
-                redirect_uri=redirect_uri,
-                state=payload["st"],
-                code_challenge=code_challenge,
-                code_challenge_method=code_challenge_method,
-            )
-
-        elif op == "deny":
-            analytics.record(
-                OAuthConsentEvent(
-                    user_id=request.user.id,
-                    application_id=application.id,
-                    response_type=response_type,
-                    outcome="denied",
-                )
-            )
-            return self.error(
-                request=request,
-                client_id=payload["cid"],
-                response_type=response_type,
-                redirect_uri=redirect_uri,
-                name="access_denied",
-                state=payload["st"],
-            )
-        else:
+        if op not in ("approve", "deny"):
             raise NotImplementedError
 
-    def approve(
-        self,
-        *,
-        request: HttpRequest,
-        user: User,
-        application,
-        scopes,
-        response_type: Literal["code", "token"],
-        redirect_uri,
-        state,
-        code_challenge=None,
-        code_challenge_method=None,
-    ) -> HttpResponseBase:
-        try:
-            selected_organization_id = resolve_organization(
-                application, user.id, request.POST.get("selected_organization_id")
+        analytics.record(
+            OAuthConsentEvent(
+                user_id=request.user.id,
+                application_id=authorization.application.id,
+                response_type=authorization.response_type,
+                outcome="approved" if op == "approve" else "denied",
             )
-        except InvalidOrganizationSelection as exc:
+        )
+        if op == "deny":
             return self.error(
                 request=request,
-                client_id=application.client_id,
-                response_type=response_type,
-                redirect_uri=redirect_uri,
-                name=(
-                    "invalid_request"
-                    if exc.reason == OrganizationSelectionError.REQUIRED
-                    else "unauthorized_client"
-                ),
-                state=state,
+                client_id=authorization.application.client_id,
+                response_type=authorization.response_type,
+                redirect_uri=authorization.redirect_uri,
+                name="access_denied",
+                state=authorization.state,
             )
 
-        persist_authorization(application, user.id, scopes, selected_organization_id)
+        try:
+            redirect_url = approve_authorization(
+                authorization, request.user.id, request.POST.get("selected_organization_id")
+            )
+        except OAuthRedirectError as exc:
+            return self.redirect_to_callback(exc.redirect_url)
 
-        metrics.incr(
-            "oauth_authorize.get.approve",
-            sample_rate=1.0,
-            tags={
-                "response_type": response_type,
-            },
-        )
-
-        if response_type == "code":
-            grant = ApiGrant.objects.create(
-                user_id=user.id,
-                application=application,
-                redirect_uri=redirect_uri,
-                scope_list=scopes,
-                organization_id=selected_organization_id,
-                code_challenge=code_challenge,
-                code_challenge_method=code_challenge_method,
-            )
-            logger.info(
-                "approve.grant",
-                extra={
-                    "response_type": response_type,
-                    "redirect_uri": redirect_uri,
-                    "scope": scopes,
-                },
-            )
-            return self.redirect_response(
-                response_type,
-                redirect_uri,
-                {"code": grant.code, "state": state},
-            )
-        elif response_type == "token":
-            token = ApiToken.objects.create(
-                application=application,
-                user_id=user.id,
-                refresh_token=None,
-                scope_list=scopes,
-                scoping_organization_id=selected_organization_id,
-            )
-
-            logger.info(
-                "approve.token",
-                extra={
-                    "response_type": response_type,
-                    "redirect_uri": redirect_uri,
-                    "scope": " ".join(token.get_scopes()),
-                    "state": state,
-                },
-            )
-            assert token.expires_at, "expires_at is required"
-
-            return self.redirect_response(
-                response_type,
-                redirect_uri,
-                {
-                    "access_token": token.token,
-                    "expires_in": int((token.expires_at - timezone.now()).total_seconds()),
-                    "expires_at": token.expires_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                    "token_type": "Bearer",
-                    "scope": " ".join(token.get_scopes()),
-                    "state": state,
-                },
-            )
-        else:
-            raise AssertionError(response_type)
+        return self.redirect_to_callback(redirect_url)
