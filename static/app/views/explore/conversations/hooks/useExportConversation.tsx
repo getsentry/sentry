@@ -1,6 +1,7 @@
 import {useCallback, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {
+  CancelledError,
   InfiniteQueryObserver,
   useQueryClient,
   type InfiniteData,
@@ -96,6 +97,14 @@ export function useExportConversation({
       {...options.queryKey[2], export: true},
     ] as unknown as typeof options.queryKey;
 
+    // The button can remount with a reset `isExporting` when the user leaves
+    // and returns to the transcript tab, letting a second export start while
+    // the first still runs on this shared key. Cancel and clear the previous
+    // one first so the new export supersedes it rather than the two cancelling
+    // each other; the superseded export rejects with a CancelledError.
+    await queryClient.cancelQueries({queryKey: exportQueryKey});
+    queryClient.removeQueries({queryKey: exportQueryKey});
+
     const observer = new InfiniteQueryObserver(queryClient, {
       ...options,
       queryKey: exportQueryKey,
@@ -103,12 +112,11 @@ export function useExportConversation({
         | ConversationInfiniteData
         | undefined,
     });
-    // No try/finally here: the React Compiler does not support a finalizer, so
-    // cleanup is called on both the success and error paths explicitly.
-    const cleanup = () => {
-      observer.destroy();
-      queryClient.removeQueries({queryKey: exportQueryKey});
-    };
+    // Only destroy the observer on the way out; the shared query entry is left
+    // for the next export to cancel/clear (and for React Query to gc), so a
+    // superseded export never removes a newer one's in-flight query. No
+    // try/finally: the React Compiler rejects a finalizer.
+    const cleanup = () => observer.destroy();
 
     try {
       let result = observer.getCurrentResult();
@@ -159,6 +167,10 @@ export function useExportConversation({
         setIsExporting(false);
       } catch (error) {
         setIsExporting(false);
+        // A newer export cancelled this one; let that export report instead.
+        if (error instanceof CancelledError) {
+          return;
+        }
         Sentry.captureException(error);
         addErrorMessage(t('Failed to export transcript'));
       }
