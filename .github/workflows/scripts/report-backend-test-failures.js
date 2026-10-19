@@ -42,10 +42,26 @@ export function parseFailures(files, core) {
       .filter(t => t.outcome === 'failed')
       .map(t => ({
         nodeid: t.nodeid ?? 'unknown',
-        longrepr: (t.call ?? t.setup ?? t.teardown ?? {}).longrepr ?? '',
+        longrepr:
+          failedSubtests(t) || ((t.call ?? t.setup ?? t.teardown ?? {}).longrepr ?? ''),
         artifactDir,
       }));
   });
+}
+
+// The parent's own longrepr only says "contains N failed subtests". Render
+// each failed subtest the way pytest's SUBFAILED line does.
+function failedSubtests(test) {
+  return (test.subtests ?? [])
+    .filter(s => s.outcome === 'failed')
+    .map(({context, longrepr}) => {
+      const kwargs = Object.entries(context?.kwargs ?? {}).map(([k, v]) => `${k}=${v}`);
+      const msg =
+        context?.msg === null || context?.msg === undefined ? [] : [`[${context.msg}]`];
+      const description = [...msg, ...(kwargs.length ? [`(${kwargs.join(', ')})`] : [])];
+      return `SUBFAILED ${description.join(' ') || '(<subtest>)'}\n${longrepr ?? ''}`;
+    })
+    .join('\n\n');
 }
 
 // Maps artifact directory names to GitHub Actions job log URLs.

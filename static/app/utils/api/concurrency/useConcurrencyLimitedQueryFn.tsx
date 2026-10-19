@@ -36,14 +36,14 @@ function keepDraining() {}
  *
  * Each call resolves or rejects with its own request's result, so TanStack
  * Query caching and retries are unchanged. A retry joins the back of the queue.
+ *
+ * The queue reads `signal` itself, so only the returned function requires it;
+ * the wrapped `queryFn` may take a narrower context, like `apiFetch`'s `{queryKey}`.
  */
-export function useConcurrencyLimitedQueryFn<
-  TContext extends {signal: AbortSignal},
-  TResult,
->(
+export function useConcurrencyLimitedQueryFn<TContext, TResult>(
   queryFn: (context: TContext) => Promise<TResult>,
   {concurrency, key}: {concurrency: number; key: string}
-): (context: TContext) => Promise<TResult> {
+): (context: TContext & {signal: AbortSignal}) => Promise<TResult> {
   const {addItem} = useAsyncQueuer(runLimitedRequest, {
     ...asyncQueuerOptions<LimitedRequest>({
       concurrency,
@@ -64,7 +64,7 @@ export function useConcurrencyLimitedQueryFn<
   });
 
   return useCallback(
-    (context: TContext) => {
+    (context: TContext & {signal: AbortSignal}) => {
       const deferred = Promise.withResolvers<TResult>();
       addItem({
         reject: deferred.reject,

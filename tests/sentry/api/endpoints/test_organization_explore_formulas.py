@@ -55,7 +55,7 @@ class TestFormulaDetails(BaseFormulaTest):
             {"name": "count_satisfied", "value": "count_if(`{duration}:<{threshold}`)"},
             {
                 "name": "count_tolerating",
-                "value": "count_if(`{duration}:>={threshold} and {duration}:<={4threshold}`)",
+                "value": "count_if(`{duration}:>={threshold} and {duration}:<={frustrated}`)",
             },
         ]
         assert data["params"] == [
@@ -71,7 +71,7 @@ class TestFormulaDetails(BaseFormulaTest):
                 "order": 1,
                 "value": "",
             },
-            {"name": "4threshold", "type": "calculation", "order": 2, "value": "{threshold} * 4"},
+            {"name": "frustrated", "type": "calculation", "order": 2, "value": "{threshold} * 4"},
         ]
 
     def test_delete_explore_formula(self) -> None:
@@ -301,7 +301,7 @@ class TestFormulas(BaseFormulaTest):
             assert response.status_code == 400, response.content
         assert "non_field_errors" in response.data
         error_msg = str(response.data["non_field_errors"][0])
-        assert "Missing parameters for 4threshold; prossh" == error_msg
+        assert "Missing parameters for frustrated; prossh" == error_msg
 
     def test_parameter_existence_validation(self) -> None:
         self.formula_object["formula"] = "count_if(`{duration}:<{prossh} or {2.threshold}`)"

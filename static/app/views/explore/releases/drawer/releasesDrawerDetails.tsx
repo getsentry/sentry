@@ -229,7 +229,9 @@ export function ReleasesDrawerDetails({
   });
 
   const {
+    // oxlint-disable-next-line react/todo
     [ReleasesDrawerFields.RELEASE]: _release,
+    // oxlint-disable-next-line react/todo
     [ReleasesDrawerFields.RELEASE_PROJECT_ID]: _releaseProjectId,
     ...locationQueryWithoutRelease
   } = location.query;
