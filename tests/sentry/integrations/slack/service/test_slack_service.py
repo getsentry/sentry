@@ -285,7 +285,8 @@ class TestNotifyAllThreadsForActivity(TestCase):
             "organizations:notification-platform.internal-testing",
         ]
     )
-    @override_options({"notifications.platform-rollout.internal-testing": {"issue": 1.0}})
+    # A 0% rate would skip every new send, but replies still reach threads sent at a higher rate
+    @override_options({"notifications.platform-rollout.internal-testing": {"issue": 0.0}})
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch(
         "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
