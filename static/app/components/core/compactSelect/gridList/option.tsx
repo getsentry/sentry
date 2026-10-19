@@ -114,7 +114,9 @@ export function GridListOption<T extends ListItemBase>({
               readOnly
             />
           ) : (
-            isSelected && <IconCheckmark size={checkboxSize} {...checkboxProps} />
+            isSelected && (
+              <IconCheckmark size={checkboxSize} variant="accent" {...checkboxProps} />
+            )
           )}
         </LeadWrap>
         {leading ? <LeadWrap role="presentation">{leading}</LeadWrap> : null}
@@ -134,7 +136,7 @@ export function GridListOption<T extends ListItemBase>({
       isSelected={isSelected}
       isPressed={isPressed}
       isFocused={isFocusWithin}
-      priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
+      priority={priority ? 'primary' : 'default'}
       innerWrapProps={gridCellProps}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
