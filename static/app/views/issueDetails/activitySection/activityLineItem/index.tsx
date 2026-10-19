@@ -3,19 +3,26 @@ import {useMemo} from 'react';
 import {TimeSince} from 'sentry/components/timeSince';
 import {GroupActivityType, type Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
 import type {ActivityFeedItem} from './activityFeedItem';
 import {getActivityItem} from './activityItem';
-import {ActivityLineHeadline, ActivityLineRow} from './layout';
+import {ActivityLineHeadline} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
 interface ActivityLineProps {
   group: Group;
   item: ActivityFeedItem;
+  children?: React.ReactNode;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
-export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProps) {
+export function ActivityLine({
+  item,
+  group,
+  children,
+  timestampUnitStyle,
+}: ActivityLineProps) {
   const organization = useOrganization();
   const showProgress = organization.features.includes('issue-activity-progress');
   const {issueCategory, project} = group;
@@ -41,18 +48,24 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
   }
 
   return (
-    <ActivityLineRow>
-      <ActivityLineMarker
-        actorItem={actorActivity}
-        item={activity}
-        showProgress={showProgress}
-      />
-      <ActivityLineHeadline
-        title={activityItem.title}
-        details={activityItem.details}
-        source={activityItem.source}
-        timestamp={timestamp}
-      />
-    </ActivityLineRow>
+    <Timeline.Item
+      marker={
+        <ActivityLineMarker
+          item={activity}
+          actorItem={actorActivity}
+          showProgress={showProgress}
+        />
+      }
+      headline={
+        <ActivityLineHeadline
+          title={activityItem.title}
+          details={activityItem.details}
+          source={activityItem.source}
+          timestamp={timestamp}
+        />
+      }
+    >
+      {children}
+    </Timeline.Item>
   );
 }
