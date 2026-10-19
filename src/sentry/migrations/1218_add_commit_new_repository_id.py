@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1216_remove_ruleactivity_constraint"),
+        ("sentry", "1217_grouprelease_add_new_release_id"),
     ]
 
     operations = [
