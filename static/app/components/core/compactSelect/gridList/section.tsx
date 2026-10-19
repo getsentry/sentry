@@ -51,9 +51,9 @@ export function GridListSection<T extends ListItemBase>({
         {(node.rendered || showToggleAllButton) && (
           <SectionHeader>
             {node.rendered && (
-              <Menu.ItemGroupLabel id={titleId} aria-hidden>
+              <Menu.SectionLabel id={titleId} aria-hidden>
                 {node.rendered}
-              </Menu.ItemGroupLabel>
+              </Menu.SectionLabel>
             )}
             {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
           </SectionHeader>

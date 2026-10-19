@@ -59,7 +59,7 @@ export function ListBoxSection<T extends ListItemBase>({
         {(item.rendered || showToggleAllButton) && showSectionHeaders && (
           <SectionHeader>
             {item.rendered && (
-              <Menu.ItemGroupLabel {...headingProps}>{item.rendered}</Menu.ItemGroupLabel>
+              <Menu.SectionLabel {...headingProps}>{item.rendered}</Menu.SectionLabel>
             )}
             {showToggleAllButton && <SectionToggle item={item} listState={listState} />}
           </SectionHeader>

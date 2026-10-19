@@ -34,7 +34,7 @@ function MenuHeading({children}: {children: React.ReactNode}) {
 }
 
 /** Text style for a heading within a menu section. */
-function MenuItemGroupLabel({
+function MenuSectionLabel({
   children,
   ...props
 }: Omit<React.HTMLAttributes<HTMLSpanElement>, 'color' | 'style'> & {
@@ -515,7 +515,7 @@ export {
   MenuHeading,
   SearchInput,
   MenuSectionGroup,
-  MenuItemGroupLabel,
+  MenuSectionLabel,
   MenuSectionList,
   MenuSectionDivider,
   MenuFooterLayout,
