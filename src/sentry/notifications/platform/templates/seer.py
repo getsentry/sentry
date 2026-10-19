@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from pydantic import Field
 
@@ -9,6 +9,7 @@ from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationData,
+    NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
@@ -279,4 +280,75 @@ class SeerInvestigationErrorTemplate(NotificationTemplate[SeerInvestigationError
         return NotificationRenderedTemplate(
             subject="Seer couldn't start an investigation",
             body=[ParagraphSection(blocks=[PlainTextBlock(text=data.error_message)])],
+        )
+
+
+class SeerInvestigationHypothesis(TypedDict):
+    statement: str
+    label: str
+    detail: str
+
+
+class SeerInvestigationProgress(TypedDict):
+    title: str
+    status: Literal["in_progress", "complete", "error"]
+    detail: str
+
+
+class SeerInvestigationStatus(NotificationData):
+    """Live status of a Seer investigation, edited in place in the alert's Slack thread."""
+
+    title: str
+    investigation_url: str
+    subtitle: str | None = None
+    hypotheses: list[SeerInvestigationHypothesis] = Field(default_factory=list)
+    progress: SeerInvestigationProgress | None = None
+    source: NotificationSource = NotificationSource.SEER_INVESTIGATION_STATUS
+
+
+@template_registry.register(NotificationSource.SEER_INVESTIGATION_STATUS)
+class SeerInvestigationStatusTemplate(NotificationTemplate[SeerInvestigationStatus]):
+    category = NotificationCategory.SEER
+    example_data = SeerInvestigationStatus(
+        organization_id=1,
+        title="FCP on organization login pages",
+        subtitle="`/auth/login/[org]/` · Aug 27, 09:00–11:00 UTC",
+        investigation_url="https://sentry.io/organizations/example/explore/investigations/1/",
+        hypotheses=[
+            SeerInvestigationHypothesis(
+                statement="Database or cache degradation delayed the response",
+                label="● Verifying",
+                detail="Comparing server response time, organization lookup spans, and cache behavior…",
+            ),
+            SeerInvestigationHypothesis(
+                statement="A frontend release added render-blocking assets",
+                label="● Supported",
+                detail="The FCP increase lines up with the release that added a new font file.",
+            ),
+            SeerInvestigationHypothesis(
+                statement="A third-party script slowed the first paint",
+                label="● Refuted",
+                detail="Third-party script timings did not change during the breach window.",
+            ),
+        ],
+        progress=SeerInvestigationProgress(
+            title="Verifying hypotheses",
+            status="in_progress",
+            detail="Checking the remaining explanations against related telemetry.",
+        ),
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerInvestigationStatus) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject=f"Investigating {data.title}",
+            body=[
+                ParagraphSection(blocks=[PlainTextBlock(text=f"{h['statement']}: {h['label']}")])
+                for h in data.hypotheses
+            ],
+            actions=[
+                NotificationRenderedAction(
+                    label="View full investigation", link=data.investigation_url
+                )
+            ],
         )

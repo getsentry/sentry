@@ -153,6 +153,31 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         assert meta["dataset"] == self.dataset
 
+    def test_invalid_wildcard_filter(self) -> None:
+        logs = [
+            self.create_ourlog(
+                {"body": "bar"},
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "foo"},
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": "message:*wild\\",
+                "orderby": "log.body",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert "Search terms cannot end with an escape character" in response.data["detail"]
+
     def test_regex_filter(self) -> None:
         logs = [
             self.create_ourlog(

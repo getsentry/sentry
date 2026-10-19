@@ -19,7 +19,6 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.incident import (
     Incident,
-    IncidentProject,
     IncidentStatus,
     IncidentStatusMethod,
     IncidentType,
@@ -57,7 +56,6 @@ class CreateIncidentTest(TestCase):
             title=title,
             date_started=date_started,
             date_detected=date_detected,
-            projects=[self.project],
             alert_rule=alert_rule,
         )
         assert incident.identifier == 1
@@ -67,9 +65,7 @@ class CreateIncidentTest(TestCase):
         assert incident.date_started == date_started
         assert incident.date_detected == date_detected
         assert incident.alert_rule == alert_rule
-        assert IncidentProject.objects.filter(
-            incident=incident, project__in=[self.project]
-        ).exists()
+        assert not incident.projects.exists()
         assert len(self.record_event.call_args_list) == 1
         event = self.record_event.call_args[0][0].event
         assert event == IncidentCreatedEvent(

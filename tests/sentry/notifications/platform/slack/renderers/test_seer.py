@@ -5,6 +5,7 @@ from slack_sdk.models.blocks import (
     ActionsBlock,
     ButtonElement,
     ContextBlock,
+    DividerBlock,
     LinkButtonElement,
     MarkdownBlock,
     MarkdownTextObject,
@@ -32,6 +33,8 @@ from sentry.notifications.platform.templates.seer import (
     SeerInvestigationErrorTemplate,
     SeerInvestigationStarted,
     SeerInvestigationStartedTemplate,
+    SeerInvestigationStatus,
+    SeerInvestigationStatusTemplate,
 )
 from sentry.notifications.platform.tracking import NotificationLink, NotificationLinkDecorator
 from sentry.notifications.platform.types import (
@@ -545,3 +548,115 @@ class SeerSlackRendererInvestigationTest(TestCase):
         (block,) = renderable["blocks"]
         assert isinstance(block, MarkdownBlock)
         assert block.text == text
+
+    def test_render_investigation_status_without_hypotheses(self) -> None:
+        renderable, _ = NotificationService.render_template(
+            data=SeerInvestigationStatus(
+                organization_id=1,
+                title="Checkout <errors>",
+                subtitle="`/checkout/`",
+                investigation_url="https://example.com/investigation",
+            ),
+            template=SeerInvestigationStatusTemplate(),
+            provider=SlackNotificationProvider,
+        )
+
+        assert renderable["text"] == "Investigating Checkout &lt;errors&gt;"
+        header, divider, actions = renderable["blocks"]
+        assert isinstance(header, SectionBlock)
+        assert header.text is not None
+        assert header.text.type == "mrkdwn"
+        assert header.text.text == "*Investigating Checkout &lt;errors&gt;*\n`/checkout/`"
+        assert isinstance(divider, DividerBlock)
+        assert isinstance(actions, ActionsBlock)
+
+    @override_options(
+        {
+            "notifications.tracking.sources": ["seer-investigation-status"],
+            "system.url-prefix": "https://sentry.io",
+        }
+    )
+    def test_render_investigation_status_decorates_link(self) -> None:
+        url = "https://acme.sentry.io/explore/investigations/1/"
+
+        renderable, links = NotificationService.render_template(
+            data=SeerInvestigationStatus(
+                organization_id=1, title="Checkout errors", subtitle=None, investigation_url=url
+            ),
+            template=SeerInvestigationStatusTemplate(),
+            provider=SlackNotificationProvider,
+        )
+
+        actions = renderable["blocks"][-1]
+        assert isinstance(actions, ActionsBlock)
+        (button,) = actions.elements
+        assert isinstance(button, ButtonElement)
+        assert button.url is not None
+        assert button.url.startswith(f"{url}?referrer=seer-investigation-status-slack")
+        assert links == {NotificationLink.INVESTIGATION}
+
+    def test_render_investigation_status_with_hypotheses(self) -> None:
+        template = SeerInvestigationStatusTemplate()
+        data = template.example_data
+
+        renderable, _ = NotificationService.render_template(
+            data=data, template=template, provider=SlackNotificationProvider
+        )
+
+        assert renderable["text"] == "Investigating FCP on organization login pages"
+        header, *quotes, task_card, divider, actions = renderable["blocks"]
+        assert isinstance(header, SectionBlock)
+        assert header.text is not None
+        assert header.text.text == (
+            "*Investigating FCP on organization login pages*\n"
+            "`/auth/login/[org]/` · Aug 27, 09:00–11:00 UTC"
+        )
+        assert len(quotes) == len(data.hypotheses)
+        assert quotes[0].to_dict()["elements"] == [
+            {
+                "type": "rich_text_quote",
+                "elements": [
+                    {
+                        "type": "text",
+                        "text": "1. Database or cache degradation delayed the response",
+                        "style": {"bold": True},
+                    },
+                    {"type": "text", "text": "\n● Verifying", "style": {"bold": True}},
+                    {
+                        "type": "text",
+                        "text": "\nComparing server response time, organization lookup "
+                        "spans, and cache behavior…",
+                    },
+                ],
+            }
+        ]
+        assert task_card.to_dict() == {
+            "type": "task_card",
+            "task_id": "investigation-progress",
+            "title": "Verifying hypotheses",
+            "status": "in_progress",
+            "details": {
+                "type": "rich_text",
+                "elements": [
+                    {
+                        "type": "rich_text_section",
+                        "elements": [
+                            {
+                                "type": "text",
+                                "text": "Checking the remaining explanations against related "
+                                "telemetry.",
+                            }
+                        ],
+                    }
+                ],
+            },
+        }
+        assert isinstance(divider, DividerBlock)
+        assert isinstance(actions, ActionsBlock)
+        (button,) = actions.elements
+        assert isinstance(button, ButtonElement)
+        assert button.text is not None
+        assert button.text.text == "View full investigation"
+        assert button.url == data.investigation_url
+        assert button.style == "primary"
+        assert button.value == "link_clicked"

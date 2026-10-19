@@ -1,6 +1,6 @@
 from datetime import timedelta
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
@@ -22,6 +22,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.notifications.platform.tracking import NotificationLink
 from sentry.notifications.platform.types import NotificationSource
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
+from sentry.seer.entrypoints.operator import process_investigation_updates
 from sentry.seer.entrypoints.slack.entrypoint import (
     SlackInvestigationCachePayload,
 )
@@ -249,6 +250,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
 
         assert response.status_code == 200
         (investigation,) = self.investigations()
+        process_investigation_updates(investigation_id=investigation.id)
         assert investigation.created_by_id == self.user.id
         assert investigation.source["ref"] == {
             "groupId": str(self.metric_group.id),
@@ -268,16 +270,19 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert button["text"]["text"] == "Open investigation"
         assert button["url"].startswith(f"{link}?referrer=seer-investigation-started-slack")
 
-        post_kwargs = self.mock_post_message.call_args.kwargs
-        assert post_kwargs["channel"] == CHANNEL_ID
-        assert post_kwargs["thread_ts"] == MESSAGE_TS
-        assert link not in str(post_kwargs["blocks"])
-        assert post_kwargs["text"] == (
+        started_call, status_call = self.mock_post_message.call_args_list
+        assert started_call.kwargs["channel"] == CHANNEL_ID
+        assert started_call.kwargs["thread_ts"] == MESSAGE_TS
+        assert link not in str(started_call.kwargs["blocks"])
+        assert started_call.kwargs["text"] == (
             f"<@{self.external_id}> started a Seer investigation for this alert."
         )
         alert_update_call, thread_post_call = mock_record_sent.call_args_list
         assert alert_update_call.kwargs["links"] == {NotificationLink.INVESTIGATION}
         assert not thread_post_call.kwargs.get("links")
+        assert status_call.kwargs["channel"] == CHANNEL_ID
+        assert status_call.kwargs["thread_ts"] == MESSAGE_TS
+        assert status_call.kwargs["text"] == "Investigating Checkout errors"
 
         assert SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
             entrypoint_key="slack", investigation_id=investigation.id
@@ -287,9 +292,9 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             channel_id=CHANNEL_ID,
             thread_ts=MESSAGE_TS,
             alert_message_ts=MESSAGE_TS,
-            status_message_ts=None,
+            status_message_ts="1702424399.000100",
             slack_user_id=self.external_id,
-            last_sent_state=None,
+            last_sent_state=ANY,
             final_sent=False,
         )
 
@@ -347,6 +352,38 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             entrypoint_key="slack", investigation_id=investigation.id
         )
         assert cache_payload is not None
+
+    @with_feature(FEATURES)
+    def test_slack_timeout_during_update_still_posts_status(self) -> None:
+        self.mock_update.side_effect = TimeoutError()
+
+        response = self.click()
+
+        assert response.status_code == 200
+        (investigation,) = self.investigations()
+        process_investigation_updates(investigation_id=investigation.id)
+        # The started message is skipped, but the update task still posts the status.
+        (status_call,) = self.mock_post_message.call_args_list
+        assert status_call.kwargs["text"] == "Investigating Checkout errors"
+        cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+            entrypoint_key="slack", investigation_id=investigation.id
+        )
+        assert cache_payload is not None
+        assert cache_payload["status_message_ts"] == "1702424399.000100"
+
+    @with_feature(FEATURES)
+    def test_slack_timeout_during_thread_post_still_caches(self) -> None:
+        self.mock_post_message.side_effect = TimeoutError()
+
+        response = self.click()
+
+        assert response.status_code == 200
+        (investigation,) = self.investigations()
+        cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+            entrypoint_key="slack", investigation_id=investigation.id
+        )
+        assert cache_payload is not None
+        assert cache_payload["status_message_ts"] is None
 
     @with_feature(FEATURES)
     @patch(

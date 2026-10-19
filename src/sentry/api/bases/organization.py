@@ -47,7 +47,7 @@ from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import bind_organization_context, set_span_attribute
+from sentry.utils.sdk import bind_organization_context
 
 logger = logging.getLogger(__name__)
 
@@ -707,7 +707,9 @@ class OrganizationEndpoint(Endpoint):
         sentry_sdk.set_attribute("query.num_projects", len_projects)
         sentry_sdk.set_tag("query.num_projects.grouped", format_grouped_length(len_projects))
         sentry_sdk.set_attribute("query.num_projects.grouped", format_grouped_length(len_projects))
-        set_span_attribute("query.num_projects", len_projects)
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("query.num_projects", len_projects)
 
         params: FilterParams = {
             "start": start,

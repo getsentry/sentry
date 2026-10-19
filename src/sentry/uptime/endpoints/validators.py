@@ -745,7 +745,10 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
 
         if was_enabled != enabled:
             if enabled:
-                enable_uptime_detector(instance)
+                try:
+                    enable_uptime_detector(instance)
+                except UptimeMonitorNoSeatAvailable as err:
+                    raise serializers.ValidationError({"enabled": [err.result.reason]})
             else:
                 disable_uptime_detector(instance)
 

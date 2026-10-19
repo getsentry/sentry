@@ -6,10 +6,13 @@ from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notifications.platform.registry import provider_registry
+from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
     SeerAgentResponse,
@@ -18,8 +21,15 @@ from sentry.notifications.platform.templates.seer import (
     SeerAutofixUpdate,
     SeerInvestigationError,
     SeerInvestigationStarted,
+    SeerInvestigationStatus,
+    SeerInvestigationStatusTemplate,
 )
-from sentry.notifications.platform.types import NotificationData
+from sentry.notifications.platform.tracking import (
+    NotificationLink,
+    NotificationTrackingContext,
+    record_sent,
+)
+from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import PendingUserInput
@@ -28,12 +38,20 @@ from sentry.seer.endpoints.agent_request import (
     AgentApprovalRequestData,
     AgentApprovalRequestSerializer,
 )
-from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
+from sentry.seer.entrypoints.cache import (
+    SeerOperatorAutofixCache,
+    SeerOperatorInvestigationCache,
+)
+from sentry.seer.entrypoints.metrics import (
+    SlackEntrypointEventLifecycleMetric,
+    SlackEntrypointInteractionType,
+)
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
     autofix_entrypoint_registry,
     investigation_entrypoint_registry,
 )
+from sentry.seer.entrypoints.slack.investigation_status import build_investigation_status
 from sentry.seer.entrypoints.slack.messaging import (
     schedule_all_thread_updates,
     send_thread_update,
@@ -47,7 +65,7 @@ from sentry.seer.entrypoints.types import (
     SeerInvestigationEntrypoint,
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
@@ -764,7 +782,114 @@ class SlackInvestigationEntrypoint(
     def on_investigation_update(
         cache_payload: SlackInvestigationCachePayload, run: InvestigationOrchestrationRun
     ) -> None:
-        pass
+        investigation_id = run.investigation_id
+        with SlackEntrypointEventLifecycleMetric(
+            interaction_type=SlackEntrypointInteractionType.UPDATE_INVESTIGATION_STATUS,
+            integration_id=cache_payload["integration_id"],
+            organization_id=cache_payload["organization_id"],
+        ).capture() as lifecycle:
+            lifecycle.add_extras({"investigation_id": investigation_id})
+            lock = locks.get(
+                f"seer:investigation:slack:{investigation_id}",
+                duration=10,
+                name="investigation_entrypoint_slack",
+            )
+            try:
+                with lock.blocking_acquire(initial_delay=0.1, timeout=10):
+                    SlackInvestigationEntrypoint._update_investigation_status(
+                        run_id=run.id, lifecycle=lifecycle
+                    )
+            except UnableToAcquireLock as e:
+                lifecycle.record_halt(halt_reason=e)
+                # The holder may have read an older run, so retry once it lets go.
+                raise
+
+    @staticmethod
+    def _update_investigation_status(*, run_id: int, lifecycle: EventLifecycle) -> None:
+        from sentry.integrations.slack.integration import SlackIntegration
+
+        try:
+            run = InvestigationOrchestrationRun.objects.select_related("investigation").get(
+                id=run_id
+            )
+        except InvestigationOrchestrationRun.DoesNotExist:
+            lifecycle.record_halt(halt_reason="run_not_found")
+            return
+        cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
+            entrypoint_key=str(SlackInvestigationEntrypoint.key),
+            investigation_id=run.investigation_id,
+        )
+        if cache_payload is None:
+            return
+
+        data, fingerprint = build_investigation_status(
+            investigation=run.investigation,
+            projection=run.projection,
+            phase=run.phase,
+            status=run.status,
+            updated_at=run.date_updated,
+        )
+        if fingerprint == cache_payload["last_sent_state"]:
+            return
+
+        organization_id = cache_payload["organization_id"]
+        integration = integration_service.get_integration(
+            integration_id=cache_payload["integration_id"],
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+        if integration is None:
+            lifecycle.record_halt(halt_reason="integration_not_found")
+            return
+
+        install = SlackIntegration(model=integration, organization_id=organization_id)
+        renderable, links = NotificationService.render_template(
+            data=data,
+            template=SeerInvestigationStatusTemplate(),
+            provider=provider_registry.get(NotificationProviderKey.SLACK),
+        )
+        status_message_ts = cache_payload["status_message_ts"]
+        try:
+            if status_message_ts:
+                install.update_message(
+                    channel_id=cache_payload["channel_id"],
+                    message_ts=status_message_ts,
+                    renderable=renderable,
+                )
+            else:
+                response = install.send_threaded_message(
+                    channel_id=cache_payload["channel_id"],
+                    renderable=renderable,
+                    thread_ts=cache_payload["thread_ts"],
+                )
+                status_message_ts = response.get("ts") if response is not None else None
+        except (IntegrationError, IntegrationConfigurationError) as e:
+            lifecycle.record_halt(halt_reason=e)
+            return
+        _record_status_sent(data=data, links=links)
+
+        SeerOperatorInvestigationCache[SlackInvestigationCachePayload].set(
+            entrypoint_key=str(SlackInvestigationEntrypoint.key),
+            investigation_id=run.investigation_id,
+            cache_payload={
+                **cache_payload,
+                "status_message_ts": status_message_ts,
+                "last_sent_state": fingerprint,
+            },
+        )
+
+
+def _record_status_sent(*, data: SeerInvestigationStatus, links: set[NotificationLink]) -> None:
+    record_sent(
+        NotificationTrackingContext(
+            source=data.source,
+            provider=NotificationProviderKey.SLACK,
+            category=SeerInvestigationStatusTemplate.category,
+            notification_uuid=data.notification_uuid,
+            organization_id=data.organization_id,
+        ),
+        links=links,
+    )
 
 
 def prepare_slack_thread_for_autofix_updates(

@@ -21,8 +21,8 @@ class RuleSnooze(Model):
 
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True)
     owner_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
-    rule = FlexibleForeignKey("sentry.Rule", null=True)
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True)
+    rule = FlexibleForeignKey("sentry.Rule", null=True, db_constraint=False)
+    alert_rule = FlexibleForeignKey("sentry.AlertRule", null=True, db_constraint=False)
     until = models.DateTimeField(null=True, db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
 
