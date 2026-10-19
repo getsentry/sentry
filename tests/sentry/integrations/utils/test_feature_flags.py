@@ -15,6 +15,14 @@ def test_no_flags() -> None:
     assert get_event_feature_flags(_make_event({"contexts": {"flags": {"values": "x"}}})) == []
 
 
+def test_malformed_contexts() -> None:
+    assert get_event_feature_flags(_make_event({"contexts": None})) == []
+    assert get_event_feature_flags(_make_event({"contexts": "x"})) == []
+    assert get_event_feature_flags(_make_event({"contexts": ["flags"]})) == []
+    assert get_event_feature_flags(_make_event({"contexts": {"flags": "x"}})) == []
+    assert get_event_feature_flags(_make_event({"contexts": {"flags": ["values"]}})) == []
+
+
 def test_extracts_and_normalizes_flags() -> None:
     event = _make_event(
         {
