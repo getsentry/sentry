@@ -29,7 +29,10 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.constants import SEMVER_FAKE_PACKAGE
-from sentry.ingest.inbound_filters import get_supported_condition_types
+from sentry.ingest.inbound_filters import (
+    get_supported_condition_types,
+    get_supported_operators,
+)
 from sentry.models.custominboundfilter import (
     COMPARISON_OPERATORS,
     MAX_FILTERS_PER_PROJECT,
@@ -132,35 +135,55 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             "`metric_name`. `span` and `all` accept no other types."
         ),
     )
+    # A row stored before operators existed carries none, and DRF cannot read a required
+    # field that is missing. `validate` requires it on input instead, also on a partial
+    # update, where DRF skips the check.
     operator = serializers.ChoiceField(
         choices=[operator.value for operator in ConditionOperator],
-        default=ConditionOperator.MATCHES.value,
+        required=False,
         help_text=(
-            "How the field compares to `value`. `matches` filters data whose field matches "
-            "any value. `does_not_match` filters data whose field matches none of the values; "
-            "data without the field is kept. `gt`, `gte`, `lt` and `lte` compare a single "
-            "value as a version and only apply to `release`."
+            "How the field compares to `value`. `glob` matches the field against each value "
+            "as a glob pattern. `equals`, `starts_with`, `contains` and `ends_with` match the "
+            "field against each value case-insensitively, with every character read "
+            "literally; `does_not_start_with`, `does_not_contain` and `does_not_end_with` "
+            "match when no value does. `ip_address` only takes `equals`, where a value is an "
+            "address or a CIDR range. `gt`, `gte`, `lt` and `lte` compare one value as a "
+            "version and only apply to `release`."
         ),
     )
     value = serializers.ListField(
         child=serializers.CharField(allow_blank=False, trim_whitespace=True),
         allow_empty=False,
         help_text=(
-            "Glob patterns the field is matched against, or for a version comparison one "
-            "release with a version such as `1.2.0` or `myapp@1.2.0`. A comparison with a "
-            "package only applies to releases of that package."
+            "The values the field is compared to. The condition matches when any value "
+            "matches, so multiple values act as OR; a negated operator matches when none "
+            "does. A version comparison takes one release "
+            "with a version such as `1.2.0` or `myapp@1.2.0`. A comparison with a package "
+            "only applies to releases of that package."
         ),
     )
 
     def validate(self, attrs: CustomInboundFilterCondition) -> CustomInboundFilterCondition:
-        # DRF skips the default on a partial update, but every stored condition carries
-        # its operator.
-        operator = ConditionOperator(attrs.setdefault("operator", ConditionOperator.MATCHES))
+        if "operator" not in attrs:
+            raise serializers.ValidationError({"operator": "This field is required."})
+        condition_type = ConditionType(attrs["type"])
+        operator = ConditionOperator(attrs["operator"])
+
+        supported = get_supported_operators(condition_type)
+        if operator not in supported:
+            raise serializers.ValidationError(
+                {
+                    "operator": (
+                        f"The {condition_type} condition does not take the {operator} "
+                        f"operator. It accepts {', '.join(supported)}."
+                    )
+                }
+            )
         if operator in COMPARISON_OPERATORS:
             self._validate_comparison(attrs)
         # Relay never matches an entry it cannot parse as an address or range, so a typo
         # would silently disable part of the filter.
-        if attrs["type"] == ConditionType.IP_ADDRESS:
+        if condition_type is ConditionType.IP_ADDRESS:
             invalid = [value for value in attrs["value"] if not _is_ip_address_or_range(value)]
             if invalid:
                 raise serializers.ValidationError(
@@ -169,9 +192,13 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         return attrs
 
     def _validate_comparison(self, attrs: CustomInboundFilterCondition) -> None:
-        if attrs["type"] != ConditionType.RELEASE:
+        organization = self.context["project"].organization
+        request = self.context["request"]
+        if not features.has(
+            "organizations:inbound-filters-release-comparisons", organization, actor=request.user
+        ):
             raise serializers.ValidationError(
-                {"operator": f"The {attrs['operator']} operator only applies to release."}
+                {"operator": "Release version comparisons are not enabled for this organization."}
             )
         if len(attrs["value"]) != 1:
             raise serializers.ValidationError(

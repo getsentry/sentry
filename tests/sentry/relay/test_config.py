@@ -1517,3 +1517,36 @@ def test_project_config_skips_the_row_of_a_legacy_list(default_project) -> None:
     assert [i for i in generic_ids if i.startswith(CUSTOM_INBOUND_FILTER_ID_PREFIX)] == [
         f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{mine.id}"
     ]
+
+
+@django_db_all
+@cell_silo_test
+@pytest.mark.parametrize("has_release_comparisons", [False, True])
+def test_project_config_gates_release_comparisons_on_their_feature(
+    default_project, has_release_comparisons
+) -> None:
+    comparison = Factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "operator": "lt", "value": ["2.0.0"]}],
+    )
+    text = Factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="all",
+        conditions=[{"type": "release", "operator": "starts_with", "value": ["1."]}],
+    )
+
+    with Feature(
+        {
+            "projects:custom-inbound-filters": True,
+            "organizations:inbound-filters-v2": True,
+            "organizations:inbound-filters-release-comparisons": has_release_comparisons,
+        }
+    ):
+        cfg = get_project_config(default_project).to_dict()
+
+    _validate_project_config(cfg["config"])
+    generic_ids = [f["id"] for f in get_path(cfg, "config", "filterSettings", "generic", "filters")]
+    custom_ids = [i for i in generic_ids if i.startswith(CUSTOM_INBOUND_FILTER_ID_PREFIX)]
+    expected = [comparison, text] if has_release_comparisons else [text]
+    assert custom_ids == [f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{f.id}" for f in expected]

@@ -277,11 +277,6 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
     }
 
 
-def not_matching_rule_condition(matching: dict, any_value: dict) -> dict:
-    """A negated condition: the item carries the field, and the field does not match."""
-    return {"op": "and", "inner": [any_value, {"op": "not", "inner": matching}]}
-
-
 @django_db_all
 @pytest.mark.parametrize(
     ("data_type", "conditions", "expected_condition"),
@@ -452,67 +447,99 @@ def not_matching_rule_condition(matching: dict, any_value: dict) -> dict:
         ),
         pytest.param(
             "error",
-            [{"type": "release", "operator": "matches", "value": ["1.*"]}],
+            [{"type": "release", "operator": "equals", "value": ["1.0", "2.0"]}],
+            {"op": "glob", "name": "event.release", "value": ["1.0", "2.0"]},
+            id="equals_is_the_literal_glob",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "operator": "starts_with", "value": ["1."]}],
             {"op": "glob", "name": "event.release", "value": ["1.*"]},
-            id="explicit_matches_is_the_plain_match",
-        ),
-        pytest.param(
-            "error",
-            [{"type": "release", "operator": "does_not_match", "value": ["1.*", "2.*"]}],
-            not_matching_rule_condition(
-                {"op": "glob", "name": "event.release", "value": ["1.*", "2.*"]},
-                {"op": "glob", "name": "event.release", "value": ["*"]},
-            ),
-            id="does_not_match_keeps_events_without_the_field",
-        ),
-        pytest.param(
-            "error",
-            [{"type": "error_message", "operator": "does_not_match", "value": ["*timeout*"]}],
-            not_matching_rule_condition(
-                error_message_rule_condition(["*timeout*"]),
-                error_message_rule_condition(["*"]),
-            ),
-            id="does_not_match_error_message",
-        ),
-        pytest.param(
-            "error",
-            [{"type": "error_type", "operator": "does_not_match", "value": ["TypeError"]}],
-            not_matching_rule_condition(
-                error_type_rule_condition(["TypeError"]), error_type_rule_condition(["*"])
-            ),
-            id="does_not_match_error_type",
+            id="starts_with",
         ),
         pytest.param(
             "log",
-            [{"type": "ip_address", "operator": "does_not_match", "value": ["10.0.0.0/8"]}],
-            not_matching_rule_condition(
-                {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
-                {"op": "cidr", "name": "envelope.client_ip", "value": ["0.0.0.0/0", "::/0"]},
-            ),
-            id="does_not_match_ip_address_needs_an_address_of_either_family",
+            [{"type": "log_message", "operator": "contains", "value": ["timeout", "refused"]}],
+            {"op": "glob", "name": "log.body", "value": ["*timeout*", "*refused*"]},
+            id="contains",
+        ),
+        pytest.param(
+            "metric",
+            [{"type": "metric_name", "operator": "ends_with", "value": [".count"]}],
+            {"op": "glob", "name": "trace_metric.name", "value": ["*.count"]},
+            id="ends_with",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "operator": "glob", "value": ["1.*", "2.?"]}],
+            {"op": "glob", "name": "event.release", "value": ["1.*", "2.?"]},
+            id="glob_passes_the_values_through",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "log_message", "operator": "does_not_contain", "value": ["ok", "[2*"]}],
+            {
+                "op": "not",
+                "inner": {"op": "glob", "name": "log.body", "value": ["*ok*", r"*\[2\**"]},
+            },
+            id="does_not_contain",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "error_type", "operator": "does_not_start_with", "value": ["Http"]}],
+            {"op": "not", "inner": error_type_rule_condition(["Http*"])},
+            id="does_not_start_with_on_error_type",
         ),
         pytest.param(
             "all",
-            [{"type": "release", "operator": "does_not_match", "value": ["1.*"]}],
-            not_matching_rule_condition(
-                release_rule_condition(["1.*"]), release_rule_condition(["*"])
-            ),
-            id="catch_all_does_not_match",
+            [{"type": "release", "operator": "does_not_end_with", "value": ["-rc"]}],
+            {"op": "not", "inner": release_rule_condition(["*-rc"])},
+            id="catch_all_does_not_end_with",
         ),
         pytest.param(
             "error",
             [
-                {"type": "error_message", "operator": "does_not_match", "value": ["*timeout*"]},
-                {"type": "release", "operator": "gte", "value": ["2.0"]},
-                {"type": "ip_address", "value": ["10.0.0.0/8"]},
+                {"type": "error_message", "operator": "contains", "value": ["*[401]*"]},
+                {"type": "release", "operator": "equals", "value": ["a?b{c,d}\\e"]},
             ],
             {
                 "op": "and",
                 "inner": [
-                    not_matching_rule_condition(
-                        error_message_rule_condition(["*timeout*"]),
-                        error_message_rule_condition(["*"]),
-                    ),
+                    error_message_rule_condition([r"*\*\[401\]\**"]),
+                    {"op": "glob", "name": "event.release", "value": [r"a\?b\{c,d\}\\e"]},
+                ],
+            },
+            id="glob_characters_in_a_value_are_escaped",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "error_type", "operator": "ends_with", "value": ["Error"]}],
+            error_type_rule_condition(["*Error"]),
+            id="text_operator_on_error_type",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "ip_address", "operator": "equals", "value": ["10.0.0.0/8"]}],
+            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+            id="equals_on_ip_address_is_the_cidr_match",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "release", "operator": "starts_with", "value": ["1."]}],
+            release_rule_condition(["1.*"]),
+            id="catch_all_text_operator",
+        ),
+        pytest.param(
+            "error",
+            [
+                {"type": "error_message", "operator": "contains", "value": ["timeout"]},
+                {"type": "release", "operator": "gte", "value": ["2.0"]},
+                {"type": "ip_address", "operator": "equals", "value": ["10.0.0.0/8"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    error_message_rule_condition(["*timeout*"]),
                     {"op": "release", "name": "event.release", "comparator": "gte", "value": "2.0"},
                     {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
                 ],
@@ -524,6 +551,12 @@ def not_matching_rule_condition(matching: dict, any_value: dict) -> dict:
             [{"type": "ip_address", "value": ["10.0.0.0/8", "203.0.113.7"]}],
             {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8", "203.0.113.7"]},
             id="ip_address_reads_the_envelope_client_ip",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "value": ["1.*", "[23].?"]}],
+            {"op": "glob", "name": "event.release", "value": ["1.*", "[23].?"]},
+            id="a_condition_without_an_operator_holds_raw_globs",
         ),
         pytest.param(
             "error",
@@ -561,7 +594,9 @@ def test_custom_inbound_filter_condition_translation(
         default_project, data_type=data_type, conditions=conditions
     )
 
-    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    [generic_filter] = get_custom_inbound_filter_generic_filters(
+        default_project, release_comparisons=True
+    )
     assert generic_filter == {
         "id": f"custom-inbound-filter:{custom_filter.id}",
         "isEnabled": True,
@@ -584,10 +619,10 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
         conditions=[
             {
                 "type": "error_message",
-                "operator": "matches",
-                "value": ["*ConnectionError*", "Timeout*"],
+                "operator": "contains",
+                "value": ["ConnectionError", "Timeout"],
             },
-            {"type": "release", "operator": "matches", "value": ["1.*"]},
+            {"type": "release", "operator": "starts_with", "value": ["1."]},
         ],
     )
 
@@ -619,13 +654,13 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
                                                 "name": "ty",
                                                 "value": ["*ConnectionError*"],
                                             },
-                                            {"op": "glob", "name": "ty", "value": ["Timeout*"]},
+                                            {"op": "glob", "name": "ty", "value": ["*Timeout*"]},
                                             {
                                                 "op": "glob",
                                                 "name": "value",
                                                 "value": ["*ConnectionError*"],
                                             },
-                                            {"op": "glob", "name": "value", "value": ["Timeout*"]},
+                                            {"op": "glob", "name": "value", "value": ["*Timeout*"]},
                                         ],
                                     },
                                 },
@@ -637,7 +672,7 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
                                 {
                                     "op": "glob",
                                     "name": "event.logentry.formatted",
-                                    "value": ["Timeout*"],
+                                    "value": ["*Timeout*"],
                                 },
                             ],
                         },
@@ -658,7 +693,9 @@ def test_custom_inbound_filter_skips_inactive_filters(default_project, factories
         conditions=[{"type": "release", "value": ["1.*"]}],
     )
 
-    assert get_custom_inbound_filter_generic_filters(default_project) == []
+    assert (
+        get_custom_inbound_filter_generic_filters(default_project, release_comparisons=True) == []
+    )
 
 
 @django_db_all
@@ -709,9 +746,18 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
     # An operator this revision does not know, e.g. one a newer deploy wrote.
     factories.create_project_custom_inbound_filter(
         default_project,
-        conditions=[{"type": "release", "operator": "contains", "value": ["1."]}],
+        conditions=[{"type": "release", "operator": "matches", "value": ["1.*"]}],
     )
-    # Only a release compares as a version, and against exactly one value.
+    # An IP address is no text, and only a release compares as a version, against exactly
+    # one value.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "ip_address", "operator": "starts_with", "value": ["10."]}],
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "ip_address", "operator": "glob", "value": ["10.*"]}],
+    )
     factories.create_project_custom_inbound_filter(
         default_project,
         conditions=[{"type": "error_type", "operator": "gt", "value": ["1.0"]}],
@@ -726,8 +772,37 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
         conditions=[{"type": "release", "value": ["1.*"]}],
     )
 
-    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    [generic_filter] = get_custom_inbound_filter_generic_filters(
+        default_project, release_comparisons=True
+    )
     assert generic_filter["id"] == f"custom-inbound-filter:{valid_filter.id}"
+
+
+@django_db_all
+def test_release_comparisons_need_their_feature(default_project, factories) -> None:
+    # A comparison Relay must not apply yet disables the whole filter, as a dropped
+    # condition would.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[
+            {"type": "release", "operator": "starts_with", "value": ["1."]},
+            {"type": "release", "operator": "lt", "value": ["1.5"]},
+        ],
+    )
+    text_filter = factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "release", "operator": "starts_with", "value": ["2."]}],
+    )
+
+    generic_filters = get_custom_inbound_filter_generic_filters(
+        default_project, release_comparisons=False
+    )
+
+    assert [f["id"] for f in generic_filters] == [f"custom-inbound-filter:{text_filter.id}"]
+    assert (
+        len(get_custom_inbound_filter_generic_filters(default_project, release_comparisons=True))
+        == 2
+    )
 
 
 @django_db_all
@@ -740,7 +815,9 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
         for version in (1, 2, 3)
     ]
 
-    generic_filters = get_custom_inbound_filter_generic_filters(default_project)
+    generic_filters = get_custom_inbound_filter_generic_filters(
+        default_project, release_comparisons=True
+    )
     assert [generic_filter["id"] for generic_filter in generic_filters] == [
         f"custom-inbound-filter:{custom_filter.id}" for custom_filter in created
     ]
@@ -765,7 +842,9 @@ def test_custom_inbound_filters_stop_at_the_project_cap(default_project, factori
         for version in (1, 2, 3)
     ]
 
-    generic_filters = get_custom_inbound_filter_generic_filters(default_project)
+    generic_filters = get_custom_inbound_filter_generic_filters(
+        default_project, release_comparisons=True
+    )
     assert [generic_filter["id"] for generic_filter in generic_filters] == [
         f"custom-inbound-filter:{custom_filter.id}" for custom_filter in created[:2]
     ]
@@ -812,7 +891,7 @@ def test_custom_inbound_filters_stop_at_the_project_cap(default_project, factori
             id="custom_inbound_filters_v2_need_plan_feature",
         ),
         pytest.param(
-            InboundFilterFeatures(True, True, True, True, True),
+            InboundFilterFeatures(True, True, True, True, True, True),
             ["ip-address", "log-message", "trace-metric-name", "cif"],
             id="every_feature",
         ),
@@ -849,7 +928,9 @@ def test_get_generic_filters_omits_gated_sources_without_configuration(default_p
         default_project.update_option(f"filters:{builtin_filter_id}", "0")
 
     assert (
-        get_generic_filters(default_project, InboundFilterFeatures(True, True, True, True, True))
+        get_generic_filters(
+            default_project, InboundFilterFeatures(True, True, True, True, True, True)
+        )
         is None
     )
 

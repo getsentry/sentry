@@ -144,6 +144,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         logs=features.has("organizations:ourlogs-ingestion", organization),
         metrics=features.has("organizations:tracemetrics-ingestion", organization),
         custom_inbound_filters_v2=features.has("organizations:inbound-filters-v2", organization),
+        release_comparisons=features.has(
+            "organizations:inbound-filters-release-comparisons", organization
+        ),
         generic_ip_filter=features.has(
             "organizations:inbound-filters-generic-ip-filter", organization
         ),
