@@ -276,10 +276,21 @@ class GroupNoteTest(APITestCase):
             idempotency_key=activity_action_idempotency_key(note),
             source="mcp:claude-code",
         )
+        new_note = self.create_group_activity(
+            group=group, type=ActivityType.NOTE.value, data={"text": "new comment"}
+        )
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT_CREATED,
+            data={"comment_id": new_note.id},
+            idempotency_key=activity_action_idempotency_key(new_note),
+            source="api",
+        )
         # The same key in another group must not supply this note's source.
         self.create_group_action_log_entry(
             group=self.create_group(),
-            type=GroupActionType.COMMENT,
+            type=GroupActionType.COMMENT_CREATED,
+            data={"comment_id": app_note.id},
             idempotency_key=activity_action_idempotency_key(app_note),
             source="api",
         )
@@ -290,7 +301,7 @@ class GroupNoteTest(APITestCase):
         with action_log_activity_enabled():
             response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
+        assert len(response.data) == 3
         rows = {row["commentId"]: row for row in response.data}
         result = rows[str(note.id)]
         assert result["id"] == str(note.id)
@@ -303,6 +314,9 @@ class GroupNoteTest(APITestCase):
             "comment_id": note.id,
         }
         assert result["source"] == "mcp:claude-code"
+        assert rows[str(new_note.id)]["id"] == str(new_note.id)
+        assert rows[str(new_note.id)]["data"]["text"] == "new comment"
+        assert rows[str(new_note.id)]["source"] == "api"
         assert rows[str(app_note.id)]["sentry_app"]["id"] == str(app.id)
         assert rows[str(app_note.id)]["source"] is None
 

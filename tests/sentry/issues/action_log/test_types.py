@@ -3,6 +3,7 @@ from collections.abc import Iterator, Mapping
 from datetime import UTC, datetime
 from typing import Any
 
+import pytest
 from pydantic import BaseModel
 
 from sentry.issues.action_log.types import FirstSeenAction, GroupAction, GroupActionType
@@ -111,3 +112,34 @@ def test_checks_nested_models() -> None:
         inners: list[Inner] | None = None
 
     assert list(_open_ended_fields(Outer, "Outer", set())) == ["Outer.inners.blob"]
+
+
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.COMMENT_CREATED,
+        GroupActionType.COMMENT_EDITED,
+        GroupActionType.COMMENT_DELETED,
+    ],
+)
+def test_body_free_comment_contract(action_type: GroupActionType) -> None:
+    action_class = GroupAction.by_type(action_type)
+    assert action_class is not None
+    action = action_class(comment_id=42)
+    assert action.json_dict() == {"comment_id": 42}
+    assert action_class(**action.json_dict()) == action
+    assert action_type not in GroupAction.get_user_visible_types()
+
+
+@pytest.mark.parametrize(
+    "action_type,payload",
+    [
+        (GroupActionType.COMMENT, {"comment_id": 42, "text": "original", "mentions": []}),
+        (GroupActionType.COMMENT_EDIT, {"comment_id": 73, "text": "edited", "mentions": []}),
+        (GroupActionType.COMMENT_DELETE, {"comment_id": 73}),
+    ],
+)
+def test_historical_comment_payload(action_type: GroupActionType, payload: dict[str, Any]) -> None:
+    action_class = GroupAction.by_type(action_type)
+    assert action_class is not None
+    assert action_class(**payload).json_dict() == payload
