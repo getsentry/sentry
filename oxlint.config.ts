@@ -1862,6 +1862,13 @@ const config = defineConfig({
       },
     },
     {
+      files: [
+        'static/packages/scraps/src/**/*.spec.{ts,tsx}',
+        'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
+      ],
+      rules: {'import/no-relative-parent-imports': 'off'},
+    },
+    {
       files: ['**/*.stories.tsx'],
       rules: {
         // Type-loader requires webpack import syntax in stories.

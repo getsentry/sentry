@@ -1,20 +1,30 @@
 import React from 'react';
-
-import {render, screen} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
+import {ThemeProvider} from '@emotion/react';
+import {render, screen} from '@testing-library/react';
 
 import {Image} from '@sentry/scraps/image';
+import {lightTheme} from '@sentry/scraps/theme';
+
+import {getEmotionRules} from '../../test/getEmotionRules';
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
 
 describe('Image', () => {
   it('forwards ref', () => {
     const ref = React.createRef<HTMLImageElement>();
-    render(<Image src="https://example.com/image.png" alt="Example Image" ref={ref} />);
+    render(<Image src="https://example.com/image.png" alt="Example Image" ref={ref} />, {
+      wrapper: ThemeWrapper,
+    });
     expect(screen.getByRole('img')).toBeInTheDocument();
     expect(ref.current).toBeInTheDocument();
   });
 
   it('renders the image with the src attribute', () => {
-    render(<Image src="https://example.com/image.png" alt="Example Image" />);
+    render(<Image src="https://example.com/image.png" alt="Example Image" />, {
+      wrapper: ThemeWrapper,
+    });
     expect(screen.getByRole('img')).toHaveAttribute(
       'src',
       'https://example.com/image.png'
@@ -29,7 +39,8 @@ describe('Image', () => {
         onError={e => {
           (e.target as HTMLImageElement).src = 'https://example.com/image.png';
         }}
-      />
+      />,
+      {wrapper: ThemeWrapper}
     );
 
     const img = screen.getByAltText('Example Image');
@@ -40,7 +51,12 @@ describe('Image', () => {
 
   it('renders with aspect-ratio prop', () => {
     render(
-      <Image src="https://example.com/image.png" alt="Example Image" aspectRatio="16/9" />
+      <Image
+        src="https://example.com/image.png"
+        alt="Example Image"
+        aspectRatio="16/9"
+      />,
+      {wrapper: ThemeWrapper}
     );
     expect(screen.getByRole('img')).toBeInTheDocument();
   });
@@ -52,7 +68,8 @@ describe('Image', () => {
         alt="Example Image"
         width={{zero: '100%', md: '400px'}}
         height={{zero: 'auto', md: '300px'}}
-      />
+      />,
+      {wrapper: ThemeWrapper}
     );
 
     expect(screen.getByRole('img')).toBeInTheDocument();
