@@ -37,6 +37,7 @@ from sentry.seer.entrypoints.operator import (
     SEER_EVENT_TO_ACTIVITY_TYPE,
     SeerAgentOperator,
     SeerAutofixOperator,
+    SeerInvestigationOperator,
     SeerOperatorCompletionHook,
     get_autofix_explorer_status,
     process_autofix_updates,
@@ -1372,6 +1373,41 @@ class TestSeerAgentOperatorCodeMode(TestCase):
         assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
 
 
+class TestSeerInvestigationOperatorAccess(TestCase):
+    def _has_access(self) -> bool:
+        entrypoint_cls = Mock(spec=SeerInvestigationEntrypoint)
+        entrypoint_cls.has_access.return_value = True
+        with patch.dict(
+            "sentry.seer.entrypoints.operator.investigation_entrypoint_registry.registrations",
+            {SeerEntrypointKey.SLACK: entrypoint_cls},
+            clear=True,
+        ):
+            return SeerInvestigationOperator.has_access(
+                organization=self.organization, entrypoint_key=SeerEntrypointKey.SLACK
+            )
+
+    def set_open_membership(self, enabled: bool) -> None:
+        self.organization.flags.allow_joinleave = enabled
+        self.organization.save()
+
+    def test_has_access_with_the_feature_and_open_membership(self) -> None:
+        self.set_open_membership(True)
+
+        with self.feature("organizations:investigations"):
+            assert self._has_access()
+
+    def test_no_access_without_the_feature(self) -> None:
+        self.set_open_membership(True)
+
+        assert not self._has_access()
+
+    def test_no_access_without_open_membership(self) -> None:
+        self.set_open_membership(False)
+
+        with self.feature("organizations:investigations"):
+            assert not self._has_access()
+
+
 class TestProcessInvestigationUpdates(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1432,6 +1468,18 @@ class TestProcessInvestigationUpdates(TestCase):
             clear=True,
         ):
             process_investigation_updates(investigation_id=self.investigation.id)
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_halt_metric(mock_record, "no_operator_access")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_halts_for_a_closed_membership_organization(self, mock_record: Mock) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        entrypoint_cls = self._make_entrypoint()
+        self._set_cache("slack", self.cache_payload)
+
+        self._process({"slack": entrypoint_cls})
 
         entrypoint_cls.on_investigation_update.assert_not_called()
         assert_halt_metric(mock_record, "no_operator_access")
