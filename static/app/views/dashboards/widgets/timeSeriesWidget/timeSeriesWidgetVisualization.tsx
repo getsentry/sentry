@@ -163,6 +163,13 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   showYAxis?: 'auto' | 'never';
 
   /**
+   * Maximum number of series listed in the tooltip. When set, series are
+   * listed from the highest value to the lowest with zero values last, and the
+   * rest are summarized as "+X more".
+   */
+  tooltipLimit?: number;
+
+  /**
    * Truncate the legend's "+n more" menu labels to the width the legend row
    * already caps its own at, instead of letting the menu size to its content.
    *
@@ -402,6 +409,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         );
       },
       renderSeriesDetails: props.renderTooltipSeriesDetails,
+      limit: props.tooltipLimit,
       truncate: false,
       utc: utc ?? false,
     })(deDupedParams, asyncTicket);

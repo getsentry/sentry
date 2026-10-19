@@ -38,6 +38,11 @@ interface ChartVisualizationProps {
    * aggregates are plotted on the same chart.
    */
   plottables?: Plottable[];
+  /**
+   * Maximum number of series listed in the tooltip, see
+   * `TimeSeriesWidgetVisualization`.
+   */
+  tooltipLimit?: number;
 }
 
 function createChartInfoPlottables(
@@ -99,6 +104,7 @@ export function ChartVisualization({
   chartRef,
   droppedData,
   plottables: plottablesOverride,
+  tooltipLimit,
 }: ChartVisualizationProps) {
   const defaultPlottables = useChartVisualizationPlottables(chartInfo);
   const plottables = plottablesOverride ?? defaultPlottables;
@@ -153,6 +159,7 @@ export function ChartVisualization({
         chartXRangeSelection={chartXRangeSelection}
         droppedData={droppedData}
         renderTooltipSeriesDetails={renderTooltipSeriesDetails}
+        tooltipLimit={tooltipLimit}
       />
     </StyledTransparentLoadingMask>
   );
