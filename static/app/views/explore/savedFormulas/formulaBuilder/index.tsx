@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
@@ -119,6 +120,7 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
   const maxWidth = theme.breakpoints.xl;
   const [draft, setDraft] = useState<FormulaDraft>(() => toDraft(formula));
   const {saveFormula, isSaving} = useSaveFormula();
+  const isPrebuilt = formula?.prebuilt ?? false;
 
   const listPathname = makeSavedFormulasPathname({organization, path: '/'});
 
@@ -147,6 +149,13 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
 
       <EditLayout.Body>
         <Stack gap="2xl" maxWidth={maxWidth}>
+          {isPrebuilt && (
+            <Alert.Container>
+              <Alert variant="warning" showIcon={false}>
+                {t('Formulas built by Sentry cannot be edited.')}
+              </Alert>
+            </Alert.Container>
+          )}
           <Flex gap="xl" wrap="wrap">
             <LabeledField label={t('Formula Name')}>
               <LayoutContainer width="320px">
@@ -154,6 +163,7 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
                   value={draft.name}
                   placeholder={t('Enter formula name')}
                   aria-label={t('Formula name')}
+                  disabled={isPrebuilt}
                   onChange={event => setDraft({...draft, name: event.target.value})}
                 />
               </LayoutContainer>
@@ -162,6 +172,7 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
               <CompactSelect
                 value={draft.dataset}
                 options={DATASET_OPTIONS}
+                disabled={isPrebuilt}
                 trigger={({children, ...triggerProps}) => (
                   <OverlayTrigger.Button {...triggerProps} aria-label={t('Dataset')}>
                     <OptionSizedLabel options={DATASET_OPTIONS}>
@@ -176,6 +187,7 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
               <CompactSelect
                 value={draft.unit ?? NO_UNIT}
                 options={UNIT_OPTIONS}
+                disabled={isPrebuilt}
                 trigger={({children, ...triggerProps}) => (
                   <OverlayTrigger.Button {...triggerProps} aria-label={t('Unit')}>
                     <OptionSizedLabel options={UNIT_OPTIONS}>{children}</OptionSizedLabel>
@@ -196,12 +208,14 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
               <Stack gap="2xl">
                 <ParametersSection
                   params={draft.params}
+                  disabled={isPrebuilt}
                   onChange={params => setDraft({...draft, params})}
                 />
                 <ReferencesSection
                   dataset={draft.dataset}
                   params={draft.params}
                   references={draft.references}
+                  disabled={isPrebuilt}
                   onChange={references => setDraft({...draft, references})}
                 />
               </Stack>
@@ -219,6 +233,7 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
                 <FormulaEquationInput
                   value={draft.formula}
                   names={variableNames(draft)}
+                  disabled={isPrebuilt}
                   onChange={expression => setDraft({...draft, formula: expression})}
                 />
               </LayoutContainer>
@@ -234,7 +249,7 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
         <Button
           size="sm"
           variant="primary"
-          disabled={!draft.name || !draft.formula}
+          disabled={isPrebuilt || !draft.name || !draft.formula}
           busy={isSaving}
           onClick={handleSave}
         >

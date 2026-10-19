@@ -71,9 +71,16 @@ type Props = {
   onChange: (references: DraftReference[]) => void;
   params: DraftParam[];
   references: DraftReference[];
+  disabled?: boolean;
 };
 
-export function ReferencesSection({dataset, params, references, onChange}: Props) {
+export function ReferencesSection({
+  dataset,
+  params,
+  references,
+  onChange,
+  disabled,
+}: Props) {
   const traceItemType = TRACE_ITEM_DATASET_MAP[dataset];
   const {numberTags, stringTags, booleanTags} = useParamAttributes(params, traceItemType);
 
@@ -105,6 +112,7 @@ export function ReferencesSection({dataset, params, references, onChange}: Props
               value={reference.name}
               placeholder={t('Name')}
               aria-label={t('Reference name')}
+              disabled={disabled}
               onChange={event => update(reference.key, {name: event.target.value})}
             />
             <ExploreEquationArithmeticBuilder
@@ -117,12 +125,14 @@ export function ReferencesSection({dataset, params, references, onChange}: Props
               stringTags={stringTags}
               booleanTags={booleanTags}
               truncateArguments={false}
+              disabled={disabled}
             />
             <Button
               variant="transparent"
               size="sm"
               icon={<IconDelete size="sm" />}
               aria-label={t('Remove reference')}
+              disabled={disabled}
               onClick={() =>
                 onChange(references.filter(other => other.key !== reference.key))
               }
@@ -133,6 +143,7 @@ export function ReferencesSection({dataset, params, references, onChange}: Props
           <Button
             size="sm"
             icon={<IconAdd />}
+            disabled={disabled}
             onClick={() => onChange([...references, newReference()])}
           >
             {t('Add Reference')}

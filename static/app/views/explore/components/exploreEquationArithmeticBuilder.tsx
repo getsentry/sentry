@@ -15,6 +15,7 @@ interface ExploreEquationArithmeticBuilderProps {
   stringTags: TagCollection;
   traceItemType: TraceItemDataset;
   ['data-test-id']?: string;
+  disabled?: boolean;
   menuPresentation?: ComboBoxMenuPresentation;
   truncateArguments?: boolean;
 }
@@ -31,6 +32,7 @@ export function ExploreEquationArithmeticBuilder({
   stringTags,
   booleanTags,
   'data-test-id': dataTestId,
+  disabled,
   menuPresentation,
   truncateArguments,
 }: ExploreEquationArithmeticBuilderProps) {
@@ -59,6 +61,7 @@ export function ExploreEquationArithmeticBuilder({
       getSuggestedKey={getSuggestedKey}
       menuPresentation={menuPresentation}
       truncateArguments={truncateArguments}
+      disabled={disabled}
     />
   );
 }
