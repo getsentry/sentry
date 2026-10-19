@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextvars
 import logging
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, TypedDict
 
@@ -197,8 +198,10 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             affected = True
 
         if affected:
+            assignment_context = contextvars.copy_context()
             transaction.on_commit(
-                lambda: issue_assigned.send_robust(
+                lambda: assignment_context.run(
+                    issue_assigned.send_robust,
                     project=group.project,
                     group=group,
                     user=acting_user,
