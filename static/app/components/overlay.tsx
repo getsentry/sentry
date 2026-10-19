@@ -179,7 +179,7 @@ export function PositionWrapper({
     <motion.div
       {...props}
       ref={ref}
-      style={{...style, zIndex, pointerEvents: isPresent ? 'auto' : 'none'}}
+      style={{...style, zIndex, pointerEvents: isPresent ? style?.pointerEvents : 'none'}}
     />
   );
 }
