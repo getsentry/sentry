@@ -20,15 +20,40 @@ class ConditionType(StrEnum):
 
 class ConditionOperator(StrEnum):
     """
-    How a condition compares the field to its values. The ordered operators compare one
-    value as a release version. A condition without an operator matches the field against
-    its values as glob patterns.
+    How a condition compares the field to its values. ``glob`` matches the field against
+    each value as a glob pattern. The other text operators read every character of a
+    value literally and match a field that equals, starts with, contains or ends with
+    any value, case-insensitively. The ordered operators compare one value as a release
+    version.
+
+    A stored condition without an operator holds raw glob patterns, as with ``glob``: a
+    row written before operators existed, or the row of a legacy list.
     """
 
+    GLOB = "glob"
+    EQUALS = "equals"
+    STARTS_WITH = "starts_with"
+    CONTAINS = "contains"
+    ENDS_WITH = "ends_with"
     GT = "gt"
     GTE = "gte"
     LT = "lt"
     LTE = "lte"
+
+
+TEXT_OPERATORS = frozenset(
+    {
+        ConditionOperator.GLOB,
+        ConditionOperator.EQUALS,
+        ConditionOperator.STARTS_WITH,
+        ConditionOperator.CONTAINS,
+        ConditionOperator.ENDS_WITH,
+    }
+)
+
+COMPARISON_OPERATORS = frozenset(
+    {ConditionOperator.GT, ConditionOperator.GTE, ConditionOperator.LT, ConditionOperator.LTE}
+)
 
 
 class DataType(StrEnum):
