@@ -21,25 +21,25 @@ export function StatesDemo() {
       <div>
         Focused:
         <Container>
-          <Menu.ListItems label="hello" leadingItems={leadingItems} />
-          <Menu.ListItems label="sentry" leadingItems={leadingItems} isFocused />
-          <Menu.ListItems label="world" leadingItems={leadingItems} />
+          <Menu.ListItem label="hello" leadingItems={leadingItems} />
+          <Menu.ListItem label="sentry" leadingItems={leadingItems} isFocused />
+          <Menu.ListItem label="world" leadingItems={leadingItems} />
         </Container>
       </div>
       <div>
         Selected:
         <Container>
-          <Menu.ListItems label="hello" leadingItems={leadingItems} />
-          <Menu.ListItems label="sentry" leadingItems={leadingItems} isSelected />
-          <Menu.ListItems label="world" leadingItems={leadingItems} />
+          <Menu.ListItem label="hello" leadingItems={leadingItems} />
+          <Menu.ListItem label="sentry" leadingItems={leadingItems} isSelected />
+          <Menu.ListItem label="world" leadingItems={leadingItems} />
         </Container>
       </div>
       <div>
         Disabled:
         <Container>
-          <Menu.ListItems label="hello" leadingItems={leadingItems} />
-          <Menu.ListItems label="sentry" leadingItems={leadingItems} disabled />
-          <Menu.ListItems label="world" leadingItems={leadingItems} />
+          <Menu.ListItem label="hello" leadingItems={leadingItems} />
+          <Menu.ListItem label="sentry" leadingItems={leadingItems} disabled />
+          <Menu.ListItem label="world" leadingItems={leadingItems} />
         </Container>
       </div>
     </Storybook.Grid>
@@ -49,12 +49,12 @@ export function StatesDemo() {
 export function TrailingDemo() {
   return (
     <Container>
-      <Menu.ListItems
+      <Menu.ListItem
         label="Item with badge"
         leadingItems={leadingItems}
         trailingItems="🚀"
       />
-      <Menu.ListItems
+      <Menu.ListItem
         label="Another item"
         leadingItems={leadingItems}
         trailingItems="⭐"
@@ -66,12 +66,12 @@ export function TrailingDemo() {
 export function DetailsDemo() {
   return (
     <Container>
-      <Menu.ListItems
+      <Menu.ListItem
         label="Option with details"
         details="This is additional information about the option"
         leadingItems={leadingItems}
       />
-      <Menu.ListItems
+      <Menu.ListItem
         label="Another option"
         details="More helpful context here"
         leadingItems={leadingItems}

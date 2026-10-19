@@ -1,11 +1,11 @@
 import {IconCircle} from '@sentry/icons/circle';
 
-import {Menu, type ListItemsProps} from '@sentry/scraps/menu';
+import {Menu, type ListItemProps} from '@sentry/scraps/menu';
 
-const sizes: Array<NonNullable<ListItemsProps['size']>> = ['xs', 'sm', 'md'];
+const sizes: Array<NonNullable<ListItemProps['size']>> = ['xs', 'sm', 'md'];
 const variants = ['plain', 'leading', 'details', 'leading-details'] as const;
 
-describe('Menu.ListItems', () => {
+describe('Menu.ListItem', () => {
   describe.each(sizes)('size %s', size => {
     it.snapshot.each([...variants])(
       '%s',
@@ -15,7 +15,7 @@ describe('Menu.ListItems', () => {
 
         return (
           <ul style={{padding: 8, width: 300, listStyle: 'none'}}>
-            <Menu.ListItems
+            <Menu.ListItem
               size={size}
               label="Option"
               leadingItems={hasLeading ? <IconCircle aria-hidden /> : undefined}

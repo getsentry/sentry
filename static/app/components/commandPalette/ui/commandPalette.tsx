@@ -26,7 +26,7 @@ import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import type {ListItemsProps} from '@sentry/scraps/menu';
+import type {ListItemProps} from '@sentry/scraps/menu';
 import {Text} from '@sentry/scraps/text';
 import type {Theme} from '@sentry/scraps/theme';
 
@@ -76,7 +76,7 @@ function makeLeadingItemAnimation(theme: Theme, instant = false) {
   };
 }
 
-type CommandPaletteActionMenuItem = ListItemsProps & {
+type CommandPaletteActionMenuItem = ListItemProps & {
   children: CommandPaletteActionMenuItem[];
   key: string;
   hideCheck?: boolean;

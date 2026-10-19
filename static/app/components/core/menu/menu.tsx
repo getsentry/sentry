@@ -220,7 +220,7 @@ type ExtraContent =
       isSelected: boolean;
     }) => React.ReactNode);
 
-export type ListItemsProps = {
+export type ListItemProps = {
   /**
    * Optional descriptive text. Like 'label', should preferably be a string or
    * have appropriate aria-labels.
@@ -278,8 +278,7 @@ interface OtherProps<T extends React.ElementType> {
   labelProps?: {as?: 'div' | 'p'; id?: string};
 }
 
-interface Props<T extends React.ElementType = 'li'>
-  extends ListItemsProps, OtherProps<T> {
+interface Props<T extends React.ElementType = 'li'> extends ListItemProps, OtherProps<T> {
   ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
 }
 
@@ -413,7 +412,7 @@ function BaseMenuItem<T extends React.ElementType = 'li'>({
   );
 }
 
-const MenuListItems = memo(BaseMenuItem) as typeof BaseMenuItem;
+const MenuListItem = memo(BaseMenuItem) as typeof BaseMenuItem;
 
 const POPPER_OPTIONS = {
   placement: 'right-start' as const,
@@ -512,15 +511,14 @@ const TrailingItems = styled('div')<{disabled: boolean}>`
   ${p => p.disabled && 'opacity: 0.5;'}
 `;
 
-/** Shared presentation; consumers own state, keyboard behavior, and ARIA roles. */
-export const Menu = {
-  Header: MenuHeaderLayout,
-  Title: MenuHeading,
-  Search: SearchInput,
-  ItemGroup: MenuItemGroupLayout,
-  ItemGroupLabel: MenuItemGroupLabel,
-  ItemGroupList: MenuItemGroupList,
-  Separator: MenuSectionDivider,
-  Footer: MenuFooterLayout,
-  ListItems: MenuListItems,
+export {
+  MenuHeaderLayout,
+  MenuHeading,
+  SearchInput,
+  MenuItemGroupLayout,
+  MenuItemGroupLabel,
+  MenuItemGroupList,
+  MenuSectionDivider,
+  MenuFooterLayout,
+  MenuListItem,
 };

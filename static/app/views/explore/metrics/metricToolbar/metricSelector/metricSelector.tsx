@@ -711,7 +711,7 @@ export function MetricSelector({
                           height={0}
                           overflow="hidden"
                         >
-                          <Menu.ListItems
+                          <Menu.ListItem
                             as="div"
                             size="md"
                             label={longestOption.label}
