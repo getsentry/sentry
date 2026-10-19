@@ -11,7 +11,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {withSavedQueryStatsPeriod} from 'sentry/views/explore/hooks/savedQueryPeriod';
 import {
   isExploreSavedQuery,
   useInvalidateSavedQueries,
@@ -99,11 +98,11 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: withSavedQueryStatsPeriod({
+        data: {
           ...requestData,
           name,
           starred,
-        }),
+        },
       }),
     onSuccess: () => {
       invalidateSavedQueries();
@@ -118,11 +117,11 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
           path: {organizationIdOrSlug: organization.slug, id: String(id)},
         }),
         method: 'PUT',
-        data: withSavedQueryStatsPeriod({
+        data: {
           ...requestData,
           dataset:
             requestData.dataset === 'segment_spans' ? 'spans' : requestData.dataset,
-        }),
+        },
       }),
     onSuccess: () => {
       invalidateSavedQueries();
@@ -150,12 +149,12 @@ export function useFromSavedQuery() {
             }),
             {
               method: 'POST',
-              data: withSavedQueryStatsPeriod({
+              data: {
                 ...savedQuery,
                 // we want to make sure no new queries are saved with the segment_spans dataset
                 dataset:
                   savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
-              }),
+              },
             }
           )
         : await api.requestPromise(
@@ -183,12 +182,12 @@ export function useFromSavedQuery() {
             }),
             {
               method: 'PUT',
-              data: withSavedQueryStatsPeriod({
+              data: {
                 ...savedQuery,
                 // we want to make sure queries are locked in as spans once they're updated
                 dataset:
                   savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
-              }),
+              },
             }
           )
         : await api.requestPromise(

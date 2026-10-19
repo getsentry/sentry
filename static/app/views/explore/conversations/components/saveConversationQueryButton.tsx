@@ -9,7 +9,6 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {withSavedQueryStatsPeriod} from 'sentry/views/explore/hooks/savedQueryPeriod';
 import {useInvalidateSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -40,7 +39,7 @@ export function SaveConversationQueryButton() {
           }),
           {
             method: 'POST',
-            data: withSavedQueryStatsPeriod({
+            data: {
               name,
               dataset: 'ai_conversations',
               projects,
@@ -57,7 +56,7 @@ export function SaveConversationQueryButton() {
                   query: searchQuery ?? '',
                 },
               ],
-            }),
+            },
           }
         );
         invalidateSavedQueries();

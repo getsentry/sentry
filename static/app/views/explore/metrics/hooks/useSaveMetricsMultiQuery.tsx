@@ -10,7 +10,6 @@ import {decodeScalar, encodeSort} from 'sentry/utils/queryString';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {withSavedQueryStatsPeriod} from 'sentry/views/explore/hooks/savedQueryPeriod';
 import {
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
@@ -100,11 +99,11 @@ export function useSaveMetricsMultiQuery() {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: withSavedQueryStatsPeriod({
+        data: {
           ...data,
           name,
           starred,
-        }),
+        },
       }),
     onSuccess: () => {
       invalidateSavedQueries();
@@ -118,7 +117,7 @@ export function useSaveMetricsMultiQuery() {
           path: {organizationIdOrSlug: organization.slug, id: String(id)},
         }),
         method: 'PUT',
-        data: withSavedQueryStatsPeriod(data),
+        data,
       }),
     onSuccess: () => {
       invalidateSavedQueries();
