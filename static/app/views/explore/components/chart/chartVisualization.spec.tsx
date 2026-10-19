@@ -4,7 +4,6 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import type {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import type {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {useChartInfosPlottables} from 'sentry/views/explore/components/chart/chartVisualization';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
@@ -23,13 +22,9 @@ function durationSeries(yAxis: string, group?: string): TimeSeries {
   });
 }
 
-function chartInfoFixture(
-  yAxis: string,
-  series: TimeSeries[],
-  chartType: ChartType = ChartType.BAR
-): ChartInfo {
+function chartInfoFixture(yAxis: string, series: TimeSeries[]): ChartInfo {
   return {
-    chartType,
+    chartType: ChartType.BAR,
     series,
     timeseriesResult: {} as SortedTimeSeries,
     yAxis,
@@ -37,7 +32,7 @@ function chartInfoFixture(
 }
 
 describe('useChartInfosPlottables', () => {
-  it('keeps the default labels and a shared stack for a single aggregate', () => {
+  it('keeps the default labels for a single aggregate', () => {
     const {result} = renderHookWithProviders(() =>
       useChartInfosPlottables([
         chartInfoFixture('p50(span.duration)', [
@@ -49,10 +44,9 @@ describe('useChartInfosPlottables', () => {
 
     const plottables = result.current as Bars[];
     expect(plottables.map(plottable => plottable.label)).toEqual(['GET /a', 'GET /b']);
-    expect(plottables.map(plottable => plottable.config?.stack)).toEqual(['all', 'all']);
   });
 
-  it('prefixes grouped labels and stacks per aggregate when combined', () => {
+  it('prefixes grouped labels with the aggregate when combined', () => {
     const {result} = renderHookWithProviders(() =>
       useChartInfosPlottables([
         chartInfoFixture('p50(span.duration)', [
@@ -69,36 +63,6 @@ describe('useChartInfosPlottables', () => {
       'p50(span.duration) : GET /a',
       'p99(span.duration) : GET /a',
     ]);
-    expect(plottables.map(plottable => plottable.config?.stack)).toEqual([
-      'p50(span.duration)',
-      'p99(span.duration)',
-    ]);
-  });
-
-  it('stacks combined area charts per aggregate', () => {
-    const {result} = renderHookWithProviders(() =>
-      useChartInfosPlottables([
-        chartInfoFixture(
-          'p50(span.duration)',
-          [durationSeries('p50(span.duration)', 'GET /a')],
-          ChartType.AREA
-        ),
-        chartInfoFixture(
-          'p99(span.duration)',
-          [durationSeries('p99(span.duration)', 'GET /a')],
-          ChartType.AREA
-        ),
-      ])
-    );
-
-    const [p50, p99] = (result.current as Area[]).map(plottable =>
-      plottable.toSeries({
-        color: '#7553FF',
-        unit: DurationUnit.MILLISECOND,
-        yAxisPosition: 'left',
-      })
-    );
-    expect(p50![0]!.stack).not.toBe(p99![0]!.stack);
   });
 
   it('keeps aggregate labels for ungrouped series when combined', () => {

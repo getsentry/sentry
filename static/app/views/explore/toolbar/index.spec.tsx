@@ -28,6 +28,24 @@ import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 
+/**
+ * Returns the y axes of each chart written to the URL, one entry per chart.
+ */
+function chartYAxesFromRouter(router: {
+  location: {query: Record<string, unknown>};
+}): string[][] {
+  const aggregateField = router.location.query.aggregateField;
+  const fields = Array.isArray(aggregateField)
+    ? aggregateField
+    : aggregateField
+      ? [aggregateField]
+      : [];
+  return fields
+    .map(field => JSON.parse(String(field)))
+    .filter(field => Array.isArray(field.yAxes))
+    .map(field => field.yAxes);
+}
+
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
 }
@@ -334,14 +352,7 @@ describe('ExploreToolbar', () => {
   });
 
   it('plots aggregates selected together on one chart', async () => {
-    let visualizes: any;
-    function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
-      visualizes = useQueryParamsVisualizes();
-      return <ExploreToolbar />;
-    }
-
-    render(<Component />, {additionalWrapper: Wrapper});
+    const {router} = render(<ExploreToolbar />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -350,58 +361,59 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getByRole('option', {name: 'p99'}));
     await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
 
-    // Percentiles and stats over the same field share a chart, and survive the
-    // round trip through the URL.
-    expect(visualizes.map((v: VisualizeFunction) => v.yAxis)).toEqual([
-      'p50(span.duration)',
-      'p99(span.duration)',
-      'avg(span.duration)',
-    ]);
-    expect(visualizes[0].chartGroup).toBeDefined();
-    expect(new Set(visualizes.map((v: VisualizeFunction) => v.chartGroup)).size).toBe(1);
+    // Percentiles and stats over the same field share a chart, so they are
+    // written to the URL as a single entry.
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([
+        ['p50(span.duration)', 'p99(span.duration)', 'avg(span.duration)'],
+      ])
+    );
     await userEvent.keyboard('{Escape}');
     expect(within(section).getByRole('button', {name: 'p50 +2'})).toBeInTheDocument();
 
     // The field applies to every aggregate on the chart.
     await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
     await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
-    expect(visualizes.map((v: VisualizeFunction) => v.yAxis)).toEqual([
-      'p50(span.self_time)',
-      'p99(span.self_time)',
-      'avg(span.self_time)',
-    ]);
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([
+        ['p50(span.self_time)', 'p99(span.self_time)', 'avg(span.self_time)'],
+      ])
+    );
 
     // Deselecting down to one aggregate leaves a single, ungrouped chart.
     await userEvent.click(within(section).getByRole('button', {name: 'p50 +2'}));
     await userEvent.click(within(section).getByRole('option', {name: 'p99'}));
     await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
-    expect(visualizes).toEqual([new VisualizeFunction('p50(span.self_time)')]);
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([['p50(span.self_time)']])
+    );
 
     // Aggregates outside the percentiles and stats are picked one at a time.
     await userEvent.click(within(section).getByRole('option', {name: 'p75'}));
     await userEvent.click(within(section).getByRole('option', {name: 'sum'}));
-    expect(visualizes).toEqual([new VisualizeFunction('sum(span.self_time)')]);
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([['sum(span.self_time)']])
+    );
   });
 
   it('resets the aggregates when the selection is cleared', async () => {
-    let visualizes: any;
-    function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
-      visualizes = useQueryParamsVisualizes();
-      return <ExploreToolbar />;
-    }
-
-    render(<Component />, {additionalWrapper: Wrapper});
+    const {router} = render(<ExploreToolbar />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'p50'}));
     await userEvent.click(within(section).getByRole('option', {name: 'p75'}));
-    expect(visualizes).toHaveLength(2);
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([
+        ['p50(span.duration)', 'p75(span.duration)'],
+      ])
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
-    expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([['count(span.duration)']])
+    );
   });
 
   it('does not show a clear button when the default chart is only hidden', async () => {

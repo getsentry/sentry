@@ -367,6 +367,21 @@ describe('getReadableQueryParamsFromLocation', () => {
     );
   });
 
+  it('shares a chart between a percentile and a stat over the same field', () => {
+    const location = locationFixture({
+      aggregateField: [
+        {groupBy: 'span.op'},
+        {yAxes: ['p90(span.duration)', 'avg(span.duration)']},
+      ].map(aggregateField => JSON.stringify(aggregateField)),
+    });
+    const [, p90, avg] = getReadableQueryParamsFromLocation(location)
+      .aggregateFields as VisualizeFunction[];
+    expect(p90!.yAxis).toBe('p90(span.duration)');
+    expect(avg!.yAxis).toBe('avg(span.duration)');
+    expect(p90!.chartGroup).toBeDefined();
+    expect(p90!.chartGroup).toBe(avg!.chartGroup);
+  });
+
   it('decodes custom aggregatefields and inserts default group bys', () => {
     const location = locationFixture({
       aggregateField: [

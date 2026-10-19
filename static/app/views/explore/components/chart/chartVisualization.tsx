@@ -65,9 +65,7 @@ function createChartInfoPlottables(
     return new DataPlottableConstructor(markDelayedData(s, INGESTION_DELAY), {
       alias,
       color: s.meta.isOther ? theme.tokens.content.secondary : undefined,
-      // Keep each aggregate in its own stack so different aggregates are
-      // never summed together.
-      stack: combined ? chartInfo.yAxis : 'all',
+      stack: 'all',
     });
   });
 }

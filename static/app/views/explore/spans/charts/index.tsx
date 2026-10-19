@@ -133,7 +133,7 @@ export function ExploreCharts({
           const indices = group.visualizes.map((_, i) => group.index + i);
           return (
             <Chart
-              key={`${group.index}`}
+              key={`${group.index}-${group.visualizes.map(v => v.yAxis).join(',')}`}
               extrapolate={extrapolate}
               index={group.index}
               onChartTypeChange={chartType => updateVisualizes(indices, {chartType})}
