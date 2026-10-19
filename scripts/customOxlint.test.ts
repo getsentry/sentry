@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -471,6 +472,59 @@ test('CI and prune report violations exceeding committed budgets', t => {
   );
 });
 
+test('missing suppression files are empty budgets and maintenance leaves them absent', t => {
+  const {directory, write, lint, commit} = fixture(t);
+  write('pnpm-workspace.yaml', "packages:\n  - 'packages/*'\n");
+  write('packages/example/package.json', '{"name":"example","type":"module"}');
+  write('packages/example/source.js', '');
+  write(
+    'oxlint.config.ts',
+    `export const incubator = {rules: {'no-debugger': 'error'}}; export default {categories: {correctness: 'off'}, ...incubator};`
+  );
+  rmSync(path.join(directory, 'oxlint-suppressions.json'));
+  commit();
+  const assets = [
+    'oxlint-suppressions.json',
+    'packages/example/oxlint-suppressions.json',
+  ];
+  for (const args of [
+    [],
+    ['--fix'],
+    ['--ci'],
+    ['--prune'],
+    ['--enroll', '--base', 'HEAD'],
+  ]) {
+    const result = lint(...args);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    for (const asset of assets) {
+      assert(!existsSync(path.join(directory, asset)), asset);
+    }
+  }
+  write('packages/example/source.js', 'debugger;\n');
+  for (const args of [[], ['--fix'], ['--ci'], ['--prune']]) {
+    const result = lint(...args);
+    assert.equal(result.status, 1, result.stdout + result.stderr);
+    assert.match(result.stdout + result.stderr, /no-debugger/);
+    for (const asset of assets) {
+      assert(!existsSync(path.join(directory, asset)), asset);
+    }
+  }
+});
+
+test('CI reuses verified empty budgets when all suppression files are absent', t => {
+  const {directory, write, commit, ci} = ciFixture(t);
+  write('source.js', '');
+  rmSync(path.join(directory, 'oxlint-suppressions.json'));
+  commit();
+  const clean = ci(1);
+  assert.equal(clean.status, 0, clean.stderr);
+  write('source.js', 'debugger;\n');
+  const increase = ci(1);
+  assert.equal(increase.status, 1, increase.stderr);
+  assert.match(increase.stderr, /source.js no-debugger: 1 violations, budget 0/);
+  assert(!existsSync(path.join(directory, 'oxlint-suppressions.json')));
+});
+
 test('CI transfers exact rename budgets but rejects copies and edited renames', t => {
   const {directory, write, git, ci} = ciFixture(t);
   renameSync(path.join(directory, 'source.js'), path.join(directory, 'moved.js'));
@@ -541,7 +595,7 @@ test('CI rescans the base for changed policy or a missing baseline', t => {
       'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 2}},
     })
   );
-  assert.equal(ci(2).status, 0);
+  assert.equal(ci(2, '').status, 0);
 });
 
 test('CI detects changed policy inputs and deleted rules', t => {
@@ -632,9 +686,9 @@ test('workspace assets round-trip native lint, prune, historical budgets, and cr
     JSON.parse(
       readFileSync(path.join(directory, project, 'oxlint-suppressions.json'), 'utf8')
     );
-  assert.deepEqual(read(''), {});
+  assert(!existsSync(path.join(directory, 'oxlint-suppressions.json')));
   assert.deepEqual(read('packages/a'), {'source.js': {'no-debugger': {count: 1}}});
-  assert.deepEqual(read('packages/outer'), {});
+  assert(!existsSync(path.join(directory, 'packages/outer/oxlint-suppressions.json')));
   assert.deepEqual(read('packages/outer/nested'), {
     'source.js': {'no-debugger': {count: 1}},
   });
@@ -659,19 +713,21 @@ test('workspace assets round-trip native lint, prune, historical budgets, and cr
   git('add', 'packages/a/source.js', 'packages/b/source.js');
   const renamed = lint('--enroll', '--base', 'HEAD');
   assert.equal(renamed.status, 0, renamed.stderr);
-  assert.deepEqual(read('packages/a'), {});
+  assert(!existsSync(path.join(directory, 'packages/a/oxlint-suppressions.json')));
   assert.deepEqual(read('packages/b'), {'source.js': {'no-debugger': {count: 1}}});
   write('packages/b/source.js', '');
   const fix = lint('--fix', 'packages/b');
   assert.equal(fix.status, 0, fix.stderr);
-  assert.deepEqual(read('packages/b'), {});
+  assert(!existsSync(path.join(directory, 'packages/b/oxlint-suppressions.json')));
   assert.deepEqual(read('packages/outer/nested'), {
     'source.js': {'no-debugger': {count: 1}},
   });
   write('packages/outer/nested/source.js', '');
   const prune = lint('--prune');
   assert.equal(prune.status, 0, prune.stderr);
-  assert.deepEqual(read('packages/outer/nested'), {});
+  assert(
+    !existsSync(path.join(directory, 'packages/outer/nested/oxlint-suppressions.json'))
+  );
 });
 
 test('maintenance scans isolated package policy using HEAD policy against base source', t => {

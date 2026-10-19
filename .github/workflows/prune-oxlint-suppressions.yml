@@ -30,12 +30,26 @@ jobs:
       - name: Prune suppression budgets
         run: pnpm run lint:js --prune
 
+      - name: Bundle suppression budgets
+        env:
+          SUPPRESSION_BUNDLE: ${{ runner.temp }}/suppressions.json
+        run: |
+          node --input-type=module <<'NODE'
+          import {execFileSync} from 'node:child_process';
+          import {existsSync, readFileSync, writeFileSync} from 'node:fs';
+          const files = execFileSync('git', [
+            'ls-files', '-z', '--', 'oxlint-suppressions.json', '**/oxlint-suppressions.json',
+          ], {encoding: 'utf8'}).split('\0').filter(Boolean);
+          const budgets = Object.fromEntries(files.map(file => [
+            file, existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {},
+          ]));
+          writeFileSync(process.env.SUPPRESSION_BUNDLE, JSON.stringify(budgets));
+          NODE
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: pruned-oxlint-suppressions
-          path: |
-            oxlint-suppressions.json
-            **/oxlint-suppressions.json
+          path: ${{ runner.temp }}/suppressions.json
           if-no-files-found: error
           retention-days: 1
 
@@ -82,7 +96,7 @@ jobs:
           git config user.email "$BOT_ID+$BOT_LOGIN@users.noreply.github.com"
           BRANCH="bot/prune-oxlint-suppressions"
           git switch -C "$BRANCH"
-          git add -- oxlint-suppressions.json '**/oxlint-suppressions.json'
+          git add -u -- ':(glob)**/oxlint-suppressions.json'
           git commit -m "chore(lint): prune oxlint suppressions"
           git push -f origin "$BRANCH"
           PR=$(gh pr list --base master --head "$BRANCH" --state open --json number --jq '.[0].number // empty')

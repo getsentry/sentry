@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import {execFileSync, spawnSync} from 'node:child_process';
-import {mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {test} from 'node:test';
@@ -10,7 +17,10 @@ const runner = fileURLToPath(
   new URL('./validate-pruned-suppressions.js', import.meta.url)
 );
 
-test('pruned artifacts contain every project and can only reduce its own budgets', t => {
+function fixture(
+  t,
+  files = ['oxlint-suppressions.json', 'packages/example/oxlint-suppressions.json']
+) {
   const directory = mkdtempSync(path.join(tmpdir(), 'pruned-suppressions-'));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   const write = (file, value) => {
@@ -18,47 +28,61 @@ test('pruned artifacts contain every project and can only reduce its own budgets
     writeFileSync(path.join(directory, file), JSON.stringify(value));
   };
   const original = {'source.js': {'no-debugger': {count: 2}}};
-  for (const project of ['', 'packages/example/']) {
-    write(project + 'oxlint-suppressions.json', original);
-    write('artifact/' + project + 'oxlint-suppressions.json', original);
-  }
+  for (const file of files) write(file, original);
   execFileSync('git', ['init', '--quiet'], {cwd: directory});
-  execFileSync('git', ['add', 'oxlint-suppressions.json', 'packages'], {cwd: directory});
-  const validate = () =>
-    spawnSync(process.execPath, [runner, path.join(directory, 'artifact')], {
+  if (files.length > 0) execFileSync('git', ['add', ...files], {cwd: directory});
+  const validate = artifact => {
+    write('artifact/suppressions.json', artifact);
+    return spawnSync(process.execPath, [runner, path.join(directory, 'artifact')], {
       cwd: directory,
       encoding: 'utf8',
     });
-  write('artifact/oxlint-suppressions.json', {});
-  write('artifact/packages/example/oxlint-suppressions.json', {
-    'source.js': {'no-debugger': {count: 3}},
-  });
-  const increase = validate();
-  assert.equal(increase.status, 1, increase.stderr);
-  assert.match(increase.stderr, /Invalid count/);
-  assert.deepEqual(
-    JSON.parse(readFileSync(path.join(directory, 'oxlint-suppressions.json'), 'utf8')),
-    original
+  };
+  return {directory, original, validate};
+}
+
+test('pruned artifacts contain every project and can only reduce its own budgets', t => {
+  const {directory, original, validate} = fixture(t);
+  const artifact = {
+    'oxlint-suppressions.json': {},
+    'packages/example/oxlint-suppressions.json': original,
+  };
+  const rejected = (value, message) => {
+    const result = validate(value);
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, message);
+    for (const file of Object.keys(artifact)) {
+      assert.deepEqual(
+        JSON.parse(readFileSync(path.join(directory, file), 'utf8')),
+        original
+      );
+    }
+  };
+  rejected([], /Artifact must be an object/);
+  rejected({'oxlint-suppressions.json': {}}, /every committed suppression file/);
+  rejected(
+    {...artifact, 'extra/oxlint-suppressions.json': {}},
+    /every committed suppression file/
   );
-  rmSync(path.join(directory, 'artifact/packages/example/oxlint-suppressions.json'));
-  assert.equal(validate().status, 1);
-  write('artifact/packages/example/oxlint-suppressions.json', original);
-  write('artifact/extra/oxlint-suppressions.json', {});
-  assert.equal(validate().status, 1);
-  rmSync(path.join(directory, 'artifact/extra'), {recursive: true});
-  write('artifact/packages/example/oxlint-suppressions.json', {'source.js': {}});
-  const emptyRules = validate();
-  assert.equal(emptyRules.status, 1, emptyRules.stderr);
-  assert.match(emptyRules.stderr, /Invalid rules/);
-  write('artifact/packages/example/oxlint-suppressions.json', {
-    'source.js': {'no-debugger': {count: 1}},
+  for (const [budget, message] of [
+    [null, /Suppressions must be an object/],
+    [{'other.js': {'no-debugger': {count: 1}}}, /Unexpected file/],
+    [{'source.js': {}}, /Invalid rules/],
+    [{'source.js': {'no-alert': {count: 1}}}, /Unexpected rule/],
+    [{'source.js': {'no-debugger': {count: 1, extra: true}}}, /Invalid budget/],
+    [{'source.js': {'no-debugger': {count: 3}}}, /Invalid count/],
+    [{'source.js': {'no-debugger': {count: 0}}}, /Invalid count/],
+  ]) {
+    rejected({...artifact, 'packages/example/oxlint-suppressions.json': budget}, message);
+  }
+  const reduced = validate({
+    ...artifact,
+    'packages/example/oxlint-suppressions.json': {
+      'source.js': {'no-debugger': {count: 1}},
+    },
   });
-  const reduced = validate();
   assert.equal(reduced.status, 0, reduced.stderr);
-  assert.deepEqual(
-    JSON.parse(readFileSync(path.join(directory, 'oxlint-suppressions.json'), 'utf8')),
-    {}
-  );
+  assert(!existsSync(path.join(directory, 'oxlint-suppressions.json')));
   assert.deepEqual(
     JSON.parse(
       readFileSync(
@@ -68,4 +92,25 @@ test('pruned artifacts contain every project and can only reduce its own budgets
     ),
     {'source.js': {'no-debugger': {count: 1}}}
   );
+});
+
+test('pruned artifacts can remove every suppression file', t => {
+  const {directory, validate} = fixture(t);
+  const artifact = {
+    'oxlint-suppressions.json': {},
+    'packages/example/oxlint-suppressions.json': {},
+  };
+  const result = validate(artifact);
+  assert.equal(result.status, 0, result.stderr);
+  for (const file of Object.keys(artifact))
+    assert(!existsSync(path.join(directory, file)));
+});
+
+test('pruned artifacts support repositories with no suppression files', t => {
+  const {validate} = fixture(t, []);
+  const result = validate({});
+  assert.equal(result.status, 0, result.stderr);
+  const extra = validate({'oxlint-suppressions.json': {}});
+  assert.equal(extra.status, 1, extra.stderr);
+  assert.match(extra.stderr, /every committed suppression file/);
 });

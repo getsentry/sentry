@@ -255,7 +255,9 @@ function partition(counts: Suppressions): Assets {
   return Object.fromEntries(
     Object.entries(result).map(([name, budgets]) => [
       name,
-      Buffer.from(serialize(budgets)).toString('base64'),
+      Object.keys(budgets).length > 0
+        ? Buffer.from(serialize(budgets)).toString('base64')
+        : null,
     ])
   );
 }
@@ -602,9 +604,6 @@ function committedBudgets(base: string, allowed?: Set<string>) {
   const names = git(root, ['ls-tree', '-r', '--name-only', '-z', base])
     .split('\0')
     .filter(file => path.basename(file) === assetName);
-  if (names.length === 0) {
-    return;
-  }
   return flatten(
     Object.fromEntries(
       names.map(name => [
@@ -903,10 +902,6 @@ Native oxlint options:
   }
   if (!command) {
     await transaction(async (originals, updateLease) => {
-      assert(
-        Object.values(originals).some(bytes => bytes !== null),
-        'Missing oxlint-suppressions.json. Run pnpm run lint:js --enroll --base REF with trusted source.'
-      );
       const committed = flatten(originals, allowed);
       for (const name of Object.keys(originals)) {
         rmSync(assetPath(name), {force: true});
@@ -955,9 +950,10 @@ Native oxlint options:
   }
   let replacement: Suppressions | undefined;
   await transaction(async (originals, updateLease) => {
-    const committed = Object.values(originals).every(bytes => bytes === null)
-      ? undefined
-      : flatten(originals, ['prune', 'enroll'].includes(command) ? undefined : allowed);
+    const committed = flatten(
+      originals,
+      ['prune', 'enroll'].includes(command) ? undefined : allowed
+    );
     for (const name of Object.keys(originals)) {
       rmSync(assetPath(name), {force: true});
     }
@@ -1020,10 +1016,6 @@ Native oxlint options:
       } else if (command === 'snapshot') {
         console.log(serialize(current.counts).trimEnd());
       } else if (command === 'prune') {
-        assert(
-          committed,
-          'Missing suppression asset. Run pnpm run lint:js --enroll --base REF with trusted source.'
-        );
         const reduced: Suppressions = Object.create(null);
         for (const [file, rules] of Object.entries(current.counts)) {
           for (const [rule, {count}] of Object.entries(rules)) {
@@ -1054,7 +1046,6 @@ Native oxlint options:
         if (command === 'enroll') {
           replacement = current.counts;
         } else if (command === 'ci') {
-          assert(committed, 'The suppression asset must be committed');
           fits(current.counts, committed, current.findings);
           const {owned, inherited} = staleBudgets(committed, current.counts, base);
           if (owned.length > 0) {
