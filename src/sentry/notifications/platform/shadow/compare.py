@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -10,6 +11,7 @@ import orjson
 import sentry_sdk
 from slack_sdk.models.blocks import Block
 
+from sentry.issues.grouptype import NotificationContextField
 from sentry.models.group import Group
 from sentry.notifications.platform.registry import (
     provider_registry,
@@ -103,6 +105,58 @@ def _diff(legacy: Mapping[str, Any], platform: Mapping[str, Any]) -> list[str]:
     return checker.mismatches
 
 
+# Slack issue alerts show live group stats, such as `Events: *12*`, that can change between the
+# legacy render and the platform render.
+_GROUP_STATS = re.compile(
+    "(?P<label>{}): \\*(?P<value>[^*]*)\\*".format(
+        "|".join(
+            re.escape(field)
+            for field in (
+                NotificationContextField.EVENTS,
+                NotificationContextField.USERS_AFFECTED,
+                NotificationContextField.FIRST_SEEN,
+                NotificationContextField.APPROX_START_TIME,
+            )
+        )
+    )
+)
+_DIGITS = re.compile(r"\d+")
+
+
+def _mask_group_stats(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+    """
+    Replaces the digits in the group stats of a normalized Slack payload's context blocks, so two
+    renders that differ only by a count or elapsed time compare equal. Labels and non-numeric
+    values are kept, so a stat that is added, dropped, or reworded still shows up as a diff.
+    """
+
+    def mask(match: re.Match[str]) -> str:
+        return f"{match['label']}: *{_DIGITS.sub('#', match['value'])}*"
+
+    def mask_element(element: Any) -> Any:
+        if isinstance(element, Mapping) and isinstance(element.get("text"), str):
+            return {**element, "text": _GROUP_STATS.sub(mask, element["text"])}
+        return element
+
+    blocks = [
+        (
+            {**block, "elements": [mask_element(e) for e in block.get("elements", [])]}
+            if isinstance(block, Mapping) and block.get("type") == "context"
+            else block
+        )
+        for block in payload.get("blocks", [])
+    ]
+    return {**payload, "blocks": blocks}
+
+
+def _only_group_stats_differ(
+    provider: NotificationProviderKey, legacy: Mapping[str, Any], platform: Mapping[str, Any]
+) -> bool:
+    if provider not in (NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING):
+        return False
+    return not _diff(_mask_group_stats(legacy), _mask_group_stats(platform))
+
+
 def _group_changed(invocation: ActionInvocation) -> bool:
     """
     Whether the group state the issue renderers read has changed since the invocation loaded the
@@ -152,15 +206,22 @@ def _compare_with_platform(
         return _capture_shadow_error(e, ShadowOutcome.PLATFORM_ERROR, source, provider_key)
 
     try:
-        entries = _diff(
-            _normalize(legacy_render.provider, legacy_render.payload),
-            _normalize(provider_key, platform_payload),
+        legacy = _normalize(legacy_render.provider, legacy_render.payload)
+        platform = _normalize(provider_key, platform_payload)
+        entries = _diff(legacy, platform)
+        stats_only = (
+            bool(entries)
+            and source == NotificationSource.ISSUE
+            and _only_group_stats_differ(provider_key, legacy, platform)
         )
     except Exception as e:
         return _capture_shadow_error(e, ShadowOutcome.COMPARE_ERROR, source, provider_key)
 
     if not entries:
         return ShadowResult(outcome=ShadowOutcome.MATCH)
+    # Stats drift is the same race `_group_changed` catches, in values it doesn't compare.
+    if stats_only:
+        return ShadowResult(outcome=ShadowOutcome.GROUP_CHANGED)
     return ShadowResult(outcome=ShadowOutcome.MISMATCH, diff=entries)
 
 

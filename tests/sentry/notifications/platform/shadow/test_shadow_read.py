@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import uuid
 from collections.abc import Callable, Generator
 from contextlib import AbstractContextManager, contextmanager, nullcontext
@@ -224,6 +225,24 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         observation, _ = self.send(invocation)
 
         self.assert_match(observation)
+
+    def test_slack_event_count_changed_is_not_a_mismatch(self) -> None:
+        self.issue_group.update(substatus=GroupSubStatus.ONGOING)
+        action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
+        # The stats line reads the count twice per render: legacy sees 5, the platform sees 6.
+        counts = itertools.chain(["5", "5"], itertools.repeat("6"))
+
+        with mock.patch(
+            "sentry.integrations.slack.message_builder.issues.get_group_global_count",
+            side_effect=lambda group: next(counts),
+        ):
+            observation, _ = self.send(self.invocation(action))
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+        assert observation.mismatch is None
+        legacy, platform = observation.compared[0]
+        assert "Events: *5*" in orjson.dumps(legacy).decode()
+        assert "Events: *6*" in orjson.dumps(platform).decode()
 
     def test_slack_mentions_read_scope_without_nudge(self) -> None:
         action = self.create_shadow_action(

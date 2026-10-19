@@ -17,7 +17,12 @@ from sentry.notifications.platform.shadow.capture import (
     record_legacy_render,
     shadow_read,
 )
-from sentry.notifications.platform.shadow.compare import ShadowOutcome, _diff, _normalize
+from sentry.notifications.platform.shadow.compare import (
+    ShadowOutcome,
+    _diff,
+    _mask_group_stats,
+    _normalize,
+)
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.testutils.helpers.options import override_options
@@ -209,6 +214,60 @@ def test_normalize_msteams_strips_integration_id() -> None:
 def test_normalize_leaves_discord_unchanged() -> None:
     message = {"content": "", "embeds": [{"title": "Error", "timestamp": "2026-09-24"}]}
     assert _normalize(NotificationProviderKey.DISCORD, message) is message
+
+
+def _context_block(text: str) -> dict[str, Any]:
+    return {"type": "context", "elements": [{"type": "mrkdwn", "text": text}]}
+
+
+def _slack_stats(text: str) -> dict[str, Any]:
+    return {
+        "blocks": [
+            {"type": "section", "text": {"type": "mrkdwn", "text": "Error 123 in worker 7"}},
+            _context_block(text),
+        ]
+    }
+
+
+def test_mask_group_stats_masks_only_stat_values() -> None:
+    payload = {
+        "blocks": [
+            {"type": "section", "text": {"type": "mrkdwn", "text": "Events: *12*"}},
+            _context_block(
+                "State: *Ongoing*   Events: *12*   Users Affected: *3*   "
+                "First Seen: *2 days ago*   Suggested: #team-42"
+            ),
+            _context_block("Approx. Start Time: *2026-10-19 12:30:00*"),
+        ],
+        "text": "Events: *12*",
+    }
+
+    assert _mask_group_stats(payload) == {
+        "blocks": [
+            {"type": "section", "text": {"type": "mrkdwn", "text": "Events: *12*"}},
+            _context_block(
+                "State: *Ongoing*   Events: *#*   Users Affected: *#*   "
+                "First Seen: *# days ago*   Suggested: #team-42"
+            ),
+            _context_block("Approx. Start Time: *#-#-# #:#:#*"),
+        ],
+        "text": "Events: *12*",
+    }
+
+
+@pytest.mark.parametrize(
+    ("legacy", "platform"),
+    [
+        ("State: *New*   First Seen: *just now*", "State: *Ongoing*   First Seen: *just now*"),
+        ("First Seen: *just now*", "First Seen: *1 minute ago*"),
+        (
+            "Events: *12*   Users Affected: *3*   First Seen: *2 days ago*",
+            "First Seen: *2 days ago*",
+        ),
+    ],
+)
+def test_mask_group_stats_keeps_non_numeric_differences(legacy: str, platform: str) -> None:
+    assert _diff(_mask_group_stats(_slack_stats(legacy)), _mask_group_stats(_slack_stats(platform)))
 
 
 class ShadowReadOutcomeTest(ShadowInvocationTestCase):
@@ -472,3 +531,46 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
         assert (
             mock_logger.exception.call_args.args[0] == "notifications.platform.shadow.report_failed"
         )
+
+    def _shadow_slack(self, legacy: dict[str, Any], platform: dict[str, Any]) -> ShadowObservation:
+        with (
+            observe_shadow() as observation,
+            mock.patch(
+                f"{COMPARE_PATH}.NotificationService.render_template",
+                return_value=(platform, set()),
+            ),
+        ):
+            with shadow(self.create_invocation(Action.Type.SLACK), NotificationSource.ISSUE):
+                record_legacy_render(NotificationProviderKey.SLACK, legacy)
+        return observation
+
+    def test_group_stats_drift_is_group_changed(self) -> None:
+        observation = self._shadow_slack(
+            _slack_stats("State: *Ongoing*   Events: *12*   Users Affected: *3*"),
+            _slack_stats("State: *Ongoing*   Events: *13*   Users Affected: *3*"),
+        )
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+        assert observation.mismatch is None
+        assert "diff" not in observation.result_log
+
+    def test_group_stats_drift_with_another_difference_is_a_mismatch(self) -> None:
+        platform = _slack_stats("State: *Ongoing*   Events: *13*")
+        platform["text"] = "changed"
+
+        observation = self._shadow_slack(_slack_stats("State: *Ongoing*   Events: *12*"), platform)
+
+        assert observation.outcome == ShadowOutcome.MISMATCH
+        assert observation.mismatch is not None
+        assert observation.mismatch["diff"] == [
+            "blocks[1].elements[0].text: old=str(len=31), new=str(len=31)",
+            "text: old=str(len=0), new=str(len=7)",
+        ]
+
+    def test_dropped_group_stats_is_a_mismatch(self) -> None:
+        observation = self._shadow_slack(
+            _slack_stats("Events: *12*   Users Affected: *3*   First Seen: *2 days ago*"),
+            _slack_stats("First Seen: *2 days ago*"),
+        )
+
+        assert observation.outcome == ShadowOutcome.MISMATCH
