@@ -11,6 +11,8 @@ __all__ = ["SentrySDKMetricsBackend"]
 class SentrySDKMetricsBackend(MetricsBackend):
     def __init__(self, **kwargs: Any) -> None:
         self._experimental_sample_rate = kwargs.pop("experimental_sample_rate", 0.0)
+        # Ignored; still accepted until deployed configs stop passing it.
+        kwargs.pop("deny_list", None)
         allow_list = kwargs.pop("allow_list", None)
         self._allow_list = tuple(allow_list) if allow_list is not None else None
         super().__init__(**kwargs)
