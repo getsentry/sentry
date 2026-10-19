@@ -6,15 +6,15 @@ import {
   ScrapsForm,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
-import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {InputCopyButton} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
 import type {TotpAuthenticator} from 'sentry/types/auth';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import {selectText} from 'sentry/utils/selectText';
 import {useEnrollAuthenticator} from 'sentry/views/settings/account/accountSecurity/useEnrollAuthenticator';
 
 import {getServerFieldDefault, getServerFieldLabel} from './enrollFormFieldUtils';
@@ -33,19 +33,23 @@ export function TotpEnrollForm({
   const {mutateAsync: enrollAuthenticator} = useEnrollAuthenticator(authenticator.id);
 
   const form = useScrapsForm({
-    defaultValues: {otp: getServerFieldDefault(authenticator.form, 'otp')},
+    defaultValues: {
+      otp: getServerFieldDefault(authenticator.form, 'otp'),
+      secret: authenticator.secret ?? '',
+    },
     validators: defaultFormValidators(
       z.object({
         otp: z.string().min(1, t('Authenticator token is required')).max(OTP_MAX_LENGTH),
+        secret: z.string(),
       })
     ),
     onSubmit: async ({value}) => {
-      if (!authenticator.secret) {
+      if (!value.secret) {
         return;
       }
 
       try {
-        await enrollAuthenticator({...value, secret: authenticator.secret});
+        await enrollAuthenticator(value);
       } catch (caughtError) {
         addErrorMessage(
           getRequestErrorUserMessage(
@@ -71,12 +75,19 @@ export function TotpEnrollForm({
           />
         </Flex>
 
-        <Stack gap="xs">
-          <Text bold size="sm">
-            {t('Authenticator secret')}
-          </Text>
-          <TextCopyInput>{authenticator.secret ?? ''}</TextCopyInput>
-        </Stack>
+        <form.Field name="secret">
+          {field => (
+            <field.Layout.Stack label={t('Authenticator secret')}>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.value} />}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.Field>
 
         <form.Field name="otp">
           {field => (

@@ -8,9 +8,8 @@ import {
   ScrapsForm,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 
 import {
   addLoadingMessage,
@@ -21,13 +20,14 @@ import {
   PROVIDER_TO_SETUP_WEBHOOK_URL,
   WebhookProviderEnum,
 } from 'sentry/components/events/featureFlags/utils';
-import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {InputCopyButton} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
+import {selectText} from 'sentry/utils/selectText';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -42,11 +42,13 @@ const schema = z.object({
     .nullable()
     .refine(v => v !== null, 'Provider is required'),
   secret: z.string().min(1, t('Secret is required')).max(100),
+  webhookUrl: z.string(),
 });
 
 const defaultValues: z.input<typeof schema> = {
   provider: null,
   secret: '',
+  webhookUrl: '',
 };
 
 type CreateSecretData = z.output<typeof schema>;
@@ -137,35 +139,57 @@ export function NewProviderForm({
       <ScrapsForm form={form}>
         <form.Field name="provider">
           {field => (
-            <div>
-              <field.Layout.Row
-                padding="xl"
-                label={t('Provider')}
-                hintText={t(
-                  'If you have already linked this provider, pasting a new secret will override the existing secret.'
-                )}
-                required
-              >
-                <field.Select
-                  value={field.value}
-                  onChange={value => {
-                    field.handleChange(value);
-                    setSelectedProvider(value);
-                  }}
-                  placeholder={t('Select a provider')}
-                  options={Object.values(WebhookProviderEnum).map(p => ({
-                    value: p,
-                    label: p,
-                  }))}
-                />
-              </field.Layout.Row>
-              <WebhookUrlField
-                provider={field.value ?? ''}
-                organizationSlug={organization.slug}
+            <field.Layout.Row
+              padding="xl"
+              label={t('Provider')}
+              hintText={t(
+                'If you have already linked this provider, pasting a new secret will override the existing secret.'
+              )}
+              required
+            >
+              <field.Select
+                value={field.value}
+                onChange={value => {
+                  field.handleChange(value);
+                  form.setFieldValue(
+                    'webhookUrl',
+                    value
+                      ? `${window.location.origin}/api/0/organizations/${organization.slug}/flags/hooks/provider/${value.toLowerCase()}/`
+                      : ''
+                  );
+                  setSelectedProvider(value);
+                }}
+                placeholder={t('Select a provider')}
+                options={Object.values(WebhookProviderEnum).map(p => ({
+                  value: p,
+                  label: p,
+                }))}
               />
-            </div>
+            </field.Layout.Row>
           )}
         </form.Field>
+        <form.Subscribe selector={state => state.values.provider}>
+          {provider => (
+            <form.Field name="webhookUrl">
+              {field => (
+                <field.Layout.Row
+                  padding="xl"
+                  label={t('Webhook URL')}
+                  hintText={getWebhookUrlHint(provider ?? '')}
+                >
+                  <field.Input
+                    readOnly
+                    dir="ltr"
+                    value={field.value}
+                    disabled={!provider}
+                    onClick={event => selectText(event.currentTarget)}
+                    trailingItems={<InputCopyButton text={field.value} />}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.Field>
+          )}
+        </form.Subscribe>
         <form.Field name="secret">
           {field => (
             <field.Layout.Row
@@ -195,43 +219,19 @@ export function NewProviderForm({
   );
 }
 
-function WebhookUrlField({
-  provider,
-  organizationSlug,
-}: {
-  organizationSlug: string;
-  provider: string;
-}) {
-  return (
-    <Flex direction="row" gap="sm" align="center" justify="between" padding="xl">
-      <Stack width="50%" gap="xs">
-        <Text>{t('Webhook URL')}</Text>
-        <Text size="sm" variant="muted">
-          {Object.keys(PROVIDER_TO_SETUP_WEBHOOK_URL).includes(provider)
-            ? tct(
-                "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
-                {
-                  link: (
-                    <ExternalLink
-                      href={
-                        PROVIDER_TO_SETUP_WEBHOOK_URL[provider as WebhookProviderEnum]
-                      }
-                    />
-                  ),
-                }
-              )
-            : t(
-                "Create a webhook integration with your feature flag service. When you do so, you'll need to enter this URL."
-              )}
-        </Text>
-      </Stack>
-      <Container flexGrow={1}>
-        <TextCopyInput aria-label={t('Webhook URL')} disabled={!provider.length}>
-          {provider.length
-            ? `${window.location.origin}/api/0/organizations/${organizationSlug}/flags/hooks/provider/${provider.toLowerCase()}/`
-            : ''}
-        </TextCopyInput>
-      </Container>
-    </Flex>
-  );
+function getWebhookUrlHint(provider: string) {
+  return Object.keys(PROVIDER_TO_SETUP_WEBHOOK_URL).includes(provider)
+    ? tct(
+        "Create a webhook integration with your [link:feature flag service]. When you do so, you'll need to enter this URL.",
+        {
+          link: (
+            <ExternalLink
+              href={PROVIDER_TO_SETUP_WEBHOOK_URL[provider as WebhookProviderEnum]}
+            />
+          ),
+        }
+      )
+    : t(
+        "Create a webhook integration with your feature flag service. When you do so, you'll need to enter this URL."
+      );
 }

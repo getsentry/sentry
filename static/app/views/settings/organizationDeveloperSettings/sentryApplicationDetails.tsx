@@ -27,14 +27,13 @@ import {
 } from 'sentry/actionCreators/sentryApps';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {Confirm} from 'sentry/components/confirm';
-import {FormField} from 'sentry/components/forms/formField';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {InputCopyButton, TextCopyInput} from 'sentry/components/textCopyInput';
 import {
   ALLOWED_SCOPES,
   CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
@@ -55,6 +54,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
+import {selectText} from 'sentry/utils/selectText';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -973,6 +973,8 @@ function SentryAppEditForm({
 
   const defaultValues = {
     name: app.name,
+    clientId: app.clientId ?? '',
+    clientSecret: app.clientSecret ?? '',
     author: app.author ?? '',
     webhookUrl: app.webhookUrl ?? '',
     redirectUrl: app.redirectUrl ?? '',
@@ -993,7 +995,10 @@ function SentryAppEditForm({
   const form = useScrapsForm({
     defaultValues,
     validators: defaultFormValidators(
-      isInternal ? internalSentryAppSchema : publicSentryAppSchema
+      (isInternal ? internalSentryAppSchema : publicSentryAppSchema).safeExtend({
+        clientId: z.string(),
+        clientSecret: z.string(),
+      })
     ),
     onSubmit: ({value, createValidationError}) =>
       saveSentryAppMutation
@@ -1107,48 +1112,63 @@ function SentryAppEditForm({
         <PanelHeader>{t('Credentials')}</PanelHeader>
         <PanelBody>
           {!isInternal && (
-            <FormField name="clientId" label="Client ID">
-              {({id}: {id: string}) => (
-                <TextCopyInput id={id}>{app.clientId ?? ''}</TextCopyInput>
+            <form.Field name="clientId">
+              {field => (
+                <field.Layout.Row label={t('Client ID')}>
+                  <field.Input
+                    readOnly
+                    dir="ltr"
+                    value={field.value}
+                    onClick={event => selectText(event.currentTarget)}
+                    trailingItems={<InputCopyButton text={field.value} />}
+                  />
+                </field.Layout.Row>
               )}
-            </FormField>
+            </form.Field>
           )}
-          <FormField
-            name="clientSecret"
-            label="Client Secret"
-            help={t(`Your secret is only available briefly after integration creation. Make
+          <form.Field name="clientSecret">
+            {field => (
+              <field.Layout.Row
+                label={t('Client Secret')}
+                hintText={t(`Your secret is only available briefly after integration creation. Make
                 sure to save this value!`)}
-          >
-            {({id}: {id: string}) =>
-              app.clientSecret ? (
-                <Tooltip
-                  disabled={showAuthInfo()}
-                  position="right"
-                  containerDisplayMode="inline"
-                  title={t(
-                    'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
-                  )}
-                >
-                  <TextCopyInput id={id}>{app.clientSecret}</TextCopyInput>
-                </Tooltip>
-              ) : (
-                <ClientSecret>
-                  <HiddenSecret>{t('hidden')}</HiddenSecret>
-                  {hasTokenAccess() ? (
-                    <Confirm
-                      onConfirm={rotateClientSecret}
-                      message={t(
-                        'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
-                      )}
-                      errorMessage={t('Error rotating secret')}
-                    >
-                      <Button variant="danger">{t('Rotate client secret')}</Button>
-                    </Confirm>
-                  ) : undefined}
-                </ClientSecret>
-              )
-            }
-          </FormField>
+              >
+                {app.clientSecret ? (
+                  <Tooltip
+                    disabled={showAuthInfo()}
+                    position="right"
+                    containerDisplayMode="inline"
+                    title={t(
+                      'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
+                    )}
+                  >
+                    <field.Input
+                      readOnly
+                      dir="ltr"
+                      value={field.value}
+                      onClick={event => selectText(event.currentTarget)}
+                      trailingItems={<InputCopyButton text={field.value} />}
+                    />
+                  </Tooltip>
+                ) : (
+                  <ClientSecret>
+                    <HiddenSecret>{t('hidden')}</HiddenSecret>
+                    {hasTokenAccess() ? (
+                      <Confirm
+                        onConfirm={rotateClientSecret}
+                        message={t(
+                          'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
+                        )}
+                        errorMessage={t('Error rotating secret')}
+                      >
+                        <Button variant="danger">{t('Rotate client secret')}</Button>
+                      </Confirm>
+                    ) : undefined}
+                  </ClientSecret>
+                )}
+              </field.Layout.Row>
+            )}
+          </form.Field>
         </PanelBody>
       </Panel>
 

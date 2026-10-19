@@ -4,12 +4,13 @@ import {InputGroup} from '@sentry/scraps/input/inputGroup';
 
 import {BaseFieldImpl, type BaseFieldProps} from './baseField';
 
-export interface InputFieldProps
+interface SharedInputFieldProps
   extends
     BaseFieldProps<HTMLInputElement>,
-    Omit<InputProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'type'> {
-  field: AnyFieldApi;
-  onChange: (value: string) => void;
+    Omit<
+      InputProps,
+      'value' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'type' | 'readOnly'
+    > {
   value: string;
   disabled?: boolean | string;
   leadingItems?: React.ReactNode;
@@ -39,6 +40,12 @@ export interface InputFieldProps
     | 'week';
 }
 
+export type InputFieldProps = SharedInputFieldProps &
+  (
+    | {readOnly: true; onChange?: (value: string) => void}
+    | {onChange: (value: string) => void; readOnly?: boolean}
+  );
+
 export function InputField({
   field,
   onChange,
@@ -47,7 +54,7 @@ export function InputField({
   trailingItems,
   ref,
   ...props
-}: InputFieldProps) {
+}: InputFieldProps & {field: AnyFieldApi}) {
   return (
     <BaseFieldImpl field={field} disabled={disabled} ref={ref}>
       {(fieldProps, {indicator}) => (
@@ -58,7 +65,7 @@ export function InputField({
           <InputGroup.Input
             {...fieldProps}
             {...props}
-            onChange={e => onChange(e.target.value)}
+            onChange={onChange ? e => onChange(e.target.value) : undefined}
           />
           <InputGroup.TrailingItems>
             {trailingItems}

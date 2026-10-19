@@ -1,6 +1,10 @@
+import {expectTypeOf} from 'expect-type';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useScrapsForm, ScrapsForm} from '@sentry/scraps/form';
+
+import type {InputFieldProps} from './inputField';
 
 function TestForm() {
   const form = useScrapsForm({
@@ -25,6 +29,27 @@ function TestForm() {
 }
 
 describe('InputField', () => {
+  it('requires onChange unless readOnly is true', () => {
+    expectTypeOf<{
+      readOnly: true;
+      value: string;
+    }>().toMatchTypeOf<InputFieldProps>();
+    expectTypeOf<{value: string}>().not.toMatchTypeOf<InputFieldProps>();
+    expectTypeOf<{
+      readOnly: false;
+      value: string;
+    }>().not.toMatchTypeOf<InputFieldProps>();
+    expectTypeOf<{
+      readOnly: boolean;
+      value: string;
+    }>().not.toMatchTypeOf<InputFieldProps>();
+    expectTypeOf<{
+      onChange: (value: string) => void;
+      readOnly: boolean;
+      value: string;
+    }>().toMatchTypeOf<InputFieldProps>();
+  });
+
   it('renders leading items and updates its value', async () => {
     render(<TestForm />);
 
