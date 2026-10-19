@@ -637,6 +637,8 @@ class SearchResolver:
                                 ),  # tell this function the single operator since its being ORed
                                 event_search.translate_wildcard_as_clickhouse_pattern(str(value)),
                             ),
+                            ignore_case=self.params.case_insensitive
+                            and resolved_column.search_type == "string",
                         )
                     )
                     for value in raw_value
