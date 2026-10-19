@@ -19,6 +19,7 @@ from sentry.ingest.inbound_filters import (
 )
 from sentry.models.custominboundfilter import LegacyFilter
 from sentry.models.project import Project
+from sentry.relay.types.rule_condition import AnyCondition
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
@@ -69,9 +70,10 @@ def test_custom_error_filter_builds_one_rule_per_pattern() -> None:
     with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=CUSTOM_PATTERNS):
         condition = _custom_error_filter()
 
+    assert condition is not None
     # The custom filter matches exceptions AND messages: the exception branch iterates
     # over event.exception.values, while type-less patterns also glob the logentry message.
-    assert condition == {
+    assert condition.serialize() == {
         "op": "or",
         "inner": [
             {
@@ -112,7 +114,8 @@ def test_custom_error_filter_exception_only_patterns_omit_logentry_branch() -> N
     ):
         condition = _custom_error_filter()
 
-    assert condition == {
+    assert condition is not None
+    assert condition.serialize() == {
         "op": "any",
         "name": "event.exception.values",
         "inner": {
@@ -135,7 +138,7 @@ def test_chunk_load_filter_unchanged_by_logentry_matching() -> None:
     condition = _chunk_load_error_filter()
 
     # An "any" top level (rather than the "or" wrapper) means there is no logentry branch.
-    assert condition["op"] == "any"
+    assert isinstance(condition, AnyCondition)
     assert "event.logentry.formatted" not in repr(condition)
 
 
@@ -143,7 +146,7 @@ def test_error_message_condition_logentry_disabled_by_default() -> None:
     # The logentry branch is opt-in; the default keeps the historical exception-only shape.
     condition = _error_message_condition([(None, "*known flaky test*")])
 
-    assert condition == {
+    assert condition.serialize() == {
         "op": "any",
         "name": "event.exception.values",
         "inner": {
@@ -155,6 +158,8 @@ def test_error_message_condition_logentry_disabled_by_default() -> None:
 
 def test_global_generic_filters_have_disabled_definitions(settings) -> None:
     settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = CUSTOM_PATTERNS
+    custom_error_condition = _custom_error_filter()
+    assert custom_error_condition is not None
 
     generic_filters = get_global_generic_filters()
 
@@ -164,17 +169,17 @@ def test_global_generic_filters_have_disabled_definitions(settings) -> None:
             {
                 "id": "chunk-load-error",
                 "isEnabled": False,
-                "condition": _chunk_load_error_filter(),
+                "condition": _chunk_load_error_filter().serialize(),
             },
             {
                 "id": "react-hydration-errors",
                 "isEnabled": False,
-                "condition": _hydration_error_filter(),
+                "condition": _hydration_error_filter().serialize(),
             },
             {
                 "id": "custom-error",
                 "isEnabled": False,
-                "condition": _custom_error_filter(),
+                "condition": custom_error_condition.serialize(),
             },
         ],
     }
@@ -191,12 +196,12 @@ def test_global_generic_filters_omit_custom_error_without_values(settings) -> No
             {
                 "id": "chunk-load-error",
                 "isEnabled": False,
-                "condition": _chunk_load_error_filter(),
+                "condition": _chunk_load_error_filter().serialize(),
             },
             {
                 "id": "react-hydration-errors",
                 "isEnabled": False,
-                "condition": _hydration_error_filter(),
+                "condition": _hydration_error_filter().serialize(),
             },
         ],
     }
