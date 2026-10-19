@@ -191,34 +191,64 @@ class DebugFilesTest(DebugFilesTestCases):
     def test_wasm_legacy_ids(self) -> None:
         self._upload_wasm()
 
-        for query in [
-            "debug_id=da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3",
-            "debug_id=10da03eb-5d63-d750-faab-0fb8e7cc12a1",
-            "code_id=da03eb5d63d750faab0fb8e7cc12a1c3",
-            "code_id=10da03eb5d63d750faab0fb8e7cc12a1c3",
+        for debug_id in [
+            None,
+            "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3",
+            "10da03eb-5d63-d750-faab-0fb8e7cc12a1",
         ]:
-            response = self.client.get(f"{self.url}?{query}")
+            for code_id in [
+                None,
+                "da03eb5d63d750faab0fb8e7cc12a1c3",
+                "10da03eb5d63d750faab0fb8e7cc12a1c3",
+            ]:
+                if not debug_id and not code_id:
+                    continue
 
-            assert response.status_code == 200, response.content
+                query = ""
+                if debug_id:
+                    query += f"debug_id={debug_id}"
+                if code_id:
+                    if query:
+                        query += "&"
+                    query += f"code_id={code_id}"
 
-            # The file that we find should have the correct debug ID.
-            assert response.data[0]["debugId"] == "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3"
+                response = self.client.get(f"{self.url}?{query}")
+
+                assert response.status_code == 200, response.content
+
+                # The file that we find should have the correct debug ID.
+                assert response.data[0]["debugId"] == "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3"
 
     def test_wasm_legacy_ids_old_upload(self) -> None:
         self._upload_wasm_legacy()
 
-        for query in [
-            "debug_id=da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3",
-            "debug_id=10da03eb-5d63-d750-faab-0fb8e7cc12a1",
-            "code_id=da03eb5d63d750faab0fb8e7cc12a1c3",
-            "code_id=10da03eb5d63d750faab0fb8e7cc12a1c3",
+        for debug_id in [
+            None,
+            "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3",
+            "10da03eb-5d63-d750-faab-0fb8e7cc12a1",
         ]:
-            response = self.client.get(f"{self.url}?{query}")
+            for code_id in [
+                None,
+                "da03eb5d63d750faab0fb8e7cc12a1c3",
+                "10da03eb5d63d750faab0fb8e7cc12a1c3",
+            ]:
+                if not debug_id and not code_id:
+                    continue
 
-            assert response.status_code == 200, response.content
+                query = ""
+                if debug_id:
+                    query += f"debug_id={debug_id}"
+                if code_id:
+                    if query:
+                        query += "&"
+                    query += f"code_id={code_id}"
 
-            # The file that we find should have the legacy debug ID.
-            assert response.data[0]["debugId"] == "10da03eb-5d63-d750-faab-0fb8e7cc12a1"
+                response = self.client.get(f"{self.url}?{query}")
+
+                assert response.status_code == 200, response.content
+
+                # The file that we find should have the legacy debug ID.
+                assert response.data[0]["debugId"] == "10da03eb-5d63-d750-faab-0fb8e7cc12a1"
 
     def _do_test_dsyms_by_debugid_and_codeid(self, query, files):
         for _, debug_id, code_id in files:
