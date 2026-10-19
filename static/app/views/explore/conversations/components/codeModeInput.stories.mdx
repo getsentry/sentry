@@ -1,0 +1,65 @@
+---
+title: Code Mode Span Details
+description: Formatted code inputs and structured tool outputs.
+category: patterns
+source: sentry/views/explore/conversations/components/codeModeInput
+---
+
+import {CodeModeInput} from './codeModeInput';
+import {AIToolOutput} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiToolOutput';
+import * as Storybook from 'sentry/stories';
+
+## Code Execution
+
+Code Mode tools have dedicated rendering in conversations and AI traces.
+The code icon, transcript label, and code-focused span details apply to
+`sentry_api_execute`, `execute_code`, `codemode`, and `code_mode` tools.
+Other tools retain their existing appearance. No URL parameter is required.
+
+JavaScript and TypeScript are formatted automatically. Code is read-only and
+copyable; missing code falls back to the original input view. This rendering
+makes no Seer requests and does not execute captured code.
+
+<Storybook.Demo>
+  <CodeModeInput
+    language="javascript"
+    code={
+      'const results=await Promise.all([api.search({query:"is:unresolved",limit:5}),api.search({query:"level:error",limit:5})]);const issues=results.flat();return issues.map(issue=>({title:issue.title,count:issue.count}));'
+    }
+  />
+</Storybook.Demo>
+
+## Tool Output
+
+Structured results show their type and field/item count above the JSON tree.
+Strings render as plain text; null and empty strings are distinguished from missing
+output. Input/output envelopes are unwrapped before reaching this renderer.
+
+<Storybook.Demo>
+  <AIToolOutput
+    value={JSON.stringify({
+      total: 2,
+      issues: [
+        {title: 'Example error', count: 12},
+        {title: 'Another error', count: 8},
+      ],
+    })}
+  />
+</Storybook.Demo>
+
+<Storybook.Demo>
+  <AIToolOutput value="null" />
+</Storybook.Demo>
+
+## Other Languages
+
+Python is syntax-highlighted without applying the JavaScript formatter.
+
+<Storybook.Demo>
+  <CodeModeInput
+    language="python"
+    code={
+      'issues = await api.search(query="is:unresolved", limit=5)\nfor issue in issues:\n    print(issue["title"])'
+    }
+  />
+</Storybook.Demo>

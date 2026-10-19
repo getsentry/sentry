@@ -14,6 +14,7 @@ import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import {TranscriptSpanRow} from 'sentry/views/explore/conversations/components/transcriptSpanRow';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {isCodeModeNode} from 'sentry/views/insights/pages/agents/utils/codeMode';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
@@ -136,6 +137,7 @@ interface ToolCallRowProps {
 
 function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
   const organization = useOrganization();
+  const isCodeMode = node && isCodeModeNode(node);
 
   const selectTool = () => {
     trackAnalytics('conversations.message.click-tool-call', {
@@ -152,7 +154,12 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
       isSelected={isSelected}
       ariaLabel={t('Select tool call %s', tool.name)}
       onSelect={selectTool}
-      tag={<ToolTag name={tool.name} hasError={tool.hasError} />}
+      tag={
+        <ToolTag
+          name={isCodeMode ? t('Code Mode') : tool.name}
+          hasError={tool.hasError}
+        />
+      }
       preview={node ? getToolInputPreview(node) : null}
       meta={
         <TurnMeta

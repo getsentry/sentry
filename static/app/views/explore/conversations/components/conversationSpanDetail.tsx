@@ -17,6 +17,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {CodeModeInput} from 'sentry/views/explore/conversations/components/codeModeInput';
 import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
   EvaluationInputTab,
@@ -32,6 +33,10 @@ import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/a
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getCodeModeInput,
+  isCodeModeNode,
+} from 'sentry/views/insights/pages/agents/utils/codeMode';
 import {
   getNodeEvaluation,
   type Evaluation,
@@ -54,6 +59,7 @@ import {
   getAIOutputData,
   getAIToolOutput,
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
+import {AIToolOutput} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiToolOutput';
 import {AttributesContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
@@ -111,6 +117,7 @@ export function ConversationSpanDetail({
 }: ConversationSpanDetailProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
+  const isCodeMode = node && isCodeModeNode(node);
 
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({top: 0});
@@ -153,7 +160,9 @@ export function ConversationSpanDetail({
 
   // Memory spans share a generic span op in the trace waterfall, so name the
   // heading after the operation to distinguish search, create, update, etc.
-  const title = memory?.operation || node.op || node.description || t('Span');
+  const title = isCodeMode
+    ? t('Code Mode')
+    : memory?.operation || node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
   const comparison = getDurationComparison(
     avgDuration,
@@ -224,7 +233,7 @@ export function ConversationSpanDetail({
       ) : (
         <TabStateProvider<DetailTab> value={activeTab} onChange={onTabChange}>
           <TabList>
-            <TabList.Item key="input">{t('Input')}</TabList.Item>
+            <TabList.Item key="input">{isCodeMode ? t('Code') : t('Input')}</TabList.Item>
             <TabList.Item key="output">{t('Output')}</TabList.Item>
             <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
           </TabList>
@@ -343,6 +352,11 @@ function InputTab({
 }) {
   const {messages} = getAIInputMessages(node, attributes);
   const toolArgs = getAIToolInput(node, attributes);
+  const codeInput = isCodeModeNode(node, attributes) ? getCodeModeInput(toolArgs) : null;
+
+  if (codeInput) {
+    return <CodeModeInput key={node.id} {...codeInput} />;
+  }
   const embeddingsInput = getTraceNodeAttribute(
     'gen_ai.embeddings.input',
     node,
@@ -399,14 +413,21 @@ function OutputTab({
     attributes
   );
   const toolOutput = getAIToolOutput(node, attributes);
+  const hasToolOutput = toolOutput !== undefined;
 
   // Reasoning is supplementary to the actual output, so clip it when there is
   // other content; when it is the only output, show it in full.
   const clipReasoning = Boolean(
-    responseText || responseObject || toolCalls || toolOutput
+    responseText || responseObject || toolCalls || hasToolOutput
   );
 
-  if (!reasoningText && !responseText && !responseObject && !toolCalls && !toolOutput) {
+  if (
+    !reasoningText &&
+    !responseText &&
+    !responseObject &&
+    !toolCalls &&
+    !hasToolOutput
+  ) {
     return <EmptyTab message={t('No output for this span')} />;
   }
 
@@ -467,13 +488,8 @@ function OutputTab({
           />
         </Fragment>
       ) : null}
-      {toolOutput ? (
-        <TraceDrawerComponents.MultilineJSON
-          key={`${node.id}:tool-output`}
-          value={toolOutput}
-          maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-          autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
-        />
+      {hasToolOutput ? (
+        <AIToolOutput key={`${node.id}:tool-output`} value={toolOutput} />
       ) : null}
     </Fragment>
   );

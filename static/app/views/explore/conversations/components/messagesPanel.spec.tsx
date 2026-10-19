@@ -392,6 +392,20 @@ describe('MessagesPanel', () => {
     expect(screen.getByText('weather')).toBeInTheDocument();
   });
 
+  it('shows code mode tools without an AI summary in the transcript', () => {
+    render(
+      <MessagesPanel
+        nodes={createNodesWithToolCalls(['sentry_api_execute']) as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('Code Mode')).toBeInTheDocument();
+    expect(screen.queryByText(/Fetch and transform data/)).not.toBeInTheDocument();
+    expect(screen.queryByText('AI Summary')).not.toBeInTheDocument();
+  });
+
   it('renders a short run of tool calls inline without a summary', () => {
     render(
       <MessagesPanel
