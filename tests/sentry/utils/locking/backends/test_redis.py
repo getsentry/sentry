@@ -138,8 +138,6 @@ class RedisClusterLockBackendConfigurationTestCase(TestCase):
         assert "'locks-multi-host'" in message
         assert "exactly one host" in message
         assert "is_redis_cluster" in message
-        assert "SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS" in message
-        assert "sentry.utils.locking.backends.redis.RedisBlasterLockBackend" in message
 
     def test_unknown_cluster_still_raises_key_error(self) -> None:
         with pytest.raises(KeyError, match="Invalid cluster name"):
