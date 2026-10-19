@@ -154,6 +154,9 @@ export function getDefaultAgentIntegration(
  * - Mastra's `@mastra/sentry` exporter is not part of the Cloudflare `withSentry`
  *   flow, so it is Node-only.
  * - Eve is a Vercel backend framework that runs on Node, so it is Node-only.
+ * - Pi Durable runs on Cloudflare too, but its Cloudflare setup is only shown in
+ *   Cloudflare Workers projects, which force the Cloudflare target. In other Node
+ *   projects it is Node-only (see INTEGRATIONS_WITHOUT_DEPLOYMENT_TARGET_SELECTOR).
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/cloudflare/agent-tracing/
  */
@@ -164,7 +167,22 @@ const INTEGRATION_DEPLOYMENT_TARGETS: Partial<
   [AgentIntegration.CLOUDFLARE_AGENTS]: DeploymentTarget.CLOUDFLARE,
   [AgentIntegration.MASTRA]: DeploymentTarget.NODE,
   [AgentIntegration.EVE]: DeploymentTarget.NODE,
+  [AgentIntegration.PI]: DeploymentTarget.NODE,
 };
+
+/**
+ * SDKs pinned to a runtime that hide the runtime selector instead of showing it
+ * locked to that runtime.
+ */
+const INTEGRATIONS_WITHOUT_DEPLOYMENT_TARGET_SELECTOR: ReadonlySet<string> = new Set([
+  AgentIntegration.PI,
+]);
+
+export function hidesDeploymentTargetSelector(integration: string | undefined): boolean {
+  return integration
+    ? INTEGRATIONS_WITHOUT_DEPLOYMENT_TARGET_SELECTOR.has(integration)
+    : false;
+}
 
 /**
  * Returns the runtime a given SDK is pinned to, or undefined when the SDK works
