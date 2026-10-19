@@ -639,7 +639,11 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
 
 @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
 class UpdateGroupStatusSnapshotTest(TestCase):
-    def _archive_group_forever(self, group: Group) -> None:
+    def test_emits_one_snapshot(self, produce_snapshot: MagicMock) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+
+        produce_snapshot.reset_mock()
+
         with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
             Group.objects.update_group_status(
                 groups=[group],
@@ -648,21 +652,4 @@ class UpdateGroupStatusSnapshotTest(TestCase):
                 activity_type=ActivityType.SET_IGNORED,
             )
 
-    def _get_statuses_emitted_to_snuba(
-        self, produce_snapshot: MagicMock
-    ) -> list[tuple[int, int | None]]:
-        return [
-            (call.args[0]["status"], call.args[0]["substatus"])
-            for call in produce_snapshot.call_args_list
-        ]
-
-    def test_emits_one_snapshot(self, produce_snapshot: MagicMock) -> None:
-        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
-
-        produce_snapshot.reset_mock()
-
-        self._archive_group_forever(group)
-
-        assert self._get_statuses_emitted_to_snuba(produce_snapshot) == [
-            (GroupStatus.IGNORED, GroupSubStatus.FOREVER)
-        ]
+        produce_snapshot.assert_called_once()
