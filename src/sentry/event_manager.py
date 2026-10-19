@@ -17,7 +17,6 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, router, transaction
 from django.db.models import Max, Q
-from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from sentry_sdk import traces
 from urllib3.connectionpool import HTTPConnectionPool
@@ -1833,13 +1832,6 @@ def _handle_regression(
             transition_type="automatic",
             sender="handle_regression",
         )
-        if not options.get("groups.enable-post-update-signal"):
-            post_save.send_robust(
-                sender=Group,
-                instance=group,
-                created=False,
-                update_fields=["last_seen", "active_at", "status", "substatus"],
-            )
 
     follows_semver = False
     resolved_in_activity = None

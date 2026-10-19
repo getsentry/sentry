@@ -514,8 +514,7 @@ class UpdateGroupsTest(TestCase):
         )
 
     @patch("sentry.signals.issue_ignored.send_robust")
-    @patch("sentry.issues.status_change.post_save")
-    def test_ignoring_group_archived_forever(self, post_save: Mock, send_robust: Mock) -> None:
+    def test_ignoring_group_archived_forever(self, send_robust: Mock) -> None:
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.NEW)
 
@@ -533,12 +532,6 @@ class UpdateGroupsTest(TestCase):
         assert group.status == GroupStatus.IGNORED
         assert group.substatus == GroupSubStatus.FOREVER
         assert send_robust.called
-        post_save.send_robust.assert_called_with(
-            sender=Group,
-            instance=group,
-            created=False,
-            update_fields=["status", "substatus"],
-        )
         assert not GroupInbox.objects.filter(group=group).exists()
 
     @patch("sentry.signals.issue_ignored.send_robust")
@@ -962,12 +955,7 @@ class UpdateGroupsTest(TestCase):
 @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
 class UpdateGroupsSnapshotTest(TestCase):
     def _update_groups_and_capture_snapshots(
-        self,
-        group: Group,
-        data: dict[str, Any],
-        produce_snapshot: Mock,
-        *,
-        post_update_signal_enabled: bool,
+        self, group: Group, data: dict[str, Any], produce_snapshot: Mock
     ) -> list[dict[str, Any]]:
         http_request = self.make_request(user=self.user, method="GET")
         http_request.GET = QueryDict(query_string=f"id={group.id}")
@@ -976,38 +964,25 @@ class UpdateGroupsSnapshotTest(TestCase):
 
         produce_snapshot.reset_mock()
 
-        with (
-            self.options({"groups.enable-post-update-signal": post_update_signal_enabled}),
-            self.capture_on_commit_callbacks(execute=True),
-        ):
+        with self.capture_on_commit_callbacks(execute=True):
             update_groups(request, group_list)
 
         return [call.args[0] for call in produce_snapshot.call_args_list]
 
     def _update_status_and_capture_snapshot_statuses(
-        self,
-        group: Group,
-        data: dict[str, Any],
-        produce_snapshot: Mock,
-        *,
-        post_update_signal_enabled: bool,
+        self, group: Group, data: dict[str, Any], produce_snapshot: Mock
     ) -> list[int]:
-        snapshots = self._update_groups_and_capture_snapshots(
-            group, data, produce_snapshot, post_update_signal_enabled=post_update_signal_enabled
-        )
+        snapshots = self._update_groups_and_capture_snapshots(group, data, produce_snapshot)
 
         return [snapshot["status"] for snapshot in snapshots]
 
-    def _assert_archive_until_escalating_emits_one_snapshot(
-        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
-    ) -> None:
+    def test_archive_until_escalating_emits_one_snapshot(self, produce_snapshot: Mock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
         emitted_statuses = self._update_status_and_capture_snapshot_statuses(
             group,
             {"status": "ignored", "substatus": "archived_until_escalating"},
             produce_snapshot,
-            post_update_signal_enabled=post_update_signal_enabled,
         )
 
         group.refresh_from_db()
@@ -1016,16 +991,13 @@ class UpdateGroupsSnapshotTest(TestCase):
 
         assert emitted_statuses == [GroupStatus.IGNORED]
 
-    def _assert_archive_forever_emits_one_snapshot(
-        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
-    ) -> None:
+    def test_archive_forever_emits_one_snapshot(self, produce_snapshot: Mock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
         emitted_statuses = self._update_status_and_capture_snapshot_statuses(
             group,
             {"status": "ignored", "substatus": "archived_forever"},
             produce_snapshot,
-            post_update_signal_enabled=post_update_signal_enabled,
         )
 
         group.refresh_from_db()
@@ -1034,9 +1006,7 @@ class UpdateGroupsSnapshotTest(TestCase):
 
         assert emitted_statuses == [GroupStatus.IGNORED]
 
-    def _assert_unresolve_emits_one_snapshot(
-        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
-    ) -> None:
+    def test_unresolve_emits_one_snapshot(self, produce_snapshot: Mock) -> None:
         group = self.create_group(
             status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING
         )
@@ -1045,7 +1015,6 @@ class UpdateGroupsSnapshotTest(TestCase):
             group,
             {"status": "unresolved", "substatus": "ongoing"},
             produce_snapshot,
-            post_update_signal_enabled=post_update_signal_enabled,
         )
 
         group.refresh_from_db()
@@ -1054,16 +1023,13 @@ class UpdateGroupsSnapshotTest(TestCase):
 
         assert emitted_statuses == [GroupStatus.UNRESOLVED]
 
-    def _assert_resolve_emits_one_snapshot(
-        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
-    ) -> None:
+    def test_resolve_emits_one_snapshot(self, produce_snapshot: Mock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
         emitted_statuses = self._update_status_and_capture_snapshot_statuses(
             group,
             {"status": "resolved", "substatus": None},
             produce_snapshot,
-            post_update_signal_enabled=post_update_signal_enabled,
         )
 
         group.refresh_from_db()
@@ -1071,63 +1037,18 @@ class UpdateGroupsSnapshotTest(TestCase):
 
         assert emitted_statuses == [GroupStatus.RESOLVED]
 
-    def test_archive_until_escalating_emits_snapshot_via_post_update(
-        self, produce_snapshot: Mock
-    ) -> None:
-        self._assert_archive_until_escalating_emits_one_snapshot(
-            produce_snapshot, post_update_signal_enabled=True
-        )
-
-    def test_archive_until_escalating_emits_snapshot_via_post_save(
-        self, produce_snapshot: Mock
-    ) -> None:
-        self._assert_archive_until_escalating_emits_one_snapshot(
-            produce_snapshot, post_update_signal_enabled=False
-        )
-
-    def test_archive_forever_emits_snapshot_via_post_update(self, produce_snapshot: Mock) -> None:
-        self._assert_archive_forever_emits_one_snapshot(
-            produce_snapshot, post_update_signal_enabled=True
-        )
-
-    def test_archive_forever_emits_snapshot_via_post_save(self, produce_snapshot: Mock) -> None:
-        self._assert_archive_forever_emits_one_snapshot(
-            produce_snapshot, post_update_signal_enabled=False
-        )
-
-    def test_unresolve_emits_snapshot_via_post_update(self, produce_snapshot: Mock) -> None:
-        self._assert_unresolve_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=True)
-
-    def test_unresolve_emits_snapshot_via_post_save(self, produce_snapshot: Mock) -> None:
-        self._assert_unresolve_emits_one_snapshot(
-            produce_snapshot, post_update_signal_enabled=False
-        )
-
-    def test_resolve_emits_snapshot_via_post_update(self, produce_snapshot: Mock) -> None:
-        self._assert_resolve_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=True)
-
-    def test_resolve_emits_snapshot_via_post_save(self, produce_snapshot: Mock) -> None:
-        self._assert_resolve_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=False)
-
-    def _assert_assign_emits_one_snapshot(
-        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
-    ) -> None:
+    def test_assign_emits_one_snapshot(self, produce_snapshot: Mock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
         snapshots = self._update_groups_and_capture_snapshots(
-            group,
-            {"assignedTo": f"user:{self.user.id}"},
-            produce_snapshot,
-            post_update_signal_enabled=post_update_signal_enabled,
+            group, {"assignedTo": f"user:{self.user.id}"}, produce_snapshot
         )
 
         assert GroupAssignee.objects.filter(group=group, user_id=self.user.id).exists()
 
         assert [snapshot["assignee_user_id"] for snapshot in snapshots] == [self.user.id]
 
-    def _assert_reassign_emits_one_snapshot(
-        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
-    ) -> None:
+    def test_reassign_emits_one_snapshot(self, produce_snapshot: Mock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
         new_assignee = self.create_user()
@@ -1138,62 +1059,26 @@ class UpdateGroupsSnapshotTest(TestCase):
             GroupAssignee.objects.assign(group, self.user)
 
         snapshots = self._update_groups_and_capture_snapshots(
-            group,
-            {"assignedTo": f"user:{new_assignee.id}"},
-            produce_snapshot,
-            post_update_signal_enabled=post_update_signal_enabled,
+            group, {"assignedTo": f"user:{new_assignee.id}"}, produce_snapshot
         )
 
         assert GroupAssignee.objects.filter(group=group, user_id=new_assignee.id).exists()
 
         assert [snapshot["assignee_user_id"] for snapshot in snapshots] == [new_assignee.id]
 
-    def _assert_unassign_emits_one_snapshot(
-        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
-    ) -> None:
+    def test_unassign_emits_one_snapshot(self, produce_snapshot: Mock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
         with action_context_scope(source=ActionSource.SYSTEM):
             GroupAssignee.objects.assign(group, self.user)
 
         snapshots = self._update_groups_and_capture_snapshots(
-            group,
-            {"assignedTo": ""},
-            produce_snapshot,
-            post_update_signal_enabled=post_update_signal_enabled,
+            group, {"assignedTo": ""}, produce_snapshot
         )
 
         assert not GroupAssignee.objects.filter(group=group).exists()
 
         assert [snapshot["assignee_user_id"] for snapshot in snapshots] == [None]
-
-    def test_assign_emits_snapshot_with_post_update_signal_on(self, produce_snapshot: Mock) -> None:
-        self._assert_assign_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=True)
-
-    def test_assign_emits_snapshot_with_post_update_signal_off(
-        self, produce_snapshot: Mock
-    ) -> None:
-        self._assert_assign_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=False)
-
-    def test_reassign_emits_snapshot_with_post_update_signal_on(
-        self, produce_snapshot: Mock
-    ) -> None:
-        self._assert_reassign_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=True)
-
-    def test_reassign_emits_snapshot_with_post_update_signal_off(
-        self, produce_snapshot: Mock
-    ) -> None:
-        self._assert_reassign_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=False)
-
-    def test_unassign_emits_snapshot_with_post_update_signal_on(
-        self, produce_snapshot: Mock
-    ) -> None:
-        self._assert_unassign_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=True)
-
-    def test_unassign_emits_snapshot_with_post_update_signal_off(
-        self, produce_snapshot: Mock
-    ) -> None:
-        self._assert_unassign_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=False)
 
 
 class MergeGroupsTest(TestCase):
