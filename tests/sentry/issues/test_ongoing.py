@@ -1,3 +1,5 @@
+from unittest.mock import MagicMock, patch
+
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
@@ -60,3 +62,36 @@ class TransitionNewToOngoingTest(TestCase):
             group=group, status=GroupHistoryStatus.PRIORITY_MEDIUM
         ).exists()
         assert Activity.objects.filter(group=group, type=ActivityType.SET_PRIORITY.value).exists()
+
+
+@patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+class TransitionToOngoingSnapshotTest(TestCase):
+    def _get_emitted_statuses(self, produce_snapshot: MagicMock) -> list[tuple[int, int | None]]:
+        return [
+            (call.args[0]["status"], call.args[0]["substatus"])
+            for call in produce_snapshot.call_args_list
+        ]
+
+    def test_emits_one_snapshot_via_post_update(self, produce_snapshot: MagicMock) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+
+        produce_snapshot.reset_mock()
+
+        with self.options({"groups.enable-post-update-signal": True}):
+            bulk_transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, [group.id])
+
+        assert self._get_emitted_statuses(produce_snapshot) == [
+            (GroupStatus.UNRESOLVED, GroupSubStatus.ONGOING)
+        ]
+
+    def test_emits_one_snapshot_via_post_save(self, produce_snapshot: MagicMock) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.NEW)
+
+        produce_snapshot.reset_mock()
+
+        with self.options({"groups.enable-post-update-signal": False}):
+            bulk_transition_group_to_ongoing(GroupStatus.UNRESOLVED, GroupSubStatus.NEW, [group.id])
+
+        assert self._get_emitted_statuses(produce_snapshot) == [
+            (GroupStatus.UNRESOLVED, GroupSubStatus.ONGOING)
+        ]

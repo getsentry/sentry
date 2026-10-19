@@ -638,30 +638,28 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
         assert before <= activity.datetime <= after
 
 
-@dataclass(frozen=True)
-class StatusChange:
-    status: int
-    substatus: int | None
-    activity_type: ActivityType
-
-
-ARCHIVE_UNTIL_ESCALATING = StatusChange(
-    GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING, ActivityType.SET_IGNORED
-)
-
-ARCHIVE_FOREVER = StatusChange(
-    GroupStatus.IGNORED, GroupSubStatus.FOREVER, ActivityType.SET_IGNORED
-)
-
-UNRESOLVE = StatusChange(
-    GroupStatus.UNRESOLVED, GroupSubStatus.ONGOING, ActivityType.SET_UNRESOLVED
-)
-
-RESOLVE = StatusChange(GroupStatus.RESOLVED, None, ActivityType.SET_RESOLVED)
-
-
 @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
 class UpdateGroupStatusSnapshotTest(TestCase):
+    @dataclass(frozen=True)
+    class StatusChange:
+        status: int
+        substatus: int | None
+        activity_type: ActivityType
+
+    ARCHIVE_UNTIL_ESCALATING = StatusChange(
+        GroupStatus.IGNORED, GroupSubStatus.UNTIL_ESCALATING, ActivityType.SET_IGNORED
+    )
+
+    ARCHIVE_FOREVER = StatusChange(
+        GroupStatus.IGNORED, GroupSubStatus.FOREVER, ActivityType.SET_IGNORED
+    )
+
+    UNRESOLVE = StatusChange(
+        GroupStatus.UNRESOLVED, GroupSubStatus.ONGOING, ActivityType.SET_UNRESOLVED
+    )
+
+    RESOLVE = StatusChange(GroupStatus.RESOLVED, None, ActivityType.SET_RESOLVED)
+
     def _assert_status_change_emits_one_snapshot(
         self,
         group: Group,
@@ -696,7 +694,7 @@ class UpdateGroupStatusSnapshotTest(TestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
         self._assert_status_change_emits_one_snapshot(
-            group, ARCHIVE_UNTIL_ESCALATING, produce_snapshot, post_update_signal_enabled=True
+            group, self.ARCHIVE_UNTIL_ESCALATING, produce_snapshot, post_update_signal_enabled=True
         )
 
     def test_archive_until_escalating_emits_snapshot_via_post_save(
@@ -705,7 +703,7 @@ class UpdateGroupStatusSnapshotTest(TestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
         self._assert_status_change_emits_one_snapshot(
-            group, ARCHIVE_UNTIL_ESCALATING, produce_snapshot, post_update_signal_enabled=False
+            group, self.ARCHIVE_UNTIL_ESCALATING, produce_snapshot, post_update_signal_enabled=False
         )
 
     def test_archive_forever_emits_snapshot_via_post_update(
@@ -714,7 +712,7 @@ class UpdateGroupStatusSnapshotTest(TestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
         self._assert_status_change_emits_one_snapshot(
-            group, ARCHIVE_FOREVER, produce_snapshot, post_update_signal_enabled=True
+            group, self.ARCHIVE_FOREVER, produce_snapshot, post_update_signal_enabled=True
         )
 
     def test_archive_forever_emits_snapshot_via_post_save(
@@ -723,7 +721,7 @@ class UpdateGroupStatusSnapshotTest(TestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
         self._assert_status_change_emits_one_snapshot(
-            group, ARCHIVE_FOREVER, produce_snapshot, post_update_signal_enabled=False
+            group, self.ARCHIVE_FOREVER, produce_snapshot, post_update_signal_enabled=False
         )
 
     def test_unresolve_emits_snapshot_via_post_update(self, produce_snapshot: MagicMock) -> None:
@@ -732,7 +730,7 @@ class UpdateGroupStatusSnapshotTest(TestCase):
         )
 
         self._assert_status_change_emits_one_snapshot(
-            group, UNRESOLVE, produce_snapshot, post_update_signal_enabled=True
+            group, self.UNRESOLVE, produce_snapshot, post_update_signal_enabled=True
         )
 
     def test_unresolve_emits_snapshot_via_post_save(self, produce_snapshot: MagicMock) -> None:
@@ -741,19 +739,19 @@ class UpdateGroupStatusSnapshotTest(TestCase):
         )
 
         self._assert_status_change_emits_one_snapshot(
-            group, UNRESOLVE, produce_snapshot, post_update_signal_enabled=False
+            group, self.UNRESOLVE, produce_snapshot, post_update_signal_enabled=False
         )
 
     def test_resolve_emits_snapshot_via_post_update(self, produce_snapshot: MagicMock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
         self._assert_status_change_emits_one_snapshot(
-            group, RESOLVE, produce_snapshot, post_update_signal_enabled=True
+            group, self.RESOLVE, produce_snapshot, post_update_signal_enabled=True
         )
 
     def test_resolve_emits_snapshot_via_post_save(self, produce_snapshot: MagicMock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
         self._assert_status_change_emits_one_snapshot(
-            group, RESOLVE, produce_snapshot, post_update_signal_enabled=False
+            group, self.RESOLVE, produce_snapshot, post_update_signal_enabled=False
         )
