@@ -14,6 +14,7 @@ from sentry.integrations.slack.service import ActionDataError, SlackService
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.notifications.models.notificationaction import ActionTarget
@@ -25,6 +26,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
@@ -254,22 +256,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         mock_send_notification.assert_called_once()
         assert mock_get_channel_id.call_args.args[0].id == parent_notification_2_message.id
 
-    @with_feature("organizations:slack-threads-refactor-uptime")
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @mock.patch(
-        "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
-    )
-    def test_platform_threads_filtered_to_current_open_period(
-        self, mock_send_notification, mock_record
-    ) -> None:
-        group = self.create_group(type=UptimeDomainCheckFailure.type_id)
-        activity = Activity.objects.create(
-            group=group,
-            project=self.project,
-            type=ActivityType.SET_IGNORED.value,
-            user_id=self.user.id,
-            data={"ignoreUntilEscalating": True},
-        )
+    def create_platform_threads(self, group: Group) -> None:
         open_period_start = open_period_start_for_group(group)
         assert open_period_start is not None
         for thread_ts, period_start in [
@@ -292,6 +279,30 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 external_message_id=thread_ts,
             )
 
+    @with_feature(
+        [
+            "organizations:slack-threads-refactor-uptime",
+            "organizations:notification-platform.internal-testing",
+        ]
+    )
+    @override_options({"notifications.platform-rollout.internal-testing": {"issue": 1.0}})
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch(
+        "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
+    )
+    def test_platform_threads_filtered_to_current_open_period(
+        self, mock_send_notification, mock_record
+    ) -> None:
+        group = self.create_group(type=UptimeDomainCheckFailure.type_id)
+        activity = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_IGNORED.value,
+            user_id=self.user.id,
+            data={"ignoreUntilEscalating": True},
+        )
+        self.create_platform_threads(group)
+
         with mock.patch.object(
             type(group),
             "issue_category",
@@ -302,6 +313,34 @@ class TestNotifyAllThreadsForActivity(TestCase):
 
         mock_send_notification.assert_called_once()
         assert mock_send_notification.call_args.kwargs["message_identifier"] == "222.222"
+
+    @with_feature("organizations:slack-threads-refactor-uptime")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch(
+        "sentry.integrations.slack.service.SlackService._send_notification_to_slack_channel"
+    )
+    def test_platform_threads_skipped_outside_platform_rollout(
+        self, mock_send_notification, mock_record
+    ) -> None:
+        group = self.create_group(type=UptimeDomainCheckFailure.type_id)
+        activity = Activity.objects.create(
+            group=group,
+            project=self.project,
+            type=ActivityType.SET_IGNORED.value,
+            user_id=self.user.id,
+            data={"ignoreUntilEscalating": True},
+        )
+        self.create_platform_threads(group)
+
+        with mock.patch.object(
+            type(group),
+            "issue_category",
+            new_callable=mock.PropertyMock,
+            return_value=GroupCategory.OUTAGE,
+        ):
+            self.service.notify_all_threads_for_activity(activity=activity)
+
+        mock_send_notification.assert_not_called()
 
     @with_feature("organizations:slack-threads-refactor-uptime")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
