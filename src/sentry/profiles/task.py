@@ -84,7 +84,6 @@ from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
-from sentry.utils.sdk import set_span_attribute
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
 
@@ -322,9 +321,15 @@ def process_profile_task(
     elif version is not None:
         sentry_sdk.set_tag("format", f"sample_v{version}")
         sentry_sdk.set_attribute("format", f"sample_v{version}")
-        set_span_attribute("profile.samples", len(profile["profile"]["samples"]))
-        set_span_attribute("profile.stacks", len(profile["profile"]["stacks"]))
-        set_span_attribute("profile.frames", len(profile["profile"]["frames"]))
+        span = traces.get_current_span()
+        if span:
+            span.set_attributes(
+                {
+                    "profile.samples": len(profile["profile"]["samples"]),
+                    "profile.stacks": len(profile["profile"]["stacks"]),
+                    "profile.frames": len(profile["profile"]["frames"]),
+                }
+            )
     else:
         sentry_sdk.set_tag("format", "legacy")
         sentry_sdk.set_attribute("format", "legacy")
@@ -349,9 +354,15 @@ def process_profile_task(
     _set_frames_platform(profile)
 
     if version is not None and not is_android_trace_format(profile):
-        set_span_attribute("profile.samples.processed", len(profile["profile"]["samples"]))
-        set_span_attribute("profile.stacks.processed", len(profile["profile"]["stacks"]))
-        set_span_attribute("profile.frames.processed", len(profile["profile"]["frames"]))
+        span = traces.get_current_span()
+        if span:
+            span.set_attributes(
+                {
+                    "profile.samples.processed": len(profile["profile"]["samples"]),
+                    "profile.stacks.processed": len(profile["profile"]["stacks"]),
+                    "profile.frames.processed": len(profile["profile"]["frames"]),
+                }
+            )
 
     try:
         with metrics.timer("process_profile.apply_stack_trace_rules"):
@@ -548,7 +559,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
 
     with traces.start_span(
         name="task.profiling.symbolicate", attributes={"sentry.op": "task.profiling.symbolicate"}
-    ):
+    ) as span:
         try:
             if "debug_meta" not in profile or not profile["debug_meta"]:
                 metrics.incr(
@@ -571,7 +582,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(
                     profile, platform
                 )
-                set_span_attribute(
+                span.set_attribute(
                     f"profile.frames.sent.{platform}",
                     len(frames_sent),
                 )
