@@ -359,7 +359,7 @@ class SeerRunState(BaseModel):
     metadata: dict[str, Any] | None = Field(default=None, exclude=True)
     coding_agents: dict[str, CodingAgentState] = Field(default_factory=dict, exclude=True)
     usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)
-    pr_push_log: list[PushLogEntry] = Field(default_factory=list, exclude=True)
+    pr_push_log: list[PushLogEntry] | None = Field(default=None, exclude=True)
 
     class Config:
         extra = "ignore"
@@ -374,10 +374,10 @@ class SeerRunState(BaseModel):
         return turns
 
     def get_push_log_index(self) -> dict[str, PushLogEntry]:
-        """The PR push log, keyed by the idempotency key of the call that queued each push."""
+        """Pushes keyed by idempotency key, or an empty index when the log is unavailable."""
         return {
             push.request.idempotency_key: push
-            for push in self.pr_push_log
+            for push in self.pr_push_log or []
             if push.request.idempotency_key
         }
 

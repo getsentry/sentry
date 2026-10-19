@@ -1,3 +1,7 @@
+from typing import Any
+
+import pytest
+
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
@@ -55,6 +59,39 @@ def test_turns_split_at_each_user_message() -> None:
     assert first.answer.id == "3"
     # Doesn't fall back to the previous turn's answer.
     assert second.answer is None
+
+
+@pytest.mark.parametrize("push_log_fields", [{}, {"pr_push_log": None}, {"pr_push_log": []}])
+def test_turns_and_pr_states_without_push_log(push_log_fields: dict[str, Any]) -> None:
+    state = SeerRunState.parse_obj(
+        {
+            "run_id": 1,
+            "blocks": [
+                _block("1", "user", "open a PR"),
+                _block("2", "assistant", "opened", push_key="codemode:1"),
+            ],
+            "status": "completed",
+            "updated_at": "2024-01-01T00:00:00Z",
+            "repo_pr_states": {
+                "acme/web": {
+                    "repo_name": "acme/web",
+                    "pr_number": 42,
+                    "pr_creation_status": "completed",
+                }
+            },
+            **push_log_fields,
+        }
+    )
+
+    assert state.get_push_log_index() == {}
+    (turn,) = state.get_turns()
+    assert turn.answer is not None
+    assert turn.answer.id == "2"
+    (call,) = turn.get_code_mode_calls()
+    assert call.name == "write_pull_request"
+    assert state.get_push_log_index().get(call.params["idempotency_key"]) is None
+    assert [pr.pr_number for pr in state.get_created_pull_request_states()] == [42]
+    assert "pr_push_log" not in state.dict()
 
 
 def test_push_log_index_links_each_call_to_its_push() -> None:
