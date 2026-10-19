@@ -160,7 +160,11 @@ describe('Onboarding deployment target', () => {
     ['node-mastra', 'Mastra', /@mastra\/observability/],
     ['node-flue', 'Flue', /flue add tooling sentry/],
     ['node-eve', 'Eve', /Install the Sentry Node SDK in your Eve project/],
-    ['node-pi-durable', 'Pi Durable', /Install the Sentry Node SDK in your Pi Durable project/],
+    [
+      'node-pi-durable',
+      'Pi Durable',
+      /Install the Sentry Node SDK in your Pi Durable project/,
+    ],
   ] as const)(
     'uses the %s project integration without showing a selector',
     async (platform, integration, setupCode) => {
