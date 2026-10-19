@@ -1,5 +1,6 @@
 import {defineRule, type ESTree} from '@oxlint/plugins';
 
+import {parseCssTemplate, type ParsedCssAtRule} from '../ast/extractor/css.ts';
 import {createImportTracker} from '../ast/tracker/imports.ts';
 import {getStyledCallInfo} from '../ast/utils/styled.ts';
 
@@ -117,16 +118,16 @@ export const preferContainerResponsiveProps = defineRule({
         if (!getStyledCallInfo(node, importTracker)) {
           return;
         }
-        for (const quasi of node.quasi.quasis) {
-          const css = quasi.value.raw.replace(/\/\*[\s\S]*?\*\//g, '');
-          for (const match of css.matchAll(STYLE_QUERY)) {
-            if (
-              match[0] === '@container' ||
-              (!isNonLayoutMediaQuery(css.slice(match.index)) &&
-                !allowsViewportSizing(node, context.filename))
-            ) {
-              context.report({node: quasi, messageId: 'forbidden'});
-            }
+        const atRules: ParsedCssAtRule[] = [];
+        parseCssTemplate(node.quasi, context.sourceCode.getText(node.quasi), atRules);
+        for (const atRule of atRules) {
+          if (
+            atRule.name === 'container' ||
+            (atRule.name === 'media' &&
+              !isNonLayoutMediaQuery(`@media ${atRule.params}`) &&
+              !allowsViewportSizing(node, context.filename))
+          ) {
+            context.report({node, messageId: 'forbidden'});
           }
         }
       },

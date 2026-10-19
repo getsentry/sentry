@@ -60,6 +60,10 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
       code: "import {css} from '@emotion/react'; const styles = css`/* Use @container only through responsive props. */ color: red;`;",
     },
     {
+      filename,
+      code: "import {css} from '@emotion/react'; const styles = css`content: '@media (max-width: 800px)';`;",
+    },
+    {
       filename: '/project/static/app/components/core/drawer/components.tsx',
       code: "import styled from '@emotion/styled'; const DrawerSlidePanel = styled.div`@media (max-width: 800px) { width: 100%; }`;",
     },
@@ -96,6 +100,11 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
     {
       filename,
       code: "import styled from '@emotion/styled'; const Box = styled.div`@container (max-width: 768px) { color: red; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "import styled from '@emotion/styled'; const Box = styled.div`@supports (display: grid) { @container (max-width: 768px) { color: red; } }`;",
       errors: [{messageId: 'forbidden'}],
     },
     {
