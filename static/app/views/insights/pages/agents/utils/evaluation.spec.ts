@@ -158,6 +158,7 @@ describe('parseEvaluationOutput', () => {
             probabilities: {technical: 0.35, billing: 0.59},
             confidence: 0.24,
           },
+          tone: {type: 'refusal'},
         },
       },
     ]);
@@ -181,6 +182,7 @@ describe('parseEvaluationOutput', () => {
         probabilities: {technical: 0.35, billing: 0.59},
         confidence: 0.24,
       },
+      {kind: 'refusal', key: 'tone'},
     ]);
   });
 
@@ -304,5 +306,9 @@ describe('getAnswerLabel', () => {
         criteria: ['low', 'medium', 'critical'],
       })
     ).toBe('critical (1.6)');
+  });
+
+  it('labels a refusal', () => {
+    expect(getAnswerLabel({kind: 'refusal', key: 'urgency'})).toBe('Refused');
   });
 });

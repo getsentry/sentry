@@ -62,11 +62,18 @@ const choiceAnswerSchema = z
   })
   .transform(({type: _type, ...answer}) => ({...answer, kind: 'choice' as const}));
 
+// The model declined to answer the question. It carries no probability or
+// reason, so there's nothing to render beyond the refusal itself.
+const refusalAnswerSchema = z
+  .object({type: z.literal('refusal')})
+  .transform(() => ({kind: 'refusal' as const}));
+
 const answerSchema = z.union([
   booleanAnswerSchema,
   noulAnswerSchema,
   scoreAnswerSchema,
   choiceAnswerSchema,
+  refusalAnswerSchema,
   invalidEntrySchema,
 ]);
 
@@ -326,6 +333,8 @@ export function getAnswerLabel(
     }
     case 'choice':
       return answer.choice;
+    case 'refusal':
+      return t('Refused');
     default:
       return null;
   }
