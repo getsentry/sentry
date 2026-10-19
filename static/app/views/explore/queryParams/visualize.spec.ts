@@ -32,6 +32,18 @@ describe('VisualizeFunction', () => {
     expect(visualize.chartType).toEqual(ChartType.AREA);
   });
 
+  it('uses line charts while in a chart group', () => {
+    const grouped = new VisualizeFunction('count(span.duration)', {
+      chartType: ChartType.BAR,
+      chartGroup: 'chart-group',
+    });
+    expect(grouped.chartType).toEqual(ChartType.LINE);
+
+    // The selected chart type comes back once the visualize leaves the group.
+    const ungrouped = grouped.replace({chartGroup: null});
+    expect(ungrouped.chartType).toEqual(ChartType.BAR);
+  });
+
   it('clones', () => {
     const vis1 = new VisualizeFunction('count(span.duration)', {
       chartType: ChartType.AREA,

@@ -215,7 +215,7 @@ describe('ExploreCharts', () => {
       expect(await screen.findAllByLabelText('Collapse chart')).toHaveLength(2);
     });
 
-    it('draws every aggregate of a chart with its chart type', async () => {
+    it('draws charts with several aggregates as line charts', async () => {
       const useChartInfosPlottables = jest.spyOn(
         chartVisualization,
         'useChartInfosPlottables'
@@ -235,10 +235,28 @@ describe('ExploreCharts', () => {
       expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
       const chartInfos = useChartInfosPlottables.mock.lastCall![0];
       expect(chartInfos.map(info => info.chartType)).toEqual([
-        ChartType.BAR,
-        ChartType.BAR,
+        ChartType.LINE,
+        ChartType.LINE,
       ]);
       useChartInfosPlottables.mockRestore();
+    });
+
+    it('only lets the chart type change for single aggregate charts', async () => {
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[
+            {yAxes: ['p50(span.duration)', 'p99(span.duration)']},
+            {yAxes: ['count(span.duration)']},
+          ]}
+        />,
+        {organization: OrganizationFixture()}
+      );
+
+      const [combined, single] = await screen.findAllByRole('button', {
+        name: 'Chart type',
+      });
+      expect(combined).toBeDisabled();
+      expect(single).toBeEnabled();
     });
 
     it('keeps the aggregates together when the chart is collapsed', async () => {

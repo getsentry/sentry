@@ -39,9 +39,14 @@ export abstract class Visualize {
   constructor(yAxis: string, options?: VisualizeOptions) {
     this.yAxis = yAxis;
     this.selectedChartType = options?.chartType;
-    this.chartType = this.selectedChartType ?? determineDefaultChartType([yAxis]);
-    this.visible = options?.visible ?? true;
     this.chartGroup = options?.chartGroup;
+    // Several aggregates on one chart only read well as lines; stacked areas or
+    // bars would add up values that don't sum. The selected chart type is kept
+    // so it comes back once the visualize leaves its chart group.
+    this.chartType = defined(this.chartGroup)
+      ? ChartType.LINE
+      : (this.selectedChartType ?? determineDefaultChartType([yAxis]));
+    this.visible = options?.visible ?? true;
   }
 
   abstract clone(): Visualize;

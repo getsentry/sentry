@@ -286,6 +286,7 @@ function Chart({
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
 
   const chartType = visualize.chartType;
+  const isCombinedChart = visualizes.length > 1;
   const chartIcon =
     chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
 
@@ -343,11 +344,19 @@ function Chart({
           onChange={setIsDroppedDataLayerOn}
         />
       ) : null}
-      <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
+      <Tooltip
+        title={
+          isCombinedChart
+            ? t('Charts with multiple aggregates are always displayed as line charts')
+            : t('Type of chart displayed in this visualization (ex. line)')
+        }
+      >
         <CompactSelect
+          disabled={isCombinedChart}
           trigger={triggerProps => (
             <OverlayTrigger.Button
               {...triggerProps}
+              aria-label={t('Chart type')}
               icon={<IconGraph type={chartIcon} />}
               variant="transparent"
               showChevron={false}
