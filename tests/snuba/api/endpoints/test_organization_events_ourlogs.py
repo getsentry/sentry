@@ -881,6 +881,22 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             response.data["detail"]
         )
 
+    def test_high_accuracy_flex_time_ascending_orderby(self):
+        response = self.do_request(
+            {
+                "field": ["timestamp", "message", "id"],
+                "query": "",
+                "orderby": ["timestamp"],
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert "Your first orderby must be -timestamp to use HIGHEST_ACCURACY_FLEX_TIME" in str(
+            response.data["detail"]
+        )
+
     def test_high_accuracy_flex_time_order_by_timestamp(self):
         logs = [
             self.create_ourlog(
