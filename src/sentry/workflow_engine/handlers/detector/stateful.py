@@ -350,9 +350,11 @@ class StatefulDetectorHandler(
     Stateful Detectors are provided as a base class for new detectors that need to track state.
     """
 
-    # If set, the detector creates a new issue when it fires after staying OK for at least this long
-    # Firing sooner, or leaving this unset, regresses the previous issue instead
-    new_issue_cooldown: ClassVar[timedelta | None] = None
+    # If regression_timeout = None: the detector will regress and resolve the same issue over and over
+    # If regression_timeout = 0: the detector will create a new issue every time the monitor breaches
+    # If regression_timeout > 0: the detector must be in the okay state for the specified duration before
+    # a breach counts as a new issue. Otherwise, it will regress an existing issue
+    regression_timeout: ClassVar[timedelta | None] = None
 
     def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
         super().__init__(detector)
@@ -398,10 +400,10 @@ class StatefulDetectorHandler(
 
         issue_fingerprint = self.build_issue_fingerprint(group_key)
 
-        if self.new_issue_cooldown is not None and issue_fingerprint:
+        if self.regression_timeout is not None and issue_fingerprint:
             raise ValueError(
                 f"Detector {self.detector.id} cannot override `build_issue_fingerprint` "
-                "while `new_issue_cooldown` is set"
+                "while `regression_timeout` is set"
             )
 
         stable_fingerprint = [
@@ -409,7 +411,7 @@ class StatefulDetectorHandler(
             detector_key,
         ]
 
-        if self.new_issue_cooldown is None:
+        if self.regression_timeout is None:
             return stable_fingerprint
 
         # If the activation_id is None, that means an issue was open prior to the class variable being set
@@ -423,7 +425,7 @@ class StatefulDetectorHandler(
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         """
         A hook that allows for additional fingerprinting to be added to the detectors issue occurrences.
-        You may not override this hook if `new_issue_cooldown` is set, or else it may interfere with unique issue creation
+        You may not override this hook if `regression_timeout` is set, or else it may interfere with unique issue creation
         """
         return []
 
@@ -446,7 +448,7 @@ class StatefulDetectorHandler(
         dedupe_value = self.extract_dedupe_value(data_packet)
         group_data_values = self._extract_value_from_packet(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
-        activation_cooldown = self._get_activation_cooldown()
+        regression_timeout = self._get_regression_timeout()
         results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
         tainted = False
@@ -501,7 +503,7 @@ class StatefulDetectorHandler(
             if new_priority == DetectorPriorityLevel.OK:
                 self.state_manager.enqueue_counter_reset(group_key)
 
-            activation_id = self._get_activation_id(state_data, new_priority, activation_cooldown)
+            activation_id = self._get_activation_id(state_data, new_priority, regression_timeout)
 
             self.state_manager.enqueue_state_update(
                 group_key,
@@ -734,12 +736,12 @@ class StatefulDetectorHandler(
 
         return None
 
-    def _get_activation_cooldown(self) -> timedelta | None:
+    def _get_regression_timeout(self) -> timedelta | None:
         """
-        Returns the activation cooldown for the detector, unless the organization
+        Returns the regression timeout for the detector, unless the organization
         is not feature-flagged in
         """
-        if self.new_issue_cooldown is None:
+        if self.regression_timeout is None:
             return None
 
         organization = self._get_detector_organization()
@@ -747,15 +749,15 @@ class StatefulDetectorHandler(
         if not features.has("organizations:workflow-engine-rotate-activation-id", organization):
             return None
 
-        return self.new_issue_cooldown
+        return self.regression_timeout
 
     def _get_activation_id(
         self,
         state_data: DetectorStateData,
         new_priority: DetectorPriorityLevel,
-        activation_cooldown: timedelta | None,
+        regression_timeout: timedelta | None,
     ) -> int | None:
-        if activation_cooldown is None:
+        if regression_timeout is None:
             return state_data.activation_id
 
         is_leaving_ok_state = (
@@ -763,15 +765,15 @@ class StatefulDetectorHandler(
             and new_priority != DetectorPriorityLevel.OK
         )
 
-        if is_leaving_ok_state and self._has_been_in_current_state_for_cooldown_period(
-            state_data, activation_cooldown
+        if is_leaving_ok_state and self._has_been_in_current_state_for(
+            state_data, regression_timeout
         ):
             return _get_unix_epoch_time_in_milliseconds()
 
         return state_data.activation_id
 
-    def _has_been_in_current_state_for_cooldown_period(
-        self, state_data: DetectorStateData, cooldown_period: timedelta
+    def _has_been_in_current_state_for(
+        self, state_data: DetectorStateData, duration: timedelta
     ) -> bool:
         if state_data.date_updated is None:
             return True
@@ -779,7 +781,7 @@ class StatefulDetectorHandler(
         # The date_updated field only changes when the state changes
         time_in_current_state = timezone.now() - state_data.date_updated
 
-        return time_in_current_state >= cooldown_period
+        return time_in_current_state >= duration
 
     def _get_detector_organization(self) -> Organization:
         """

@@ -188,7 +188,7 @@ def get_alert_type_from_aggregate_dataset(
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
-    new_issue_cooldown = timedelta(hours=24)
+    regression_timeout = timedelta(hours=24)
 
     def build_detector_evidence_data(
         self,
