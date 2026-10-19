@@ -20,12 +20,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 
 /** Container for a menu header, with a divider below it. */
-function MenuHeaderLayout(props: FlexProps) {
+export function MenuHeaderLayout(props: FlexProps) {
   return <Stack borderBottom="muted" gap="0" {...props} />;
 }
 
 /** Text style for the menu's main heading. */
-function MenuHeading({children}: {children: React.ReactNode}) {
+export function MenuHeading({children}: {children: React.ReactNode}) {
   return (
     <Text size="sm" density="fixed" bold tabular>
       {children}
@@ -34,7 +34,7 @@ function MenuHeading({children}: {children: React.ReactNode}) {
 }
 
 /** Text style for a heading within a menu section. */
-function MenuSectionLabel({
+export function MenuSectionLabel({
   children,
   ...props
 }: Omit<React.HTMLAttributes<HTMLSpanElement>, 'color' | 'style'> & {
@@ -48,29 +48,29 @@ function MenuSectionLabel({
 }
 
 /** Divider between menu sections. */
-function MenuSectionSeparator() {
+export function MenuSectionSeparator() {
   return <Separator orientation="horizontal" border="muted" />;
 }
 
 /** List item wrapper for a menu section. */
-function MenuSectionGroup(props: ContainerProps<'li'>) {
+export function MenuSectionGroup(props: ContainerProps<'li'>) {
   return <Container as="li" display="block" {...props} />;
 }
 
 /** List wrapper for the items within a menu section. */
-function MenuSectionList(props: ContainerProps<'ul'>) {
+export function MenuSectionList(props: ContainerProps<'ul'>) {
   return <Container as="ul" role="presentation" margin="0" padding="0" {...props} />;
 }
 
 /** Container for menu footer actions, with a divider above it. */
-function MenuFooterLayout(props: FlexProps) {
+export function MenuFooterLayout(props: FlexProps) {
   return <Flex borderTop="muted" align="center" padding="md lg" {...props} />;
 }
 
 type SearchInputProps = React.ComponentPropsWithRef<typeof InputGroup.Input>;
 
 /** Shared search field with a leading icon for menu controls. */
-function SearchInput(props: SearchInputProps) {
+export function SearchInput(props: SearchInputProps) {
   return (
     <InputGroup>
       <InputGroup.LeadingItems disablePointerEvents>
@@ -291,7 +291,7 @@ interface MenuListItemProps<T extends React.ElementType = 'li'>
 }
 
 /** Renders the shared visual shell for menu and select items. */
-function MenuListItem<T extends React.ElementType = 'li'>({
+export function MenuListItem<T extends React.ElementType = 'li'>({
   label,
   details,
   as,
@@ -362,22 +362,17 @@ function MenuListItem<T extends React.ElementType = 'li'>({
           )}
           <StyledContentWrap isFocused={isFocused} size={size}>
             <Stack padding="xs 0" align="start" gap="2xs" flex="1 0 0" minWidth="0">
+              {/* TODO: Use a heading color variant when Text supports one. */}
               <Text
                 as="div"
                 size={size ?? 'md'}
                 density="fixed"
-                variant="inherit"
+                variant={
+                  disabled ? 'secondary' : priority === 'default' ? 'primary' : priority
+                }
                 bold={false}
                 tabular
                 ellipsis
-                css={theme => css`
-                  font-variant-numeric: lining-nums tabular-nums;
-                  color: ${
-                    disabled || priority !== 'default'
-                      ? getTextColor({theme, priority, disabled})
-                      : theme.tokens.interactive.transparent.neutral.content.headings
-                  };
-                `}
                 id={labelId}
                 data-test-id="menu-list-item-label"
                 {...labelProps}
@@ -514,15 +509,3 @@ const TrailingItems = styled('div')<{disabled: boolean}>`
 
   ${p => p.disabled && 'opacity: 0.5;'}
 `;
-
-export {
-  MenuHeaderLayout,
-  MenuHeading,
-  SearchInput,
-  MenuSectionGroup,
-  MenuSectionLabel,
-  MenuSectionList,
-  MenuSectionSeparator,
-  MenuFooterLayout,
-  MenuListItem,
-};
