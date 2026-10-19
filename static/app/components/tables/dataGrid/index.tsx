@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import {EmptyState} from '@sentry/scraps/emptyState';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
   type TableColumnConfig,
 } from '@sentry/scraps/table';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';

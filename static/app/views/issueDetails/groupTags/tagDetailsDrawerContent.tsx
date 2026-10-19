@@ -186,7 +186,7 @@ function TagDetailsRow({
           query: undefined,
         }
       : {
-          query: tagValue.query || `${key}:"${tagValue.value}"`,
+          query: tagValue.query || `${escapeIssueTagKey(key)}:"${tagValue.value}"`,
         };
 
   const allEventsLocation = {
