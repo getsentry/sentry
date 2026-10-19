@@ -25,7 +25,7 @@ class ConditionOperator(StrEnum):
     version.
 
     A stored condition without an operator holds raw glob patterns, as with ``glob``: a
-    row written before operators existed, or the row of a legacy list.
+    row written before operators existed.
     """
 
     GLOB = "glob"
