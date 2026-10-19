@@ -51,10 +51,7 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {
-  SHARED_CHART_AGGREGATE_REGIONS,
-  SHARED_CHART_AGGREGATES,
-} from 'sentry/views/explore/spans/sharedChartAggregates';
+import {SHARED_CHART_AGGREGATES} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
@@ -385,23 +382,6 @@ function AggregateMultiSelect({
     trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,
   });
 
-  const onChangeRegion = (
-    regionAggregates: readonly string[],
-    options: Array<SelectOption<string>>
-  ) => {
-    // Selections in the other multi-select region are kept, as they plot on
-    // the same Y axis. The order is fixed so the legend doesn't depend on the
-    // order aggregates were clicked in.
-    const regionSelection = new Set(options.map(option => option.value));
-    onChange(
-      SHARED_CHART_AGGREGATES.filter(aggregate =>
-        regionAggregates.includes(aggregate)
-          ? regionSelection.has(aggregate)
-          : multiSelectValue.includes(aggregate)
-      )
-    );
-  };
-
   return (
     <AggregateCompositeSelect
       menuHeaderTrailingItems={
@@ -421,31 +401,34 @@ function AggregateMultiSelect({
       )}
     >
       {[
-        ...SHARED_CHART_AGGREGATE_REGIONS.map(region => (
-          <CompositeSelect.Region
-            key={region.key}
-            label={region.label}
-            multiple
-            options={region.aggregates.map(aggregate => {
-              const disabled = isAtLimit && !selected.has(aggregate);
-              return {
-                ...toOption(aggregate),
-                disabled,
-                tooltip: disabled
-                  ? tn(
-                      'You can plot at most %s aggregate',
-                      'You can plot at most %s aggregates',
-                      MAX_VISUALIZES
-                    )
-                  : undefined,
-              };
-            })}
-            value={multiSelectValue.filter(aggregate =>
-              region.aggregates.includes(aggregate)
-            )}
-            onChange={options => onChangeRegion(region.aggregates, options)}
-          />
-        )),
+        <CompositeSelect.Region
+          key="percentiles"
+          label={t('Percentiles')}
+          multiple
+          options={SHARED_CHART_AGGREGATES.map(aggregate => {
+            const disabled = isAtLimit && !selected.has(aggregate);
+            return {
+              ...toOption(aggregate),
+              disabled,
+              tooltip: disabled
+                ? tn(
+                    'You can plot at most %s aggregate',
+                    'You can plot at most %s aggregates',
+                    MAX_VISUALIZES
+                  )
+                : undefined,
+            };
+          })}
+          value={multiSelectValue}
+          // The order is fixed so the legend doesn't depend on the order
+          // aggregates were clicked in.
+          onChange={options => {
+            const selection = new Set(options.map(option => option.value));
+            onChange(
+              SHARED_CHART_AGGREGATES.filter(aggregate => selection.has(aggregate))
+            );
+          }}
+        />,
         <CompositeSelect.Region
           key="other"
           label={t('Other')}
