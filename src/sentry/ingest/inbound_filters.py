@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from typing import Any, Literal, cast
@@ -625,7 +626,8 @@ def _cidr_matcher(name: str) -> _ConditionMatcher:
     def match(values: list[str]) -> RuleCondition:
         return {"op": "cidr", "name": name, "value": values}
 
-    return _ConditionMatcher(match, TEXT_OPERATORS)
+    # An address or range holds no glob character, so escaping it for `equals` is a no-op.
+    return _ConditionMatcher(match, frozenset({ConditionOperator.EQUALS}))
 
 
 _client_ip_matcher = _cidr_matcher("envelope.client_ip")
@@ -693,6 +695,22 @@ def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMa
     return _any_condition_matcher(list(spec.values()))
 
 
+# Relay reads `\` as an escape for the character after it, special or not.
+_GLOB_SPECIAL_CHARS = re.compile(r"[\\*?\[\]{}]")
+
+
+def _text_glob(operator: ConditionOperator, value: str) -> str:
+    """The glob pattern that matches a field the way the literal `operator` compares it to `value`."""
+    literal = _GLOB_SPECIAL_CHARS.sub(r"\\\g<0>", value)
+    if operator is ConditionOperator.STARTS_WITH:
+        return f"{literal}*"
+    if operator is ConditionOperator.CONTAINS:
+        return f"*{literal}*"
+    if operator is ConditionOperator.ENDS_WITH:
+        return f"*{literal}"
+    return literal
+
+
 def _operator_condition(
     matcher: _ConditionMatcher, operator: ConditionOperator | None, values: list[str]
 ) -> RuleCondition | None:
@@ -707,9 +725,11 @@ def _operator_condition(
         return None
     if operator is ConditionOperator.GLOB:
         return matcher.match(values)
-    if matcher.compare is None or len(values) != 1:
-        return None
-    return matcher.compare(cast(ReleaseComparator, operator.value), values[0])
+    if operator in COMPARISON_OPERATORS:
+        if matcher.compare is None or len(values) != 1:
+            return None
+        return matcher.compare(cast(ReleaseComparator, operator.value), values[0])
+    return matcher.match([_text_glob(operator, value) for value in values])
 
 
 _MATCHERS_BY_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {

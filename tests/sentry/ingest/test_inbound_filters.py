@@ -505,22 +505,73 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
         ),
         pytest.param(
             "error",
+            [{"type": "release", "operator": "equals", "value": ["1.0", "2.0"]}],
+            {"op": "glob", "name": "event.release", "value": ["1.0", "2.0"]},
+            id="equals_is_the_literal_glob",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "operator": "starts_with", "value": ["1."]}],
+            {"op": "glob", "name": "event.release", "value": ["1.*"]},
+            id="starts_with",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "log_message", "operator": "contains", "value": ["timeout", "refused"]}],
+            {"op": "glob", "name": "log.body", "value": ["*timeout*", "*refused*"]},
+            id="contains",
+        ),
+        pytest.param(
+            "metric",
+            [{"type": "metric_name", "operator": "ends_with", "value": [".count"]}],
+            {"op": "glob", "name": "trace_metric.name", "value": ["*.count"]},
+            id="ends_with",
+        ),
+        pytest.param(
+            "error",
             [{"type": "release", "operator": "glob", "value": ["1.*", "2.?"]}],
             {"op": "glob", "name": "event.release", "value": ["1.*", "2.?"]},
             id="glob_passes_the_values_through",
         ),
         pytest.param(
             "error",
-            [{"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8"]}],
+            [
+                {"type": "error_message", "operator": "contains", "value": ["*[401]*"]},
+                {"type": "release", "operator": "equals", "value": ["a?b{c,d}\\e"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    error_message_rule_condition([r"*\*\[401\]\**"]),
+                    {"op": "glob", "name": "event.release", "value": [r"a\?b\{c,d\}\\e"]},
+                ],
+            },
+            id="glob_characters_in_a_value_are_escaped",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "error_type", "operator": "ends_with", "value": ["Error"]}],
+            error_type_rule_condition(["*Error"]),
+            id="text_operator_on_error_type",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "ip_address", "operator": "equals", "value": ["10.0.0.0/8"]}],
             {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
-            id="glob_on_ip_address_is_the_cidr_match",
+            id="equals_on_ip_address_is_the_cidr_match",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "release", "operator": "starts_with", "value": ["1."]}],
+            release_rule_condition(["1.*"]),
+            id="catch_all_text_operator",
         ),
         pytest.param(
             "error",
             [
-                {"type": "error_message", "operator": "glob", "value": ["*timeout*"]},
+                {"type": "error_message", "operator": "contains", "value": ["timeout"]},
                 {"type": "release", "operator": "gte", "value": ["2.0"]},
-                {"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8"]},
+                {"type": "ip_address", "operator": "equals", "value": ["10.0.0.0/8"]},
             ],
             {
                 "op": "and",
@@ -603,10 +654,10 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
         conditions=[
             {
                 "type": "error_message",
-                "operator": "glob",
-                "value": ["*ConnectionError*", "*Timeout*"],
+                "operator": "contains",
+                "value": ["ConnectionError", "Timeout"],
             },
-            {"type": "release", "operator": "glob", "value": ["1.*"]},
+            {"type": "release", "operator": "starts_with", "value": ["1."]},
         ],
     )
 
@@ -730,7 +781,16 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
         default_project,
         conditions=[{"type": "release", "operator": "matches", "value": ["1.*"]}],
     )
-    # Only a release compares as a version, against exactly one value.
+    # An IP address is no text, and only a release compares as a version, against exactly
+    # one value.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "ip_address", "operator": "starts_with", "value": ["10."]}],
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "ip_address", "operator": "glob", "value": ["10.*"]}],
+    )
     factories.create_project_custom_inbound_filter(
         default_project,
         conditions=[{"type": "error_type", "operator": "gt", "value": ["1.0"]}],
