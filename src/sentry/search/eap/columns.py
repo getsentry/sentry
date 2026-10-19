@@ -78,6 +78,9 @@ class ResolvedColumn:
     # Normalizer transforms a search value before sending to Snuba (e.g. stripping dashes from UUIDs).
     # Called after validation, before building the AttributeValue proto.
     normalizer: Callable[[Any], Any] | None = None
+    # Values are stored and searched in one canonical case, so case insensitive search is skipped:
+    # wrapping an indexed column like trace_id in lower() stops ClickHouse from narrowing by it.
+    canonical_case: bool = False
     # Indicates this attribute is a secondary alias for the attribute.
     # It exists for compatibility or convenience reasons and should NOT be preferred.
     secondary_alias: bool = False
