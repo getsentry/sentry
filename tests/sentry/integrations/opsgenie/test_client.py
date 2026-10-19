@@ -154,7 +154,7 @@ class OpsgenieClientTest(APITestCase):
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[rule],
+                rules=[create_notification_origin(rule)],
                 event=event,
                 group=group,
                 priority="P2",
