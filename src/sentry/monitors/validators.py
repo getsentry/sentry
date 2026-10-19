@@ -762,8 +762,9 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
         # Try to assign a seat for the monitor
         seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
         if seat_outcome != Outcome.ACCEPTED:
-            detector.update(enabled=False)
             monitor.update(status=ObjectStatus.DISABLED)
+        if monitor.status != ObjectStatus.ACTIVE:
+            detector.update(enabled=False)
 
         return detector
 

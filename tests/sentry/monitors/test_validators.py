@@ -1330,6 +1330,24 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         mock_assign_seat.assert_called_once_with(seat_object=monitor)
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    def test_create_with_monitor_status_disabled(self, mock_assign_seat):
+        condition_group = DataConditionGroup.objects.create(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        context = {**self.context, "condition_group": condition_group}
+        data = self._get_valid_detector_data()
+        data["dataSources"][0]["status"] = "disabled"
+        validator = MonitorIncidentDetectorValidator(data=data, context=context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        detector.refresh_from_db()
+        monitor = get_cron_monitor(detector)
+        assert monitor.status == ObjectStatus.DISABLED
+        assert detector.enabled is False
+
+    @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
     def test_update_enable_assigns_seat(self, mock_assign_seat):
         """
         Test that enabling a previously disabled detector assigns a seat.
