@@ -1,6 +1,5 @@
 import {useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
-import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSliders} from '@sentry/icons/sliders';
 import {IconUpload} from '@sentry/icons/upload';
@@ -26,21 +25,6 @@ import {NavigationMenuHeader} from './navigationMenuHeader';
 // Stable module-level component to avoid remounts when used as `renderWrapAs`
 function PassthroughWrapper({children}: {children: React.ReactNode}) {
   return children;
-}
-
-function SelectionIndicator({selected}: {selected: boolean}) {
-  return (
-    <Flex
-      width="24px"
-      height="24px"
-      padding="xs"
-      align="center"
-      justify="center"
-      gap="md"
-    >
-      {selected && <IconCheckmark size="md" variant="accent" />}
-    </Flex>
-  );
 }
 
 export function UserDropdown() {
@@ -126,27 +110,19 @@ export function UserDropdown() {
                       {
                         key: 'theme-system',
                         label: t('Default to system'),
-                        leadingItems: (
-                          <SelectionIndicator
-                            selected={user.options.theme === 'system'}
-                          />
-                        ),
+                        isSelected: user.options.theme === 'system',
                         onAction: () => updateOptions({theme: 'system'}),
                       },
                       {
                         key: 'theme-light',
                         label: t('Light'),
-                        leadingItems: (
-                          <SelectionIndicator selected={user.options.theme === 'light'} />
-                        ),
+                        isSelected: user.options.theme === 'light',
                         onAction: () => updateOptions({theme: 'light'}),
                       },
                       {
                         key: 'theme-dark',
                         label: t('Dark'),
-                        leadingItems: (
-                          <SelectionIndicator selected={user.options.theme === 'dark'} />
-                        ),
+                        isSelected: user.options.theme === 'dark',
                         onAction: () => updateOptions({theme: 'dark'}),
                       },
                     ],
@@ -158,17 +134,13 @@ export function UserDropdown() {
                       {
                         key: 'time-format-false',
                         label: t('12 hour'),
-                        leadingItems: (
-                          <SelectionIndicator selected={!user.options.clock24Hours} />
-                        ),
+                        isSelected: !user.options.clock24Hours,
                         onAction: () => updateOptions({clock24Hours: false}),
                       },
                       {
                         key: 'time-format-true',
                         label: t('24 hour'),
-                        leadingItems: (
-                          <SelectionIndicator selected={user.options.clock24Hours} />
-                        ),
+                        isSelected: user.options.clock24Hours,
                         onAction: () => updateOptions({clock24Hours: true}),
                       },
                     ],

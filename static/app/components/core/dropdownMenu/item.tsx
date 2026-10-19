@@ -4,6 +4,7 @@ import {useMenuItem} from '@react-aria/menu';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
+import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
@@ -44,6 +45,8 @@ export interface MenuItemProps extends MenuListItemProps {
    * from the selection manager.
    */
   hidden?: boolean;
+  /** Shows a selection checkmark and reserves its space when false. */
+  isSelected?: boolean;
   /**
    * Menu item label. Should preferably be a string. If not, provide a `textValue` prop
    * to enable search & keyboard select.
@@ -133,6 +136,8 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     onAction,
     to,
     label,
+    isSelected,
+    leadingItems,
     submenu,
     trailingItems,
     externalHref,
@@ -256,6 +261,15 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       ref={ref}
       as={renderAs}
       label={itemLabel}
+      leadingItems={
+        isSelected === undefined ? (
+          leadingItems
+        ) : (
+          <Fragment>
+            {isSelected && <IconCheckmark size="md" variant="accent" />}
+          </Fragment>
+        )
+      }
       disabled={isDisabled}
       isFocused={isFocused}
       innerWrapProps={{
