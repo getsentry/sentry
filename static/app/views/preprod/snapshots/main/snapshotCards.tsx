@@ -401,6 +401,7 @@ export const CardHeader = memo(function CardHeaderImpl({
             <ViewedCheckbox
               checked={isViewed}
               onChange={onToggleViewed}
+              showHotkey
               aria-label={t('%s viewed', displayName ?? fileName)}
             />
           )}

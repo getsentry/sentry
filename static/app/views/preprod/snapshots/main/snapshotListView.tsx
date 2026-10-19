@@ -11,12 +11,14 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {matchesHotkey} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import {ModalStore} from 'sentry/stores/modalStore';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DiffStatus, isPairSidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
@@ -36,6 +38,7 @@ import {
   viewedKeyForImage,
   viewedKeyForPair,
 } from './useViewedSnapshots';
+import {TOGGLE_VIEWED_HOTKEY} from './viewedCheckbox';
 
 interface SnapshotListViewProps {
   imageBaseUrl: string;
@@ -304,6 +307,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   onVisibleGroupChange,
 }: SnapshotListViewProps) {
   const theme = useTheme();
+  const organization = useOrganization();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
 
@@ -674,6 +678,13 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       requestAnimationFrame(() => scrollCardIntoView(key, block));
     }
 
+    function focusList() {
+      const el = scrollRef.current;
+      if (el && !el.contains(document.activeElement)) {
+        el.focus({preventScroll: true});
+      }
+    }
+
     function handleKeyDown(e: KeyboardEvent) {
       if (
         e.key !== 'ArrowUp' &&
@@ -730,6 +741,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
         const targetKey = isUp ? idx.order[0]! : idx.order[idx.order.length - 1]!;
         onSelect(targetKey);
         revealCard(targetKey, isUp ? 'start' : 'end');
+        focusList();
         return;
       }
 
@@ -749,6 +761,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       const nextKey = idx.order[nextPos]!;
       onSelect(nextKey);
       revealCard(nextKey, 'nearest');
+      focusList();
     }
 
     document.addEventListener('keydown', handleKeyDown);
@@ -804,6 +817,22 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
     '--sticky-header-translate-y': `${stickyHeaderTranslateY}px`,
   } as React.CSSProperties;
 
+  const handleListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.repeat || !matchesHotkey(TOGGLE_VIEWED_HOTKEY, e.nativeEvent)) {
+      return;
+    }
+    const rowIdx = selectedSnapshotKey
+      ? rowIndex.rowIndexByKey.get(selectedSnapshotKey)
+      : undefined;
+    const row = rowIdx === undefined ? undefined : rows[rowIdx];
+    if (row?.kind !== 'card' || row.card.viewedKey === null) {
+      return;
+    }
+    e.preventDefault();
+    handleSetViewed([row.card.viewedKey], !row.isViewed);
+    trackImageViewedToggled(organization, row.card, !row.isViewed);
+  };
+
   if (items.length === 0) {
     return (
       <Flex align="center" justify="center" padding="3xl" width="100%">
@@ -815,6 +844,8 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   return (
     <ScrollContainer
       ref={scrollRef}
+      tabIndex={-1}
+      onKeyDown={handleListKeyDown}
       position="relative"
       flex="1 1 0"
       minHeight="0"
@@ -879,6 +910,19 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   );
 });
 
+function trackImageViewedToggled(
+  organization: Organization,
+  card: GroupCard,
+  viewed: boolean
+) {
+  const diffStatus = card.type === 'pair-card' ? card.status : card.cardType;
+  trackAnalytics('preprod.snapshots.details.image_viewed_toggled', {
+    organization,
+    diff_status: diffStatus === 'solo' ? null : diffStatus,
+    viewed,
+  });
+}
+
 const CardRow = memo(function CardRowImpl({
   row,
   imageBaseUrl,
@@ -933,12 +977,8 @@ const CardRow = memo(function CardRowImpl({
       return;
     }
     onSetViewed([viewedKey], !isViewed);
-    trackAnalytics('preprod.snapshots.details.image_viewed_toggled', {
-      organization,
-      diff_status: diffStatus === 'solo' ? null : diffStatus,
-      viewed: !isViewed,
-    });
-  }, [viewedKey, isViewed, onSetViewed, organization, diffStatus]);
+    trackImageViewedToggled(organization, card, !isViewed);
+  }, [viewedKey, isViewed, onSetViewed, organization, card]);
   const onToggleViewed = viewedKey === null ? undefined : handleToggleViewed;
   return card.type === 'pair-card' ? (
     <PairCard
@@ -1009,6 +1049,10 @@ const ScrollContainer = styled(Container)`
   overflow-anchor: none;
   scroll-padding-top: ${p => p.theme.space.md};
   scroll-padding-bottom: ${p => p.theme.space.md};
+
+  &:focus-visible {
+    outline: none;
+  }
 `;
 
 const StickyGroupHeader = styled('div')`

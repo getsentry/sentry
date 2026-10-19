@@ -205,6 +205,23 @@ describe('SnapshotListView', () => {
     expect(onSelectSnapshot).toHaveBeenCalledWith('s1.png');
   });
 
+  it('toggles the selected card with v only once focus is in the list', async () => {
+    render(
+      <SnapshotListView
+        items={[changedGroup(2)]}
+        imageBaseUrl="/api/0/projects/org-slug/project-slug/files/images/"
+        selectedSnapshotKey="s0.png"
+        onSelectSnapshot={jest.fn()}
+      />
+    );
+
+    await userEvent.keyboard('v');
+    expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).not.toBeChecked();
+
+    await userEvent.keyboard('{ArrowDown}v');
+    expect(screen.getByRole('checkbox', {name: 'Screen 0 viewed'})).toBeChecked();
+  });
+
   it('leaves Enter and Space to a focused button instead of opening the snapshot', () => {
     const onOpenSnapshot = jest.fn();
     render(
