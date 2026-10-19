@@ -4,7 +4,11 @@ from typing import Any, Literal, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
-from sentry.api.helpers.oauth_consent import get_permission_descriptions
+from sentry.api.helpers.oauth_consent import (
+    OAuthPermissionGroup,
+    get_permission_descriptions,
+    get_permission_groups,
+)
 from sentry.api.serializers import Serializer, serialize
 from sentry.models.apiapplication import ApiApplication
 from sentry.users.models.user import User
@@ -43,6 +47,7 @@ class OAuthRequestContextResponse(TypedDict):
     application: OAuthApplicationResponse
     scopes: list[str]
     permissions: list[str]
+    permissionGroups: list[OAuthPermissionGroup]
 
 
 @dataclass(frozen=True, eq=False)
@@ -64,6 +69,7 @@ class OAuthRequestContextSerializer(Serializer[OAuthRequestContextResponse]):
             "application": serialize(obj.application, serializer=OAuthApplicationSerializer()),
             "scopes": list(obj.scopes),
             "permissions": get_permission_descriptions(obj.scopes),
+            "permissionGroups": get_permission_groups(obj.scopes),
         }
 
 
