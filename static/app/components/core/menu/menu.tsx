@@ -220,7 +220,7 @@ type ExtraContent =
       isSelected: boolean;
     }) => React.ReactNode);
 
-export type MenuItemProps = {
+export type ListItemsProps = {
   /**
    * Optional descriptive text. Like 'label', should preferably be a string or
    * have appropriate aria-labels.
@@ -278,7 +278,8 @@ interface OtherProps<T extends React.ElementType> {
   labelProps?: {as?: 'div' | 'p'; id?: string};
 }
 
-interface Props<T extends React.ElementType = 'li'> extends MenuItemProps, OtherProps<T> {
+interface Props<T extends React.ElementType = 'li'>
+  extends ListItemsProps, OtherProps<T> {
   ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
 }
 
@@ -412,7 +413,7 @@ function BaseMenuItem<T extends React.ElementType = 'li'>({
   );
 }
 
-const MenuItem = memo(BaseMenuItem) as typeof BaseMenuItem;
+const MenuListItems = memo(BaseMenuItem) as typeof BaseMenuItem;
 
 const POPPER_OPTIONS = {
   placement: 'right-start' as const,
@@ -521,5 +522,5 @@ export const Menu = {
   ItemGroupList: MenuItemGroupList,
   Separator: MenuSectionDivider,
   Footer: MenuFooterLayout,
-  Item: MenuItem,
+  ListItems: MenuListItems,
 };

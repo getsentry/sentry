@@ -9,14 +9,14 @@ import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Menu, type MenuItemProps as BaseMenuItemProps} from '@sentry/scraps/menu';
+import {Menu, type ListItemsProps} from '@sentry/scraps/menu';
 
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
 import {DropdownMenuContext} from './context';
 
-export interface MenuItemProps extends BaseMenuItemProps {
+export interface MenuItemProps extends ListItemsProps {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
    */
@@ -51,7 +51,7 @@ export interface MenuItemProps extends BaseMenuItemProps {
    * Menu item label. Should preferably be a string. If not, provide a `textValue` prop
    * to enable search & keyboard select.
    */
-  label?: BaseMenuItemProps['label'];
+  label?: ListItemsProps['label'];
   /**
    * Function to call when user selects/clicks/taps on the menu item. The
    * item's key is passed as an argument.
@@ -257,7 +257,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const itemLabel = node.rendered ?? label;
 
   return (
-    <Menu.Item
+    <Menu.ListItems
       ref={ref}
       as={renderAs}
       label={itemLabel}

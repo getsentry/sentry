@@ -36,7 +36,7 @@ export function SelectOption(props: Props) {
   return (
     <ClassNames>
       {({cx}) => (
-        <Menu.Item
+        <Menu.ListItems
           {...itemProps}
           {...innerProps}
           role={isMultiple ? 'menuitemcheckbox' : 'menuitemradio'}

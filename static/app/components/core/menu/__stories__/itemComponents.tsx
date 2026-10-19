@@ -9,7 +9,11 @@ import * as Storybook from 'sentry/stories';
 type ItemState = {disabled: boolean; isFocused: boolean; isSelected: boolean};
 
 const leadingItems = ({isSelected}: ItemState) =>
-  isSelected ? <IconCircleCheckmark aria-hidden /> : <IconCircle aria-hidden />;
+  isSelected ? (
+    <IconCircleCheckmark aria-hidden variant="accent" />
+  ) : (
+    <IconCircle aria-hidden />
+  );
 
 export function StatesDemo() {
   return (
@@ -17,30 +21,25 @@ export function StatesDemo() {
       <div>
         Focused:
         <Container>
-          <Menu.Item label="hello" leadingItems={leadingItems} />
-          <Menu.Item label="sentry" leadingItems={leadingItems} isFocused />
-          <Menu.Item label="world" leadingItems={leadingItems} />
+          <Menu.ListItems label="hello" leadingItems={leadingItems} />
+          <Menu.ListItems label="sentry" leadingItems={leadingItems} isFocused />
+          <Menu.ListItems label="world" leadingItems={leadingItems} />
         </Container>
       </div>
       <div>
         Selected:
         <Container>
-          <Menu.Item label="hello" leadingItems={leadingItems} />
-          <Menu.Item
-            label="sentry"
-            leadingItems={leadingItems}
-            isSelected
-            priority="primary"
-          />
-          <Menu.Item label="world" leadingItems={leadingItems} />
+          <Menu.ListItems label="hello" leadingItems={leadingItems} />
+          <Menu.ListItems label="sentry" leadingItems={leadingItems} isSelected />
+          <Menu.ListItems label="world" leadingItems={leadingItems} />
         </Container>
       </div>
       <div>
         Disabled:
         <Container>
-          <Menu.Item label="hello" leadingItems={leadingItems} />
-          <Menu.Item label="sentry" leadingItems={leadingItems} disabled />
-          <Menu.Item label="world" leadingItems={leadingItems} />
+          <Menu.ListItems label="hello" leadingItems={leadingItems} />
+          <Menu.ListItems label="sentry" leadingItems={leadingItems} disabled />
+          <Menu.ListItems label="world" leadingItems={leadingItems} />
         </Container>
       </div>
     </Storybook.Grid>
@@ -50,8 +49,16 @@ export function StatesDemo() {
 export function TrailingDemo() {
   return (
     <Container>
-      <Menu.Item label="Item with badge" leadingItems={leadingItems} trailingItems="🚀" />
-      <Menu.Item label="Another item" leadingItems={leadingItems} trailingItems="⭐" />
+      <Menu.ListItems
+        label="Item with badge"
+        leadingItems={leadingItems}
+        trailingItems="🚀"
+      />
+      <Menu.ListItems
+        label="Another item"
+        leadingItems={leadingItems}
+        trailingItems="⭐"
+      />
     </Container>
   );
 }
@@ -59,12 +66,12 @@ export function TrailingDemo() {
 export function DetailsDemo() {
   return (
     <Container>
-      <Menu.Item
+      <Menu.ListItems
         label="Option with details"
         details="This is additional information about the option"
         leadingItems={leadingItems}
       />
-      <Menu.Item
+      <Menu.ListItems
         label="Another option"
         details="More helpful context here"
         leadingItems={leadingItems}
