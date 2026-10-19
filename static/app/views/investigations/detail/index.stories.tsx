@@ -1,4 +1,7 @@
-import {Container} from '@sentry/scraps/layout';
+import {useState} from 'react';
+
+import {Button} from '@sentry/scraps/button';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 import {
@@ -644,14 +647,33 @@ export default Storybook.story('Investigations — Detail', story => {
     </InvestigationFixtureApi>
   ));
 
-  story('Error', () => (
-    <InvestigationFixtureApi
-      organizationSlug="storybook-investigation-detail-error"
-      mode="error"
-    >
-      <Container minHeight="420px" border="primary" radius="md" overflow="hidden">
-        <InvestigationBootstrapPage investigationId="error-investigation" />
-      </Container>
-    </InvestigationFixtureApi>
-  ));
+  story('Error', () => {
+    // The error state renders RouteError, which reports the error and opens the
+    // crash-report dialog on mount, so only render it on demand.
+    const [showError, setShowError] = useState(false);
+
+    return (
+      <Stack gap="md" align="start">
+        <Button onClick={() => setShowError(value => !value)}>
+          {showError ? 'Reset' : 'Trigger error'}
+        </Button>
+        {showError ? (
+          <InvestigationFixtureApi
+            organizationSlug="storybook-investigation-detail-error"
+            mode="error"
+          >
+            <Container
+              minHeight="420px"
+              width="100%"
+              border="primary"
+              radius="md"
+              overflow="hidden"
+            >
+              <InvestigationBootstrapPage investigationId="error-investigation" />
+            </Container>
+          </InvestigationFixtureApi>
+        ) : null}
+      </Stack>
+    );
+  });
 });
