@@ -1,6 +1,7 @@
 import {defineRule, type ESTree} from '@oxlint/plugins';
 
 import {createImportTracker} from '../ast/tracker/imports.ts';
+import {getStyledCallInfo} from '../ast/utils/styled.ts';
 
 const STYLE_QUERY = /@(?:media|container)\b/g;
 const WIDTH_QUERY = /(?:min-|max-)?width\s*[:<>=]/;
@@ -113,15 +114,7 @@ export const preferContainerResponsiveProps = defineRule({
     return {
       ...importTracker.visitors,
       TaggedTemplateExpression(node) {
-        const tag = node.tag;
-        const isEmotionIdentifier = (candidate: ESTree.Node) =>
-          importTracker.is(candidate, '@emotion/react', 'css') ||
-          importTracker.is(candidate, '@emotion/styled', 'default');
-        const isEmotionTag =
-          isEmotionIdentifier(tag) ||
-          (tag.type === 'MemberExpression' && isEmotionIdentifier(tag.object)) ||
-          (tag.type === 'CallExpression' && isEmotionIdentifier(tag.callee));
-        if (!isEmotionTag) {
+        if (!getStyledCallInfo(node, importTracker)) {
           return;
         }
         for (const quasi of node.quasi.quasis) {
