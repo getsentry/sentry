@@ -160,9 +160,8 @@ export function ConversationSpanDetail({
 
   // Memory spans share a generic span op in the trace waterfall, so name the
   // heading after the operation to distinguish search, create, update, etc.
-  const title = isCodeMode
-    ? t('Code Mode')
-    : memory?.operation || node.op || node.description || t('Span');
+  const operationName = isCodeMode ? t('Code Mode') : memory?.operation;
+  const title = operationName || node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
   const comparison = getDurationComparison(
     avgDuration,

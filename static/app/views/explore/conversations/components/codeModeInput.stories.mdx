@@ -11,14 +11,7 @@ import * as Storybook from 'sentry/stories';
 
 ## Code Execution
 
-Code Mode tools have dedicated rendering in conversations and AI traces.
-The code icon, transcript label, and code-focused span details apply to
-`sentry_api_execute`, `execute_code`, `codemode`, and `code_mode` tools.
-Other tools retain their existing appearance. No URL parameter is required.
-
-JavaScript and TypeScript are formatted automatically. Code is read-only and
-copyable; missing code falls back to the original input view. This rendering
-makes no Seer requests and does not execute captured code.
+JavaScript and TypeScript inputs are formatted and syntax-highlighted.
 
 <Storybook.Demo>
   <CodeModeInput
@@ -31,9 +24,8 @@ makes no Seer requests and does not execute captured code.
 
 ## Tool Output
 
-Structured results show their type and field/item count above the JSON tree.
-Strings render as plain text; null and empty strings are distinguished from missing
-output. Input/output envelopes are unwrapped before reaching this renderer.
+Objects and arrays show their field or item count. Strings render as plain text,
+with separate labels for null, empty strings, and missing output.
 
 <Storybook.Demo>
   <AIToolOutput
@@ -53,7 +45,7 @@ output. Input/output envelopes are unwrapped before reaching this renderer.
 
 ## Other Languages
 
-Python is syntax-highlighted without applying the JavaScript formatter.
+Python keeps its original formatting.
 
 <Storybook.Demo>
   <CodeModeInput
