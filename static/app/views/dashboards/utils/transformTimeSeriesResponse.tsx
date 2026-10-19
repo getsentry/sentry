@@ -21,15 +21,15 @@ export type WidgetTimeSeries = {
 };
 
 type Options = {
+  getSeriesName?: (timeSeries: TimeSeries, widgetQuery: WidgetQuery) => string;
   meta?: Partial<Pick<TimeSeriesMeta, 'valueType' | 'valueUnit'>>;
 };
 
-/** @public */
 export function transformTimeSeriesResponse(
   response: EventsTimeSeriesResponse,
   widget: Widget,
   queryIndex: number,
-  {meta}: Options = {}
+  {getSeriesName, meta}: Options = {}
 ): WidgetTimeSeries[] {
   const widgetQuery = widget.queries[queryIndex];
   if (!widgetQuery) {
@@ -43,12 +43,14 @@ export function transformTimeSeriesResponse(
   return response.timeSeries
     .toSorted((a, b) => (a.meta.order ?? 0) - (b.meta.order ?? 0))
     .map(timeSeries => {
-      const seriesName = getLegacySeriesName(
-        timeSeries,
-        widgetQuery.name,
-        hasMultipleYAxes,
-        isGroupedQuery
-      );
+      const seriesName = getSeriesName
+        ? getSeriesName(timeSeries, widgetQuery)
+        : getLegacySeriesName(
+            timeSeries,
+            widgetQuery.name,
+            hasMultipleYAxes,
+            isGroupedQuery
+          );
 
       return {
         queryIndex,
