@@ -334,7 +334,6 @@ export function LandingAggregateFlamegraph({
                   <AggregateFlamegraphTreeTable
                     recursion={null}
                     expanded={false}
-                    withoutBorders
                     frameFilter={frameFilter}
                     canvasPoolManager={canvasPoolManager}
                     canvasScheduler={scheduler}

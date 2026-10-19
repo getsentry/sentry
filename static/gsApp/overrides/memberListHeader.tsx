@@ -1,10 +1,9 @@
-import styled from '@emotion/styled';
 import {IconBusiness} from '@sentry/icons/business';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
 import {isMemberDisabledFromLimit} from 'sentry/utils/isMemberDisabledFromLimit';
@@ -25,24 +24,19 @@ function MemberListHeader({members, organization, subscription}: Props) {
   const hasDisabledMembers = members.some(isMemberDisabledFromLimit);
   const {data: billingConfig} = useBillingConfig({organization});
 
-  if (!hasDisabledMembers) {
-    return <PanelHeader>{t('Members')}</PanelHeader>;
-  }
-
-  if (!billingConfig) {
-    return <PanelHeader>{t('Members')}</PanelHeader>;
+  if (!hasDisabledMembers || !billingConfig) {
+    return null;
   }
 
   // the best plan is the first one that has unlimited members
   const bestPlan = getBestPlanForUnlimitedMembers(billingConfig, subscription);
   if (!bestPlan) {
-    return <PanelHeader>{t('Members')}</PanelHeader>;
+    return null;
   }
 
   return (
-    <PanelHeader hasButtons>
-      {t('Members')}
-      <Wrapper>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell column="1 / -1" gap="md" wrap="wrap">
         <IconClose variant="danger" />
         {tct('Multiple members requires [planName] Plan or above', {
           planName: displayPlanName(bestPlan),
@@ -60,16 +54,8 @@ function MemberListHeader({members, organization, subscription}: Props) {
             </Button>
           )}
         </UpsellProvider>
-      </Wrapper>
-    </PanelHeader>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 export default withSubscription(MemberListHeader, {noLoader: true});
-
-const Wrapper = styled('div')`
-  text-transform: none;
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;

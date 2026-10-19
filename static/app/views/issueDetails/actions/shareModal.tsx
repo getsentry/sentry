@@ -118,6 +118,7 @@ export function ShareIssueModal({
       });
     } catch {
       addErrorMessage(t('Error sharing'));
+      // oxlint-disable-next-line react/todo
     } finally {
       setLoading(false);
     }

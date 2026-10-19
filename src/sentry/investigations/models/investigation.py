@@ -183,3 +183,9 @@ class Investigation(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("organization_id", "title")
+
+    def get_absolute_url(self) -> str:
+        organization = self.organization
+        return organization.absolute_url(
+            f"/organizations/{organization.slug}/explore/investigations/{self.id}/"
+        )

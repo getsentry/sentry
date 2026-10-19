@@ -498,6 +498,42 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
                 status_code=201,
             )
 
+    def test_documented_eap_transaction_payload_is_valid(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataSources": [
+                {
+                    "queryType": SnubaQuery.Type.PERFORMANCE.value,
+                    "dataset": Dataset.EventsAnalyticsPlatform.value,
+                    "query": "is_transaction:true",
+                    "aggregate": "p75(measurements.ttfb)",
+                    "timeWindow": 3600,
+                    "environment": self.environment.name,
+                    "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+                    "extrapolationMode": "unknown",
+                }
+            ],
+        }
+
+        with self.tasks():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                **data,
+                status_code=201,
+            )
+
+        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"] == {
+            "id": mock.ANY,
+            "dataset": Dataset.EventsAnalyticsPlatform.value,
+            "query": "is_transaction:true",
+            "aggregate": "p75(measurements.ttfb)",
+            "timeWindow": 3600,
+            "environment": self.environment.name,
+            "eventTypes": [SnubaQueryEventType.EventType.TRACE_ITEM_SPAN.name.lower()],
+            "extrapolationMode": "unknown",
+        }
+
     @with_feature(
         [
             "organizations:tracemetrics-enabled",

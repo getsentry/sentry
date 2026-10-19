@@ -16,9 +16,34 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.types import NotificationActionContext, NotificationOrigin
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
+
+
+def create_notification_origin(rule: Rule) -> NotificationOrigin:
+    actions = rule.data.get("actions")
+    first_action = actions[0] if actions else {}
+    workflow_id = first_action.get("workflow_id")
+    legacy_rule_id = first_action.get("legacy_rule_id")
+    if workflow_id is None and legacy_rule_id is None:
+        legacy_rule_id = rule.id
+    return NotificationOrigin(
+        label=rule.label,
+        environment_id=rule.environment_id,
+        workflow_id=int(workflow_id) if workflow_id is not None else None,
+        legacy_rule_id=int(legacy_rule_id) if legacy_rule_id is not None else None,
+    )
+
+
+def create_notification_action_context(rule: Rule) -> NotificationActionContext:
+    return NotificationActionContext(
+        origin=create_notification_origin(rule),
+        action_id=rule.id,
+        project=rule.project,
+    )
 
 
 class DummyNotification(BaseNotification):

@@ -40,6 +40,7 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
       addSuccessMessage(t('Request to join team sent.'));
     } catch {
       addErrorMessage(t('There was an error while trying to request access.'));
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsLoading(false);
     }

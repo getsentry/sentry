@@ -9,17 +9,19 @@ from enum import StrEnum
 
 from sentry.ai_monitoring.issues.llm_cache_detection.detection import (
     CACHE_TTL_MINUTES,
+    MIN_CACHEABLE_PREFIX_TOKENS,
     AgentLabelSource,
     CallSiteStats,
     CallSiteWarmth,
     DetectionWindow,
+    ReuseBoundary,
     WarmthBucket,
 )
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
-from sentry.search.events.types import SnubaParams, SnubaRow
+from sentry.search.events.types import SAMPLING_MODES, SnubaParams, SnubaRow
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba import SnubaTSResult
@@ -35,11 +37,16 @@ GEN_AI_CALL_FILTER = (
 INPUT_TOKENS = "gen_ai.usage.input_tokens"
 MODEL = "gen_ai.request.model"
 SPAN_NAME = "span.name"
+CONVERSATION_ID = ReuseBoundary.CONVERSATION.value
+CACHEABLE_CALL_FILTER = f"{GEN_AI_CALL_FILTER} {INPUT_TOKENS}:>={MIN_CACHEABLE_PREFIX_TOKENS}"
 
 # The span name is usually the SDK wrapper; the agent name is what a reader
-# can find in their code. The operation name stands in where it is missing.
+# can find in their code.
 AGENT_NAME = AgentLabelSource.AGENT_NAME.value
-OPERATION_NAME = AgentLabelSource.OPERATION_NAME.value
+EMPTY_AGENT_NAME = f'{AGENT_NAME}:""'
+NAMED_AGENT_FILTER = f"has:{AGENT_NAME} !{EMPTY_AGENT_NAME}"
+CONVERSATION_FILTER = f'has:{CONVERSATION_ID} !{CONVERSATION_ID}:""'
+TRACE_FALLBACK_FILTER = f'(!has:{CONVERSATION_ID} OR {CONVERSATION_ID}:"")'
 
 # Deprecated SDK aliases are backfilled onto these attributes at ingestion.
 CACHE_READ_TOKENS = "gen_ai.usage.cache_read.input_tokens"
@@ -76,6 +83,10 @@ class CallSiteQueryResult:
     truncated: bool
 
 
+def _count_unique(boundary: ReuseBoundary) -> str:
+    return f"count_unique({boundary.value})"
+
+
 @dataclass(frozen=True)
 class SampleCall:
     """Trace metadata and token counts for one example call."""
@@ -90,18 +101,18 @@ class SampleCall:
 
 def _build_group_filter(stats: CallSiteStats) -> str | None:
     """Build an exact-match filter for a call site, if its values are expressible."""
-    agent_attribute = (
-        AGENT_NAME if stats.agent_label_source is AgentLabelSource.AGENT_NAME else OPERATION_NAME
-    )
     try:
-        agent_term = build_escaped_term_filter(agent_attribute, [stats.agent_label])
+        agent_term = build_escaped_term_filter(AGENT_NAME, [stats.agent_label])
         span_term = build_escaped_term_filter(SPAN_NAME, [stats.span_name])
         model_term = build_escaped_term_filter(MODEL, [stats.model])
     except InvalidSearchQuery:
         return None
-    if stats.agent_label_source is AgentLabelSource.OPERATION_NAME:
-        agent_term = f"!has:{AGENT_NAME} {agent_term}"
-    return f"{GEN_AI_CALL_FILTER} {agent_term} {span_term} {model_term}"
+    reuse_filter = (
+        CONVERSATION_FILTER
+        if stats.reuse_boundary is ReuseBoundary.CONVERSATION
+        else TRACE_FALLBACK_FILTER
+    )
+    return f"{CACHEABLE_CALL_FILTER} {reuse_filter} {agent_term} {span_term} {model_term}"
 
 
 def _run_spans_query(
@@ -112,6 +123,7 @@ def _run_spans_query(
     selected_columns: list[str],
     orderby: list[str] | None,
     limit: int,
+    sampling_mode: SAMPLING_MODES = "NORMAL",
 ) -> EAPResponse:
     return Spans.run_table_query(
         params=SnubaParams(
@@ -127,7 +139,7 @@ def _run_spans_query(
         limit=limit,
         referrer=Referrer.ISSUES_LLM_CACHE_DETECTION.value,
         config=SearchResolverConfig(auto_fields=True),
-        sampling_mode="NORMAL",
+        sampling_mode=sampling_mode,
     )
 
 
@@ -146,6 +158,7 @@ def _combine(left: CallSiteStats, right: CallSiteStats) -> CallSiteStats:
         left,
         call_count=call_count,
         sampled_call_count=left.sampled_call_count + right.sampled_call_count,
+        unique_reuse_count=left.unique_reuse_count + right.unique_reuse_count,
         sum_input_tokens=left.sum_input_tokens + right.sum_input_tokens,
         sum_cache_read_tokens=left.sum_cache_read_tokens + right.sum_cache_read_tokens,
         sum_cache_creation_tokens=(
@@ -157,23 +170,17 @@ def _combine(left: CallSiteStats, right: CallSiteStats) -> CallSiteStats:
 
 def _to_call_sites(
     rows: Iterable[SnubaRow],
+    reuse_boundary: ReuseBoundary = ReuseBoundary.CONVERSATION,
 ) -> tuple[list[CallSiteStats], Counter[DroppedRowReason]]:
     """Fold aggregate rows into call sites and count rows with incomplete keys."""
     call_sites: dict[tuple[str, str, str, str], CallSiteStats] = {}
     dropped_calls: Counter[DroppedRowReason] = Counter()
     for row in rows:
         agent_name = row.get(AGENT_NAME)
-        operation_name = row.get(OPERATION_NAME)
         span_name = row.get(SPAN_NAME)
         model = row.get(MODEL)
         call_count = int(row.get(COUNT) or 0)
-        if agent_name:
-            agent_label = agent_name
-            agent_label_source = AgentLabelSource.AGENT_NAME
-        elif operation_name:
-            agent_label = operation_name
-            agent_label_source = AgentLabelSource.OPERATION_NAME
-        else:
+        if not agent_name:
             dropped_calls[DroppedRowReason.NO_LABEL] += call_count
             continue
         if not span_name:
@@ -183,12 +190,14 @@ def _to_call_sites(
             dropped_calls[DroppedRowReason.NO_MODEL] += call_count
             continue
         stats = CallSiteStats(
-            agent_label=agent_label,
-            agent_label_source=agent_label_source,
+            agent_label=agent_name,
+            agent_label_source=AgentLabelSource.AGENT_NAME,
+            reuse_boundary=reuse_boundary,
             span_name=span_name,
             model=model,
             call_count=call_count,
             sampled_call_count=int(row.get(COUNT_SAMPLE) or 0),
+            unique_reuse_count=int(row.get(_count_unique(reuse_boundary)) or 0),
             sum_input_tokens=_token_count(row, SUM_INPUT_TOKENS),
             sum_cache_read_tokens=_token_count(row, SUM_CACHE_READ_TOKENS),
             sum_cache_creation_tokens=_token_count(row, SUM_CACHE_CREATION_TOKENS),
@@ -200,32 +209,53 @@ def _to_call_sites(
 
 
 def fetch_call_site_stats(project: Project, window: DetectionWindow) -> CallSiteQueryResult:
-    """Aggregate LLM calls by agent label, span name, and model."""
-    result = _run_spans_query(
-        project,
-        window,
-        query_string=GEN_AI_CALL_FILTER,
-        selected_columns=[
-            AGENT_NAME,
-            OPERATION_NAME,
-            SPAN_NAME,
-            MODEL,
-            COUNT,
-            COUNT_SAMPLE,
-            SUM_INPUT_TOKENS,
-            SUM_CACHE_READ_TOKENS,
-            SUM_CACHE_CREATION_TOKENS,
-            AVG_INPUT_TOKENS,
-        ],
-        orderby=[f"-{SUM_INPUT_TOKENS}"],
-        limit=CALL_SITE_GROUPS_LIMIT,
-    )
-    rows = result.get("data", [])
-    call_sites, dropped_calls = _to_call_sites(rows)
+    """Aggregate cache-sized LLM calls by label, span name, and model."""
+    sites_by_boundary: dict[ReuseBoundary, list[CallSiteStats]] = {}
+    dropped_calls: Counter[DroppedRowReason] = Counter()
+    truncated = False
+    for boundary, boundary_filter in (
+        (ReuseBoundary.CONVERSATION, CONVERSATION_FILTER),
+        (ReuseBoundary.TRACE, TRACE_FALLBACK_FILTER),
+    ):
+        rows = _run_spans_query(
+            project,
+            window,
+            query_string=f"{CACHEABLE_CALL_FILTER} {NAMED_AGENT_FILTER} {boundary_filter}",
+            selected_columns=[
+                AGENT_NAME,
+                SPAN_NAME,
+                MODEL,
+                COUNT,
+                COUNT_SAMPLE,
+                _count_unique(boundary),
+                SUM_INPUT_TOKENS,
+                SUM_CACHE_READ_TOKENS,
+                SUM_CACHE_CREATION_TOKENS,
+                AVG_INPUT_TOKENS,
+            ],
+            orderby=[f"-{SUM_INPUT_TOKENS}"],
+            limit=CALL_SITE_GROUPS_LIMIT,
+            sampling_mode="HIGHEST_ACCURACY",
+        ).get("data", [])
+        sites_by_boundary[boundary], dropped = _to_call_sites(rows, boundary)
+        dropped_calls.update(dropped)
+        truncated |= len(rows) >= CALL_SITE_GROUPS_LIMIT
+
+    conversation_sites = sites_by_boundary[ReuseBoundary.CONVERSATION]
+    covered = {stats.group_key for stats in conversation_sites}
+    call_sites = [
+        *conversation_sites,
+        *(
+            stats
+            for stats in sites_by_boundary[ReuseBoundary.TRACE]
+            if stats.group_key not in covered
+        ),
+    ]
+    call_sites.sort(key=lambda stats: stats.sum_input_tokens, reverse=True)
     return CallSiteQueryResult(
-        call_sites=call_sites,
+        call_sites=call_sites[:CALL_SITE_GROUPS_LIMIT],
         dropped_calls=dropped_calls,
-        truncated=len(rows) >= CALL_SITE_GROUPS_LIMIT,
+        truncated=truncated or len(call_sites) > CALL_SITE_GROUPS_LIMIT,
     )
 
 
@@ -236,6 +266,7 @@ def fetch_call_site_warmth(
     group_filter = _build_group_filter(stats)
     if group_filter is None:
         return None
+    unique_count = _count_unique(stats.reuse_boundary)
     result = Spans.run_timeseries_query(
         params=SnubaParams(
             start=window.start,
@@ -245,15 +276,15 @@ def fetch_call_site_warmth(
             granularity_secs=CACHE_TTL_MINUTES * 60,
         ),
         query_string=group_filter,
-        y_axes=[COUNT],
+        y_axes=[COUNT, unique_count],
         referrer=Referrer.ISSUES_LLM_CACHE_DETECTION.value,
         config=SearchResolverConfig(auto_fields=True),
         sampling_mode="NORMAL",
     )
-    return CallSiteWarmth.from_buckets(_warmth_buckets(result))
+    return CallSiteWarmth.from_buckets(_warmth_buckets(result, unique_count))
 
 
-def _warmth_buckets(result: SnubaTSResult) -> list[WarmthBucket]:
+def _warmth_buckets(result: SnubaTSResult, unique_count: str) -> list[WarmthBucket]:
     """Pair extrapolated calls with stored-span counts in each time bucket."""
     processed = result.data.get("processed_timeseries")
     if processed is None:
@@ -266,6 +297,7 @@ def _warmth_buckets(result: SnubaTSResult) -> list[WarmthBucket]:
             sample_count=(
                 float(sample_counts[index].get(COUNT) or 0) if index < len(sample_counts) else 0.0
             ),
+            unique_reuse_count=float(point.get(unique_count) or 0),
         )
         for index, point in enumerate(processed.timeseries)
     ]

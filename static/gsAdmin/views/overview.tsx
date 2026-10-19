@@ -169,7 +169,7 @@ const CustomerName = styled('div')`
  */
 
 function CustomersByVolume() {
-  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [lastRefresh, setLastRefresh] = useState(() => new Date());
 
   return (
     <Container column="1 / 3">
