@@ -41,6 +41,15 @@ class OAuthDeviceContextTest(APITestCase):
             },
             "scopes": ["project:read"],
             "permissions": ["Read access to projects."],
+            "permissionGroups": [
+                {
+                    "resource": "projects",
+                    "label": "Projects",
+                    "scopes": ["project:read"],
+                    "actions": ["read"],
+                    "description": None,
+                }
+            ],
             "userCode": self.device.user_code,
         }
         assert "no-store" in response["Cache-Control"]

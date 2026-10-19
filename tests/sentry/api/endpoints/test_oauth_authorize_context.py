@@ -40,6 +40,15 @@ class OAuthAuthorizeContextTest(APITestCase):
             },
             "scopes": ["project:read"],
             "permissions": ["Read access to projects."],
+            "permissionGroups": [
+                {
+                    "resource": "projects",
+                    "label": "Projects",
+                    "scopes": ["project:read"],
+                    "actions": ["read"],
+                    "description": None,
+                }
+            ],
         }
         assert "no-store" in response["Cache-Control"]
 
@@ -60,7 +69,13 @@ class OAuthAuthorizeContextTest(APITestCase):
         response = self.get_success_response(**self.query)
 
         assert response.data["application"]["requiresOrgLevelAccess"] is True
-        assert set(response.data) == {"stage", "application", "scopes", "permissions"}
+        assert set(response.data) == {
+            "stage",
+            "application",
+            "scopes",
+            "permissions",
+            "permissionGroups",
+        }
 
     def test_unknown_client(self) -> None:
         response = self.get_error_response(
