@@ -6,8 +6,10 @@ from unittest import mock
 
 from slack_sdk.web import SlackResponse
 
+from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.issue_alert_registry import (
@@ -19,6 +21,7 @@ from sentry.notifications.platform.provider import SendSuccessResult
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.silo.base import SiloMode
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -301,6 +304,52 @@ class IssueAlertPlatformDispatchTest(BaseWorkflowTest):
         follow_up = client.chat_postMessage.call_args_list[1].kwargs
         assert follow_up["thread_ts"] == "123.456"
         assert follow_up["reply_broadcast"] is True
+
+    @mock.patch("sentry.analytics.record")
+    @mock.patch(f"{PLATFORM_DISPATCH_PATH}.metrics")
+    @mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
+    def test_slack_records_legacy_analytics(
+        self,
+        mock_slack_client: mock.MagicMock,
+        mock_metrics: mock.MagicMock,
+        mock_record: mock.MagicMock,
+    ) -> None:
+        action = self.create_channel_action(Action.Type.SLACK, IntegrationProviderSlug.SLACK)
+        client = mock_slack_client.return_value
+        client.chat_postMessage.return_value = slack_response(client, "123.456")
+        invocation = self.invocation(action)
+
+        SlackIssueAlertHandler.invoke_legacy_registry(invocation)
+
+        mock_metrics.incr.assert_called_once_with(
+            "notifications.sent",
+            instance="slack.notification",
+            tags={"issue_type": self.group.issue_type.slug},
+            skip_internal=False,
+        )
+        assert_any_analytics_event(
+            mock_record,
+            SlackIntegrationNotificationSent(
+                category="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.group.id,
+                notification_uuid=invocation.notification_uuid,
+                alert_id=action.id,
+            ),
+        )
+        assert_any_analytics_event(
+            mock_record,
+            AlertSentEvent(
+                provider="slack",
+                alert_id=action.id,
+                alert_type="issue_alert",
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                external_id="channel123",
+                notification_uuid=invocation.notification_uuid,
+            ),
+        )
 
     @mock.patch(f"{PLATFORM_DISPATCH_PATH}.prepare_slack_thread_for_autofix_updates")
     @mock.patch(f"{PLATFORM_DISPATCH_PATH}.SeerAutofixOperator.has_access", return_value=True)

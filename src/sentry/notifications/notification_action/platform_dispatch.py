@@ -3,13 +3,18 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry import features, options
+from sentry import analytics, features, options
+from sentry.analytics.events.alert_sent import AlertSentEvent
+from sentry.analytics.events.base_notification_sent import BaseNotificationSent
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT, METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import NotificationContext
+from sentry.integrations.discord.analytics import DiscordIntegrationNotificationSent
+from sentry.integrations.msteams.analytics import MSTeamsIntegrationNotificationSent
 from sentry.integrations.services.integration.service import integration_service
+from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
@@ -38,6 +43,7 @@ from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.slack.entrypoint import prepare_slack_thread_for_autofix_updates
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.utils import metrics
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
@@ -51,6 +57,32 @@ CHART_PROVIDERS = frozenset(
         NotificationProviderKey.DISCORD,
     }
 )
+
+# The legacy issue alert analytics per provider: (provider name, sent event, metric instance)
+LEGACY_ISSUE_ALERT_ANALYTICS: dict[
+    NotificationProviderKey, tuple[str, type[BaseNotificationSent], str]
+] = {
+    NotificationProviderKey.SLACK: (
+        "slack",
+        SlackIntegrationNotificationSent,
+        "slack.notification",
+    ),
+    NotificationProviderKey.SLACK_STAGING: (
+        "slack",
+        SlackIntegrationNotificationSent,
+        "slack.notification",
+    ),
+    NotificationProviderKey.DISCORD: (
+        "discord",
+        DiscordIntegrationNotificationSent,
+        "discord.notifications",
+    ),
+    NotificationProviderKey.MSTEAMS: (
+        "msteams",
+        MSTeamsIntegrationNotificationSent,
+        "msteams.notification",
+    ),
+}
 
 
 def get_platform_provider(
@@ -251,6 +283,7 @@ def send_issue_alert(invocation: ActionInvocation, provider: NotificationProvide
         invocation.action.id,
         group.id,
     )
+    _record_legacy_issue_alert_sent(invocation, provider, target.resource_id)
 
     # Cache the thread for Seer autofix updates
     if not (
@@ -272,3 +305,44 @@ def send_issue_alert(invocation: ActionInvocation, provider: NotificationProvide
         organization_id=organization.id,
         integration_id=target.integration_id,
     )
+
+
+def _record_legacy_issue_alert_sent(
+    invocation: ActionInvocation, provider: NotificationProviderKey, channel_id: str
+) -> None:
+    """
+    Keep the legacy issue alert analytics and metric during the migration, recorded whether or not
+    the send succeeded like the legacy sends. Remove with the legacy path.
+    """
+    provider_name, sent_event_class, metric_instance = LEGACY_ISSUE_ALERT_ANALYTICS[provider]
+    group = invocation.event_data.group
+    metrics.incr(
+        "notifications.sent",
+        instance=metric_instance,
+        tags={"issue_type": group.issue_type.slug},
+        skip_internal=False,
+    )
+    try:
+        analytics.record(
+            sent_event_class(
+                organization_id=group.project.organization_id,
+                project_id=group.project_id,
+                group_id=group.id,
+                notification_uuid=invocation.notification_uuid,
+                alert_id=invocation.action.id,
+                category="issue_alert",
+            )
+        )
+        analytics.record(
+            AlertSentEvent(
+                provider=provider_name,
+                alert_id=invocation.action.id,
+                alert_type="issue_alert",
+                organization_id=group.project.organization_id,
+                project_id=group.project_id,
+                external_id=channel_id,
+                notification_uuid=invocation.notification_uuid,
+            )
+        )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)

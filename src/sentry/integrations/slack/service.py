@@ -59,6 +59,7 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.types import SLACK_PROVIDERS, NotificationSource
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.silo.base import SiloMode
@@ -251,12 +252,15 @@ class SlackService:
                     group_ids=[group.id],
                 )
 
-        # Also query platform threads for issue alerts sent via notification platform
-        platform_threads = NotificationThread.objects.filter(
-            key_type=NotificationSource.ISSUE.value,
-            key_data__group_id=group.id,
-            provider_key__in=SLACK_PROVIDERS,
-        )
+        # Also query platform threads for issue alerts sent via notification platform. Only orgs in
+        # the rollout have them, and the query can't use an index, so skip it for everyone else.
+        platform_threads = NotificationThread.objects.none()
+        if NotificationService.has_access(group.organization, NotificationSource.ISSUE):
+            platform_threads = NotificationThread.objects.filter(
+                key_type=NotificationSource.ISSUE.value,
+                key_data__group_id=group.id,
+                provider_key__in=SLACK_PROVIDERS,
+            )
         if use_open_period_start:
             # The platform thread key stores the open period start as an ISO string
             platform_threads = platform_threads.filter(
