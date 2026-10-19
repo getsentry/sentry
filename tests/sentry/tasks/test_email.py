@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from sentry.models.activity import Activity
 from sentry.tasks.email import process_inbound_email
 from sentry.testutils.cases import TestCase
@@ -22,6 +24,9 @@ class ProcessInboundEmailTest(TestCase):
         process_inbound_email(
             mailfrom=self.user.email, group_id=group.id, payload=" \thello world!\n"
         )
+        # Email delivery remains idempotent beyond the API's one-hour window.
+        original = Activity.objects.get(group=group, type=ActivityType.NOTE.value)
+        original.update(datetime=original.datetime - timedelta(hours=2))
         process_inbound_email(mailfrom=self.user.email, group_id=group.id, payload="hello world!")
 
         activity = Activity.objects.get(group=group, type=ActivityType.NOTE.value)
