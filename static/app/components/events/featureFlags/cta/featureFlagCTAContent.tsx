@@ -54,7 +54,11 @@ export function FeatureFlagCTAContent({
           </LinkButton>
         </Flex>
       </Stack>
-      <BannerIllustration src={onboardingInstall} alt="" />
+      <Container display={{zero: 'none', xs: 'block'}}>
+        {containerProps => (
+          <BannerIllustration {...containerProps} src={onboardingInstall} alt="" />
+        )}
+      </Container>
     </Fragment>
   );
 }
