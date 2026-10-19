@@ -58,8 +58,10 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.eap.columns import (
     ColumnDefinitions,
+    ResolvedAggregate,
     ResolvedAttribute,
     ResolvedColumn,
+    ResolvedConditionalAggregate,
     ResolvedLiteral,
 )
 from sentry.search.eap.constants import (
@@ -854,11 +856,18 @@ class RPCBase:
         transformations: Mapping[int, Sequence[Transformation]] | None,
         interval: int,
         *,
+        resolved_columns: Sequence[ResolvedColumn],
         fine_timeseries_list: Sequence[TimeSeries] = (),
     ) -> None:
         if not transformations:
             return
 
+        sum_axes = {
+            column.public_alias
+            for column in resolved_columns
+            if isinstance(column, (ResolvedAggregate, ResolvedConditionalAggregate))
+            and column.internal_name in {Function.FUNCTION_COUNT, Function.FUNCTION_SUM}
+        }
         series_by_label = {series.label: series for series in timeseries_list}
         fine_series_by_label = {series.label: series for series in fine_timeseries_list}
         output_timestamps = [row["time"] for row in result.timeseries]
@@ -894,13 +903,12 @@ class RPCBase:
 
             alias = f"__transformed_y_axis_{axis_index}"
             result.transformation_aliases[axis_index] = alias
-            function = is_function(y_axes[axis_index])
             rebucketed = cls.rebucket_timeseries(
                 timestamps,
                 values,
                 output_timestamps,
                 interval,
-                sum_values=function is not None and function.group("function") in {"count", "sum"},
+                sum_values=y_axes[axis_index] in sum_axes,
             )
             result.transformation_flags[axis_index] = TimeseriesTransformationFlags(
                 filled=[
@@ -1128,6 +1136,7 @@ class RPCBase:
             y_axes,
             transformations,
             params.timeseries_granularity_secs,
+            resolved_columns=aggregates,
             fine_timeseries_list=transformation_response.result_timeseries,
         )
 
@@ -1173,6 +1182,7 @@ class RPCBase:
                 y_axes,
                 transformations,
                 params.timeseries_granularity_secs,
+                resolved_columns=aggregates,
                 fine_timeseries_list=comp_transformation_response.result_timeseries,
             )
             comparison_column = processed.transformation_aliases.get(0, y_axes[0])
@@ -1425,6 +1435,7 @@ class RPCBase:
                 y_axes,
                 transformations,
                 params.timeseries_granularity_secs,
+                resolved_columns=aggregates,
                 fine_timeseries_list=map_result_key_to_transformation_series[result_key],
             )
             final_result[result_key] = SnubaTSResult(
@@ -1457,6 +1468,7 @@ class RPCBase:
                     y_axes,
                     transformations,
                     params.timeseries_granularity_secs,
+                    resolved_columns=aggregates,
                     fine_timeseries_list=other_transformation_response.result_timeseries,
                 )
                 final_result[OTHER_KEY] = SnubaTSResult(

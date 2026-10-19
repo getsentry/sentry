@@ -617,10 +617,22 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
 
     def test_transformations_sum_counts_and_sums_when_rebucketing(self) -> None:
         self.end = self.start + timedelta(minutes=2)
+        axes = [
+            "count(span.duration)",
+            "count_if(span.duration,greater,0)",
+            "count_op(foo)",
+            "count_sample(span.duration)",
+            "sum(span.duration)",
+            "sum_if(span.duration,span.op,equals,foo)",
+            "avg_if(span.duration,span.op,equals,foo)",
+            "count_unique(span.op)",
+        ]
         self.store_spans(
             [
                 self.create_span(
-                    start_ts=self.start + timedelta(seconds=15 * bucket + offset), duration=10
+                    {"op": "foo", "sentry_tags": {"op": "foo"}},
+                    start_ts=self.start + timedelta(seconds=15 * bucket + offset),
+                    duration=10,
                 )
                 for bucket, count in enumerate([1, 3, 5, 7, 2, 4, 6, 8])
                 for offset in range(count)
@@ -636,19 +648,23 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
                     "start": self.start,
                     "end": self.end,
                     "interval": "60s",
-                    "yAxis": ["count(span.duration)", "sum(span.duration)"],
+                    "yAxis": axes,
                     "project": self.project.id,
                     "dataset": "spans",
-                    "transformations[0]": [transformation],
-                    "transformations[1]": [transformation],
+                    **{f"transformations[{index}]": [transformation] for index in range(len(axes))},
                 },
                 features={"organizations:explore-interpolation-and-smoothing": True},
             )
 
             assert response.status_code == 200, response.content
-            counts, sums = response.data["timeSeries"]
-            assert [point["value"] for point in counts["values"]] == expected_counts
-            assert [point["value"] for point in sums["values"]] == expected_sums
+            assert len(response.data["timeSeries"]) == len(axes)
+            for timeseries, expected in zip(
+                response.data["timeSeries"],
+                [expected_counts] * 4 + [expected_sums] * 2 + [[10, 10], [1, 1]],
+            ):
+                assert [point["value"] for point in timeseries["values"]] == expected, timeseries[
+                    "yAxis"
+                ]
 
     def test_transformations_rebucket_top_events_and_other_independently(self) -> None:
         self.end = self.start + timedelta(minutes=2)

@@ -196,7 +196,7 @@ def test_rebucket_timeseries(
     )
 
 
-def test_transform_fine_points_before_rebucketing() -> None:
+def test_transform_fine_points_before_rebucketing(timeseries_resolver) -> None:
     coarse = TimeSeries(
         label="avg(span.duration)",
         buckets=[Timestamp(seconds=0), Timestamp(seconds=30)],
@@ -227,6 +227,7 @@ def test_transform_fine_points_before_rebucketing() -> None:
             ],
         },
         30,
+        resolved_columns=timeseries_resolver.resolve_functions(["avg(span.duration)"])[0],
         fine_timeseries_list=[fine],
     )
 
