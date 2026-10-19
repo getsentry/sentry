@@ -329,7 +329,9 @@ class GetSimilarityDataFromSeerTest(TestCase):
 
         get_similarity_data_from_seer(self.request_params)
 
-        mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["not a real hash"])
+        mock_seer_deletion_request.delay.assert_called_with(
+            self.project.id, ["not a real hash"], 0, self.organization.id
+        )
 
     @mock.patch("sentry.seer.similarity.similar_issues.delete_seer_grouping_records_by_hash")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
@@ -361,7 +363,9 @@ class GetSimilarityDataFromSeerTest(TestCase):
         get_similarity_data_from_seer(self.request_params)
 
         assert mock_seer_deletion_request.delay.call_count == 1
-        mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["dogs_are_great"])
+        mock_seer_deletion_request.delay.assert_called_with(
+            self.project.id, ["dogs_are_great"], 0, self.organization.id
+        )
 
         # Now do it all over again, but with a hash that's just been created
 

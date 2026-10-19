@@ -28,6 +28,7 @@ def delete_seer_grouping_records_by_hash(
     project_id: int,
     hashes: Sequence[str],
     last_deleted_index: int = 0,
+    organization_id: int | None = None,
     *args: Any,
     **kwargs: Any,
 ) -> None:
@@ -40,38 +41,41 @@ def delete_seer_grouping_records_by_hash(
     ):
         return
 
-    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
-    len_hashes = len(hashes)
-    if len_hashes <= batch_size:  # Base case
+    if organization_id is None:
         organization_id = (
             Project.objects.filter(id=project_id).values_list("organization_id", flat=True).first()
         )
-        if organization_id is None:
-            return
+    if organization_id is None:
+        return
 
-        with viewer_context_scope(
-            ViewerContext(
-                organization_id=organization_id,
-                project_id=project_id,
-                actor_type=ActorType.SYSTEM,
-            )
-        ):
+    with viewer_context_scope(
+        ViewerContext(
+            organization_id=organization_id,
+            project_id=project_id,
+            actor_type=ActorType.SYSTEM,
+        )
+    ):
+        batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
+        len_hashes = len(hashes)
+        if len_hashes <= batch_size:  # Base case
             call_seer_to_delete_these_hashes(project_id, hashes)
-    else:
-        if last_deleted_index != 0:
-            # This tracks which tasks are still being scheduled with the whole list of hashes
-            metrics.incr(
-                "grouping.similarity.delete_seer_grouping_records_by_hash.batch_size_exceeded",
-                sample_rate=options.get("seer.similarity.metrics_sample_rate"),
-            )
+        else:
+            if last_deleted_index != 0:
+                # This tracks which tasks are still being scheduled with the whole list of hashes
+                metrics.incr(
+                    "grouping.similarity.delete_seer_grouping_records_by_hash.batch_size_exceeded",
+                    sample_rate=options.get("seer.similarity.metrics_sample_rate"),
+                )
 
-        # Iterate through hashes in chunks and schedule a task for each chunk
-        # There are tasks passing last_deleted_index, thus, we need to start from that index
-        # Eventually all tasks will pass 0
-        for i in range(last_deleted_index, len_hashes, batch_size):
-            # Slice operations are safe and will not raise IndexError
-            chunked_hashes = hashes[i : i + batch_size]
-            delete_seer_grouping_records_by_hash.apply_async(args=[project_id, chunked_hashes, 0])
+            # Iterate through hashes in chunks and schedule a task for each chunk
+            # There are tasks passing last_deleted_index, thus, we need to start from that index
+            # Eventually all tasks will pass 0
+            for i in range(last_deleted_index, len_hashes, batch_size):
+                # Slice operations are safe and will not raise IndexError
+                chunked_hashes = hashes[i : i + batch_size]
+                delete_seer_grouping_records_by_hash.apply_async(
+                    args=[project_id, chunked_hashes, 0, organization_id]
+                )
 
 
 def may_schedule_task_to_delete_hashes_from_seer(project_id: int, hashes: Sequence[str]) -> None:
@@ -96,7 +100,9 @@ def may_schedule_task_to_delete_hashes_from_seer(project_id: int, hashes: Sequen
 
     for i in range(0, len(hashes), seer_batch_size):
         hash_chunk = hashes[i : i + seer_batch_size]
-        delete_seer_grouping_records_by_hash.apply_async(args=[project_id, hash_chunk, 0])
+        delete_seer_grouping_records_by_hash.apply_async(
+            args=[project_id, hash_chunk, 0, project.organization_id]
+        )
 
 
 @instrumented_task(

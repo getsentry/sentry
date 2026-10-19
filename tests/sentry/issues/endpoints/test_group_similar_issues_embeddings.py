@@ -498,7 +498,9 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 "event_id": self.event.event_id,
             },
         )
-        mock_seer_deletion_request.delay.assert_called_with(self.project.id, ["not a real hash"])
+        mock_seer_deletion_request.delay.assert_called_with(
+            self.project.id, ["not a real hash"], 0, self.project.organization_id
+        )
 
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")

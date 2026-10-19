@@ -14,6 +14,7 @@ from sentry.conf.server import (
     SEER_SIMILARITY_CIRCUIT_BREAKER_KEY,
 )
 from sentry.models.grouphashmetadata import GroupHashMetadata
+from sentry.models.project import Project
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.seer.similarity.types import (
@@ -35,6 +36,16 @@ seer_grouping_connection_pool = connection_from_url(
     settings.SEER_GROUPING_URL,
     timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
+
+
+def _schedule_grouping_record_deletion(project_id: int, hashes: list[str | None]) -> None:
+    organization_id = (
+        Project.objects.filter(id=project_id).values_list("organization_id", flat=True).first()
+    )
+    if organization_id is None:
+        return
+
+    delete_seer_grouping_records_by_hash.delay(project_id, hashes, 0, organization_id)
 
 
 def make_similar_issues_request(
@@ -225,7 +236,7 @@ def get_similarity_data_from_seer(
 
             # Tell Seer to delete the hash from its database, so it doesn't keep suggesting a group
             # which doesn't exist
-            delete_seer_grouping_records_by_hash.delay(project_id, [parent_hash])
+            _schedule_grouping_record_deletion(project_id, [parent_hash])
 
             # As with the `IncompleteSeerDataError` above, this will mark the entire request as
             # errored even if it's only one grouphash that we can't find. The extent to which that's
@@ -283,7 +294,7 @@ def get_similarity_data_from_seer(
             # they're old. The 60-sec cutoff is probably higher than it needs to be - in 99.9% of
             # race conditions, the value is under a second - but stuff happens.)
             if not parent_grouphash_age or parent_grouphash_age > 60:
-                delete_seer_grouping_records_by_hash.delay(project_id, [parent_hash])
+                _schedule_grouping_record_deletion(project_id, [parent_hash])
 
                 # We're not going to go through the rety flow, so we need to set this here
                 metric_tags.update({"outcome": "error", "error": "SimilarHashMissingGroupError"})
