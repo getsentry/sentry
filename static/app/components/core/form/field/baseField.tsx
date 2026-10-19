@@ -56,7 +56,7 @@ function useScrollToHash(fieldName: string, ref: React.RefObject<HTMLElement | n
     }
     ref.current?.scrollIntoView({block: 'center', behavior: 'smooth'});
     ref.current?.focus({focusVisible: true});
-    animateRowHighlight(ref.current);
+    animateRowHighlight(fieldName, ref.current);
   }, [fieldName, ref, location.hash]);
 }
 
@@ -136,15 +136,14 @@ export function BaseField<T extends HTMLElement>({
   );
 }
 
-function animateRowHighlight(node: HTMLElement | null) {
+function animateRowHighlight(fieldName: string, node: HTMLElement | null) {
   if (!node) {
     return;
   }
-  const name = node.getAttribute('name');
-  if (!name) {
-    return;
-  }
-  const fieldRow = node.closest<HTMLElement>(`#${CSS.escape(name)}`);
+  const selector = `#${CSS.escape(fieldName)}`;
+  // Group controls can wrap their layout instead of being inside it.
+  const fieldRow =
+    node.closest<HTMLElement>(selector) ?? node.querySelector<HTMLElement>(selector);
   if (fieldRow) {
     fieldRow.dataset.highlight = '';
     fieldRow.addEventListener('animationend', () => delete fieldRow.dataset.highlight, {

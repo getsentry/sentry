@@ -139,7 +139,7 @@ describe('Checkbox.Group', () => {
     expect(await screen.findByText('Permissions are locked')).toBeInTheDocument();
   });
 
-  it('focuses the first enabled checkbox for a hash link to the group', () => {
+  it('focuses the first enabled checkbox and highlights the row for a hash link', () => {
     const {router} = render(<TestForm disableFirst />);
     screen.getByRole('group', {name: 'Scopes'}).scrollIntoView = jest.fn();
 
@@ -148,6 +148,9 @@ describe('Checkbox.Group', () => {
     });
 
     expect(screen.getByRole('checkbox', {name: 'Write'})).toHaveFocus();
+    expect(
+      screen.getByRole('checkbox', {name: 'Write'}).closest('#scopes')
+    ).toHaveAttribute('data-highlight', '');
   });
 
   it('saves changes immediately and disables all items while saving', async () => {
