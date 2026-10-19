@@ -242,7 +242,9 @@ class SlackAutofixEntrypointTest(TestCase):
         data = self._create_update(AutofixStoppingPoint.SOLUTION)
         install = self.integration.get_installation(organization_id=self.organization.id)
 
-        send_thread_update(install=install, thread=self.thread, data=data)
+        assert send_thread_update(install=install, thread=self.thread, data=data) == (
+            "1234567890.000100"
+        )
         mock_send_threaded_message.assert_called_with(
             channel_id=self.thread["channel_id"],
             thread_ts=self.thread["thread_ts"],
