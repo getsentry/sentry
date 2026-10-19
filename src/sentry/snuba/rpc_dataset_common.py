@@ -83,12 +83,20 @@ logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
 @dataclass
+class TimeseriesTransformationFlags:
+    filled: list[bool]
+    smoothed: list[bool]
+
+
+@dataclass
 class ProcessedTimeseries:
     timeseries: SnubaData = field(default_factory=list)
     confidence: SnubaData = field(default_factory=list)
     sampling_rate: SnubaData = field(default_factory=list)
     sample_count: SnubaData = field(default_factory=list)
     transformation_aliases: dict[int, str] = field(default_factory=dict)
+    transformation_flags: dict[int, TimeseriesTransformationFlags] = field(default_factory=dict)
+    comparison_transformation_flags: TimeseriesTransformationFlags | None = None
 
 
 @dataclass
@@ -753,6 +761,19 @@ class RPCBase:
         if not transformations:
             return None
 
+        smoothing_axes = list(
+            dict.fromkeys(
+                y_axes[index]
+                for index, pipeline in transformations.items()
+                if any(
+                    not isinstance(transformation, FillTransformation)
+                    for transformation in pipeline
+                )
+            )
+        )
+        if not smoothing_axes:
+            return None
+
         start = request.meta.start_timestamp.seconds + request.meta.start_timestamp.nanos / 1e9
         end = request.meta.end_timestamp.seconds + request.meta.end_timestamp.nanos / 1e9
         granularity = next(
@@ -760,6 +781,7 @@ class RPCBase:
                 interval
                 for interval in sorted(VALID_GRANULARITIES)
                 if interval <= request.granularity_secs
+                and request.granularity_secs % interval == 0
                 and math.ceil((end - start) / interval) <= MAX_ROLLUP_POINTS
             ),
             None,
@@ -771,9 +793,7 @@ class RPCBase:
         if granularity == request.granularity_secs:
             return None
 
-        selected_equations, selected_axes = arithmetic.categorize_columns(
-            list(dict.fromkeys(y_axes[index] for index in transformations))
-        )
+        selected_equations, selected_axes = arithmetic.categorize_columns(smoothing_axes)
         fine_params = search_resolver.params.copy()
         fine_params.granularity_secs = granularity
         resolver = cls.get_resolver(fine_params, search_resolver.config)
@@ -796,6 +816,8 @@ class RPCBase:
         values: Sequence[float | None],
         output_timestamps: Sequence[float],
         interval: int,
+        *,
+        sum_values: bool = False,
     ) -> list[float | None]:
         sums = [0.0] * len(output_timestamps)
         counts = [0] * len(output_timestamps)
@@ -805,7 +827,10 @@ class RPCBase:
                 continue
             sums[index] += value
             counts[index] += 1
-        return [total / count if count else None for total, count in zip(sums, counts)]
+        return [
+            (total if sum_values else total / count) if count else None
+            for total, count in zip(sums, counts)
+        ]
 
     @classmethod
     def apply_timeseries_transformations(
@@ -815,14 +840,21 @@ class RPCBase:
         y_axes: Sequence[str],
         transformations: Mapping[int, Sequence[Transformation]] | None,
         interval: int,
+        *,
+        fine_timeseries_list: Sequence[TimeSeries] = (),
     ) -> None:
         if not transformations:
             return
 
         series_by_label = {series.label: series for series in timeseries_list}
+        fine_series_by_label = {series.label: series for series in fine_timeseries_list}
         output_timestamps = [row["time"] for row in result.timeseries]
         for axis_index, pipeline in transformations.items():
             series = series_by_label.get(y_axes[axis_index])
+            if any(
+                not isinstance(transformation, FillTransformation) for transformation in pipeline
+            ):
+                series = fine_series_by_label.get(y_axes[axis_index], series)
             timestamps = (
                 [bucket.seconds for bucket in series.buckets]
                 if series is not None
@@ -836,15 +868,41 @@ class RPCBase:
                 if series is not None
                 else [None] * len(timestamps)
             )
+            filled = [False] * len(values)
+            smoothed = [False] * len(values)
             for transformation in pipeline:
                 if isinstance(transformation, FillTransformation):
-                    values = fill_timeseries(timestamps, values, config=transformation).values
+                    filled_timeseries = fill_timeseries(timestamps, values, config=transformation)
+                    values = filled_timeseries.values
+                    filled = filled_timeseries.filled
                 else:
                     values = smooth_timeseries(timestamps, values, config=transformation)
+                    smoothed = [value is not None for value in values]
 
             alias = f"__transformed_y_axis_{axis_index}"
             result.transformation_aliases[axis_index] = alias
-            rebucketed = cls.rebucket_timeseries(timestamps, values, output_timestamps, interval)
+            function = is_function(y_axes[axis_index])
+            rebucketed = cls.rebucket_timeseries(
+                timestamps,
+                values,
+                output_timestamps,
+                interval,
+                sum_values=function is not None and function.group("function") in {"count", "sum"},
+            )
+            result.transformation_flags[axis_index] = TimeseriesTransformationFlags(
+                filled=[
+                    bool(value)
+                    for value in cls.rebucket_timeseries(
+                        timestamps, filled, output_timestamps, interval, sum_values=True
+                    )
+                ],
+                smoothed=[
+                    bool(value)
+                    for value in cls.rebucket_timeseries(
+                        timestamps, smoothed, output_timestamps, interval, sum_values=True
+                    )
+                ],
+            )
             for row, value in zip(result.timeseries, rebucketed):
                 row[alias] = process_value(value)
 
@@ -1052,10 +1110,11 @@ class RPCBase:
 
         cls.apply_timeseries_transformations(
             result,
-            transformation_response.result_timeseries,
+            rpc_response.result_timeseries,
             y_axes,
             transformations,
             params.timeseries_granularity_secs,
+            fine_timeseries_list=transformation_response.result_timeseries,
         )
 
         if comparison_delta is not None:
@@ -1096,12 +1155,14 @@ class RPCBase:
                 ]
             cls.apply_timeseries_transformations(
                 processed,
-                comp_transformation_response.result_timeseries,
+                comp_rpc_response.result_timeseries,
                 y_axes,
                 transformations,
                 params.timeseries_granularity_secs,
+                fine_timeseries_list=comp_transformation_response.result_timeseries,
             )
             comparison_column = processed.transformation_aliases.get(0, y_axes[0])
+            result.comparison_transformation_flags = processed.transformation_flags.get(0)
             for existing, new in zip(result.timeseries, processed.timeseries):
                 existing["comparisonCount"] = new.get(comparison_column, 0)
 
@@ -1345,10 +1406,11 @@ class RPCBase:
             result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key], config)
             cls.apply_timeseries_transformations(
                 result,
-                map_result_key_to_transformation_series[result_key],
+                map_result_key_to_timeseries[result_key],
                 y_axes,
                 transformations,
                 params.timeseries_granularity_secs,
+                fine_timeseries_list=map_result_key_to_transformation_series[result_key],
             )
             final_result[result_key] = SnubaTSResult(
                 {
@@ -1375,10 +1437,11 @@ class RPCBase:
                 )
                 cls.apply_timeseries_transformations(
                     result,
-                    other_transformation_response.result_timeseries,
+                    other_response.result_timeseries,
                     y_axes,
                     transformations,
                     params.timeseries_granularity_secs,
+                    fine_timeseries_list=other_transformation_response.result_timeseries,
                 )
                 final_result[OTHER_KEY] = SnubaTSResult(
                     {

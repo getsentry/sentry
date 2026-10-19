@@ -49,6 +49,10 @@ class Row(TypedDict):
     value: float | None
     incomplete: bool
     comparisonValue: NotRequired[float | None]
+    filled: NotRequired[bool]
+    smoothed: NotRequired[bool]
+    comparisonFilled: NotRequired[bool]
+    comparisonSmoothed: NotRequired[bool]
     sampleCount: NotRequired[float]
     sampleRate: NotRequired[float | None]
     confidence: NotRequired[Literal["low", "high"] | None]

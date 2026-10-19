@@ -575,11 +575,14 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
 
         timeseries_values = []
         value_column = axis
+        transformation_flags = None
+        comparison_transformation_flags = None
         if "processed_timeseries" in result.data:
-            value_column = result.data["processed_timeseries"].transformation_aliases.get(
-                axis_index, axis
-            )
-        for row in result.data["data"]:
+            processed_timeseries = result.data["processed_timeseries"]
+            value_column = processed_timeseries.transformation_aliases.get(axis_index, axis)
+            transformation_flags = processed_timeseries.transformation_flags.get(axis_index)
+            comparison_transformation_flags = processed_timeseries.comparison_transformation_flags
+        for index, row in enumerate(result.data["data"]):
             value_row = Row(
                 timestamp=row["time"] * 1000, value=row.get(value_column, 0), incomplete=False
             )
@@ -589,6 +592,14 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 value_row["incompleteReason"] = reason
             if "comparisonCount" in row:
                 value_row["comparisonValue"] = row["comparisonCount"]
+                if comparison_transformation_flags is not None:
+                    value_row["comparisonFilled"] = comparison_transformation_flags.filled[index]
+                    value_row["comparisonSmoothed"] = comparison_transformation_flags.smoothed[
+                        index
+                    ]
+            if transformation_flags is not None:
+                value_row["filled"] = transformation_flags.filled[index]
+                value_row["smoothed"] = transformation_flags.smoothed[index]
             timeseries_values.append(value_row)
 
         if "groupby" in result.data:

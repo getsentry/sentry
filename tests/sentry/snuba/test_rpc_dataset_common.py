@@ -22,7 +22,10 @@ from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
-from sentry.api.helpers.timeseries_transformations import FillTransformation
+from sentry.api.helpers.timeseries_transformations import (
+    FillTransformation,
+    SmaSmoothTransformation,
+)
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.resolver import SearchResolver
@@ -49,7 +52,7 @@ def timeseries_resolver() -> SearchResolver:
         (0, 3600, 60, 15),
         (0, 7 * 86400, 3600, 60),
         (0, 30 * 86400, 3600, 300),
-        (0, 8 * 86400, 300, 120),
+        (0, 14 * 86400, 900, 300),
         (0, 151500, 300, 15),
         (1, 151501, 300, 15),
     ],
@@ -73,7 +76,11 @@ def test_transformation_query_finest_supported_granularity(
     query = Spans.get_transformation_query(
         request,
         ["count()", "avg(span.duration)", "count()"],
-        {2: [FillTransformation(mode="locf")]},
+        {
+            0: [FillTransformation(mode="locf")],
+            1: [FillTransformation(mode="linear")],
+            2: [SmaSmoothTransformation(mode="sma", window_size=2)],
+        },
         timeseries_resolver,
     )
 
@@ -87,30 +94,21 @@ def test_transformation_query_finest_supported_granularity(
 
 
 @pytest.mark.parametrize(
-    "end,interval,coarse_interval,expected",
-    [(60, 15, 60, 15)],
+    "end,interval",
+    [(60, 15), (8 * 86400, 300), (14 * 86400, 300)],
 )
-def test_transformation_query_without_finer_interval(
-    end, interval, coarse_interval, expected, timeseries_resolver
-) -> None:
+def test_transformation_query_without_finer_interval(end, interval, timeseries_resolver) -> None:
     request = TimeSeriesRequest(
         meta=RequestMeta(end_timestamp=Timestamp(seconds=end)),
         granularity_secs=interval,
         expressions=[Expression(label="count()")],
     )
-    transformations = {0: [FillTransformation(mode="locf")]}
+    transformations = {0: [SmaSmoothTransformation(mode="sma", window_size=2)]}
 
     assert (
         Spans.get_transformation_query(request, ["count()"], transformations, timeseries_resolver)
         is None
     )
-
-    request.granularity_secs = coarse_interval
-    query = Spans.get_transformation_query(
-        request, ["count()"], transformations, timeseries_resolver
-    )
-    assert query is not None
-    assert query.granularity_secs == expected
 
 
 def test_transformation_query_rejects_oversized_range(timeseries_resolver) -> None:
@@ -122,24 +120,34 @@ def test_transformation_query_rejects_oversized_range(timeseries_resolver) -> No
 
     with pytest.raises(InvalidSearchQuery, match="too many buckets"):
         Spans.get_transformation_query(
-            request, ["count()"], {0: [FillTransformation(mode="zero")]}, timeseries_resolver
+            request,
+            ["count()"],
+            {0: [SmaSmoothTransformation(mode="sma", window_size=2)]},
+            timeseries_resolver,
         )
 
 
-def test_transformation_query_without_transformations(timeseries_resolver) -> None:
+@pytest.mark.parametrize(
+    "transformations",
+    [
+        None,
+        {},
+        {0: [FillTransformation(mode="locf")]},
+        {0: [FillTransformation(mode="linear")]},
+        {0: [FillTransformation(mode="zero")]},
+    ],
+)
+def test_transformation_query_without_smoothing(transformations, timeseries_resolver) -> None:
     request = TimeSeriesRequest(
         meta=RequestMeta(end_timestamp=Timestamp(seconds=60)),
         granularity_secs=60,
         expressions=[Expression(label="count()")],
     )
 
-    assert Spans.get_transformation_query(request, ["count()"], {}, timeseries_resolver) is None
-
-    query = Spans.get_transformation_query(
-        request, ["count()"], {0: [FillTransformation(mode="locf")]}, timeseries_resolver
+    assert (
+        Spans.get_transformation_query(request, ["count()"], transformations, timeseries_resolver)
+        is None
     )
-    assert query is not None
-    assert query.granularity_secs == 15
 
 
 @pytest.mark.parametrize("axis,divisor", [("eps()", 15), ("epm()", 0.25), ("tpm()", 0.25)])
@@ -153,7 +161,10 @@ def test_transformation_query_resolves_fine_rate_divisor(
     )
 
     query = Spans.get_transformation_query(
-        request, [axis], {0: [FillTransformation(mode="zero")]}, timeseries_resolver
+        request,
+        [axis],
+        {0: [SmaSmoothTransformation(mode="sma", window_size=2)]},
+        timeseries_resolver,
     )
 
     assert query is not None
@@ -162,17 +173,27 @@ def test_transformation_query_resolves_fine_rate_divisor(
 
 
 @pytest.mark.parametrize(
-    "timestamps,values,output_timestamps,interval,expected",
+    "timestamps,values,output_timestamps,interval,sum_values,expected",
     [
-        ([0, 15, 30, 45], [0, 2, None, 8], [0, 30], 30, [1, 8]),
-        ([0, 15, 30, 45], [None, None, 0, None], [0, 30], 30, [None, 0]),
-        ([0, 15, 30, 45, 60], [2, 4, 6, 8, 100], [10, 40], 30, [5, 54]),
-        ([17, 137, 257, 377, 497], [1, 2, 3, 4, 6], [17, 317], 300, [2, 5]),
-        ([0, 15], [1, 3], [], 30, []),
+        ([0, 15, 30, 45], [0, 2, None, 8], [0, 30], 30, False, [1, 8]),
+        ([0, 15, 30, 45], [None, None, 0, None], [0, 30], 30, False, [None, 0]),
+        ([0, 15, 30, 45, 60], [2, 4, 6, 8, 100], [10, 40], 30, False, [5, 54]),
+        ([17, 77, 137, 197, 257, 317, 377], [1, 2, 3, 4, 5, 6, 8], [17, 317], 300, False, [3, 7]),
+        ([0, 15], [1, 3], [], 30, False, []),
+        ([0, 15, 30, 45], [0, 2, None, 8], [0, 30], 30, True, [2, 8]),
+        ([0, 15, 30, 45], [None, None, 0, None], [0, 30], 30, True, [None, 0]),
+        ([0, 15, 30, 45, 60], [2, 4, 6, 8, 100], [10, 40], 30, True, [10, 108]),
     ],
 )
-def test_rebucket_timeseries(timestamps, values, output_timestamps, interval, expected) -> None:
-    assert RPCBase.rebucket_timeseries(timestamps, values, output_timestamps, interval) == expected
+def test_rebucket_timeseries(
+    timestamps, values, output_timestamps, interval, sum_values, expected
+) -> None:
+    assert (
+        RPCBase.rebucket_timeseries(
+            timestamps, values, output_timestamps, interval, sum_values=sum_values
+        )
+        == expected
+    )
 
 
 def test_transform_fine_points_before_rebucketing() -> None:
@@ -196,17 +217,38 @@ def test_transform_fine_points_before_rebucketing() -> None:
 
     RPCBase.apply_timeseries_transformations(
         result,
-        [fine],
-        ["avg(span.duration)", "avg(span.duration)"],
-        {1: [FillTransformation(mode="linear")]},
+        [coarse],
+        ["avg(span.duration)", "avg(span.duration)", "avg(span.duration)"],
+        {
+            1: [FillTransformation(mode="linear")],
+            2: [
+                FillTransformation(mode="linear"),
+                SmaSmoothTransformation(mode="sma", window_size=1),
+            ],
+        },
         30,
+        fine_timeseries_list=[fine],
     )
 
     assert result.timeseries == [
-        {"time": 0, "avg(span.duration)": 2, "__transformed_y_axis_1": 3.5},
-        {"time": 30, "avg(span.duration)": 8, "__transformed_y_axis_1": 8},
+        {
+            "time": 0,
+            "avg(span.duration)": 2,
+            "__transformed_y_axis_1": 2,
+            "__transformed_y_axis_2": 3.5,
+        },
+        {
+            "time": 30,
+            "avg(span.duration)": 8,
+            "__transformed_y_axis_1": 8,
+            "__transformed_y_axis_2": 8,
+        },
     ]
     assert fine.SerializeToString() == original
+    assert result.transformation_flags[1].filled == [False, False]
+    assert result.transformation_flags[1].smoothed == [False, False]
+    assert result.transformation_flags[2].filled == [True, False]
+    assert result.transformation_flags[2].smoothed == [True, True]
 
 
 @pytest.mark.parametrize("routing_hint", ["", "opaque+/=="])
