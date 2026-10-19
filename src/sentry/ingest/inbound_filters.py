@@ -620,27 +620,17 @@ def _text_glob(operator: ConditionOperator, value: str) -> str:
     return literal
 
 
-_NEGATED_OPERATORS: Mapping[ConditionOperator, ConditionOperator] = {
-    ConditionOperator.DOES_NOT_START_WITH: ConditionOperator.STARTS_WITH,
-    ConditionOperator.DOES_NOT_CONTAIN: ConditionOperator.CONTAINS,
-    ConditionOperator.DOES_NOT_END_WITH: ConditionOperator.ENDS_WITH,
-}
-
-
 def _text_matcher(build: Callable[[list[str]], RuleCondition]) -> _ConditionMatcher:
     """
     A text field. ``build`` matches the values as glob patterns, which is what ``glob`` and
     no operator pass; a literal operator turns each value into the pattern that compares
-    it the way the operator does, and a negated one wraps that match in ``not``.
+    it the way the operator does. A negated operator is matched as the operator it
+    negates, see ``_NEGATED_OPERATORS``.
     """
 
     def match(operator: ConditionOperator | None, values: list[str]) -> RuleCondition:
         if operator is None or operator is ConditionOperator.GLOB:
             return build(values)
-        if operator in _NEGATED_OPERATORS:
-            # A field the item does not carry matches no glob, so the negation drops the item.
-            globs = [_text_glob(_NEGATED_OPERATORS[operator], value) for value in values]
-            return {"op": "not", "inner": build(globs)}
         return build([_text_glob(operator, value) for value in values])
 
     return _ConditionMatcher(TEXT_OPERATORS, match)
@@ -686,6 +676,15 @@ def _any_of(conditions: list[RuleCondition]) -> RuleCondition:
 
 
 _client_ip_matcher = _cidr_matcher("envelope.client_ip")
+
+
+# Each negated operator and the operator it negates. The negation wraps the whole match of
+# the field, so that a catch-all drops an item only when none of its fields match.
+_NEGATED_OPERATORS: Mapping[ConditionOperator, ConditionOperator] = {
+    ConditionOperator.DOES_NOT_START_WITH: ConditionOperator.STARTS_WITH,
+    ConditionOperator.DOES_NOT_CONTAIN: ConditionOperator.CONTAINS,
+    ConditionOperator.DOES_NOT_END_WITH: ConditionOperator.ENDS_WITH,
+}
 
 
 _CONDITION_MATCHERS: Mapping[
@@ -802,7 +801,13 @@ def _custom_filter_condition(
         matcher = matchers.get(condition_type)
         if matcher is None or (operator is not None and operator not in matcher.operators):
             return None
-        rule_conditions.append(matcher.match(operator, values))
+        if operator in _NEGATED_OPERATORS:
+            # A field the item does not carry matches no glob, so the negation drops the item.
+            rule_conditions.append(
+                {"op": "not", "inner": matcher.match(_NEGATED_OPERATORS[operator], values)}
+            )
+        else:
+            rule_conditions.append(matcher.match(operator, values))
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]
