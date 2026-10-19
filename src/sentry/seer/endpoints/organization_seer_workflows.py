@@ -4,7 +4,7 @@ from collections.abc import Collection, Sequence
 from functools import partial
 from typing import TypedDict, cast
 
-from django.db.models import Exists, OuterRef, Q, prefetch_related_objects
+from django.db.models import Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
@@ -24,7 +24,6 @@ from sentry.api.serializers.models.seer_agentic_triage_run import (  # noqa: F40
 )
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.seer.models.agentic_triage import SeerAgenticTriageRunResult
 from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
 from sentry.seer.monitor_cleanup.runs import create_monitor_cleanup_run
 from sentry.seer.monitor_cleanup.schemas import MonitorCleanupRunExtras, MonitorCleanupRunResponse
@@ -73,7 +72,7 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
             raise NotFound
 
         # Owners, managers, and open membership can already open every project.
-        # Everyone else only sees runs whose projects they can access.
+        # Everyone else only sees runs that name projects they can access.
         project_scoped = cleanup_enabled or (
             triage_enabled and not request.access.has_global_access
         )
@@ -145,30 +144,16 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
 
 
 def _triage_runs_visible_for_projects(accessible_project_ids: Sequence[int]) -> Q:
-    """Runs whose declared projects, and every result group, are accessible.
+    """Hide a run only when it names a project the caller cannot access.
 
-    Manual runs store ``extras.target_project_ids``. Org-wide runs omit that
-    list and only name projects through their result groups. A run with
-    neither has no project payload.
+    Manual runs store ``extras.target_project_ids``. Cron runs omit that list.
+    Those stay in the history, and the serializer drops result groups outside
+    the caller's projects. An empty target list is contained by every project
+    list, so it does not count as naming a project.
     """
-    if accessible_project_ids:
-        outside_projects = SeerAgenticTriageRunResult.objects.filter(
-            run_id=OuterRef("pk"),
-            group_id__isnull=False,
-        ).exclude(group__project_id__in=accessible_project_ids)
-    else:
-        outside_projects = SeerAgenticTriageRunResult.objects.filter(
-            run_id=OuterRef("pk"),
-            group_id__isnull=False,
-        )
-    # An empty target list is contained by every project list, so require a
-    # non-empty list before treating containment as access.
     targets_declared = Q(extras__has_key="target_project_ids") & ~Q(extras__target_project_ids=[])
     targets_visible = Q(extras__target_project_ids__contained_by=list(accessible_project_ids))
-    return cast(
-        Q,
-        ((targets_declared & targets_visible) | ~targets_declared) & ~Exists(outside_projects),
-    )
+    return cast(Q, (targets_declared & targets_visible) | ~targets_declared)
 
 
 def serialize_workflow_page(

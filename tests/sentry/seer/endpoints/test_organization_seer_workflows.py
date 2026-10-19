@@ -440,6 +440,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         member_project = self.create_project(organization=self.organization, teams=[other_team])
 
         group = self.create_group(project=project)
+        member_group = self.create_group(project=member_project)
         repo = self.create_repo()
         pull_request = self.create_pull_request(
             repository_id=repo.id,
@@ -466,7 +467,14 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             run=org_wide,
             kind="agentic_triage",
             group=group,
+            result_seer_run=issue_seer_run,
             extras={"action": "skip", "reason": "private org-wide rationale"},
+        )
+        SeerAgenticTriageRunResult.objects.create(
+            run=org_wide,
+            kind="agentic_triage",
+            group=member_group,
+            extras={"action": "skip", "reason": "visible rationale"},
         )
         mixed = SeerWorkflowRun.objects.create(
             organization=self.organization,
@@ -492,7 +500,16 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         self.login_as(member)
         with self.feature("organizations:seer-night-shift"):
             response = self.get_success_response(self.organization.slug)
-        assert {item["id"] for item in response.data} == {str(visible.id), str(unscoped.id)}
+        assert {item["id"] for item in response.data} == {
+            str(visible.id),
+            str(unscoped.id),
+            str(org_wide.id),
+        }
+        org_wide_body = next(item for item in response.data if item["id"] == str(org_wide.id))
+        assert [issue["reason"] for issue in org_wide_body["issues"]] == ["visible rationale"]
+        assert org_wide_body["issues"][0]["pullRequests"] == []
+        assert "private org-wide rationale" not in str(response.data)
+        assert "private patch notes" not in str(response.data)
 
         self.create_team_membership(team=self.team, user=member)
         with self.feature("organizations:seer-night-shift"):
