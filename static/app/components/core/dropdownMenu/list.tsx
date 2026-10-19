@@ -55,15 +55,15 @@ export interface DropdownMenuListProps
    * To be displayed below the menu items
    */
   menuFooter?: React.ReactNode;
-  menuSearch?: {
-    onChange: (value: string) => void;
-    value: string;
-    placeholder?: string;
-  };
   /**
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
+  search?: {
+    onChange: (value: string) => void;
+    value: string;
+    placeholder?: string;
+  };
   size?: MenuItemProps['size'];
   /**
    * Style overrides applied to the position wrapper. Useful for overriding
@@ -195,7 +195,7 @@ function DropdownMenuList({
   size,
   menuTitle,
   menuFooter,
-  menuSearch,
+  search,
   disableTextSelection,
   overlayState,
   overlayPositionProps,
@@ -282,13 +282,13 @@ function DropdownMenuList({
                 <Menu.Title>{menuTitle}</Menu.Title>
               </Menu.Header>
             )}
-            {menuSearch && (
+            {search && (
               <Container padding="xs">
                 <Menu.Search
-                  aria-label={menuSearch.placeholder ?? 'Search'}
-                  placeholder={menuSearch.placeholder ?? 'Search…'}
-                  value={menuSearch.value}
-                  onChange={event => menuSearch.onChange(event.target.value)}
+                  aria-label={search.placeholder ?? 'Search'}
+                  placeholder={search.placeholder ?? 'Search…'}
+                  value={search.value}
+                  onChange={event => search.onChange(event.target.value)}
                   onKeyDown={event => {
                     if (event.key === 'ArrowDown') {
                       event.preventDefault();
@@ -407,14 +407,13 @@ export function DropdownMenuContent({
   items,
   disabledKeys,
   size,
-  menuSearch,
+  search,
   ...props
 }: DropdownMenuContentProps) {
   const activeItems = useMemo(() => removeHiddenItemsAndSetHref(items), [items]);
   const visibleItems = useMemo(
-    () =>
-      menuSearch?.value ? filterMenuItems(activeItems, menuSearch.value) : activeItems,
-    [activeItems, menuSearch]
+    () => (search?.value ? filterMenuItems(activeItems, search.value) : activeItems),
+    [activeItems, search]
   );
   const defaultDisabledKeys = useMemo(
     () => getDisabledKeys(visibleItems),
@@ -427,7 +426,7 @@ export function DropdownMenuContent({
       size={size}
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
-      menuSearch={menuSearch}
+      search={search}
     >
       {(item: MenuItemProps) => {
         const {onAction: _onAction, ...itemProps} = item;
@@ -533,7 +532,7 @@ function DropdownSubmenu({
           closeOnSelect={closeOnSelect}
           disableTextSelection={disableTextSelection}
           menuTitle={options.title}
-          menuSearch={
+          search={
             options.search
               ? {...options.search, value: search, onChange: setSearch}
               : undefined

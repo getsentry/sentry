@@ -274,9 +274,6 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       isFocused={isFocused}
       innerWrapProps={{
         ...mergedMenuItemContentProps,
-        padding: 'xs xs xs md',
-        align: 'start',
-        alignSelf: 'stretch',
         onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
           lastPointerPosition.current = {x: event.clientX, y: event.clientY};
           // React clears currentTarget after dispatch, but hover may be deferred.
