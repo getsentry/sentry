@@ -5,6 +5,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
+import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {widgetFetchesOwnData} from 'sentry/views/dashboards/utils';
@@ -25,6 +26,7 @@ type Results = {
   dataScanned?: 'full' | 'partial';
   errorMessage?: string;
   heatmapResults?: HeatMapSeries;
+  ingestion?: IngestionMeta;
   isProgressivelyLoading?: boolean;
   isSampled?: boolean | null;
   pageLinks?: string;
@@ -224,6 +226,7 @@ export function WidgetCardDataLoader({
         timeseriesResultsTypes,
         timeseriesResultsUnits,
         confidence,
+        ingestion,
       }) => (
         <Fragment>
           {children({
@@ -234,6 +237,7 @@ export function WidgetCardDataLoader({
             timeseriesResultsTypes,
             timeseriesResultsUnits,
             confidence,
+            ingestion,
           })}
         </Fragment>
       )}
