@@ -308,7 +308,6 @@ def error_type_rule_condition(values: list[str]) -> dict:
     }
 
 
-# The release field of every data type, in the order a catch-all condition lists them.
 RELEASE_FIELDS = [
     "event.release",
     "log.attributes.sentry.release.value",
@@ -506,10 +505,22 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
         ),
         pytest.param(
             "error",
+            [{"type": "release", "operator": "glob", "value": ["1.*", "2.?"]}],
+            {"op": "glob", "name": "event.release", "value": ["1.*", "2.?"]},
+            id="glob_passes_the_values_through",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8"]}],
+            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+            id="glob_on_ip_address_is_the_cidr_match",
+        ),
+        pytest.param(
+            "error",
             [
-                {"type": "error_message", "value": ["*timeout*"]},
+                {"type": "error_message", "operator": "glob", "value": ["*timeout*"]},
                 {"type": "release", "operator": "gte", "value": ["2.0"]},
-                {"type": "ip_address", "value": ["10.0.0.0/8"]},
+                {"type": "ip_address", "operator": "glob", "value": ["10.0.0.0/8"]},
             ],
             {
                 "op": "and",
@@ -519,28 +530,19 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
                     {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
                 ],
             },
-            id="comparison_combines_with_glob_conditions",
-        ),
-        pytest.param(
-            "all",
-            [
-                {"type": "release", "value": [">2*"]},
-                {"type": "release", "value": ["<4*"]},
-            ],
-            {
-                "op": "and",
-                "inner": [
-                    release_rule_condition([">2*"]),
-                    release_rule_condition(["<4*"]),
-                ],
-            },
-            id="catch_all_release_range",
+            id="operators_combine_with_and",
         ),
         pytest.param(
             "error",
             [{"type": "ip_address", "value": ["10.0.0.0/8", "203.0.113.7"]}],
             {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8", "203.0.113.7"]},
             id="ip_address_reads_the_envelope_client_ip",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "release", "value": ["1.*", "[23].?"]}],
+            {"op": "glob", "name": "event.release", "value": ["1.*", "[23].?"]},
+            id="a_condition_without_an_operator_holds_raw_globs",
         ),
         pytest.param(
             "error",
@@ -599,8 +601,12 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
         default_project,
         data_type="error",
         conditions=[
-            {"type": "error_message", "value": ["*ConnectionError*", "Timeout*"]},
-            {"type": "release", "value": ["1.*"]},
+            {
+                "type": "error_message",
+                "operator": "glob",
+                "value": ["*ConnectionError*", "*Timeout*"],
+            },
+            {"type": "release", "operator": "glob", "value": ["1.*"]},
         ],
     )
 
@@ -632,13 +638,13 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
                                                 "name": "ty",
                                                 "value": ["*ConnectionError*"],
                                             },
-                                            {"op": "glob", "name": "ty", "value": ["Timeout*"]},
+                                            {"op": "glob", "name": "ty", "value": ["*Timeout*"]},
                                             {
                                                 "op": "glob",
                                                 "name": "value",
                                                 "value": ["*ConnectionError*"],
                                             },
-                                            {"op": "glob", "name": "value", "value": ["Timeout*"]},
+                                            {"op": "glob", "name": "value", "value": ["*Timeout*"]},
                                         ],
                                     },
                                 },
@@ -650,7 +656,7 @@ def test_custom_inbound_filter_row_becomes_relay_config(default_project, factori
                                 {
                                     "op": "glob",
                                     "name": "event.logentry.formatted",
-                                    "value": ["Timeout*"],
+                                    "value": ["*Timeout*"],
                                 },
                             ],
                         },

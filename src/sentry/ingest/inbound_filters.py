@@ -6,7 +6,9 @@ from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
+    COMPARISON_OPERATORS,
     MAX_FILTERS_PER_PROJECT,
+    TEXT_OPERATORS,
     ConditionOperator,
     ConditionType,
     CustomInboundFilter,
@@ -588,12 +590,14 @@ class _ConditionMatcher:
     """
     Builds the Relay conditions for one condition type on one data type.
 
-    ``match`` matches an item whose field matches any of the glob patterns. ``compare``
-    compares the field as a release version, and is None for a field that is not a
-    release.
+    ``match`` matches an item whose field matches any of the glob patterns. ``operators``
+    are the operators the field takes: the text operators where the field is text, and
+    the comparison operators where it is a release. ``compare`` compares the field as a
+    release version, and is None for a field that is not a release.
     """
 
     match: Callable[[list[str]], RuleCondition]
+    operators: frozenset[ConditionOperator]
     compare: Callable[[ReleaseComparator, str], RuleCondition] | None = None
 
 
@@ -605,21 +609,23 @@ def _field_matcher(name: str) -> _ConditionMatcher:
     def match(values: list[str]) -> RuleCondition:
         return {"op": "glob", "name": name, "value": values}
 
-    return _ConditionMatcher(match)
+    return _ConditionMatcher(match, TEXT_OPERATORS)
 
 
 def _release_matcher(name: str) -> _ConditionMatcher:
     def compare(comparator: ReleaseComparator, value: str) -> RuleCondition:
         return {"op": "release", "name": name, "comparator": comparator, "value": value}
 
-    return replace(_field_matcher(name), compare=compare)
+    return replace(
+        _field_matcher(name), operators=TEXT_OPERATORS | COMPARISON_OPERATORS, compare=compare
+    )
 
 
 def _cidr_matcher(name: str) -> _ConditionMatcher:
     def match(values: list[str]) -> RuleCondition:
         return {"op": "cidr", "name": name, "value": values}
 
-    return _ConditionMatcher(match)
+    return _ConditionMatcher(match, TEXT_OPERATORS)
 
 
 _client_ip_matcher = _cidr_matcher("envelope.client_ip")
@@ -630,10 +636,10 @@ _CONDITION_MATCHERS: Mapping[
     _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
 ] = {
     ConditionType.ERROR_TYPE: {
-        DataType.ERROR: _ConditionMatcher(_custom_error_type_condition),
+        DataType.ERROR: _ConditionMatcher(_custom_error_type_condition, TEXT_OPERATORS),
     },
     ConditionType.ERROR_MESSAGE: {
-        DataType.ERROR: _ConditionMatcher(_custom_error_message_condition),
+        DataType.ERROR: _ConditionMatcher(_custom_error_message_condition, TEXT_OPERATORS),
     },
     ConditionType.LOG_MESSAGE: {
         DataType.LOG: _field_matcher("log.body"),
@@ -671,8 +677,9 @@ def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionM
             ],
         }
 
+    operators = frozenset.intersection(*(matcher.operators for matcher in matchers))
     comparable = all(matcher.compare is not None for matcher in matchers)
-    return _ConditionMatcher(match, compare if comparable else None)
+    return _ConditionMatcher(match, operators, compare if comparable else None)
 
 
 def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMatcher | None:
@@ -690,15 +697,19 @@ def _operator_condition(
     matcher: _ConditionMatcher, operator: ConditionOperator | None, values: list[str]
 ) -> RuleCondition | None:
     """
-    The Relay condition for one filter condition. Without an operator the values are glob
-    patterns. None when the field is no release, or the comparison does not take exactly
-    one value.
+    The Relay condition for one filter condition. Without an operator the values are raw
+    glob patterns, as with ``glob``. None when the operator does not fit the condition,
+    or a version comparison does not take exactly one value.
     """
     if operator is None:
         return matcher.match(values)
+    if operator not in matcher.operators:
+        return None
+    if operator is ConditionOperator.GLOB:
+        return matcher.match(values)
     if matcher.compare is None or len(values) != 1:
         return None
-    return matcher.compare(operator.value, values[0])
+    return matcher.compare(cast(ReleaseComparator, operator.value), values[0])
 
 
 _MATCHERS_BY_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {
@@ -721,9 +732,8 @@ def get_supported_operators(condition_type: ConditionType) -> list[ConditionOper
     """The operators a condition type takes, the same on every data type that carries it."""
     spec = _CONDITION_MATCHERS[condition_type]
     matchers = [spec] if isinstance(spec, _ConditionMatcher) else list(spec.values())
-    if all(matcher.compare is not None for matcher in matchers):
-        return list(ConditionOperator)
-    return []
+    operators = frozenset.intersection(*(matcher.operators for matcher in matchers))
+    return [operator for operator in ConditionOperator if operator in operators]
 
 
 def _custom_filter_condition(
@@ -735,10 +745,11 @@ def _custom_filter_condition(
     Conditions are combined with AND. Returns None if the filter cannot be translated
     (a missing data type, a data type, condition type, operator, or value shape unknown
     to this revision, a condition type whose field the filter's data type does not
-    carry, or a comparison on a field that is no release): since every condition narrows
-    the match, dropping only the broken condition would filter more data than configured.
+    carry, or an operator the condition type does not take): since every condition
+    narrows the match, dropping only the broken condition would filter more data than
+    configured.
 
-    A condition without an operator holds glob patterns, see ``ConditionOperator``.
+    A condition without an operator holds raw glob patterns, see ``ConditionOperator``.
     """
     if not conditions or data_type is None:
         return None

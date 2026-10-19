@@ -43,8 +43,12 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.project.slug,
                 dataType="error",
                 conditions=[
-                    {"type": "error_message", "value": ["*ConnectionReset*", "*ETIMEDOUT*"]},
-                    {"type": "release", "value": ["3.*"]},
+                    {
+                        "type": "error_message",
+                        "operator": "glob",
+                        "value": ["ConnectionReset", "ETIMEDOUT"],
+                    },
+                    {"type": "release", "operator": "glob", "value": ["3."]},
                 ],
             )
 
@@ -54,8 +58,12 @@ class CustomInboundFilterValidateTest(APITestCase):
             "payload": {
                 "data_type": "error",
                 "conditions": [
-                    {"type": "error_message", "value": ["*ConnectionReset*", "*ETIMEDOUT*"]},
-                    {"type": "release", "value": ["3.*"]},
+                    {
+                        "type": "error_message",
+                        "operator": "glob",
+                        "value": ["ConnectionReset", "ETIMEDOUT"],
+                    },
+                    {"type": "release", "operator": "glob", "value": ["3."]},
                 ],
             },
         }
@@ -77,7 +85,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "glob", "value": ["Error"]}],
             )
 
         assert response.data["suggestedName"] == "Padded name"
@@ -91,7 +99,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="span",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "glob", "value": ["Error"]}],
             )
 
         assert response.data["suggestedName"] is None
@@ -109,8 +117,8 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.project.slug,
                 dataType="error",
                 conditions=[
-                    {"type": "error_message", "value": ["*"]},
-                    {"type": "ip_address", "value": ["not-an-address"]},
+                    {"type": "error_message", "operator": "glob", "value": ["Error"]},
+                    {"type": "ip_address", "operator": "glob", "value": ["not-an-address"]},
                 ],
             )
 
@@ -128,7 +136,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "glob", "value": ["Error"]}],
             )
 
         assert response.data == {"errors": {}, "suggestedName": None}
@@ -143,7 +151,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "glob", "value": ["Error"]}],
             )
 
         assert response.data == {"errors": {}, "suggestedName": None}
@@ -156,7 +164,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "glob", "value": ["Error"]}],
             )
 
         assert response.data == {"errors": {}, "suggestedName": None}
@@ -168,7 +176,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "glob", "value": ["Error"]}],
             )
 
         assert response.data == {"errors": {}, "suggestedName": None}
@@ -181,9 +189,9 @@ class CustomInboundFilterValidateTest(APITestCase):
         custom_filter = self.create_project_custom_inbound_filter(
             project=self.project,
             data_type="error",
-            conditions=[{"type": "release", "value": ["a" * stored_size]}],
+            conditions=[{"type": "release", "operator": "glob", "value": ["a" * stored_size]}],
         )
-        same_size = [{"type": "release", "value": ["b" * stored_size]}]
+        same_size = [{"type": "release", "operator": "glob", "value": ["b" * stored_size]}]
 
         with self.feature(self.features):
             response = self.get_success_response(
@@ -211,7 +219,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.project.slug,
                 id="999999",
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "glob", "value": ["Error"]}],
                 status_code=404,
             )
 
@@ -221,7 +229,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "glob", "value": ["Error"]}],
                 status_code=404,
             )
 
@@ -231,7 +239,7 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "glob", "value": ["Error"]}],
                 status_code=400,
             )
 
@@ -247,6 +255,6 @@ class CustomInboundFilterValidateTest(APITestCase):
                 self.organization.slug,
                 self.project.slug,
                 dataType="error",
-                conditions=[{"type": "error_message", "value": ["*"]}],
+                conditions=[{"type": "error_message", "operator": "glob", "value": ["Error"]}],
                 status_code=403,
             )
