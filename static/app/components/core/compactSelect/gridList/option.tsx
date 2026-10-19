@@ -13,11 +13,8 @@ import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {
-  InnerWrap,
-  MenuListItem,
-  type MenuListItemProps,
-} from '@sentry/scraps/menuListItem';
+import {Menu} from '@sentry/scraps/menu';
+import {InnerWrap, type MenuListItemProps} from '@sentry/scraps/menuListItem';
 import type {FormSize} from '@sentry/scraps/theme';
 
 export interface GridListOptionProps<
@@ -146,7 +143,7 @@ export function GridListOption<T extends ListItemBase>({
   );
 }
 
-const StyledMenuListItem = styled(MenuListItem)`
+const StyledMenuListItem = styled(Menu.Item)`
   > ${InnerWrap} {
     padding-left: ${p => p.theme.space.md};
   }

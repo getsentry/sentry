@@ -7,7 +7,8 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import type {FormSize, Theme} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -19,6 +20,7 @@ import {Overlay, PositionWrapper} from 'sentry/components/overlay';
  */
 type Priority = 'primary' | 'danger' | 'default';
 
+/** Resolves an item's text color from its priority and disabled state. */
 function getTextColor({
   theme,
   priority,
@@ -42,26 +44,10 @@ function getTextColor({
   }
 }
 
-/**
- * Returns the appropriate vertical padding based on the size prop. To be used
- * as top/bottom padding/margin in InnerWrap
- */
-const getVerticalPadding = (size: FormSize | undefined, theme: Theme) => {
-  switch (size) {
-    case 'xs':
-      return theme.space.xs;
-    case 'sm':
-      return theme.space.sm;
-    case 'md':
-    default:
-      return theme.space.md;
-  }
-};
-
-const StyledInnerWrap = styled('div', {
+const StyledInnerWrap = styled(Flex, {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
-    isPropValid(prop) &&
+    (isPropValid(prop) || ['padding', 'align', 'alignSelf'].includes(prop)) &&
     !['disabled', 'isFocused', 'priority'].includes(prop),
 })<{
   disabled: boolean;
@@ -69,11 +55,8 @@ const StyledInnerWrap = styled('div', {
   priority: Priority;
   size?: FormSize;
 }>`
-  display: flex;
+  gap: ${p => p.theme.space.xs};
   position: relative;
-  padding: 0 ${p => p.theme.space.md} 0 ${p => p.theme.space.lg};
-  padding-top: ${p => getVerticalPadding(p.size, p.theme)};
-  padding-bottom: ${p => getVerticalPadding(p.size, p.theme)};
   border-radius: ${p => p.theme.radius.md};
   box-sizing: border-box;
 
@@ -126,29 +109,21 @@ const StyledContentWrap = styled('div')<{
 
 const StyledLeadingItems = styled('div')<{
   disabled: boolean;
+  hasDetails?: boolean;
   size?: FormSize;
 }>`
   display: flex;
   gap: ${p => p.theme.space.md};
-  margin-right: ${p => p.theme.space.md};
+  min-width: ${p => p.theme.space['2xl']};
+  justify-content: center;
   flex-shrink: 0;
-  /* Match the label's first line without centering against any details below it. */
-  min-height: 1.4em;
-  align-self: flex-start;
+  /* Match the label's first line when details appear below it. */
+  min-height: 24px;
+  align-self: ${p => (p.hasDetails ? 'flex-start' : 'center')};
   align-items: center;
+  margin-top: ${p => (p.hasDetails ? p.theme.space.xs : '0')};
 
   ${p => p.disabled && 'opacity: 0.5;'}
-`;
-
-const StyledLabel = styled('div')`
-  margin-bottom: 0;
-  line-height: 1.4;
-
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
 const StyledDetails = styled('div')<{disabled: boolean; priority: Priority}>`
@@ -232,7 +207,7 @@ interface OtherProps<T extends React.ElementType> {
   isFocused?: boolean;
   isPressed?: boolean;
   isSelected?: boolean;
-  labelProps?: Partial<React.ComponentProps<typeof StyledLabel>>;
+  labelProps?: {as?: 'div' | 'p'; id?: string};
 }
 
 interface Props<T extends React.ElementType = 'li'>
@@ -240,6 +215,7 @@ interface Props<T extends React.ElementType = 'li'>
   ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
 }
 
+/** Renders the shared visual shell for menu and select items. */
 function BaseMenuListItem<T extends React.ElementType = 'li'>({
   label,
   details,
@@ -285,6 +261,9 @@ function BaseMenuListItem<T extends React.ElementType = 'li'>({
         {...tooltipOptions}
       >
         <StyledInnerWrap
+          padding={
+            size === 'xs' ? 'xs md xs lg' : size === 'sm' ? 'sm md sm lg' : 'xs sm xs md'
+          }
           isFocused={isFocused}
           disabled={disabled}
           priority={priority}
@@ -297,21 +276,40 @@ function BaseMenuListItem<T extends React.ElementType = 'li'>({
             higherOpacity={priority !== 'default'}
           />
           {leadingItems && (
-            <StyledLeadingItems disabled={disabled} size={size}>
+            <StyledLeadingItems
+              disabled={disabled}
+              hasDetails={Boolean(details && !showDetailsInOverlay)}
+              size={size}
+            >
               {typeof leadingItems === 'function'
                 ? leadingItems({disabled, isFocused, isSelected})
                 : leadingItems}
             </StyledLeadingItems>
           )}
           <StyledContentWrap isFocused={isFocused} size={size}>
-            <Container paddingRight="md" width="100%" minWidth="0">
-              <StyledLabel
+            <Stack padding="xs 0" align="start" gap="2xs" flex="1 0 0" minWidth="0">
+              <Text
+                as="div"
+                size={size ?? 'md'}
+                density="fixed"
+                variant="inherit"
+                bold={false}
+                tabular
+                ellipsis
+                css={theme => css`
+                  font-variant-numeric: lining-nums tabular-nums;
+                  color: ${
+                    disabled || priority !== 'default'
+                      ? getTextColor({theme, priority, disabled})
+                      : theme.tokens.interactive.transparent.neutral.content.headings
+                  };
+                `}
                 id={labelId}
                 data-test-id="menu-list-item-label"
                 {...labelProps}
               >
                 {label}
-              </StyledLabel>
+              </Text>
               {!showDetailsInOverlay && details && (
                 <StyledDetails
                   id={detailId}
@@ -324,7 +322,7 @@ function BaseMenuListItem<T extends React.ElementType = 'li'>({
                     : details}
                 </StyledDetails>
               )}
-            </Container>
+            </Stack>
             {trailingItems && (
               <TrailingItems disabled={disabled}>
                 {typeof trailingItems === 'function'
@@ -361,6 +359,7 @@ const POPPER_OPTIONS = {
   ],
 };
 
+/** Shows item details beside the focused item when overlay details are enabled. */
 function DetailsOverlay({
   children,
   size,
@@ -437,7 +436,7 @@ const StyledInteractionStateLayer = styled(InteractionStateLayer)`
 const TrailingItems = styled('div')<{disabled: boolean}>`
   display: flex;
   align-items: center;
-  height: 1.4em;
+  height: 24px;
   gap: ${p => p.theme.space.md};
   margin-right: ${p => p.theme.space.xs};
 

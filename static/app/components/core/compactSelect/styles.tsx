@@ -7,6 +7,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Menu} from '@sentry/scraps/menu';
 
 export const ListWrap = styled('ul')`
   margin: 0;
@@ -70,10 +71,6 @@ export const ListSeparator = styled('div')`
   }
 `;
 
-export const SectionWrap = styled('li')`
-  list-style-type: none;
-`;
-
 export const SectionHeader = styled('div')`
   display: flex;
   justify-content: space-between;
@@ -90,18 +87,6 @@ export const SectionHeader = styled('div')`
     > & {
     padding-top: 0;
   }
-`;
-
-export const SectionTitle = styled('p')`
-  display: inline-block;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
-  white-space: nowrap;
-
-  margin: 0;
-  padding-right: ${p => p.theme.space['3xl']};
 `;
 
 export const SectionToggleButton = styled(Button)<{visible: boolean}>`
@@ -135,9 +120,8 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   }
 `;
 
-export const SectionSeparator = styled('li')`
+const SectionSeparatorWrap = styled('li')`
   list-style-type: none;
-  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
   margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
 
   &:first-of-type {
@@ -145,10 +129,13 @@ export const SectionSeparator = styled('li')`
   }
 `;
 
-export const SectionGroup = styled('ul')`
-  margin: 0;
-  padding: 0;
-`;
+export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
+  return (
+    <SectionSeparatorWrap {...props} role="presentation">
+      <Menu.Separator />
+    </SectionSeparatorWrap>
+  );
+}
 
 export function LeadWrap(props: FlexProps) {
   return (

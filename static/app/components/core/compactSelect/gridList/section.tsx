@@ -4,15 +4,10 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {SelectFilterContext} from '@sentry/scraps/compactSelect/selectFilterContext';
-import {
-  SectionGroup,
-  SectionHeader,
-  SectionSeparator,
-  SectionTitle,
-  SectionWrap,
-} from '@sentry/scraps/compactSelect/styles';
+import {SectionHeader, SectionSeparator} from '@sentry/scraps/compactSelect/styles';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
+import {Menu} from '@sentry/scraps/menu';
 
 import {GridListOption, type GridListOptionProps} from './option';
 
@@ -47,7 +42,7 @@ export function GridListSection<T extends ListItemBase>({
   return (
     <Fragment>
       <SectionSeparator {...separatorProps} />
-      <SectionWrap
+      <Menu.Section
         role="rowgroup"
         {...(node['aria-label']
           ? {'aria-label': node['aria-label']}
@@ -56,14 +51,14 @@ export function GridListSection<T extends ListItemBase>({
         {(node.rendered || showToggleAllButton) && (
           <SectionHeader>
             {node.rendered && (
-              <SectionTitle id={titleId} aria-hidden>
+              <Menu.SectionTitle id={titleId} aria-hidden>
                 {node.rendered}
-              </SectionTitle>
+              </Menu.SectionTitle>
             )}
             {showToggleAllButton && <SectionToggle item={node} listState={listState} />}
           </SectionHeader>
         )}
-        <SectionGroup role="presentation">
+        <Menu.SectionItems role="presentation">
           {childNodes.map(child => (
             <GridListOption
               key={child.key}
@@ -72,8 +67,8 @@ export function GridListSection<T extends ListItemBase>({
               size={size}
             />
           ))}
-        </SectionGroup>
-      </SectionWrap>
+        </Menu.SectionItems>
+      </Menu.Section>
     </Fragment>
   );
 }

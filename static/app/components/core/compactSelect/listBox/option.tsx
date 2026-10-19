@@ -11,11 +11,8 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
-import {
-  InnerWrap,
-  MenuListItem,
-  type MenuListItemProps,
-} from '@sentry/scraps/menuListItem';
+import {Menu} from '@sentry/scraps/menu';
+import {InnerWrap, type MenuListItemProps} from '@sentry/scraps/menuListItem';
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
@@ -130,7 +127,7 @@ export function ListBoxOption({
   );
 }
 
-const StyledMenuListItem = styled(MenuListItem)`
+const StyledMenuListItem = styled(Menu.Item)`
   > ${InnerWrap} {
     padding-left: ${p => p.theme.space.md};
   }
