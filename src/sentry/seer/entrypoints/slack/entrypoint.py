@@ -3,8 +3,10 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
+from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -14,7 +16,10 @@ from sentry.notifications.platform.templates.seer import (
     SeerAgentWriteApproval,
     SeerAutofixError,
     SeerAutofixUpdate,
+    SeerInvestigationError,
+    SeerInvestigationStarted,
 )
+from sentry.notifications.platform.types import NotificationData
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import PendingUserInput
@@ -27,18 +32,22 @@ from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.registry import (
     agent_entrypoint_registry,
     autofix_entrypoint_registry,
+    investigation_entrypoint_registry,
 )
 from sentry.seer.entrypoints.slack.messaging import (
     schedule_all_thread_updates,
     send_thread_update,
     update_existing_message,
+    update_investigation_alert_message,
 )
 from sentry.seer.entrypoints.types import (
     SeerAgentEntrypoint,
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
+    SeerInvestigationEntrypoint,
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
@@ -78,6 +87,18 @@ class SlackAgentCachePayload(TypedDict):
     integration_id: int
     thread: SlackThreadDetails
     slack_user_id: NotRequired[str]
+
+
+class SlackInvestigationCachePayload(TypedDict):
+    organization_id: int
+    integration_id: int
+    channel_id: str
+    thread_ts: str
+    alert_message_ts: str
+    status_message_ts: str | None
+    slack_user_id: str
+    last_sent_state: str | None
+    final_sent: bool
 
 
 class SlackPendingMentionPayload(TypedDict):
@@ -661,6 +682,91 @@ class SlackAgentEntrypoint(
         )
 
 
+class SlackInvestigationEntrypoint(
+    SeerInvestigationEntrypoint[SlackInvestigationCachePayload],
+):
+    key = SeerEntrypointKey.SLACK
+
+    def __init__(
+        self,
+        *,
+        slack_request: SlackActionRequest,
+        organization: Organization,
+        channel_id: str,
+        message_ts: str,
+        slack_user_id: str,
+    ):
+        from sentry.integrations.slack.integration import SlackIntegration
+
+        self.slack_request = slack_request
+        self.organization = organization
+        self.channel_id = channel_id
+        self.message_ts = message_ts
+        self.thread_ts: str = slack_request.data.get("message", {}).get("thread_ts") or message_ts
+        self.slack_user_id = slack_user_id
+        self.install = SlackIntegration(
+            model=slack_request.integration, organization_id=organization.id
+        )
+
+    @staticmethod
+    def has_access(organization: Organization) -> bool:
+        return features.has("organizations:investigations-slack", organization)
+
+    def _send_thread_update(
+        self, data: NotificationData, ephemeral_user_id: str | None = None
+    ) -> None:
+        try:
+            send_thread_update(
+                install=self.install,
+                thread=SlackThreadDetails(thread_ts=self.thread_ts, channel_id=self.channel_id),
+                data=data,
+                ephemeral_user_id=ephemeral_user_id,
+            )
+        except IntegrationError:
+            # Already recorded by send_thread_update; it re-raises for task retries, which don't apply here.
+            pass
+
+    def on_trigger_investigation_error(self, *, error: str) -> None:
+        self._send_thread_update(
+            SeerInvestigationError(organization_id=self.organization.id, error_message=error),
+            ephemeral_user_id=self.slack_user_id,
+        )
+
+    def on_trigger_investigation_success(self, *, investigation: Investigation) -> None:
+        data = SeerInvestigationStarted(
+            organization_id=self.organization.id,
+            slack_user_id=self.slack_user_id,
+            investigation_url=investigation.get_absolute_url(),
+        )
+        update_investigation_alert_message(
+            request=self.slack_request,
+            install=self.install,
+            channel_id=self.channel_id,
+            message_ts=self.message_ts,
+            data=data,
+        )
+        self._send_thread_update(data)
+
+    def create_investigation_cache_payload(self) -> SlackInvestigationCachePayload:
+        return SlackInvestigationCachePayload(
+            organization_id=self.organization.id,
+            integration_id=self.install.model.id,
+            channel_id=self.channel_id,
+            thread_ts=self.thread_ts,
+            alert_message_ts=self.message_ts,
+            status_message_ts=None,
+            slack_user_id=self.slack_user_id,
+            last_sent_state=None,
+            final_sent=False,
+        )
+
+    @staticmethod
+    def on_investigation_update(
+        cache_payload: SlackInvestigationCachePayload, run: InvestigationOrchestrationRun
+    ) -> None:
+        pass
+
+
 def prepare_slack_thread_for_autofix_updates(
     *,
     thread_ts: str,
@@ -737,3 +843,6 @@ def prepare_slack_thread_for_autofix_updates(
 # Register after class definition to avoid decorator type-narrowing when stacking two registries.
 autofix_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAutofixEntrypoint)
 agent_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(SlackAgentEntrypoint)
+investigation_entrypoint_registry.register(key=SeerEntrypointKey.SLACK)(
+    SlackInvestigationEntrypoint
+)

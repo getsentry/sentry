@@ -561,7 +561,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
   transform: translateX(-2px);
 
-  > div {
+  .loading-indicator {
     border: 2px solid ${p => p.theme.colors.gray100} !important;
     border-left-color: ${p => p.theme.colors.gray200} !important;
   }

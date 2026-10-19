@@ -167,11 +167,6 @@
       "count": 1
     }
   },
-  "static/app/components/core/useScrollLock.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
   "static/app/components/customCommitsResolutionModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -945,11 +940,6 @@
       "count": 1
     }
   },
-  "static/app/components/profiling/flamegraph/callTreeTable.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "static/app/components/profiling/flamegraph/collapsibleTimeline.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -962,7 +952,7 @@
   },
   "static/app/components/profiling/flamegraph/flamegraphDrawer/flamegraphDrawer.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 3
+      "count": 2
     }
   },
   "static/app/components/profiling/flamegraph/flamegraphLayout.tsx": {
@@ -1131,9 +1121,6 @@
     }
   },
   "static/app/components/replays/replayContext.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 2
     }
@@ -1386,11 +1373,6 @@
       "count": 1
     }
   },
-  "static/app/components/sidebarSection.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/components/slider/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -1438,7 +1420,7 @@
   },
   "static/app/components/stream/group.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 4
+      "count": 3
     }
   },
   "static/app/components/tables/keyValueTable/keyValueTable.stories.tsx": {
@@ -1886,7 +1868,7 @@
   },
   "static/app/views/dashboards/widgetBuilder/components/newWidgetBuilder.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 4
+      "count": 1
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/queryFilterBuilder.tsx": {
@@ -1896,7 +1878,7 @@
   },
   "static/app/views/dashboards/widgetBuilder/components/visualize/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 4
+      "count": 1
     }
   },
   "static/app/views/dashboards/widgetBuilder/components/widgetTemplatesList.tsx": {
@@ -2294,17 +2276,12 @@
   },
   "static/app/views/explore/releases/list/releaseCard/index.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 5
+      "count": 4
     }
   },
   "static/app/views/explore/releases/list/releaseCard/releaseCardCommits.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/explore/releases/list/releaseCard/releaseCardProjectRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
     }
   },
   "static/app/views/explore/releases/list/releaseCard/releaseCardStatsPeriod.tsx": {
@@ -2527,11 +2504,6 @@
       "count": 1
     }
   },
-  "static/app/views/insights/crons/components/overviewTimeline/overviewRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 7
-    }
-  },
   "static/app/views/insights/crons/components/processingErrors/monitorProcessingErrors.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -2584,11 +2556,6 @@
   },
   "static/app/views/insights/pages/transactionNameSearchBar.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
-  "static/app/views/insights/uptime/components/overviewTimeline/overviewRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
@@ -2754,11 +2721,6 @@
   },
   "static/app/views/issueDetails/useEngagedViewTracking.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
-  "static/app/views/issueList/actions/index.tsx": {
-    "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
   },
@@ -3047,11 +3009,6 @@
       "count": 1
     }
   },
-  "static/app/views/preprod/buildComparison/header/buildCompareHeaderContent.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/preprod/buildComparison/main/sizeCompareSelectedBuilds.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3063,11 +3020,6 @@
     }
   },
   "static/app/views/preprod/buildDetails/main/insights/insightInfoModal.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -3160,11 +3112,6 @@
   "static/app/views/projectInstall/otherPlatformsInfo.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
-    }
-  },
-  "static/app/views/projectsDashboard/deploys.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
     }
   },
   "static/app/views/projectsDashboard/noEvents.tsx": {
@@ -3480,11 +3427,6 @@
       "count": 4
     }
   },
-  "static/app/views/settings/organizationIntegrations/integrationCodeMappings.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/settings/organizationIntegrations/integrationListDirectory.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -3500,17 +3442,7 @@
       "count": 1
     }
   },
-  "static/app/views/settings/organizationIntegrations/integrationServerlessRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "static/app/views/settings/organizationIntegrations/repositoryProjectPathConfigForm.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "static/app/views/settings/organizationIntegrations/repositoryProjectPathConfigRow.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -3803,11 +3735,6 @@
   "static/gsApp/components/dataConsentModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
-    }
-  },
-  "static/gsApp/components/features/disabledCustomInboundFilters.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
     }
   },
   "static/gsApp/components/features/disabledDataForwarding.tsx": {

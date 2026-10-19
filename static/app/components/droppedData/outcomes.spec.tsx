@@ -33,6 +33,18 @@ describe('reasonTitle', () => {
     expect(reasonTitle('log_bytes_usage_exceeded')).toBe('Quota exceeded');
   });
 
+  it('titles the localhost filter and invalid timestamp reasons', () => {
+    expect(reasonTitle('localhost')).toBe('Localhost filter');
+    expect(reasonTitle('timestamp')).toBe('Invalid timestamp');
+  });
+
+  it("maps the JavaScript SDK's ignored reason to the ignored spans title", () => {
+    expect(reasonTitle('ignored')).toBe('Dropped by ignored spans');
+    expect(reasonDescription('ignored', 'span')).toBe(
+      'Span dropped by your ignored spans configuration.'
+    );
+  });
+
   it('falls back to the raw code for an unknown reason', () => {
     expect(reasonTitle('some_new_reason')).toBe('some_new_reason');
   });
@@ -60,13 +72,25 @@ describe('reasonDescription', () => {
     );
   });
 
-  it('drops the data type for an unknown category', () => {
-    expect(reasonDescription('too_large:event', 'unknown')).toBe(
-      'The event exceeded maximum payload size.'
-    );
+  it('returns undefined when a dynamic reason has no resolvable data type', () => {
+    expect(reasonDescription('too_large:event', 'unknown')).toBeUndefined();
   });
 
   it('returns undefined for an unknown reason', () => {
     expect(reasonDescription('some_new_reason', 'span')).toBeUndefined();
+  });
+
+  it('describes the cors reason', () => {
+    expect(reasonTitle('cors')).toBe('Disallowed origin');
+    expect(reasonDescription('cors', 'span')).toBe(
+      "Origin not in project's Allowed Domains."
+    );
+  });
+
+  it('maps dynamic-sampling reasons that carry a rule-id suffix', () => {
+    expect(reasonTitle('Sampled:3000')).toBe('Dynamic sampling');
+    expect(reasonDescription('Sampled:0', 'span')).toBe(
+      'Dropped by a dynamic sampling rule.'
+    );
   });
 });

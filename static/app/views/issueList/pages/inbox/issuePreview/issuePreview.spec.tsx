@@ -26,6 +26,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
 import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
 import type {LinkedPullRequest} from 'sentry/types/integrations';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import {IssuePreview} from './issuePreview';
 
@@ -250,8 +251,9 @@ describe('IssuePreview', () => {
     });
 
     it('renders and copies summary context without Seer quota', async () => {
+      const writeText = jest.fn((_text: string) => Promise.resolve());
       Object.assign(navigator, {
-        clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+        clipboard: {writeText},
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
@@ -286,6 +288,17 @@ describe('IssuePreview', () => {
         expect.stringContaining(
           '## In the trace\n\nThe request failed while acquiring a connection.'
         )
+      );
+      await userEvent.click(
+        screen.getByRole('button', {name: 'More issue context options'})
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Open in ChatGPT'})
+      );
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        `codex://new?prompt=${encodeURIComponent(
+          `Fix Sentry issue ${group.shortId}: ${group.permalink}\n\nUse the Sentry MCP to fetch the issue details.\n\nSummary: The connection pool is exhausted. The retry handler opens connections outside the managed pool.`
+        )}`
       );
     });
   });
@@ -792,6 +805,9 @@ describe('IssuePreview', () => {
           await screen.findByRole('button', {name: 'Copy as Markdown'})
         ).toBeDisabled();
         expect(eventRequest).not.toHaveBeenCalled();
+        expect(
+          screen.getByRole('button', {name: 'More issue context options'})
+        ).toBeDisabled();
       });
     });
   });

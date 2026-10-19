@@ -13,7 +13,6 @@ from sentry.digests.notifications import (
     unsplit_key,
 )
 from sentry.digests.types import (
-    IdentifierKey,
     NotificationWithRuleObjects,
     Record,
     RecordWithRuleObjects,
@@ -24,6 +23,7 @@ from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -66,9 +66,8 @@ class BindRecordsTestCase(TestCase):
         (record,) = _bind_records([self.record], self.group_mapping, self.rule_mapping)
         assert record == self.record.with_rules([self.origin])
 
-    def test_record_uses_workflow_identifier(self) -> None:
+    def test_record_uses_workflow_ids(self) -> None:
         assert self.record.value.rules == [self.workflow_id]
-        assert self.record.value.identifier_key == IdentifierKey.WORKFLOW
 
     def test_without_group(self) -> None:
         # If the record can't be associated with a group, it should be dropped
@@ -93,7 +92,7 @@ class GroupRecordsTestCase(TestCase):
 
     @cached_property
     def origin(self) -> NotificationOrigin:
-        return NotificationOrigin.from_legacy_rule(self.rule)
+        return create_notification_origin(self.rule)
 
     def test_success(self) -> None:
         events = [
@@ -162,8 +161,8 @@ class SortDigestTestCase(TestCase):
         )
 
         origins = [
-            NotificationOrigin.from_legacy_rule(first_rule),
-            NotificationOrigin.from_legacy_rule(second_rule),
+            create_notification_origin(first_rule),
+            create_notification_origin(second_rule),
         ]
         groups = [self.create_group() for _ in range(3)]
 

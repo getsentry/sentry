@@ -3,14 +3,14 @@ import {IconInfo} from '@sentry/icons/info';
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import type {TagVariant} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
-import type {TagVariant} from 'sentry/utils/theme';
-import {type IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 import {
   type AlertRuleOptions,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {type IssueAlertNotificationProps} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 import {ScmAlertFrequency} from './scmAlertFrequency';
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';

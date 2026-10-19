@@ -14,6 +14,30 @@ from sentry.snuba.sessions import STATS_PERIODS
 # Those cases match this pattern with OpenApiTypes.STR
 SENTRY_HEX_ID_PATTERN = r"^[0-9a-f]{32}$"
 
+# Prepended to a parameter description. The docs badge `x-sentry-experimental` only on
+# a whole operation, so this notice is what a reader sees on the parameter itself.
+EXPERIMENTAL_PARAMETER_NOTICE = (
+    "**Experimental:** This parameter is under active development and may change."
+)
+
+
+def mark_parameter_experimental(parameter: OpenApiParameter) -> OpenApiParameter:
+    """Flag one parameter as experimental without marking the whole operation.
+
+    Sets ``x-sentry-experimental`` and prepends ``EXPERIMENTAL_PARAMETER_NOTICE``
+    to the description.
+    """
+    extensions = dict(parameter.extensions or {})
+    extensions["x-sentry-experimental"] = True
+    parameter.extensions = extensions
+
+    description = parameter.description
+    text = description if isinstance(description, str) else str(description or "")
+    parameter.description = (
+        f"{EXPERIMENTAL_PARAMETER_NOTICE}\n\n{text}" if text else EXPERIMENTAL_PARAMETER_NOTICE
+    )
+    return parameter
+
 
 def build_typed_list(type: Any):
     """

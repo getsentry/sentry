@@ -3,11 +3,10 @@ import {IconBroadcast} from '@sentry/icons/broadcast';
 import {IconBug} from '@sentry/icons/bug';
 import {IconLab} from '@sentry/icons/lab';
 
+import type {TagVariant} from '@sentry/scraps/theme';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useIsInsideInteractiveElement} from '@sentry/scraps/useIsInsideInteractiveElement';
-
-import type {TagVariant} from 'sentry/utils/theme';
 
 import {Tag} from './tag';
 

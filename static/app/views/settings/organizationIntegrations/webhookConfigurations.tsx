@@ -23,8 +23,8 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
-import {legacyWebhooksQueryOptions} from './webhookDetailedView';
-import type {WebhookProject} from './webhookDetailedView';
+import {legacyWebhooksQueryOptions} from './legacyWebhooksQueryOptions';
+import type {WebhookProject} from './legacyWebhooksQueryOptions';
 
 interface WebhookConfigurationsProps {
   webhookProjects: WebhookProject[];
