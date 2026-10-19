@@ -470,7 +470,7 @@ const StyledPositionWrapper = styled(PositionWrapper)`
 `;
 
 const StyledOverlay = styled(Overlay)<{
-  size: Props['size'];
+  size: MenuListItemProps['size'];
 }>`
   padding: 4px;
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};

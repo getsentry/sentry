@@ -131,7 +131,7 @@ export function GridListOption<T extends ListItemBase>({
       isSelected={isSelected}
       isPressed={isPressed}
       isFocused={isFocusWithin}
-      priority={priority ? 'primary' : 'default'}
+      priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
       innerWrapProps={gridCellProps}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
