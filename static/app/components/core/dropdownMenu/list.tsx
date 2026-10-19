@@ -15,6 +15,11 @@ import type {LocationDescriptor} from 'history';
 
 import {Container} from '@sentry/scraps/layout';
 import {isMenuItemHidden} from '@sentry/scraps/menu/item';
+import {
+  MenuHeaderLayout,
+  MenuHeading,
+  MenuSectionDivider,
+} from '@sentry/scraps/menu/visual';
 import {SearchInput} from '@sentry/scraps/searchInput';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -172,7 +177,17 @@ function DropdownMenuCollection({
               size={size}
               state={state}
             />
-            {showSeparator && <Separator {...separatorProps} />}
+            {showSeparator && (
+              <Container
+                as="li"
+                display="block"
+                padding="xs md xs lg"
+                {...separatorProps}
+                role="presentation"
+              >
+                <MenuSectionDivider />
+              </Container>
+            )}
           </Fragment>
         );
       })}
@@ -268,24 +283,30 @@ function DropdownMenuList({
       >
         <DropdownMenuContext value={contextValue}>
           <StyledOverlay>
-            {menuTitle && <MenuTitle>{menuTitle}</MenuTitle>}
+            {menuTitle && (
+              <MenuHeaderLayout padding="sm lg">
+                <MenuHeading>{menuTitle}</MenuHeading>
+              </MenuHeaderLayout>
+            )}
             {menuSearch && (
-              <SearchInput
-                aria-label={menuSearch.placeholder ?? 'Search'}
-                placeholder={menuSearch.placeholder ?? 'Search…'}
-                value={menuSearch.value}
-                onChange={event => menuSearch.onChange(event.target.value)}
-                onKeyDown={event => {
-                  if (event.key === 'ArrowDown') {
-                    event.preventDefault();
-                    menuRef.current
-                      ?.querySelector<HTMLElement>('[role^="menuitem"]')
-                      ?.focus();
-                  } else if (event.key === 'ArrowLeft' && parentMenuState) {
-                    parentMenuState.selectionManager.clearSelection();
-                  }
-                }}
-              />
+              <Container padding="xs">
+                <SearchInput
+                  aria-label={menuSearch.placeholder ?? 'Search'}
+                  placeholder={menuSearch.placeholder ?? 'Search…'}
+                  value={menuSearch.value}
+                  onChange={event => menuSearch.onChange(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'ArrowDown') {
+                      event.preventDefault();
+                      menuRef.current
+                        ?.querySelector<HTMLElement>('[role^="menuitem"]')
+                        ?.focus();
+                    } else if (event.key === 'ArrowLeft' && parentMenuState) {
+                      parentMenuState.selectionManager.clearSelection();
+                    }
+                  }}
+                />
+              </Container>
             )}
             <DropdownMenuListWrap
               ref={menuRef}
@@ -562,22 +583,4 @@ const DropdownMenuListWrap = styled('ul')<{
   &:focus {
     outline: none;
   }
-`;
-
-const MenuTitle = styled('div')`
-  flex-shrink: 0;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.primary};
-  white-space: nowrap;
-  padding: ${p => p.theme.space.sm} ${p => p.theme.space.lg};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  z-index: 2;
-`;
-
-const Separator = styled('li')`
-  list-style-type: none;
-  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
-  margin: ${p => p.theme.space.xs} ${p => p.theme.space.md} ${p => p.theme.space.xs}
-    ${p => p.theme.space.lg};
 `;

@@ -7,13 +7,11 @@ import {
   useMemo,
   useState,
 } from 'react';
-import {css} from '@emotion/react';
 
 import {Container} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
-import {Text} from '@sentry/scraps/text';
 
 import {useMenuContext} from './context';
+import {MenuSectionDivider, MenuSectionHeading, MenuSectionLayout} from './visual';
 
 interface SectionContextValue {
   labelId: string;
@@ -49,8 +47,7 @@ export function MenuSection({children, 'aria-label': ariaLabel}: MenuSectionProp
 
   return (
     <SectionContext value={sectionContext}>
-      <Container
-        as="li"
+      <MenuSectionLayout
         display={isEmpty ? 'none' : 'block'}
         role="presentation"
         hidden={isEmpty}
@@ -65,7 +62,7 @@ export function MenuSection({children, 'aria-label': ariaLabel}: MenuSectionProp
         >
           {children}
         </Container>
-      </Container>
+      </MenuSectionLayout>
     </SectionContext>
   );
 }
@@ -84,17 +81,7 @@ export function MenuSectionLabel({children}: MenuSectionLabelProps) {
       id={section?.labelId}
       padding="md lg"
     >
-      <Text
-        size="sm"
-        density="fixed"
-        bold
-        tabular
-        css={theme => css`
-          color: ${theme.tokens.interactive.transparent.neutral.content.headings};
-        `}
-      >
-        {children}
-      </Text>
+      <MenuSectionHeading>{children}</MenuSectionHeading>
     </Container>
   );
 }
@@ -108,7 +95,7 @@ export function MenuSectionSeparator() {
       role="presentation"
       padding="xs md xs lg"
     >
-      <Separator orientation="horizontal" border="muted" />
+      <MenuSectionDivider />
     </Container>
   );
 }

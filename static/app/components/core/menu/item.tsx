@@ -2,12 +2,9 @@ import {Fragment, useState} from 'react';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Container} from '@sentry/scraps/layout';
-import {
-  MenuListItem,
-  type MenuListItemProps as BaseMenuListItemProps,
-} from '@sentry/scraps/menuListItem';
 
 import {useMenuContext} from './context';
+import {MenuListItem, type MenuListItemProps as BaseMenuListItemProps} from './listItem';
 import {useSectionItemVisibility} from './section';
 
 export interface MenuListItemProps extends Omit<BaseMenuListItemProps, 'label'> {

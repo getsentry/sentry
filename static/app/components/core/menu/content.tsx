@@ -1,15 +1,15 @@
 import {createContext, useContext, useEffect} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {FocusScope} from '@react-aria/focus';
 
-import {Container, Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Container, Stack, type FlexProps} from '@sentry/scraps/layout';
 import {SearchInput, type SearchInputProps} from '@sentry/scraps/searchInput';
-import {Text} from '@sentry/scraps/text';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 
 import {useMenuContext, type MenuContextValue} from './context';
 import {getMenuItems} from './list';
+import {MenuFooterLayout, MenuHeaderLayout, MenuHeading} from './visual';
 
 const MenuHeaderContext = createContext<MenuContextValue | null>(null);
 
@@ -54,24 +54,14 @@ export function MenuHeader({title, children, ...props}: MenuHeaderProps) {
   const menu = useMenuContext();
   return (
     <MenuHeaderContext value={menu}>
-      <Stack borderBottom="muted" padding="xs" gap="0" {...props}>
+      <MenuHeaderLayout padding="xs" {...props}>
         {title && (
           <Container padding="md lg">
-            <Text
-              size="sm"
-              density="fixed"
-              bold
-              tabular
-              css={theme => css`
-                color: ${theme.tokens.interactive.transparent.neutral.content.headings};
-              `}
-            >
-              {title}
-            </Text>
+            <MenuHeading>{title}</MenuHeading>
           </Container>
         )}
         {children}
-      </Stack>
+      </MenuHeaderLayout>
     </MenuHeaderContext>
   );
 }
@@ -86,32 +76,30 @@ export function MenuSearch(props: MenuSearchProps) {
   }
   const {listRef, search, searchRef, setSearch} = menu;
   return (
-    <SearchInput
-      {...props}
-      containerPadding="0 xs xs xs"
-      ref={searchRef}
-      size="md"
-      css={css`
-        font-variant-numeric: lining-nums tabular-nums;
-      `}
-      value={search}
-      onChange={event => setSearch(event.target.value)}
-      onKeyDown={event => {
-        props.onKeyDown?.(event);
-        if (event.defaultPrevented) {
-          return;
-        }
-        if (event.key === 'ArrowDown') {
-          event.preventDefault();
-          getMenuItems(listRef.current)[0]?.focus();
-        }
-      }}
-    />
+    <Container padding="0 xs xs xs">
+      <SearchInput
+        {...props}
+        ref={searchRef}
+        size="md"
+        value={search}
+        onChange={event => setSearch(event.target.value)}
+        onKeyDown={event => {
+          props.onKeyDown?.(event);
+          if (event.defaultPrevented) {
+            return;
+          }
+          if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            getMenuItems(listRef.current)[0]?.focus();
+          }
+        }}
+      />
+    </Container>
   );
 }
 
 export type MenuFooterProps = FlexProps;
 
 export function MenuFooter(props: MenuFooterProps) {
-  return <Flex borderTop="muted" padding="md lg" align="center" {...props} />;
+  return <MenuFooterLayout padding="md lg" {...props} />;
 }

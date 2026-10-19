@@ -11,7 +11,12 @@ import type {OverlayTriggerState} from '@react-stately/overlays';
 import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {
+  MenuFooterLayout,
+  MenuHeaderLayout,
+  MenuHeading,
+} from '@sentry/scraps/menu/visual';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import {SearchInput} from '@sentry/scraps/searchInput';
 import type {FormSize} from '@sentry/scraps/theme';
@@ -212,6 +217,11 @@ export function Control<Value extends SelectKey>({
 
   const normalizedSearch = getSearchConfig(searchConfig);
   const searchEnabled = normalizedSearch !== undefined;
+  const headerPadding = {
+    xs: searchEnabled ? '2xs lg 0 lg' : '2xs lg',
+    sm: searchEnabled ? 'xs lg 0 lg' : 'xs lg',
+    md: searchEnabled ? 'sm lg 0 lg' : 'sm lg',
+  } as const;
   const searchFilter =
     typeof normalizedSearch?.filter === 'function' ? normalizedSearch.filter : undefined;
   const highlightSearch = normalizedSearch?.highlight ?? false;
@@ -555,50 +565,59 @@ export function Control<Value extends SelectKey>({
                 {(menuTitle ||
                   menuHeaderTrailingItems ||
                   (clearable && hasSelection)) && (
-                  <MenuHeader size={size}>
-                    <MenuTitle>{menuTitle}</MenuTitle>
-                    <MenuHeaderTrailingItems>
-                      {loading && <StyledLoadingIndicator size={12} />}
-                      {typeof menuHeaderTrailingItems === 'function'
-                        ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
-                        : menuHeaderTrailingItems}
-                      {clearable && hasSelection && (
-                        <ClearButton
-                          onClick={() => onClear?.({overlayState})}
-                          size="zero"
-                          variant="transparent"
-                        >
-                          {t('Clear')}
-                        </ClearButton>
-                      )}
-                    </MenuHeaderTrailingItems>
-                  </MenuHeader>
+                  <MenuHeaderLayout borderBottom={searchEnabled ? 'none' : 'muted'}>
+                    <Flex
+                      align="center"
+                      justify="between"
+                      gap="xl"
+                      padding={headerPadding[size]}
+                    >
+                      {menuTitle && <MenuHeading>{menuTitle}</MenuHeading>}
+                      <MenuHeaderTrailingItems>
+                        {loading && <StyledLoadingIndicator size={12} />}
+                        {typeof menuHeaderTrailingItems === 'function'
+                          ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                          : menuHeaderTrailingItems}
+                        {clearable && hasSelection && (
+                          <ClearButton
+                            onClick={() => onClear?.({overlayState})}
+                            size="zero"
+                            variant="transparent"
+                          >
+                            {t('Clear')}
+                          </ClearButton>
+                        )}
+                      </MenuHeaderTrailingItems>
+                    </Flex>
+                  </MenuHeaderLayout>
                 )}
                 {searchEnabled && (
-                  <SearchInput
-                    ref={searchRef}
-                    data-1p-ignore
-                    placeholder={normalizedSearch?.placeholder ?? 'Search…'}
-                    value={searchInputValue}
-                    onFocus={onSearchFocus}
-                    onBlur={onSearchBlur}
-                    onChange={e => updateSearch(e.target.value)}
-                    {...searchKeyboardProps}
-                  />
+                  <Container padding="xs">
+                    <SearchInput
+                      ref={searchRef}
+                      data-1p-ignore
+                      placeholder={normalizedSearch?.placeholder ?? 'Search…'}
+                      value={searchInputValue}
+                      onFocus={onSearchFocus}
+                      onBlur={onSearchBlur}
+                      onChange={e => updateSearch(e.target.value)}
+                      {...searchKeyboardProps}
+                    />
+                  </Container>
                 )}
                 {typeof menuBody === 'function'
                   ? menuBody({closeOverlay: overlayState.close})
                   : menuBody}
                 {!hideOptions && <Stack minHeight="0">{children}</Stack>}
                 {menuFooter && (
-                  <MenuFooter>
+                  <MenuFooterLayout padding="md lg">
                     {typeof menuFooter === 'function'
                       ? menuFooter({
                           closeOverlay: overlayState.close,
                           resetSearch: () => updateSearch(''),
                         })
                       : menuFooter}
-                  </MenuFooter>
+                  </MenuFooterLayout>
                 )}
               </FocusScope>
             </StyledOverlay>
@@ -624,44 +643,10 @@ const StyledBadge = styled(Badge)`
   top: auto;
 `;
 
-const MenuHeader = styled('div')<{size: NonNullable<ControlProps['size']>}>`
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${p =>
-      p.size === 'xs'
-        ? p.theme.space['2xs']
-        : p.size === 'sm'
-          ? p.theme.space.xs
-          : p.theme.space.sm}
-    ${p => p.theme.space.lg};
-  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
-  box-shadow: 0 1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
-
-  [data-menu-has-search='true'] > & {
-    padding-bottom: 0;
-    box-shadow: none;
-  }
-
-  line-height: ${p => p.theme.font.lineHeight.comfortable};
-  z-index: 2;
-
-  font-size: ${p => (p.size === 'xs' ? p.theme.font.size.xs : p.theme.font.size.sm)};
-  color: ${p => p.theme.tokens.content.primary};
-`;
-
 const MenuHeaderTrailingItems = styled('div')`
   display: grid;
   grid-auto-flow: column;
   gap: ${p => p.theme.space.xs};
-`;
-
-const MenuTitle = styled('span')`
-  font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  white-space: nowrap;
-  margin-right: ${p => p.theme.space.xl};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
@@ -726,11 +711,4 @@ const StyledPositionWrapper = styled(PositionWrapper, {
   min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p?.zIndex};
-`;
-
-const MenuFooter = styled('div')`
-  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
-  box-shadow: 0 -1px 0 ${p => p.theme.tokens.border.transparent.neutral.muted};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-  z-index: 2;
 `;

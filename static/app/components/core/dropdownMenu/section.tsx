@@ -2,6 +2,9 @@ import styled from '@emotion/styled';
 import {useMenuSection} from '@react-aria/menu';
 import type {Node} from '@react-types/shared';
 
+import {Container} from '@sentry/scraps/layout';
+import {MenuSectionHeading, MenuSectionLayout} from '@sentry/scraps/menu/visual';
+
 import type {MenuItemProps} from './item';
 
 type DropdownMenuSectionProps = {
@@ -20,27 +23,16 @@ export function DropdownMenuSection({node, children}: DropdownMenuSectionProps) 
   });
 
   return (
-    <DropdownMenuSectionWrap {...itemProps}>
-      {node.rendered && <Heading {...headingProps}>{node.rendered}</Heading>}
+    <MenuSectionLayout {...itemProps}>
+      {node.rendered && (
+        <Container padding="md lg">
+          <MenuSectionHeading {...headingProps}>{node.rendered}</MenuSectionHeading>
+        </Container>
+      )}
       <Group {...groupProps}>{children}</Group>
-    </DropdownMenuSectionWrap>
+    </MenuSectionLayout>
   );
 }
-
-const DropdownMenuSectionWrap = styled('li')`
-  list-style-type: none;
-`;
-
-const Heading = styled('span')`
-  display: block;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.sm};
-  line-height: ${p => p.theme.font.lineHeight.fixed};
-  color: ${p => p.theme.tokens.interactive.transparent.neutral.content.headings};
-  font-variant-numeric: lining-nums tabular-nums;
-  white-space: nowrap;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-`;
 
 const Group = styled('ul')`
   list-style-type: none;

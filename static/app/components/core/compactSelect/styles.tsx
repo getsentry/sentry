@@ -7,6 +7,11 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {
+  MenuSectionDivider,
+  MenuSectionHeading,
+  MenuSectionLayout,
+} from '@sentry/scraps/menu/visual';
 
 export const ListWrap = styled('ul')`
   margin: 0;
@@ -70,9 +75,7 @@ export const ListSeparator = styled('div')`
   }
 `;
 
-export const SectionWrap = styled('li')`
-  list-style-type: none;
-`;
+export const SectionWrap = MenuSectionLayout;
 
 export const SectionHeader = styled('div')`
   display: flex;
@@ -92,17 +95,7 @@ export const SectionHeader = styled('div')`
   }
 `;
 
-export const SectionTitle = styled('p')`
-  display: inline-block;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  font-size: ${p => p.theme.font.size.xs};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
-  white-space: nowrap;
-
-  margin: 0;
-  padding-right: ${p => p.theme.space['3xl']};
-`;
+export const SectionTitle = MenuSectionHeading;
 
 export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   padding: 0 ${p => p.theme.space.xs};
@@ -135,15 +128,22 @@ export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   }
 `;
 
-export const SectionSeparator = styled('li')`
+const SectionSeparatorWrap = styled('li')`
   list-style-type: none;
-  border-top: solid 1px ${p => p.theme.tokens.border.secondary};
   margin: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
 
   &:first-of-type {
     display: none;
   }
 `;
+
+export function SectionSeparator(props: React.HTMLAttributes<HTMLLIElement>) {
+  return (
+    <SectionSeparatorWrap {...props} role="presentation">
+      <MenuSectionDivider />
+    </SectionSeparatorWrap>
+  );
+}
 
 export const SectionGroup = styled('ul')`
   margin: 0;
