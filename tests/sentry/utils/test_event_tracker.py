@@ -6,7 +6,7 @@ from sentry.utils.event_tracker import TransactionStageStatus, logger, track_sam
 
 EVENT_ID = "9cdc4c32dff14fbbb012b0aa9e908126"
 CONSUMER_TYPE = ConsumerType.Transactions
-STATUS = TransactionStageStatus.REDIS_PUT
+STATUS = TransactionStageStatus.SAVE_TXN_STARTED
 
 
 @mock.patch.object(logger, "info")

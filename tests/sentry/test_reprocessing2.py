@@ -15,7 +15,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_reprocessing_conditions_working_payload_write(
+def test_reprocessing_passes_payload_inline(
     default_project: Project,
 ) -> None:
     event_id = "a" * 32
@@ -27,15 +27,10 @@ def test_reprocessing_conditions_working_payload_write(
             "sentry.reprocessing2.pull_event_data",
             return_value=ReprocessableEvent(event=event, data=data, attachments=[]),
         ),
-        mock.patch(
-            "sentry.reprocessing2.event_processing_store.store", return_value="e:reprocessing"
-        ) as store,
         mock.patch("sentry.tasks.store.preprocess_event_from_reprocessing") as preprocess,
     ):
         reprocess_event(default_project.id, event_id, start_time=1.0)
 
-    store.assert_not_called()
-    assert preprocess.call_args.kwargs["cache_key"] is None
     assert preprocess.call_args.kwargs["data"] is data
 
 

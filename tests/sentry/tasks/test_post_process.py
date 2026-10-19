@@ -54,7 +54,6 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
-from sentry.services.eventstore.processing import event_processing_store
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks import post_process as post_process_module
@@ -85,7 +84,7 @@ from sentry.uptime.autodetect.ranking import get_organization_bucket_key
 from sentry.uptime.utils import get_cluster
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
-from sentry.utils.cache import cache, cache_key_for_event
+from sentry.utils.cache import cache
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SdkName
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -3619,11 +3618,8 @@ class PostProcessGroupErrorTest(
             data={"message": "from nodestore", "tags": [["source", "nodestore"]]},
             project_id=self.project.id,
         )
-        cache_key = cache_key_for_event({"event_id": event.event_id, "project": event.project_id})
 
         with (
-            patch.object(event_processing_store, "get") as mock_processing_store_get,
-            patch.object(event_processing_store, "delete_by_key") as mock_processing_store_delete,
             patch.object(
                 nodestore.backend,
                 "get",
@@ -3635,14 +3631,11 @@ class PostProcessGroupErrorTest(
                     is_new=True,
                     is_regression=False,
                     is_new_group_environment=True,
-                    cache_key=cache_key,
                     group_id=event.group_id,
                     project_id=event.project_id,
                     event_id=event.event_id,
                 )
 
-        mock_processing_store_get.assert_not_called()
-        mock_processing_store_delete.assert_not_called()
         mock_get_event.assert_called_once_with(event.data.id)
         mock_run_post_process_job.assert_called_once()
         assert mock_run_post_process_job.call_args.args[0]["event"].group_id == event.group_id
@@ -3832,7 +3825,6 @@ class PostProcessGroupPerformanceTest(
             is_new=True,
             is_regression=False,
             is_new_group_environment=True,
-            cache_key="dummykey",
             group_id=event.group_id,
             occurrence_id=event.occurrence_id,
             project_id=self.project.id,

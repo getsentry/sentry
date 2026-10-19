@@ -11,11 +11,6 @@ from unittest.mock import patch
 import msgpack
 import orjson
 import pytest
-from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.backends.local.backend import LocalBroker
-from arroyo.backends.local.storages.memory import MemoryMessageStorage
-from arroyo.types import Partition, Topic
-from django.conf import settings
 from django.utils import timezone
 
 from sentry.attachments import (
@@ -45,21 +40,15 @@ from sentry.models.eventattachment import EventAttachment, PendingEventAttachmen
 from sentry.models.userreport import UserReport
 from sentry.objectstore import UsecaseId, get_session
 from sentry.services import eventstore
-from sentry.services.eventstore.processing import (
-    event_processing_store,
-    transaction_processing_store,
-)
 from sentry.tasks.store import save_event_attachments
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
 from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_objectstore, requires_snuba, requires_symbolicator
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.eventuser import EventUser
-from sentry.utils.json import loads
 from sentry.utils.safe import get_path
 
 pytestmark = [requires_snuba]
@@ -104,54 +93,10 @@ def preprocess_event():
 
 
 @django_db_all
-@pytest.mark.parametrize(
-    "transport_options,expected_writes",
-    [
-        ({"store.enable-inline-payloads": 0.0, "store.disable-processing-store": True}, 1),
-        ({"store.enable-inline-payloads": 1.0, "store.disable-processing-store": False}, 1),
-        ({}, 0),
-    ],
-)
-def test_ingest_conditions_working_payload_write(
-    default_project,
-    preprocess_event,
-    transport_options,
-    expected_writes,
-):
-    data = get_normalized_event({"message": "inline event"}, default_project)
-    data["type"] = "error"
-    with (
-        override_options(transport_options),
-        patch.object(event_processing_store, "store", wraps=event_processing_store.store) as store,
-        patch("sentry.ingest.consumer.processors.record") as record,
-    ):
-        process_event(
-            ConsumerType.Events,
-            {
-                "payload": orjson.dumps(data),
-                "start_time": time.time(),
-                "event_id": data["event_id"],
-                "project_id": default_project.id,
-            },
-            project=default_project,
-        )
-
-    assert store.call_count == expected_writes
-    assert record.call_count == expected_writes
-    (kwargs,) = preprocess_event
-    assert kwargs["data"] == data
-    assert bool(kwargs["cache_key"]) is bool(expected_writes)
-
-
-@django_db_all
 def test_ingest_inline_only_event_saves_without_working_payload(default_project, task_runner):
     payload = get_normalized_event({"message": "inline event"}, default_project)
     event_id = payload["event_id"]
-    with (
-        patch.object(event_processing_store, "store", wraps=event_processing_store.store) as store,
-        patch.object(event_processing_store, "get", wraps=event_processing_store.get) as get,
-        task_runner(),
-    ):
+    with task_runner():
         process_event(
             ConsumerType.Events,
             {
@@ -163,9 +108,6 @@ def test_ingest_inline_only_event_saves_without_working_payload(default_project,
             project=default_project,
         )
 
-    store.assert_not_called()
-    assert get.call_count == 1
-    assert get.call_args.kwargs == {"unprocessed": True}
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert event is not None
     assert event.data["logentry"]["formatted"] == "inline event"
@@ -193,7 +135,6 @@ def test_deduplication_works(default_project, task_runner, preprocess_event) -> 
 
     (kwargs,) = preprocess_event
     assert kwargs == {
-        "cache_key": None,
         "data": payload,
         "event_id": event_id,
         "project": default_project,
@@ -224,7 +165,6 @@ def test_process_event_from_kafka(default_project, preprocess_event) -> None:
 
     (kwargs,) = preprocess_event
     assert kwargs == {
-        "cache_key": None,
         "data": payload,
         "event_id": event_id,
         "project": default_project,
@@ -258,7 +198,6 @@ def test_process_event_from_kafka_inlines_preprocess_save_event_with_option(
 
     (kwargs,) = preprocess_event
     assert kwargs == {
-        "cache_key": None,
         "data": payload,
         "event_id": event_id,
         "project": default_project,
@@ -312,7 +251,6 @@ def test_process_event_from_kafka_transaction_spawns_save_event_transaction_by_d
     assert save_event_transaction.call_count == 0
     assert save_event_transaction.delay.call_args[0] == ()
     assert save_event_transaction.delay.call_args[1] == dict(
-        cache_key=None,
         data=payload,
         start_time=start_time,
         event_id=event_id,
@@ -364,7 +302,6 @@ def test_process_event_from_kafka_transaction_saves_inline_with_option(
     assert not len(preprocess_event)
     assert save_event_transaction.call_args[0] == ()
     assert save_event_transaction.call_args[1] == dict(
-        cache_key=None,
         data=payload,
         start_time=start_time,
         event_id=event_id,
@@ -390,31 +327,22 @@ def test_inline_transaction(
         },
         default_project,
     )
-    with (
-        patch.object(
-            transaction_processing_store, "store", wraps=transaction_processing_store.store
-        ) as store,
-        patch("sentry.ingest.consumer.processors.track_sampled_event") as track,
-    ):
-        process_event(
-            ConsumerType.Transactions,
-            {
-                "payload": orjson.dumps(data),
-                "start_time": time.time(),
-                "event_id": data["event_id"],
-                "project_id": default_project.id,
-            },
-            project=default_project,
-            inline_save_event_transaction=save_synchronously,
-        )
+    process_event(
+        ConsumerType.Transactions,
+        {
+            "payload": orjson.dumps(data),
+            "start_time": time.time(),
+            "event_id": data["event_id"],
+            "project_id": default_project.id,
+        },
+        project=default_project,
+        inline_save_event_transaction=save_synchronously,
+    )
 
-    store.assert_not_called()
-    track.assert_not_called()
     kwargs = {False: save_event_transaction.delay, True: save_event_transaction}[
         save_synchronously
     ].call_args.kwargs
     assert kwargs["data"] == data
-    assert kwargs["cache_key"] is None
 
 
 @django_db_all
@@ -459,72 +387,11 @@ def test_transactions_spawn_save_event_transaction(
     assert not len(preprocess_event)
     assert save_event_transaction.delay.call_args[0] == ()
     assert save_event_transaction.delay.call_args[1] == dict(
-        cache_key=None,
         data=payload,
         start_time=start_time,
         event_id=event_id,
         project_id=project_id,
     )
-
-
-@django_db_all
-def test_accountant_transaction(default_project) -> None:
-    storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
-    broker = LocalBroker(storage)
-    topic = Topic("shared-resources-usage")
-    broker.create_topic(topic, 1)
-    producer = broker.get_producer()
-
-    with (
-        override_options(
-            {
-                "shared_resources_accounting_enabled": [settings.EVENT_PROCESSING_STORE],
-                "store.enable-inline-payloads": 0.0,
-                "store.disable-processing-store": False,
-            }
-        ),
-        usage_accountant_backend(producer),
-    ):
-        now = datetime.datetime.now()
-        event = {
-            "type": "transaction",
-            "timestamp": now.isoformat(),
-            "start_timestamp": now.isoformat(),
-            "spans": [],
-            "contexts": {
-                "trace": {
-                    "parent_span_id": "8988cec7cc0779c1",
-                    "type": "trace",
-                    "op": "foobar",
-                    "trace_id": "a7d67cf796774551a95be6543cacd459",
-                    "span_id": "babaae0d4b7512d9",
-                    "status": "ok",
-                }
-            },
-        }
-        payload = get_normalized_event(event, default_project)
-        serialized = orjson.dumps(payload).decode()
-        process_event(
-            ConsumerType.Events,
-            {
-                "payload": serialized,
-                "start_time": time.time() - 3600,
-                "event_id": payload["event_id"],
-                "project_id": default_project.id,
-                "remote_addr": "127.0.0.1",
-            },
-            project=default_project,
-        )
-
-    msg1 = broker.consume(Partition(topic, 0), 0)
-    assert msg1 is not None
-    payload = msg1.payload
-    assert payload is not None
-    formatted = loads(payload.value.decode("utf-8"))
-    assert formatted["shared_resource_id"] == settings.EVENT_PROCESSING_STORE
-    assert formatted["app_feature"] == "transactions"
-    assert formatted["usage_unit"] == "bytes"
-    assert formatted["amount"] == len(serialized)
 
 
 @django_db_all
@@ -566,9 +433,6 @@ def test_feedbacks_spawn_save_event_feedback(
         )
     assert not len(preprocess_event)
     assert save_event_feedback.delay.call_args[0] == ()
-    # Feedback data is passed inline; nothing is stored in the processing store,
-    # so no cache_key is threaded through.
-    assert save_event_feedback.delay.call_args[1]["cache_key"] is None
     assert (
         save_event_feedback.delay.call_args[1]["data"]["contexts"]["feedback"]
         == event["contexts"]["feedback"]
@@ -576,7 +440,6 @@ def test_feedbacks_spawn_save_event_feedback(
     assert save_event_feedback.delay.call_args[1]["data"]["type"] == "feedback"
 
     # The feedback payload must not be left orphaned in the processing store.
-    assert event_processing_store.get(f"e:{event_id}:{project_id}") is None
 
 
 @django_db_all
@@ -653,10 +516,7 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
 
 
 @django_db_all
-@pytest.mark.parametrize("cache_key", (None, "", "e:working-event"))
-def test_save_cached_attachments_with_optional_event_cache_key(
-    default_project, task_runner, django_cache, cache_key
-) -> None:
+def test_save_cached_attachments(default_project, task_runner, django_cache) -> None:
     payload = get_normalized_event({"message": "hello world"}, default_project)
     event_id = payload["event_id"]
     chunked_data = b"chunked attachment" * 20
@@ -687,7 +547,6 @@ def test_save_cached_attachments_with_optional_event_cache_key(
         task_runner(),
     ):
         save_event_attachments(
-            cache_key=cache_key,
             data=payload,
             project_id=default_project.id,
             event_id=event_id,

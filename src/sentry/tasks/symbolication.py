@@ -10,7 +10,6 @@ from sentry_sdk import traces
 from taskbroker_client.constants import CompressionType
 
 from sentry import options
-from sentry.ingest.event_payload import load_event_payload, prepare_submit
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.processing import (
     get_native_symbolication_functions,
@@ -22,8 +21,6 @@ from sentry.lang.native.symbolicator import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.services.eventstore import processing
-from sentry.services.eventstore.processing.base import Event
 from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import StacktraceInfo
 from sentry.tasks import store
@@ -68,24 +65,14 @@ class SymbolicationTimeout(Exception):
 def _do_symbolicate_event(
     *,
     task_kind: SymbolicatorTaskKind,
-    cache_key: str | None,
     start_time: float | None,
     event_id: str | None,
-    data: Event | None = None,
+    data: MutableMapping[str, Any],
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
     unprocessed_pending: bool = False,
     unprocessed: MutableMapping[str, Any] | None = None,
 ) -> None:
-    data = load_event_payload(data, cache_key, processing.event_processing_store)
-
-    if data is None:
-        metrics.incr(
-            "events.failed", tags={"reason": "cache", "stage": "symbolicate"}, skip_internal=False
-        )
-        error_logger.error("symbolicate.failed.empty", extra={"cache_key": cache_key})
-        return
-
     event_id = str(data["event_id"])
     project_id = data["project"]
     has_changed = False
@@ -106,7 +93,6 @@ def _do_symbolicate_event(
 
             submit_symbolicate(
                 task_kind=task_kind.with_function(next_function),
-                cache_key=cache_key,
                 event_id=event_id,
                 start_time=start_time,
                 has_attachments=has_attachments,
@@ -118,7 +104,6 @@ def _do_symbolicate_event(
         # else:
         store.submit_process(
             from_reprocessing=task_kind.is_reprocessing,
-            cache_key=cache_key,
             event_id=event_id,
             start_time=start_time,
             data_has_changed=has_changed,
@@ -223,8 +208,7 @@ def _do_symbolicate_event(
             data.setdefault("_metrics", {})["flag.processing.fatal"] = True
             has_changed = True
 
-    # We cannot persist canonical types in the cache, so we need to
-    # downgrade this.
+    # Convert canonical types before serializing the next task.
     if not isinstance(data, dict):
         data = dict(data.items())
 
@@ -239,17 +223,14 @@ def _do_symbolicate_event(
 
 def submit_symbolicate(
     task_kind: SymbolicatorTaskKind,
-    cache_key: str | None,
     event_id: str | None,
     start_time: float | None,
+    data: MutableMapping[str, Any],
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
-    data: Event | None = None,
     unprocessed_pending: bool = False,
     unprocessed: MutableMapping[str, Any] | None = None,
 ) -> None:
-    data, cache_key = prepare_submit(data, cache_key, event_id)
-
     # Because of `mock` usage, we cannot just save a reference to the actual function
     # into the `TASK_FNS` dict. We actually have to access it at runtime from the global scope
     # on every invocation. Great stuff!
@@ -263,7 +244,6 @@ def submit_symbolicate(
     )
 
     task_fn.delay(
-        cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         has_attachments=has_attachments,
@@ -299,10 +279,9 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         compression_type=CompressionType.ZSTD,
     )
     def symbolication_fn(
-        cache_key: str | None = None,
+        data: MutableMapping[str, Any],
         start_time: float | None = None,
         event_id: str | None = None,
-        data: Event | None = None,
         has_attachments: bool = False,
         symbolicate_functions: list[str] | None = None,
         unprocessed_pending: bool = False,
@@ -312,7 +291,6 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         """
         Handles event symbolication using the external service: symbolicator.
 
-        :param string cache_key: the cache key for the event data
         :param int start_time: the timestamp when the event was ingested
         :param string event_id: the event identifier
         """
@@ -328,7 +306,6 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
 
         return _do_symbolicate_event(
             task_kind=task_kind,
-            cache_key=cache_key,
             start_time=start_time,
             event_id=event_id,
             data=data,
