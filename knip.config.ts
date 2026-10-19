@@ -23,8 +23,6 @@ const productionEntryPoints = [
   'components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
   'views/authV2/authLogin/**/*.{ts,tsx}',
-  // OAuth infrastructure is introduced before the route entry points.
-  'views/authV2/oauth{,Authorize,Device}/**/*.{ts,tsx}',
 ];
 
 // Scoped configs reuse the test package's dependencies. Parse the shared config
