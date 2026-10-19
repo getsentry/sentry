@@ -259,7 +259,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         ):
             observation, _ = self.send(self.invocation(action))
 
-        assert observation.outcome == ShadowOutcome.GROUP_STATS_CHANGED
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
         assert observation.mismatch is None
         legacy, platform = observation.compared[0]
         assert "Events: *5*" in orjson.dumps(legacy).decode()
@@ -279,7 +279,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         ):
             observation, _ = self.send(self.invocation(action))
 
-        assert observation.outcome == ShadowOutcome.GROUP_STATS_CHANGED
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
         legacy, platform = observation.compared[0]
         assert "Events: *2*" in orjson.dumps(legacy).decode()
         assert "Events:" not in orjson.dumps(platform).decode()
@@ -294,7 +294,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         ):
             observation, _ = self.send(self.invocation(action))
 
-        assert observation.outcome == ShadowOutcome.GROUP_STATS_CHANGED
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
         legacy, platform = observation.compared[0]
         assert "State: *New*   First Seen: *Just now*" in orjson.dumps(legacy).decode()
         assert "State: *New*   First Seen: *1 minute ago*" in orjson.dumps(platform).decode()
