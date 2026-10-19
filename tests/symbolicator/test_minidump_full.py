@@ -271,13 +271,13 @@ class SymbolicatorLargeCompressedDifIntegrationTest(RelayStoreHelper, Transactio
         with self.feature(
             {
                 **self._FEATURES,
-                "organizations:objectstore-debugfiles-write": True,
+                "organizations:objectstore-debugfiles-exclusive-write": True,
             }
         ):
             self.upload_large_symbols()
 
             dif = ProjectDebugFile.objects.get(project_id=self.project.id)
-            assert dif.file_id is not None
+            assert dif.file_id is None
             assert dif.storage_path is not None
 
             with open(get_fixture_path("native", "windows.dmp"), "rb") as minidump:

@@ -490,9 +490,7 @@ def create_dif_from_file(
     """Creates a legacy-backed ``ProjectDebugFile`` from an existing ``File``.
 
     Use this when the DIF has already been written to Sentry's legacy ``File`` storage. The
-    existing ``File`` is retained. If the double-write flag is enabled, its contents are also
-    uploaded to Objectstore, but an Objectstore upload failure does not prevent creation of the
-    legacy-backed DIF. To create an Objectstore-only DIF from a file-like object, use
+    existing ``File`` is retained. To create an Objectstore-only DIF from a file-like object, use
     ``create_dif_from_fileobj`` instead.
     """
     file_size = file.size
@@ -519,48 +517,16 @@ def create_dif_from_file(
         unit="byte",
     )
 
-    objectstore_metadata: dict[str, Any] = {}
-    session: Session | None = None
-    storage_path: str | None = None
-    if features.has("organizations:objectstore-debugfiles-write", project.organization):
-        session = get_session(UsecaseId.DEBUG_FILES, project)
-        try:
-            with file.getfile() as source:
-                storage_path = session.put(
-                    source,
-                    content_type=content_type,
-                    filename=get_dif_download_filename(meta),
-                )
-        except Exception:
-            logger.exception("Failed to dual-write debug file to Objectstore")
-        else:
-            objectstore_metadata = {
-                "storage_path": storage_path,
-                "content_type": content_type,
-                "file_size": file_size,
-                "date_created": timezone.now(),
-            }
-
-    try:
-        dif = ProjectDebugFile.objects.create(
-            file=file,
-            checksum=checksum,
-            debug_id=meta.debug_id,
-            code_id=meta.code_id,
-            cpu_name=meta.arch,
-            object_name=object_name,
-            project_id=project.id,
-            data=meta.data,
-            **objectstore_metadata,
-        )
-    except Exception:
-        if storage_path is not None:
-            assert session is not None
-            try:
-                session.delete(storage_path)
-            except Exception:
-                logger.exception("Failed to clean up Objectstore debug file after database error")
-        raise
+    dif = ProjectDebugFile.objects.create(
+        file=file,
+        checksum=checksum,
+        debug_id=meta.debug_id,
+        code_id=meta.code_id,
+        cpu_name=meta.arch,
+        object_name=object_name,
+        project_id=project.id,
+        data=meta.data,
+    )
 
     # The DIF we've just created might actually be removed here again. But since
     # this can happen at any time in near or distant future, we don't care and

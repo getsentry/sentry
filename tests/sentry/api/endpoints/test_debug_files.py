@@ -346,7 +346,7 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
     """Explicit coverage of both redirect branches for Objectstore-backed debug files."""
 
     def _upload_and_get_download_id(self) -> str:
-        with self.feature({"organizations:objectstore-debugfiles-write": True}):
+        with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
             response = self._upload_proguard(self.url, PROGUARD_UUID)
         assert response.status_code == 201, response.content
         return self.client.get(self.url).data[0]["id"]
